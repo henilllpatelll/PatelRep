@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "back": "Back",
+    "search": "Search"
+  },
+  "rooms": {
+    "status": {
+      "dirty": "Dirty",
+      "in_progress": "In Progress",
+      "clean": "Clean",
+      "inspected": "Inspected",
+      "ooo": "Out of Order",
+      "pickup": "Pickup"
+    },
+    "start_cleaning": "Start Cleaning",
+    "mark_clean": "Mark Clean",
+    "vip": "VIP Guest",
+    "at_risk": "At Risk"
+  },
+  "tasks": {
+    "priority": {
+      "urgent": "Urgent",
+      "normal": "Normal",
+      "low": "Low"
+    },
+    "status": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "copilot": {
+    "placeholder": "Ask anything about your operations...",
+    "quick_actions": {
+      "report_issue": "Report Issue",
+      "extra_amenities": "Extra Amenities",
+      "ask_sop": "Ask SOP"
+    }
+  }
+}

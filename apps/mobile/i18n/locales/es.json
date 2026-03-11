@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "confirm": "Confirmar",
+    "back": "Atrás",
+    "offline": "Sin conexión — los cambios se sincronizarán al conectarse"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "magicLink": "Enviar enlace mágico",
+    "magicLinkSent": "Revisa tu correo para el enlace de acceso",
+    "signInWith": "Iniciar sesión con correo/contraseña"
+  },
+  "tabs": {
+    "myRooms": "Mis Cuartos",
+    "workOrders": "Órdenes de Trabajo",
+    "tasks": "Tareas",
+    "copilot": "Copiloto",
+    "profile": "Perfil"
+  },
+  "rooms": {
+    "title": "Mis Cuartos",
+    "status": {
+      "DIRTY": "Sucio",
+      "IN_PROGRESS": "En Progreso",
+      "CLEAN": "Limpio",
+      "INSPECTED": "Inspeccionado",
+      "OOO": "Fuera de Servicio",
+      "PICKUP": "Recogida"
+    },
+    "risk": {
+      "HIGH": "Alto Riesgo",
+      "MEDIUM": "Riesgo Medio",
+      "LOW": "Al Día"
+    },
+    "markClean": "Marcar Limpio",
+    "markInProgress": "Empezar Limpieza",
+    "dndAlert": "No Molestar",
+    "vipGuest": "Huésped VIP",
+    "noRooms": "Sin cuartos asignados",
+    "floor": "Piso {{floor}}",
+    "eta": "Listo a las {{time}}"
+  },
+  "workOrders": {
+    "title": "Órdenes de Trabajo",
+    "open": "Abiertas",
+    "inProgress": "En Progreso",
+    "completed": "Completadas",
+    "claim": "Tomar",
+    "complete": "Marcar Completo",
+    "addPhoto": "Agregar Foto",
+    "notes": "Notas de cierre",
+    "priority": {
+      "emergency": "Emergencia",
+      "urgent": "Urgente",
+      "normal": "Normal",
+      "low": "Baja"
+    },
+    "noOrders": "Sin órdenes de trabajo"
+  },
+  "copilot": {
+    "title": "Copiloto IA",
+    "placeholder": "Pregunta algo o crea una tarea...",
+    "quickActions": {
+      "reportIssue": "Reportar Problema",
+      "requestSupplies": "Pedir Suministros",
+      "roomStatus": "Estado del Cuarto",
+      "guestRequest": "Solicitud del Huésped"
+    },
+    "thinking": "Pensando...",
+    "taskCreated": "¡Tarea creada!",
+    "confirmTask": "¿Crear esta tarea?",
+    "confirm": "Sí, Crear",
+    "edit": "Editar"
+  },
+  "notifications": {
+    "taskAssigned": "Nueva tarea asignada",
+    "woAssigned": "Orden de trabajo asignada",
+    "inspectionFailed": "El cuarto {{room}} no pasó inspección",
+    "slaWarning": "Advertencia de SLA para OT {{id}}"
+  }
+}

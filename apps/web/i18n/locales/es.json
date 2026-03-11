@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "back": "Regresar",
+    "search": "Buscar"
+  },
+  "rooms": {
+    "status": {
+      "dirty": "Sucia",
+      "in_progress": "En Proceso",
+      "clean": "Limpia",
+      "inspected": "Inspeccionada",
+      "ooo": "Fuera de Servicio",
+      "pickup": "Servicio Rapido"
+    },
+    "start_cleaning": "Comenzar Limpieza",
+    "mark_clean": "Marcar como Limpia",
+    "vip": "Huesped VIP",
+    "at_risk": "En Riesgo"
+  },
+  "tasks": {
+    "priority": {
+      "urgent": "Urgente",
+      "normal": "Normal",
+      "low": "Bajo"
+    },
+    "status": {
+      "open": "Abierto",
+      "in_progress": "En Proceso",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    }
+  },
+  "copilot": {
+    "placeholder": "Pregunta cualquier cosa sobre tus operaciones...",
+    "quick_actions": {
+      "report_issue": "Reportar Problema",
+      "extra_amenities": "Articulos Extra",
+      "ask_sop": "Consultar SOP"
+    }
+  }
+}

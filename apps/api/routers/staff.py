@@ -1,0 +1,123 @@
+from fastapi import APIRouter, Depends, HTTPException
+from middleware.auth import get_current_user, require_role, CurrentUser
+from models.requests import InviteStaffRequest
+from core.database import supabase
+
+router = APIRouter(prefix="/staff", tags=["staff"])
+
+
+@router.get("")
+async def list_staff(
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
+):
+    """List all active staff members for the hotel."""
+    result = supabase.table("user_roles")\
+        .select("*, user_profiles(id, preferred_name, full_name, avatar_url, phone)")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("is_active", True)\
+        .order("role")\
+        .execute()
+    return {"data": result.data}
+
+
+@router.get("/invitations")
+async def list_invitations(
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """List all pending (not yet accepted) staff invitations for this hotel."""
+    result = supabase.table("staff_invitations")\
+        .select("*")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .is_("accepted_at", "null")\
+        .order("created_at", desc=True)\
+        .execute()
+    return {"data": result.data}
+
+
+@router.post("/invite")
+async def invite_staff(
+    body: InviteStaffRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """
+    Invite a new staff member by email.
+    - Inserts a record into staff_invitations (token and expires_at use DB defaults).
+    - Sends the invite email via Supabase Auth admin API.
+    - If the user already exists in auth, the invitation record is still created.
+    """
+    invitation_row = {
+        "tenant_id": current_user.hotel_id,
+        "email": body.email,
+        "role": body.role,
+        "invited_by": current_user.user_id,
+    }
+    if body.department_id is not None:
+        invitation_row["department_id"] = str(body.department_id)
+
+    inv_result = supabase.table("staff_invitations").insert(invitation_row).execute()
+
+    if not inv_result.data:
+        raise HTTPException(status_code=500, detail="Failed to create invitation record")
+
+    invitation = inv_result.data[0]
+
+    # Send the actual invite email via Supabase Auth admin API.
+    # If the user already exists the API raises an exception; we catch it and continue.
+    user_metadata: dict = {
+        "hotel_id": current_user.hotel_id,
+        "role": body.role,
+        "full_name": body.full_name,
+    }
+    if body.phone:
+        user_metadata["phone"] = body.phone
+
+    try:
+        supabase.auth.admin.invite_user_by_email(
+            body.email,
+            options={"data": user_metadata},
+        )
+    except Exception:
+        # User may already exist in Supabase Auth; invitation record is still valid.
+        pass
+
+    return {"data": invitation}
+
+
+@router.patch("/{staff_id}")
+async def update_staff(
+    staff_id: str,
+    body: dict,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Update a staff member's role, department, or active status."""
+    allowed_fields = {"role", "department_id", "is_active"}
+    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No valid fields to update")
+
+    result = supabase.table("user_roles")\
+        .update(update_data)\
+        .eq("user_id", staff_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/{staff_id}")
+async def deactivate_staff(
+    staff_id: str,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Deactivate a staff member (soft delete — sets is_active=false)."""
+    if staff_id == current_user.user_id:
+        raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
+
+    supabase.table("user_roles")\
+        .update({"is_active": False})\
+        .eq("user_id", staff_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    return {"data": {"success": True, "deactivated_user_id": staff_id}}

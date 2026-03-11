@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm": "Confirm",
+    "back": "Back",
+    "offline": "You're offline — changes will sync when connected"
+  },
+  "auth": {
+    "login": "Log In",
+    "email": "Email address",
+    "password": "Password",
+    "magicLink": "Send Magic Link",
+    "magicLinkSent": "Check your email for a login link",
+    "signInWith": "Sign in with email/password"
+  },
+  "tabs": {
+    "myRooms": "My Rooms",
+    "workOrders": "Work Orders",
+    "tasks": "Tasks",
+    "copilot": "Copilot",
+    "profile": "Profile"
+  },
+  "rooms": {
+    "title": "My Rooms",
+    "status": {
+      "DIRTY": "Dirty",
+      "IN_PROGRESS": "In Progress",
+      "CLEAN": "Clean",
+      "INSPECTED": "Inspected",
+      "OOO": "Out of Order",
+      "PICKUP": "Pick Up"
+    },
+    "risk": {
+      "HIGH": "High Risk",
+      "MEDIUM": "Medium Risk",
+      "LOW": "On Track"
+    },
+    "markClean": "Mark Clean",
+    "markInProgress": "Start Cleaning",
+    "dndAlert": "Do Not Disturb",
+    "vipGuest": "VIP Guest",
+    "noRooms": "No rooms assigned",
+    "floor": "Floor {{floor}}",
+    "eta": "Ready by {{time}}"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "open": "Open",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "claim": "Claim",
+    "complete": "Mark Complete",
+    "addPhoto": "Add Photo",
+    "notes": "Completion notes",
+    "priority": {
+      "emergency": "Emergency",
+      "urgent": "Urgent",
+      "normal": "Normal",
+      "low": "Low"
+    },
+    "noOrders": "No work orders"
+  },
+  "copilot": {
+    "title": "AI Copilot",
+    "placeholder": "Ask anything or create a task...",
+    "quickActions": {
+      "reportIssue": "Report Issue",
+      "requestSupplies": "Request Supplies",
+      "roomStatus": "Room Status",
+      "guestRequest": "Guest Request"
+    },
+    "thinking": "Thinking...",
+    "taskCreated": "Task created!",
+    "confirmTask": "Create this task?",
+    "confirm": "Yes, Create",
+    "edit": "Edit"
+  },
+  "notifications": {
+    "taskAssigned": "New task assigned",
+    "woAssigned": "Work order assigned",
+    "inspectionFailed": "Room {{room}} failed inspection",
+    "slaWarning": "SLA warning for WO {{id}}"
+  }
+}
