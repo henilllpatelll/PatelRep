@@ -15,32 +15,53 @@ class CurrentUser:
     email: str = ""
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security)
-) -> CurrentUser:
-    token = credentials.credentials
+def _decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token,
             settings.supabase_jwt_secret,
             algorithms=["HS256"],
             audience="authenticated"
         )
-        user_id = payload.get("sub")
-        hotel_id = payload.get("hotel_id")
-        role = payload.get("role", "none")
-
-        if not user_id or not hotel_id:
-            raise HTTPException(status_code=401, detail="Invalid token claims")
-
-        return CurrentUser(
-            user_id=user_id,
-            hotel_id=hotel_id,
-            role=role,
-            email=payload.get("email", "")
-        )
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Security(security)
+) -> CurrentUser:
+    payload = _decode_token(credentials.credentials)
+    user_id = payload.get("sub")
+    hotel_id = payload.get("hotel_id")
+    role = payload.get("role", "none")
+
+    if not user_id or not hotel_id:
+        raise HTTPException(status_code=401, detail="Invalid token claims")
+
+    return CurrentUser(
+        user_id=user_id,
+        hotel_id=hotel_id,
+        role=role,
+        email=payload.get("email", "")
+    )
+
+
+async def get_current_user_no_hotel(
+    credentials: HTTPAuthorizationCredentials = Security(security)
+) -> CurrentUser:
+    """Auth dependency for endpoints that run before a hotel exists (e.g. POST /hotels)."""
+    payload = _decode_token(credentials.credentials)
+    user_id = payload.get("sub")
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token claims")
+
+    return CurrentUser(
+        user_id=user_id,
+        hotel_id=payload.get("hotel_id", ""),
+        role=payload.get("role", "none"),
+        email=payload.get("email", "")
+    )
 
 
 def require_role(*roles: str):

@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from middleware.auth import get_current_user, require_role, CurrentUser
+from middleware.auth import get_current_user, get_current_user_no_hotel, require_role, CurrentUser
 from models.requests import CreateHotelRequest, UpdateHotelRequest
 from core.database import supabase
 
@@ -28,7 +28,7 @@ def _slugify(name: str) -> str:
 @router.post("")
 async def create_hotel(
     body: CreateHotelRequest,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user_no_hotel),
 ):
     base_slug = _slugify(body.name)
 

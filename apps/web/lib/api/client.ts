@@ -1,14 +1,12 @@
+import { createClient } from '@/lib/supabase/client'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
 
 async function getToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null
-  const storage = localStorage.getItem('sb-' + (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', '').split('.')[0] + '-auth-token')
-  if (!storage) return null
-  try {
-    return JSON.parse(storage)?.access_token || null
-  } catch {
-    return null
-  }
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token || null
 }
 
 interface RequestOptions {
