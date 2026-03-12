@@ -9,12 +9,12 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str
 
     # AI
-    openai_api_key: str
-    anthropic_api_key: str
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
 
     # Stripe
-    stripe_secret_key: str
-    stripe_webhook_secret: str
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
 
     # Opera Cloud
     opera_oauth_client_id: str = ""
