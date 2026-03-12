@@ -976,6 +976,7 @@ function Step3InviteStaff({
           email: invite.email.trim(),
           full_name: invite.full_name.trim(),
           role: invite.role,
+          hotel_id: hotelId,
         })
       } catch (err: any) {
         errors.push(`${invite.email}: ${err.message || 'Failed'}`)

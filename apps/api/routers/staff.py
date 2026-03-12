@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from middleware.auth import require_role, CurrentUser
+from middleware.auth import require_role, get_current_user_no_hotel, CurrentUser
 from models.requests import InviteStaffRequest
 from core.database import supabase
 
@@ -37,7 +37,7 @@ async def list_invitations(
 @router.post("/invite")
 async def invite_staff(
     body: InviteStaffRequest,
-    current_user: CurrentUser = Depends(require_role("gm"))
+    current_user: CurrentUser = Depends(get_current_user_no_hotel)
 ):
     """
     Invite a new staff member by email.
@@ -45,8 +45,12 @@ async def invite_staff(
     - Sends the invite email via Supabase Auth admin API.
     - If the user already exists in auth, the invitation record is still created.
     """
+    # hotel_id comes from JWT claims (normal flow) or request body (onboarding wizard)
+    hotel_id = current_user.hotel_id or body.hotel_id
+    if not hotel_id:
+        raise HTTPException(status_code=400, detail="hotel_id required")
     invitation_row = {
-        "tenant_id": current_user.hotel_id,
+        "tenant_id": hotel_id,
         "email": body.email,
         "role": body.role,
         "invited_by": current_user.user_id,
@@ -64,7 +68,7 @@ async def invite_staff(
     # Send the actual invite email via Supabase Auth admin API.
     # If the user already exists the API raises an exception; we catch it and continue.
     user_metadata: dict = {
-        "hotel_id": current_user.hotel_id,
+        "hotel_id": hotel_id,
         "role": body.role,
         "full_name": body.full_name,
     }

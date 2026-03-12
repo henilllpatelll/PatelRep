@@ -254,3 +254,4 @@ class InviteStaffRequest(BaseModel):
     full_name: str
     department_id: Optional[UUID4] = None
     phone: Optional[str] = None
+    hotel_id: Optional[str] = None  # passed during onboarding before hotel_id is in JWT
