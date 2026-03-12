@@ -76,7 +76,7 @@ export const roomsApi = {
     apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),
 
   getHistory: (roomId: string) =>
-    apiClient.get<{ data: RoomStatusHistoryEntry[] }>(`/rooms/${roomId}/history`),
+    apiClient.get(`/rooms/${roomId}/history`),
 
   importRooms: (rooms: ImportRoomPayload[]) =>
     apiClient.post('/rooms/import', { source: 'manual', rooms }),
