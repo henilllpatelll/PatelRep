@@ -65,8 +65,8 @@ export default function LoginPage() {
       (data.user?.app_metadata as Record<string, unknown>)?.hotel_id ??
       (data.user?.user_metadata as Record<string, unknown>)?.hotel_id
 
-    router.push(getRedirectPath(hotelId as string | undefined))
-    // Don't set loading false here; the page is navigating away
+    // Hard navigation ensures session cookies are written before the server reads them
+    window.location.href = getRedirectPath(hotelId as string | undefined)
   }
 
   const handleMagicLink = async (e: React.FormEvent) => {
