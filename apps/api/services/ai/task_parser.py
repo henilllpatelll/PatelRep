@@ -1,6 +1,6 @@
 from openai import OpenAI
 from core.config import settings
-from datetime import datetime, date
+from datetime import date
 
 client = OpenAI(api_key=settings.openai_api_key)
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase

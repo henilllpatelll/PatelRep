@@ -53,9 +53,12 @@ async def list_work_orders(
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)
 
-    if status: query = query.eq("status", status)
-    if category: query = query.eq("category", category)
-    if priority: query = query.eq("priority", priority)
+    if status:
+        query = query.eq("status", status)
+    if category:
+        query = query.eq("category", category)
+    if priority:
+        query = query.eq("priority", priority)
 
     if current_user.role == "engineer":
         query = query.or_(f"assigned_to.eq.{current_user.user_id},assigned_to.is.null")

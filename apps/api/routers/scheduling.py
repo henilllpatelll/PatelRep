@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import Optional, List
+from typing import Optional
 from datetime import date, datetime, timedelta
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
@@ -7,7 +7,6 @@ from models.requests import (
     CreateShiftRequest,
     UpdateShiftRequest,
     BulkShiftAssignmentRequest,
-    UpdateStaffProfileRequest,
 )
 from core.database import supabase
 

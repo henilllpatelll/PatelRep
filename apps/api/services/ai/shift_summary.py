@@ -5,7 +5,6 @@ Collects: logbook entries, completed tasks, open work orders for the shift perio
 import anthropic
 from core.config import settings
 from core.database import supabase
-from datetime import datetime, timedelta
 
 
 def generate_shift_summary(hotel_id: str, shift_id: str, shift_date: str) -> dict:

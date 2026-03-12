@@ -7,7 +7,6 @@ from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response
 
 from core.config import settings
 from routers import (
@@ -73,7 +72,7 @@ async def health():
     try:
         # Quick ping to check DB connectivity
         from core.database import supabase
-        result = supabase.table("tenants").select("id").limit(1).execute()
+        supabase.table("tenants").select("id").limit(1).execute()
         db_ok = True
     except Exception as e:
         db_ok = False

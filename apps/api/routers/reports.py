@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import date, timedelta
-from middleware.auth import get_current_user, require_role, CurrentUser
+from middleware.auth import require_role, CurrentUser
 from core.database import supabase
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -170,7 +170,8 @@ async def get_staff_performance(
     metrics.sort(key=lambda x: x["tasks_completed"] + x["wo_completed"], reverse=True)
 
     if format == "csv":
-        import csv, io
+        import csv
+        import io
         from fastapi.responses import StreamingResponse
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=[
@@ -309,7 +310,8 @@ async def get_ai_usage_report(
         breakdown[t] = breakdown.get(t, 0) + i.get("credits_charged", 0)
 
     if format == "csv":
-        import csv, io
+        import csv
+        import io
         from fastapi.responses import StreamingResponse
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=["interaction_type", "credits"])

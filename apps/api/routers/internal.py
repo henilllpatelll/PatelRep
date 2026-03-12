@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -117,8 +117,6 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
     from services.ai.shift_summary import generate_shift_summary
 
     # Find shifts that ended ~2 hours ago (give staff time to log entries)
-    now = datetime.utcnow()
-    two_hours_ago = (now - timedelta(hours=2)).strftime("%H:%M:%S")
     today = date.today().isoformat()
 
     # Get all shifts that end around this time

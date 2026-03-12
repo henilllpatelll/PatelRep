@@ -1,4 +1,3 @@
-import pytest
 import os
 
 # Set test environment variables before importing app

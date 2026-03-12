@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import date, datetime
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -19,8 +19,6 @@ async def get_housekeeping_board(
     include_predictions: bool = Query(True),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    target_date = board_date or date.today()
-
     # Fetch room_status rows with joined room/room_type data.
     # supabase-py does not support ordering by joined table columns directly,
     # so we sort in Python after fetching.

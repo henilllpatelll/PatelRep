@@ -1,5 +1,3 @@
-import hmac
-import hashlib
 import httpx
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -68,7 +66,7 @@ async def opera_callback(
         )
         token_response.raise_for_status()
         tokens = token_response.json()
-    except Exception as e:
+    except Exception:
         return RedirectResponse(
             f"{settings.app_url}/settings/integrations?opera=error&reason=token_exchange_failed"
         )

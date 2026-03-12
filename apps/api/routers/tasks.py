@@ -64,11 +64,16 @@ async def list_tasks(
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)
 
-    if status: query = query.eq("status", status)
-    if task_type: query = query.eq("task_type", task_type)
-    if priority: query = query.eq("priority", priority)
-    if assigned_to: query = query.eq("assigned_to", assigned_to)
-    if room_id: query = query.eq("room_id", room_id)
+    if status:
+        query = query.eq("status", status)
+    if task_type:
+        query = query.eq("task_type", task_type)
+    if priority:
+        query = query.eq("priority", priority)
+    if assigned_to:
+        query = query.eq("assigned_to", assigned_to)
+    if room_id:
+        query = query.eq("room_id", room_id)
 
     # Housekeeper sees only their tasks
     if current_user.role == "housekeeper":

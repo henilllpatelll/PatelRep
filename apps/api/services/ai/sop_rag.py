@@ -64,7 +64,7 @@ def _chunk_text(text: str, page_number: int) -> List[dict]:
         if len(para) <= CHUNK_SIZE:
             segments.append(para)
         else:
-            lines = [l.strip() for l in para.split("\n") if l.strip()]
+            lines = [ln.strip() for ln in para.split("\n") if ln.strip()]
             current = ""
             for line in lines:
                 if not current:

@@ -1,6 +1,6 @@
 import stripe
 from fastapi import APIRouter, Depends
-from middleware.auth import get_current_user, require_role, CurrentUser
+from middleware.auth import require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
 from datetime import date

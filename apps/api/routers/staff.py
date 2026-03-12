@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from middleware.auth import get_current_user, require_role, CurrentUser
+from middleware.auth import require_role, CurrentUser
 from models.requests import InviteStaffRequest
 from core.database import supabase
 

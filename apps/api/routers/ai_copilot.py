@@ -41,8 +41,7 @@ def _get_hotel_context(hotel_id: str) -> dict:
     hotel_name = hotel.data.get("name", "the hotel") if hotel.data else "the hotel"
 
     # Try to get current/most recent active shift
-    from datetime import date, datetime
-    today = date.today().isoformat()
+    from datetime import datetime
     now_time = datetime.utcnow().strftime("%H:%M:%S")
 
     shift = supabase.table("shifts")\
@@ -73,7 +72,7 @@ def _resolve_room_id(hotel_id: str, room_number: str) -> str | None:
     """Look up room UUID by room number."""
     if not room_number:
         return None
-    result = supabase.table("rooms")\
+    supabase.table("rooms")\
         .select("room_id")\
         .eq("tenant_id", hotel_id)\
         .execute()
