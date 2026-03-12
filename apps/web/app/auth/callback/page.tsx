@@ -13,27 +13,36 @@ export default function AuthCallbackPage() {
     const handleCallback = async () => {
       const supabase = createClient()
       const code = searchParams.get('code')
+      const tokenHash = searchParams.get('token_hash')
+      const type = searchParams.get('type') as 'magiclink' | 'recovery' | 'invite' | null
+      const redirectTo = searchParams.get('next') ?? '/dashboard'
 
-      if (!code) {
-        // No code in the URL — nothing to exchange. Could be a hash-based token
-        // (older magic links). Supabase SSR handles those automatically via the
-        // onAuthStateChange listener in Providers. Just wait briefly then redirect.
-        const timer = setTimeout(() => {
-          router.replace('/dashboard')
-        }, 1500)
-        return () => clearTimeout(timer)
-      }
-
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-
-      if (exchangeError) {
-        setError(exchangeError.message)
+      if (tokenHash && type) {
+        // Magic link / OTP flow — verify the token hash
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type,
+        })
+        if (verifyError) {
+          setError(verifyError.message)
+          return
+        }
+        router.replace(redirectTo)
         return
       }
 
-      // Auth succeeded — the onAuthStateChange listener in Providers will hydrate
-      // the stores. Navigate to dashboard (or wherever was intended).
-      const redirectTo = searchParams.get('next') ?? '/dashboard'
+      if (code) {
+        // PKCE / OAuth flow — exchange code for session
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        if (exchangeError) {
+          setError(exchangeError.message)
+          return
+        }
+        router.replace(redirectTo)
+        return
+      }
+
+      // No code or token_hash — nothing to do, redirect
       router.replace(redirectTo)
     }
 
