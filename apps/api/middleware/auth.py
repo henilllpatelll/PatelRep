@@ -3,8 +3,30 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from core.config import settings
 from dataclasses import dataclass
+import time
+import httpx
 
 security = HTTPBearer()
+
+_jwks_cache: dict | None = None
+_jwks_cache_time: float = 0.0
+
+
+def _fetch_jwks() -> dict:
+    """Fetch and cache Supabase JWKS for ES256 token verification."""
+    global _jwks_cache, _jwks_cache_time
+    now = time.time()
+    if _jwks_cache is None or (now - _jwks_cache_time) > 3600:
+        try:
+            r = httpx.get(
+                f"{settings.supabase_url}/auth/v1/.well-known/jwks.json",
+                timeout=5.0
+            )
+            _jwks_cache = r.json()
+            _jwks_cache_time = now
+        except Exception:
+            pass
+    return _jwks_cache or {"keys": []}
 
 
 @dataclass
@@ -16,11 +38,23 @@ class CurrentUser:
 
 
 def _decode_token(token: str) -> dict:
+    # Try HS256 first (smoke tests + older Supabase projects)
     try:
         return jwt.decode(
             token,
             settings.supabase_jwt_secret,
             algorithms=["HS256"],
+            audience="authenticated"
+        )
+    except JWTError:
+        pass
+    # Fall back to ES256 via JWKS (newer Supabase projects)
+    try:
+        jwks = _fetch_jwks()
+        return jwt.decode(
+            token,
+            jwks,
+            algorithms=["ES256"],
             audience="authenticated"
         )
     except JWTError as e:
