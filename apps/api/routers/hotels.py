@@ -104,7 +104,10 @@ async def create_hotel(
     except Exception:
         pass  # Don't fail hotel creation if Stripe is unavailable
 
-    return {"data": hotel}
+    sub_result = supabase.table("subscriptions").select("plan_status, credits_included, cap_cents").eq("tenant_id", hotel_id).single().execute()
+    subscription = sub_result.data or {"plan_status": "trialing", "credits_included": 5000}
+
+    return {"data": {"hotel": hotel, "subscription": subscription}}
 
 
 @router.get("/{hotel_id}")
