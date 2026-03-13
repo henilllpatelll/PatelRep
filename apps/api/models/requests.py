@@ -119,14 +119,14 @@ class CreateAssignmentsRequest(BaseModel):
 
 # --- Inspections ---
 class InspectionResultItem(BaseModel):
-    template_item_id: UUID4
+    template_item_id: Optional[UUID4] = None
     result: Literal["pass", "fail", "na"]
     note: Optional[str] = None
 
 
 class SubmitInspectionRequest(BaseModel):
     room_id: UUID4
-    template_id: UUID4
+    template_id: Optional[UUID4] = None
     overall_result: Literal["passed", "failed", "conditional"]
     notes: Optional[str] = None
     items: List[InspectionResultItem]

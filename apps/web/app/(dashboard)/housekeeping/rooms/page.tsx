@@ -57,7 +57,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   const csvMutation = useMutation({
     mutationFn: () => roomsApi.importFromCSV(csvText),
     onSuccess: (data: any) => {
-      setImportResult({ imported: data?.imported ?? 0, skipped: data?.skipped ?? 0 })
+      const d = data?.data ?? data
+      setImportResult({ imported: d?.imported_count ?? d?.imported ?? 0, skipped: d?.skipped_count ?? d?.skipped ?? 0 })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     },
     onError: (err: Error) => setImportError(err.message),
@@ -66,7 +67,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   const manualMutation = useMutation({
     mutationFn: (rows: ImportRoomPayload[]) => roomsApi.importRooms(rows),
     onSuccess: (data: any) => {
-      setImportResult({ imported: data?.imported ?? 0, skipped: data?.skipped ?? 0 })
+      const d = data?.data ?? data
+      setImportResult({ imported: d?.imported_count ?? d?.imported ?? 0, skipped: d?.skipped_count ?? d?.skipped ?? 0 })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     },
     onError: (err: Error) => setImportError(err.message),

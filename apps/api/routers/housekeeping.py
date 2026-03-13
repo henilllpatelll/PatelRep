@@ -395,7 +395,7 @@ async def submit_inspection(
     inspection = supabase.table("inspections").insert({
         "tenant_id": current_user.hotel_id,
         "room_id": str(request.room_id),
-        "template_id": str(request.template_id),
+        "template_id": str(request.template_id) if request.template_id else None,
         "inspected_by": current_user.user_id,
         "overall_result": request.overall_result,
         "notes": request.notes,
@@ -407,7 +407,7 @@ async def submit_inspection(
     results_data = [
         {
             "inspection_id": inspection_id,
-            "template_item_id": str(item.template_item_id),
+            "template_item_id": str(item.template_item_id) if item.template_item_id else None,
             "tenant_id": current_user.hotel_id,
             "result": item.result,
             "note": item.note,

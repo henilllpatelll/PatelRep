@@ -151,29 +151,25 @@ export function RoomStatusBoard() {
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── React Query fetch ─────────────────────────────────────────────────────
-  const { isLoading, isError } = useQuery({
+  const { isLoading, isError, data: boardData } = useQuery({
     queryKey: ['housekeeping-board', selectedDate, selectedShift],
-    queryFn: async () => {
-      const data = await housekeepingApi.getBoard(
-        selectedDate,
-        selectedShift ?? undefined,
-        true,
-      )
-      return data
-    },
-    onSuccess: (data: any) => {
-      const rooms: any[] = data?.data ?? []
-      setRooms(rooms)
+    queryFn: () => housekeepingApi.getBoard(
+      selectedDate,
+      selectedShift ?? undefined,
+      true,
+    ),
+  })
 
-      // Extract per-room predictions embedded in board response
-      const preds = rooms
-        .filter((r: any) => r.prediction != null)
-        .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
-      if (preds.length > 0) setPredictions(preds)
-
-      setLastSyncedAt(new Date())
-    },
-  } as any)
+  useEffect(() => {
+    if (!boardData) return
+    const rooms: any[] = (boardData as any)?.data ?? []
+    setRooms(rooms)
+    const preds = rooms
+      .filter((r: any) => r.prediction != null)
+      .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
+    if (preds.length > 0) setPredictions(preds)
+    setLastSyncedAt(new Date())
+  }, [boardData])
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
   useEffect(() => {
