@@ -119,7 +119,21 @@ app.include_router(lost_found.router, prefix=PREFIX)
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    allowed = [
+        settings.app_url,
+        "https://patelrep-web.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:19006",
+    ]
+    cors_headers = {}
+    if origin in allowed:
+        cors_headers = {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        }
     return JSONResponse(
         status_code=500,
-        content={"error": {"code": "INTERNAL_ERROR", "message": str(exc)}}
+        content={"error": {"code": "INTERNAL_ERROR", "message": str(exc)}},
+        headers=cors_headers,
     )

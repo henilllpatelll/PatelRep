@@ -11,13 +11,28 @@ async def list_staff(
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
 ):
     """List all active staff members for the hotel."""
-    result = supabase.table("user_roles")\
-        .select("*, user_profiles(id, preferred_name, full_name, avatar_url, phone)")\
+    roles_result = supabase.table("user_roles")\
+        .select("id, user_id, tenant_id, role, department_id, is_active, created_at")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("role")\
         .execute()
-    return {"data": result.data}
+
+    roles = roles_result.data or []
+    user_ids = list({r["user_id"] for r in roles})
+
+    profiles_map: dict = {}
+    if user_ids:
+        profiles_result = supabase.table("user_profiles")\
+            .select("id, full_name, preferred_name, avatar_url, phone")\
+            .in_("id", user_ids)\
+            .execute()
+        profiles_map = {p["id"]: p for p in (profiles_result.data or [])}
+
+    for r in roles:
+        r["user_profiles"] = profiles_map.get(r["user_id"], {})
+
+    return {"data": roles}
 
 
 @router.get("/invitations")

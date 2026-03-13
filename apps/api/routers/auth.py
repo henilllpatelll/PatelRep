@@ -9,9 +9,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def get_me(current_user: CurrentUser = Depends(get_current_user)):
     """Returns current user profile and hotel context."""
     profile = supabase.table("user_profiles")\
-        .select("*, user_roles(role, department_id)")\
+        .select("id, full_name, preferred_name, phone, avatar_url, language_pref, is_active")\
         .eq("id", current_user.user_id)\
-        .single()\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
         .execute()
 
     hotel = supabase.table("tenants")\
@@ -20,11 +21,15 @@ async def get_me(current_user: CurrentUser = Depends(get_current_user)):
         .single()\
         .execute()
 
+    user_data = profile.data or {}
+    user_data["id"] = current_user.user_id
+    user_data["email"] = current_user.email
+    user_data["role"] = current_user.role
+
     return {
-        "data": {
-            "user": profile.data,
-            "hotel": hotel.data,
-        }
+        "user": user_data,
+        "hotel": hotel.data,
+        "subscription": {},
     }
 
 

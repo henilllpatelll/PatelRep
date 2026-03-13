@@ -83,13 +83,21 @@ async def get_staff_performance(
         .lte("created_at", e_str)\
         .execute()
 
-    # User profiles for name lookup
+    # User profiles for name lookup (user_profiles uses tenant_id, no role column)
     profiles_result = supabase.table("user_profiles")\
-        .select("id, full_name, preferred_name, role")\
-        .eq("hotel_id", current_user.hotel_id)\
+        .select("id, full_name, preferred_name")\
+        .eq("tenant_id", current_user.hotel_id)\
         .execute()
 
-    profile_map = {p["id"]: p for p in (profiles_result.data or [])}
+    # Roles lookup from user_roles
+    roles_result = supabase.table("user_roles")\
+        .select("user_id, role")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("is_active", True)\
+        .execute()
+
+    role_map = {r["user_id"]: r["role"] for r in (roles_result.data or [])}
+    profile_map = {p["id"]: {**p, "role": role_map.get(p["id"], "")} for p in (profiles_result.data or [])}
 
     # Aggregate per staff
     staff_stats: dict = {}
