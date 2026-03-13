@@ -1674,10 +1674,11 @@ export default function OnboardingPage() {
       logo_url: hotel.logo_url,
     })
     if (subscription) setSubscription(subscription)
-    // Write hotel_id into user_metadata so the middleware can see it immediately.
-    // The JWT hook (app_metadata) requires Supabase dashboard registration;
-    // user_metadata is the reliable fallback the middleware already checks.
-    await supabase.auth.updateUser({ data: { hotel_id: hotel.id } })
+    // Set a routing cookie immediately so the middleware allows navigation away
+    // from /onboarding. This is a hint only — actual auth is enforced by RLS/JWT.
+    document.cookie = `pr_hotel_id=${hotel.id}; path=/; max-age=31536000; SameSite=Lax`
+    // Also persist to user_metadata so the JWT hook can pick it up on next refresh.
+    supabase.auth.updateUser({ data: { hotel_id: hotel.id } })
     goNext()
   }
 

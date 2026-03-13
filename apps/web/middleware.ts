@@ -60,10 +60,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Authenticated but no hotel_id — redirect to onboarding
-  // Check both JWT app_metadata and user_metadata (the hook may not have run yet)
+  // Check JWT claims first (app_metadata via hook, user_metadata as fallback),
+  // then fall back to the pr_hotel_id cookie set by the onboarding page on hotel creation.
   const hotelId =
     (user.app_metadata as Record<string, unknown>)?.hotel_id ??
-    (user.user_metadata as Record<string, unknown>)?.hotel_id
+    (user.user_metadata as Record<string, unknown>)?.hotel_id ??
+    request.cookies.get('pr_hotel_id')?.value
 
   if (!hotelId && pathname !== '/onboarding') {
     const url = request.nextUrl.clone()
