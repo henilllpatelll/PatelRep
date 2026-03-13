@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -42,7 +42,10 @@ function statusBadge(status: string) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AssignmentsPage() {
-  const [date, setDate] = useState(todayISO())
+  const [date, setDate] = useState('')
+  useEffect(() => {
+    setDate(todayISO())
+  }, [])
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [aiLoading, setAiLoading] = useState(false)
 
@@ -116,9 +119,11 @@ export default function AssignmentsPage() {
         >
           Today
         </button>
-        <span className="text-sm text-gray-400">
-          {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
-        </span>
+        {date && (
+          <span className="text-sm text-gray-400">
+            {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+          </span>
+        )}
       </div>
 
       {/* Table */}
