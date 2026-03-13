@@ -1,12 +1,25 @@
-[build]
+[[services]]
+name = "api"
+
+[services.build]
 builder = "dockerfile"
 dockerfilePath = "apps/api/Dockerfile"
 
-[deploy]
+[services.deploy]
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [[services]]
-name = "api"
+name = "web"
+
+[services.build]
+builder = "dockerfile"
+dockerfilePath = "apps/web/Dockerfile"
+
+[services.deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
