@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
+import { useAuthStore } from '@/stores/authStore'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -595,6 +596,7 @@ function AIUsageTab() {
 
 export default function ReportsPage() {
   const { role, isGM, isSupervisor } = useRole()
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [activeTab, setActiveTab] = useState<TabId>('daily')
 
   // Build visible tabs based on role
@@ -624,6 +626,14 @@ export default function ReportsPage() {
   // If the active tab is no longer visible (role changed), pick first
   const visibleTabIds = tabs.map((t) => t.id)
   const currentTab = visibleTabIds.includes(activeTab) ? activeTab : (tabs[0]?.id ?? 'daily')
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+      </div>
+    )
+  }
 
   if (tabs.length === 0) {
     return (
