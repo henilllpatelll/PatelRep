@@ -413,7 +413,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
         onClose={() => setShowInspectionModal(false)}
         onSuccess={() => {
           setShowInspectionModal(false)
-          onStatusChange(room?.room_id ?? '', 'INSPECTED')
           onClose()
         }}
       />
