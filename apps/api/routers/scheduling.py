@@ -116,7 +116,7 @@ async def list_assignments(
 ):
     """List shift assignments, optionally filtered by date, shift, or user."""
     query = supabase.table("shift_assignments")\
-        .select("*, user_profiles(preferred_name, full_name), shifts(name, start_time, end_time)")\
+        .select("*, shifts(name, start_time, end_time)")\
         .eq("tenant_id", current_user.hotel_id)\
         .order("work_date", desc=True)
 
@@ -279,8 +279,6 @@ async def today_roster(
     result = supabase.table("shift_assignments")\
         .select(
             "user_id, is_on_shift, clocked_in_at, clocked_out_at, "
-            "user_profiles(full_name), "
-            "user_roles(role), "
             "shifts(name, start_time, end_time)"
         )\
         .eq("tenant_id", current_user.hotel_id)\
@@ -290,8 +288,6 @@ async def today_roster(
 
     roster = []
     for row in (result.data or []):
-        profile = row.get("user_profiles") or {}
-        role_row = row.get("user_roles") or {}
         shift = row.get("shifts") or {}
 
         # Include rows where staff is currently on shift OR clocked in but not out.
@@ -300,10 +296,8 @@ async def today_roster(
 
         roster.append({
             "user_id": row["user_id"],
-            "full_name": profile.get("full_name"),
-            "role": role_row.get("role") if isinstance(role_row, dict) else (
-                role_row[0].get("role") if role_row else None
-            ),
+            "full_name": None,
+            "role": None,
             "shift": {
                 "name": shift.get("name"),
                 "start_time": shift.get("start_time"),

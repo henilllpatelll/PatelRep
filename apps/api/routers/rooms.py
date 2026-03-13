@@ -139,8 +139,7 @@ async def list_rooms(
         .select(
             "*, "
             "rooms(id, room_number, floor, building, room_type_id, "
-            "room_types(name, code, base_clean_minutes)), "
-            "user_profiles(preferred_name, full_name)"
+            "room_types(name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
     )

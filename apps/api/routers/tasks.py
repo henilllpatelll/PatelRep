@@ -59,7 +59,7 @@ async def list_tasks(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     query = supabase.table("tasks")\
-        .select("*, rooms(room_number), user_profiles(preferred_name)")\
+        .select("*, rooms(room_number)")\
         .eq("tenant_id", current_user.hotel_id)\
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)

@@ -25,7 +25,7 @@ def generate_shift_summary(hotel_id: str, shift_id: str, shift_date: str) -> dic
 
     # 2. Get logbook entries for this shift
     logbook_result = supabase.table("logbook_entries")\
-        .select("content, created_at, user_profiles(preferred_name, full_name)")\
+        .select("content, created_at, author_id")\
         .eq("tenant_id", hotel_id)\
         .eq("shift_id", shift_id)\
         .order("created_at", desc=False)\
@@ -55,7 +55,7 @@ def generate_shift_summary(hotel_id: str, shift_id: str, shift_date: str) -> dic
 
     # 5. Build prompt context
     log_text = "\n".join([
-        f"- [{e.get('created_at', '')[:16]}] {(e.get('user_profiles') or {}).get('preferred_name') or (e.get('user_profiles') or {}).get('full_name', 'Staff')}: {e.get('content', '')}"
+        f"- [{e.get('created_at', '')[:16]}] Staff: {e.get('content', '')}"
         for e in logbook_entries
     ]) or "No logbook entries recorded."
 

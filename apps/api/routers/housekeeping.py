@@ -27,8 +27,7 @@ async def get_housekeeping_board(
         .select(
             "*, "
             "rooms!inner(id, room_number, floor, building, "
-            "room_types(name, code, base_clean_minutes)), "
-            "user_profiles(preferred_name, full_name)"
+            "room_types(name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .execute()
@@ -106,7 +105,6 @@ async def get_assignments(
         supabase.table("room_assignments")
         .select(
             "id, room_id, assigned_to, shift_id, assignment_date, "
-            "user_profiles!room_assignments_assigned_to_fkey(id, full_name, preferred_name), "
             "room_status(status, rooms(room_number, room_types(name)))"
         )
         .eq("tenant_id", current_user.hotel_id)
@@ -122,15 +120,14 @@ async def get_assignments(
     # Group by housekeeper
     grouped: dict[str, dict] = {}
     for a in assignments:
-        hk_profile = a.get("user_profiles") or {}
         hk_id = a.get("assigned_to")
 
         if hk_id not in grouped:
             grouped[hk_id] = {
                 "housekeeper": {
                     "id": hk_id,
-                    "full_name": hk_profile.get("full_name", ""),
-                    "preferred_name": hk_profile.get("preferred_name", ""),
+                    "full_name": "",
+                    "preferred_name": "",
                 },
                 "rooms": [],
                 "room_count": 0,
@@ -245,8 +242,7 @@ async def suggest_assignments(
     hk_query = (
         supabase.table("shift_assignments")
         .select(
-            "user_id, "
-            "user_profiles(id, full_name, preferred_name)"
+            "user_id"
         )
         .eq("tenant_id", current_user.hotel_id)
         .eq("work_date", target_date.isoformat())
@@ -265,11 +261,10 @@ async def suggest_assignments(
         uid = row.get("user_id")
         if uid and uid not in seen_user_ids:
             seen_user_ids.add(uid)
-            profile = row.get("user_profiles") or {}
             housekeepers.append({
                 "id": uid,
-                "full_name": profile.get("full_name", ""),
-                "preferred_name": profile.get("preferred_name", ""),
+                "full_name": "",
+                "preferred_name": "",
                 "assigned_rooms": [],
                 "assigned_minutes": 0,
             })
@@ -457,9 +452,8 @@ async def list_inspections(
     query = (
         supabase.table("inspections")
         .select(
-            "id, overall_result, notes, completed_at, "
-            "rooms!inner(room_number), "
-            "user_profiles!inspections_inspected_by_fkey(full_name, preferred_name)"
+            "id, overall_result, notes, completed_at, inspected_by, "
+            "rooms!inner(room_number)"
         )
         .eq("tenant_id", current_user.hotel_id)
         .gte("completed_at", f"{from_date.isoformat()}T00:00:00")
@@ -479,11 +473,10 @@ async def list_inspections(
     output = []
     for row in rows:
         room = row.get("rooms") or {}
-        profile = row.get("user_profiles") or {}
         output.append({
             "id": row.get("id"),
             "room_number": room.get("room_number", ""),
-            "inspector_name": profile.get("preferred_name") or profile.get("full_name", ""),
+            "inspector_name": row.get("inspected_by", ""),
             "overall_result": row.get("overall_result"),
             "notes": row.get("notes"),
             "completed_at": row.get("completed_at"),

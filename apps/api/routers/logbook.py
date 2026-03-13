@@ -35,7 +35,7 @@ async def list_logbook_entries(
 ):
     """List logbook entries with optional filters."""
     query = supabase.table("logbook_entries")\
-        .select("*, user_profiles(preferred_name, full_name), departments(name)")\
+        .select("*, departments(name)")\
         .eq("tenant_id", current_user.hotel_id)\
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)

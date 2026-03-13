@@ -39,7 +39,7 @@ async def list_lost_found_items(
 ):
     """List lost & found items with optional filters."""
     query = supabase.table("lost_found_items")\
-        .select("*, rooms(room_number), user_profiles!found_by(preferred_name, full_name)")\
+        .select("*, rooms(room_number)")\
         .eq("tenant_id", current_user.hotel_id)\
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)
@@ -69,7 +69,7 @@ async def get_lost_found_item(
 ):
     """Get a specific lost & found item."""
     result = supabase.table("lost_found_items")\
-        .select("*, rooms(room_number), user_profiles!found_by(preferred_name, full_name)")\
+        .select("*, rooms(room_number)")\
         .eq("id", item_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .single()\
