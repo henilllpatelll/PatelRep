@@ -15,21 +15,27 @@ async def get_me(current_user: CurrentUser = Depends(get_current_user)):
         .maybe_single()\
         .execute()
 
-    hotel = supabase.table("tenants")\
+    hotel_result = supabase.table("tenants")\
         .select("id, name, timezone, room_count, logo_url")\
         .eq("id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
-    user_data = profile.data or {}
+    sub_result = supabase.table("subscriptions")\
+        .select("plan_status, credits_included, cap_cents")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    user_data = (profile.data or {}) if profile else {}
     user_data["id"] = current_user.user_id
     user_data["email"] = current_user.email
     user_data["role"] = current_user.role
 
     return {
         "user": user_data,
-        "hotel": hotel.data,
-        "subscription": {},
+        "hotel": (hotel_result.data or {}) if hotel_result else {},
+        "subscription": (sub_result.data or {}) if sub_result else {},
     }
 
 
