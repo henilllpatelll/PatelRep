@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useRef, forwardRef } from 'react'
+import { useState, useCallback, useRef, forwardRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -1606,6 +1607,7 @@ const AI_TIPS: Record<number, string> = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const supabase = createClient()
   const { setHotel, setSubscription } = useHotelStore()
 
   const [currentStep, setCurrentStep] = useState(1)
@@ -1641,6 +1643,14 @@ export default function OnboardingPage() {
     })
   ) as Record<number, StepStatus>
 
+  // Refresh session when reaching the Done step so the JWT hook injects hotel_id.
+  // Without this the middleware sees no hotel_id in the token and redirects back here.
+  useEffect(() => {
+    if (currentStep === 6) {
+      supabase.auth.refreshSession()
+    }
+  }, [currentStep]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length))
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1))
 
@@ -1653,7 +1663,7 @@ export default function OnboardingPage() {
   }
 
   // Step 1 complete
-  const handleHotelCreated = (hotel: any, subscription: any) => {
+  const handleHotelCreated = async (hotel: any, subscription: any) => {
     setHotelId(hotel.id)
     setHotelName(hotel.name)
     setHotel({
@@ -1664,6 +1674,10 @@ export default function OnboardingPage() {
       logo_url: hotel.logo_url,
     })
     if (subscription) setSubscription(subscription)
+    // Write hotel_id into user_metadata so the middleware can see it immediately.
+    // The JWT hook (app_metadata) requires Supabase dashboard registration;
+    // user_metadata is the reliable fallback the middleware already checks.
+    await supabase.auth.updateUser({ data: { hotel_id: hotel.id } })
     goNext()
   }
 
@@ -1749,7 +1763,10 @@ export default function OnboardingPage() {
                   operaConnected={completionState.operaConnected}
                   sopCount={completionState.sopCount}
                   skippedSteps={completionState.skippedSteps}
-                  onGoToDashboard={() => router.push('/dashboard')}
+                  onGoToDashboard={async () => {
+                    await supabase.auth.refreshSession()
+                    router.push('/dashboard')
+                  }}
                 />
               )}
             </div>
