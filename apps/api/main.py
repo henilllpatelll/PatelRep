@@ -43,7 +43,12 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.app_url, "http://localhost:3000", "http://localhost:19006"],
+    allow_origins=[
+        settings.app_url,
+        "https://patelrep-web.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:19006",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
