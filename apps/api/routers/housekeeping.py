@@ -103,10 +103,7 @@ async def get_assignments(
     # Fetch assignments for the date (and optionally shift)
     assign_query = (
         supabase.table("room_assignments")
-        .select(
-            "id, room_id, assigned_to, shift_id, assignment_date, "
-            "room_status(status, rooms(room_number, room_types(name)))"
-        )
+        .select("id, room_id, assigned_to, shift_id, assignment_date, rooms(room_number, room_types(name))")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assignment_date", target_date.isoformat())
     )
@@ -117,6 +114,19 @@ async def get_assignments(
     assign_result = assign_query.execute()
     assignments = assign_result.data or []
 
+    if not assignments:
+        return {"data": []}
+
+    # Fetch current room status for all assigned rooms in one query
+    room_ids = list({a["room_id"] for a in assignments if a.get("room_id")})
+    status_result = (
+        supabase.table("room_status")
+        .select("room_id, status")
+        .in_("room_id", room_ids)
+        .execute()
+    )
+    status_map = {r["room_id"]: r["status"] for r in (status_result.data or [])}
+
     # Group by housekeeper
     grouped: dict[str, dict] = {}
     for a in assignments:
@@ -124,21 +134,17 @@ async def get_assignments(
 
         if hk_id not in grouped:
             grouped[hk_id] = {
-                "housekeeper": {
-                    "id": hk_id,
-                    "full_name": "",
-                    "preferred_name": "",
-                },
+                "housekeeper_id": hk_id,
+                "name": hk_id or "Unknown",
+                "rooms_assigned": 0,
+                "rooms_done": 0,
+                "in_progress": 0,
                 "rooms": [],
-                "room_count": 0,
-                "completed_count": 0,
-                "in_progress_count": 0,
             }
 
-        rs = a.get("room_status") or {}
-        room_info = rs.get("rooms") or {}
+        room_info = a.get("rooms") or {}
         rt_info = room_info.get("room_types") or {}
-        status = rs.get("status", "")
+        status = status_map.get(a.get("room_id"), "")
 
         grouped[hk_id]["rooms"].append({
             "room_id": a.get("room_id"),
@@ -147,11 +153,25 @@ async def get_assignments(
             "room_type": rt_info.get("name", ""),
         })
 
-        grouped[hk_id]["room_count"] += 1
-        if status == "CLEAN":
-            grouped[hk_id]["completed_count"] += 1
+        grouped[hk_id]["rooms_assigned"] += 1
+        if status in ("CLEAN", "INSPECTED"):
+            grouped[hk_id]["rooms_done"] += 1
         elif status == "IN_PROGRESS":
-            grouped[hk_id]["in_progress_count"] += 1
+            grouped[hk_id]["in_progress"] += 1
+
+    # Fetch housekeeper names
+    if grouped:
+        hk_ids = list(grouped.keys())
+        profiles_result = (
+            supabase.table("user_profiles")
+            .select("id, full_name, preferred_name")
+            .in_("id", hk_ids)
+            .execute()
+        )
+        for p in (profiles_result.data or []):
+            uid = p["id"]
+            if uid in grouped:
+                grouped[uid]["name"] = p.get("preferred_name") or p.get("full_name") or uid
 
     return {"data": list(grouped.values())}
 

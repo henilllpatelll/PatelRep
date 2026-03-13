@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -160,9 +160,8 @@ export default function AssignmentsPage() {
               {housekeepers.map((hk) => {
                 const expanded = expandedRows.has(hk.housekeeper_id)
                 return (
-                  <>
+                  <Fragment key={hk.housekeeper_id}>
                     <tr
-                      key={hk.housekeeper_id}
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => toggleRow(hk.housekeeper_id)}
                     >
@@ -183,7 +182,7 @@ export default function AssignmentsPage() {
                     </tr>
 
                     {expanded && (
-                      <tr key={`${hk.housekeeper_id}-detail`} className="bg-gray-50">
+                      <tr className="bg-gray-50">
                         <td colSpan={5} className="px-6 pb-3 pt-1">
                           <div className="flex flex-wrap gap-2">
                             {(hk.rooms ?? []).length === 0 ? (
@@ -202,7 +201,7 @@ export default function AssignmentsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>

@@ -109,7 +109,7 @@ async def opera_status(
         .maybe_single()\
         .execute()
 
-    if not result.data or not result.data.get("is_connected"):
+    if not result or not result.data or not result.data.get("is_connected"):
         return {"data": {"connected": False}}
 
     d = result.data
