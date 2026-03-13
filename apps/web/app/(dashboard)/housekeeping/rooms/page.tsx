@@ -174,7 +174,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
               <CheckCircle2 size={18} className="text-green-600 mt-0.5 shrink-0" />
               <p className="text-sm text-green-800">
-                Imported <span className="font-semibold">{importResult.imported}</span> rooms
+                Imported <span className="font-semibold">{importResult.imported}</span> {importResult.imported === 1 ? 'room' : 'rooms'}
                 {importResult.skipped > 0 && (
                   <>, <span className="font-semibold">{importResult.skipped}</span> skipped</>
                 )}

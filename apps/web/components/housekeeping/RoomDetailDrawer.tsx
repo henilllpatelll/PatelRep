@@ -183,7 +183,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
   const delayMinutes: number | null = prediction?.delay_minutes ?? null
   const riskFactors: string[] = prediction?.risk_factors ?? []
 
-  const history: any[] = historyData?.data?.history ?? historyData?.history ?? []
+  const history: any[] = historyData?.data ?? []
 
   if (!isOpen) return null
 
@@ -365,7 +365,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
 
                 <div className="space-y-4">
                   {history.map((entry: any, index: number) => {
-                    const entryStatus: string = entry.status ?? entry.new_status ?? ''
+                    const entryStatus: string = entry.to_status ?? entry.status ?? entry.new_status ?? ''
+                    const fromStatus: string | null = entry.from_status ?? null
                     const timestamp: string = entry.created_at ?? entry.changed_at ?? ''
                     const actor: string | null =
                       entry.actor_name ?? entry.user_profiles?.preferred_name ?? null
@@ -384,7 +385,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
                               {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
                             </span>
                             <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
-                              {entryStatus.replace(/_/g, ' ')}
+                              {fromStatus ? `${fromStatus.replace(/_/g, ' ')} → ${entryStatus.replace(/_/g, ' ')}` : entryStatus.replace(/_/g, ' ')}
                             </span>
                             {actor && (
                               <span className="text-xs text-gray-500 truncate">
