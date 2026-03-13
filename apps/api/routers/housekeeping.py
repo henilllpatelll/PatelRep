@@ -241,7 +241,7 @@ async def suggest_assignments(
     rooms_result = (
         supabase.table("room_status")
         .select(
-            "room_id, status, is_vip, checkin_time, "
+            "room_id, status, vip_flag, checkin_time, "
             "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
@@ -300,7 +300,7 @@ async def suggest_assignments(
     # --- 3. Sort rooms by priority ---
     def _room_sort_key(r: dict) -> tuple:
         # VIP first (is_vip=True sorts before False in ascending — negate)
-        vip_sort = 0 if r.get("is_vip") else 1
+        vip_sort = 0 if r.get("vip_flag") else 1
         # Earliest checkin_time first; None goes last
         checkin = r.get("checkin_time") or "9999-99-99T99:99:99"
         floor = (r.get("rooms") or {}).get("floor") or 999
@@ -323,7 +323,7 @@ async def suggest_assignments(
             "status": room.get("status"),
             "room_type": rt_info.get("name", ""),
             "base_clean_minutes": base_minutes,
-            "is_vip": room.get("is_vip", False),
+            "is_vip": room.get("vip_flag", False),
         })
         target_hk["assigned_minutes"] += base_minutes
 
