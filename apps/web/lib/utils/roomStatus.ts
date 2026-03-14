@@ -50,27 +50,31 @@ export const STATUS_COLORS: Record<
 }
 
 export const STATUS_BG: Record<string, string> = {
-  INSPECTED: '#4ADE80',
-  CLEAN: '#99F6E4',
-  IN_PROGRESS: '#7DD3FC',
-  PICK_UP: '#DDD6FE',
-  OCCUPIED: '#FC8D8D',
-  DIRTY: '#FF4D4D',
-  CHECK_OUT: '#FF4D4D',
-  OUT_OF_SERVICE: '#70767D',
-  VIP: '#FCD34D',
+  INSPECTED:     '#4ADE80',
+  CLEAN:         '#99F6E4',
+  IN_PROGRESS:   '#7DD3FC',
+  PICK_UP:       '#DDD6FE',
+  PICKUP:        '#DDD6FE',   // API value alias
+  OCCUPIED:      '#FC8D8D',
+  DIRTY:         '#FF4D4D',
+  CHECK_OUT:     '#FF4D4D',
+  OUT_OF_SERVICE:'#70767D',
+  OOO:           '#70767D',   // API value alias
+  VIP:           '#FCD34D',
 }
 
 export const STATUS_TEXT: Record<string, string> = {
-  INSPECTED: '#064E3B',
-  CLEAN: '#134E4A',
-  IN_PROGRESS: '#0C4A6E',
-  PICK_UP: '#5B21B6',
-  OCCUPIED: '#7F1D1D',
-  DIRTY: '#FFFFFF',
-  CHECK_OUT: '#FFFFFF',
-  OUT_OF_SERVICE: '#FFFFFF',
-  VIP: '#78350F',
+  INSPECTED:     '#064E3B',
+  CLEAN:         '#134E4A',
+  IN_PROGRESS:   '#0C4A6E',
+  PICK_UP:       '#5B21B6',
+  PICKUP:        '#5B21B6',   // API value alias
+  OCCUPIED:      '#7F1D1D',
+  DIRTY:         '#FFFFFF',
+  CHECK_OUT:     '#FFFFFF',
+  OUT_OF_SERVICE:'#FFFFFF',
+  OOO:           '#FFFFFF',   // API value alias
+  VIP:           '#78350F',
 }
 
 // ─── Valid transitions ────────────────────────────────────────────────────────
