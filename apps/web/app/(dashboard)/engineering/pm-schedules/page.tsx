@@ -14,6 +14,9 @@ import {
 } from 'lucide-react'
 import { engineeringApi, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,7 +31,7 @@ function getScheduleStatus(nextDueAt: string): {
     return {
       label: 'Overdue',
       cls: 'text-red-600',
-      badgeCls: 'bg-red-100 text-red-700',
+      badgeCls: 'bg-red-50 text-red-700 border border-red-200',
     }
   }
   const daysUntil = differenceInDays(due, now)
@@ -36,13 +39,13 @@ function getScheduleStatus(nextDueAt: string): {
     return {
       label: 'Due Soon',
       cls: 'text-orange-600',
-      badgeCls: 'bg-orange-100 text-orange-700',
+      badgeCls: 'bg-amber-50 text-amber-700 border border-amber-200',
     }
   }
   return {
     label: 'Upcoming',
     cls: 'text-green-700',
-    badgeCls: 'bg-green-100 text-green-700',
+    badgeCls: 'bg-green-50 text-green-700 border border-green-200',
   }
 }
 
@@ -88,15 +91,16 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
       : accent === 'orange'
         ? 'text-orange-600'
         : 'text-gray-900'
+  const cardVariant = accent === 'red' ? 'danger' : accent === 'orange' ? 'accent' : 'default'
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+    <GlassCard variant={cardVariant} className="px-5 py-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
         <div className="text-gray-400">{icon}</div>
       </div>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
+    </GlassCard>
   )
 }
 
@@ -104,7 +108,7 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-gray-100">
+    <tr className="animate-pulse border-b border-indigo-50/60">
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-3/4" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-1/2" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-20" /></td>
@@ -164,7 +168,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -173,7 +177,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
           role="dialog"
           aria-modal="true"
           aria-label="Complete PM Schedule"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md p-6"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -224,18 +228,19 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
-            <button
+          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
+            <Button
+              variant="ghost"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={handleConfirm}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
             >
               {saving ? (
                 <>
@@ -248,7 +253,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
                   Confirm Complete
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -351,7 +356,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -360,13 +365,13 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
           role="dialog"
           aria-modal="true"
           aria-label="Add PM Schedule"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
                 <Calendar size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add PM Schedule</h2>
@@ -389,12 +394,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 Asset ID{' '}
                 <span className="text-gray-400 font-normal">(UUID)</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={fields.asset_id}
                 onChange={(e) => set('asset_id', e.target.value)}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="font-mono"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Find the asset ID on the Asset Register page.
@@ -406,12 +411,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Schedule Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
                 placeholder="e.g. Monthly HVAC Filter Replacement"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -426,7 +430,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 value={fields.description}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Describe what maintenance tasks need to be performed…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
               />
             </div>
 
@@ -441,7 +445,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   onChange={(e) =>
                     set('interval_type', e.target.value as PMSchedule['interval_type'])
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -455,13 +459,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Interval (days)
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min={1}
                     value={fields.interval_days}
                     onChange={(e) => set('interval_days', e.target.value)}
                     placeholder="e.g. 45"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               )}
@@ -473,24 +476,22 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Est. Time (minutes)
                 </label>
-                <input
+                <Input
                   type="number"
                   min={1}
                   value={fields.estimated_minutes}
                   onChange={(e) => set('estimated_minutes', e.target.value)}
                   placeholder="e.g. 60"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Next Due Date <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="date"
                   value={fields.next_due_at}
                   onChange={(e) => set('next_due_at', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -505,18 +506,18 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
-            <button
+          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
+            <Button
+              variant="ghost"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleCreate}
               disabled={saving || !fields.name.trim() || !fields.next_due_at}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? (
                 <>
@@ -529,7 +530,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   Add Schedule
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -611,8 +612,8 @@ export default function PMSchedulesPage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Calendar size={24} className="text-brand-600 shrink-0" />
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Calendar size={22} className="text-indigo-600 shrink-0" />
             PM Schedules
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -620,13 +621,14 @@ export default function PMSchedulesPage() {
           </p>
         </div>
         {canEdit && (
-          <button
+          <Button
+            variant="primary"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shrink-0"
+            className="shrink-0"
           >
             <Plus size={15} />
             Add Schedule
-          </button>
+          </Button>
         )}
       </div>
 
@@ -663,23 +665,24 @@ export default function PMSchedulesPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="p-0 overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
             <p className="text-sm font-medium text-gray-700 mb-1">Failed to load PM schedules</p>
-            <button
+            <Button
+              variant="primary"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })}
-              className="mt-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              className="mt-2"
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
+                <tr className="border-b border-indigo-100 bg-indigo-50/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -723,13 +726,13 @@ export default function PMSchedulesPage() {
                           </p>
                         </div>
                         {canEdit && (
-                          <button
+                          <Button
+                            variant="primary"
                             onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
                           >
                             <Plus size={14} />
                             Add Schedule
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -742,7 +745,7 @@ export default function PMSchedulesPage() {
                     return (
                       <tr
                         key={schedule.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        className="border-b border-indigo-50/60 hover:bg-indigo-50/40 transition-colors"
                       >
                         {/* Asset */}
                         <td className="px-4 py-3">
@@ -758,7 +761,7 @@ export default function PMSchedulesPage() {
 
                         {/* Interval */}
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">
                             {formatIntervalLabel(schedule.interval_type, schedule.interval_days)}
                           </span>
                         </td>
@@ -805,7 +808,7 @@ export default function PMSchedulesPage() {
                             {schedule.is_active && (
                               <button
                                 onClick={() => setCompletingSchedule(schedule)}
-                                className="text-xs px-2 py-1 rounded border border-green-600 text-green-700 hover:bg-green-50 transition-colors"
+                                className="text-xs px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50 transition-colors"
                               >
                                 Complete
                               </button>
@@ -831,7 +834,7 @@ export default function PMSchedulesPage() {
                               ) : (
                                 <button
                                   onClick={() => setConfirmDeactivateId(schedule.id)}
-                                  className="text-xs px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+                                  className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                   Deactivate
                                 </button>
@@ -842,7 +845,7 @@ export default function PMSchedulesPage() {
                             {canEdit && isOverdue && (
                               <button
                                 onClick={() => handleCreateWOFromPM(schedule)}
-                                className="text-xs px-2 py-1 rounded border border-blue-400 text-blue-600 hover:bg-blue-50 transition-colors"
+                                className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
                               >
                                 Create WO
                               </button>
@@ -860,7 +863,7 @@ export default function PMSchedulesPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && schedules.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-t border-indigo-50/60 bg-indigo-50/40 flex items-center justify-between">
             <p className="text-xs text-gray-400">
               {schedules.length} schedule{schedules.length !== 1 ? 's' : ''}
             </p>
@@ -871,7 +874,7 @@ export default function PMSchedulesPage() {
             )}
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       <CreatePMScheduleModal

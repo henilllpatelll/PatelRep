@@ -22,7 +22,7 @@ const EMPTY_MESSAGES: Record<string, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+    <div className="rounded-2xl border border-white/90 bg-white/[0.65] backdrop-blur-md p-4 animate-pulse">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle, Loader2, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -222,14 +223,18 @@ export function FailurePredictionSidebar() {
   })
 
   const items = predictions ?? []
+  const hasHighRisk = items.some((p) => !p.is_acknowledged && p.risk_score >= 70)
 
   return (
-    <aside className="w-72 bg-white rounded-xl border border-gray-200 p-4 h-fit shrink-0">
+    <GlassCard
+      variant={hasHighRisk ? 'danger' : 'accent'}
+      className="w-72 h-fit shrink-0 p-4"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-900">Asset Failure Risks</h3>
         {items.length > 0 && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
             {items.filter((p) => !p.is_acknowledged).length} active
           </span>
         )}
@@ -273,11 +278,11 @@ export function FailurePredictionSidebar() {
       )}
 
       {/* Footer note */}
-      <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="mt-4 pt-3 border-t border-white/60">
         <p className="text-xs text-gray-400 text-center">
           Predictions updated nightly by AI
         </p>
       </div>
-    </aside>
+    </GlassCard>
   )
 }

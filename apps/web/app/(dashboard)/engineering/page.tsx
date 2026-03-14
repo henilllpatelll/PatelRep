@@ -7,6 +7,7 @@ import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailD
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
 import { useRole } from '@/lib/hooks/useRole'
+import { Button } from '@/components/ui/Button'
 import type { WorkOrder } from '@/lib/api/engineering'
 
 type Tab = 'open' | 'in_progress' | 'on_hold' | 'completed'
@@ -16,25 +17,25 @@ const TABS: { value: Tab; label: string; active: string; inactive: string }[] = 
     value: 'open',
     label: 'Open',
     active: 'bg-blue-600 text-white border-blue-600',
-    inactive: 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50',
+    inactive: 'bg-white/70 text-blue-700 border-blue-200 hover:bg-blue-50',
   },
   {
     value: 'in_progress',
     label: 'In Progress',
     active: 'bg-purple-600 text-white border-purple-600',
-    inactive: 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50',
+    inactive: 'bg-white/70 text-purple-700 border-purple-200 hover:bg-purple-50',
   },
   {
     value: 'on_hold',
     label: 'On Hold',
     active: 'bg-orange-500 text-white border-orange-500',
-    inactive: 'bg-white text-orange-700 border-orange-200 hover:bg-orange-50',
+    inactive: 'bg-white/70 text-orange-700 border-orange-200 hover:bg-orange-50',
   },
   {
     value: 'completed',
     label: 'Completed',
     active: 'bg-green-600 text-white border-green-600',
-    inactive: 'bg-white text-green-700 border-green-200 hover:bg-green-50',
+    inactive: 'bg-white/70 text-green-700 border-green-200 hover:bg-green-50',
   },
 ]
 
@@ -76,15 +77,15 @@ export default function EngineeringPage() {
 
         {/* Header row */}
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">Engineering</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Engineering</h1>
           {canCreate && (
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               New Work Order
-            </button>
+            </Button>
           )}
         </div>
 
@@ -112,7 +113,7 @@ export default function EngineeringPage() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="border border-indigo-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -125,7 +126,7 @@ export default function EngineeringPage() {
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="border border-indigo-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
           >
             {PRIORITIES.map((p) => (
               <option key={p.value} value={p.value}>

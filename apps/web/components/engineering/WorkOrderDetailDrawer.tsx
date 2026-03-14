@@ -19,6 +19,7 @@ import {
 import { format, isToday, isYesterday } from 'date-fns'
 import { engineeringApi, WorkOrder, WorkOrderComment } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { Button } from '@/components/ui/Button'
 
 interface Props {
   wo: WorkOrder | null
@@ -39,9 +40,9 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
-  urgent: 'bg-red-100 text-red-700 border-red-200',
-  normal: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  low: 'bg-gray-50 text-gray-500 border-gray-200',
+  urgent: 'bg-red-50 text-red-700 border border-red-200',
+  normal: 'bg-blue-50 text-blue-700 border border-blue-200',
+  low: 'bg-slate-50 text-slate-600 border border-slate-200',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -194,7 +195,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -206,11 +207,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
         role="dialog"
         aria-modal="true"
         aria-label={`Work Order WO-${wo.work_order_number} details`}
-        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white shadow-2xl z-50 flex flex-col outline-none transform transition-transform duration-300 ease-in-out"
+        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
         {/* ── Header ── */}
-        <div className="flex items-start justify-between p-5 border-b border-gray-200 shrink-0">
+        <div className="flex items-start justify-between p-5 border-b border-white/60 shrink-0">
           <div className="min-w-0 flex-1">
             {/* WO number + badges */}
             <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -277,7 +278,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-white/60">
 
           {/* Section: Details */}
           <div className="p-5">
@@ -344,10 +345,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
 
                 {/* Claim */}
                 {canClaim && (
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={() => claimMutation.mutate()}
                     disabled={claimMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
                   >
                     {claimMutation.isPending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -355,26 +356,28 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                       <Wrench className="w-3.5 h-3.5" />
                     )}
                     Claim Work Order
-                  </button>
+                  </Button>
                 )}
 
                 {/* Mark Complete toggle */}
                 {canComplete && (
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={() => setShowCompleteForm((v) => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                    className="border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     Mark Complete
-                  </button>
+                  </Button>
                 )}
 
                 {/* Put On Hold */}
                 {canHold && (
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => updateMutation.mutate('on_hold')}
                     disabled={updateMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 disabled:opacity-60 transition-colors"
+                    className="text-orange-700 border-orange-200 hover:bg-orange-50"
                   >
                     {updateMutation.isPending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -382,15 +385,16 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                       <PauseCircle className="w-3.5 h-3.5" />
                     )}
                     Put On Hold
-                  </button>
+                  </Button>
                 )}
 
                 {/* Reopen */}
                 {canReopen && (
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => updateMutation.mutate('open')}
                     disabled={updateMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-60 transition-colors"
+                    className="text-blue-700 border-blue-200 hover:bg-blue-50"
                   >
                     {updateMutation.isPending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -398,15 +402,15 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                       <RotateCcw className="w-3.5 h-3.5" />
                     )}
                     Reopen
-                  </button>
+                  </Button>
                 )}
 
                 {/* Cancel */}
                 {canCancel && (
-                  <button
+                  <Button
+                    variant="destructive"
                     onClick={() => updateMutation.mutate('cancelled')}
                     disabled={updateMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-60 transition-colors"
                   >
                     {updateMutation.isPending ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -414,7 +418,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                       <XCircle className="w-3.5 h-3.5" />
                     )}
                     Cancel
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -432,7 +436,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                       onChange={(e) => setCompletionNotes(e.target.value)}
                       rows={3}
                       placeholder="What was done, findings, etc."
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none bg-white/70 backdrop-blur-sm"
                     />
                   </div>
 
@@ -448,7 +452,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                         value={laborHours}
                         onChange={(e) => setLaborHours(e.target.value)}
                         placeholder="e.g. 1.5"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white/70 backdrop-blur-sm"
                       />
                     </div>
                     <div>
@@ -460,7 +464,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                         value={partsUsed}
                         onChange={(e) => setPartsUsed(e.target.value)}
                         placeholder="e.g. Filter, belt"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white/70 backdrop-blur-sm"
                       />
                     </div>
                   </div>
@@ -472,10 +476,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                   )}
 
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={() => completeMutation.mutate()}
                       disabled={completeMutation.isPending}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
+                      className="border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
                     >
                       {completeMutation.isPending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -483,7 +488,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                         <CheckCircle className="w-3.5 h-3.5" />
                       )}
                       Submit Completion
-                    </button>
+                    </Button>
                     <button
                       type="button"
                       onClick={() => setShowCompleteForm(false)}
@@ -566,14 +571,15 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                 onChange={(e) => setCommentText(e.target.value)}
                 rows={2}
                 placeholder="Add a comment…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 backdrop-blur-sm resize-none transition-colors"
               />
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => {
                   if (commentText.trim()) commentMutation.mutate()
                 }}
                 disabled={!commentText.trim() || commentMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-900 disabled:opacity-50 transition-colors"
+                className="text-slate-700"
               >
                 {commentMutation.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -581,7 +587,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                   <MessageSquare className="w-3.5 h-3.5" />
                 )}
                 Add Comment
-              </button>
+              </Button>
             </div>
           </div>
         </div>

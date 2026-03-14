@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +58,7 @@ function getAvgScoreColor(score: number): string {
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse bg-white rounded-xl border border-gray-200 border-l-4 border-l-gray-200 p-5">
+    <div className="animate-pulse rounded-2xl border border-white/90 bg-white/[0.65] backdrop-blur-md border-l-4 border-l-gray-200 p-5">
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-full bg-gray-100 shrink-0" />
         <div className="flex-1 space-y-2">
@@ -154,11 +156,12 @@ function PredictionCard({
     ? format(new Date(prediction.acknowledged_at), 'MMM d, yyyy')
     : null
 
+  const cardVariant = score >= 70 ? 'danger' : score >= 40 ? 'accent' : 'default'
+
   return (
-    <div
-      className={`bg-white rounded-xl border border-gray-200 border-l-4 ${borderColor} p-5 ${
-        prediction.is_acknowledged ? 'opacity-75' : ''
-      }`}
+    <GlassCard
+      variant={cardVariant}
+      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}`}
     >
       {/* Top row */}
       <div className="flex items-start gap-4">
@@ -210,7 +213,7 @@ function PredictionCard({
             {indicators.map((indicator, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 text-gray-600"
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/80 border border-gray-200 text-gray-600"
               >
                 {indicator}
               </span>
@@ -229,7 +232,7 @@ function PredictionCard({
             {hasMoreReasoning && (
               <button
                 onClick={() => onToggleExpand(prediction.id)}
-                className="mt-1 flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors"
+                className="mt-1 flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
               >
                 {isExpanded ? (
                   <>
@@ -275,10 +278,11 @@ function PredictionCard({
         {/* Actions */}
         {canManage && !prediction.is_acknowledged && (
           <div className="flex items-center gap-3 pt-1">
-            <button
+            <Button
+              variant="primary"
               onClick={() => onCreateWO(prediction.id)}
               disabled={isCreatingWO}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="text-xs px-3 py-1.5"
             >
               {isCreatingWO ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -286,11 +290,12 @@ function PredictionCard({
                 <Plus size={12} />
               )}
               Create Work Order
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => onAcknowledge(prediction.id)}
               disabled={isAcknowledging}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+              className="text-xs px-3 py-1.5 border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
             >
               {isAcknowledging ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -298,7 +303,7 @@ function PredictionCard({
                 <CheckCircle size={12} />
               )}
               Acknowledge
-            </button>
+            </Button>
           </div>
         )}
 
@@ -309,7 +314,7 @@ function PredictionCard({
           </p>
         )}
       </div>
-    </div>
+    </GlassCard>
   )
 }
 
@@ -323,10 +328,10 @@ interface StatCardProps {
 
 function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <GlassCard variant="default" className="p-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${accent}`}>{value}</p>
-    </div>
+    </GlassCard>
   )
 }
 
@@ -411,8 +416,8 @@ export default function PredictionsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <AlertTriangle size={24} className="text-orange-500 shrink-0" />
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <AlertTriangle size={22} className="text-orange-500 shrink-0" />
             Asset Failure Predictions
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -466,7 +471,7 @@ export default function PredictionsPage() {
       {/* Filter row */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Risk filter */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-indigo-200/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Risk' },
@@ -480,7 +485,7 @@ export default function PredictionsPage() {
               onClick={() => setRiskFilter(key)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 riskFilter === key
-                  ? 'bg-white text-gray-900 shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -490,7 +495,7 @@ export default function PredictionsPage() {
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-indigo-200/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Status' },
@@ -503,7 +508,7 @@ export default function PredictionsPage() {
               onClick={() => setStatusFilter(key)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === key
-                  ? 'bg-white text-gray-900 shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -518,7 +523,7 @@ export default function PredictionsPage() {
               setRiskFilter('all')
               setStatusFilter('all')
             }}
-            className="text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors"
+            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
           >
             Clear filters
           </button>
@@ -546,7 +551,7 @@ export default function PredictionsPage() {
                   setRiskFilter('all')
                   setStatusFilter('all')
                 }}
-                className="text-brand-600 hover:underline font-medium"
+                className="text-indigo-600 hover:underline font-medium"
               >
                 Clear filters
               </button>{' '}
