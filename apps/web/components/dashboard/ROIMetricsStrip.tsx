@@ -4,38 +4,41 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { hotelsApi } from '@/lib/api/hotels'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 interface MetricCardProps {
   title: string
   value: string
   trend: 'up' | 'down' | 'neutral'
   trendLabel: string
-  color: string
+  variant: 'success' | 'accent' | 'danger' | 'default'
 }
 
-function MetricCard({ title, value, trend, trendLabel, color }: MetricCardProps) {
+function MetricCard({ title, value, trend, trendLabel, variant }: MetricCardProps) {
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
-  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-500'
+  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-400'
 
   return (
-    <div className={`bg-white rounded-xl border-l-4 ${color} p-5 shadow-sm`}>
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-      <div className={`flex items-center gap-1 mt-2 text-sm ${trendColor}`}>
-        <TrendIcon size={14} />
-        <span>{trendLabel}</span>
+    <GlassCard variant={variant}>
+      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
+      <p className="text-2xl font-extrabold text-slate-900 mt-1">{value}</p>
+      <div className={`flex items-center gap-1 mt-1 ${trendColor}`}>
+        <TrendIcon size={12} />
+        <span className="text-xs text-slate-400">{trendLabel}</span>
       </div>
-    </div>
+    </GlassCard>
   )
 }
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm animate-pulse">
-      <div className="h-3 bg-gray-200 rounded w-2/3 mb-3" />
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-3" />
-      <div className="h-3 bg-gray-200 rounded w-1/3" />
-    </div>
+    <GlassCard variant="default">
+      <div className="animate-pulse">
+        <div className="h-2 bg-slate-200 rounded w-2/3 mb-3" />
+        <div className="h-8 bg-slate-200 rounded w-1/2 mb-3" />
+        <div className="h-2 bg-slate-200 rounded w-1/3" />
+      </div>
+    </GlassCard>
   )
 }
 
@@ -95,21 +98,21 @@ export function ROIMetricsStrip() {
         value={`${inspectedToday}`}
         trend={inspectedPct >= 80 ? 'up' : inspectedPct >= 50 ? 'neutral' : 'down'}
         trendLabel={`${inspectedPct}% of ${totalRooms} rooms`}
-        color="border-green-500"
+        variant="success"
       />
       <MetricCard
         title="Open Work Orders"
         value={`${openWorkOrders}`}
         trend={openWorkOrders === 0 ? 'up' : openWorkOrders <= 5 ? 'neutral' : 'down'}
         trendLabel={openWorkOrders === 0 ? 'All clear' : openWorkOrders === 1 ? '1 pending' : `${openWorkOrders} pending`}
-        color="border-orange-500"
+        variant={openWorkOrders > 5 ? 'danger' : openWorkOrders > 0 ? 'accent' : 'success'}
       />
       <MetricCard
         title="Tasks Completed Today"
         value={`${tasksCompleted}`}
         trend={tasksCompleted > 0 ? 'up' : 'neutral'}
         trendLabel={tasksCompleted === 1 ? '1 task done' : `${tasksCompleted} tasks done`}
-        color="border-blue-500"
+        variant="accent"
       />
     </div>
   )

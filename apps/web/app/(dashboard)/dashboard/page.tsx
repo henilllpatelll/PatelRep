@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState } from 'react'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
 import { LiveOpsGrid } from '@/components/dashboard/LiveOpsGrid'
@@ -8,18 +7,16 @@ import { useHotelStore } from '@/stores/hotelStore'
 
 export default function DashboardPage() {
   const { hotel } = useHotelStore()
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
           Good morning{hotel ? `, ${hotel.name}` : ''}!
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-sm text-slate-500 mt-1">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>
-
       <ROIMetricsStrip />
       <AIRiskAlertsPanel />
       <LiveOpsGrid />

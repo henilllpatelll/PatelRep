@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { reportsApi } from '@/lib/api/reports'
 import { format, subDays } from 'date-fns'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 function today(): string {
   return format(new Date(), 'yyyy-MM-dd')
@@ -14,10 +15,12 @@ function thirtyDaysAgo(): string {
 
 function SkeletonChart() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm animate-pulse">
-      <div className="h-3 bg-gray-200 rounded w-1/2 mb-4" />
-      <div className="h-40 bg-gray-100 rounded" />
-    </div>
+    <GlassCard variant="default">
+      <div className="animate-pulse">
+        <div className="h-3 bg-slate-200 rounded w-1/2 mb-4" />
+        <div className="h-40 bg-slate-100 rounded" />
+      </div>
+    </GlassCard>
   )
 }
 
@@ -42,7 +45,7 @@ function SLAGauge({ pct }: { pct: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-gray-900">{pct}%</span>
+          <span className="text-2xl font-bold text-slate-900">{pct}%</span>
         </div>
       </div>
       <p className="text-xs font-medium" style={{ color }}>{label}</p>
@@ -92,42 +95,42 @@ export function TrendChartsRow() {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Chart 1: SLA Compliance KPI */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">SLA Compliance (30 days)</h3>
+      <GlassCard variant="default" className="p-5">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4">SLA Compliance (30 days)</h3>
         {maint ? (
           <div className="flex items-center gap-8">
             <SLAGauge pct={Math.round(slaPct)} />
             <div className="flex-1 space-y-3">
               <div>
-                <p className="text-xs text-gray-500">WO Completion</p>
+                <p className="text-xs text-slate-500">WO Completion</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full bg-blue-500 transition-all"
                       style={{ width: `${Math.min(completionPct, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs font-semibold text-gray-700 w-10 text-right">
+                  <span className="text-xs font-semibold text-slate-700 w-10 text-right">
                     {Math.round(completionPct)}%
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-500">Total WOs</p>
-                  <p className="font-semibold text-gray-900">{maint.total_work_orders}</p>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-500">Total WOs</p>
+                  <p className="font-semibold text-slate-900">{maint.total_work_orders}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-500">Completed</p>
-                  <p className="font-semibold text-gray-900">{maint.completed}</p>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-500">Completed</p>
+                  <p className="font-semibold text-slate-900">{maint.completed}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-500">Avg Resolution</p>
-                  <p className="font-semibold text-gray-900">{maint.avg_resolution_hours.toFixed(1)}h</p>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-500">Avg Resolution</p>
+                  <p className="font-semibold text-slate-900">{maint.avg_resolution_hours.toFixed(1)}h</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-500">SLA Breaches</p>
-                  <p className={`font-semibold ${maint.active_sla_breaches > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-500">SLA Breaches</p>
+                  <p className={`font-semibold ${maint.active_sla_breaches > 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {maint.active_sla_breaches}
                   </p>
                 </div>
@@ -135,15 +138,15 @@ export function TrendChartsRow() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
             No maintenance data available
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* Chart 2: Top Staff Performers */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Top Staff Performers (30 days)</h3>
+      <GlassCard variant="default" className="p-5">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4">Top Staff Performers (30 days)</h3>
         {topStaff.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>
             <BarChart
@@ -166,11 +169,11 @@ export function TrendChartsRow() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
             No staff performance data yet
           </div>
         )}
-      </div>
+      </GlassCard>
     </div>
   )
 }
