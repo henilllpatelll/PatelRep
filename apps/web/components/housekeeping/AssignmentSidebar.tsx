@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,8 +63,8 @@ interface AISuggestionsOverlayProps {
 
 function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestionsOverlayProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/20 backdrop-blur-sm">
+      <GlassCard variant="elevated" className="w-full max-w-sm p-5">
         <h3 className="font-semibold text-gray-900 text-base mb-1">AI Assignment Suggestions</h3>
         <p className="text-xs text-gray-500 mb-4">
           Based on workload, skill level, and current occupancy.
@@ -70,7 +72,7 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
 
         <div className="space-y-3 mb-5">
           {suggestions.map((s) => (
-            <div key={s.housekeeper_id} className="border border-gray-200 rounded-lg p-3">
+            <GlassCard key={s.housekeeper_id} variant="default" className="p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-gray-900">{s.housekeeper_name}</span>
                 <span className="text-xs text-gray-400">Est. {s.estimated_finish}</span>
@@ -78,25 +80,27 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
               <p className="text-xs text-gray-600">
                 Rooms: {s.rooms.join(', ')}
               </p>
-            </div>
+            </GlassCard>
           ))}
         </div>
 
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="primary"
             onClick={onApply}
-            className="flex-1 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+            className="flex-1 py-2"
           >
             Apply All Suggestions
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={onDismiss}
-            className="flex-1 py-2 border border-gray-300 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
-      </div>
+      </GlassCard>
     </div>
   )
 }
@@ -208,9 +212,9 @@ export function AssignmentSidebar() {
         />
       )}
 
-      <aside className="w-72 shrink-0 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)]">
+      <GlassCard variant="default" className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-white/60">
           <h3 className="font-semibold text-gray-900 text-sm">Housekeepers Today</h3>
         </div>
 
@@ -233,7 +237,7 @@ export function AssignmentSidebar() {
               No housekeepers assigned yet for this date.
             </p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-white/60">
               {housekeepers.map((hk) => (
                 <div key={hk.housekeeper_id} className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -262,7 +266,7 @@ export function AssignmentSidebar() {
 
         {/* Pending assignments */}
         {hasPending && (
-          <div className="border-t border-gray-100 px-4 py-3">
+          <div className="border-t border-white/60 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-gray-700">Pending Changes</span>
               <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-500 text-white text-xs font-bold rounded-full">
@@ -308,11 +312,12 @@ export function AssignmentSidebar() {
         )}
 
         {/* Action buttons */}
-        <div className="px-4 py-3 border-t border-gray-100 space-y-2">
-          <button
+        <div className="px-4 py-3 border-t border-white/60 space-y-2">
+          <Button
+            variant="primary"
             onClick={handleAiSuggest}
             disabled={aiLoading}
-            className="w-full flex items-center justify-center gap-2 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-60 transition-colors"
+            className="w-full py-2 bg-purple-600 hover:bg-purple-700"
           >
             {aiLoading ? (
               <>
@@ -322,11 +327,12 @@ export function AssignmentSidebar() {
             ) : (
               'AI Auto-Assign'
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
             disabled={!hasPending || saveLoading}
-            className="w-full flex items-center justify-center gap-2 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-40 transition-colors"
+            className="w-full py-2"
           >
             {saveLoading ? (
               <>
@@ -343,9 +349,9 @@ export function AssignmentSidebar() {
                 )}
               </>
             )}
-          </button>
+          </Button>
         </div>
-      </aside>
+      </GlassCard>
     </>
   )
 }

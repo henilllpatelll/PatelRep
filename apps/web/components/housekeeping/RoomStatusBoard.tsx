@@ -6,14 +6,15 @@ import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
+import { GlassCard } from '@/components/ui/GlassCard'
 import { createClient } from '@/lib/supabase/client'
+import { STATUS_BG } from '@/lib/utils/roomStatus'
 
 // ── Status chip config ────────────────────────────────────────────────────────
 
 interface StatusChip {
   key: string | null
   label: string
-  dot: string
   activeBg: string
   activeText: string
   inactiveBg: string
@@ -23,7 +24,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: null,
     label: 'All',
-    dot: 'bg-gray-400',
     activeBg: 'bg-gray-800',
     activeText: 'text-white',
     inactiveBg: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
@@ -31,7 +31,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'DIRTY',
     label: 'Dirty',
-    dot: 'bg-red-500',
     activeBg: 'bg-red-600',
     activeText: 'text-white',
     inactiveBg: 'bg-red-50 text-red-700 hover:bg-red-100',
@@ -39,7 +38,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'IN_PROGRESS',
     label: 'In Progress',
-    dot: 'bg-blue-500',
     activeBg: 'bg-blue-600',
     activeText: 'text-white',
     inactiveBg: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -47,7 +45,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'CLEAN',
     label: 'Clean',
-    dot: 'bg-yellow-400',
     activeBg: 'bg-yellow-500',
     activeText: 'text-white',
     inactiveBg: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
@@ -55,7 +52,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'INSPECTED',
     label: 'Inspected',
-    dot: 'bg-green-500',
     activeBg: 'bg-green-600',
     activeText: 'text-white',
     inactiveBg: 'bg-green-50 text-green-700 hover:bg-green-100',
@@ -63,7 +59,6 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'OOO',
     label: 'OOO',
-    dot: 'bg-gray-500',
     activeBg: 'bg-gray-600',
     activeText: 'text-white',
     inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
@@ -76,7 +71,7 @@ function SkeletonGrid() {
   return (
     <div className="space-y-6">
       <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-4 gap-3 md:grid-cols-6 lg:grid-cols-8">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="h-28 bg-gray-200 rounded-xl animate-pulse" />
         ))}
@@ -105,6 +100,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter }: SummaryBarProps) {
       {STATUS_CHIPS.map((chip) => {
         const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
         const isActive = statusFilter === chip.key
+        const chipBg = chip.key ? (STATUS_BG[chip.key] ?? undefined) : undefined
         return (
           <button
             key={chip.key ?? 'all'}
@@ -114,8 +110,16 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter }: SummaryBarProps) {
                 ? `${chip.activeBg} ${chip.activeText}`
                 : chip.inactiveBg
             }`}
+            style={isActive && chipBg ? { backgroundColor: chipBg, color: '#fff' } : undefined}
           >
-            <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white opacity-80' : chip.dot}`} />
+            <span
+              className="w-2 h-2 rounded-full"
+              style={
+                chip.key && !isActive
+                  ? { backgroundColor: STATUS_BG[chip.key] ?? '#9CA3AF' }
+                  : { backgroundColor: isActive ? 'rgba(255,255,255,0.8)' : '#9CA3AF' }
+              }
+            />
             {chip.label}
             <span className={`font-bold ${isActive ? 'opacity-90' : ''}`}>{count}</span>
           </button>
@@ -236,7 +240,7 @@ export function RoomStatusBoard() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {/* Status summary bar */}
       <StatusSummaryBar
         rooms={allRooms}
@@ -261,7 +265,7 @@ export function RoomStatusBoard() {
                     · {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
                   </span>
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-4 gap-3 md:grid-cols-6 lg:grid-cols-8">
                   {floorRooms.map((room) => (
                     <RoomCard
                       key={room.room_id}

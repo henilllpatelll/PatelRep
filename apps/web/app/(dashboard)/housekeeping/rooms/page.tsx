@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,21 +135,22 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   const isPending = csvMutation.isPending || manualMutation.isPending
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/20 backdrop-blur-sm">
+      <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-gray-900">Import Rooms</h2>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1.5"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex border-b border-white/60 px-6">
           {(['csv', 'manual'] as const).map((t) => (
             <button
               key={t}
@@ -211,16 +215,16 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   type="file"
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-gray-300 file:text-sm file:font-medium file:bg-white file:text-gray-700 hover:file:bg-gray-50"
+                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-white/90 file:text-sm file:font-medium file:bg-white/70 file:text-gray-700 hover:file:bg-white/90"
                 />
               </div>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+                  <div className="w-full border-t border-white/60" />
                 </div>
                 <div className="relative flex justify-center text-xs text-gray-400">
-                  <span className="bg-white px-2">or paste CSV</span>
+                  <span className="bg-white/60 px-2">or paste CSV</span>
                 </div>
               </div>
 
@@ -232,7 +236,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 }}
                 placeholder="room_number,floor,room_type_code,room_type_name&#10;101,1,SD,Standard Double&#10;102,1,KS,King Suite"
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 resize-y"
+                className="w-full px-3 py-2 border border-indigo-200/40 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-y bg-white/50 backdrop-blur-sm"
               />
 
               {/* Preview table */}
@@ -241,9 +245,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   <p className="text-sm font-medium text-gray-700">
                     Preview — {csvPreview.length} room{csvPreview.length !== 1 ? 's' : ''} found
                   </p>
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200">
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-white/60">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
+                      <thead className="bg-indigo-50/60 sticky top-0">
                         <tr>
                           {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building'].map(
                             (h) => (
@@ -257,9 +261,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                           )}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-white/40">
                         {csvPreview.map((row, i) => (
-                          <tr key={i} className="hover:bg-gray-50">
+                          <tr key={i} className="hover:bg-indigo-50/30">
                             <td className="px-3 py-1.5 font-mono text-gray-900">{row.room_number}</td>
                             <td className="px-3 py-1.5 text-gray-600">{row.floor}</td>
                             <td className="px-3 py-1.5 font-mono text-gray-600">{row.room_type_code}</td>
@@ -281,9 +285,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               <p className="text-sm text-gray-500">
                 Fill in room details below. Rows with an empty Room # will be ignored.
               </p>
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <div className="overflow-x-auto rounded-lg border border-white/60">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-indigo-50/60">
                     <tr>
                       {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building', ''].map(
                         (h) => (
@@ -297,62 +301,62 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-white/40">
                     {manualRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
+                      <tr key={idx} className="hover:bg-indigo-50/30">
                         <td className="px-2 py-1">
-                          <input
+                          <Input
                             type="text"
                             value={row.room_number}
                             onChange={(e) =>
                               handleManualRowChange(idx, 'room_number', e.target.value)
                             }
                             placeholder="101"
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            className="w-20 py-1 text-sm"
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <input
+                          <Input
                             type="number"
                             value={row.floor}
                             min={1}
                             onChange={(e) =>
                               handleManualRowChange(idx, 'floor', e.target.value)
                             }
-                            className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            className="w-16 py-1 text-sm"
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <input
+                          <Input
                             type="text"
                             value={row.room_type_code}
                             onChange={(e) =>
                               handleManualRowChange(idx, 'room_type_code', e.target.value.toUpperCase())
                             }
                             placeholder="SD"
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm font-mono uppercase focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            className="w-20 py-1 text-sm font-mono uppercase"
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <input
+                          <Input
                             type="text"
                             value={row.room_type_name ?? ''}
                             onChange={(e) =>
                               handleManualRowChange(idx, 'room_type_name', e.target.value)
                             }
                             placeholder="Standard Double"
-                            className="w-36 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            className="w-36 py-1 text-sm"
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <input
+                          <Input
                             type="text"
                             value={row.building ?? ''}
                             onChange={(e) =>
                               handleManualRowChange(idx, 'building', e.target.value)
                             }
                             placeholder="Main"
-                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            className="w-24 py-1 text-sm"
                           />
                         </td>
                         <td className="px-2 py-1">
@@ -380,46 +384,46 @@ function ImportModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-          <button
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/60">
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             {importResult ? 'Close' : 'Cancel'}
-          </button>
+          </Button>
 
           {tab === 'csv' && !csvPreview && (
-            <button
+            <Button
+              variant="secondary"
               onClick={handlePreview}
               disabled={!csvText.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Preview
-            </button>
+            </Button>
           )}
 
           {tab === 'csv' && csvPreview && (
-            <button
+            <Button
+              variant="primary"
               onClick={() => {
                 setImportError(null)
                 setImportResult(null)
                 csvMutation.mutate()
               }}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending ? 'Importing…' : `Import ${csvPreview.length} Rooms`}
-            </button>
+            </Button>
           )}
 
           {tab === 'manual' && (
-            <button
+            <Button
+              variant="primary"
               onClick={handleManualSubmit}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending ? 'Importing…' : 'Import Rooms'}
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -479,18 +483,18 @@ export default function RoomsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Rooms</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">All Rooms</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {rooms.length} total room{rooms.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
           onClick={() => setShowImportModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
         >
           <Upload size={15} />
           Import Rooms
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -502,7 +506,7 @@ export default function RoomsPage() {
             onChange={(e) =>
               setFloorFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))
             }
-            className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-indigo-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
           >
             <option value="all">All Floors</option>
             {floors.map((f) => (
@@ -522,7 +526,7 @@ export default function RoomsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-indigo-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
           >
             <option value="all">All Statuses</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -538,12 +542,12 @@ export default function RoomsPage() {
         </div>
 
         {/* Search */}
-        <input
+        <Input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search room..."
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 w-40"
+          className="w-40 py-2"
         />
 
         {/* Active filter count pill */}
@@ -555,7 +559,7 @@ export default function RoomsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="overflow-hidden p-0">
         {isLoading && (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
             Loading rooms…
@@ -587,7 +591,7 @@ export default function RoomsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-indigo-50/60 border-b border-white/60">
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     Room
                   </th>
@@ -608,14 +612,14 @@ export default function RoomsPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/40">
                 {filteredRooms.map((room) => {
                   const assigneeName =
                     room.user_profiles?.preferred_name ||
                     room.user_profiles?.full_name ||
                     null
                   return (
-                    <tr key={room.room_id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={room.room_id} className="hover:bg-indigo-50/40 transition-colors">
                       <td className="px-4 py-3 font-semibold text-gray-900">
                         {room.rooms?.room_number ?? '—'}
                       </td>
@@ -634,9 +638,9 @@ export default function RoomsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button className="px-3 py-1 text-xs font-medium text-brand-600 border border-brand-300 rounded-lg hover:bg-brand-50 transition-colors">
+                        <Button variant="secondary" className="px-3 py-1 text-xs">
                           Edit
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   )
@@ -645,7 +649,7 @@ export default function RoomsPage() {
             </table>
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* Import modal */}
       {showImportModal && (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { RoomPrediction } from '@/lib/api/housekeeping'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ function RiskBadge({ level }: { level: 'LOW' | 'MEDIUM' | 'HIGH' | null }) {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0 animate-pulse">
+    <div className="flex items-start gap-3 px-4 py-3 border-b border-white/40 last:border-0 animate-pulse">
       <div className="w-2.5 h-2.5 rounded-full bg-gray-200 mt-1 flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
         <div className="flex items-center gap-2">
@@ -74,7 +75,7 @@ function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
     : `Room ${prediction.room_id.slice(0, 8)}`
 
   return (
-    <div className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+    <div className="flex items-start gap-3 px-4 py-3 border-b border-white/40 last:border-0 hover:bg-white/30 transition-colors">
       <RiskDot level={prediction.risk_level} />
 
       <div className="flex-1 min-w-0">
@@ -92,7 +93,7 @@ function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
           {prediction.risk_factors.map((factor) => (
             <span
               key={factor}
-              className="px-1.5 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200"
+              className="px-1.5 py-0.5 rounded-full text-xs bg-white/60 text-gray-600 border border-white/80"
             >
               {prettifyRiskFactor(factor)}
             </span>
@@ -131,13 +132,15 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
   const highCount = atRiskRooms.filter((p) => p.risk_level === 'HIGH').length
   const mediumCount = atRiskRooms.filter((p) => p.risk_level === 'MEDIUM').length
 
+  const variant = highCount > 0 ? 'danger' : 'accent'
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <GlassCard variant={variant} className="overflow-hidden p-0">
       {/* ── Header ── */}
       <button
         type="button"
         onClick={() => setIsExpanded((v) => !v)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-4 cursor-pointer text-left hover:bg-white/20 transition-colors"
         aria-expanded={isExpanded}
       >
         <div className="flex items-center gap-3">
@@ -176,7 +179,7 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
 
       {/* ── Body ── */}
       {isExpanded && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-white/40">
           {isLoading ? (
             <>
               <SkeletonRow />
@@ -194,6 +197,6 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
           )}
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }

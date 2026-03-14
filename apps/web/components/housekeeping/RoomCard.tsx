@@ -1,7 +1,8 @@
 'use client'
 
-import { AlertTriangle, Star, User, Clock, Wrench, CheckCircle, Eye } from 'lucide-react'
+import { AlertTriangle, Star, User, Clock, Wrench } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
+import { STATUS_BG, STATUS_TEXT } from '@/lib/utils/roomStatus'
 
 interface Props {
   room: any
@@ -13,52 +14,6 @@ interface Props {
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
-
-function getCardClasses(status: RoomStatus, riskLevel: RiskLevel | undefined, isPending: boolean): string {
-  const base = 'rounded-xl border-2 p-3 cursor-pointer transition-all hover:shadow-md relative'
-
-  if (isPending) {
-    return `${base} bg-purple-50 border-purple-500 ring-2 ring-purple-300 ring-offset-1`
-  }
-
-  switch (status) {
-    case 'DIRTY':
-      if (riskLevel === 'HIGH') return `${base} bg-red-100 border-red-500 animate-pulse-border`
-      if (riskLevel === 'MEDIUM') return `${base} bg-orange-100 border-orange-400`
-      return `${base} bg-red-50 border-red-300`
-    case 'IN_PROGRESS':
-      return `${base} bg-blue-50 border-blue-400`
-    case 'CLEAN':
-      return `${base} bg-yellow-50 border-yellow-400`
-    case 'INSPECTED':
-      return `${base} bg-green-50 border-green-400`
-    case 'OOO':
-      return `${base} bg-gray-100 border-gray-400`
-    case 'PICKUP':
-      return `${base} bg-purple-50 border-purple-400`
-    default:
-      return `${base} bg-gray-50 border-gray-300`
-  }
-}
-
-function getStatusBadgeClasses(status: RoomStatus): string {
-  switch (status) {
-    case 'DIRTY':
-      return 'bg-red-100 text-red-700'
-    case 'IN_PROGRESS':
-      return 'bg-blue-100 text-blue-700'
-    case 'CLEAN':
-      return 'bg-yellow-100 text-yellow-700'
-    case 'INSPECTED':
-      return 'bg-green-100 text-green-700'
-    case 'OOO':
-      return 'bg-gray-200 text-gray-600'
-    case 'PICKUP':
-      return 'bg-purple-100 text-purple-700'
-    default:
-      return 'bg-gray-100 text-gray-600'
-  }
-}
 
 function formatTime(isoString: string | null | undefined): string | null {
   if (!isoString) return null
@@ -107,11 +62,24 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
     if (onStatusChange) onStatusChange(room.room_id, newStatus)
   }
 
-  const cardClasses = getCardClasses(status, riskLevel, isPending && assignmentMode)
+  // Determine card wrapper classes
+  const pendingClasses = isPending && assignmentMode
+    ? 'ring-2 ring-purple-300 ring-offset-1 border-purple-500'
+    : 'border-white/60'
 
   return (
-    <div className={cardClasses} onClick={handleCardClick} role="button" tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (onOpenDetail) onOpenDetail(room) } }}>
+    <div
+      className={`rounded-xl border backdrop-blur-sm shadow-sm cursor-pointer hover:scale-[1.02] transition-transform duration-200 relative p-3 ${pendingClasses}`}
+      style={
+        isPending && assignmentMode
+          ? { backgroundColor: '#F5F3FF' }
+          : { backgroundColor: STATUS_BG[status] ?? '#E2E8F0', color: STATUS_TEXT[status] ?? '#1E293B' }
+      }
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (onOpenDetail) onOpenDetail(room) } }}
+    >
 
       {/* Assignment mode pending indicator */}
       {assignmentMode && isPending && (
@@ -120,15 +88,18 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
 
       {/* Top row: room number + status badge */}
       <div className="flex items-start justify-between gap-1 mb-0.5">
-        <span className="font-bold text-gray-900 text-sm leading-tight">{roomNumber}</span>
-        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap ${getStatusBadgeClasses(status)}`}>
+        <span className="font-bold text-sm leading-tight">{roomNumber}</span>
+        <span
+          className="text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap"
+          style={{ backgroundColor: STATUS_BG[status] ?? '#E2E8F0', color: STATUS_TEXT[status] ?? '#1E293B', opacity: 0.85 }}
+        >
           {formatStatusLabel(status)}
         </span>
       </div>
 
       {/* Room type */}
       {roomTypeName && (
-        <p className="text-xs text-gray-500 truncate leading-tight">{roomTypeName}</p>
+        <p className="text-xs truncate leading-tight opacity-80">{roomTypeName}</p>
       )}
 
       {/* VIP badge */}
@@ -150,37 +121,37 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
       {/* Assigned housekeeper (not in assignment mode) */}
       {!assignmentMode && assignedName && (
         <div className="flex items-center gap-1 mt-1">
-          <User className="w-3 h-3 text-gray-400 shrink-0" />
-          <span className="text-xs text-gray-600 truncate">{assignedName}</span>
+          <User className="w-3 h-3 opacity-60 shrink-0" />
+          <span className="text-xs truncate opacity-80">{assignedName}</span>
         </div>
       )}
 
       {/* OOO: maintenance note */}
       {status === 'OOO' && openWorkOrder && (
-        <p className="text-xs text-gray-500 mt-1 truncate">WO-{openWorkOrder} open</p>
+        <p className="text-xs mt-1 truncate opacity-70">WO-{openWorkOrder} open</p>
       )}
 
       {/* INSPECTED: ready message + checkin */}
       {status === 'INSPECTED' && (
-        <p className="text-xs text-green-700 mt-1">Ready for guest</p>
+        <p className="text-xs mt-1 opacity-80">Ready for guest</p>
       )}
       {status === 'INSPECTED' && checkinTime && (
         <div className="flex items-center gap-1 mt-0.5">
-          <Clock className="w-3 h-3 text-gray-400 shrink-0" />
-          <span className="text-xs text-gray-500">Arrives: {checkinTime}</span>
+          <Clock className="w-3 h-3 opacity-60 shrink-0" />
+          <span className="text-xs opacity-70">Arrives: {checkinTime}</span>
         </div>
       )}
 
       {/* CLEAN: awaiting inspection */}
       {status === 'CLEAN' && (
-        <p className="text-xs text-yellow-700 mt-1">Awaiting inspect</p>
+        <p className="text-xs mt-1 opacity-80">Awaiting inspect</p>
       )}
 
       {/* ETA for IN_PROGRESS or DIRTY */}
       {(status === 'DIRTY' || status === 'IN_PROGRESS') && etaTime && (
         <div className="flex items-center gap-1 mt-1">
-          <Clock className="w-3 h-3 text-gray-400 shrink-0" />
-          <span className="text-xs text-gray-600">ETA: {etaTime}</span>
+          <Clock className="w-3 h-3 opacity-60 shrink-0" />
+          <span className="text-xs opacity-80">ETA: {etaTime}</span>
           {(isHighRisk || isMediumRisk) && (
             <AlertTriangle className={`w-3 h-3 shrink-0 ${isHighRisk ? 'text-red-500' : 'text-orange-400'}`} />
           )}
@@ -209,7 +180,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
           )}
           {status === 'DIRTY' && canSupervise && (
             <button
-              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 font-medium border border-gray-300 hover:bg-gray-200 transition-colors"
+              className="text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Reassign
@@ -239,7 +210,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
           {/* INSPECTED actions */}
           {status === 'INSPECTED' && (
             <button
-              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 font-medium border border-gray-300 hover:bg-gray-200 transition-colors"
+              className="text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               View Details
@@ -249,7 +220,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
           {/* OOO actions */}
           {status === 'OOO' && (
             <button
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 font-medium border border-gray-300 hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               <Wrench className="w-3 h-3" />

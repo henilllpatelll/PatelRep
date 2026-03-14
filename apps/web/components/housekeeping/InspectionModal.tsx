@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { X, Check, Minus, ClipboardCheck, Loader2 } from 'lucide-react'
 import { housekeepingApi, InspectionTemplate } from '@/lib/api/housekeeping'
+import { Button } from '@/components/ui/Button'
 
 interface Props {
   roomId: string
@@ -143,7 +144,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-50 transition-opacity"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -157,22 +158,23 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
               <ClipboardCheck className="w-5 h-5 text-green-600 shrink-0" />
               <h2 className="text-base font-bold text-gray-900">Inspect Room {roomNumber}</h2>
             </div>
-            <button
+            <Button
+              variant="ghost"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
 
           {/* Body */}
@@ -230,7 +232,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'pass'
                                       ? 'bg-green-100 text-green-700 border-green-300'
-                                      : 'bg-white text-gray-400 border-gray-200 hover:border-green-200'
+                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-green-200'
                                   }`}
                                 >
                                   <Check className="w-3 h-3" />
@@ -244,7 +246,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'fail'
                                       ? 'bg-red-100 text-red-700 border-red-300'
-                                      : 'bg-white text-gray-400 border-gray-200 hover:border-red-200'
+                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-red-200'
                                   }`}
                                 >
                                   <X className="w-3 h-3" />
@@ -258,7 +260,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'na'
                                       ? 'bg-gray-100 text-gray-600 border-gray-300'
-                                      : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-gray-300'
                                   }`}
                                 >
                                   <Minus className="w-3 h-3" />
@@ -274,7 +276,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                 ) : null}
 
                 {/* Overall result */}
-                <div className="border-t border-gray-100 pt-4">
+                <div className="border-t border-white/60 pt-4">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-gray-700">Overall Result:</span>
                     {items.length > 0 ? (
@@ -313,7 +315,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
                     placeholder="Any notes about this inspection…"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                    className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 
@@ -328,19 +330,19 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 shrink-0">
-            <button
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/60 shrink-0">
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={handleSubmit}
               disabled={mutation.isPending || templatesLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {mutation.isPending ? (
                 <>
@@ -350,7 +352,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
               ) : (
                 'Submit Inspection →'
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
