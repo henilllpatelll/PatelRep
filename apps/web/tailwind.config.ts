@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import defaultTheme from 'tailwindcss/defaultTheme'
 
 const config: Config = {
   darkMode: ['class'],
@@ -9,26 +10,41 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', ...defaultTheme.fontFamily.sans],
+      },
+      spacing: {
+        '13': '52px',
+      },
+      backgroundImage: {
+        'app-gradient': 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 50%, #F5F3FF 100%)',
+      },
       colors: {
-        brand: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          900: '#1e3a8a',
-        },
+        // brand-* removed — use indigo-* from Tailwind defaults instead
         status: {
-          dirty: '#ef4444',
-          'in-progress': '#3b82f6',
-          clean: '#eab308',
-          inspected: '#22c55e',
-          ooo: '#6b7280',
-          pickup: '#a855f7',
+          inspected:    '#4ADE80',
+          'inspected-text': '#064E3B',
+          clean:        '#99F6E4',
+          'clean-text': '#134E4A',
+          'in-progress': '#7DD3FC',
+          'in-progress-text': '#0C4A6E',
+          pickup:       '#DDD6FE',
+          'pickup-text': '#5B21B6',
+          occupied:     '#FC8D8D',
+          'occupied-text': '#7F1D1D',
+          dirty:        '#FF4D4D',
+          'dirty-text': '#FFFFFF',
+          checkout:     '#FF4D4D',
+          'checkout-text': '#FFFFFF',
+          oos:          '#70767D',
+          'oos-text':   '#FFFFFF',
+          vip:          '#FCD34D',
+          'vip-text':   '#78350F',
         },
         risk: {
-          high: '#ef4444',
+          high:   '#ef4444',
           medium: '#f97316',
-          low: '#22c55e',
+          low:    '#22c55e',
         },
       },
     },
