@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Library, Upload, Trash2, FileText, AlertCircle, Loader2, X } from 'lucide-react'
 import { sopApi, SOPDocument } from '@/lib/api/sop'
 import { SOPQueryModal } from '@/components/ai/SOPQueryModal'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -135,17 +137,18 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
   }
 
   return (
-    <div
-      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer group"
-      onClick={handleCardClick}
+    <div onClick={handleCardClick} className="cursor-pointer group">
+    <GlassCard
+      variant="default"
+      className="hover:shadow-md transition-shadow h-full"
     >
       {/* Title row */}
       <div className="flex items-start gap-2.5 mb-2">
-        <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
-          <FileText size={16} className="text-brand-600" />
+        <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+          <FileText size={16} className="text-indigo-600" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900 leading-tight truncate group-hover:text-brand-700 transition-colors">
+          <p className="text-sm font-semibold text-gray-900 leading-tight truncate group-hover:text-indigo-700 transition-colors">
             {doc.title}
           </p>
           {doc.category && (
@@ -188,6 +191,7 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
           </button>
         </div>
       </div>
+    </GlassCard>
     </div>
   )
 }
@@ -281,7 +285,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={!uploading ? onClose : undefined}
         aria-hidden="true"
       />
@@ -292,13 +296,13 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Upload SOP document"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
                 <Upload size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Upload SOP Document</h2>
@@ -306,7 +310,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
             {!uploading && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100/60 transition-colors"
                 aria-label="Close modal"
               >
                 <X size={18} />
@@ -321,7 +325,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                 PDF File <span className="text-red-500">*</span>
               </label>
               <div
-                className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl hover:border-brand-300 hover:bg-brand-50/30 transition-colors cursor-pointer"
+                className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-indigo-200/50 rounded-xl hover:border-indigo-400/50 hover:bg-indigo-50/30 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <FileText size={18} className="text-gray-400 shrink-0" />
@@ -353,7 +357,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Checkout Cleaning Procedure"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full bg-white/70 border border-indigo-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
               />
             </div>
 
@@ -365,7 +369,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as UploadCategory)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full bg-white/70 border border-indigo-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
               >
                 {UPLOAD_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -386,7 +390,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Brief description of what this SOP covers…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className="w-full bg-white/70 border border-indigo-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 resize-none"
               />
             </div>
 
@@ -408,18 +412,14 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
-            <button
-              onClick={onClose}
-              disabled={uploading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
+          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
+            <Button variant="ghost" onClick={onClose} disabled={uploading}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleUpload}
               disabled={uploading || !file || !title.trim()}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {uploading ? (
                 <>
@@ -432,7 +432,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                   Upload SOP
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -538,8 +538,8 @@ export default function SOPLibraryPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Library size={24} className="text-brand-600 shrink-0" />
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Library size={22} className="text-indigo-600 shrink-0" />
             SOP Library
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -547,20 +547,14 @@ export default function SOPLibraryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={() => setShowQueryModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
-          >
+          <Button variant="secondary" onClick={() => setShowQueryModal(true)}>
             <span className="text-base leading-none">✦</span>
             Ask AI
-          </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-          >
+          </Button>
+          <Button variant="primary" onClick={() => setShowUploadModal(true)}>
             <Upload size={15} />
             Upload SOP
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -580,7 +574,7 @@ export default function SOPLibraryPage() {
               onClick={() => setActiveCategory(cat)}
               className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 isActive
-                  ? 'border-brand-600 text-brand-700'
+                  ? 'border-indigo-600 text-indigo-700'
                   : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
               }`}
             >
@@ -588,7 +582,7 @@ export default function SOPLibraryPage() {
               {count > 0 && (
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                    isActive ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500'
+                    isActive ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {count}
@@ -613,12 +607,9 @@ export default function SOPLibraryPage() {
             <AlertCircle size={32} className="text-red-400 mx-auto mb-3" />
             <p className="text-sm font-medium text-gray-700 mb-1">Failed to load SOP library</p>
             <p className="text-xs text-gray-400 mb-4">{fetchError}</p>
-            <button
-              onClick={() => fetchDocuments()}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
-            >
+            <Button variant="primary" onClick={() => fetchDocuments()}>
               Retry
-            </button>
+            </Button>
           </div>
         </div>
       ) : filteredDocuments.length === 0 && documents.length === 0 ? (

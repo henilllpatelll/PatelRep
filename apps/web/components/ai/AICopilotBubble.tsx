@@ -66,7 +66,7 @@ function TaskPreviewCard({ task, index, editMode, onChange }: TaskPreviewCardPro
 
       {editMode ? (
         <input
-          className="w-full text-sm font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="w-full text-sm font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
           value={task.title}
           onChange={(e) => onChange(index, 'title', e.target.value)}
         />
@@ -105,7 +105,7 @@ function InsightsView({ data }: { data: InsightsResponse }) {
         <div key={i} className={`rounded-lg px-3 py-2 ${severityColor(ins.severity)}`}>
           <p className="text-xs font-semibold text-gray-900">{ins.title}</p>
           <p className="text-xs text-gray-600 mt-0.5">{ins.detail}</p>
-          <p className="text-xs text-brand-600 mt-1 font-medium">→ {ins.action}</p>
+          <p className="text-xs text-indigo-600 mt-1 font-medium">→ {ins.action}</p>
         </div>
       ))}
     </div>
@@ -155,7 +155,7 @@ function TaskConfirmView({ data, onConfirm, onCancel }: TaskConfirmViewProps) {
         <span className="text-xs text-gray-500">{tasks.length} task{tasks.length !== 1 ? 's' : ''} to create</span>
         <button
           onClick={() => setEditMode((e) => !e)}
-          className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+          className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
         >
           {editMode ? 'Done editing' : 'Edit'}
         </button>
@@ -169,7 +169,7 @@ function TaskConfirmView({ data, onConfirm, onCancel }: TaskConfirmViewProps) {
         <button
           onClick={handleConfirm}
           disabled={confirming || tasks.length === 0}
-          className="flex-1 py-1.5 bg-brand-600 text-white text-xs font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+          className="flex-1 py-1.5 bg-gradient-to-r from-indigo-400 to-indigo-600 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {confirming ? 'Creating...' : `Confirm & Create`}
         </button>
@@ -214,7 +214,7 @@ function AiMessageBubble({ msg, onConfirm, onCancelConfirm }: AiMessageProps) {
           (msg.responseData as any).actions?.length > 0 && (
             <div className="mt-2 space-y-1">
               {(msg.responseData as any).actions.map((a: any, i: number) => (
-                <div key={i} className="text-xs bg-brand-50 text-brand-600 border border-brand-200 rounded px-2 py-1">
+                <div key={i} className="text-xs bg-indigo-50 text-indigo-600 border border-indigo-200 rounded px-2 py-1">
                   {a.label}
                 </div>
               ))}
@@ -307,21 +307,21 @@ export function AICopilotBubble() {
     <div className="fixed bottom-6 right-6 z-50">
       {open && (
         <div
-          className="absolute bottom-16 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col"
+          className="absolute bottom-14 right-0 w-80 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl flex flex-col"
           style={{ height: '500px' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-400/30">
                 <Bot size={14} className="text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm leading-tight">PatelRep AI</p>
+                <p className="font-semibold text-sm leading-tight text-slate-900">PatelRep AI</p>
                 <p className="text-xs text-gray-400 leading-tight">Operations Copilot</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100/60 rounded-lg p-1 transition-colors">
               <X size={16} />
             </button>
           </div>
@@ -331,7 +331,7 @@ export function AICopilotBubble() {
             {messages.map((msg) =>
               msg.role === 'user' ? (
                 <div key={msg.id} className="flex justify-end">
-                  <div className="max-w-[85%] px-3 py-2 rounded-xl text-sm bg-brand-600 text-white">
+                  <div className="max-w-[85%] px-3 py-2 rounded-xl text-sm bg-gradient-to-br from-indigo-400 to-indigo-600 text-white shadow-sm shadow-indigo-400/20">
                     {msg.content}
                   </div>
                 </div>
@@ -346,10 +346,10 @@ export function AICopilotBubble() {
             )}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 px-3 py-2 rounded-xl text-sm text-gray-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                <div className="bg-indigo-50/80 border border-indigo-100 px-3 py-2 rounded-xl text-sm text-indigo-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:300ms]" />
                 </div>
               </div>
             )}
@@ -357,14 +357,14 @@ export function AICopilotBubble() {
           </div>
 
           {/* Quick actions */}
-          <div className="px-3 pt-2 pb-1 border-t border-gray-100 shrink-0">
+          <div className="px-3 pt-2 pb-1 border-t border-white/60 shrink-0">
             <div className="flex gap-1.5 flex-wrap">
               {quickActions.map((qa) => (
                 <button
                   key={qa}
                   onClick={() => sendMessage(qa)}
                   disabled={loading}
-                  className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                  className="text-xs bg-indigo-50 text-indigo-600 border border-indigo-200/50 px-2 py-1 rounded-full hover:bg-indigo-100 disabled:opacity-50 transition-colors"
                 >
                   {qa}
                 </button>
@@ -385,13 +385,13 @@ export function AICopilotBubble() {
                   }
                 }}
                 placeholder="Room 412 needs towels…"
-                className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="flex-1 text-sm px-3 py-2 bg-white/70 border border-indigo-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
                 disabled={loading}
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={loading || !input.trim()}
-                className="p-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-40 transition-colors"
+                className="p-2 bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity shadow-sm shadow-indigo-400/30"
               >
                 <Send size={14} />
               </button>
@@ -403,10 +403,10 @@ export function AICopilotBubble() {
       {/* FAB */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 bg-brand-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-brand-700 transition-colors"
+        aria-label="Open AI Copilot"
+        className="w-11 h-11 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full shadow-lg shadow-indigo-400/40 flex items-center justify-center hover:opacity-90 transition-opacity"
       >
-        <Bot size={18} />
-        <span className="text-sm font-medium">AI Copilot</span>
+        <Bot size={20} className="text-white" />
       </button>
     </div>
   )

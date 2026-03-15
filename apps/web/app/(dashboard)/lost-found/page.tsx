@@ -19,6 +19,8 @@ import {
   type LostFoundStatus,
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
         <div className="h-3 w-24 bg-gray-100 rounded" />
@@ -120,7 +122,7 @@ function ItemCard({
     'Unknown'
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
       {/* Top row: status badge + time */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <StatusBadge status={item.status} />
@@ -261,8 +263,8 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">Log Found Item</h2>
           <button
@@ -336,7 +338,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
             <button
               type="submit"
               disabled={isPending || !description.trim()}
-              className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-400 to-indigo-600 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {isPending ? 'Logging…' : 'Log Item'}
@@ -400,8 +402,8 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>
           <button
@@ -547,49 +549,38 @@ export default function LostFoundPage() {
             <Package className="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lost &amp; Found</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Lost &amp; Found</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               Track and manage found items
             </p>
           </div>
         </div>
         {canCreate && (
-          <button
-            onClick={() => setShowLogModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
-          >
+          <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />
             Log Found Item
-          </button>
+          </Button>
         )}
       </div>
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-blue-600">{counts.found}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Found
-          </p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Found</p>
+        </GlassCard>
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.claimed}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Claimed
-          </p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Claimed</p>
+        </GlassCard>
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-purple-600">{counts.donated}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Donated
-          </p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Donated</p>
+        </GlassCard>
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-gray-500">{counts.discarded}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Discarded
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Discarded</p>
+        </GlassCard>
       </div>
 
       {/* ── Filter bar ── */}

@@ -13,6 +13,8 @@ import {
 import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage, Invoice } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,11 +79,11 @@ function creditBarColor(pct: number): string {
 
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
-      <div className="h-5 bg-gray-200 rounded w-1/3 mb-4" />
-      <div className="border-t border-gray-100 mb-4" />
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-6 animate-pulse">
+      <div className="h-5 bg-indigo-100/60 rounded w-1/3 mb-4" />
+      <div className="border-t border-white/60 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={`h-4 bg-gray-200 rounded mb-3 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2'}`} />
+        <div key={i} className={`h-4 bg-indigo-100/50 rounded mb-3 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2'}`} />
       ))}
     </div>
   )
@@ -159,7 +161,7 @@ export default function SettingsBillingPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Billing &amp; Usage</h1>
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Billing &amp; Usage</h1>
         <p className="text-sm text-gray-500 mt-1">
           Manage your subscription and monitor AI credit consumption
         </p>
@@ -167,12 +169,12 @@ export default function SettingsBillingPage() {
 
       {/* ── Trial Upgrade CTA ── */}
       {subData?.plan_status === 'trialing' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <GlassCard variant="accent" className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Zap className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Zap className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-blue-800">You're on a free trial</p>
-              <p className="text-sm text-blue-600 mt-0.5">
+              <p className="text-sm font-semibold text-indigo-800">You're on a free trial</p>
+              <p className="text-sm text-indigo-600 mt-0.5">
                 Upgrade to keep full access after your trial ends.
                 {subData.trial_end && (
                   <> Trial ends <strong>{formatDate(subData.trial_end)}</strong>.</>
@@ -184,30 +186,29 @@ export default function SettingsBillingPage() {
             {checkoutError && (
               <p className="text-xs text-red-600">{checkoutError}</p>
             )}
-            <button
+            <Button
+              variant="primary"
               onClick={() => { setCheckoutError(null); checkoutMutation.mutate() }}
               disabled={checkoutMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed
-                         whitespace-nowrap"
+              className="whitespace-nowrap"
             >
               {checkoutMutation.isPending ? 'Redirecting…' : 'Upgrade Plan'}
               <ExternalLink className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
-        </div>
+        </GlassCard>
       )}
 
       {/* ── Section 1: Subscription Status ── */}
       {subLoading ? (
         <SkeletonCard rows={5} />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <GlassCard variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <CreditCard className="h-5 w-5 text-gray-400" />
-            <h2 className="text-base font-semibold text-gray-900">Current Plan</h2>
+            <CreditCard className="h-5 w-5 text-indigo-400" />
+            <h2 className="text-base font-semibold text-slate-900">Current Plan</h2>
           </div>
-          <hr className="border-gray-100 mb-4" />
+          <hr className="border-white/60 mb-4" />
 
           <div className="space-y-3 text-sm">
             {/* Plan name + status */}
@@ -253,34 +254,33 @@ export default function SettingsBillingPage() {
             {portalError && (
               <p className="text-xs text-red-600">{portalError}</p>
             )}
-            <button
+            <Button
+              variant="primary"
               onClick={() => { setPortalError(null); portalMutation.mutate() }}
               disabled={portalMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {portalMutation.isPending ? 'Opening portal…' : 'Manage Billing'}
               <ExternalLink className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
-        </div>
+        </GlassCard>
       )}
 
       {/* ── Section 2: AI Credit Usage ── */}
       {creditLoading ? (
         <SkeletonCard rows={5} />
       ) : creditData ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <GlassCard variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-5 w-5 text-gray-400" />
-            <h2 className="text-base font-semibold text-gray-900">
+            <TrendingUp className="h-5 w-5 text-indigo-400" />
+            <h2 className="text-base font-semibold text-slate-900">
               AI Credit Usage
               {periodLabel && (
                 <span className="ml-2 text-gray-400 font-normal">— {periodLabel}</span>
               )}
             </h2>
           </div>
-          <hr className="border-gray-100 mb-4" />
+          <hr className="border-white/60 mb-4" />
 
           {/* Usage summary line */}
           <div className="flex items-baseline justify-between mb-2">
@@ -354,32 +354,32 @@ export default function SettingsBillingPage() {
           <p className="mt-4 text-xs text-gray-400">
             Pricing: $99/mo base + $0.02/credit overage
           </p>
-        </div>
+        </GlassCard>
       ) : null}
 
       {/* ── Section 3: Invoices ── */}
       {invoicesLoading ? (
         <SkeletonCard rows={4} />
       ) : invoicesData && invoicesData.length > 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <GlassCard variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <Receipt className="h-5 w-5 text-gray-400" />
-            <h2 className="text-base font-semibold text-gray-900">Recent Invoices</h2>
+            <Receipt className="h-5 w-5 text-indigo-400" />
+            <h2 className="text-base font-semibold text-slate-900">Recent Invoices</h2>
           </div>
-          <hr className="border-gray-100 mb-4" />
+          <hr className="border-white/60 mb-4" />
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  <th className="pb-2 pr-4">Date</th>
-                  <th className="pb-2 pr-4">Period</th>
-                  <th className="pb-2 pr-4">Amount</th>
-                  <th className="pb-2 pr-4">Status</th>
-                  <th className="pb-2">Link</th>
+                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-indigo-50/60">
+                  <th className="pb-2 pr-4 pt-2 pl-2">Date</th>
+                  <th className="pb-2 pr-4 pt-2">Period</th>
+                  <th className="pb-2 pr-4 pt-2">Amount</th>
+                  <th className="pb-2 pr-4 pt-2">Status</th>
+                  <th className="pb-2 pt-2">Link</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/40">
                 {invoicesData.map((inv) => (
                   <tr key={inv.id}>
                     <td className="py-2.5 pr-4 text-gray-700">
@@ -416,16 +416,16 @@ export default function SettingsBillingPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </GlassCard>
       ) : null}
 
       {/* ── Section 4: Pricing Details (static) ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <GlassCard variant="default" className="p-6">
         <div className="flex items-center gap-2 mb-1">
-          <CheckCircle className="h-5 w-5 text-gray-400" />
-          <h2 className="text-base font-semibold text-gray-900">Pricing Details</h2>
+          <CheckCircle className="h-5 w-5 text-indigo-400" />
+          <h2 className="text-base font-semibold text-slate-900">Pricing Details</h2>
         </div>
-        <hr className="border-gray-100 mb-4" />
+        <hr className="border-white/60 mb-4" />
 
         <ul className="space-y-2.5 text-sm">
           {[
@@ -447,7 +447,7 @@ export default function SettingsBillingPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </GlassCard>
     </div>
   )
 }

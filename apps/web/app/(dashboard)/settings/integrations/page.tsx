@@ -18,6 +18,8 @@ import {
   Check,
 } from 'lucide-react'
 import { integrationsApi } from '@/lib/api/integrations'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,11 +47,11 @@ function ConfirmDisconnectDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
         onClick={onCancel}
       />
       {/* Dialog */}
-      <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-600" />
@@ -66,18 +68,10 @@ function ConfirmDisconnectDialog({
         </p>
 
         <div className="flex gap-3 pt-1">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
+          <Button variant="ghost" onClick={onCancel} disabled={loading} className="flex-1 justify-center">
             Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={loading} className="flex-1 justify-center">
             {loading ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
@@ -86,7 +80,7 @@ function ConfirmDisconnectDialog({
             ) : (
               'Disconnect'
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -213,7 +207,7 @@ function IntegrationsPageInner() {
     <div className="space-y-6 max-w-3xl">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Integrations</h1>
         <p className="text-sm text-gray-500 mt-1">Connect external systems to power your hotel operations.</p>
       </div>
 
@@ -240,7 +234,7 @@ function IntegrationsPageInner() {
       )}
 
       {/* ── Opera Cloud Card ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <GlassCard variant="default" className="p-6 space-y-5">
         {/* Card header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -286,7 +280,7 @@ function IntegrationsPageInner() {
         {!statusQuery.isLoading && operaStatus?.connected && (
           <>
             {/* Metadata row */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-indigo-50/40 border border-indigo-100/50 rounded-lg px-4 py-3">
               {operaStatus.last_sync_at && (
                 <span>
                   Last synced:{' '}
@@ -346,10 +340,10 @@ function IntegrationsPageInner() {
 
             {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => testMutation.mutate()}
                 disabled={testMutation.isPending || syncMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
               >
                 {testMutation.isPending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -357,29 +351,30 @@ function IntegrationsPageInner() {
                   <Zap size={14} />
                 )}
                 Test Connection
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending || testMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
               >
                 {syncMutation.isPending ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
-                  <RefreshCw size={14} className={syncMutation.isPending ? 'animate-spin' : ''} />
+                  <RefreshCw size={14} />
                 )}
                 Force Sync
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="destructive"
                 onClick={() => setShowDisconnectConfirm(true)}
                 disabled={disconnectMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 ml-auto"
+                className="ml-auto"
               >
                 <Trash2 size={14} />
                 Disconnect
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -405,10 +400,10 @@ function IntegrationsPageInner() {
             </div>
 
             <div className="flex justify-end pt-1">
-              <button
+              <Button
+                variant="primary"
                 onClick={() => connectMutation.mutate()}
                 disabled={connectMutation.isPending}
-                className="flex items-center gap-2 px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               >
                 {connectMutation.isPending ? (
                   <>
@@ -421,7 +416,7 @@ function IntegrationsPageInner() {
                     <ArrowRight size={14} />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -448,13 +443,13 @@ function IntegrationsPageInner() {
             </button>
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* ── SOP Library Card ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <GlassCard variant="default" className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
               <BookOpen size={18} className="text-white" />
             </div>
             <div>
@@ -466,13 +461,13 @@ function IntegrationsPageInner() {
           </div>
           <Link
             href="/sop"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors shrink-0"
           >
             Manage SOP Library
             <ArrowRight size={14} />
           </Link>
         </div>
-      </div>
+      </GlassCard>
 
       {/* Disconnect confirm dialog */}
       {showDisconnectConfirm && (

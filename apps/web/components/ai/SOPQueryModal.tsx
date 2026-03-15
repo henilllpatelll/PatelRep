@@ -184,7 +184,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -195,7 +195,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Ask AI about SOPs"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 relative"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-2xl p-6 relative"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
