@@ -8,6 +8,7 @@ import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
+import { Button } from '@/components/ui/Button'
 
 // ── Shift options ─────────────────────────────────────────────────────────────
 
@@ -111,37 +112,39 @@ export default function HousekeepingPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         {/* Left: title + date nav + shift */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">Housekeeping Board</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Housekeeping Board</h1>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Prev day */}
-            <button
+            <Button
+              variant="ghost"
               onClick={() => navigate(-1)}
-              className="px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm transition-colors"
+              className="px-2 py-1 text-sm"
               aria-label="Previous day"
             >
               &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
-            </button>
+            </Button>
 
             {/* Current date */}
-            <span className="px-3 py-1 rounded-lg bg-gray-100 text-sm font-medium text-gray-900">
+            <span className="px-3 py-1 rounded-lg bg-white/70 backdrop-blur-sm border border-white/90 text-sm font-medium text-gray-900">
               {dateLabel}
             </span>
 
             {/* Next day */}
-            <button
+            <Button
+              variant="ghost"
               onClick={() => navigate(1)}
-              className="px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm transition-colors"
+              className="px-2 py-1 text-sm"
               aria-label="Next day"
             >
               {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
-            </button>
+            </Button>
 
             {/* Shift selector */}
             <select
               value={selectedShift ?? ''}
               onChange={(e) => setSelectedShift(e.target.value || null)}
-              className="ml-1 px-3 py-1 rounded-lg border border-gray-300 text-sm text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="ml-1 px-3 py-1 rounded-lg border border-white/90 text-sm text-gray-700 bg-white/70 backdrop-blur-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
             >
               {SHIFTS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -155,13 +158,13 @@ export default function HousekeepingPage() {
         {/* Right: view/assign toggle + at-risk + add rooms */}
         <div className="flex flex-wrap items-center gap-2">
           {/* View / Assign mode toggle */}
-          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+          <div className="inline-flex rounded-lg border border-white/90 overflow-hidden text-sm bg-white/70 backdrop-blur-sm">
             <button
               onClick={() => assignmentMode && toggleAssignmentMode()}
               className={`px-3 py-1.5 font-medium transition-colors ${
                 !assignmentMode
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'text-gray-700 hover:bg-white/50'
               }`}
             >
               View Mode
@@ -171,7 +174,7 @@ export default function HousekeepingPage() {
               className={`px-3 py-1.5 font-medium transition-colors ${
                 assignmentMode
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'text-gray-700 hover:bg-white/50'
               }`}
             >
               Assign Mode
@@ -179,22 +182,19 @@ export default function HousekeepingPage() {
           </div>
 
           {/* At Risk filter */}
-          <button
+          <Button
+            variant={showRiskOnly ? 'primary' : 'ghost'}
             onClick={toggleRiskOnly}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-              showRiskOnly
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
+            className={`px-3 py-1.5 text-sm ${showRiskOnly ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
           >
             <span className="text-base leading-none">&#9888;</span>
             At Risk Only
-          </button>
+          </Button>
 
           {/* Add rooms link */}
           <Link
             href="/onboarding?step=2"
-            className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-white/90 bg-white/70 backdrop-blur-sm text-sm text-gray-700 hover:bg-white/90 transition-colors"
           >
             + Add Rooms
           </Link>

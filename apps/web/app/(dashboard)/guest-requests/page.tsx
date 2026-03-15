@@ -18,6 +18,8 @@ import {
   type GuestRequestStatus,
 } from '@/lib/api/guest_requests'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ function GuestRequestCard({
   const isPending = isUpdating && updatingId === request.id
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
       {/* Top row: request number + status badge */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <span className="font-mono text-xs text-gray-400 tracking-wider">
@@ -194,7 +196,7 @@ function GuestRequestCard({
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-3 w-16 bg-gray-200 rounded" />
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
@@ -266,12 +268,12 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">New Guest Request</h2>
@@ -294,7 +296,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Extra towels needed, AC not cooling..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40"
               autoFocus
             />
           </div>
@@ -309,7 +311,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="e.g. John Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40"
             />
           </div>
 
@@ -323,7 +325,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Room number, urgency, or any other context..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40 resize-none"
             />
           </div>
 
@@ -336,21 +338,13 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+            <Button type="button" variant="ghost" onClick={handleClose} className="flex-1 justify-center">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !title.trim()}
-              className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
+            </Button>
+            <Button type="submit" variant="primary" disabled={isPending || !title.trim()} className="flex-1 justify-center">
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {isPending ? 'Creating…' : 'Create Request'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -415,53 +409,42 @@ export default function GuestRequestsPage() {
             <Bell className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Guest Requests</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Guest Requests</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               Track and resolve guest service requests
             </p>
           </div>
         </div>
         {canCreate && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
-          >
+          <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />
             New Request
-          </button>
+          </Button>
         )}
       </div>
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Open */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-blue-600">{counts.open}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Open
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Open</p>
+        </GlassCard>
         {/* In Progress */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-purple-600">{counts.in_progress}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            In Progress
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
+        </GlassCard>
         {/* Escalated */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-red-600">{counts.escalated}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Escalated
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
+        </GlassCard>
         {/* Resolved */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <GlassCard variant="default" className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.resolved}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">
-            Resolved
-          </p>
-        </div>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
+        </GlassCard>
       </div>
 
       {/* ── Status tabs ── */}

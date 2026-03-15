@@ -59,3 +59,11 @@ yarn-debug.log*
 
 # Railway
 .railway/
+
+.vercel
+
+# Superpowers brainstorming
+.superpowers/
+
+# Git worktrees
+.worktrees/

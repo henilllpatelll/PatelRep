@@ -7,6 +7,8 @@ import {
   X, Send, Loader2,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -120,7 +122,7 @@ interface TaskCardProps {
 function TaskCard({ task, onOpen, onStatusChange, updating }: TaskCardProps) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm ${priorityStripe(task.priority)} overflow-hidden cursor-pointer hover:shadow-md transition-shadow`}
+      className={`bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl ${priorityStripe(task.priority)} overflow-hidden cursor-pointer hover:shadow-md transition-shadow`}
       onClick={() => onOpen(task)}
     >
       <div className="p-4">
@@ -130,7 +132,7 @@ function TaskCard({ task, onOpen, onStatusChange, updating }: TaskCardProps) {
               <span className="text-gray-400">{taskTypeIcon(task.task_type)}</span>
               <span className="text-xs text-gray-400 capitalize">{task.task_type.replace('_', ' ')}</span>
               {task.is_ai_created && (
-                <span className="flex items-center gap-0.5 text-xs text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-full">
+                <span className="flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                   <Bot size={10} />AI
                 </span>
               )}
@@ -208,9 +210,9 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/20 backdrop-blur-sm">
+      <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-gray-900">New Task</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
             <X size={18} />
@@ -224,7 +226,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
               placeholder="e.g. Fix leaking faucet in Room 302"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
               required
               autoFocus
             />
@@ -236,7 +238,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               <select
                 value={form.task_type}
                 onChange={(e) => set('task_type', e.target.value as TaskType)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white"
               >
                 {TASK_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -248,7 +250,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               <select
                 value={form.priority}
                 onChange={(e) => set('priority', e.target.value as Priority)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
@@ -263,7 +265,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               value={form.location_text}
               onChange={(e) => set('location_text', e.target.value)}
               placeholder="e.g. Room 302, Lobby, Pool area"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
             />
           </div>
 
@@ -274,26 +276,18 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               onChange={(e) => set('description', e.target.value)}
               rows={2}
               placeholder="Additional details..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-none"
             />
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            <Button type="button" variant="ghost" onClick={onClose} className="flex-1 justify-center">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={creating || !form.title.trim()}
-              className="flex-1 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
+            </Button>
+            <Button type="submit" variant="primary" disabled={creating || !form.title.trim()} className="flex-1 justify-center">
               {creating && <Loader2 size={14} className="animate-spin" />}
               Create Task
-            </button>
+            </Button>
           </div>
 
           <p className="text-xs text-gray-400 text-center">
@@ -332,8 +326,8 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-96 bg-white shadow-2xl flex flex-col">
+      <div className="fixed inset-0 z-40 bg-indigo-950/10 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-96 bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
@@ -353,7 +347,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
               {priorityBadge(task.priority)}
               {statusBadge(task.status)}
               {task.is_ai_created && (
-                <span className="flex items-center gap-0.5 text-xs text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-full">
+                <span className="flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                   <Bot size={10} />AI created
                 </span>
               )}
@@ -505,12 +499,12 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
                 }
               }}
               placeholder="Add a comment..."
-              className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="flex-1 text-sm px-3 py-2 bg-white/70 border border-indigo-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
             />
             <button
               onClick={handleComment}
               disabled={submitting || !comment.trim()}
-              className="p-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-40 transition-colors"
+              className="p-2 bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               <Send size={14} />
             </button>
@@ -583,19 +577,16 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Tasks</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {openCount} open · {inProgressCount} in progress
             {urgentCount > 0 && <span className="text-red-600"> · {urgentCount} urgent</span>}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-        >
+        <Button variant="primary" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           New Task
-        </button>
+        </Button>
       </div>
 
       {/* Status tabs */}
@@ -620,7 +611,7 @@ export default function TasksPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
         >
           <option value="">All Types</option>
           {TASK_TYPES.map((t) => (
@@ -630,7 +621,7 @@ export default function TasksPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
         >
           <option value="">All Priorities</option>
           {PRIORITIES.map((p) => (
@@ -647,19 +638,16 @@ export default function TasksPage() {
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <GlassCard variant="default" className="p-12 text-center">
           <ClipboardList size={36} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">No tasks found</p>
           <p className="text-sm text-gray-400 mt-1">
             Create a task manually or use the AI Copilot to create from natural language
           </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-          >
+          <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
             <Plus size={14} />New Task
-          </button>
-        </div>
+          </Button>
+        </GlassCard>
       ) : (
         <div className="space-y-3">
           {tasks.map((task) => (

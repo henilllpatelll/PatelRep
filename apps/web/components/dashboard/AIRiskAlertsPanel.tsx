@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AlertTriangle, Zap, Clock, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { aiApi } from '@/lib/api/ai'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 export function AIRiskAlertsPanel() {
   const [expanded, setExpanded] = useState(true)
@@ -27,14 +28,14 @@ export function AIRiskAlertsPanel() {
     (alerts?.sla_breaches?.length ?? 0)
 
   if (isLoading) {
-    return <div className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse h-24" />
+    return <GlassCard variant="default"><div className="animate-pulse h-16" /></GlassCard>
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <GlassCard variant={hasAlerts ? 'danger' : 'default'} className="p-0 overflow-hidden">
       {/* Header */}
       <button
-        className="w-full px-5 py-4 border-b border-gray-100 flex items-center justify-between"
+        className="w-full px-5 py-4 flex items-center justify-between"
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
       >
@@ -44,21 +45,22 @@ export function AIRiskAlertsPanel() {
           ) : (
             <span className="w-2 h-2 bg-green-500 rounded-full" />
           )}
-          <h2 className="font-semibold text-gray-900">AI Risk Alerts</h2>
+          <h2 className="text-sm font-bold text-slate-700">AI Risk Alerts</h2>
+          <span className="bg-purple-50 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-md">AI</span>
           {hasAlerts && (
             <span className="ml-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
               {totalCount}
             </span>
           )}
         </div>
-        <span className="text-gray-400">
+        <span className="text-slate-400">
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
 
       {/* Body */}
       {expanded && (
-        <div className="p-4">
+        <div className="px-4 pb-4">
           {!hasAlerts ? (
             <div className="flex items-center gap-3 py-3 text-green-700">
               <CheckCircle size={18} className="shrink-0" />
@@ -69,10 +71,11 @@ export function AIRiskAlertsPanel() {
               {/* Housekeeping risks */}
               {alerts?.housekeeping_risks?.map((r, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0" />
                   <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm text-slate-700">
                         Room {r.rooms?.room_number ?? '—'} — {r.risk_level} risk
                       </p>
                       <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded uppercase">
@@ -92,10 +95,11 @@ export function AIRiskAlertsPanel() {
               {/* SLA breaches */}
               {alerts?.sla_breaches?.map((b, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg">
+                  <span className="w-2 h-2 bg-red-600 rounded-full mt-1.5 shrink-0" />
                   <Clock size={16} className="text-red-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm text-slate-700">
                         WO-{b.work_order_number} — {b.title}
                       </p>
                       <span className="px-1.5 py-0.5 bg-red-600 text-white text-xs font-semibold rounded uppercase">
@@ -103,7 +107,7 @@ export function AIRiskAlertsPanel() {
                       </span>
                     </div>
                     {b.due_at && (
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5">
                         Due: {new Date(b.due_at).toLocaleString()}
                       </p>
                     )}
@@ -120,10 +124,11 @@ export function AIRiskAlertsPanel() {
               {/* Maintenance risks */}
               {alerts?.maintenance_risks?.map((r, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 shrink-0" />
                   <Zap size={16} className="text-orange-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm text-slate-700">
                         {r.name} — {r.failure_risk_score}% failure risk
                       </p>
                       <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded uppercase">
@@ -137,6 +142,6 @@ export function AIRiskAlertsPanel() {
           )}
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }

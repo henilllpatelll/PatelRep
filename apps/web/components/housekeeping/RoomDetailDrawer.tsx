@@ -16,6 +16,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { useRole } from '@/lib/hooks/useRole'
 import { InspectionModal } from '@/components/housekeeping/InspectionModal'
+import { Button } from '@/components/ui/Button'
 
 interface Props {
   room: any | null
@@ -100,22 +101,23 @@ function TransitionButton({
     PICKUP: 'Mark Pickup',
   }
 
-  const styles: Record<RoomStatus, string> = {
-    DIRTY: 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200',
-    IN_PROGRESS: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700',
-    CLEAN: 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200',
-    INSPECTED: 'bg-green-600 text-white border-green-600 hover:bg-green-700',
-    OOO: 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200',
-    PICKUP: 'bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-200',
+  const variants: Record<RoomStatus, 'primary' | 'secondary' | 'destructive' | 'ghost'> = {
+    DIRTY: 'destructive',
+    IN_PROGRESS: 'primary',
+    CLEAN: 'secondary',
+    INSPECTED: 'primary',
+    OOO: 'ghost',
+    PICKUP: 'secondary',
   }
 
   return (
-    <button
-      className={`text-sm px-3 py-1.5 rounded-lg border font-medium transition-colors ${styles[targetStatus]}`}
+    <Button
+      variant={variants[targetStatus]}
+      className="text-sm px-3 py-1.5"
       onClick={() => onStatusChange(roomId, targetStatus)}
     >
       {labels[targetStatus]}
-    </button>
+    </Button>
   )
 }
 
@@ -191,7 +193,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -203,12 +205,12 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
         role="dialog"
         aria-modal="true"
         aria-label={`Room ${roomNumber} details`}
-        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-white shadow-2xl z-50 flex flex-col outline-none
+        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none
           transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-start justify-between p-4 border-b border-white/60 shrink-0">
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               Room {roomNumber}
@@ -233,20 +235,21 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
               )}
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="ml-2 shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="ml-2 shrink-0 p-1.5 rounded-lg"
             aria-label="Close drawer"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
           {/* Current Status Section */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-white/60">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
               Current Status
             </h3>
@@ -273,12 +276,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
             {(availableTransitions.length > 0 || (status === 'CLEAN' && canSupervise)) && (
               <div className="flex flex-wrap gap-2">
                 {status === 'CLEAN' && canSupervise && (
-                  <button
+                  <Button
+                    variant="primary"
+                    className="text-sm px-3 py-1.5"
                     onClick={() => setShowInspectionModal(true)}
-                    className="text-sm px-3 py-1.5 rounded-lg border font-medium transition-colors bg-green-600 text-white border-green-600 hover:bg-green-700"
                   >
                     Inspect Room
-                  </button>
+                  </Button>
                 )}
                 {availableTransitions.map((t) => (
                   <TransitionButton
@@ -294,7 +298,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
 
           {/* AI Prediction Section */}
           {prediction && (
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-white/60">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
                 AI Prediction
               </h3>

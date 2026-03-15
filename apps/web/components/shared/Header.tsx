@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useAuth } from '@/lib/hooks/useAuth'
 import type { UserRole } from '@/stores/authStore'
+import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm: 'General Manager',
@@ -14,31 +15,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   housekeeper: 'Housekeeper',
   engineer: 'Engineer',
   front_desk: 'Front Desk',
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    'bg-brand-600',
-    'bg-violet-600',
-    'bg-amber-600',
-    'bg-teal-600',
-    'bg-sky-600',
-    'bg-rose-600',
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return colors[Math.abs(hash) % colors.length]
 }
 
 export function Header() {
@@ -88,30 +64,33 @@ export function Header() {
   }, [dropdownOpen])
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0 z-20">
-      {/* Left: Hotel name */}
+    <header className="bg-white/[0.55] backdrop-blur-lg border-b border-white/[0.80] h-13 px-6 flex items-center justify-between shrink-0 z-20">
+      {/* Left: Hotel name + date */}
       <div>
         {hotel && (
           <p className="text-sm font-semibold text-gray-900">{hotel.name}</p>
         )}
+        <p className="text-xs text-slate-400 mt-0.5">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
       {/* Right: Bell + User menu */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         {/* Notification bell */}
         <button
-          className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          className="relative flex items-center justify-center bg-white/70 border border-white/90 rounded-lg w-8 h-8 cursor-pointer text-slate-500 hover:text-slate-700 transition-colors"
           aria-label="Notifications"
         >
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          <Bell size={16} />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
 
         {/* User dropdown */}
-        <div className="relative ml-1" ref={dropdownRef}>
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2.5 pl-2 pr-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2.5 pl-2 pr-2 py-1.5 rounded-lg hover:bg-white/50 transition-colors"
             aria-haspopup="true"
             aria-expanded={dropdownOpen}
           >
@@ -128,7 +107,7 @@ export function Header() {
                 {fullName}
               </p>
               {roleLabel && (
-                <p className="text-xs text-gray-500 whitespace-nowrap truncate max-w-[140px]">
+                <p className="text-xs text-slate-500 whitespace-nowrap truncate max-w-[140px]">
                   {roleLabel}
                 </p>
               )}
@@ -136,7 +115,7 @@ export function Header() {
 
             <ChevronDown
               size={14}
-              className={`text-gray-400 transition-transform duration-150 shrink-0 ${
+              className={`text-slate-400 transition-transform duration-150 shrink-0 ${
                 dropdownOpen ? 'rotate-180' : ''
               }`}
             />
@@ -144,14 +123,14 @@ export function Header() {
 
           {/* Dropdown panel */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 mt-1.5 w-52 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-xl shadow-lg py-1 z-50">
               {/* User summary */}
-              <div className="px-4 py-2.5 border-b border-gray-100">
+              <div className="px-4 py-2.5 border-b border-white/60">
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {fullName}
                 </p>
                 {roleLabel && (
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
                     {roleLabel}
                   </p>
                 )}
@@ -164,9 +143,9 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings/profile')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-white/60 transition-colors"
                 >
-                  <User size={15} className="text-gray-400 shrink-0" />
+                  <User size={15} className="text-slate-400 shrink-0" />
                   Profile
                 </button>
 
@@ -175,17 +154,17 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-white/60 transition-colors"
                 >
-                  <Settings size={15} className="text-gray-400 shrink-0" />
+                  <Settings size={15} className="text-slate-400 shrink-0" />
                   Settings
                 </button>
               </div>
 
-              <div className="border-t border-gray-100 py-1">
+              <div className="border-t border-white/60 py-1">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50/60 transition-colors"
                 >
                   <LogOut size={15} className="shrink-0" />
                   Sign Out

@@ -20,6 +20,8 @@ import {
 import { staffApi, type StaffMember, type StaffInvitation } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -42,12 +44,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  gm: 'bg-violet-100 text-violet-700',
-  housekeeping_supervisor: 'bg-green-100 text-green-700',
-  housekeeper: 'bg-teal-100 text-teal-700',
-  chief_engineer: 'bg-blue-100 text-blue-700',
-  engineer: 'bg-sky-100 text-sky-700',
-  front_desk: 'bg-amber-100 text-amber-700',
+  gm: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  housekeeping_supervisor: 'bg-teal-50 text-teal-700 border border-teal-200',
+  housekeeper: 'bg-sky-50 text-sky-700 border border-sky-200',
+  chief_engineer: 'bg-amber-50 text-amber-700 border border-amber-200',
+  engineer: 'bg-slate-50 text-slate-600 border border-slate-200',
+  front_desk: 'bg-violet-50 text-violet-700 border border-violet-200',
 }
 
 const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
@@ -133,11 +135,11 @@ function ConfirmDeactivateDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
         onClick={onCancel}
       />
       {/* Dialog */}
-      <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-600" />
@@ -154,20 +156,22 @@ function ConfirmDeactivateDialog({
         </p>
 
         <div className="flex gap-3 pt-1">
-          <button
+          <Button
+            variant="ghost"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             {loading ? 'Deactivating…' : 'Deactivate'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -220,16 +224,16 @@ function InviteModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
           >
             <X size={18} />
           </button>
@@ -250,10 +254,10 @@ function InviteModal({
             <input
               {...register('full_name')}
               placeholder="Maria Garcia"
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
                 errors.full_name
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-indigo-200/40 hover:border-indigo-300'
               }`}
             />
             {errors.full_name && (
@@ -268,10 +272,10 @@ function InviteModal({
               {...register('email')}
               type="email"
               placeholder="maria@sunriseinn.com"
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
                 errors.email
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-indigo-200/40 hover:border-indigo-300'
               }`}
             />
             {errors.email && (
@@ -284,10 +288,10 @@ function InviteModal({
             <label className="block text-sm font-medium text-gray-700">Role</label>
             <select
               {...register('role')}
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
                 errors.role
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-indigo-200/40 hover:border-indigo-300'
               }`}
             >
               {ROLE_OPTIONS.map(({ value, label }) => (
@@ -303,22 +307,24 @@ function InviteModal({
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
               disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+              className="flex-1"
             >
               <Mail size={15} />
               {isSubmitting ? 'Sending…' : 'Send Invite'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -404,20 +410,20 @@ export default function StaffPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Management</h1>
           <p className="text-sm text-gray-500 mt-1">
             {staffQuery.data?.length ?? 0} team member
             {staffQuery.data?.length !== 1 ? 's' : ''}
           </p>
         </div>
         {canManageStaff && (
-          <button
+          <Button
+            variant="primary"
             onClick={() => setShowInviteModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
           >
             <UserPlus size={16} />
             Invite Staff
-          </button>
+          </Button>
         )}
       </div>
 
@@ -485,7 +491,7 @@ export default function StaffPage() {
       </div>
 
       {/* Staff table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="overflow-hidden p-0">
         {staffQuery.isLoading ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
             Loading staff…
@@ -495,7 +501,7 @@ export default function StaffPage() {
             <p className="text-sm text-red-600 font-medium">Failed to load staff.</p>
             <button
               onClick={() => staffQuery.refetch()}
-              className="mt-2 text-sm text-brand-600 hover:underline"
+              className="mt-2 text-sm text-indigo-600 hover:underline"
             >
               Try again
             </button>
@@ -509,7 +515,7 @@ export default function StaffPage() {
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-white/60 bg-indigo-50/60">
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
                   Name
                 </th>
@@ -526,9 +532,9 @@ export default function StaffPage() {
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-white/40">
               {filteredStaff.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition-colors group">
+                <tr key={member.id} className="hover:bg-indigo-50/40 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={member.full_name} role={member.role} />
@@ -588,14 +594,14 @@ export default function StaffPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
 
       {/* Pending Invitations */}
       {(invitations.length > 0 || invitationsQuery.isLoading) && (
         <div className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">Pending Invitations</h2>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <GlassCard variant="default" className="overflow-hidden p-0">
             {invitationsQuery.isLoading ? (
               <div className="px-6 py-8 text-center text-sm text-gray-500">
                 Loading invitations…
@@ -603,7 +609,7 @@ export default function StaffPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-white/60 bg-indigo-50/60">
                     <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
                       Email
                     </th>
@@ -620,9 +626,9 @@ export default function StaffPage() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-white/40">
                   {invitations.map((inv: StaffInvitation) => (
-                    <tr key={inv.id} className="hover:bg-gray-50 transition-colors group">
+                    <tr key={inv.id} className="hover:bg-indigo-50/40 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -659,7 +665,7 @@ export default function StaffPage() {
                 </tbody>
               </table>
             )}
-          </div>
+          </GlassCard>
         </div>
       )}
 

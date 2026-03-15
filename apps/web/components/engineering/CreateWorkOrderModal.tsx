@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Sparkles, ClipboardList } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 interface Props {
   isOpen: boolean
@@ -108,7 +110,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -122,13 +124,13 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           role="dialog"
           aria-modal="true"
           aria-label="Create Work Order"
-          className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
-              <ClipboardList className="w-5 h-5 text-brand-600 shrink-0" />
+              <ClipboardList className="w-5 h-5 text-indigo-600 shrink-0" />
               <h2 className="text-base font-bold text-gray-900">New Work Order</h2>
             </div>
             <button
@@ -175,12 +177,11 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Title <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. A/C not cooling in Room 214"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             )}
@@ -196,7 +197,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   onChange={(e) => setNlInput(e.target.value)}
                   rows={3}
                   placeholder="e.g. The toilet in room 214 is leaking from the base and the guest is complaining..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   AI will generate the title and categorize automatically.
@@ -210,7 +211,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -232,8 +233,8 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                         ? p.value === 'urgent'
                           ? 'border-red-300 bg-red-50'
                           : p.value === 'normal'
-                          ? 'border-yellow-300 bg-yellow-50'
-                          : 'border-gray-300 bg-gray-50'
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-slate-300 bg-slate-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -243,7 +244,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                       value={p.value}
                       checked={priority === p.value}
                       onChange={() => setPriority(p.value)}
-                      className="mt-0.5 accent-brand-600"
+                      className="mt-0.5 accent-indigo-600"
                     />
                     <div>
                       <p className="text-sm font-medium text-gray-900 capitalize">{p.label}</p>
@@ -259,12 +260,11 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Location <span className="text-gray-400 font-normal">(optional)</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={locationText}
                 onChange={(e) => setLocationText(e.target.value)}
                 placeholder="e.g. Room 214 or Lobby restroom"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -279,7 +279,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Additional details about the issue…"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
                 />
               </div>
             )}
@@ -293,19 +293,19 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 shrink-0">
-            <button
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/60 shrink-0">
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={handleSubmit}
               disabled={mutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 border border-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               {mutation.isPending ? (
                 <>
@@ -315,7 +315,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               ) : (
                 useAI ? 'Create with AI' : 'Create Work Order'
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

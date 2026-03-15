@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi, InspectionRecord } from '@/lib/api/housekeeping'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,7 +67,7 @@ export default function InspectionsPage() {
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Inspection History</h1>
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Inspection History</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {isLoading
             ? 'Loading inspections…'
@@ -79,37 +82,39 @@ export default function InspectionsPage() {
         {/* Date range */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">From</label>
-          <input
+          <Input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="py-1.5 text-sm w-auto"
           />
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">To</label>
-          <input
+          <Input
             type="date"
             value={dateTo}
             min={dateFrom}
             onChange={(e) => setDateTo(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="py-1.5 text-sm w-auto"
           />
         </div>
 
         {/* Shortcut buttons */}
-        <button
+        <Button
+          variant="ghost"
           onClick={setToday}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 text-sm"
         >
           Today
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={setThisWeek}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 text-sm"
         >
           This Week
-        </button>
+        </Button>
 
         {/* Result filter */}
         <div className="flex items-center gap-2 ml-auto">
@@ -117,7 +122,7 @@ export default function InspectionsPage() {
           <select
             value={resultFilter}
             onChange={(e) => setResultFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            className="px-3 py-1.5 border border-indigo-200/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white/70 backdrop-blur-sm"
           >
             <option value="all">All Results</option>
             <option value="passed">Passed</option>
@@ -128,7 +133,7 @@ export default function InspectionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -138,7 +143,7 @@ export default function InspectionsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-white/60 bg-indigo-50/60 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Room</th>
                 <th className="text-left px-4 py-3">Inspector</th>
                 <th className="text-left px-4 py-3">Result</th>
@@ -151,7 +156,7 @@ export default function InspectionsPage() {
                 inspections.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
+                    className="border-b border-white/40 hover:bg-indigo-50/40 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       Room {row.room_number}
@@ -181,7 +186,7 @@ export default function InspectionsPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </div>
   )
 }

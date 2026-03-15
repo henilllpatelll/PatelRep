@@ -34,6 +34,8 @@ import {
 } from '@/lib/api/scheduling'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -115,38 +117,38 @@ function TodayRoster() {
   const roster = rosterQuery.data ?? []
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <GlassCard variant="accent" className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-indigo-400/10 transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <Users size={16} className="text-brand-600 shrink-0" />
-          <span className="text-sm font-semibold text-gray-800">
+          <Users size={16} className="text-indigo-600 shrink-0" />
+          <span className="text-sm font-semibold text-slate-800">
             Today&apos;s Roster
           </span>
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
             {roster.length}
           </span>
         </div>
         {collapsed ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-slate-400" />
         ) : (
-          <ChevronUp size={16} className="text-gray-400" />
+          <ChevronUp size={16} className="text-slate-400" />
         )}
       </button>
 
       {!collapsed && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-indigo-300/20">
           {rosterQuery.isLoading ? (
             <div className="px-5 py-4 space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 animate-pulse">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 shrink-0" />
+                  <div className="w-8 h-8 rounded-full bg-indigo-200/40 shrink-0" />
                   <div className="space-y-1.5 flex-1">
-                    <div className="h-3 bg-gray-200 rounded w-36" />
-                    <div className="h-3 bg-gray-200 rounded w-24" />
+                    <div className="h-3 bg-indigo-200/40 rounded w-36" />
+                    <div className="h-3 bg-indigo-200/40 rounded w-24" />
                   </div>
                 </div>
               ))}
@@ -163,7 +165,7 @@ function TodayRoster() {
               </button>
             </div>
           ) : roster.length === 0 ? (
-            <div className="px-5 py-4 text-sm text-gray-400">
+            <div className="px-5 py-4 text-sm text-slate-500">
               No staff scheduled for today yet.
             </div>
           ) : (
@@ -175,7 +177,7 @@ function TodayRoster() {
                 return (
                   <div
                     key={entry.user_id}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 min-w-0"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-indigo-200/30 bg-white/40 min-w-0"
                   >
                     {/* Avatar */}
                     <div className="relative shrink-0">
@@ -218,7 +220,7 @@ function TodayRoster() {
           )}
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }
 
@@ -278,14 +280,14 @@ function AssignShiftModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm">
+      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-sm">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-base font-semibold text-gray-900">Assign Shift</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
           >
             <X size={16} />
           </button>
@@ -306,7 +308,7 @@ function AssignShiftModal({
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
             >
               <option value="">Select staff member…</option>
               {staff.map((m) => (
@@ -323,7 +325,7 @@ function AssignShiftModal({
             <select
               value={shiftId}
               onChange={(e) => setShiftId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
             >
               <option value="">Select shift…</option>
               {shifts
@@ -343,28 +345,30 @@ function AssignShiftModal({
               type="date"
               value={workDate}
               onChange={(e) => setWorkDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
             />
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex gap-3 px-6 pb-5">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={assignMutation.isPending}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
             disabled={assignMutation.isPending}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             <Calendar size={14} />
             {assignMutation.isPending ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -451,16 +455,16 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm">
+      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-sm">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-base font-semibold text-gray-900">
             {isEdit ? 'Edit Shift' : 'Create Shift'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
           >
             <X size={16} />
           </button>
@@ -482,7 +486,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Morning"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
             />
           </div>
 
@@ -493,7 +497,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
               <select
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
               >
                 <option value="">Select department…</option>
                 {DEPARTMENTS.filter((d) => d.id !== 'all').map((d) => (
@@ -513,7 +517,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
@@ -522,7 +526,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+                className="w-full px-3 py-2 text-sm border border-indigo-200/40 rounded-lg bg-white/70 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
               />
             </div>
           </div>
@@ -534,8 +538,8 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
               <button
                 type="button"
                 onClick={() => setIsActive((a) => !a)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
-                  isActive ? 'bg-brand-600' : 'bg-gray-200'
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:ring-offset-2 ${
+                  isActive ? 'bg-indigo-500' : 'bg-gray-200'
                 }`}
               >
                 <span
@@ -550,20 +554,22 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
 
         {/* Footer */}
         <div className="flex gap-3 px-6 pb-5">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             disabled={isPending}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
             disabled={isPending}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Shift'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -583,15 +589,15 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
   const [editShift, setEditShift] = useState<Shift | null>(null)
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <GlassCard variant="default" className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-indigo-50/40 transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <Clock size={16} className="text-brand-600 shrink-0" />
-          <span className="text-sm font-semibold text-gray-800">Manage Shifts</span>
+          <Clock size={16} className="text-indigo-600 shrink-0" />
+          <span className="text-sm font-semibold text-slate-800">Manage Shifts</span>
         </div>
         {collapsed ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -601,31 +607,31 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
       </button>
 
       {!collapsed && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-white/40">
           {isLoading ? (
             <div className="px-5 py-4 space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-32" />
-                  <div className="h-4 bg-gray-200 rounded w-20" />
-                  <div className="h-4 bg-gray-200 rounded w-24" />
+                  <div className="h-4 bg-indigo-100/60 rounded w-32" />
+                  <div className="h-4 bg-indigo-100/60 rounded w-20" />
+                  <div className="h-4 bg-indigo-100/60 rounded w-24" />
                 </div>
               ))}
             </div>
           ) : (
             <>
               {shifts.length === 0 ? (
-                <div className="px-5 py-4 text-sm text-gray-400">
+                <div className="px-5 py-4 text-sm text-slate-400">
                   No shifts defined yet. Create your first shift below.
                 </div>
               ) : (
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-white/30">
                   {shifts.map((shift) => {
                     const color = getShiftColor(shift.name)
                     return (
                       <div
                         key={shift.id}
-                        className="flex items-center justify-between px-5 py-3 group hover:bg-gray-50 transition-colors"
+                        className="flex items-center justify-between px-5 py-3 group hover:bg-indigo-50/30 transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <span
@@ -664,10 +670,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
               )}
 
               {/* Create shift button */}
-              <div className="px-5 py-3 border-t border-gray-100">
+              <div className="px-5 py-3 border-t border-white/40">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
                   <Plus size={15} />
                   Create Shift
@@ -694,7 +700,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
           onSuccess={() => setEditShift(null)}
         />
       )}
-    </div>
+    </GlassCard>
   )
 }
 
@@ -777,9 +783,9 @@ function WeekCalendar({
   const weekLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <GlassCard variant="default" className="overflow-hidden p-0">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-gray-100">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-white/60">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-800">Week of {weekLabel}</span>
         </div>
@@ -834,7 +840,7 @@ function WeekCalendar({
         ) : viewMode === 'by-staff' ? (
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-white/60 bg-indigo-50/60">
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 w-40 shrink-0">
                   Staff
                 </th>
@@ -902,7 +908,7 @@ function WeekCalendar({
                           <td
                             key={dateKey}
                             className={`px-2 py-3 text-center ${
-                              isToday ? 'bg-brand-50/30' : ''
+                              isToday ? 'bg-indigo-400/[0.12] border-indigo-300/[0.30]' : ''
                             }`}
                           >
                             {shift ? (
@@ -948,7 +954,7 @@ function WeekCalendar({
           /* By Shift view */
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-white/60 bg-indigo-50/60">
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3 w-44 shrink-0">
                   Shift
                 </th>
@@ -1001,7 +1007,7 @@ function WeekCalendar({
                           <td
                             key={dateKey}
                             className={`px-2 py-3 text-center ${
-                              isToday ? 'bg-brand-50/30' : ''
+                              isToday ? 'bg-indigo-400/[0.12] border-indigo-300/[0.30]' : ''
                             }`}
                           >
                             {dayAssignments.length === 0 ? (
@@ -1048,7 +1054,7 @@ function WeekCalendar({
           </table>
         )}
       </div>
-    </div>
+    </GlassCard>
   )
 }
 
@@ -1127,22 +1133,22 @@ export default function SchedulingPage() {
       {/* ── Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff Scheduling</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Scheduling</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage shift assignments and view weekly coverage
           </p>
         </div>
         {isSupervisor && (
-          <button
+          <Button
+            variant="primary"
             onClick={() => {
               setAssignModalDate(undefined)
               setShowAssignModal(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
           >
             <Plus size={15} />
             Assign Staff
-          </button>
+          </Button>
         )}
       </div>
 

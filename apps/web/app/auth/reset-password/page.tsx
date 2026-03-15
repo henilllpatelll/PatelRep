@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
 
 type Mode = 'request' | 'confirm'
 
@@ -52,24 +54,26 @@ function RequestForm() {
   if (sent) {
     return (
       <div className="text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <svg
-            className="w-6 h-6 text-green-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+        <div className="flex justify-center">
+          <div className="bg-green-100 rounded-full p-3">
+            <svg
+              className="w-6 h-6 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">Check your email</h2>
-        <p className="text-sm text-gray-500">
-          We sent a password reset link to <strong>{email}</strong>. It expires in 1 hour.
+        <h2 className="text-xl font-bold text-slate-900">Check your email</h2>
+        <p className="text-sm text-slate-400">
+          We sent a password reset link to <strong className="text-slate-700">{email}</strong>. It expires in 1 hour.
         </p>
         <a
           href="/login"
-          className="inline-block mt-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
+          className="inline-block mt-2 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
         >
           &larr; Back to Login
         </a>
@@ -80,8 +84,8 @@ function RequestForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-slate-900">Reset Password</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Enter your email and we&apos;ll send you a reset link.
         </p>
       </div>
@@ -91,25 +95,25 @@ function RequestForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700" htmlFor="email">
+        <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email">
           Email
         </label>
-        <input
+        <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder="you@hotel.com"
           required
           autoComplete="email"
         />
       </div>
 
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        className="w-full"
         disabled={loading || !email}
-        className="w-full py-2 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -119,10 +123,10 @@ function RequestForm() {
         ) : (
           'Send Reset Link'
         )}
-      </button>
+      </Button>
 
       <div className="text-center">
-        <a href="/login" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+        <a href="/login" className="text-sm text-indigo-500 hover:text-indigo-700 font-medium">
           &larr; Back to Login
         </a>
       </div>
@@ -180,7 +184,7 @@ function ConfirmForm({ code }: { code: string }) {
       <div className="text-center space-y-3">
         <div className="flex justify-center">
           <svg
-            className="w-8 h-8 text-brand-600 animate-spin"
+            className="w-8 h-8 text-indigo-600 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -200,7 +204,7 @@ function ConfirmForm({ code }: { code: string }) {
             />
           </svg>
         </div>
-        <p className="text-gray-500 text-sm">Verifying your link&hellip;</p>
+        <p className="text-slate-400 text-sm">Verifying your link&hellip;</p>
       </div>
     )
   }
@@ -220,11 +224,11 @@ function ConfirmForm({ code }: { code: string }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">Link expired or invalid</h2>
+        <h2 className="text-xl font-bold text-slate-900">Link expired or invalid</h2>
         <p className="text-sm text-red-600">{error}</p>
         <a
           href="/auth/reset-password"
-          className="inline-block mt-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
+          className="inline-block mt-2 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
         >
           Request a new link
         </a>
@@ -235,8 +239,8 @@ function ConfirmForm({ code }: { code: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Set New Password</h1>
-        <p className="mt-1 text-sm text-gray-500">Choose a strong password for your account.</p>
+        <h1 className="text-2xl font-bold text-slate-900">Set New Password</h1>
+        <p className="mt-1 text-sm text-slate-400">Choose a strong password for your account.</p>
       </div>
 
       {error && (
@@ -244,15 +248,14 @@ function ConfirmForm({ code }: { code: string }) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700" htmlFor="new-password">
+        <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="new-password">
           New Password
         </label>
-        <input
+        <Input
           id="new-password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder="At least 8 characters"
           required
           minLength={8}
@@ -261,15 +264,14 @@ function ConfirmForm({ code }: { code: string }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700" htmlFor="confirm-password">
+        <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="confirm-password">
           Confirm Password
         </label>
-        <input
+        <Input
           id="confirm-password"
           type="password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder="Re-enter your password"
           required
           minLength={8}
@@ -277,10 +279,11 @@ function ConfirmForm({ code }: { code: string }) {
         />
       </div>
 
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        className="w-full"
         disabled={loading || !password || !confirm}
-        className="w-full py-2 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -290,7 +293,7 @@ function ConfirmForm({ code }: { code: string }) {
         ) : (
           'Update Password'
         )}
-      </button>
+      </Button>
     </form>
   )
 }
@@ -302,11 +305,11 @@ export default function ResetPasswordPage() {
   const mode: Mode = code ? 'confirm' : 'request'
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
+    <div className="min-h-screen bg-app-gradient flex items-center justify-center">
+      <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-brand-700">PatelRep</h1>
-          <p className="mt-1 text-sm text-gray-500">Hotel Operations AI</p>
+          <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+          <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
         </div>
 
         {mode === 'request' ? <RequestForm /> : <ConfirmForm code={code!} />}

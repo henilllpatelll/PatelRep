@@ -16,6 +16,9 @@ import {
 } from 'lucide-react'
 import { engineeringApi, Asset, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -25,9 +28,9 @@ type RiskFilter = (typeof RISK_FILTERS)[number]
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRiskBadge(score: number): { label: string; cls: string } {
-  if (score >= 70) return { label: 'HIGH', cls: 'bg-red-100 text-red-700' }
-  if (score >= 40) return { label: 'MEDIUM', cls: 'bg-orange-100 text-orange-700' }
-  return { label: 'LOW', cls: 'bg-green-100 text-green-700' }
+  if (score >= 70) return { label: 'HIGH', cls: 'bg-red-50 text-red-700 border border-red-200' }
+  if (score >= 40) return { label: 'MEDIUM', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
+  return { label: 'LOW', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
 }
 
 function getRiskBarColor(score: number): string {
@@ -56,7 +59,7 @@ function formatCurrency(value?: number): string {
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-gray-100">
+    <tr className="animate-pulse border-b border-indigo-50/60">
       <td className="px-4 py-3">
         <div className="h-4 bg-gray-100 rounded w-3/4 mb-1.5" />
         <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -87,12 +90,13 @@ function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
       : accent === 'green'
         ? 'text-green-600'
         : 'text-gray-900'
+  const cardVariant = accent === 'red' ? 'danger' : accent === 'green' ? 'success' : 'default'
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+    <GlassCard variant={cardVariant} className="px-5 py-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
+    </GlassCard>
   )
 }
 
@@ -165,7 +169,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -173,14 +177,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
         <div
           role="dialog"
           aria-modal="true"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <div className="sticky top-0 bg-white/[0.88] backdrop-blur-2xl border-b border-white/60 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
-                <Package size={16} className="text-brand-600" />
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                <Package size={16} className="text-indigo-600" />
               </div>
               <h2 className="text-base font-bold text-gray-900">
                 {isLoading ? 'Loading…' : (data?.name ?? 'Asset Detail')}
@@ -188,12 +192,13 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
             </div>
             <div className="flex items-center gap-2">
               {canEdit && data && !editMode && (
-                <button
+                <Button
+                  variant="secondary"
                   onClick={startEdit}
-                  className="px-3 py-1.5 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+                  className="px-3 py-1.5 text-sm"
                 >
                   Edit
-                </button>
+                </Button>
               )}
               <button
                 onClick={onClose}
@@ -225,14 +230,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 <span
                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                     data.is_active
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-green-50 text-green-700 border border-green-200'
                       : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {data.is_active ? 'Active' : 'Inactive'}
                 </span>
                 {data.asset_tag && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono bg-gray-100 text-gray-600">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono bg-slate-50 text-slate-600 border border-slate-200">
                     {data.asset_tag}
                   </span>
                 )}
@@ -244,52 +249,48 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.name ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.location_text ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, location_text: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Manufacturer</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.manufacturer ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, manufacturer: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.model ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, model: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
-                      <input
+                      <Input
                         type="text"
                         value={editFields.serial_number ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, serial_number: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className="font-mono"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Replacement Cost ($)</label>
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         value={editFields.replacement_cost ?? ''}
@@ -299,12 +300,11 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                             replacement_cost: e.target.value ? Number(e.target.value) : undefined,
                           }))
                         }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Expected Lifespan (years)</label>
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         value={editFields.expected_lifespan_years ?? ''}
@@ -314,7 +314,6 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                             expected_lifespan_years: e.target.value ? Number(e.target.value) : undefined,
                           }))
                         }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                   </div>
@@ -324,7 +323,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       rows={3}
                       value={editFields.notes ?? ''}
                       onChange={(e) => setEditFields((f) => ({ ...f, notes: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                      className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
                     />
                   </div>
                   {saveError && (
@@ -333,18 +332,18 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       {saveError}
                     </div>
                   )}
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/60">
+                    <Button
+                      variant="ghost"
                       onClick={() => setEditMode(false)}
                       disabled={saving}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
                       onClick={handleSave}
                       disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
                     >
                       {saving ? (
                         <>
@@ -354,7 +353,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       ) : (
                         'Save Changes'
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -392,7 +391,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   {data.notes && (
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Notes</p>
-                      <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-4 py-3">{data.notes}</p>
+                      <p className="text-sm text-gray-700 bg-indigo-50/40 rounded-lg px-4 py-3">{data.notes}</p>
                     </div>
                   )}
                 </>
@@ -413,7 +412,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                         return (
                           <div
                             key={pm.id}
-                            className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg border border-gray-100"
+                            className="flex items-center justify-between px-4 py-3 bg-indigo-50/40 rounded-lg border border-indigo-100/60"
                           >
                             <div>
                               <p className="text-sm font-medium text-gray-900">{pm.name}</p>
@@ -565,7 +564,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -574,13 +573,13 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
           role="dialog"
           aria-modal="true"
           aria-label="Add asset"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
                 <Plus size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Asset</h2>
@@ -602,12 +601,11 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Asset Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
                 placeholder="e.g. Rooftop HVAC Unit A"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -617,12 +615,12 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                 Category ID{' '}
                 <span className="text-gray-400 font-normal">(UUID from system)</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={fields.category_id}
                 onChange={(e) => set('category_id', e.target.value)}
                 placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="font-mono"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Obtain from Settings or leave blank if not yet categorised.
@@ -635,12 +633,11 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                 Location / Description{' '}
                 <span className="text-gray-400 font-normal">(optional)</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={fields.location_text}
                 onChange={(e) => set('location_text', e.target.value)}
                 placeholder="e.g. Boiler Room, Floor 3 North Wing"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -648,22 +645,20 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Manufacturer</label>
-                <input
+                <Input
                   type="text"
                   value={fields.manufacturer}
                   onChange={(e) => set('manufacturer', e.target.value)}
                   placeholder="e.g. Carrier"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Model</label>
-                <input
+                <Input
                   type="text"
                   value={fields.model}
                   onChange={(e) => set('model', e.target.value)}
                   placeholder="e.g. 38CKC036"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -671,12 +666,12 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Serial */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Serial Number</label>
-              <input
+              <Input
                 type="text"
                 value={fields.serial_number}
                 onChange={(e) => set('serial_number', e.target.value)}
                 placeholder="e.g. SN-20241001-001"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="font-mono"
               />
             </div>
 
@@ -684,20 +679,18 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Purchase Date</label>
-                <input
+                <Input
                   type="date"
                   value={fields.purchase_date}
                   onChange={(e) => set('purchase_date', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Warranty Expires</label>
-                <input
+                <Input
                   type="date"
                   value={fields.warranty_expires}
                   onChange={(e) => set('warranty_expires', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -706,24 +699,22 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Expected Lifespan (years)</label>
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={fields.expected_lifespan_years}
                   onChange={(e) => set('expected_lifespan_years', e.target.value)}
                   placeholder="e.g. 15"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Replacement Cost ($)</label>
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={fields.replacement_cost}
                   onChange={(e) => set('replacement_cost', e.target.value)}
                   placeholder="e.g. 8500"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -738,18 +729,18 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
-            <button
+          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
+            <Button
+              variant="ghost"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleCreate}
               disabled={saving || !fields.name.trim()}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? (
                 <>
@@ -762,7 +753,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                   Add Asset
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -828,8 +819,8 @@ export default function AssetRegisterPage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Package size={24} className="text-brand-600 shrink-0" />
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Package size={22} className="text-indigo-600 shrink-0" />
             Asset Register
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -837,13 +828,14 @@ export default function AssetRegisterPage() {
           </p>
         </div>
         {canEdit && (
-          <button
+          <Button
+            variant="primary"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shrink-0"
+            className="shrink-0"
           >
             <Plus size={15} />
             Add Asset
-          </button>
+          </Button>
         )}
       </div>
 
@@ -873,12 +865,12 @@ export default function AssetRegisterPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, tag, location…"
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="pl-9"
           />
         </div>
 
@@ -889,8 +881,8 @@ export default function AssetRegisterPage() {
               onClick={() => setRiskFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 riskFilter === f
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white/70 border border-indigo-200/40 backdrop-blur-sm text-gray-700 hover:bg-indigo-50'
               }`}
             >
               {f}
@@ -900,23 +892,24 @@ export default function AssetRegisterPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="p-0 overflow-hidden">
         {isError ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
             <p className="text-sm font-medium text-gray-700 mb-1">Failed to load assets</p>
-            <button
+            <Button
+              variant="primary"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}
-              className="mt-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              className="mt-2"
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
+                <tr className="border-b border-indigo-100 bg-indigo-50/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -960,7 +953,7 @@ export default function AssetRegisterPage() {
                     return (
                       <tr
                         key={asset.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        className="border-b border-indigo-50/60 hover:bg-indigo-50/40 transition-colors"
                       >
                         {/* Asset name + tag */}
                         <td className="px-4 py-3">
@@ -1007,7 +1000,7 @@ export default function AssetRegisterPage() {
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               asset.is_active
-                                ? 'bg-green-100 text-green-700'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
                                 : 'bg-gray-100 text-gray-500'
                             }`}
                           >
@@ -1017,13 +1010,14 @@ export default function AssetRegisterPage() {
 
                         {/* Actions */}
                         <td className="px-4 py-3">
-                          <button
+                          <Button
+                            variant="secondary"
                             onClick={() => setSelectedAssetId(asset.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
+                            className="text-xs px-3 py-1.5"
                           >
                             View
                             <ChevronRight size={13} />
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     )
@@ -1036,13 +1030,13 @@ export default function AssetRegisterPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50">
+          <div className="px-4 py-2.5 border-t border-indigo-50/60 bg-indigo-50/40">
             <p className="text-xs text-gray-400">
               Showing {filtered.length} of {assets.length} assets
             </p>
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {selectedAssetId && (

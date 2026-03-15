@@ -9,6 +9,10 @@ import { z } from 'zod'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi, type CreateHotelData } from '@/lib/api/hotels'
 import { apiClient } from '@/lib/api/client'
+import { GlassCard } from '@/components/ui/GlassCard'
+import {
+  Button as UIButton,
+} from '@/components/ui/Button'
 import {
   Building2,
   BedDouble,
@@ -414,7 +418,7 @@ function ProgressHeader({
   stepStatuses: Record<number, StepStatus>
 }) {
   return (
-    <div className="border-b border-gray-100 bg-white px-8 py-5">
+    <div className="border-b border-indigo-100/50 bg-white/60 backdrop-blur-sm px-8 py-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -441,15 +445,15 @@ function ProgressHeader({
               <div className="flex flex-col items-center gap-1 shrink-0">
                 <div
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300',
+                    'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300',
                     isCompleted && !isSkipped &&
-                      'bg-indigo-600 border-indigo-600 text-white',
+                      'bg-green-400 text-white',
                     isSkipped &&
-                      'bg-gray-200 border-gray-300 text-gray-400',
+                      'bg-green-400 text-white',
                     isActive &&
-                      'bg-white border-indigo-600 text-indigo-600 shadow-md ring-2 ring-indigo-100',
+                      'bg-indigo-400 text-white shadow-md',
                     !isCompleted && !isActive &&
-                      'bg-white border-gray-200 text-gray-300'
+                      'bg-white/60 text-slate-400 border border-indigo-200/[0.40]'
                   )}
                 >
                   {isCompleted && !isSkipped ? (
@@ -610,10 +614,11 @@ function Step1HotelProfile({
       </FormField>
 
       <div className="pt-2">
-        <Button type="submit" loading={isSubmitting} size="lg" className="w-full sm:w-auto">
+        <UIButton type="submit" variant="primary" disabled={isSubmitting} className="w-full sm:w-auto">
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
           Create Hotel & Continue
           <ChevronRight className="w-4 h-4" />
-        </Button>
+        </UIButton>
       </div>
     </form>
   )
@@ -1580,10 +1585,10 @@ function Step6Done({
         </div>
       )}
 
-      <Button onClick={onGoToDashboard} size="lg" className="w-full sm:w-auto">
+      <UIButton variant="primary" onClick={onGoToDashboard} className="w-full sm:w-auto">
         Go to Dashboard
         <ArrowRight className="w-4 h-4" />
-      </Button>
+      </UIButton>
     </div>
   )
 }
@@ -1717,59 +1722,61 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-full">
-      {/* White wizard card */}
+      {/* Glass wizard card */}
       <div className="max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white/[0.88] backdrop-blur-2xl rounded-2xl shadow-xl border border-white/[0.95] overflow-hidden">
           {/* Progress header */}
           <ProgressHeader currentStep={currentStep} stepStatuses={stepStatuses} />
 
           {/* Main content + AI sidebar */}
           <div className="flex min-h-[540px]">
             {/* Step content */}
-            <div className="flex-1 p-8 min-w-0">
-              {currentStep === 1 && (
-                <Step1HotelProfile onComplete={handleHotelCreated} />
-              )}
-              {currentStep === 2 && (
-                <Step2ImportRooms
-                  hotelId={hotelId}
-                  onComplete={handleRoomsComplete}
-                  onSkip={() => markSkipped(2)}
-                />
-              )}
-              {currentStep === 3 && (
-                <Step3InviteStaff
-                  hotelId={hotelId}
-                  onComplete={handleStaffComplete}
-                  onSkip={() => markSkipped(3)}
-                />
-              )}
-              {currentStep === 4 && (
-                <Step4OperaCloud
-                  onComplete={handleOperaComplete}
-                  onSkip={() => markSkipped(4)}
-                />
-              )}
-              {currentStep === 5 && (
-                <Step5UploadSOPs
-                  onComplete={handleSopComplete}
-                  onSkip={() => markSkipped(5)}
-                />
-              )}
-              {currentStep === 6 && (
-                <Step6Done
-                  hotelName={hotelName}
-                  roomsImported={completionState.roomsImported}
-                  staffInvited={completionState.staffInvited}
-                  operaConnected={completionState.operaConnected}
-                  sopCount={completionState.sopCount}
-                  skippedSteps={completionState.skippedSteps}
-                  onGoToDashboard={async () => {
-                    await supabase.auth.refreshSession()
-                    router.push('/dashboard')
-                  }}
-                />
-              )}
+            <div className="flex-1 p-6 min-w-0">
+              <GlassCard variant="elevated" className="p-6 h-full">
+                {currentStep === 1 && (
+                  <Step1HotelProfile onComplete={handleHotelCreated} />
+                )}
+                {currentStep === 2 && (
+                  <Step2ImportRooms
+                    hotelId={hotelId}
+                    onComplete={handleRoomsComplete}
+                    onSkip={() => markSkipped(2)}
+                  />
+                )}
+                {currentStep === 3 && (
+                  <Step3InviteStaff
+                    hotelId={hotelId}
+                    onComplete={handleStaffComplete}
+                    onSkip={() => markSkipped(3)}
+                  />
+                )}
+                {currentStep === 4 && (
+                  <Step4OperaCloud
+                    onComplete={handleOperaComplete}
+                    onSkip={() => markSkipped(4)}
+                  />
+                )}
+                {currentStep === 5 && (
+                  <Step5UploadSOPs
+                    onComplete={handleSopComplete}
+                    onSkip={() => markSkipped(5)}
+                  />
+                )}
+                {currentStep === 6 && (
+                  <Step6Done
+                    hotelName={hotelName}
+                    roomsImported={completionState.roomsImported}
+                    staffInvited={completionState.staffInvited}
+                    operaConnected={completionState.operaConnected}
+                    sopCount={completionState.sopCount}
+                    skippedSteps={completionState.skippedSteps}
+                    onGoToDashboard={async () => {
+                      await supabase.auth.refreshSession()
+                      router.push('/dashboard')
+                    }}
+                  />
+                )}
+              </GlassCard>
             </div>
 
             {/* AI Assistant sidebar */}
@@ -1785,12 +1792,12 @@ export default function OnboardingPage() {
 
           {/* Bottom navigation (steps 2–5 that don't have their own nav) */}
           {currentStep > 1 && currentStep < 6 && (
-            <div className="flex items-center justify-between border-t border-gray-100 px-8 py-4 bg-gray-50 rounded-b-2xl">
-              <Button variant="secondary" onClick={goBack}>
+            <div className="flex items-center justify-between border-t border-indigo-100/50 px-8 py-4 bg-white/40 backdrop-blur-sm rounded-b-2xl">
+              <UIButton variant="ghost" onClick={goBack}>
                 <ChevronLeft className="w-4 h-4" />
                 Back
-              </Button>
-              <span className="text-xs text-gray-400">
+              </UIButton>
+              <span className="text-xs text-slate-400">
                 {STEPS[currentStep - 1]?.optional ? 'This step is optional' : ''}
               </span>
             </div>

@@ -7,6 +7,8 @@ import { z } from 'zod'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
 import { AlertTriangle, CheckCircle2, Building2, Layers } from 'lucide-react'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -79,10 +81,10 @@ function Input({
   return (
     <input
       {...props}
-      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors ${
+      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
         error
           ? 'border-red-300 focus:ring-red-500'
-          : 'border-gray-300 hover:border-gray-400'
+          : 'border-indigo-200/40 hover:border-indigo-300/60 focus:ring-indigo-400/50 focus:border-indigo-400'
       }`}
     />
   )
@@ -173,7 +175,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your hotel profile and configuration.</p>
       </div>
 
@@ -203,7 +205,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === key
-                ? 'border-brand-600 text-brand-700'
+                ? 'border-indigo-600 text-indigo-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -216,8 +218,8 @@ export default function SettingsPage() {
       {/* General Tab */}
       {activeTab === 'general' && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-            <h2 className="text-base font-semibold text-gray-900">Hotel Profile</h2>
+          <GlassCard variant="default" className="p-6 space-y-5">
+            <h2 className="text-base font-semibold text-slate-900">Hotel Profile</h2>
 
             <FormField label="Hotel Name" error={errors.name?.message}>
               <Input
@@ -291,10 +293,10 @@ export default function SettingsPage() {
             <FormField label="Timezone" error={errors.timezone?.message}>
               <select
                 {...register('timezone')}
-                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors ${
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
                   errors.timezone
                     ? 'border-red-300 focus:ring-red-500'
-                    : 'border-gray-300 hover:border-gray-400'
+                    : 'border-indigo-200/40 hover:border-indigo-300/60 focus:ring-indigo-400/50 focus:border-indigo-400'
                 }`}
               >
                 {US_TIMEZONES.map(({ value, label }) => (
@@ -304,11 +306,12 @@ export default function SettingsPage() {
                 ))}
               </select>
             </FormField>
-          </div>
+          </GlassCard>
 
           <div className="flex items-center justify-end gap-3">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() =>
                 hotel &&
                 reset({
@@ -323,17 +326,16 @@ export default function SettingsPage() {
                 })
               }
               disabled={!isDirty || saving}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Discard
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
               disabled={!isDirty || saving}
-              className="px-5 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? 'Saving…' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -341,9 +343,9 @@ export default function SettingsPage() {
       {/* Departments Tab */}
       {activeTab === 'departments' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          <GlassCard variant="default" className="overflow-hidden p-0 divide-y divide-white/40">
             {DEPARTMENTS.map((dept) => (
-              <div key={dept.name} className="flex items-center gap-4 px-6 py-4">
+              <div key={dept.name} className="flex items-center gap-4 px-6 py-4 hover:bg-indigo-50/30 transition-colors">
                 <div className={`w-3 h-3 rounded-full ${dept.color} shrink-0`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{dept.name}</p>
@@ -354,7 +356,7 @@ export default function SettingsPage() {
                 </span>
               </div>
             ))}
-          </div>
+          </GlassCard>
           <p className="text-xs text-gray-400 px-1">
             Department customization is available on request. Contact support to add or rename departments.
           </p>
@@ -363,7 +365,7 @@ export default function SettingsPage() {
 
       {/* Danger Zone — shown on General tab */}
       {activeTab === 'general' && (
-        <div className="bg-white rounded-xl border border-red-200 p-6 space-y-3">
+        <GlassCard variant="danger" className="p-6 space-y-3">
           <h2 className="text-base font-semibold text-red-700">Danger Zone</h2>
           <div className="flex items-center justify-between">
             <div>
@@ -391,7 +393,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </div>
+        </GlassCard>
       )}
     </div>
   )

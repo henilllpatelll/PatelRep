@@ -15,6 +15,7 @@ import {
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ function KpiCard({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500">{label}</p>
         {icon && <span className="text-gray-400">{icon}</span>}
@@ -206,16 +207,16 @@ function DailySummaryTab() {
           </>
         ) : summary ? (
           <>
-            <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col items-center justify-center bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-6">
               <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
               <p className="text-4xl font-bold text-gray-900">{summary.tasks_completed_today}</p>
               <p className="mt-1 text-sm text-gray-500">tasks completed today</p>
             </div>
             <div
-              className={`flex flex-col items-center justify-center rounded-xl border p-6 shadow-sm ${
+              className={`flex flex-col items-center justify-center backdrop-blur-md rounded-2xl border p-6 ${
                 summary.open_work_orders > 0
-                  ? 'border-orange-200 bg-orange-50'
-                  : 'border-gray-200 bg-white'
+                  ? 'border-orange-200/60 bg-orange-50/70'
+                  : 'border-white/90 bg-white/[0.65]'
               }`}
             >
               <Wrench
@@ -423,7 +424,7 @@ function MaintenanceTab() {
       {report && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* By Category */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Category</h4>
             {Object.keys(report.by_category).length === 0 ? (
               <p className="text-sm text-gray-400">No data.</p>
@@ -450,7 +451,7 @@ function MaintenanceTab() {
           </div>
 
           {/* By Priority */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Priority</h4>
             <div className="space-y-3">
               {[
@@ -651,7 +652,7 @@ export default function ReportsPage() {
           <BarChart2 className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Reports</h1>
           <p className="text-sm text-gray-500">Operational analytics and performance metrics</p>
         </div>
       </div>
@@ -665,7 +666,7 @@ export default function ReportsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 currentTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-indigo-600 text-indigo-700'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
               }`}
             >

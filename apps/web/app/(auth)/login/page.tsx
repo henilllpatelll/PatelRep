@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
 
 type Tab = 'password' | 'magic'
 
@@ -99,15 +101,15 @@ export default function LoginPage() {
   // ── Magic link sent confirmation ──────────────────────────────────────────
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg space-y-6 text-center">
+      <div className="min-h-screen bg-app-gradient flex items-center justify-center">
+        <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl space-y-6 text-center">
           <div>
-            <h1 className="text-3xl font-bold text-brand-700">PatelRep</h1>
-            <p className="mt-1 text-gray-500 text-sm">Hotel Operations AI</p>
+            <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+            <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
           </div>
 
           <div className="flex justify-center">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="bg-green-100 rounded-full p-3">
               <svg
                 className="w-7 h-7 text-green-600"
                 fill="none"
@@ -125,9 +127,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Check your email</h2>
-            <p className="mt-2 text-sm text-gray-500">
-              We sent a magic link to <strong>{email}</strong>. Click the link to sign in. It
+            <h2 className="text-xl font-bold text-slate-900">Check your email</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              We sent a magic link to <strong className="text-slate-700">{email}</strong>. Click the link to sign in. It
               expires in 1 hour.
             </p>
           </div>
@@ -138,7 +140,7 @@ export default function LoginPage() {
               setMagicLinkSent(false)
               setError('')
             }}
-            className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium"
+            className="inline-flex items-center gap-1 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
           >
             <svg
               className="w-4 h-4"
@@ -158,23 +160,23 @@ export default function LoginPage() {
 
   // ── Login card ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg space-y-6">
+    <div className="min-h-screen bg-app-gradient flex items-center justify-center">
+      <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-brand-700">PatelRep</h1>
-          <p className="mt-1 text-gray-500 text-sm">Hotel Operations AI</p>
+          <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+          <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
         </div>
 
         {/* Tab toggle */}
-        <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+        <div className="flex bg-indigo-50/60 border border-indigo-100 rounded-xl p-1">
           <button
             type="button"
             onClick={() => handleTabChange('password')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'password'
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-indigo-600 shadow-sm font-semibold'
+                : 'text-slate-500'
             }`}
           >
             Sign In
@@ -182,10 +184,10 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => handleTabChange('magic')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'magic'
-                ? 'bg-white text-brand-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-indigo-600 shadow-sm font-semibold'
+                : 'text-slate-500'
             }`}
           >
             Magic Link
@@ -203,15 +205,14 @@ export default function LoginPage() {
         {activeTab === 'password' && (
           <form onSubmit={handlePasswordLogin} className="space-y-4" noValidate>
             <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="email-pw">
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email-pw">
                 Email
               </label>
-              <input
+              <Input
                 id="email-pw"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="you@hotel.com"
                 required
                 autoComplete="email"
@@ -219,32 +220,32 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700" htmlFor="password-pw">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-slate-700" htmlFor="password-pw">
                   Password
                 </label>
                 <a
                   href="/auth/reset-password"
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+                  className="text-sm text-indigo-500 hover:text-indigo-700"
                 >
                   Forgot password?
                 </a>
               </div>
-              <input
+              <Input
                 id="password-pw"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="••••••••••••"
                 autoComplete="current-password"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              className="w-full"
               disabled={loading || !email || !password}
-              className="w-full py-2 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {loading ? (
                 <>
@@ -254,38 +255,38 @@ export default function LoginPage() {
               ) : (
                 'Sign In'
               )}
-            </button>
+            </Button>
           </form>
         )}
 
         {/* ── Magic link tab ── */}
         {activeTab === 'magic' && (
           <form onSubmit={handleMagicLink} className="space-y-4" noValidate>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-400">
               Enter your email and we&apos;ll send you a one-click sign-in link. No password
               required.
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="email-ml">
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email-ml">
                 Email
               </label>
-              <input
+              <Input
                 id="email-ml"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="you@hotel.com"
                 required
                 autoComplete="email"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              className="w-full"
               disabled={loading || !email}
-              className="w-full py-2 px-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {loading ? (
                 <>
@@ -295,12 +296,12 @@ export default function LoginPage() {
               ) : (
                 'Send Magic Link'
               )}
-            </button>
+            </Button>
           </form>
         )}
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-400">EN | ES</p>
+        <p className="text-center text-xs text-slate-400">EN | ES</p>
       </div>
     </div>
   )

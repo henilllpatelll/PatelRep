@@ -4,6 +4,9 @@ import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -82,16 +85,17 @@ export default function AssignmentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Room Assignments</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Room Assignments</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage housekeeper assignments for a given date.
           </p>
         </div>
 
-        <button
+        <Button
+          variant="primary"
           onClick={handleAiAutoAssign}
           disabled={aiLoading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-60 transition-colors"
+          className="bg-purple-600 hover:bg-purple-700"
         >
           {aiLoading ? (
             <>
@@ -101,24 +105,25 @@ export default function AssignmentsPage() {
           ) : (
             'Auto-Assign with AI'
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Date picker */}
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700">Date</label>
-        <input
+        <Input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="py-1.5 text-sm"
         />
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setDate(todayISO())}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 text-sm"
         >
           Today
-        </button>
+        </Button>
         {date && (
           <span className="text-sm text-gray-400">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
@@ -127,7 +132,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <GlassCard variant="default" className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -148,7 +153,7 @@ export default function AssignmentsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-white/60 bg-indigo-50/60 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Housekeeper</th>
                 <th className="text-center px-4 py-3">Rooms Assigned</th>
                 <th className="text-center px-4 py-3">Rooms Done</th>
@@ -162,7 +167,7 @@ export default function AssignmentsPage() {
                 return (
                   <Fragment key={hk.housekeeper_id}>
                     <tr
-                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                      className="border-b border-white/40 hover:bg-indigo-50/40 cursor-pointer transition-colors"
                       onClick={() => toggleRow(hk.housekeeper_id)}
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">{hk.name}</td>
@@ -182,7 +187,7 @@ export default function AssignmentsPage() {
                     </tr>
 
                     {expanded && (
-                      <tr className="bg-gray-50">
+                      <tr className="bg-indigo-50/30">
                         <td colSpan={5} className="px-6 pb-3 pt-1">
                           <div className="flex flex-wrap gap-2">
                             {(hk.rooms ?? []).length === 0 ? (
@@ -207,7 +212,7 @@ export default function AssignmentsPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </div>
   )
 }
