@@ -52,11 +52,7 @@ export function WorkOrderCard({ wo, onClick }: Props) {
       : null
 
   const cardVariant =
-    wo.priority === 'urgent' || sla?.breached
-      ? 'danger'
-      : wo.priority === 'high'
-        ? 'accent'
-        : 'default'
+    wo.priority === 'urgent' || sla?.breached ? 'danger' : 'default'
 
   return (
     <GlassCard
