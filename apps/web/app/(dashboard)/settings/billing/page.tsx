@@ -169,7 +169,7 @@ export default function SettingsBillingPage() {
 
       {/* ── Trial Upgrade CTA ── */}
       {subData?.plan_status === 'trialing' && (
-        <Card variant="accent" className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Card className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
             <Zap className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -203,7 +203,7 @@ export default function SettingsBillingPage() {
       {subLoading ? (
         <SkeletonCard rows={5} />
       ) : (
-        <Card variant="default" className="p-6">
+        <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <CreditCard className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">Current Plan</h2>
@@ -270,7 +270,7 @@ export default function SettingsBillingPage() {
       {creditLoading ? (
         <SkeletonCard rows={5} />
       ) : creditData ? (
-        <Card variant="default" className="p-6">
+        <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">
@@ -361,7 +361,7 @@ export default function SettingsBillingPage() {
       {invoicesLoading ? (
         <SkeletonCard rows={4} />
       ) : invoicesData && invoicesData.length > 0 ? (
-        <Card variant="default" className="p-6">
+        <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <Receipt className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">Recent Invoices</h2>
@@ -420,7 +420,7 @@ export default function SettingsBillingPage() {
       ) : null}
 
       {/* ── Section 4: Pricing Details (static) ── */}
-      <Card variant="default" className="p-6">
+      <Card className="p-6">
         <div className="flex items-center gap-2 mb-1">
           <CheckCircle className="h-5 w-5 text-indigo-400" />
           <h2 className="text-base font-semibold text-slate-900">Pricing Details</h2>

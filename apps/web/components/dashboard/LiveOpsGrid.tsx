@@ -16,7 +16,7 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
 
 function CardSkeleton() {
   return (
-    <Card variant="default">
+    <Card>
       <div className="animate-pulse">
         <div className="h-3 bg-slate-200 rounded w-1/2 mb-4" />
         <div className="space-y-2">
@@ -85,7 +85,7 @@ export function LiveOpsGrid() {
   return (
     <div className="grid grid-cols-4 gap-4">
       {/* Card 1: Room Status */}
-      <Card variant="default">
+      <Card>
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Room Status</h3>
         <div className="space-y-1 text-sm">
           {STATUS_ORDER.map((status) => {
@@ -106,7 +106,7 @@ export function LiveOpsGrid() {
       </Card>
 
       {/* Card 2: Open Work Orders */}
-      <Card variant={openWorkOrders > 5 ? 'danger' : 'default'}>
+      <Card className={openWorkOrders > 5 ? 'border-red-200 bg-red-50' : undefined}>
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Open Work Orders</h3>
         {openWorkOrders === 0 ? (
           <p className="text-sm text-green-600 font-medium">All clear</p>
@@ -129,7 +129,7 @@ export function LiveOpsGrid() {
       </Card>
 
       {/* Card 3: Staff on Shift */}
-      <Card variant="default">
+      <Card>
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Staff On Shift</h3>
         {activeStaff > 0 ? (
           <div className="space-y-1 text-sm">
@@ -145,7 +145,7 @@ export function LiveOpsGrid() {
       </Card>
 
       {/* Card 4: Today's Arrivals */}
-      <Card variant="default">
+      <Card>
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Today's Arrivals</h3>
         <p className="text-3xl font-bold text-slate-900">—</p>
         <p className="text-xs text-slate-400 mt-1">Opera integration needed</p>

@@ -638,7 +638,7 @@ export default function TasksPage() {
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <Card variant="default" className="p-12 text-center">
+        <Card className="p-12 text-center">
           <ClipboardList size={36} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">No tasks found</p>
           <p className="text-sm text-gray-400 mt-1">

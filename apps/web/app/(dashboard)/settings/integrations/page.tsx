@@ -234,7 +234,7 @@ function IntegrationsPageInner() {
       )}
 
       {/* ── Opera Cloud Card ── */}
-      <Card variant="default" className="p-6 space-y-5">
+      <Card className="p-6 space-y-5">
         {/* Card header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -446,7 +446,7 @@ function IntegrationsPageInner() {
       </Card>
 
       {/* ── SOP Library Card ── */}
-      <Card variant="default" className="p-6">
+      <Card className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">

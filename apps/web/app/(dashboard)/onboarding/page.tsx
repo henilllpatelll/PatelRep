@@ -1732,7 +1732,7 @@ export default function OnboardingPage() {
           <div className="flex min-h-[540px]">
             {/* Step content */}
             <div className="flex-1 p-6 min-w-0">
-              <Card variant="elevated" className="p-6 h-full">
+              <Card className="p-6 h-full">
                 {currentStep === 1 && (
                   <Step1HotelProfile onComplete={handleHotelCreated} />
                 )}

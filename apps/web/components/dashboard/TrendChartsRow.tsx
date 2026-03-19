@@ -15,7 +15,7 @@ function thirtyDaysAgo(): string {
 
 function SkeletonChart() {
   return (
-    <Card variant="default">
+    <Card>
       <div className="animate-pulse">
         <div className="h-3 bg-slate-200 rounded w-1/2 mb-4" />
         <div className="h-40 bg-slate-100 rounded" />
@@ -95,7 +95,7 @@ export function TrendChartsRow() {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Chart 1: SLA Compliance KPI */}
-      <Card variant="default" className="p-5">
+      <Card className="p-5">
         <h3 className="text-sm font-semibold text-slate-700 mb-4">SLA Compliance (30 days)</h3>
         {maint ? (
           <div className="flex items-center gap-8">
@@ -145,7 +145,7 @@ export function TrendChartsRow() {
       </Card>
 
       {/* Chart 2: Top Staff Performers */}
-      <Card variant="default" className="p-5">
+      <Card className="p-5">
         <h3 className="text-sm font-semibold text-slate-700 mb-4">Top Staff Performers (30 days)</h3>
         {topStaff.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>

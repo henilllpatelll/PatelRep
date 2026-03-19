@@ -91,9 +91,8 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
       : accent === 'orange'
         ? 'text-orange-600'
         : 'text-gray-900'
-  const cardVariant = accent === 'red' ? 'danger' : accent === 'orange' ? 'accent' : 'default'
   return (
-    <Card variant={cardVariant} className="px-5 py-4">
+    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-red-50' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
         <div className="text-gray-400">{icon}</div>
@@ -665,7 +664,7 @@ export default function PMSchedulesPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <Card variant="default" className="p-0 overflow-hidden">
+      <Card className="p-0 overflow-hidden">
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />

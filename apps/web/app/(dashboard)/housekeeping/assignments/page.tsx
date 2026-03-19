@@ -132,7 +132,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Table */}
-      <Card variant="default" className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 4 }).map((_, i) => (

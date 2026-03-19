@@ -426,22 +426,22 @@ export default function GuestRequestsPage() {
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Open */}
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-blue-600">{counts.open}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Open</p>
         </Card>
         {/* In Progress */}
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-purple-600">{counts.in_progress}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
         </Card>
         {/* Escalated */}
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-red-600">{counts.escalated}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
         </Card>
         {/* Resolved */}
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.resolved}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
         </Card>

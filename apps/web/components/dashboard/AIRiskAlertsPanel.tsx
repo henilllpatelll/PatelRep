@@ -28,11 +28,11 @@ export function AIRiskAlertsPanel() {
     (alerts?.sla_breaches?.length ?? 0)
 
   if (isLoading) {
-    return <Card variant="default"><div className="animate-pulse h-16" /></Card>
+    return <Card><div className="animate-pulse h-16" /></Card>
   }
 
   return (
-    <Card variant={hasAlerts ? 'danger' : 'default'} className="p-0 overflow-hidden">
+    <Card className={`p-0 overflow-hidden${hasAlerts ? ' border-red-200 bg-red-50' : ''}`}>
       {/* Header */}
       <button
         className="w-full px-5 py-4 flex items-center justify-between"

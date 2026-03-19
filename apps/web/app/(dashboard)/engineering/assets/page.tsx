@@ -90,9 +90,8 @@ function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
       : accent === 'green'
         ? 'text-green-600'
         : 'text-gray-900'
-  const cardVariant = accent === 'red' ? 'danger' : accent === 'green' ? 'success' : 'default'
   return (
-    <Card variant={cardVariant} className="px-5 py-4">
+    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-red-50' : ''}`}>
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
@@ -892,7 +891,7 @@ export default function AssetRegisterPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <Card variant="default" className="p-0 overflow-hidden">
+      <Card className="p-0 overflow-hidden">
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />

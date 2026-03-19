@@ -227,8 +227,7 @@ export function FailurePredictionSidebar() {
 
   return (
     <Card
-      variant={hasHighRisk ? 'danger' : 'accent'}
-      className="w-72 h-fit shrink-0 p-4"
+      className={`w-72 h-fit shrink-0 p-4${hasHighRisk ? ' border-red-200 bg-red-50' : ''}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">

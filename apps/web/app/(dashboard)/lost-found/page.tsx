@@ -565,19 +565,19 @@ export default function LostFoundPage() {
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-blue-600">{counts.found}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Found</p>
         </Card>
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.claimed}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Claimed</p>
         </Card>
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-purple-600">{counts.donated}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Donated</p>
         </Card>
-        <Card variant="default" className="p-4">
+        <Card className="p-4">
           <p className="text-2xl font-bold text-gray-500">{counts.discarded}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Discarded</p>
         </Card>

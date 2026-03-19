@@ -51,13 +51,11 @@ export function WorkOrderCard({ wo, onClick }: Props) {
       ? formatSLA(wo.due_at)
       : null
 
-  const cardVariant =
-    wo.priority === 'urgent' || sla?.breached ? 'danger' : 'default'
+  const isDanger = wo.priority === 'urgent' || sla?.breached
 
   return (
     <Card
-      variant={cardVariant}
-      className="cursor-pointer hover:shadow-md transition-all p-4"
+      className={`cursor-pointer hover:shadow-md transition-all p-4${isDanger ? ' border-red-200 bg-red-50' : ''}`}
     >
       <div onClick={() => onClick(wo)}>
         <div className="flex items-start justify-between gap-3">

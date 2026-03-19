@@ -491,7 +491,7 @@ export default function StaffPage() {
       </div>
 
       {/* Staff table */}
-      <Card variant="default" className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0">
         {staffQuery.isLoading ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
             Loading staff…
@@ -601,7 +601,7 @@ export default function StaffPage() {
         <div className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">Pending Invitations</h2>
 
-          <Card variant="default" className="overflow-hidden p-0">
+          <Card className="overflow-hidden p-0">
             {invitationsQuery.isLoading ? (
               <div className="px-6 py-8 text-center text-sm text-gray-500">
                 Loading invitations…

@@ -156,12 +156,9 @@ function PredictionCard({
     ? format(new Date(prediction.acknowledged_at), 'MMM d, yyyy')
     : null
 
-  const cardVariant = score >= 70 ? 'danger' : score >= 40 ? 'accent' : 'default'
-
   return (
     <Card
-      variant={cardVariant}
-      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}`}
+      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}${score >= 70 ? ' border-red-200 bg-red-50' : ''}`}
     >
       {/* Top row */}
       <div className="flex items-start gap-4">
@@ -328,7 +325,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
   return (
-    <Card variant="default" className="p-4">
+    <Card className="p-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${accent}`}>{value}</p>
     </Card>

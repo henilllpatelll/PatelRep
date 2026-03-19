@@ -11,15 +11,15 @@ interface MetricCardProps {
   value: string
   trend: 'up' | 'down' | 'neutral'
   trendLabel: string
-  variant: 'success' | 'accent' | 'danger' | 'default'
+  danger?: boolean
 }
 
-function MetricCard({ title, value, trend, trendLabel, variant }: MetricCardProps) {
+function MetricCard({ title, value, trend, trendLabel, danger }: MetricCardProps) {
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
   const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-400'
 
   return (
-    <Card variant={variant}>
+    <Card className={danger ? 'border-red-200 bg-red-50' : undefined}>
       <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
       <p className="text-2xl font-extrabold text-slate-900 mt-1">{value}</p>
       <div className={`flex items-center gap-1 mt-1 ${trendColor}`}>
@@ -32,7 +32,7 @@ function MetricCard({ title, value, trend, trendLabel, variant }: MetricCardProp
 
 function SkeletonCard() {
   return (
-    <Card variant="default">
+    <Card>
       <div className="animate-pulse">
         <div className="h-2 bg-slate-200 rounded w-2/3 mb-3" />
         <div className="h-8 bg-slate-200 rounded w-1/2 mb-3" />
@@ -98,21 +98,19 @@ export function ROIMetricsStrip() {
         value={`${inspectedToday}`}
         trend={inspectedPct >= 80 ? 'up' : inspectedPct >= 50 ? 'neutral' : 'down'}
         trendLabel={`${inspectedPct}% of ${totalRooms} rooms`}
-        variant="success"
       />
       <MetricCard
         title="Open Work Orders"
         value={`${openWorkOrders}`}
         trend={openWorkOrders === 0 ? 'up' : openWorkOrders <= 5 ? 'neutral' : 'down'}
         trendLabel={openWorkOrders === 0 ? 'All clear' : openWorkOrders === 1 ? '1 pending' : `${openWorkOrders} pending`}
-        variant={openWorkOrders > 5 ? 'danger' : openWorkOrders > 0 ? 'accent' : 'success'}
+        danger={openWorkOrders > 5}
       />
       <MetricCard
         title="Tasks Completed Today"
         value={`${tasksCompleted}`}
         trend={tasksCompleted > 0 ? 'up' : 'neutral'}
         trendLabel={tasksCompleted === 1 ? '1 task done' : `${tasksCompleted} tasks done`}
-        variant="accent"
       />
     </div>
   )

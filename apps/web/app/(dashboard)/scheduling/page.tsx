@@ -117,7 +117,7 @@ function TodayRoster() {
   const roster = rosterQuery.data ?? []
 
   return (
-    <Card variant="accent" className="overflow-hidden p-0">
+    <Card className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
@@ -589,7 +589,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
   const [editShift, setEditShift] = useState<Shift | null>(null)
 
   return (
-    <Card variant="default" className="overflow-hidden p-0">
+    <Card className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
@@ -783,7 +783,7 @@ function WeekCalendar({
   const weekLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
 
   return (
-    <Card variant="default" className="overflow-hidden p-0">
+    <Card className="overflow-hidden p-0">
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-white/60">
         <div className="flex items-center gap-2">

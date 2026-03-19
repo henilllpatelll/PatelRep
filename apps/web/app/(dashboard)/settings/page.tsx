@@ -218,7 +218,7 @@ export default function SettingsPage() {
       {/* General Tab */}
       {activeTab === 'general' && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <Card variant="default" className="p-6 space-y-5">
+          <Card className="p-6 space-y-5">
             <h2 className="text-base font-semibold text-slate-900">Hotel Profile</h2>
 
             <FormField label="Hotel Name" error={errors.name?.message}>
@@ -343,7 +343,7 @@ export default function SettingsPage() {
       {/* Departments Tab */}
       {activeTab === 'departments' && (
         <div className="space-y-4">
-          <Card variant="default" className="overflow-hidden p-0 divide-y divide-white/40">
+          <Card className="overflow-hidden p-0 divide-y divide-white/40">
             {DEPARTMENTS.map((dept) => (
               <div key={dept.name} className="flex items-center gap-4 px-6 py-4 hover:bg-indigo-50/30 transition-colors">
                 <div className={`w-3 h-3 rounded-full ${dept.color} shrink-0`} />
@@ -365,7 +365,7 @@ export default function SettingsPage() {
 
       {/* Danger Zone — shown on General tab */}
       {activeTab === 'general' && (
-        <Card variant="danger" className="p-6 space-y-3">
+        <Card className="p-6 space-y-3 border-red-200 bg-red-50">
           <h2 className="text-base font-semibold text-red-700">Danger Zone</h2>
           <div className="flex items-center justify-between">
             <div>

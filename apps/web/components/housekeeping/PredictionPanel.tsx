@@ -132,10 +132,8 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
   const highCount = atRiskRooms.filter((p) => p.risk_level === 'HIGH').length
   const mediumCount = atRiskRooms.filter((p) => p.risk_level === 'MEDIUM').length
 
-  const variant = highCount > 0 ? 'danger' : 'accent'
-
   return (
-    <Card variant={variant} className="overflow-hidden p-0">
+    <Card className={`overflow-hidden p-0${highCount > 0 ? ' border-red-200 bg-red-50' : ''}`}>
       {/* ── Header ── */}
       <button
         type="button"

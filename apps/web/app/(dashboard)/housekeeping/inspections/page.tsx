@@ -133,7 +133,7 @@ export default function InspectionsPage() {
       </div>
 
       {/* Table */}
-      <Card variant="default" className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 5 }).map((_, i) => (

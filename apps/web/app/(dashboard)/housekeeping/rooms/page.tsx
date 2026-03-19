@@ -559,7 +559,7 @@ export default function RoomsPage() {
       </div>
 
       {/* Table */}
-      <Card variant="default" className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0">
         {isLoading && (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
             Loading rooms…
