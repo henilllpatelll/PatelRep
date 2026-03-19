@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
-import { DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
@@ -73,23 +73,40 @@ export default function HousekeepingPage() {
     toggleRiskOnly,
   } = useHousekeepingStore()
 
+  const [dragError, setDragError] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) return
     const roomId = active.id as string
     const housekeeperId = over.data?.current?.housekeeperId as string | undefined
     if (!housekeeperId) return
+
+    if (!selectedShift) {
+      setDragError('Please select a shift before assigning rooms.')
+      return
+    }
+
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
-        shift_id: selectedShift ?? '',
+        shift_id: selectedShift,
         assignments: [{ room_id: roomId, housekeeper_id: housekeeperId }],
         is_ai_suggested: false,
       })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
-    } catch {
-      // silently ignore — user can retry
+    } catch (error) {
+      console.error('Failed to assign room:', error)
+      setDragError('Failed to assign room. Please try again.')
     }
   }
 
@@ -253,8 +270,22 @@ export default function HousekeepingPage() {
         <PredictionPanel predictions={predictions} isLoading={predictionsLoading} />
       )}
 
+      {/* ── Drag error banner ─────────────────────────────────────────────── */}
+      {dragError && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+          <span>{dragError}</span>
+          <button
+            onClick={() => setDragError(null)}
+            className="shrink-0 text-red-500 hover:text-red-700 font-medium"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── Main layout ───────────────────────────────────────────────────── */}
-      <DndContext onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 items-start">
           {/* Board */}
           <div className="flex-1 min-w-0">

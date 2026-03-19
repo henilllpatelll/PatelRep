@@ -104,8 +104,10 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
   }
 
   // ── Card classes ───────────────────────────────────────────────────────────
-  const cardBase =
-    'aspect-[4/3] rounded-2xl p-3 flex flex-col justify-between cursor-pointer group relative transition-all duration-200'
+  const cardBase = cn(
+    'aspect-[4/3] rounded-2xl p-3 flex flex-col justify-between group relative transition-all duration-200 overflow-hidden',
+    isDragging ? 'cursor-grabbing' : assignmentMode ? 'cursor-grab' : 'cursor-pointer',
+  )
 
   const pendingRing = isPending && assignmentMode
     ? 'ring-2 ring-purple-300 ring-offset-1 border-purple-500'
@@ -125,8 +127,8 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(assignmentMode ? listeners : {})}
+      {...(assignmentMode ? attributes : {})}
       className={cn(cardBase, statusClasses, pendingRing, vipGlow, draggingOpacity)}
       onClick={handleCardClick}
       role="button"
