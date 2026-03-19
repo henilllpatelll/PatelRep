@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -559,7 +559,7 @@ export default function RoomsPage() {
       </div>
 
       {/* Table */}
-      <GlassCard variant="default" className="overflow-hidden p-0">
+      <Card variant="default" className="overflow-hidden p-0">
         {isLoading && (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
             Loading rooms…
@@ -649,7 +649,7 @@ export default function RoomsPage() {
             </table>
           </div>
         )}
-      </GlassCard>
+      </Card>
 
       {/* Import modal */}
       {showImportModal && (

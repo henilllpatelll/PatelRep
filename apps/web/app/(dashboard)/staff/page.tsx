@@ -20,7 +20,7 @@ import {
 import { staffApi, type StaffMember, type StaffInvitation } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -491,7 +491,7 @@ export default function StaffPage() {
       </div>
 
       {/* Staff table */}
-      <GlassCard variant="default" className="overflow-hidden p-0">
+      <Card variant="default" className="overflow-hidden p-0">
         {staffQuery.isLoading ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
             Loading staff…
@@ -594,14 +594,14 @@ export default function StaffPage() {
             </tbody>
           </table>
         )}
-      </GlassCard>
+      </Card>
 
       {/* Pending Invitations */}
       {(invitations.length > 0 || invitationsQuery.isLoading) && (
         <div className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">Pending Invitations</h2>
 
-          <GlassCard variant="default" className="overflow-hidden p-0">
+          <Card variant="default" className="overflow-hidden p-0">
             {invitationsQuery.isLoading ? (
               <div className="px-6 py-8 text-center text-sm text-gray-500">
                 Loading invitations…
@@ -665,7 +665,7 @@ export default function StaffPage() {
                 </tbody>
               </table>
             )}
-          </GlassCard>
+          </Card>
         </div>
       )}
 

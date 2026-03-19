@@ -8,10 +8,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     <input
       ref={ref}
       className={cn(
-        'w-full px-3 py-2 rounded-lg text-sm text-slate-900 placeholder:text-slate-400',
-        'bg-white/70 border border-indigo-200/[0.40] backdrop-blur-sm',
-        'focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400',
-        'transition-colors duration-200',
+        'w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 placeholder:text-stone-300',
+        'focus:border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none',
+        'transition-colors duration-150',
         className
       )}
       {...props}

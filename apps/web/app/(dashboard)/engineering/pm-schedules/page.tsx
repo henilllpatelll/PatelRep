@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { engineeringApi, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -93,14 +93,14 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
         : 'text-gray-900'
   const cardVariant = accent === 'red' ? 'danger' : accent === 'orange' ? 'accent' : 'default'
   return (
-    <GlassCard variant={cardVariant} className="px-5 py-4">
+    <Card variant={cardVariant} className="px-5 py-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
         <div className="text-gray-400">{icon}</div>
       </div>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </GlassCard>
+    </Card>
   )
 }
 
@@ -665,7 +665,7 @@ export default function PMSchedulesPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <GlassCard variant="default" className="p-0 overflow-hidden">
+      <Card variant="default" className="p-0 overflow-hidden">
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
@@ -874,7 +874,7 @@ export default function PMSchedulesPage() {
             )}
           </div>
         )}
-      </GlassCard>
+      </Card>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       <CreatePMScheduleModal

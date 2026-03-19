@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { engineeringApi, Asset, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -92,11 +92,11 @@ function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
         : 'text-gray-900'
   const cardVariant = accent === 'red' ? 'danger' : accent === 'green' ? 'success' : 'default'
   return (
-    <GlassCard variant={cardVariant} className="px-5 py-4">
+    <Card variant={cardVariant} className="px-5 py-4">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </GlassCard>
+    </Card>
   )
 }
 
@@ -892,7 +892,7 @@ export default function AssetRegisterPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <GlassCard variant="default" className="p-0 overflow-hidden">
+      <Card variant="default" className="p-0 overflow-hidden">
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
@@ -1036,7 +1036,7 @@ export default function AssetRegisterPage() {
             </p>
           </div>
         )}
-      </GlassCard>
+      </Card>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {selectedAssetId && (

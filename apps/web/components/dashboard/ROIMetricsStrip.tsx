@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { hotelsApi } from '@/lib/api/hotels'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 interface MetricCardProps {
   title: string
@@ -19,26 +19,26 @@ function MetricCard({ title, value, trend, trendLabel, variant }: MetricCardProp
   const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-400'
 
   return (
-    <GlassCard variant={variant}>
+    <Card variant={variant}>
       <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
       <p className="text-2xl font-extrabold text-slate-900 mt-1">{value}</p>
       <div className={`flex items-center gap-1 mt-1 ${trendColor}`}>
         <TrendIcon size={12} />
         <span className="text-xs text-slate-400">{trendLabel}</span>
       </div>
-    </GlassCard>
+    </Card>
   )
 }
 
 function SkeletonCard() {
   return (
-    <GlassCard variant="default">
+    <Card variant="default">
       <div className="animate-pulse">
         <div className="h-2 bg-slate-200 rounded w-2/3 mb-3" />
         <div className="h-8 bg-slate-200 rounded w-1/2 mb-3" />
         <div className="h-2 bg-slate-200 rounded w-1/3" />
       </div>
-    </GlassCard>
+    </Card>
   )
 }
 

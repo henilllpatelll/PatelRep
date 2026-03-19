@@ -7,7 +7,7 @@ import {
   X, Send, Loader2,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -638,7 +638,7 @@ export default function TasksPage() {
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <GlassCard variant="default" className="p-12 text-center">
+        <Card variant="default" className="p-12 text-center">
           <ClipboardList size={36} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">No tasks found</p>
           <p className="text-sm text-gray-400 mt-1">
@@ -647,7 +647,7 @@ export default function TasksPage() {
           <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
             <Plus size={14} />New Task
           </Button>
-        </GlassCard>
+        </Card>
       ) : (
         <div className="space-y-3">
           {tasks.map((task) => (

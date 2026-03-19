@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { AlertTriangle, Zap, Clock, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { aiApi } from '@/lib/api/ai'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 export function AIRiskAlertsPanel() {
   const [expanded, setExpanded] = useState(true)
@@ -28,11 +28,11 @@ export function AIRiskAlertsPanel() {
     (alerts?.sla_breaches?.length ?? 0)
 
   if (isLoading) {
-    return <GlassCard variant="default"><div className="animate-pulse h-16" /></GlassCard>
+    return <Card variant="default"><div className="animate-pulse h-16" /></Card>
   }
 
   return (
-    <GlassCard variant={hasAlerts ? 'danger' : 'default'} className="p-0 overflow-hidden">
+    <Card variant={hasAlerts ? 'danger' : 'default'} className="p-0 overflow-hidden">
       {/* Header */}
       <button
         className="w-full px-5 py-4 flex items-center justify-between"
@@ -142,6 +142,6 @@ export function AIRiskAlertsPanel() {
           )}
         </div>
       )}
-    </GlassCard>
+    </Card>
   )
 }

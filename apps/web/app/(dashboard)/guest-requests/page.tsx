@@ -18,7 +18,7 @@ import {
   type GuestRequestStatus,
 } from '@/lib/api/guest_requests'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -426,25 +426,25 @@ export default function GuestRequestsPage() {
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Open */}
-        <GlassCard variant="default" className="p-4">
+        <Card variant="default" className="p-4">
           <p className="text-2xl font-bold text-blue-600">{counts.open}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Open</p>
-        </GlassCard>
+        </Card>
         {/* In Progress */}
-        <GlassCard variant="default" className="p-4">
+        <Card variant="default" className="p-4">
           <p className="text-2xl font-bold text-purple-600">{counts.in_progress}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
-        </GlassCard>
+        </Card>
         {/* Escalated */}
-        <GlassCard variant="default" className="p-4">
+        <Card variant="default" className="p-4">
           <p className="text-2xl font-bold text-red-600">{counts.escalated}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
-        </GlassCard>
+        </Card>
         {/* Resolved */}
-        <GlassCard variant="default" className="p-4">
+        <Card variant="default" className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.resolved}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
-        </GlassCard>
+        </Card>
       </div>
 
       {/* ── Status tabs ── */}

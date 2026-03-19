@@ -34,7 +34,7 @@ import {
 } from '@/lib/api/scheduling'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ function TodayRoster() {
   const roster = rosterQuery.data ?? []
 
   return (
-    <GlassCard variant="accent" className="overflow-hidden p-0">
+    <Card variant="accent" className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
@@ -220,7 +220,7 @@ function TodayRoster() {
           )}
         </div>
       )}
-    </GlassCard>
+    </Card>
   )
 }
 
@@ -589,7 +589,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
   const [editShift, setEditShift] = useState<Shift | null>(null)
 
   return (
-    <GlassCard variant="default" className="overflow-hidden p-0">
+    <Card variant="default" className="overflow-hidden p-0">
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
@@ -700,7 +700,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
           onSuccess={() => setEditShift(null)}
         />
       )}
-    </GlassCard>
+    </Card>
   )
 }
 
@@ -783,7 +783,7 @@ function WeekCalendar({
   const weekLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
 
   return (
-    <GlassCard variant="default" className="overflow-hidden p-0">
+    <Card variant="default" className="overflow-hidden p-0">
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-white/60">
         <div className="flex items-center gap-2">
@@ -1054,7 +1054,7 @@ function WeekCalendar({
           </table>
         )}
       </div>
-    </GlassCard>
+    </Card>
   )
 }
 

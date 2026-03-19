@@ -18,7 +18,7 @@ import { format } from 'date-fns'
 import { logbookApi, LogbookEntry } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

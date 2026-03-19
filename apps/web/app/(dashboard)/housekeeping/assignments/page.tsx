@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -132,7 +132,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Table */}
-      <GlassCard variant="default" className="overflow-hidden p-0">
+      <Card variant="default" className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -212,7 +212,7 @@ export default function AssignmentsPage() {
             </tbody>
           </table>
         )}
-      </GlassCard>
+      </Card>
     </div>
   )
 }

@@ -13,7 +13,7 @@ import {
 import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage, Invoice } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -169,7 +169,7 @@ export default function SettingsBillingPage() {
 
       {/* ── Trial Upgrade CTA ── */}
       {subData?.plan_status === 'trialing' && (
-        <GlassCard variant="accent" className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Card variant="accent" className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
             <Zap className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -196,14 +196,14 @@ export default function SettingsBillingPage() {
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </div>
-        </GlassCard>
+        </Card>
       )}
 
       {/* ── Section 1: Subscription Status ── */}
       {subLoading ? (
         <SkeletonCard rows={5} />
       ) : (
-        <GlassCard variant="default" className="p-6">
+        <Card variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <CreditCard className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">Current Plan</h2>
@@ -263,14 +263,14 @@ export default function SettingsBillingPage() {
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </div>
-        </GlassCard>
+        </Card>
       )}
 
       {/* ── Section 2: AI Credit Usage ── */}
       {creditLoading ? (
         <SkeletonCard rows={5} />
       ) : creditData ? (
-        <GlassCard variant="default" className="p-6">
+        <Card variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">
@@ -354,14 +354,14 @@ export default function SettingsBillingPage() {
           <p className="mt-4 text-xs text-gray-400">
             Pricing: $99/mo base + $0.02/credit overage
           </p>
-        </GlassCard>
+        </Card>
       ) : null}
 
       {/* ── Section 3: Invoices ── */}
       {invoicesLoading ? (
         <SkeletonCard rows={4} />
       ) : invoicesData && invoicesData.length > 0 ? (
-        <GlassCard variant="default" className="p-6">
+        <Card variant="default" className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <Receipt className="h-5 w-5 text-indigo-400" />
             <h2 className="text-base font-semibold text-slate-900">Recent Invoices</h2>
@@ -416,11 +416,11 @@ export default function SettingsBillingPage() {
               </tbody>
             </table>
           </div>
-        </GlassCard>
+        </Card>
       ) : null}
 
       {/* ── Section 4: Pricing Details (static) ── */}
-      <GlassCard variant="default" className="p-6">
+      <Card variant="default" className="p-6">
         <div className="flex items-center gap-2 mb-1">
           <CheckCircle className="h-5 w-5 text-indigo-400" />
           <h2 className="text-base font-semibold text-slate-900">Pricing Details</h2>
@@ -447,7 +447,7 @@ export default function SettingsBillingPage() {
             </li>
           ))}
         </ul>
-      </GlassCard>
+      </Card>
     </div>
   )
 }

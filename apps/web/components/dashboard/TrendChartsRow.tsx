@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { reportsApi } from '@/lib/api/reports'
 import { format, subDays } from 'date-fns'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 function today(): string {
   return format(new Date(), 'yyyy-MM-dd')
@@ -15,12 +15,12 @@ function thirtyDaysAgo(): string {
 
 function SkeletonChart() {
   return (
-    <GlassCard variant="default">
+    <Card variant="default">
       <div className="animate-pulse">
         <div className="h-3 bg-slate-200 rounded w-1/2 mb-4" />
         <div className="h-40 bg-slate-100 rounded" />
       </div>
-    </GlassCard>
+    </Card>
   )
 }
 
@@ -95,7 +95,7 @@ export function TrendChartsRow() {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Chart 1: SLA Compliance KPI */}
-      <GlassCard variant="default" className="p-5">
+      <Card variant="default" className="p-5">
         <h3 className="text-sm font-semibold text-slate-700 mb-4">SLA Compliance (30 days)</h3>
         {maint ? (
           <div className="flex items-center gap-8">
@@ -142,10 +142,10 @@ export function TrendChartsRow() {
             No maintenance data available
           </div>
         )}
-      </GlassCard>
+      </Card>
 
       {/* Chart 2: Top Staff Performers */}
-      <GlassCard variant="default" className="p-5">
+      <Card variant="default" className="p-5">
         <h3 className="text-sm font-semibold text-slate-700 mb-4">Top Staff Performers (30 days)</h3>
         {topStaff.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>
@@ -173,7 +173,7 @@ export function TrendChartsRow() {
             No staff performance data yet
           </div>
         )}
-      </GlassCard>
+      </Card>
     </div>
   )
 }

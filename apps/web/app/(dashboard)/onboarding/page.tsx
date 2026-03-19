@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi, type CreateHotelData } from '@/lib/api/hotels'
 import { apiClient } from '@/lib/api/client'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import {
   Button as UIButton,
 } from '@/components/ui/Button'
@@ -1732,7 +1732,7 @@ export default function OnboardingPage() {
           <div className="flex min-h-[540px]">
             {/* Step content */}
             <div className="flex-1 p-6 min-w-0">
-              <GlassCard variant="elevated" className="p-6 h-full">
+              <Card variant="elevated" className="p-6 h-full">
                 {currentStep === 1 && (
                   <Step1HotelProfile onComplete={handleHotelCreated} />
                 )}
@@ -1776,7 +1776,7 @@ export default function OnboardingPage() {
                     }}
                   />
                 )}
-              </GlassCard>
+              </Card>
             </div>
 
             {/* AI Assistant sidebar */}

@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
 import { AlertTriangle, CheckCircle2, Building2, Layers } from 'lucide-react'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ export default function SettingsPage() {
       {/* General Tab */}
       {activeTab === 'general' && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <GlassCard variant="default" className="p-6 space-y-5">
+          <Card variant="default" className="p-6 space-y-5">
             <h2 className="text-base font-semibold text-slate-900">Hotel Profile</h2>
 
             <FormField label="Hotel Name" error={errors.name?.message}>
@@ -306,7 +306,7 @@ export default function SettingsPage() {
                 ))}
               </select>
             </FormField>
-          </GlassCard>
+          </Card>
 
           <div className="flex items-center justify-end gap-3">
             <Button
@@ -343,7 +343,7 @@ export default function SettingsPage() {
       {/* Departments Tab */}
       {activeTab === 'departments' && (
         <div className="space-y-4">
-          <GlassCard variant="default" className="overflow-hidden p-0 divide-y divide-white/40">
+          <Card variant="default" className="overflow-hidden p-0 divide-y divide-white/40">
             {DEPARTMENTS.map((dept) => (
               <div key={dept.name} className="flex items-center gap-4 px-6 py-4 hover:bg-indigo-50/30 transition-colors">
                 <div className={`w-3 h-3 rounded-full ${dept.color} shrink-0`} />
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                 </span>
               </div>
             ))}
-          </GlassCard>
+          </Card>
           <p className="text-xs text-gray-400 px-1">
             Department customization is available on request. Contact support to add or rename departments.
           </p>
@@ -365,7 +365,7 @@ export default function SettingsPage() {
 
       {/* Danger Zone — shown on General tab */}
       {activeTab === 'general' && (
-        <GlassCard variant="danger" className="p-6 space-y-3">
+        <Card variant="danger" className="p-6 space-y-3">
           <h2 className="text-base font-semibold text-red-700">Danger Zone</h2>
           <div className="flex items-center justify-between">
             <div>
@@ -393,7 +393,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </GlassCard>
+        </Card>
       )}
     </div>
   )

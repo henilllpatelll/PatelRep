@@ -18,7 +18,7 @@ import {
   Check,
 } from 'lucide-react'
 import { integrationsApi } from '@/lib/api/integrations'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -234,7 +234,7 @@ function IntegrationsPageInner() {
       )}
 
       {/* ── Opera Cloud Card ── */}
-      <GlassCard variant="default" className="p-6 space-y-5">
+      <Card variant="default" className="p-6 space-y-5">
         {/* Card header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -443,10 +443,10 @@ function IntegrationsPageInner() {
             </button>
           </div>
         )}
-      </GlassCard>
+      </Card>
 
       {/* ── SOP Library Card ── */}
-      <GlassCard variant="default" className="p-6">
+      <Card variant="default" className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
@@ -467,7 +467,7 @@ function IntegrationsPageInner() {
             <ArrowRight size={14} />
           </Link>
         </div>
-      </GlassCard>
+      </Card>
 
       {/* Disconnect confirm dialog */}
       {showDisconnectConfirm && (

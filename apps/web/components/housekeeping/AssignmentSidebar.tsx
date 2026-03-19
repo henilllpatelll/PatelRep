@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ interface AISuggestionsOverlayProps {
 function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestionsOverlayProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/20 backdrop-blur-sm">
-      <GlassCard variant="elevated" className="w-full max-w-sm p-5">
+      <Card variant="elevated" className="w-full max-w-sm p-5">
         <h3 className="font-semibold text-gray-900 text-base mb-1">AI Assignment Suggestions</h3>
         <p className="text-xs text-gray-500 mb-4">
           Based on workload, skill level, and current occupancy.
@@ -72,7 +72,7 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
 
         <div className="space-y-3 mb-5">
           {suggestions.map((s) => (
-            <GlassCard key={s.housekeeper_id} variant="default" className="p-3">
+            <Card key={s.housekeeper_id} variant="default" className="p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-gray-900">{s.housekeeper_name}</span>
                 <span className="text-xs text-gray-400">Est. {s.estimated_finish}</span>
@@ -80,7 +80,7 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
               <p className="text-xs text-gray-600">
                 Rooms: {s.rooms.join(', ')}
               </p>
-            </GlassCard>
+            </Card>
           ))}
         </div>
 
@@ -100,7 +100,7 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
             Dismiss
           </Button>
         </div>
-      </GlassCard>
+      </Card>
     </div>
   )
 }
@@ -212,7 +212,7 @@ export function AssignmentSidebar() {
         />
       )}
 
-      <GlassCard variant="default" className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
+      <Card variant="default" className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/60">
           <h3 className="font-semibold text-gray-900 text-sm">Housekeepers Today</h3>
@@ -351,7 +351,7 @@ export function AssignmentSidebar() {
             )}
           </Button>
         </div>
-      </GlassCard>
+      </Card>
     </>
   )
 }

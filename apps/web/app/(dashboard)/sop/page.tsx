@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Library, Upload, Trash2, FileText, AlertCircle, Loader2, X } from 'lucide-react'
 import { sopApi, SOPDocument } from '@/lib/api/sop'
 import { SOPQueryModal } from '@/components/ai/SOPQueryModal'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
 
   return (
     <div onClick={handleCardClick} className="cursor-pointer group">
-    <GlassCard
+    <Card
       variant="default"
       className="hover:shadow-md transition-shadow h-full"
     >
@@ -191,7 +191,7 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
           </button>
         </div>
       </div>
-    </GlassCard>
+    </Card>
     </div>
   )
 }

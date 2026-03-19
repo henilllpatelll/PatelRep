@@ -1,6 +1,6 @@
 'use client'
 import type { WorkOrder } from '@/lib/api/engineering'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 const CATEGORY_ICONS: Record<string, string> = {
   plumbing: '💧',
@@ -55,7 +55,7 @@ export function WorkOrderCard({ wo, onClick }: Props) {
     wo.priority === 'urgent' || sla?.breached ? 'danger' : 'default'
 
   return (
-    <GlassCard
+    <Card
       variant={cardVariant}
       className="cursor-pointer hover:shadow-md transition-all p-4"
     >
@@ -113,6 +113,6 @@ export function WorkOrderCard({ wo, onClick }: Props) {
           </div>
         </div>
       </div>
-    </GlassCard>
+    </Card>
   )
 }

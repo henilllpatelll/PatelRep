@@ -1,12 +1,15 @@
+'use client'
+
 import { cn } from '@/lib/utils'
 import { ButtonHTMLAttributes, forwardRef } from 'react'
+import { motion } from 'framer-motion'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:     'bg-gradient-to-r from-indigo-400 to-indigo-600 text-white shadow-sm shadow-indigo-200 hover:from-indigo-500 hover:to-indigo-700',
-  secondary:   'bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100',
-  ghost:       'bg-white/70 border border-white/90 backdrop-blur-sm text-slate-600 hover:bg-white/90',
+  primary:     'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-md shadow-amber-200/60 hover:from-amber-500 hover:to-amber-600',
+  secondary:   'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100',
+  ghost:       'bg-white/70 border border-stone-200 text-stone-600 hover:bg-stone-50',
   destructive: 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100',
 }
 
@@ -16,18 +19,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', className, children, disabled, ...props }, ref) => (
-    <button
+    <motion.button
       ref={ref}
       disabled={disabled}
+      whileTap={disabled ? undefined : { scale: 0.97 }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANTS[variant],
         className
       )}
-      {...props}
+      {...(props as React.ComponentProps<typeof motion.button>)}
     >
       {children}
-    </button>
+    </motion.button>
   )
 )
 Button.displayName = 'Button'

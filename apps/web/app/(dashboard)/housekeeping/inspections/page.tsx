@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { housekeepingApi, InspectionRecord } from '@/lib/api/housekeeping'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -133,7 +133,7 @@ export default function InspectionsPage() {
       </div>
 
       {/* Table */}
-      <GlassCard variant="default" className="overflow-hidden p-0">
+      <Card variant="default" className="overflow-hidden p-0">
         {isLoading ? (
           <div className="p-8 space-y-4 animate-pulse">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -186,7 +186,7 @@ export default function InspectionsPage() {
             </tbody>
           </table>
         )}
-      </GlassCard>
+      </Card>
     </div>
   )
 }

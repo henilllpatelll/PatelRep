@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { RoomPrediction } from '@/lib/api/housekeeping'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
   const variant = highCount > 0 ? 'danger' : 'accent'
 
   return (
-    <GlassCard variant={variant} className="overflow-hidden p-0">
+    <Card variant={variant} className="overflow-hidden p-0">
       {/* ── Header ── */}
       <button
         type="button"
@@ -197,6 +197,6 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
           )}
         </div>
       )}
-    </GlassCard>
+    </Card>
   )
 }

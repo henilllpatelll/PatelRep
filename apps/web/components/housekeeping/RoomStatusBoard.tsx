@@ -6,7 +6,7 @@ import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 import { createClient } from '@/lib/supabase/client'
 import { STATUS_BG } from '@/lib/utils/roomStatus'
 

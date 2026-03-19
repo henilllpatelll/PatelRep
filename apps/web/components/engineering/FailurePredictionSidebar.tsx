@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle, Loader2, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { Card } from '@/components/ui/Card'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,7 +226,7 @@ export function FailurePredictionSidebar() {
   const hasHighRisk = items.some((p) => !p.is_acknowledged && p.risk_score >= 70)
 
   return (
-    <GlassCard
+    <Card
       variant={hasHighRisk ? 'danger' : 'accent'}
       className="w-72 h-fit shrink-0 p-4"
     >
@@ -283,6 +283,6 @@ export function FailurePredictionSidebar() {
           Predictions updated nightly by AI
         </p>
       </div>
-    </GlassCard>
+    </Card>
   )
 }
