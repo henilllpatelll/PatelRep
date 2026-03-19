@@ -13,11 +13,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
   destructive: 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100',
 }
 
-interface ButtonProps extends MotionProps {
+interface ButtonProps extends MotionProps, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof MotionProps> {
   variant?: ButtonVariant
   className?: string
-  disabled?: boolean
-  children?: React.ReactNode
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

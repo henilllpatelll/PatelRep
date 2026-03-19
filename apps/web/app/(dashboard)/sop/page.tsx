@@ -139,7 +139,6 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
   return (
     <div onClick={handleCardClick} className="cursor-pointer group">
     <Card
-      variant="default"
       className="hover:shadow-md transition-shadow h-full"
     >
       {/* Title row */}
