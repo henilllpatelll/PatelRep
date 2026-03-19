@@ -293,10 +293,31 @@ export function useCountUp(target: number, duration = 800): number
 
 ---
 
+## 6a. Badge Variants (`components/ui/Badge.tsx`)
+
+| Variant | bg class | text class | border class |
+|---|---|---|---|
+| `dirty` | `bg-red-50` | `text-red-800` | `border-red-200` |
+| `in_progress` | `bg-blue-50` | `text-blue-800` | `border-blue-200` |
+| `clean` | `bg-emerald-50` | `text-emerald-800` | `border-emerald-200` |
+| `inspected` | `bg-violet-50` | `text-violet-800` | `border-violet-200` |
+| `do_not_disturb` | `bg-stone-100` | `text-stone-600` | `border-stone-200` |
+| `out_of_order` | `bg-stone-200` | `text-stone-700` | `border-stone-300` |
+| `high` | `bg-red-100` | `text-red-700` | `border-red-200` |
+| `medium` | `bg-orange-100` | `text-orange-700` | `border-orange-200` |
+| `low` | `bg-stone-100` | `text-stone-600` | `border-stone-200` |
+| `vip` | `bg-amber-100` | `text-amber-800` | `border-amber-300` |
+
+Props interface: `variant: BadgeVariant; children: React.ReactNode; className?: string`
+
+---
+
 ## 11. Dependencies to Add
 
 ```
 framer-motion        # Page transitions, micro-animations, shared layout
+                     # NOTE: Check package.json first — if already present, verify ≥ v11
+                     # for layoutId shared element support before installing
 @dnd-kit/core        # Drag & drop core
 @dnd-kit/sortable    # Sortable utilities for room cards
 ```
@@ -308,8 +329,13 @@ framer-motion        # Page transitions, micro-animations, shared layout
 # globals.css: Move @tailwind directives to TOP of file (before any rules)
 # globals.css: Remove body font-family (handled by next/font CSS variable)
 # globals.css: Remove body background (handled by Tailwind bg-[#FEFAF4] on html/body)
+# globals.css: REMOVE .status-dirty, .status-in-progress, .status-clean,
+#              .status-inspected, .status-ooo, .risk-high, .risk-medium utility
+#              classes — these conflict with the new inline Tailwind values on RoomCard
 # Sidebar.tsx: Replace all indigo-* classes with amber-*/stone-* equivalents
 # Button.tsx: Replace indigo gradient with amber gradient
+# components/ui/GlassCard.tsx: DELETE this file — superseded by Card.tsx.
+#   Migrate all existing usages of GlassCard to the new Card primitive.
 # All pages: Replace text-indigo-600/bg-indigo-* with amber equivalents
 ```
 
@@ -319,29 +345,33 @@ framer-motion        # Page transitions, micro-animations, shared layout
 |---|---|
 | `components/shared/PageTransition.tsx` | Framer Motion page wrapper |
 | `components/ui/Card.tsx` | Warm card primitive |
-| `components/ui/Badge.tsx` | Status/priority badge |
+| `components/ui/Badge.tsx` | Status/priority badge (see Section 6a for variants) |
 | `components/ui/Skeleton.tsx` | Loading skeleton with shimmer |
-| `lib/hooks/useCountUp.ts` | Animated counter hook |
+| `lib/hooks/useCountUp.ts` | Animated counter — returns `number` (Math.round applied); for decimal targets pass `decimals` option |
 
 ## 14. Files to Modify (Existing)
 
 | File | Changes |
 |---|---|
-| `app/layout.tsx` | Font swap (Inter→Figtree+JetBrains), remove Google Fonts link |
-| `app/globals.css` | Move @tailwind to top, remove body bg/font rules, add design tokens |
+| `app/layout.tsx` | Font swap (Inter→Figtree+JetBrains Mono via next/font), remove Google Fonts `<link>`, apply font CSS variables on `<html>` |
+| `app/globals.css` | Move @tailwind to top, remove body bg/font rules, remove old `.status-*`/`.risk-*` classes, add CSS design tokens |
 | `tailwind.config.ts` | Font families, remove app-gradient, keep status/risk colors |
-| `app/(dashboard)/layout.tsx` | Add PageTransition, update bg class |
-| `components/shared/Sidebar.tsx` | Full visual restyle (amber/stone) |
+| `app/(dashboard)/layout.tsx` | Wrap `{children}` in `<PageTransition>`. Keep `<AICopilotBubble />` as a **top-level sibling** outside PageTransition (it uses `position:fixed` and must not be inside the animated wrapper to avoid stacking context issues). Update bg to `bg-[#FEFAF4]`. |
+| `components/shared/Sidebar.tsx` | Full visual restyle (amber/stone) + Framer Motion layoutId active indicator. Render `<motion.div layoutId="sidebar-active">` as an **absolute inset background** inside each nav item container, conditionally rendered only when active (standard Framer Motion tab-indicator pattern). |
 | `components/shared/Header.tsx` | Full visual restyle |
-| `components/ui/Button.tsx` | Amber variants, Framer whileTap |
+| `components/ui/Button.tsx` | Amber variants, Framer `whileTap={{ scale: 0.97 }}` |
 | `components/ui/Input.tsx` | Amber focus ring, warm base |
+| `components/ui/GlassCard.tsx` | **DELETE** — migrate usages to Card.tsx |
 | `components/housekeeping/RoomCard.tsx` | Grid card layout, status colors, drag |
 | `components/housekeeping/RoomStatusBoard.tsx` | Grid layout, DndContext, status chips |
 | `components/dashboard/ROIMetricsStrip.tsx` | Card primitive, useCountUp, icon pills |
 | `components/dashboard/AIRiskAlertsPanel.tsx` | Warm gradient container |
 | `components/dashboard/TrendChartsRow.tsx` | Amber chart theme |
-| `app/(auth)/login/page.tsx` | Full login page restyle |
-| All other pages | Amber/stone color substitutions |
+| `components/dashboard/LiveOpsGrid.tsx` | Amber row hover (`hover:bg-amber-50/50`), status badge colors updated to match Section 6a variants |
+| `components/ai/AICopilotBubble.tsx` | FAB gradient → `from-amber-400 to-amber-500`; user message bubble → amber gradient; quick action chips → `bg-amber-50 border-amber-200 text-amber-700`; insights action text → `text-amber-600`; input focus ring → `ring-amber-400`; all indigo removed |
+| `app/(auth)/login/page.tsx` | Full login page restyle (warm cream bg, glass card, amber CTA) |
+| `app/auth/reset-password/page.tsx` | Same restyle as login page — warm cream bg, white/80 glass card, amber CTA button |
+| All other dashboard pages | Amber/stone color substitutions for any remaining indigo |
 
 ---
 
