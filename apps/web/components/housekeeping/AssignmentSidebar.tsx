@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useDroppable } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
@@ -53,6 +54,64 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   )
 }
 
+// ── Drop zone row per housekeeper ─────────────────────────────────────────────
+
+interface HousekeeperDropRowProps {
+  hk: HousekeeperAssignment
+  roomNumberMap: Record<string, string>
+  pendingAssignments: Record<string, string>
+  removePendingAssignment: (roomId: string) => void
+}
+
+function HousekeeperDropRow({
+  hk,
+  roomNumberMap,
+  pendingAssignments,
+  removePendingAssignment,
+}: HousekeeperDropRowProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `hk-${hk.housekeeper_id}`,
+    data: { housekeeperId: hk.housekeeper_id },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`px-4 py-3 transition-colors rounded-lg mx-1 my-0.5 ${
+        isOver
+          ? 'bg-amber-50 border-2 border-amber-400 border-dashed'
+          : 'border-2 border-transparent'
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          {getInitials(hk.name)}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{hk.name}</p>
+          {hk.current_room && (
+            <p className="text-xs text-gray-400 truncate">
+              {hk.current_room_status === 'IN_PROGRESS' ? 'Cleaning' : 'In'} Room{' '}
+              {hk.current_room}
+            </p>
+          )}
+        </div>
+        <span className="ml-auto text-xs text-gray-400 shrink-0">
+          {hk.rooms_done} done
+        </span>
+      </div>
+      <ProgressBar done={hk.rooms_done} total={hk.total_rooms} />
+
+      {/* Drop hint */}
+      {isOver && (
+        <p className="text-xs text-amber-600 font-medium mt-1.5 text-center">
+          Drop to assign
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── AI Suggestions overlay ────────────────────────────────────────────────────
 
 interface AISuggestionsOverlayProps {
@@ -63,7 +122,7 @@ interface AISuggestionsOverlayProps {
 
 function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestionsOverlayProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/20 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
       <Card className="w-full max-w-sm p-5">
         <h3 className="font-semibold text-gray-900 text-base mb-1">AI Assignment Suggestions</h3>
         <p className="text-xs text-gray-500 mb-4">
@@ -216,10 +275,11 @@ export function AssignmentSidebar() {
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/60">
           <h3 className="font-semibold text-gray-900 text-sm">Housekeepers Today</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Drag a room card onto a name to assign</p>
         </div>
 
         {/* Housekeeper list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto py-1">
           {assignmentsLoading ? (
             <div className="p-4 space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -239,26 +299,13 @@ export function AssignmentSidebar() {
           ) : (
             <div className="divide-y divide-white/60">
               {housekeepers.map((hk) => (
-                <div key={hk.housekeeper_id} className="px-4 py-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {getInitials(hk.name)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{hk.name}</p>
-                      {hk.current_room && (
-                        <p className="text-xs text-gray-400 truncate">
-                          {hk.current_room_status === 'IN_PROGRESS' ? 'Cleaning' : 'In'} Room{' '}
-                          {hk.current_room}
-                        </p>
-                      )}
-                    </div>
-                    <span className="ml-auto text-xs text-gray-400 shrink-0">
-                      {hk.rooms_done} done
-                    </span>
-                  </div>
-                  <ProgressBar done={hk.rooms_done} total={hk.total_rooms} />
-                </div>
+                <HousekeeperDropRow
+                  key={hk.housekeeper_id}
+                  hk={hk}
+                  roomNumberMap={roomNumberMap}
+                  pendingAssignments={pendingAssignments}
+                  removePendingAssignment={removePendingAssignment}
+                />
               ))}
             </div>
           )}

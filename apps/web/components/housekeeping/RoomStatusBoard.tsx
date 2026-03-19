@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
@@ -71,9 +72,9 @@ function SkeletonGrid() {
   return (
     <div className="space-y-6">
       <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-      <div className="grid grid-cols-4 gap-3 md:grid-cols-6 lg:grid-cols-8">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-28 bg-gray-200 rounded-xl animate-pulse" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="aspect-[4/3] bg-gray-200 rounded-2xl animate-pulse" />
         ))}
       </div>
     </div>
@@ -202,12 +203,38 @@ export function RoomStatusBoard() {
 
   // ── Status change handler ─────────────────────────────────────────────────
   const handleStatusChange = async (roomId: string, status: string) => {
-    // Skip internal assignment-mode signals
     if (status === '__remove_assignment') return
     await housekeepingApi.updateRoomStatus(roomId, status)
     queryClient.invalidateQueries({
       queryKey: ['housekeeping-board', selectedDate, selectedShift],
     })
+  }
+
+  // ── Drag-end handler (drop room onto housekeeper row) ─────────────────────
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+
+    const roomId = active.id as string
+    const housekeeperId = over.data?.current?.housekeeperId as string | undefined
+    if (!housekeeperId) return
+
+    try {
+      await housekeepingApi.saveAssignments({
+        date: selectedDate,
+        shift_id: selectedShift ?? '',
+        assignments: [{ room_id: roomId, housekeeper_id: housekeeperId }],
+        is_ai_suggested: false,
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['housekeeping-board', selectedDate, selectedShift],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['housekeeping-assignments', selectedDate],
+      })
+    } catch {
+      // silently ignore — user can retry
+    }
   }
 
   // ── Derived data ──────────────────────────────────────────────────────────
@@ -240,60 +267,62 @@ export function RoomStatusBoard() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Status summary bar */}
-      <StatusSummaryBar
-        rooms={allRooms}
-        statusFilter={statusFilter}
-        onFilter={setStatusFilter}
-      />
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="space-y-4">
+        {/* Status summary bar */}
+        <StatusSummaryBar
+          rooms={allRooms}
+          statusFilter={statusFilter}
+          onFilter={setStatusFilter}
+        />
 
-      {/* Floor-grouped grid */}
-      {sortedFloors.length === 0 ? (
-        <div className="flex items-center justify-center h-40 text-sm text-gray-400">
-          No rooms match the current filters
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {sortedFloors.map((floor) => {
-            const floorRooms = byFloor[floor]
-            return (
-              <div key={floor}>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  Floor {floor}{' '}
-                  <span className="font-normal text-gray-400">
-                    · {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
-                  </span>
-                </h3>
-                <div className="grid grid-cols-4 gap-3 md:grid-cols-6 lg:grid-cols-8">
-                  {floorRooms.map((room) => (
-                    <RoomCard
-                      key={room.room_id}
-                      room={room}
-                      assignmentMode={assignmentMode}
-                      onStatusChange={(roomId: string, newStatus: string) =>
-                        handleStatusChange(roomId, newStatus)
-                      }
-                      onOpenDetail={() => setSelectedRoom(room)}
-                      pendingAssignee={pendingAssignments[room.room_id] ?? null}
-                    />
-                  ))}
+        {/* Floor-grouped grid */}
+        {sortedFloors.length === 0 ? (
+          <div className="flex items-center justify-center h-40 text-sm text-gray-400">
+            No rooms match the current filters
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {sortedFloors.map((floor) => {
+              const floorRooms = byFloor[floor]
+              return (
+                <div key={floor}>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Floor {floor}{' '}
+                    <span className="font-normal text-gray-400">
+                      · {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {floorRooms.map((room) => (
+                      <RoomCard
+                        key={room.room_id}
+                        room={room}
+                        assignmentMode={assignmentMode}
+                        onStatusChange={(roomId: string, newStatus: string) =>
+                          handleStatusChange(roomId, newStatus)
+                        }
+                        onOpenDetail={() => setSelectedRoom(room)}
+                        pendingAssignee={pendingAssignments[room.room_id] ?? null}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
 
-      {/* Room detail drawer */}
-      <RoomDetailDrawer
-        room={selectedRoom}
-        isOpen={selectedRoom !== null}
-        onClose={() => setSelectedRoom(null)}
-        onStatusChange={(roomId: string, newStatus: string) =>
-          handleStatusChange(roomId, newStatus)
-        }
-      />
-    </div>
+        {/* Room detail drawer */}
+        <RoomDetailDrawer
+          room={selectedRoom}
+          isOpen={selectedRoom !== null}
+          onClose={() => setSelectedRoom(null)}
+          onStatusChange={(roomId: string, newStatus: string) =>
+            handleStatusChange(roomId, newStatus)
+          }
+        />
+      </div>
+    </DndContext>
   )
 }

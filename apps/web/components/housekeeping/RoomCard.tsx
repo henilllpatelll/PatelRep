@@ -1,8 +1,35 @@
 'use client'
 
-import { AlertTriangle, Star, User, Clock, Wrench } from 'lucide-react'
+import { AlertTriangle, Clock, User, Wrench } from 'lucide-react'
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { useRole } from '@/lib/hooks/useRole'
-import { STATUS_BG, STATUS_TEXT } from '@/lib/utils/roomStatus'
+import { Badge } from '@/components/ui/Badge'
+import { cn } from '@/lib/utils'
+
+// ── Status → card bg + border ────────────────────────────────────────────────
+
+const STATUS_CARD_STYLES: Record<string, string> = {
+  DIRTY:       'bg-red-100 border border-red-300',
+  IN_PROGRESS: 'bg-blue-100 border border-blue-300',
+  CLEAN:       'bg-teal-50 border border-teal-300',
+  INSPECTED:   'bg-green-100 border border-green-300',
+  OOO:         'bg-stone-200 border border-stone-400',
+  PICKUP:      'bg-violet-100 border border-violet-300',
+}
+
+// ── Status → Badge variant ────────────────────────────────────────────────────
+
+const STATUS_TO_BADGE_VARIANT: Record<string, string> = {
+  DIRTY:       'dirty',
+  IN_PROGRESS: 'in_progress',
+  CLEAN:       'clean',
+  INSPECTED:   'inspected',
+  OOO:         'out_of_order',
+  PICKUP:      'default',
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   room: any
@@ -23,10 +50,6 @@ function formatTime(isoString: string | null | undefined): string | null {
   } catch {
     return null
   }
-}
-
-function formatStatusLabel(status: string): string {
-  return status.replace(/_/g, ' ')
 }
 
 export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, pendingAssignee }: Props) {
@@ -51,8 +74,18 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
   const isHighRisk = riskLevel === 'HIGH'
   const isMediumRisk = riskLevel === 'MEDIUM'
 
+  // ── dnd-kit draggable ──────────────────────────────────────────────────────
+  const { setNodeRef, transform, listeners, attributes, isDragging } = useDraggable({
+    id: room.room_id ?? room.id,
+    data: { room },
+  })
+
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : undefined
+
+  // ── Event handlers ─────────────────────────────────────────────────────────
   function handleCardClick(e: React.MouseEvent) {
-    // Don't open detail if a button was clicked
     if ((e.target as HTMLElement).closest('button')) return
     if (onOpenDetail) onOpenDetail(room)
   }
@@ -62,182 +95,172 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
     if (onStatusChange) onStatusChange(room.room_id, newStatus)
   }
 
-  // Determine card wrapper classes
-  const pendingClasses = isPending && assignmentMode
+  // ── Card classes ───────────────────────────────────────────────────────────
+  const cardBase =
+    'aspect-[4/3] rounded-2xl p-3 flex flex-col justify-between cursor-pointer group relative transition-all duration-200'
+
+  const pendingRing = isPending && assignmentMode
     ? 'ring-2 ring-purple-300 ring-offset-1 border-purple-500'
-    : 'border-white/60'
+    : ''
+
+  const vipGlow = vipFlag
+    ? 'border-2 border-amber-400 shadow-[0_0_0_2px_rgba(251,191,36,0.3)]'
+    : ''
+
+  const draggingOpacity = isDragging ? 'opacity-50' : ''
+
+  const statusClasses = isPending && assignmentMode
+    ? 'bg-violet-50 border border-purple-300'
+    : (STATUS_CARD_STYLES[status] ?? 'bg-stone-100 border border-stone-300')
 
   return (
     <div
-      className={`rounded-xl border backdrop-blur-sm shadow-sm cursor-pointer hover:scale-[1.02] transition-transform duration-200 relative p-3 ${pendingClasses}`}
-      style={
-        isPending && assignmentMode
-          ? { backgroundColor: '#F5F3FF' }
-          : { backgroundColor: STATUS_BG[status] ?? '#E2E8F0', color: STATUS_TEXT[status] ?? '#1E293B' }
-      }
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(cardBase, statusClasses, pendingRing, vipGlow, draggingOpacity)}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (onOpenDetail) onOpenDetail(room) } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          if (onOpenDetail) onOpenDetail(room)
+        }
+      }}
     >
-
-      {/* Assignment mode pending indicator */}
+      {/* Assignment mode pending dot */}
       {assignmentMode && isPending && (
-        <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-500" />
+        <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500" />
       )}
 
-      {/* Top row: room number + status badge */}
-      <div className="flex items-start justify-between gap-1 mb-0.5">
-        <span className="font-bold text-sm leading-tight">{roomNumber}</span>
-        <span
-          className="text-xs font-semibold px-1.5 py-0.5 rounded whitespace-nowrap"
-          style={{ backgroundColor: STATUS_BG[status] ?? '#E2E8F0', color: STATUS_TEXT[status] ?? '#1E293B', opacity: 0.85 }}
-        >
-          {formatStatusLabel(status)}
-        </span>
+      {/* Top row: room number + VIP badge */}
+      <div className="flex items-start justify-between gap-1">
+        <span className="font-bold text-sm leading-tight text-gray-900">{roomNumber}</span>
+        {vipFlag && (
+          <Badge variant="vip" className="text-[10px] px-1.5 py-0">VIP</Badge>
+        )}
       </div>
 
-      {/* Room type */}
-      {roomTypeName && (
-        <p className="text-xs truncate leading-tight opacity-80">{roomTypeName}</p>
-      )}
-
-      {/* VIP badge */}
-      {vipFlag && (
-        <div className="flex items-center gap-0.5 mt-1">
-          <Star className="w-3 h-3 text-yellow-500 fill-yellow-400" />
-          <span className="text-xs font-semibold text-yellow-600">VIP</span>
-        </div>
-      )}
-
-      {/* Pending assignee (assignment mode) */}
-      {assignmentMode && pendingAssignee && (
-        <div className="flex items-center gap-1 mt-1">
-          <User className="w-3 h-3 text-purple-500 shrink-0" />
-          <span className="text-xs text-purple-700 font-medium truncate">{pendingAssignee}</span>
-        </div>
-      )}
-
-      {/* Assigned housekeeper (not in assignment mode) */}
-      {!assignmentMode && assignedName && (
-        <div className="flex items-center gap-1 mt-1">
-          <User className="w-3 h-3 opacity-60 shrink-0" />
-          <span className="text-xs truncate opacity-80">{assignedName}</span>
-        </div>
-      )}
-
-      {/* OOO: maintenance note */}
-      {status === 'OOO' && openWorkOrder && (
-        <p className="text-xs mt-1 truncate opacity-70">WO-{openWorkOrder} open</p>
-      )}
-
-      {/* INSPECTED: ready message + checkin */}
-      {status === 'INSPECTED' && (
-        <p className="text-xs mt-1 opacity-80">Ready for guest</p>
-      )}
-      {status === 'INSPECTED' && checkinTime && (
-        <div className="flex items-center gap-1 mt-0.5">
-          <Clock className="w-3 h-3 opacity-60 shrink-0" />
-          <span className="text-xs opacity-70">Arrives: {checkinTime}</span>
-        </div>
-      )}
-
-      {/* CLEAN: awaiting inspection */}
-      {status === 'CLEAN' && (
-        <p className="text-xs mt-1 opacity-80">Awaiting inspect</p>
-      )}
-
-      {/* ETA for IN_PROGRESS or DIRTY */}
-      {(status === 'DIRTY' || status === 'IN_PROGRESS') && etaTime && (
-        <div className="flex items-center gap-1 mt-1">
-          <Clock className="w-3 h-3 opacity-60 shrink-0" />
-          <span className="text-xs opacity-80">ETA: {etaTime}</span>
-          {(isHighRisk || isMediumRisk) && (
-            <AlertTriangle className={`w-3 h-3 shrink-0 ${isHighRisk ? 'text-red-500' : 'text-orange-400'}`} />
-          )}
-        </div>
-      )}
-
-      {/* Risk warning */}
-      {isHighRisk && (
-        <div className="flex items-center gap-1 mt-1">
+      {/* Middle row: status badge */}
+      <div className="flex items-center gap-1">
+        <Badge
+          variant={(STATUS_TO_BADGE_VARIANT[status] ?? 'default') as any}
+          className="text-[10px] px-1.5 py-0"
+        >
+          {status.replace(/_/g, ' ')}
+        </Badge>
+        {isHighRisk && (
           <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
-          <span className="text-xs text-red-600 font-semibold">At risk</span>
-        </div>
-      )}
+        )}
+        {isMediumRisk && !isHighRisk && (
+          <AlertTriangle className="w-3 h-3 text-orange-400 shrink-0" />
+        )}
+      </div>
 
-      {/* Action buttons */}
+      {/* Bottom row: housekeeper name + eta */}
+      <div className="flex items-end justify-between gap-1 min-h-[1rem]">
+        {/* Housekeeper / pending assignee */}
+        {assignmentMode && pendingAssignee ? (
+          <div className="flex items-center gap-0.5 min-w-0">
+            <User className="w-3 h-3 text-purple-500 shrink-0" />
+            <span className="text-[10px] text-purple-700 font-medium truncate">{pendingAssignee}</span>
+          </div>
+        ) : !assignmentMode && assignedName ? (
+          <div className="flex items-center gap-0.5 min-w-0">
+            <User className="w-3 h-3 text-gray-400 shrink-0" />
+            <span className="text-[10px] text-gray-600 truncate">{assignedName}</span>
+          </div>
+        ) : (
+          <span />
+        )}
+
+        {/* ETA or checkin time */}
+        {(status === 'DIRTY' || status === 'IN_PROGRESS') && etaTime ? (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Clock className="w-3 h-3 text-gray-400" />
+            <span className="text-[10px] text-gray-500">{etaTime}</span>
+          </div>
+        ) : status === 'INSPECTED' && checkinTime ? (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Clock className="w-3 h-3 text-gray-400" />
+            <span className="text-[10px] text-gray-500">{checkinTime}</span>
+          </div>
+        ) : status === 'OOO' && openWorkOrder ? (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Wrench className="w-3 h-3 text-gray-400" />
+            <span className="text-[10px] text-gray-500">WO-{openWorkOrder}</span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Action buttons (view mode only) */}
       {!assignmentMode && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {/* DIRTY actions */}
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {status === 'DIRTY' && isHousekeeper && (
             <button
-              className="text-xs px-2 py-1 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
               onClick={(e) => handleStatusChange('IN_PROGRESS', e)}
             >
-              Start Cleaning
+              Start
             </button>
           )}
           {status === 'DIRTY' && canSupervise && (
             <button
-              className="text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Reassign
             </button>
           )}
-
-          {/* IN_PROGRESS actions */}
           {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
             <button
-              className="text-xs px-2 py-1 rounded bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors"
               onClick={(e) => handleStatusChange('CLEAN', e)}
             >
-              Mark Done
+              Done
             </button>
           )}
-
-          {/* CLEAN actions */}
           {status === 'CLEAN' && canSupervise && (
             <button
-              className="text-xs px-2 py-1 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Inspect
             </button>
           )}
-
-          {/* INSPECTED actions */}
           {status === 'INSPECTED' && (
             <button
-              className="text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
-              View Details
+              Details
             </button>
           )}
-
-          {/* OOO actions */}
           {status === 'OOO' && (
             <button
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
-              <Wrench className="w-3 h-3" />
+              <Wrench className="w-2.5 h-2.5" />
               View WO
             </button>
           )}
         </div>
       )}
 
-      {/* Assignment mode: click hint */}
+      {/* Assignment mode hints */}
       {assignmentMode && !isPending && (
-        <p className="text-xs text-purple-500 mt-2">Click to assign</p>
+        <p className="text-[10px] text-purple-500 mt-1">Drag to assign</p>
       )}
       {assignmentMode && isPending && (
         <button
-          className="mt-2 text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 font-medium border border-purple-300 hover:bg-purple-200 transition-colors w-full"
-          onClick={(e) => { e.stopPropagation(); if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment') }}
+          className="mt-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium border border-purple-300 hover:bg-purple-200 transition-colors w-full"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
+          }}
         >
           Remove
         </button>
