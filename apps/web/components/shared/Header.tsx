@@ -1,12 +1,36 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { Bell, LogOut, Settings, User, ChevronDown } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useHotelStore } from '@/stores/hotelStore'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useHotelStore } from '@/stores/hotelStore'
 import type { UserRole } from '@/stores/authStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/housekeeping': 'Housekeeping',
+  '/housekeeping/assignments': 'Assignments',
+  '/housekeeping/inspections': 'Inspections',
+  '/housekeeping/rooms': 'All Rooms',
+  '/engineering': 'Engineering',
+  '/engineering/assets': 'Assets',
+  '/engineering/pm-schedules': 'PM Schedules',
+  '/engineering/predictions': 'Predictions',
+  '/staff': 'Staff',
+  '/scheduling': 'Schedule',
+  '/logbook': 'Logbook',
+  '/sop': 'SOP Library',
+  '/reports': 'Reports',
+  '/settings': 'Settings',
+  '/settings/billing': 'Billing',
+  '/settings/integrations': 'Integrations',
+  '/guest-requests': 'Guest Requests',
+  '/lost-found': 'Lost & Found',
+  '/tasks': 'Tasks',
+  '/onboarding': 'Setup',
+}
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm: 'General Manager',
@@ -18,11 +42,14 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 export function Header() {
+  const pathname = usePathname()
   const router = useRouter()
-  const { hotel } = useHotelStore()
   const { user, signOut } = useAuth()
+  const { hotel } = useHotelStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const title = PAGE_TITLES[pathname] ?? 'PatelRep'
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -64,58 +91,41 @@ export function Header() {
   }, [dropdownOpen])
 
   return (
-    <header className="bg-white/[0.55] backdrop-blur-lg border-b border-white/[0.80] h-13 px-6 flex items-center justify-between shrink-0 z-20">
-      {/* Left: Hotel name + date */}
-      <div>
-        {hotel && (
-          <p className="text-sm font-semibold text-gray-900">{hotel.name}</p>
-        )}
-        <p className="text-xs text-slate-400 mt-0.5">
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+    <header className="h-14 flex items-center justify-between px-6 bg-white/70 backdrop-blur-xl border-b border-stone-100 sticky top-0 z-10 shrink-0">
+      <span className="text-sm font-semibold text-stone-800">{title}</span>
 
-      {/* Right: Bell + User menu */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Notification bell */}
         <button
-          className="relative flex items-center justify-center bg-white/70 border border-white/90 rounded-lg w-8 h-8 cursor-pointer text-slate-500 hover:text-slate-700 transition-colors"
+          className="p-2 rounded-xl hover:bg-stone-100 transition-colors text-stone-400 hover:text-stone-600"
           aria-label="Notifications"
         >
           <Bell size={16} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
+
+        {/* Hotel chip */}
+        {hotel && (
+          <span className="bg-amber-50 text-amber-700 text-xs font-medium rounded-full px-3 py-1 border border-amber-100">
+            {hotel.name}
+          </span>
+        )}
 
         {/* User dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2.5 pl-2 pr-2 py-1.5 rounded-lg hover:bg-white/50 transition-colors"
+            className="flex items-center gap-2 rounded-xl hover:bg-stone-100 transition-colors p-1"
             aria-haspopup="true"
             aria-expanded={dropdownOpen}
           >
-            {/* Initials avatar */}
             <div
               className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}
             >
               {initials}
             </div>
-
-            {/* Name + role — hidden on small screens */}
-            <div className="hidden sm:block text-left leading-tight min-w-0">
-              <p className="text-sm font-medium text-gray-900 whitespace-nowrap truncate max-w-[140px]">
-                {fullName}
-              </p>
-              {roleLabel && (
-                <p className="text-xs text-slate-500 whitespace-nowrap truncate max-w-[140px]">
-                  {roleLabel}
-                </p>
-              )}
-            </div>
-
             <ChevronDown
               size={14}
-              className={`text-slate-400 transition-transform duration-150 shrink-0 ${
+              className={`text-stone-400 transition-transform duration-150 shrink-0 ${
                 dropdownOpen ? 'rotate-180' : ''
               }`}
             />
@@ -123,14 +133,14 @@ export function Header() {
 
           {/* Dropdown panel */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 mt-1.5 w-52 bg-white/90 backdrop-blur-2xl border border-stone-100 rounded-xl shadow-lg py-1 z-50">
               {/* User summary */}
-              <div className="px-4 py-2.5 border-b border-white/60">
-                <p className="text-sm font-medium text-gray-900 truncate">
+              <div className="px-4 py-2.5 border-b border-stone-100">
+                <p className="text-sm font-medium text-stone-900 truncate">
                   {fullName}
                 </p>
                 {roleLabel && (
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                  <p className="text-xs text-stone-500 mt-0.5 truncate">
                     {roleLabel}
                   </p>
                 )}
@@ -143,9 +153,9 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings/profile')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-white/60 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
                 >
-                  <User size={15} className="text-slate-400 shrink-0" />
+                  <User size={15} className="text-stone-400 shrink-0" />
                   Profile
                 </button>
 
@@ -154,17 +164,17 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-white/60 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
                 >
-                  <Settings size={15} className="text-slate-400 shrink-0" />
+                  <Settings size={15} className="text-stone-400 shrink-0" />
                   Settings
                 </button>
               </div>
 
-              <div className="border-t border-white/60 py-1">
+              <div className="border-t border-stone-100 py-1">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50/60 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={15} className="shrink-0" />
                   Sign Out
