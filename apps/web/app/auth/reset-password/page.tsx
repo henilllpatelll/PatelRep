@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -73,7 +74,7 @@ function RequestForm() {
         </p>
         <a
           href="/login"
-          className="inline-block mt-2 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
+          className="inline-block mt-2 text-sm text-amber-600 hover:text-amber-800 font-medium"
         >
           &larr; Back to Login
         </a>
@@ -126,7 +127,7 @@ function RequestForm() {
       </Button>
 
       <div className="text-center">
-        <a href="/login" className="text-sm text-indigo-500 hover:text-indigo-700 font-medium">
+        <a href="/login" className="text-sm text-amber-600 hover:text-amber-800 font-medium">
           &larr; Back to Login
         </a>
       </div>
@@ -184,7 +185,7 @@ function ConfirmForm({ code }: { code: string }) {
       <div className="text-center space-y-3">
         <div className="flex justify-center">
           <svg
-            className="w-8 h-8 text-indigo-600 animate-spin"
+            className="w-8 h-8 text-amber-500 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -228,7 +229,7 @@ function ConfirmForm({ code }: { code: string }) {
         <p className="text-sm text-red-600">{error}</p>
         <a
           href="/auth/reset-password"
-          className="inline-block mt-2 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
+          className="inline-block mt-2 text-sm text-amber-600 hover:text-amber-800 font-medium"
         >
           Request a new link
         </a>
@@ -305,15 +306,23 @@ export default function ResetPasswordPage() {
   const mode: Mode = code ? 'confirm' : 'request'
 
   return (
-    <div className="min-h-screen bg-app-gradient flex items-center justify-center">
-      <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.08) 0%, transparent 70%), #FEFAF4' }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="w-full max-w-md bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-amber-100/60 p-8"
+      >
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+          <h1 className="text-3xl font-extrabold text-amber-600">✦ PatelRep</h1>
           <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
         </div>
 
         {mode === 'request' ? <RequestForm /> : <ConfirmForm code={code!} />}
-      </div>
+      </motion.div>
     </div>
   )
 }

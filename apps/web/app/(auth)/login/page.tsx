@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -101,10 +102,18 @@ export default function LoginPage() {
   // ── Magic link sent confirmation ──────────────────────────────────────────
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen bg-app-gradient flex items-center justify-center">
-        <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl space-y-6 text-center">
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.08) 0%, transparent 70%), #FEFAF4' }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="w-full max-w-md bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-amber-100/60 p-8 space-y-6 text-center"
+        >
           <div>
-            <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+            <h1 className="text-3xl font-extrabold text-amber-600">✦ PatelRep</h1>
             <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
           </div>
 
@@ -140,7 +149,7 @@ export default function LoginPage() {
               setMagicLinkSent(false)
               setError('')
             }}
-            className="inline-flex items-center gap-1 text-sm text-indigo-500 hover:text-indigo-700 font-medium"
+            className="inline-flex items-center gap-1 text-sm text-amber-600 hover:text-amber-800 font-medium"
           >
             <svg
               className="w-4 h-4"
@@ -153,30 +162,38 @@ export default function LoginPage() {
             </svg>
             Back to Login
           </button>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   // ── Login card ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-app-gradient flex items-center justify-center">
-      <div className="w-full max-w-md bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl p-8 shadow-xl space-y-6">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.08) 0%, transparent 70%), #FEFAF4' }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="w-full max-w-md bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-amber-100/60 p-8 space-y-6"
+      >
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-indigo-600">PatelRep</h1>
+          <h1 className="text-3xl font-extrabold text-amber-600">✦ PatelRep</h1>
           <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
         </div>
 
         {/* Tab toggle */}
-        <div className="flex bg-indigo-50/60 border border-indigo-100 rounded-xl p-1">
+        <div className="flex bg-stone-100 rounded-xl p-1">
           <button
             type="button"
             onClick={() => handleTabChange('password')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'password'
-                ? 'bg-white text-indigo-600 shadow-sm font-semibold'
-                : 'text-slate-500'
+                ? 'bg-white text-amber-700 shadow-sm font-semibold'
+                : 'text-stone-400'
             }`}
           >
             Sign In
@@ -186,8 +203,8 @@ export default function LoginPage() {
             onClick={() => handleTabChange('magic')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'magic'
-                ? 'bg-white text-indigo-600 shadow-sm font-semibold'
-                : 'text-slate-500'
+                ? 'bg-white text-amber-700 shadow-sm font-semibold'
+                : 'text-stone-400'
             }`}
           >
             Magic Link
@@ -226,7 +243,7 @@ export default function LoginPage() {
                 </label>
                 <a
                   href="/auth/reset-password"
-                  className="text-sm text-indigo-500 hover:text-indigo-700"
+                  className="text-sm text-amber-600 hover:text-amber-800"
                 >
                   Forgot password?
                 </a>
@@ -302,7 +319,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400">EN | ES</p>
-      </div>
+      </motion.div>
     </div>
   )
 }
