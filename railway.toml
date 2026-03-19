@@ -12,7 +12,7 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [[services]]
-name = "web"
+name = "@patelrep/web"
 
 [services.build]
 builder = "dockerfile"

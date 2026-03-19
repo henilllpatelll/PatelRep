@@ -1,38 +1,29 @@
-FROM node:20-alpine AS base
-
-# Install dependencies
-FROM base AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-COPY apps/web/package.json ./apps/web/
-RUN npm ci --workspace=@patelrep/web
+# Install deps directly (no workspace hoisting) so Next.js standalone output stays flat
+COPY apps/web/package.json ./
+RUN npm install
 
-# Build the app
-FROM base AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy web app source to /app root — Next.js sees this as project root, not apps/web subdir
+# This prevents standalone from mirroring the monorepo path (apps/web/server.js nesting)
+COPY apps/web ./
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build --workspace=@patelrep/web
+ENV NODE_ENV=production
+RUN npm run build
 
-# Production image - runs the standalone server
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-# Copy standalone output (includes minimal node_modules + server.js)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-# Copy static assets and public folder to their expected locations
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./public
-
-USER nextjs
+# With non-hoisted deps, standalone output is at .next/standalone/server.js (no nesting)
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
+USER node
 EXPOSE 3000
-
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
