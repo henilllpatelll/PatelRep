@@ -153,7 +153,7 @@ export default function AssignmentsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/60 bg-indigo-50/60 text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-white/60 bg-amber-50/60 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Housekeeper</th>
                 <th className="text-center px-4 py-3">Rooms Assigned</th>
                 <th className="text-center px-4 py-3">Rooms Done</th>
@@ -167,7 +167,7 @@ export default function AssignmentsPage() {
                 return (
                   <Fragment key={hk.housekeeper_id}>
                     <tr
-                      className="border-b border-white/40 hover:bg-indigo-50/40 cursor-pointer transition-colors"
+                      className="border-b border-white/40 hover:bg-amber-50/40 cursor-pointer transition-colors"
                       onClick={() => toggleRow(hk.housekeeper_id)}
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">{hk.name}</td>
@@ -187,7 +187,7 @@ export default function AssignmentsPage() {
                     </tr>
 
                     {expanded && (
-                      <tr className="bg-indigo-50/30">
+                      <tr className="bg-amber-50/30">
                         <td colSpan={5} className="px-6 pb-3 pt-1">
                           <div className="flex flex-wrap gap-2">
                             {(hk.rooms ?? []).length === 0 ? (

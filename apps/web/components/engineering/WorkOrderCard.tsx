@@ -1,6 +1,7 @@
 'use client'
 import type { WorkOrder } from '@/lib/api/engineering'
 import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 
 const CATEGORY_ICONS: Record<string, string> = {
   plumbing: '💧',
@@ -11,12 +12,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   structural: '🏗️',
   safety: '🛡️',
   general: '🔧',
-}
-
-const PRIORITY_STYLES: Record<string, string> = {
-  urgent: 'bg-red-50 text-red-700 border border-red-200',
-  normal: 'bg-blue-50 text-blue-700 border border-blue-200',
-  low: 'bg-slate-50 text-slate-600 border border-slate-200',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,13 +34,18 @@ function formatSLA(dueAt: string): { text: string; breached: boolean } {
   return { text: `${m}m ${suffix}`, breached }
 }
 
+function priorityVariant(priority: string): 'high' | 'medium' | 'low' {
+  if (priority === 'urgent' || priority === 'high') return 'high'
+  if (priority === 'normal') return 'medium'
+  return 'low'
+}
+
 interface Props {
   wo: WorkOrder
   onClick: (wo: WorkOrder) => void
 }
 
 export function WorkOrderCard({ wo, onClick }: Props) {
-  const priority = PRIORITY_STYLES[wo.priority] || PRIORITY_STYLES.normal
   const sla =
     wo.due_at && wo.status !== 'completed' && wo.status !== 'cancelled'
       ? formatSLA(wo.due_at)
@@ -55,7 +55,7 @@ export function WorkOrderCard({ wo, onClick }: Props) {
 
   return (
     <Card
-      className={`cursor-pointer hover:shadow-md transition-all p-4${isDanger ? ' border-red-200 bg-red-50' : ''}`}
+      className={`cursor-pointer p-3${isDanger ? ' border-red-200 bg-red-50' : ''}`}
     >
       <div onClick={() => onClick(wo)}>
         <div className="flex items-start justify-between gap-3">
@@ -63,15 +63,11 @@ export function WorkOrderCard({ wo, onClick }: Props) {
             {/* Top row */}
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-xs font-mono text-gray-400">WO-{wo.work_order_number}</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase ${priority}`}
-              >
+              <Badge variant={priorityVariant(wo.priority)}>
                 {wo.priority}
-              </span>
+              </Badge>
               {sla?.breached && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-50 text-red-700 border border-red-200">
-                  SLA BREACHED
-                </span>
+                <Badge variant="high">SLA BREACHED</Badge>
               )}
               {wo.is_pm_generated && (
                 <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded font-medium border border-teal-200">

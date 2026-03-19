@@ -193,7 +193,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />

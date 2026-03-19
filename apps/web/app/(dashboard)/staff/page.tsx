@@ -44,7 +44,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  gm: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  gm: 'bg-amber-50 text-amber-700 border border-amber-200',
   housekeeping_supervisor: 'bg-teal-50 text-teal-700 border border-teal-200',
   housekeeper: 'bg-sky-50 text-sky-700 border border-sky-200',
   chief_engineer: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -135,7 +135,7 @@ function ConfirmDeactivateDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
+        className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
         onClick={onCancel}
       />
       {/* Dialog */}
@@ -224,7 +224,7 @@ function InviteModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
@@ -254,10 +254,10 @@ function InviteModal({
             <input
               {...register('full_name')}
               placeholder="Maria Garcia"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
                 errors.full_name
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-indigo-200/40 hover:border-indigo-300'
+                  : 'border-amber-200/40 hover:border-amber-200'
               }`}
             />
             {errors.full_name && (
@@ -272,10 +272,10 @@ function InviteModal({
               {...register('email')}
               type="email"
               placeholder="maria@sunriseinn.com"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
                 errors.email
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-indigo-200/40 hover:border-indigo-300'
+                  : 'border-amber-200/40 hover:border-amber-200'
               }`}
             />
             {errors.email && (
@@ -288,10 +288,10 @@ function InviteModal({
             <label className="block text-sm font-medium text-gray-700">Role</label>
             <select
               {...register('role')}
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
                 errors.role
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-indigo-200/40 hover:border-indigo-300'
+                  : 'border-amber-200/40 hover:border-amber-200'
               }`}
             >
               {ROLE_OPTIONS.map(({ value, label }) => (
@@ -501,7 +501,7 @@ export default function StaffPage() {
             <p className="text-sm text-red-600 font-medium">Failed to load staff.</p>
             <button
               onClick={() => staffQuery.refetch()}
-              className="mt-2 text-sm text-indigo-600 hover:underline"
+              className="mt-2 text-sm text-amber-600 hover:underline"
             >
               Try again
             </button>
@@ -515,7 +515,7 @@ export default function StaffPage() {
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/60 bg-indigo-50/60">
+              <tr className="border-b border-white/60 bg-amber-50/60">
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
                   Name
                 </th>
@@ -534,7 +534,7 @@ export default function StaffPage() {
             </thead>
             <tbody className="divide-y divide-white/40">
               {filteredStaff.map((member) => (
-                <tr key={member.id} className="hover:bg-indigo-50/40 transition-colors group">
+                <tr key={member.id} className="hover:bg-amber-50/40 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={member.full_name} role={member.role} />
@@ -609,7 +609,7 @@ export default function StaffPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/60 bg-indigo-50/60">
+                  <tr className="border-b border-white/60 bg-amber-50/60">
                     <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
                       Email
                     </th>
@@ -628,7 +628,7 @@ export default function StaffPage() {
                 </thead>
                 <tbody className="divide-y divide-white/40">
                   {invitations.map((inv: StaffInvitation) => (
-                    <tr key={inv.id} className="hover:bg-indigo-50/40 transition-colors group">
+                    <tr key={inv.id} className="hover:bg-amber-50/40 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">

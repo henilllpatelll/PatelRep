@@ -59,7 +59,7 @@ function formatCurrency(value?: number): string {
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-indigo-50/60">
+    <tr className="animate-pulse border-b border-amber-200">
       <td className="px-4 py-3">
         <div className="h-4 bg-gray-100 rounded w-3/4 mb-1.5" />
         <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -168,7 +168,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
   return (
     <>
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -182,8 +182,8 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
           {/* Header */}
           <div className="sticky top-0 bg-white/[0.88] backdrop-blur-2xl border-b border-white/60 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <Package size={16} className="text-indigo-600" />
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                <Package size={16} className="text-amber-600" />
               </div>
               <h2 className="text-base font-bold text-gray-900">
                 {isLoading ? 'Loading…' : (data?.name ?? 'Asset Detail')}
@@ -322,7 +322,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       rows={3}
                       value={editFields.notes ?? ''}
                       onChange={(e) => setEditFields((f) => ({ ...f, notes: e.target.value }))}
-                      className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
+                      className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
                     />
                   </div>
                   {saveError && (
@@ -390,7 +390,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   {data.notes && (
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Notes</p>
-                      <p className="text-sm text-gray-700 bg-indigo-50/40 rounded-lg px-4 py-3">{data.notes}</p>
+                      <p className="text-sm text-gray-700 bg-amber-50/40 rounded-lg px-4 py-3">{data.notes}</p>
                     </div>
                   )}
                 </>
@@ -411,7 +411,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                         return (
                           <div
                             key={pm.id}
-                            className="flex items-center justify-between px-4 py-3 bg-indigo-50/40 rounded-lg border border-indigo-100/60"
+                            className="flex items-center justify-between px-4 py-3 bg-amber-50/40 rounded-lg border border-amber-100/60"
                           >
                             <div>
                               <p className="text-sm font-medium text-gray-900">{pm.name}</p>
@@ -563,7 +563,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
   return (
     <>
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -578,7 +578,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
                 <Plus size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Asset</h2>
@@ -819,7 +819,7 @@ export default function AssetRegisterPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Package size={22} className="text-indigo-600 shrink-0" />
+            <Package size={22} className="text-amber-600 shrink-0" />
             Asset Register
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -880,8 +880,8 @@ export default function AssetRegisterPage() {
               onClick={() => setRiskFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 riskFilter === f
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white/70 border border-indigo-200/40 backdrop-blur-sm text-gray-700 hover:bg-indigo-50'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-white/70 border border-amber-200/40 backdrop-blur-sm text-gray-700 hover:bg-amber-50'
               }`}
             >
               {f}
@@ -908,7 +908,7 @@ export default function AssetRegisterPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-indigo-100 bg-indigo-50/60">
+                <tr className="border-b border-amber-100 bg-amber-50/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -952,7 +952,7 @@ export default function AssetRegisterPage() {
                     return (
                       <tr
                         key={asset.id}
-                        className="border-b border-indigo-50/60 hover:bg-indigo-50/40 transition-colors"
+                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors"
                       >
                         {/* Asset name + tag */}
                         <td className="px-4 py-3">
@@ -1029,7 +1029,7 @@ export default function AssetRegisterPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-indigo-50/60 bg-indigo-50/40">
+          <div className="px-4 py-2.5 border-t border-amber-200 bg-amber-50/40">
             <p className="text-xs text-gray-400">
               Showing {filtered.length} of {assets.length} assets
             </p>

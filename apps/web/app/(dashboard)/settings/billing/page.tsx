@@ -80,10 +80,10 @@ function creditBarColor(pct: number): string {
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
     <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-6 animate-pulse">
-      <div className="h-5 bg-indigo-100/60 rounded w-1/3 mb-4" />
+      <div className="h-5 bg-amber-100/60 rounded w-1/3 mb-4" />
       <div className="border-t border-white/60 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={`h-4 bg-indigo-100/50 rounded mb-3 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2'}`} />
+        <div key={i} className={`h-4 bg-amber-100/50 rounded mb-3 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2'}`} />
       ))}
     </div>
   )
@@ -171,10 +171,10 @@ export default function SettingsBillingPage() {
       {subData?.plan_status === 'trialing' && (
         <Card className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Zap className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+            <Zap className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-indigo-800">You're on a free trial</p>
-              <p className="text-sm text-indigo-600 mt-0.5">
+              <p className="text-sm font-semibold text-amber-800">You're on a free trial</p>
+              <p className="text-sm text-amber-600 mt-0.5">
                 Upgrade to keep full access after your trial ends.
                 {subData.trial_end && (
                   <> Trial ends <strong>{formatDate(subData.trial_end)}</strong>.</>
@@ -205,7 +205,7 @@ export default function SettingsBillingPage() {
       ) : (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <CreditCard className="h-5 w-5 text-indigo-400" />
+            <CreditCard className="h-5 w-5 text-amber-400" />
             <h2 className="text-base font-semibold text-slate-900">Current Plan</h2>
           </div>
           <hr className="border-white/60 mb-4" />
@@ -272,7 +272,7 @@ export default function SettingsBillingPage() {
       ) : creditData ? (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-5 w-5 text-indigo-400" />
+            <TrendingUp className="h-5 w-5 text-amber-400" />
             <h2 className="text-base font-semibold text-slate-900">
               AI Credit Usage
               {periodLabel && (
@@ -363,7 +363,7 @@ export default function SettingsBillingPage() {
       ) : invoicesData && invoicesData.length > 0 ? (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
-            <Receipt className="h-5 w-5 text-indigo-400" />
+            <Receipt className="h-5 w-5 text-amber-400" />
             <h2 className="text-base font-semibold text-slate-900">Recent Invoices</h2>
           </div>
           <hr className="border-white/60 mb-4" />
@@ -371,7 +371,7 @@ export default function SettingsBillingPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-indigo-50/60">
+                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-amber-50/60">
                   <th className="pb-2 pr-4 pt-2 pl-2">Date</th>
                   <th className="pb-2 pr-4 pt-2">Period</th>
                   <th className="pb-2 pr-4 pt-2">Amount</th>
@@ -422,7 +422,7 @@ export default function SettingsBillingPage() {
       {/* ── Section 4: Pricing Details (static) ── */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-1">
-          <CheckCircle className="h-5 w-5 text-indigo-400" />
+          <CheckCircle className="h-5 w-5 text-amber-400" />
           <h2 className="text-base font-semibold text-slate-900">Pricing Details</h2>
         </div>
         <hr className="border-white/60 mb-4" />

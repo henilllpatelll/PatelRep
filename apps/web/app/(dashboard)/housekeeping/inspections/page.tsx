@@ -122,7 +122,7 @@ export default function InspectionsPage() {
           <select
             value={resultFilter}
             onChange={(e) => setResultFilter(e.target.value)}
-            className="px-3 py-1.5 border border-indigo-200/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white/70 backdrop-blur-sm"
+            className="px-3 py-1.5 border border-amber-200/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white/70 backdrop-blur-sm"
           >
             <option value="all">All Results</option>
             <option value="passed">Passed</option>
@@ -143,7 +143,7 @@ export default function InspectionsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/60 bg-indigo-50/60 text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-white/60 bg-amber-50/60 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Room</th>
                 <th className="text-left px-4 py-3">Inspector</th>
                 <th className="text-left px-4 py-3">Result</th>
@@ -156,7 +156,7 @@ export default function InspectionsPage() {
                 inspections.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-white/40 hover:bg-indigo-50/40 transition-colors"
+                    className="border-b border-white/40 hover:bg-amber-50/40 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       Room {row.room_number}

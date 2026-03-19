@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueries } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { WorkOrderList } from '@/components/engineering/WorkOrderList'
+import { engineeringApi } from '@/lib/api/engineering'
+import { WorkOrderCard } from '@/components/engineering/WorkOrderCard'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
@@ -10,34 +12,14 @@ import { useRole } from '@/lib/hooks/useRole'
 import { Button } from '@/components/ui/Button'
 import type { WorkOrder } from '@/lib/api/engineering'
 
-type Tab = 'open' | 'in_progress' | 'on_hold' | 'completed'
+const KANBAN_STATUSES = ['open', 'in_progress', 'completed'] as const
+type KanbanStatus = typeof KANBAN_STATUSES[number]
 
-const TABS: { value: Tab; label: string; active: string; inactive: string }[] = [
-  {
-    value: 'open',
-    label: 'Open',
-    active: 'bg-blue-600 text-white border-blue-600',
-    inactive: 'bg-white/70 text-blue-700 border-blue-200 hover:bg-blue-50',
-  },
-  {
-    value: 'in_progress',
-    label: 'In Progress',
-    active: 'bg-purple-600 text-white border-purple-600',
-    inactive: 'bg-white/70 text-purple-700 border-purple-200 hover:bg-purple-50',
-  },
-  {
-    value: 'on_hold',
-    label: 'On Hold',
-    active: 'bg-orange-500 text-white border-orange-500',
-    inactive: 'bg-white/70 text-orange-700 border-orange-200 hover:bg-orange-50',
-  },
-  {
-    value: 'completed',
-    label: 'Completed',
-    active: 'bg-green-600 text-white border-green-600',
-    inactive: 'bg-white/70 text-green-700 border-green-200 hover:bg-green-50',
-  },
-]
+const STATUS_LABELS: Record<KanbanStatus, string> = {
+  open: 'Open',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+}
 
 const CATEGORIES = [
   { value: '', label: 'All Categories' },
@@ -58,21 +40,57 @@ const PRIORITIES = [
   { value: 'low', label: 'Low' },
 ]
 
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl border border-stone-100 bg-white p-4 animate-pulse">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-16 bg-stone-200 rounded" />
+            <div className="h-3 w-12 bg-stone-200 rounded-full" />
+          </div>
+          <div className="h-4 w-3/4 bg-stone-200 rounded" />
+          <div className="h-3 w-1/2 bg-stone-200 rounded" />
+        </div>
+        <div className="shrink-0 space-y-1.5">
+          <div className="h-5 w-20 bg-stone-200 rounded-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function EngineeringPage() {
   const { role, isGM } = useRole()
   const isChief = role === 'chief_engineer'
   const isEngineer = role === 'engineer'
   const canCreate = isGM || isChief || isEngineer
 
-  const [activeTab, setActiveTab] = useState<Tab>('open')
   const [category, setCategory] = useState('')
   const [priority, setPriority] = useState('')
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
+  const results = useQueries({
+    queries: KANBAN_STATUSES.map(status => ({
+      queryKey: ['work-orders', status, category, priority],
+      queryFn: () => engineeringApi.listWorkOrders({ status, category: category || undefined, priority: priority || undefined }),
+      staleTime: 30_000,
+    })),
+  })
+
+  const isLoading = results.some(r => r.isLoading)
+  const isError = results.some(r => r.isError)
+
+  const workOrdersByStatus: Record<KanbanStatus, WorkOrder[]> = {
+    open: results[0]?.data?.data ?? [],
+    in_progress: results[1]?.data?.data ?? [],
+    completed: results[2]?.data?.data ?? [],
+  }
+
   return (
     <div className="flex gap-4 h-full min-h-0">
-      {/* ── Main content ── */}
+      {/* Main content */}
       <div className="flex-1 space-y-4 min-w-0">
 
         {/* Header row */}
@@ -89,31 +107,15 @@ export default function EngineeringPage() {
           )}
         </div>
 
-        {/* Tab + filter row */}
+        {/* Filter row */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Status tabs */}
-          <div className="flex gap-1.5 flex-wrap">
-            {TABS.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  activeTab === tab.value ? tab.active : tab.inactive
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Spacer */}
           <div className="flex-1" />
 
           {/* Category filter */}
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="border border-indigo-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+            className="border border-amber-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -126,7 +128,7 @@ export default function EngineeringPage() {
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
-            className="border border-indigo-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+            className="border border-amber-200/40 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
             {PRIORITIES.map((p) => (
               <option key={p.value} value={p.value}>
@@ -136,19 +138,51 @@ export default function EngineeringPage() {
           </select>
         </div>
 
-        {/* Work order list */}
-        <WorkOrderList
-          status={activeTab}
-          category={category || undefined}
-          priority={priority || undefined}
-          onSelect={(wo) => setSelectedWO(wo)}
-        />
+        {/* Error state */}
+        {isError && (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-600">Failed to load work orders. Please try again.</p>
+          </div>
+        )}
+
+        {/* Kanban board */}
+        <div className="grid grid-cols-3 gap-4">
+          {KANBAN_STATUSES.map((status) => {
+            const filteredWOs = workOrdersByStatus[status]
+            return (
+              <div key={status} className="bg-stone-50 rounded-2xl p-3 min-h-[400px]">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+                    {STATUS_LABELS[status]}
+                  </h3>
+                  <span className="text-xs text-stone-400 bg-stone-200 rounded-full px-2 py-0.5">
+                    {filteredWOs.length}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {isLoading ? (
+                    <>
+                      <SkeletonCard />
+                      <SkeletonCard />
+                    </>
+                  ) : filteredWOs.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-8">No {STATUS_LABELS[status].toLowerCase()} work orders</p>
+                  ) : (
+                    filteredWOs.map(wo => (
+                      <WorkOrderCard key={wo.id} wo={wo} onClick={setSelectedWO} />
+                    ))
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <FailurePredictionSidebar />
 
-      {/* ── Detail drawer ── */}
+      {/* Detail drawer */}
       <WorkOrderDetailDrawer
         wo={selectedWO}
         isOpen={!!selectedWO}
@@ -158,7 +192,7 @@ export default function EngineeringPage() {
         }}
       />
 
-      {/* ── Create modal ── */}
+      {/* Create modal */}
       <CreateWorkOrderModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

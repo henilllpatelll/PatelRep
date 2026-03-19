@@ -144,7 +144,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50 transition-opacity"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />

@@ -268,7 +268,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
+        className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
         onClick={handleClose}
       />
 
@@ -296,7 +296,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Extra towels needed, AC not cooling..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40"
               autoFocus
             />
           </div>
@@ -311,7 +311,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="e.g. John Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40"
             />
           </div>
 
@@ -325,7 +325,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Room number, urgency, or any other context..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 border-indigo-200/40 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40 resize-none"
             />
           </div>
 

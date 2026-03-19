@@ -107,7 +107,7 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-indigo-50/60">
+    <tr className="animate-pulse border-b border-amber-200">
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-3/4" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-1/2" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-20" /></td>
@@ -167,7 +167,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
   return (
     <>
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -355,7 +355,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
   return (
     <>
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
@@ -370,7 +370,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
                 <Calendar size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add PM Schedule</h2>
@@ -429,7 +429,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 value={fields.description}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Describe what maintenance tasks need to be performed…"
-                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
+                className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
               />
             </div>
 
@@ -444,7 +444,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   onChange={(e) =>
                     set('interval_type', e.target.value as PMSchedule['interval_type'])
                   }
-                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
+                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -612,7 +612,7 @@ export default function PMSchedulesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Calendar size={22} className="text-indigo-600 shrink-0" />
+            <Calendar size={22} className="text-amber-600 shrink-0" />
             PM Schedules
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -681,7 +681,7 @@ export default function PMSchedulesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-indigo-100 bg-indigo-50/60">
+                <tr className="border-b border-amber-100 bg-amber-50/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -744,7 +744,7 @@ export default function PMSchedulesPage() {
                     return (
                       <tr
                         key={schedule.id}
-                        className="border-b border-indigo-50/60 hover:bg-indigo-50/40 transition-colors"
+                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors"
                       >
                         {/* Asset */}
                         <td className="px-4 py-3">
@@ -862,7 +862,7 @@ export default function PMSchedulesPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && schedules.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-indigo-50/60 bg-indigo-50/40 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-t border-amber-200 bg-amber-50/40 flex items-center justify-between">
             <p className="text-xs text-gray-400">
               {schedules.length} schedule{schedules.length !== 1 ? 's' : ''}
             </p>

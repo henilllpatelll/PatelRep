@@ -263,7 +263,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">Log Found Item</h2>
@@ -338,7 +338,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
             <button
               type="submit"
               disabled={isPending || !description.trim()}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-400 to-indigo-600 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {isPending ? 'Logging…' : 'Log Item'}
@@ -402,7 +402,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>

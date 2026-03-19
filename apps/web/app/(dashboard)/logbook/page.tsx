@@ -291,7 +291,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -308,7 +308,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
                 <BookOpen size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Logbook Entry</h2>
@@ -332,7 +332,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 <select
                   value={deptId}
                   onChange={(e) => setDeptId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   required
                 >
                   {deptEntries.map(([id, name]) => (
@@ -347,7 +347,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                   value={deptId}
                   onChange={(e) => setDeptId(e.target.value)}
                   placeholder="Department UUID"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   required
                 />
               )}
@@ -363,7 +363,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Describe what happened during your shift…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
                 required
                 minLength={10}
               />
@@ -391,7 +391,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               <button
                 type="submit"
                 disabled={mutation.isPending || content.trim().length < 10 || !deptId.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? (
                   <>
@@ -513,7 +513,7 @@ export default function LogbookPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen size={22} className="text-indigo-600 shrink-0" />
+            <BookOpen size={22} className="text-amber-600 shrink-0" />
             Shift Logbook
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -522,7 +522,7 @@ export default function LogbookPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-lg hover:opacity-90 transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors shrink-0"
         >
           <Plus size={15} />
           Add Entry
@@ -548,7 +548,7 @@ export default function LogbookPage() {
           onClick={handleToday}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
             isToday
-              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              ? 'bg-amber-50 text-amber-700 border-amber-200'
               : 'text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
           }`}
         >
@@ -577,7 +577,7 @@ export default function LogbookPage() {
             onClick={() => setSelectedDeptId(null)}
             className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               selectedDeptId === null
-                ? 'border-indigo-600 text-indigo-700'
+                ? 'border-amber-200 text-amber-700'
                 : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
             }`}
           >
@@ -586,7 +586,7 @@ export default function LogbookPage() {
               <span
                 className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                   selectedDeptId === null
-                    ? 'bg-indigo-100 text-indigo-700'
+                    ? 'bg-amber-100 text-amber-700'
                     : 'bg-gray-100 text-gray-500'
                 }`}
               >
@@ -604,7 +604,7 @@ export default function LogbookPage() {
                 onClick={() => setSelectedDeptId(id)}
                 className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   isActive
-                    ? 'border-indigo-600 text-indigo-700'
+                    ? 'border-amber-200 text-amber-700'
                     : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
@@ -663,7 +663,7 @@ export default function LogbookPage() {
           {isToday && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-lg hover:opacity-90 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors"
             >
               <Plus size={15} />
               Add first entry

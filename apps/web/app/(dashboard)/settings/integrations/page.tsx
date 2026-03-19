@@ -47,7 +47,7 @@ function ConfirmDisconnectDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-indigo-950/20 backdrop-blur-sm"
+        className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
         onClick={onCancel}
       />
       {/* Dialog */}
@@ -280,7 +280,7 @@ function IntegrationsPageInner() {
         {!statusQuery.isLoading && operaStatus?.connected && (
           <>
             {/* Metadata row */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-indigo-50/40 border border-indigo-100/50 rounded-lg px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-amber-50/40 border border-amber-100/50 rounded-lg px-4 py-3">
               {operaStatus.last_sync_at && (
                 <span>
                   Last synced:{' '}
@@ -449,7 +449,7 @@ function IntegrationsPageInner() {
       <Card className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
               <BookOpen size={18} className="text-white" />
             </div>
             <div>
@@ -461,7 +461,7 @@ function IntegrationsPageInner() {
           </div>
           <Link
             href="/sop"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors shrink-0"
           >
             Manage SOP Library
             <ArrowRight size={14} />

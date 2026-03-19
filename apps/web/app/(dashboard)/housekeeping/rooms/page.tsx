@@ -135,7 +135,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   const isPending = csvMutation.isPending || manualMutation.isPending
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/20 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
       <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
@@ -236,7 +236,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 }}
                 placeholder="room_number,floor,room_type_code,room_type_name&#10;101,1,SD,Standard Double&#10;102,1,KS,King Suite"
                 rows={6}
-                className="w-full px-3 py-2 border border-indigo-200/40 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-y bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 border border-amber-200/40 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-y bg-white/50 backdrop-blur-sm"
               />
 
               {/* Preview table */}
@@ -247,7 +247,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   </p>
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-white/60">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-indigo-50/60 sticky top-0">
+                      <thead className="bg-amber-50/60 sticky top-0">
                         <tr>
                           {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building'].map(
                             (h) => (
@@ -263,7 +263,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                       </thead>
                       <tbody className="divide-y divide-white/40">
                         {csvPreview.map((row, i) => (
-                          <tr key={i} className="hover:bg-indigo-50/30">
+                          <tr key={i} className="hover:bg-amber-50/30">
                             <td className="px-3 py-1.5 font-mono text-gray-900">{row.room_number}</td>
                             <td className="px-3 py-1.5 text-gray-600">{row.floor}</td>
                             <td className="px-3 py-1.5 font-mono text-gray-600">{row.room_type_code}</td>
@@ -287,7 +287,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               </p>
               <div className="overflow-x-auto rounded-lg border border-white/60">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-indigo-50/60">
+                  <thead className="bg-amber-50/60">
                     <tr>
                       {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building', ''].map(
                         (h) => (
@@ -303,7 +303,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   </thead>
                   <tbody className="divide-y divide-white/40">
                     {manualRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-indigo-50/30">
+                      <tr key={idx} className="hover:bg-amber-50/30">
                         <td className="px-2 py-1">
                           <Input
                             type="text"
@@ -506,7 +506,7 @@ export default function RoomsPage() {
             onChange={(e) =>
               setFloorFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))
             }
-            className="appearance-none pl-3 pr-8 py-2 border border-indigo-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-amber-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
             <option value="all">All Floors</option>
             {floors.map((f) => (
@@ -526,7 +526,7 @@ export default function RoomsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 border border-indigo-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-amber-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
             <option value="all">All Statuses</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -591,7 +591,7 @@ export default function RoomsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="bg-indigo-50/60 border-b border-white/60">
+                <tr className="bg-amber-50/60 border-b border-white/60">
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     Room
                   </th>
@@ -619,7 +619,7 @@ export default function RoomsPage() {
                     room.user_profiles?.full_name ||
                     null
                   return (
-                    <tr key={room.room_id} className="hover:bg-indigo-50/40 transition-colors">
+                    <tr key={room.room_id} className="hover:bg-amber-50/40 transition-colors">
                       <td className="px-4 py-3 font-semibold text-gray-900">
                         {room.rooms?.room_number ?? '—'}
                       </td>

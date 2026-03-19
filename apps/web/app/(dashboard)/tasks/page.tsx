@@ -132,7 +132,7 @@ function TaskCard({ task, onOpen, onStatusChange, updating }: TaskCardProps) {
               <span className="text-gray-400">{taskTypeIcon(task.task_type)}</span>
               <span className="text-xs text-gray-400 capitalize">{task.task_type.replace('_', ' ')}</span>
               {task.is_ai_created && (
-                <span className="flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                <span className="flex items-center gap-0.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
                   <Bot size={10} />AI
                 </span>
               )}
@@ -210,7 +210,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/20 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
       <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-gray-900">New Task</h2>
@@ -226,7 +226,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
               placeholder="e.g. Fix leaking faucet in Room 302"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               required
               autoFocus
             />
@@ -238,7 +238,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               <select
                 value={form.task_type}
                 onChange={(e) => set('task_type', e.target.value as TaskType)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white"
               >
                 {TASK_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -250,7 +250,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               <select
                 value={form.priority}
                 onChange={(e) => set('priority', e.target.value as Priority)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.value} value={p.value}>{p.label}</option>
@@ -265,7 +265,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               value={form.location_text}
               onChange={(e) => set('location_text', e.target.value)}
               placeholder="e.g. Room 302, Lobby, Pool area"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             />
           </div>
 
@@ -276,7 +276,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               onChange={(e) => set('description', e.target.value)}
               rows={2}
               placeholder="Additional details..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
             />
           </div>
 
@@ -326,7 +326,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-indigo-950/10 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-stone-900/10 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed right-0 top-0 bottom-0 z-50 w-96 bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
@@ -347,7 +347,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
               {priorityBadge(task.priority)}
               {statusBadge(task.status)}
               {task.is_ai_created && (
-                <span className="flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                <span className="flex items-center gap-0.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
                   <Bot size={10} />AI created
                 </span>
               )}
@@ -499,12 +499,12 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
                 }
               }}
               placeholder="Add a comment..."
-              className="flex-1 text-sm px-3 py-2 bg-white/70 border border-indigo-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400"
+              className="flex-1 text-sm px-3 py-2 bg-white/70 border border-amber-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200"
             />
             <button
               onClick={handleComment}
               disabled={submitting || !comment.trim()}
-              className="p-2 bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
+              className="p-2 bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               <Send size={14} />
             </button>
@@ -611,7 +611,7 @@ export default function TasksPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
         >
           <option value="">All Types</option>
           {TASK_TYPES.map((t) => (
@@ -621,7 +621,7 @@ export default function TasksPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
         >
           <option value="">All Priorities</option>
           {PRIORITIES.map((p) => (

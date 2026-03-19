@@ -164,7 +164,7 @@ const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputEl
       ref={ref}
       className={cn(
         'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400',
-        'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+        'focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent',
         'disabled:bg-gray-50 disabled:text-gray-400',
         className
       )}
@@ -180,7 +180,7 @@ const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSele
       ref={ref}
       className={cn(
         'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-white',
-        'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+        'focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent',
         'disabled:bg-gray-50 disabled:text-gray-400',
         className
       )}
@@ -207,9 +207,9 @@ function Button({
     'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed'
   const variants = {
     primary:
-      'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm',
+      'bg-amber-500 text-white hover:bg-amber-100 focus:ring-amber-400 shadow-sm',
     secondary:
-      'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500 shadow-sm',
+      'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-amber-400 shadow-sm',
     ghost: 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:ring-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm',
   }
@@ -306,18 +306,18 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
   }
 
   return (
-    <aside className="w-full h-full flex flex-col bg-indigo-50 border-l border-indigo-100 rounded-r-2xl p-6">
+    <aside className="w-full h-full flex flex-col bg-amber-50 border-l border-amber-100 rounded-r-2xl p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
           <Bot className="w-4 h-4 text-white" />
         </div>
-        <span className="font-semibold text-indigo-900 text-sm">AI Assistant</span>
+        <span className="font-semibold text-amber-900 text-sm">AI Assistant</span>
       </div>
 
       {/* Message thread */}
       <div className="flex-1 overflow-y-auto space-y-3 min-h-0 mb-3">
         {/* Initial greeting bubble */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
           <p className="text-sm text-gray-700 leading-relaxed">
             Hi! I'm here to help you get set up quickly. Ask me anything about this step.
           </p>
@@ -325,7 +325,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
 
         {/* Static tip from AI_TIPS while no conversation */}
         {messages.length === 0 && (
-          <div className="bg-indigo-600 rounded-xl p-4 text-white">
+          <div className="bg-amber-500 rounded-xl p-4 text-white">
             <p className="text-xs font-semibold uppercase tracking-wide opacity-75 mb-1">
               Tip
             </p>
@@ -338,15 +338,15 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           <div key={idx}>
             {msg.role === 'user' ? (
               <div className="flex justify-end">
-                <div className="bg-indigo-600 text-white rounded-xl px-4 py-2.5 text-sm max-w-[90%]">
+                <div className="bg-amber-500 text-white rounded-xl px-4 py-2.5 text-sm max-w-[90%]">
                   {msg.content}
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
                 <p className="text-sm text-gray-700 leading-relaxed">{msg.content}</p>
                 {msg.tip && (
-                  <p className="text-xs text-indigo-600 mt-2 italic">{msg.tip}</p>
+                  <p className="text-xs text-amber-600 mt-2 italic">{msg.tip}</p>
                 )}
               </div>
             )}
@@ -354,8 +354,8 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
         ))}
 
         {isLoading && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-100">
-            <div className="flex items-center gap-2 text-indigo-400">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+            <div className="flex items-center gap-2 text-amber-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span className="text-xs">Thinking...</span>
             </div>
@@ -375,8 +375,8 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           placeholder="Ask a question..."
           disabled={isLoading}
           className={cn(
-            'flex-1 min-w-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-indigo-300',
-            'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            'flex-1 min-w-0 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-stone-400',
+            'focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent',
             'disabled:opacity-60'
           )}
         />
@@ -384,8 +384,8 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
           className={cn(
-            'shrink-0 w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center',
-            'hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            'shrink-0 w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center',
+            'hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           aria-label="Send"
         >
@@ -398,7 +398,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
       </div>
 
       <div className="mt-3">
-        <p className="text-xs text-indigo-400 text-center">
+        <p className="text-xs text-amber-400 text-center">
           Powered by GPT-4o-mini
         </p>
       </div>
@@ -418,10 +418,10 @@ function ProgressHeader({
   stepStatuses: Record<number, StepStatus>
 }) {
   return (
-    <div className="border-b border-indigo-100/50 bg-white/60 backdrop-blur-sm px-8 py-5">
+    <div className="border-b border-amber-100/50 bg-white/60 backdrop-blur-sm px-8 py-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
             <Building2 className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-gray-900">PatelRep Setup Wizard</span>
@@ -451,9 +451,9 @@ function ProgressHeader({
                     isSkipped &&
                       'bg-green-400 text-white',
                     isActive &&
-                      'bg-indigo-400 text-white shadow-md',
+                      'bg-amber-400 text-white shadow-md',
                     !isCompleted && !isActive &&
-                      'bg-white/60 text-slate-400 border border-indigo-200/[0.40]'
+                      'bg-white/60 text-slate-400 border border-amber-200/[0.40]'
                   )}
                 >
                   {isCompleted && !isSkipped ? (
@@ -465,7 +465,7 @@ function ProgressHeader({
                 <span
                   className={cn(
                     'text-xs font-medium whitespace-nowrap',
-                    isActive ? 'text-indigo-600' : isCompleted ? 'text-gray-600' : 'text-gray-400'
+                    isActive ? 'text-amber-600' : isCompleted ? 'text-gray-600' : 'text-gray-400'
                   )}
                 >
                   {step.label}
@@ -478,7 +478,7 @@ function ProgressHeader({
                 <div
                   className={cn(
                     'h-0.5 flex-1 mx-2 mt-[-14px] rounded transition-all duration-300',
-                    isCompleted ? 'bg-indigo-400' : 'bg-gray-200'
+                    isCompleted ? 'bg-amber-400' : 'bg-gray-200'
                   )}
                 />
               )}
@@ -754,7 +754,7 @@ function Step2ImportRooms({
             className={cn(
               'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
               tab === t
-                ? 'bg-white text-indigo-700 shadow-sm border border-gray-200'
+                ? 'bg-white text-amber-700 shadow-sm border border-gray-200'
                 : 'text-gray-500 hover:text-gray-700'
             )}
           >
@@ -774,10 +774,10 @@ function Step2ImportRooms({
             className={cn(
               'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
               isDragging
-                ? 'border-indigo-400 bg-indigo-50'
+                ? 'border-amber-200 bg-amber-50'
                 : csvFile
                 ? 'border-green-400 bg-green-50'
-                : 'border-gray-300 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/30'
+                : 'border-gray-300 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/30'
             )}
           >
             <input
@@ -899,7 +899,7 @@ function Step2ImportRooms({
                 { id: uid(), room_number: '', floor: '' },
               ])
             }
-            className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium mt-1"
+            className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-medium mt-1"
           >
             <Plus className="w-4 h-4" />
             Add row
@@ -1053,7 +1053,7 @@ function Step3InviteStaff({
 
       <button
         onClick={addRow}
-        className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+        className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-medium"
       >
         <Plus className="w-4 h-4" />
         Add another invite
@@ -1074,7 +1074,7 @@ function Step3InviteStaff({
           </div>
           <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+              className="h-full bg-amber-400 rounded-full transition-all duration-300"
               style={{
                 width: `${(progress.done / progress.total) * 100}%`,
               }}
@@ -1348,8 +1348,8 @@ function Step5UploadSOPs({
         className={cn(
           'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
           isDragging
-            ? 'border-indigo-400 bg-indigo-50'
-            : 'border-gray-300 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/30'
+            ? 'border-amber-200 bg-amber-50'
+            : 'border-gray-300 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/30'
         )}
       >
         <input
@@ -1380,7 +1380,7 @@ function Step5UploadSOPs({
               key={f.name}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5"
             >
-              <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+              <FileText className="w-4 h-4 text-amber-400 shrink-0" />
               <span className="flex-1 text-sm text-gray-700 truncate">{f.name}</span>
               <span className="text-xs text-gray-400 shrink-0">
                 {(f.size / 1024).toFixed(0)} KB
@@ -1511,8 +1511,8 @@ function Step6Done({
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center gap-3 py-4">
-        <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
-          <PartyPopper className="w-8 h-8 text-indigo-600" />
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+          <PartyPopper className="w-8 h-8 text-amber-600" />
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">You're all set!</h2>
@@ -1792,7 +1792,7 @@ export default function OnboardingPage() {
 
           {/* Bottom navigation (steps 2–5 that don't have their own nav) */}
           {currentStep > 1 && currentStep < 6 && (
-            <div className="flex items-center justify-between border-t border-indigo-100/50 px-8 py-4 bg-white/40 backdrop-blur-sm rounded-b-2xl">
+            <div className="flex items-center justify-between border-t border-amber-100/50 px-8 py-4 bg-white/40 backdrop-blur-sm rounded-b-2xl">
               <UIButton variant="ghost" onClick={goBack}>
                 <ChevronLeft className="w-4 h-4" />
                 Back

@@ -195,7 +195,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -571,7 +571,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
                 onChange={(e) => setCommentText(e.target.value)}
                 rows={2}
                 placeholder="Add a comment…"
-                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 bg-white/70 backdrop-blur-sm resize-none transition-colors"
+                className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 backdrop-blur-sm resize-none transition-colors"
               />
               <Button
                 variant="ghost"

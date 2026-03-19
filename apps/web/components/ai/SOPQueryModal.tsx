@@ -184,7 +184,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={onClose}
         aria-hidden="true"
       />

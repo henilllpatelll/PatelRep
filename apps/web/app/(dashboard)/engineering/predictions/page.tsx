@@ -229,7 +229,7 @@ function PredictionCard({
             {hasMoreReasoning && (
               <button
                 onClick={() => onToggleExpand(prediction.id)}
-                className="mt-1 flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
               >
                 {isExpanded ? (
                   <>
@@ -468,7 +468,7 @@ export default function PredictionsPage() {
       {/* Filter row */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Risk filter */}
-        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-indigo-200/40 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-amber-200/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Risk' },
@@ -482,7 +482,7 @@ export default function PredictionsPage() {
               onClick={() => setRiskFilter(key)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 riskFilter === key
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-amber-500 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -492,7 +492,7 @@ export default function PredictionsPage() {
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-indigo-200/40 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-amber-200/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Status' },
@@ -505,7 +505,7 @@ export default function PredictionsPage() {
               onClick={() => setStatusFilter(key)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === key
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-amber-500 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -520,7 +520,7 @@ export default function PredictionsPage() {
               setRiskFilter('all')
               setStatusFilter('all')
             }}
-            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+            className="text-sm text-amber-600 hover:text-amber-800 font-medium transition-colors"
           >
             Clear filters
           </button>
@@ -548,7 +548,7 @@ export default function PredictionsPage() {
                   setRiskFilter('all')
                   setStatusFilter('all')
                 }}
-                className="text-indigo-600 hover:underline font-medium"
+                className="text-amber-600 hover:underline font-medium"
               >
                 Clear filters
               </button>{' '}

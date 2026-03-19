@@ -110,7 +110,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-indigo-950/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -130,7 +130,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
-              <ClipboardList className="w-5 h-5 text-indigo-600 shrink-0" />
+              <ClipboardList className="w-5 h-5 text-amber-600 shrink-0" />
               <h2 className="text-base font-bold text-gray-900">New Work Order</h2>
             </div>
             <button
@@ -197,7 +197,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   onChange={(e) => setNlInput(e.target.value)}
                   rows={3}
                   placeholder="e.g. The toilet in room 214 is leaking from the base and the guest is complaining..."
-                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
+                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   AI will generate the title and categorize automatically.
@@ -211,7 +211,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors"
+                className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -244,7 +244,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                       value={p.value}
                       checked={priority === p.value}
                       onChange={() => setPriority(p.value)}
-                      className="mt-0.5 accent-indigo-600"
+                      className="mt-0.5 accent-amber-500"
                     />
                     <div>
                       <p className="text-sm font-medium text-gray-900 capitalize">{p.label}</p>
@@ -279,7 +279,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Additional details about the issue…"
-                  className="w-full border border-indigo-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-colors resize-none"
+                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
                 />
               </div>
             )}
