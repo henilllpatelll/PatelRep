@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
 
 type BadgeVariant =
   | 'dirty' | 'in_progress' | 'clean' | 'inspected'
@@ -21,7 +22,7 @@ const BADGE_VARIANTS: Record<BadgeVariant, string> = {
 
 interface BadgeProps {
   variant?: BadgeVariant
-  children: React.ReactNode
+  children: ReactNode
   className?: string
 }
 

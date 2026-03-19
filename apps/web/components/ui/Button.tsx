@@ -1,8 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ButtonHTMLAttributes, forwardRef } from 'react'
-import { motion } from 'framer-motion'
+import { forwardRef } from 'react'
+import { motion, MotionProps } from 'framer-motion'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 
@@ -13,8 +13,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
   destructive: 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100',
 }
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends MotionProps {
   variant?: ButtonVariant
+  className?: string
+  disabled?: boolean
+  children?: React.ReactNode
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -28,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         VARIANTS[variant],
         className
       )}
-      {...(props as React.ComponentProps<typeof motion.button>)}
+      {...props}
     >
       {children}
     </motion.button>
