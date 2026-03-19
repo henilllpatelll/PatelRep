@@ -1,35 +1,35 @@
-/* Base */
-body {
-  background: linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 50%, #F5F3FF 100%);
-  background-attachment: fixed;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --color-bg: #FEFAF4;
+    --color-surface: #FFFDF8;
+    --color-surface-2: #FEF9EE;
+  }
+
+  html, body {
+    background-color: #FEFAF4;
   }
 }
 
 @layer utilities {
-  .status-dirty { @apply bg-red-100 border-red-400 text-red-800; }
-  .status-in-progress { @apply bg-blue-100 border-blue-400 text-blue-800; }
-  .status-clean { @apply bg-yellow-100 border-yellow-400 text-yellow-800; }
-  .status-inspected { @apply bg-green-100 border-green-400 text-green-800; }
-  .status-ooo { @apply bg-gray-100 border-gray-400 text-gray-800; }
-  .risk-high { @apply bg-red-50 border-l-4 border-red-500; }
-  .risk-medium { @apply bg-orange-50 border-l-4 border-orange-400; }
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
