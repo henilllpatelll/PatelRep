@@ -8,7 +8,7 @@ export function getInitials(name: string): string {
 }
 
 const AVATAR_COLORS = [
-  'bg-indigo-400',
+  'bg-violet-400',
   'bg-violet-500',
   'bg-amber-500',
   'bg-teal-500',
