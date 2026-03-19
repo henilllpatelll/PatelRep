@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
+import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
@@ -57,6 +59,7 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HousekeepingPage() {
+  const queryClient = useQueryClient()
   const {
     selectedDate,
     selectedShift,
@@ -69,6 +72,26 @@ export default function HousekeepingPage() {
     toggleAssignmentMode,
     toggleRiskOnly,
   } = useHousekeepingStore()
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+    const roomId = active.id as string
+    const housekeeperId = over.data?.current?.housekeeperId as string | undefined
+    if (!housekeeperId) return
+    try {
+      await housekeepingApi.saveAssignments({
+        date: selectedDate,
+        shift_id: selectedShift ?? '',
+        assignments: [{ room_id: roomId, housekeeper_id: housekeeperId }],
+        is_ai_suggested: false,
+      })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+    } catch {
+      // silently ignore — user can retry
+    }
+  }
 
   const [predictions, setPredictions] = useState<RoomPrediction[]>([])
   const [predictionsLoading, setPredictionsLoading] = useState(false)
@@ -231,15 +254,17 @@ export default function HousekeepingPage() {
       )}
 
       {/* ── Main layout ───────────────────────────────────────────────────── */}
-      <div className="flex gap-4 items-start">
-        {/* Board */}
-        <div className="flex-1 min-w-0">
-          <RoomStatusBoard />
-        </div>
+      <DndContext onDragEnd={handleDragEnd}>
+        <div className="flex gap-4 items-start">
+          {/* Board */}
+          <div className="flex-1 min-w-0">
+            <RoomStatusBoard />
+          </div>
 
-        {/* Sidebar — only in assign mode */}
-        {assignmentMode && <AssignmentSidebar />}
-      </div>
+          {/* Sidebar — only in assign mode */}
+          {assignmentMode && <AssignmentSidebar />}
+        </div>
+      </DndContext>
     </div>
   )
 }

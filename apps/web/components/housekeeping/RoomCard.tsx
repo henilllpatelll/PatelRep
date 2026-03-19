@@ -10,23 +10,31 @@ import { cn } from '@/lib/utils'
 // ── Status → card bg + border ────────────────────────────────────────────────
 
 const STATUS_CARD_STYLES: Record<string, string> = {
-  DIRTY:       'bg-red-100 border border-red-300',
-  IN_PROGRESS: 'bg-blue-100 border border-blue-300',
-  CLEAN:       'bg-teal-50 border border-teal-300',
-  INSPECTED:   'bg-green-100 border border-green-300',
-  OOO:         'bg-stone-200 border border-stone-400',
-  PICKUP:      'bg-violet-100 border border-violet-300',
+  DIRTY:          'bg-red-50 border-2 border-red-200',
+  IN_PROGRESS:    'bg-blue-50 border-2 border-blue-200',
+  CLEAN:          'bg-emerald-50 border-2 border-emerald-200',
+  INSPECTED:      'bg-violet-50 border-2 border-violet-200',
+  DO_NOT_DISTURB: 'bg-stone-100 border-2 border-stone-200 opacity-75',
+  OUT_OF_ORDER:   'bg-stone-200 border-2 border-stone-300',
+  VACANT:         'bg-white border-2 border-stone-100',
+  BLOCKED:        'bg-stone-100 border-2 border-stone-200',
+  OCCUPIED:       'bg-orange-50 border-2 border-orange-200',
 }
 
 // ── Status → Badge variant ────────────────────────────────────────────────────
 
 const STATUS_TO_BADGE_VARIANT: Record<string, string> = {
-  DIRTY:       'dirty',
-  IN_PROGRESS: 'in_progress',
-  CLEAN:       'clean',
-  INSPECTED:   'inspected',
-  OOO:         'out_of_order',
-  PICKUP:      'default',
+  DIRTY:          'dirty',
+  IN_PROGRESS:    'in_progress',
+  CLEAN:          'clean',
+  INSPECTED:      'inspected',
+  DO_NOT_DISTURB: 'do_not_disturb',
+  OUT_OF_ORDER:   'out_of_order',
+  VACANT:         'default',
+  BLOCKED:        'default',
+  OCCUPIED:       'default',
+  OOO:            'out_of_order',
+  PICKUP:         'clean',
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -76,7 +84,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
 
   // ── dnd-kit draggable ──────────────────────────────────────────────────────
   const { setNodeRef, transform, listeners, attributes, isDragging } = useDraggable({
-    id: room.room_id ?? room.id,
+    id: room.id,
     data: { room },
   })
 
