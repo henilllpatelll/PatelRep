@@ -1,11 +1,21 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Figtree, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/shared/Providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const figtree = Figtree({
+  subsets: ['latin'],
+  variable: '--font-figtree',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'PatelRep — Hotel Operations AI',
@@ -14,14 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
-        />
-      </head>
-      <body className={inter.className}>
+    <html lang="en" className={`${figtree.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans bg-[#FEFAF4]">
         <Providers>{children}</Providers>
       </body>
     </html>
