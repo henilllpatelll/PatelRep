@@ -15,6 +15,9 @@ const config: Config = {
         mono: ['var(--font-jetbrains-mono)', ...defaultTheme.fontFamily.mono],
       },
       colors: {
+        bg:       'var(--color-bg)',
+        surface:  'var(--color-surface)',
+        surface2: 'var(--color-surface-2)',
         status: {
           inspected:        '#8B5CF6',
           'inspected-text': '#5B21B6',
