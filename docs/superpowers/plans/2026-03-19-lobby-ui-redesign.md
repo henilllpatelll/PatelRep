@@ -406,6 +406,7 @@ git commit -m "feat: replace UI primitives with amber design system (Button, Inp
 **Files:**
 - Create: `apps/web/components/shared/PageTransition.tsx`
 - Create: `apps/web/lib/hooks/useCountUp.ts`
+- Modify: `apps/web/app/(dashboard)/layout.tsx`
 
 - [ ] **Step 1: Create PageTransition**
 
@@ -595,6 +596,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
+import { Bell } from 'lucide-react'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -633,6 +635,9 @@ export function Header() {
     <header className="h-14 flex items-center justify-between px-6 bg-white/70 backdrop-blur-xl border-b border-stone-100 sticky top-0 z-10 shrink-0">
       <span className="text-sm font-semibold text-stone-800">{title}</span>
       <div className="flex items-center gap-3">
+        <button className="p-2 rounded-xl hover:bg-stone-100 transition-colors text-stone-400 hover:text-stone-600">
+          <Bell size={16} />
+        </button>
         {hotel && (
           <span className="bg-amber-50 text-amber-700 text-xs font-medium rounded-full px-3 py-1 border border-amber-100">
             {hotel.name}
@@ -813,6 +818,7 @@ git commit -m "feat: redesign dashboard components — amber metrics, warm risk 
 **Files:**
 - Modify: `apps/web/components/housekeeping/RoomCard.tsx`
 - Modify: `apps/web/components/housekeeping/RoomStatusBoard.tsx`
+- Modify: `apps/web/components/housekeeping/AssignmentSidebar.tsx`
 
 - [ ] **Step 1: Read both files**
 
@@ -904,11 +910,59 @@ Replace the room list rendering with:
 
 - [ ] **Step 4: Add dnd-kit for drag-to-assign**
 
-Wrap the board with `DndContext` from `@dnd-kit/core`. Make room cards `useDraggable`, make housekeeper columns in AssignmentSidebar `useDroppable`. On `onDragEnd`, call the existing assign API.
+```tsx
+// In RoomCard.tsx — make each card draggable:
+import { useDraggable } from '@dnd-kit/core'
+
+const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  id: room.id,
+  data: { room },
+})
+const style = transform ? {
+  transform: `translate(${transform.x}px, ${transform.y}px)`,
+  opacity: isDragging ? 0.8 : 1,
+  rotate: isDragging ? '2deg' : '0deg',
+  scale: isDragging ? 1.05 : 1,
+  zIndex: isDragging ? 50 : 'auto',
+} : undefined
+
+// Attach to card container: ref={setNodeRef} style={style} {...listeners} {...attributes}
+```
 
 ```tsx
+// In AssignmentSidebar.tsx — make each housekeeper row a drop zone:
+import { useDroppable } from '@dnd-kit/core'
+
+// Per housekeeper entry:
+const { setNodeRef, isOver } = useDroppable({ id: `hk-${housekeeper.id}`, data: { housekeeperId: housekeeper.id } })
+// className on the row: isOver ? 'bg-amber-50 border-2 border-amber-400 border-dashed' : ''
+// ref={setNodeRef}
+```
+
+```tsx
+// In RoomStatusBoard.tsx — handleDragEnd calls the assign API:
 import { DndContext, DragEndEvent } from '@dnd-kit/core'
 
+const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event
+  if (!over) return
+  const roomId = active.id as string
+  const housekeeperId = over.data.current?.housekeeperId as string
+  if (!housekeeperId) return
+  // Call existing assign endpoint:
+  await assignmentApi.createAssignment({
+    room_id: roomId,
+    assigned_to: housekeeperId,
+    assignment_date: selectedDate,
+  })
+  // Refresh board:
+  refetch()
+}
+```
+
+Wrap the board with `DndContext` from `@dnd-kit/core`:
+
+```tsx
 <DndContext onDragEnd={handleDragEnd}>
   {/* room grid */}
 </DndContext>
