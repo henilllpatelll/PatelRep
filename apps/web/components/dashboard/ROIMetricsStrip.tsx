@@ -1,30 +1,41 @@
 'use client'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { CheckCircle, AlertCircle, ClipboardList } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { hotelsApi } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { useCountUp } from '@/lib/hooks/useCountUp'
+import type { LucideIcon } from 'lucide-react'
 
 interface MetricCardProps {
-  title: string
-  value: string
-  trend: 'up' | 'down' | 'neutral'
-  trendLabel: string
+  label: string
+  value: number
+  prefix?: string
+  suffix?: string
+  trend?: number
+  icon: LucideIcon
   danger?: boolean
 }
 
-function MetricCard({ title, value, trend, trendLabel, danger }: MetricCardProps) {
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
-  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-400'
-
+function MetricCard({ label, value, prefix, suffix, trend, icon: Icon, danger }: MetricCardProps) {
+  const animated = useCountUp(value)
   return (
-    <Card className={danger ? 'border-red-200 bg-red-50' : undefined}>
-      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{title}</p>
-      <p className="text-2xl font-extrabold text-slate-900 mt-1">{value}</p>
-      <div className={`flex items-center gap-1 mt-1 ${trendColor}`}>
-        <TrendIcon size={12} />
-        <span className="text-xs text-slate-400">{trendLabel}</span>
+    <Card className={`p-4 flex items-start gap-3${danger ? ' border-red-200 bg-red-50' : ''}`}>
+      <div className="bg-amber-50 rounded-xl p-2.5 shrink-0">
+        <Icon className="w-4 h-4 text-amber-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-stone-400 font-medium">{label}</p>
+        <p className="text-2xl font-bold text-stone-900 font-mono mt-0.5">
+          {prefix}{animated}{suffix}
+        </p>
+        {trend !== undefined && (
+          <Badge variant={trend >= 0 ? 'low' : 'high'} className="mt-1">
+            {trend >= 0 ? '+' : ''}{trend}%
+          </Badge>
+        )}
       </div>
     </Card>
   )
@@ -32,11 +43,16 @@ function MetricCard({ title, value, trend, trendLabel, danger }: MetricCardProps
 
 function SkeletonCard() {
   return (
-    <Card>
-      <div className="animate-pulse">
-        <div className="h-2 bg-slate-200 rounded w-2/3 mb-3" />
-        <div className="h-8 bg-slate-200 rounded w-1/2 mb-3" />
-        <div className="h-2 bg-slate-200 rounded w-1/3" />
+    <Card className="p-4">
+      <div className="animate-pulse flex items-start gap-3">
+        <div className="bg-amber-50 rounded-xl p-2.5 shrink-0">
+          <div className="w-4 h-4 bg-amber-100 rounded" />
+        </div>
+        <div className="flex-1">
+          <div className="h-2 bg-stone-200 rounded w-2/3 mb-3" />
+          <div className="h-8 bg-stone-200 rounded w-1/2 mb-3" />
+          <div className="h-2 bg-stone-200 rounded w-1/3" />
+        </div>
       </div>
     </Card>
   )
@@ -94,23 +110,22 @@ export function ROIMetricsStrip() {
   return (
     <div className="grid grid-cols-3 gap-4">
       <MetricCard
-        title="Rooms Inspected Today"
-        value={`${inspectedToday}`}
-        trend={inspectedPct >= 80 ? 'up' : inspectedPct >= 50 ? 'neutral' : 'down'}
-        trendLabel={`${inspectedPct}% of ${totalRooms} rooms`}
+        label="Rooms Inspected Today"
+        value={inspectedToday}
+        icon={CheckCircle}
+        trend={inspectedPct - 100}
       />
       <MetricCard
-        title="Open Work Orders"
-        value={`${openWorkOrders}`}
-        trend={openWorkOrders === 0 ? 'up' : openWorkOrders <= 5 ? 'neutral' : 'down'}
-        trendLabel={openWorkOrders === 0 ? 'All clear' : openWorkOrders === 1 ? '1 pending' : `${openWorkOrders} pending`}
+        label="Open Work Orders"
+        value={openWorkOrders}
+        icon={AlertCircle}
         danger={openWorkOrders > 5}
+        trend={openWorkOrders === 0 ? 0 : undefined}
       />
       <MetricCard
-        title="Tasks Completed Today"
-        value={`${tasksCompleted}`}
-        trend={tasksCompleted > 0 ? 'up' : 'neutral'}
-        trendLabel={tasksCompleted === 1 ? '1 task done' : `${tasksCompleted} tasks done`}
+        label="Tasks Completed Today"
+        value={tasksCompleted}
+        icon={ClipboardList}
       />
     </div>
   )

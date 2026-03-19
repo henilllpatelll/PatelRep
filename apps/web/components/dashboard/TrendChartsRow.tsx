@@ -17,8 +17,8 @@ function SkeletonChart() {
   return (
     <Card>
       <div className="animate-pulse">
-        <div className="h-3 bg-slate-200 rounded w-1/2 mb-4" />
-        <div className="h-40 bg-slate-100 rounded" />
+        <div className="h-3 bg-stone-200 rounded w-1/2 mb-4" />
+        <div className="h-40 bg-stone-100 rounded" />
       </div>
     </Card>
   )
@@ -45,7 +45,7 @@ function SLAGauge({ pct }: { pct: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-slate-900">{pct}%</span>
+          <span className="text-2xl font-bold text-stone-900">{pct}%</span>
         </div>
       </div>
       <p className="text-xs font-medium" style={{ color }}>{label}</p>
@@ -90,47 +90,47 @@ export function TrendChartsRow() {
     .sort((a, b) => b.tasks_completed - a.tasks_completed)
     .slice(0, 5)
 
-  const barColors = ['#3b82f6', '#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd']
+  const amberShades = ['#FBBF24', '#F59E0B', '#D97706', '#B45309', '#92400E']
 
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Chart 1: SLA Compliance KPI */}
       <Card className="p-5">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">SLA Compliance (30 days)</h3>
+        <h3 className="text-sm font-semibold text-stone-700 mb-4">SLA Compliance (30 days)</h3>
         {maint ? (
           <div className="flex items-center gap-8">
             <SLAGauge pct={Math.round(slaPct)} />
             <div className="flex-1 space-y-3">
               <div>
-                <p className="text-xs text-slate-500">WO Completion</p>
+                <p className="text-xs text-stone-500">WO Completion</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-blue-500 transition-all"
+                      className="h-full rounded-full bg-amber-400 transition-all"
                       style={{ width: `${Math.min(completionPct, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs font-semibold text-slate-700 w-10 text-right">
+                  <span className="text-xs font-semibold text-stone-700 w-10 text-right">
                     {Math.round(completionPct)}%
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-slate-500">Total WOs</p>
-                  <p className="font-semibold text-slate-900">{maint.total_work_orders}</p>
+                <div className="bg-stone-50 rounded-lg p-2">
+                  <p className="text-stone-500">Total WOs</p>
+                  <p className="font-semibold text-stone-900">{maint.total_work_orders}</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-slate-500">Completed</p>
-                  <p className="font-semibold text-slate-900">{maint.completed}</p>
+                <div className="bg-stone-50 rounded-lg p-2">
+                  <p className="text-stone-500">Completed</p>
+                  <p className="font-semibold text-stone-900">{maint.completed}</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-slate-500">Avg Resolution</p>
-                  <p className="font-semibold text-slate-900">{maint.avg_resolution_hours.toFixed(1)}h</p>
+                <div className="bg-stone-50 rounded-lg p-2">
+                  <p className="text-stone-500">Avg Resolution</p>
+                  <p className="font-semibold text-stone-900">{maint.avg_resolution_hours.toFixed(1)}h</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="text-slate-500">SLA Breaches</p>
-                  <p className={`font-semibold ${maint.active_sla_breaches > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                <div className="bg-stone-50 rounded-lg p-2">
+                  <p className="text-stone-500">SLA Breaches</p>
+                  <p className={`font-semibold ${maint.active_sla_breaches > 0 ? 'text-red-600' : 'text-stone-900'}`}>
                     {maint.active_sla_breaches}
                   </p>
                 </div>
@@ -138,7 +138,7 @@ export function TrendChartsRow() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
+          <div className="flex items-center justify-center h-40 text-stone-400 text-sm">
             No maintenance data available
           </div>
         )}
@@ -146,7 +146,7 @@ export function TrendChartsRow() {
 
       {/* Chart 2: Top Staff Performers */}
       <Card className="p-5">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">Top Staff Performers (30 days)</h3>
+        <h3 className="text-sm font-semibold text-stone-700 mb-4">Top Staff Performers (30 days)</h3>
         {topStaff.length > 0 ? (
           <ResponsiveContainer width="100%" height={160}>
             <BarChart
@@ -154,7 +154,7 @@ export function TrendChartsRow() {
               layout="vertical"
               margin={{ left: 0, right: 16, top: 0, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E7E5E4" />
               <XAxis type="number" tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={64} />
               <Tooltip
@@ -163,13 +163,13 @@ export function TrendChartsRow() {
               />
               <Bar dataKey="tasks" radius={[0, 4, 4, 0]}>
                 {topStaff.map((_, i) => (
-                  <Cell key={i} fill={barColors[i % barColors.length]} />
+                  <Cell key={i} fill={amberShades[i % amberShades.length]} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
+          <div className="flex items-center justify-center h-40 text-stone-400 text-sm">
             No staff performance data yet
           </div>
         )}
