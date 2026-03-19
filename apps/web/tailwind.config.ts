@@ -33,6 +33,7 @@ const config: Config = {
           'oos-bg':         '#F5F5F4',
           vip:              '#FBBF24',
           'vip-text':       '#78350F',
+          'vip-bg':         '#FFFBEB',
         },
         risk: {
           high:   '#ef4444',
