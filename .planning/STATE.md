@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md — infrastructure bug fixes shipped, client.test.ts GREEN
-last_updated: "2026-03-20T18:13:51.924Z"
+stopped_at: Completed 01-foundation/01-01-PLAN.md
+last_updated: "2026-03-20T18:14:03.254Z"
 last_activity: "2026-03-20 — Plan 01-02 complete: 401 retry wrapper, isLoading state, AppState lifecycle"
 progress:
   total_phases: 4
@@ -65,6 +65,7 @@ Recent decisions affecting current work:
 - [01-02]: AppState.addEventListener at module scope, no cleanup — intentionally permanent for app lifetime
 - [01-02]: isRetry is internal to request(), not on api export — callers see zero API change
 - [01-02]: jest.config.js uses modulePaths for monorepo: jest-expo hoisted to root, react-native in workspace
+- [Phase 01-foundation]: jest-expo@51 installed locally in apps/mobile to override monorepo-hoisted v55 — SDK 51 compatibility + react-native preset resolution
 
 ### Pending Todos
 
@@ -78,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: Completed 01-02-PLAN.md — infrastructure bug fixes shipped, client.test.ts GREEN
+Last session: 2026-03-20T18:14:03.251Z
+Stopped at: Completed 01-foundation/01-01-PLAN.md
 Resume file: None

@@ -18,7 +18,7 @@
 - [x] **INFRA-01**: API client retries with fresh token on 401 instead of hard logout
 - [ ] **INFRA-02**: Push notification token is registered with the backend on each login (via API, not direct Supabase)
 - [ ] **INFRA-03**: EAS Build produces APK (Android sideload) and IPA (TestFlight) for pilot distribution
-- [ ] **INFRA-04**: App shows "offline" banner when device has no internet connection
+- [x] **INFRA-04**: App shows "offline" banner when device has no internet connection
 
 ### Housekeeping
 
@@ -95,7 +95,7 @@
 | AUTH-04 | Phase 1 | Pending |
 | AUTH-05 | Phase 1 | Complete |
 | INFRA-01 | Phase 1 | Complete |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Complete |
 | HK-01 | Phase 2 | Pending |
 | HK-02 | Phase 2 | Pending |
 | HK-03 | Phase 2 | Pending |

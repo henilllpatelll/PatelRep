@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/4 | In progress | - |
+| 1. Foundation | 2/4 | In Progress|  |
 | 2. Housekeeper Workflow | 0/TBD | Not started | - |
 | 3. Engineer Workflow + Push + EAS | 0/TBD | Not started | - |
 | 4. Polish + Differentiators | 0/TBD | Not started | - |
