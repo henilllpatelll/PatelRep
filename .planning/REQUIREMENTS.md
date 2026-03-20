@@ -85,22 +85,44 @@
 
 ## Traceability
 
-*Updated during roadmap creation.*
+*Updated after roadmap creation — 2026-03-20*
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01–05 | Phase 1 | Pending |
-| INFRA-01–04 | Phase 1 | Pending |
-| HK-01–07 | Phase 2 | Pending |
-| ENG-01–07 | Phase 3 | Pending |
-| PROF-01–02 | Phase 2 | Pending |
-| L10N-01 | Phase 2–3 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| HK-01 | Phase 2 | Pending |
+| HK-02 | Phase 2 | Pending |
+| HK-03 | Phase 2 | Pending |
+| HK-04 | Phase 2 | Pending |
+| HK-05 | Phase 2 | Pending |
+| HK-06 | Phase 2 | Pending |
+| HK-07 | Phase 2 | Pending |
+| PROF-01 | Phase 2 | Pending |
+| PROF-02 | Phase 2 | Pending |
+| L10N-01 | Phase 2 | Pending |
+| ENG-01 | Phase 3 | Pending |
+| ENG-02 | Phase 3 | Pending |
+| ENG-03 | Phase 3 | Pending |
+| ENG-04 | Phase 3 | Pending |
+| ENG-05 | Phase 3 | Pending |
+| ENG-06 | Phase 3 | Pending |
+| ENG-07 | Phase 3 | Pending |
+| INFRA-02 | Phase 3 | Pending |
+| INFRA-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 26 total
 - Mapped to phases: 26
 - Unmapped: 0 ✓
 
+**Phase 4 note:** Phase 4 (Polish + Differentiators) delivers ETA display, sync badge, and locale auto-detect — these surface data from requirements already mapped above (HK-02 covers ETA display; Phase 4 is activation/polish work, not additional v1 requirements).
+
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Last updated: 2026-03-20 after roadmap creation*
