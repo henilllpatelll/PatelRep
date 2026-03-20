@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Test infrastructure (jest-expo, jest.config.js, failing test scaffolds for INFRA-01 and INFRA-04)
-- [ ] 01-02-PLAN.md — Core fixes (appStore isLoading, AppState token refresh, 401 retry wrapper)
+- [x] 01-01-PLAN.md — Test infrastructure (jest-expo, jest.config.js, failing test scaffolds for INFRA-01 and INFRA-04)
+- [x] 01-02-PLAN.md — Core fixes (appStore isLoading, AppState token refresh, 401 retry wrapper)
 - [ ] 01-03-PLAN.md — Layout hydration guards and OfflineBanner (SplashScreen, redirect guards, offline banner)
 - [ ] 01-04-PLAN.md — Magic link deep linking (+native-intent.ts, auth callback route)
 
@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Not started | - |
+| 1. Foundation | 2/4 | In progress | - |
 | 2. Housekeeper Workflow | 0/TBD | Not started | - |
 | 3. Engineer Workflow + Push + EAS | 0/TBD | Not started | - |
 | 4. Polish + Differentiators | 0/TBD | Not started | - |

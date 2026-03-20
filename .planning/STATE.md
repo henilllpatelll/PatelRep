@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 01-02-PLAN.md — infrastructure bug fixes shipped, client.test.ts GREEN
+last_updated: "2026-03-20T18:13:51.924Z"
+last_activity: "2026-03-20 — Plan 01-02 complete: 401 retry wrapper, isLoading state, AppState lifecycle"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 2
+  percent: 50
+---
+
 # Project State
 
 ## Project Reference
@@ -10,30 +26,31 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-20 — Roadmap created, phases derived from requirements
+Plan: 2 of 4 in current phase
+Status: In progress
+Last activity: 2026-03-20 — Plan 01-02 complete: 401 retry wrapper, isLoading state, AppState lifecycle
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 2
+- Average duration: 22 min
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 2/4 | 44 min | 22 min |
 
 **Recent Trend:**
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans: 01-01 (setup), 01-02 (infra fixes)
+- Trend: On track
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 8min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -44,6 +61,10 @@ Recent decisions affecting current work:
 
 - [Roadmap]: Phase 1 front-loads all auth + infrastructure fixes — hardcoded projectId, 401 no-recovery, and auth hydration race must be resolved before any feature work produces honest test results
 - [Roadmap]: Phase 4 has no new v1 requirements — it activates differentiators (ETA, risk badge, sync badge, locale auto-detect) that depend on backend data already flowing
+- [01-02]: isLoading defaults to true — auth state is unresolved at store init, must be true until session check completes
+- [01-02]: AppState.addEventListener at module scope, no cleanup — intentionally permanent for app lifetime
+- [01-02]: isRetry is internal to request(), not on api export — callers see zero API change
+- [01-02]: jest.config.js uses modulePaths for monorepo: jest-expo hoisted to root, react-native in workspace
 
 ### Pending Todos
 
@@ -58,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: Roadmap written — ROADMAP.md and STATE.md created, REQUIREMENTS.md traceability confirmed
+Stopped at: Completed 01-02-PLAN.md — infrastructure bug fixes shipped, client.test.ts GREEN
 Resume file: None

@@ -9,13 +9,13 @@
 
 - [ ] **AUTH-01**: User can log in with email/password on a physical device
 - [ ] **AUTH-02**: User can log in via magic link (deep link opens app, not browser)
-- [ ] **AUTH-03**: Auth session persists across app restarts without re-login
+- [x] **AUTH-03**: Auth session persists across app restarts without re-login
 - [ ] **AUTH-04**: App does not flash login screen on cold open for authenticated users (hydration guard)
-- [ ] **AUTH-05**: Auth session auto-refreshes during an 8-hour shift without logging user out
+- [x] **AUTH-05**: Auth session auto-refreshes during an 8-hour shift without logging user out
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: API client retries with fresh token on 401 instead of hard logout
+- [x] **INFRA-01**: API client retries with fresh token on 401 instead of hard logout
 - [ ] **INFRA-02**: Push notification token is registered with the backend on each login (via API, not direct Supabase)
 - [ ] **INFRA-03**: EAS Build produces APK (Android sideload) and IPA (TestFlight) for pilot distribution
 - [ ] **INFRA-04**: App shows "offline" banner when device has no internet connection
@@ -91,10 +91,10 @@
 |-------------|-------|--------|
 | AUTH-01 | Phase 1 | Pending |
 | AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
-| INFRA-01 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Complete |
+| INFRA-01 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Pending |
 | HK-01 | Phase 2 | Pending |
 | HK-02 | Phase 2 | Pending |
