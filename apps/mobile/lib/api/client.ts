@@ -20,7 +20,8 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 async function request<T>(
   method: string,
   path: string,
-  body?: unknown
+  body?: unknown,
+  isRetry = false
 ): Promise<T> {
   const headers = await getAuthHeader();
 
@@ -29,6 +30,14 @@ async function request<T>(
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (response.status === 401 && !isRetry) {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) {
+      return request<T>(method, path, body, true);
+    }
+    throw new Error('Session expired. Please log in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Unknown error" }));
