@@ -3,13 +3,15 @@ import { Stack, router } from "expo-router";
 import { useAppStore } from "@/stores/appStore";
 
 export default function AuthLayout() {
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const { isAuthenticated, isLoading } = useAppStore(
+    (s) => ({ isAuthenticated: s.isAuthenticated, isLoading: s.isLoading })
+  );
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
       router.replace("/(app)");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

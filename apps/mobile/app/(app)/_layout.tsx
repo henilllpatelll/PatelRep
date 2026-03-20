@@ -3,6 +3,7 @@ import { Tabs, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "@/stores/appStore";
+import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import type { UserRole } from "@/lib/supabase";
 
 type TabDef = { name: string; title: string; icon: string };
@@ -38,38 +39,41 @@ function getTabsForRole(role: UserRole): TabDef[] {
 
 export default function AppLayout() {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useAppStore();
+  const { user, isAuthenticated, isLoading } = useAppStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.replace("/(auth)/login");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
-  if (!user) return null;
+  if (isLoading || !user) return null;
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: "#1E40AF",
-        tabBarInactiveTintColor: "#9CA3AF",
-        headerStyle: { backgroundColor: "#1E40AF" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "600" },
-      }}
-    >
-      {getTabsForRole(user.role).map((tab) => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: t(tab.title),
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name={tab.icon as "bed"} size={size} color={color} />
-            ),
-          }}
-        />
-      ))}
-    </Tabs>
+    <>
+      <OfflineBanner />
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: "#1E40AF",
+          tabBarInactiveTintColor: "#9CA3AF",
+          headerStyle: { backgroundColor: "#1E40AF" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "600" },
+        }}
+      >
+        {getTabsForRole(user.role).map((tab) => (
+          <Tabs.Screen
+            key={tab.name}
+            name={tab.name}
+            options={{
+              title: t(tab.title),
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name={tab.icon as "bed"} size={size} color={color} />
+              ),
+            }}
+          />
+        ))}
+      </Tabs>
+    </>
   );
 }
