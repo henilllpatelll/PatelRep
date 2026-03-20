@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-foundation/01-03-PLAN.md
-last_updated: "2026-03-20T18:21:03.821Z"
-last_activity: "2026-03-20 — Plan 01-02 complete: 401 retry wrapper, isLoading state, AppState lifecycle"
+stopped_at: Completed 01-foundation/01-04-PLAN.md
+last_updated: "2026-03-20T18:34:42.810Z"
+last_activity: "2026-03-20 — Plan 01-04 complete: magic link deep link flow via +native-intent.ts and auth/callback.tsx"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-03-20 — Plan 01-03 complete: SplashScreen hydration guard, OfflineBanner component
+Phase: 1 of 4 (Foundation) — COMPLETE
+Plan: 4 of 4 in current phase — all plans done
+Status: Phase complete, ready for Phase 2
+Last activity: 2026-03-20 — Plan 01-04 complete: magic link deep link flow (+native-intent.ts, auth/callback.tsx)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [████████░░] 75%
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 8min | 2 tasks | 6 files |
 | Phase 01-foundation P03 | 4min | 2 tasks | 5 files |
+| Phase 01-foundation P04 | 10 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: SplashScreen.preventAutoHideAsync at module scope — must run before React mounts; setIsLoading(false) fires on every onAuthStateChange including initial hydration
 - [Phase 01-foundation]: React pinned to root node_modules in jest.config.js to eliminate two-React-copy Invalid hook call error in component tests
 - [Phase 01-foundation]: expo-splash-screen installed at ~0.27.0 to match SDK 51 compatibility range
+- [Phase 01-foundation]: redirectSystemPath converts # to ? so Expo Router 3.5 can parse Supabase magic link tokens as query params
+- [Phase 01-foundation]: callback.tsx delegates redirect to onAuthStateChange — no router.replace on success to avoid session/navigation race condition
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:21:03.819Z
-Stopped at: Completed 01-foundation/01-03-PLAN.md
+Last session: 2026-03-20T18:34:42.807Z
+Stopped at: Completed 01-foundation/01-04-PLAN.md
 Resume file: None

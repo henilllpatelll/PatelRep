@@ -12,7 +12,7 @@ The mobile app scaffold exists but is not functional on real devices — auth fl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Fix auth hydration, 401 recovery, push token wiring, and offline banner so every screen works correctly on a physical device
+- [x] **Phase 1: Foundation** - Fix auth hydration, 401 recovery, push token wiring, and offline banner so every screen works correctly on a physical device (completed 2026-03-20)
 - [ ] **Phase 2: Housekeeper Workflow** - Wire real room data, status updates, offline sync hardening, issue reporting, and profile screen so housekeepers can run a full shift from the app
 - [ ] **Phase 3: Engineer Workflow + Push + EAS** - Wire work orders, activate push notification delivery end-to-end, and produce APK/IPA builds for pilot distribution
 - [ ] **Phase 4: Polish + Differentiators** - Enable AI-sourced ETA and risk badges, sync timestamp badge, and language auto-detect so the app's competitive edge is visible to the pilot hotel
@@ -78,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/4 | In Progress|  |
+| 1. Foundation | 4/4 | Complete   | 2026-03-20 |
 | 2. Housekeeper Workflow | 0/TBD | Not started | - |
 | 3. Engineer Workflow + Push + EAS | 0/TBD | Not started | - |
 | 4. Polish + Differentiators | 0/TBD | Not started | - |

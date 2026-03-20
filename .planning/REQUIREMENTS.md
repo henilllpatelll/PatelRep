@@ -7,10 +7,10 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can log in with email/password on a physical device
-- [ ] **AUTH-02**: User can log in via magic link (deep link opens app, not browser)
+- [x] **AUTH-01**: User can log in with email/password on a physical device
+- [x] **AUTH-02**: User can log in via magic link (deep link opens app, not browser)
 - [x] **AUTH-03**: Auth session persists across app restarts without re-login
-- [ ] **AUTH-04**: App does not flash login screen on cold open for authenticated users (hydration guard)
+- [x] **AUTH-04**: App does not flash login screen on cold open for authenticated users (hydration guard)
 - [x] **AUTH-05**: Auth session auto-refreshes during an 8-hour shift without logging user out
 
 ### Infrastructure
@@ -89,10 +89,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
-| AUTH-04 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
