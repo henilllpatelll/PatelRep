@@ -5,7 +5,9 @@ interface AppState {
   // Auth
   user: UserProfile | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   setUser: (user: UserProfile | null) => void;
+  setIsLoading: (loading: boolean) => void;
 
   // Network
   isOnline: boolean;
@@ -34,7 +36,9 @@ export interface Room {
 export const useAppStore = create<AppState>((set) => ({
   user: null,
   isAuthenticated: false,
+  isLoading: true,
   setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setIsLoading: (isLoading) => set({ isLoading }),
 
   isOnline: true,
   setIsOnline: (isOnline) => set({ isOnline }),
