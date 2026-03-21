@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 01-foundation/01-04-PLAN.md
-last_updated: "2026-03-21T22:25:33.084Z"
-last_activity: "2026-03-20 — Plan 01-04 complete: magic link deep link flow (+native-intent.ts, auth/callback.tsx)"
+status: in_progress
+stopped_at: Completed 02-housekeeper-workflow/02-01-PLAN.md
+last_updated: "2026-03-21T22:38:00Z"
+last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 11
+  completed_plans: 6
   percent: 100
 ---
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100%
 | Phase 01-foundation P01 | 8min | 2 tasks | 6 files |
 | Phase 01-foundation P03 | 4min | 2 tasks | 5 files |
 | Phase 01-foundation P04 | 10 | 2 tasks | 2 files |
+| Phase 02-housekeeper-workflow P02 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: expo-splash-screen installed at ~0.27.0 to match SDK 51 compatibility range
 - [Phase 01-foundation]: redirectSystemPath converts # to ? so Expo Router 3.5 can parse Supabase magic link tokens as query params
 - [Phase 01-foundation]: callback.tsx delegates redirect to onAuthStateChange — no router.replace on success to avoid session/navigation race condition
+- [Phase 02-housekeeper-workflow]: i18n-first: translation keys added before components to prevent silent blank text in t() calls
+- [Phase 02-housekeeper-workflow]: checkinTime uses {{time}} interpolation matching react-i18next call pattern
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:34:42.807Z
-Stopped at: Completed 01-foundation/01-04-PLAN.md
+Last session: 2026-03-21T23:55:20.673Z
+Stopped at: Completed 02-housekeeper-workflow/02-02-PLAN.md
 Resume file: None

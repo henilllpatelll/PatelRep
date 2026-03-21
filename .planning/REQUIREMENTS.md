@@ -47,7 +47,7 @@
 
 ### Localisation
 
-- [ ] **L10N-01**: All new UI strings have EN and ES translations
+- [x] **L10N-01**: All new UI strings have EN and ES translations
 
 ## v2 Requirements
 
@@ -105,7 +105,7 @@
 | HK-07 | Phase 2 | Pending |
 | PROF-01 | Phase 2 | Pending |
 | PROF-02 | Phase 2 | Pending |
-| L10N-01 | Phase 2 | Pending |
+| L10N-01 | Phase 2 | Complete |
 | ENG-01 | Phase 3 | Pending |
 | ENG-02 | Phase 3 | Pending |
 | ENG-03 | Phase 3 | Pending |
