@@ -75,7 +75,11 @@ async def get_my_rooms(
 ):
     result = (
         supabase.table("room_status")
-        .select("*, rooms(id, room_number, floor, room_types(name, base_clean_minutes))")
+        .select(
+            "id, room_id, tenant_id, status, assigned_to, "
+            "vip_flag, checkin_time, risk_level, predicted_ready_at, "
+            "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
+        )
         .eq("tenant_id", current_user.hotel_id)
         .eq("assigned_to", current_user.user_id)
         .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
