@@ -31,6 +31,8 @@ export interface Room {
   dnd_flag: boolean;
   guest_name: string | null;
   predicted_ready_at: string | null;
+  vip_flag: boolean;
+  checkin_time: string | null;
 }
 
 export const useAppStore = create<AppState>((set) => ({

@@ -5,6 +5,7 @@ import {
   getPendingSyncQueue,
   upsertRooms,
 } from "@/lib/offline/db";
+import type { Room } from "@/stores/appStore";
 
 let _syncInProgress = false;
 
@@ -36,6 +37,8 @@ export async function flushSyncQueue(): Promise<void> {
           await api.patch(`/rooms/${item.entity_id}/status`, payload);
         } else if (item.entity_type === "task" && item.action === "create") {
           await api.post("/tasks", payload);
+        } else if (item.entity_type === "work_order" && item.action === "create") {
+          await api.post("/work-orders", payload);
         } else if (item.entity_type === "work_order" && item.action === "update") {
           await api.patch(`/work-orders/${item.entity_id}`, payload);
         }
@@ -53,8 +56,8 @@ export async function flushSyncQueue(): Promise<void> {
 
 export async function refreshRooms(): Promise<void> {
   try {
-    const rooms = await api.get<unknown[]>("/rooms?my_rooms=true");
-    await upsertRooms(rooms);
+    const result = await api.get<{ data: Room[] }>("/housekeeping/my-rooms");
+    await upsertRooms(result.data);
   } catch (err) {
     console.warn("Failed to refresh rooms:", err);
   }
