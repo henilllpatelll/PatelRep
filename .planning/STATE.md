@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 02-housekeeper-workflow/02-01-PLAN.md
-last_updated: "2026-03-21T22:38:00Z"
+status: executing
+stopped_at: Completed 02-housekeeper-workflow/02-00-PLAN.md
+last_updated: "2026-03-21T23:56:12.517Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
-  percent: 100
+  completed_plans: 7
+  percent: 45
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** A housekeeper opens the app, sees their rooms, marks them clean, and reports issues — in under 30 seconds per room, even with spotty Wi-Fi.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Housekeeper Workflow
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation) — COMPLETE
-Plan: 4 of 4 in current phase — all plans done
-Status: Phase complete, ready for Phase 2
-Last activity: 2026-03-20 — Plan 01-04 complete: magic link deep link flow (+native-intent.ts, auth/callback.tsx)
+Phase: 2 of 4 (Housekeeper Workflow) — IN PROGRESS
+Plan: 1 of 7 in current phase — plan 01 done, plan 02 next
+Status: In progress
+Last activity: 2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push
 
-Progress: [██████████] 100%
+Progress: [████░░░░░░] 45%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | Phase 01-foundation P03 | 4min | 2 tasks | 5 files |
 | Phase 01-foundation P04 | 10 | 2 tasks | 2 files |
 | Phase 02-housekeeper-workflow P02 | 5 | 1 tasks | 2 files |
+| Phase 02-housekeeper-workflow P00 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: callback.tsx delegates redirect to onAuthStateChange — no router.replace on success to avoid session/navigation race condition
 - [Phase 02-housekeeper-workflow]: i18n-first: translation keys added before components to prevent silent blank text in t() calls
 - [Phase 02-housekeeper-workflow]: checkinTime uses {{time}} interpolation matching react-i18next call pattern
+- [02-01]: asyncio.create_task chosen for fire-and-forget push dispatch — already in async FastAPI route, no BackgroundTasks overhead needed
+- [02-01]: Explicit column list replaces wildcard select on room_status — PostgREST wildcard doesn't reliably propagate vip_flag/risk_level/predicted_ready_at through joins
+- [Phase 02-housekeeper-workflow]: Wave 0 TDD stubs: sync.test.ts and ReportIssueModal.test.tsx created in RED state before implementations — Nyquist compliance for HK-04 and HK-06
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T23:55:20.673Z
-Stopped at: Completed 02-housekeeper-workflow/02-02-PLAN.md
+Last session: 2026-03-21T23:56:12.512Z
+Stopped at: Completed 02-housekeeper-workflow/02-00-PLAN.md
 Resume file: None
