@@ -45,7 +45,13 @@
     "vipGuest": "Huésped VIP",
     "noRooms": "Sin cuartos asignados",
     "floor": "Piso {{floor}}",
-    "eta": "Listo a las {{time}}"
+    "eta": "Listo a las {{time}}",
+    "reportIssue": "Reportar Problema",
+    "reportIssueTitle": "Reportar un Problema",
+    "reportIssueDescription": "Describe el problema...",
+    "issueSubmitted": "Problema reportado exitosamente",
+    "issueCategory": "Categoría",
+    "checkinTime": "Check-in: {{time}}"
   },
   "workOrders": {
     "title": "Órdenes de Trabajo",
@@ -84,5 +90,9 @@
     "woAssigned": "Orden de trabajo asignada",
     "inspectionFailed": "El cuarto {{room}} no pasó inspección",
     "slaWarning": "Advertencia de SLA para OT {{id}}"
+  },
+  "profile": {
+    "title": "Perfil",
+    "hotel": "Hotel"
   }
 }

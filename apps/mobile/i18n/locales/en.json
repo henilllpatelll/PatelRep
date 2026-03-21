@@ -45,7 +45,13 @@
     "vipGuest": "VIP Guest",
     "noRooms": "No rooms assigned",
     "floor": "Floor {{floor}}",
-    "eta": "Ready by {{time}}"
+    "eta": "Ready by {{time}}",
+    "reportIssue": "Report Issue",
+    "reportIssueTitle": "Report an Issue",
+    "reportIssueDescription": "Describe the issue...",
+    "issueSubmitted": "Issue reported successfully",
+    "issueCategory": "Category",
+    "checkinTime": "Check-in: {{time}}"
   },
   "workOrders": {
     "title": "Work Orders",
@@ -84,5 +90,9 @@
     "woAssigned": "Work order assigned",
     "inspectionFailed": "Room {{room}} failed inspection",
     "slaWarning": "SLA warning for WO {{id}}"
+  },
+  "profile": {
+    "title": "Profile",
+    "hotel": "Hotel"
   }
 }
