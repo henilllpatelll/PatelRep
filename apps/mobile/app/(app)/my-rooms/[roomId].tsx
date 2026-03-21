@@ -14,6 +14,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
+import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
+
+function formatETA(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 function getTransitions(status: string) {
   switch (status) {
@@ -33,6 +38,7 @@ export default function RoomDetailScreen() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showReportIssue, setShowReportIssue] = useState(false);
 
   useEffect(() => {
     api
@@ -131,7 +137,21 @@ export default function RoomDetailScreen() {
             )}
           </TouchableOpacity>
         ))}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.reportBtn]}
+          onPress={() => setShowReportIssue(true)}
+        >
+          <Ionicons name="warning-outline" size={18} color="#DC2626" />
+          <Text style={styles.reportText}>{t("rooms.reportIssue")}</Text>
+        </TouchableOpacity>
       </View>
+
+      <ReportIssueModal
+        visible={showReportIssue}
+        roomId={room.id}
+        roomNumber={room.room_number}
+        onClose={() => setShowReportIssue(false)}
+      />
     </ScrollView>
   );
 }
@@ -165,4 +185,14 @@ const styles = StyleSheet.create({
   actions: { padding: 16, gap: 12 },
   actionBtn: { padding: 16, borderRadius: 12, alignItems: "center" },
   actionText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  reportBtn: {
+    backgroundColor: "#FEF2F2",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  reportText: { color: "#DC2626", fontSize: 16, fontWeight: "600" },
 });
