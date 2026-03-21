@@ -47,7 +47,16 @@ Plans:
   3. Housekeeper puts device in airplane mode, updates two room statuses, restores connectivity, and both updates appear on the web dashboard within 10 seconds
   4. Housekeeper taps "Report Issue" on a room detail screen, fills in a description, submits, and a work order appears on the engineering dashboard with the room pre-filled
   5. Profile screen shows the user's name, role, and hotel name; tapping "Sign Out" returns to the login screen
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+- [ ] 02-00-PLAN.md — Wave 0: Test stubs for offline sync contract (sync.test.ts) and ReportIssueModal (ReportIssueModal.test.tsx)
+- [ ] 02-01-PLAN.md — API fixes: extend /my-rooms to return VIP/ETA fields; add push send to /assignments
+- [ ] 02-02-PLAN.md — i18n: add EN + ES keys for reportIssue modal and profile.hotel
+- [ ] 02-03-PLAN.md — Room list + detail screens: ETA/VIP display, sync.ts endpoint fix, remove offline Alert
+- [ ] 02-04-PLAN.md — ReportIssueModal: new component + workOrders.ts API client, wired into room detail
+- [ ] 02-05-PLAN.md — Profile hotel name fetch + push token projectId fix
+- [ ] 02-06-PLAN.md — Human verification checkpoint: full housekeeper workflow on device
 
 ### Phase 3: Engineer Workflow + Push + EAS
 **Goal**: An engineer can claim and resolve work orders from their phone; both engineers and housekeepers receive push notifications on assignment; and the pilot hotel can install the app via APK sideload (Android) or TestFlight (iOS)
@@ -79,6 +88,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete   | 2026-03-20 |
-| 2. Housekeeper Workflow | 0/TBD | Not started | - |
+| 2. Housekeeper Workflow | 0/7 | Not started | - |
 | 3. Engineer Workflow + Push + EAS | 0/TBD | Not started | - |
 | 4. Polish + Differentiators | 0/TBD | Not started | - |
