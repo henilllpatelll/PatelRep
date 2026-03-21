@@ -1,3 +1,5 @@
+import asyncio
+import httpx
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import date, datetime
@@ -184,6 +186,27 @@ async def get_assignments(
 # POST /housekeeping/assignments
 # ---------------------------------------------------------------------------
 
+async def _send_assignment_push(housekeeper_id: str, room_number: str) -> None:
+    """Fire-and-forget push notification to housekeeper on room assignment."""
+    try:
+        profile = supabase.table("user_profiles") \
+            .select("expo_push_token") \
+            .eq("id", housekeeper_id) \
+            .single().execute()
+        token = (profile.data or {}).get("expo_push_token")
+        if not token:
+            return
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post("https://exp.host/--/api/v2/push/send", json={
+                "to": token,
+                "title": "Room Assigned",
+                "body": f"Room {room_number} has been assigned to you",
+                "data": {"type": "room_assignment", "room_number": room_number},
+            })
+    except Exception:
+        pass  # Never block assignment response on push failure
+
+
 @router.post("/assignments")
 async def create_assignments(
     request: CreateAssignmentsRequest,
@@ -212,6 +235,15 @@ async def create_assignments(
             .update({"assigned_to": str(a.housekeeper_id)})\
             .eq("room_id", str(a.room_id))\
             .execute()
+
+    # Fire-and-forget push notifications (never block the HTTP response)
+    for a in request.assignments:
+        room_info = supabase.table("rooms") \
+            .select("room_number") \
+            .eq("id", str(a.room_id)) \
+            .single().execute()
+        room_number = (room_info.data or {}).get("room_number", "")
+        asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number))
 
     return {"data": result.data}
 
