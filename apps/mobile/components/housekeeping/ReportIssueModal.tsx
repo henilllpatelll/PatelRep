@@ -112,7 +112,7 @@ export default function ReportIssueModal({
               {submitting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.submitText}>Submit</Text>
+                <Text style={styles.submitText}>{t("rooms.submit")}</Text>
               )}
             </TouchableOpacity>
           </View>
