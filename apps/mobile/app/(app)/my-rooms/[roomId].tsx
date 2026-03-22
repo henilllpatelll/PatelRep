@@ -60,7 +60,7 @@ export default function RoomDetailScreen() {
       } else {
         await enqueueAction("room_status", "update", payload, room.id);
         setRoom({ ...room, status: newStatus as Room["status"] });
-        Alert.alert("", t("common.offline"));
+        // OfflineBanner in the layout already communicates offline state — no Alert needed
       }
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
@@ -112,6 +112,19 @@ export default function RoomDetailScreen() {
         <View style={[styles.section, styles.alertBox]}>
           <Ionicons name="moon" size={16} color="#F59E0B" />
           <Text style={styles.alertText}>{t("rooms.dndAlert")}</Text>
+        </View>
+      )}
+
+      {room.vip_flag && (
+        <View style={[styles.section, styles.vipBox]}>
+          <Ionicons name="star" size={16} color="#D97706" />
+          <Text style={styles.vipText}>{t("rooms.vipGuest")}</Text>
+        </View>
+      )}
+
+      {room.checkin_time && (
+        <View style={styles.section}>
+          <Text style={styles.label}>{t("rooms.checkinTime", { time: formatETA(room.checkin_time) })}</Text>
         </View>
       )}
 
@@ -180,6 +193,8 @@ const styles = StyleSheet.create({
   value: { fontSize: 16, color: "#111827", fontWeight: "500" },
   alertBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF3C7" },
   alertText: { color: "#92400E", fontWeight: "500" },
+  vipBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF3C7" },
+  vipText: { color: "#92400E", fontWeight: "500" },
   riskBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEE2E2" },
   riskText: { color: "#991B1B", fontWeight: "500" },
   actions: { padding: 16, gap: 12 },

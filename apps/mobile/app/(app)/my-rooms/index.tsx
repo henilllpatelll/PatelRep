@@ -23,6 +23,10 @@ const STATUS_COLORS: Record<string, string> = {
   PICKUP: "#8B5CF6",
 };
 
+function formatETA(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
   const { t } = useTranslation();
   const statusColor = STATUS_COLORS[room.status] ?? "#6B7280";
@@ -39,6 +43,15 @@ function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
             </Text>
           </View>
         </View>
+
+        <Text style={styles.floorText}>{t("rooms.floor", { floor: room.floor })}</Text>
+
+        {room.vip_flag && (
+          <View style={styles.vipBadge}>
+            <Ionicons name="star" size={11} color="#92400E" />
+            <Text style={styles.vipBadgeText}>{t("rooms.vipGuest")}</Text>
+          </View>
+        )}
 
         {room.dnd_flag && (
           <View style={styles.flag}>
@@ -57,6 +70,10 @@ function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
             <Text style={styles.riskText}>{t("rooms.risk.HIGH")}</Text>
           </View>
         )}
+
+        {room.predicted_ready_at != null && (
+          <Text style={styles.etaText}>{t("rooms.eta", { time: formatETA(room.predicted_ready_at) })}</Text>
+        )}
       </View>
       <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
     </TouchableOpacity>
@@ -72,9 +89,9 @@ export default function MyRoomsScreen() {
   const loadRooms = useCallback(async () => {
     if (isOnline) {
       try {
-        const rooms = await api.get<Room[]>("/housekeeping/my-rooms");
-        setMyRooms(rooms);
-        await upsertRooms(rooms);
+        const result = await api.get<{ data: Room[] }>("/housekeeping/my-rooms");
+        setMyRooms(result.data);
+        await upsertRooms(result.data);
       } catch {
         const cached = (await getRooms()) as Room[];
         setMyRooms(cached);
@@ -171,6 +188,19 @@ const styles = StyleSheet.create({
   roomNumber: { fontSize: 18, fontWeight: "700", color: "#111827" },
   statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   statusText: { fontSize: 12, fontWeight: "600" },
+  floorText: { fontSize: 12, color: "#9CA3AF", marginBottom: 2 },
+  vipBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+    backgroundColor: "#FEF3C7",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: "flex-start",
+  },
+  vipBadgeText: { fontSize: 11, color: "#92400E", fontWeight: "600" },
   guestName: { fontSize: 13, color: "#6B7280", marginTop: 2 },
   flag: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   flagText: { fontSize: 12, color: "#6B7280" },
@@ -186,5 +216,6 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   riskText: { fontSize: 11, color: "#EF4444", fontWeight: "600" },
+  etaText: { fontSize: 12, color: "#3B82F6", marginTop: 4 },
   emptyText: { color: "#9CA3AF", fontSize: 16 },
 });
