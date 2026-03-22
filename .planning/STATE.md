@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-housekeeper-workflow-08-PLAN.md — L10N-01 gap closure complete
-last_updated: "2026-03-22T01:34:29.274Z"
+stopped_at: Completed 03-engineer-workflow-push-eas-00-PLAN.md — Wave 0 TDD stubs in RED state
+last_updated: "2026-03-22T03:19:16.770Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 20
+  completed_plans: 14
   percent: 45
 ---
 
@@ -62,6 +62,7 @@ Progress: [████░░░░░░] 45%
 | Phase 02-housekeeper-workflow P06 | 20 | 2 tasks | 0 files |
 | Phase 02-housekeeper-workflow P07 | 3 | 1 tasks | 1 files |
 | Phase 02-housekeeper-workflow P08 | 2 | 2 tasks | 3 files |
+| Phase 03-engineer-workflow-push-eas P00 | 3 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Recent decisions affecting current work:
 - [Phase 02-housekeeper-workflow]: myRooms.find() in useEffect with [roomId, myRooms] deps — re-runs on background sync refresh
 - [Phase 02-housekeeper-workflow]: Online PATCH path uses optimistic { ...room, status: newStatus } — avoids { data: Room } unwrap, matches offline path
 - [Phase 02-housekeeper-workflow]: rooms.submit key placed after checkinTime in both locale files — consistent with existing ordering pattern in the rooms namespace
+- [Phase 03-engineer-workflow-push-eas]: Wave 0 TDD stubs committed in RED state before any Phase 3 implementation — sync claim/complete handlers, notifications API path, WO detail testID, WO list offline enqueue, ENG-06 push helper
+- [Phase 03-engineer-workflow-push-eas]: WorkOrdersList test 3 and test_wo_push.py are minimal RED stubs — test 3 will turn GREEN in 03-02, test_wo_push.py real assertion added in 03-01
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T01:28:15.445Z
-Stopped at: Completed 02-housekeeper-workflow-08-PLAN.md — L10N-01 gap closure complete
+Last session: 2026-03-22T03:19:16.767Z
+Stopped at: Completed 03-engineer-workflow-push-eas-00-PLAN.md — Wave 0 TDD stubs in RED state
 Resume file: None
