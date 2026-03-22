@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import * as Notifications from "expo-notifications";
 import NetInfo from "@react-native-community/netinfo";
 import "@/i18n";
 import { useAppStore } from "@/stores/appStore";
@@ -14,6 +15,7 @@ import type { UserProfile } from "@/lib/supabase";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
   const { setUser, setIsOnline, setIsLoading, isLoading } = useAppStore();
 
   useEffect(() => {
@@ -64,6 +66,33 @@ export default function RootLayout() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Notification deep link handler — dual-path for backgrounded AND killed states
+  useEffect(() => {
+    // Path 1: Killed state — app cold-started by tapping a notification.
+    // addNotificationResponseReceivedListener is NOT called in this case.
+    // Must check getLastNotificationResponseAsync() once on mount.
+    Notifications.getLastNotificationResponseAsync().then((lastResponse) => {
+      if (lastResponse) {
+        const url = lastResponse.notification.request.content.data?.url as
+          | string
+          | undefined;
+        if (url) router.push(url as `/${string}`);
+      }
+    });
+
+    // Path 2: Backgrounded or foregrounded — standard listener.
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const url = response.notification.request.content.data?.url as
+          | string
+          | undefined;
+        if (url) router.push(url as `/${string}`);
+      }
+    );
+
+    return () => subscription.remove();
   }, []);
 
   return (
