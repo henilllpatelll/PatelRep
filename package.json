@@ -6,6 +6,7 @@
     "apps/mobile"
   ],
   "scripts": {
+    "postinstall": "patch-package",
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
@@ -15,6 +16,7 @@
     "mobile:android": "npm run android --workspace=apps/mobile"
   },
   "devDependencies": {
+    "patch-package": "^8.0.1",
     "typescript": "^5.4.0"
   }
 }
