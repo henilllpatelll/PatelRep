@@ -22,9 +22,9 @@
 
 ### Housekeeping
 
-- [ ] **HK-01**: Housekeeper sees only rooms assigned to them (not all hotel rooms)
+- [x] **HK-01**: Housekeeper sees only rooms assigned to them (not all hotel rooms)
 - [x] **HK-02**: Room list shows room number, floor, status, and ETA (from predictions)
-- [ ] **HK-03**: Housekeeper can update room status through full cycle (DIRTY → IN_PROGRESS → CLEAN)
+- [x] **HK-03**: Housekeeper can update room status through full cycle (DIRTY → IN_PROGRESS → CLEAN)
 - [x] **HK-04**: Status update works offline and syncs when back online
 - [x] **HK-05**: Housekeeper receives push notification when a room is assigned to them
 - [x] **HK-06**: Housekeeper can report an issue from a room detail screen (creates work order)
@@ -96,9 +96,9 @@
 | AUTH-05 | Phase 1 | Complete |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
-| HK-01 | Phase 2 | Pending |
+| HK-01 | Phase 2 | Complete |
 | HK-02 | Phase 2 | Complete |
-| HK-03 | Phase 2 | Pending |
+| HK-03 | Phase 2 | Complete |
 | HK-04 | Phase 2 | Complete |
 | HK-05 | Phase 2 | Complete |
 | HK-06 | Phase 2 | Complete |
