@@ -1,9 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException
-from middleware.auth import require_role, get_current_user_no_hotel, CurrentUser
-from models.requests import InviteStaffRequest
+from middleware.auth import require_role, get_current_user, get_current_user_no_hotel, CurrentUser
+from models.requests import InviteStaffRequest, UpdatePushTokenRequest
 from core.database import supabase
 
 router = APIRouter(prefix="/staff", tags=["staff"])
+
+
+@router.patch("/me/push-token")
+async def update_push_token(
+    body: UpdatePushTokenRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Register or update the caller's Expo push token. Called on every login."""
+    supabase.table("user_profiles")\
+        .update({"expo_push_token": body.token})\
+        .eq("id", current_user.user_id)\
+        .execute()
+    return {"data": {"success": True}}
 
 
 @router.get("")

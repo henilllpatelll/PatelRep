@@ -255,3 +255,8 @@ class InviteStaffRequest(BaseModel):
     department_id: Optional[UUID4] = None
     phone: Optional[str] = None
     hotel_id: Optional[str] = None  # passed during onboarding before hotel_id is in JWT
+
+
+# --- Push Token ---
+class UpdatePushTokenRequest(BaseModel):
+    token: str
