@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-housekeeper-workflow/02-03-PLAN.md
-last_updated: "2026-03-22T00:02:25.263Z"
+stopped_at: Completed 02-housekeeper-workflow/02-05-PLAN.md
+last_updated: "2026-03-22T00:06:22.175Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 45
 ---
 
@@ -57,6 +57,7 @@ Progress: [████░░░░░░] 45%
 | Phase 02-housekeeper-workflow P00 | 2 | 2 tasks | 2 files |
 | Phase 02-housekeeper-workflow P04 | 2 | 2 tasks | 3 files |
 | Phase 02-housekeeper-workflow P03 | 4 | 2 tasks | 4 files |
+| Phase 02-housekeeper-workflow P05 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 02-housekeeper-workflow]: work_order/create added to flushSyncQueue: missing handler discovered via TDD RED test, fixed inline per Rule 1
 - [Phase 02-housekeeper-workflow]: index.tsx api.get response unwrap: same { data: Room[] } envelope bug as sync.ts fixed during Task 2
 - [Phase 02-housekeeper-workflow]: Alert.alert removed from offline status update path: OfflineBanner in layout already communicates offline state
+- [Phase 02-housekeeper-workflow]: Silent catch on hotel name fetch — display-only, failure should not interrupt profile screen
+- [Phase 02-housekeeper-workflow]: Push token registration returns null + console.warn when EAS projectId missing — correct Phase 2 behavior before EAS project setup
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T00:02:25.253Z
-Stopped at: Completed 02-housekeeper-workflow/02-03-PLAN.md
+Last session: 2026-03-22T00:06:22.164Z
+Stopped at: Completed 02-housekeeper-workflow/02-05-PLAN.md
 Resume file: None

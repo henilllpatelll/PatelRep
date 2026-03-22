@@ -42,8 +42,8 @@
 
 ### Profile
 
-- [ ] **PROF-01**: Profile screen shows user's name, role, and hotel name
-- [ ] **PROF-02**: User can sign out from profile screen
+- [x] **PROF-01**: Profile screen shows user's name, role, and hotel name
+- [x] **PROF-02**: User can sign out from profile screen
 
 ### Localisation
 
@@ -103,8 +103,8 @@
 | HK-05 | Phase 2 | Complete |
 | HK-06 | Phase 2 | Complete |
 | HK-07 | Phase 2 | Complete |
-| PROF-01 | Phase 2 | Pending |
-| PROF-02 | Phase 2 | Pending |
+| PROF-01 | Phase 2 | Complete |
+| PROF-02 | Phase 2 | Complete |
 | L10N-01 | Phase 2 | Complete |
 | ENG-01 | Phase 3 | Pending |
 | ENG-02 | Phase 3 | Pending |
