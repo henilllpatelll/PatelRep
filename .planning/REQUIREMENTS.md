@@ -16,8 +16,8 @@
 ### Infrastructure
 
 - [x] **INFRA-01**: API client retries with fresh token on 401 instead of hard logout
-- [ ] **INFRA-02**: Push notification token is registered with the backend on each login (via API, not direct Supabase)
-- [ ] **INFRA-03**: EAS Build produces APK (Android sideload) and IPA (TestFlight) for pilot distribution
+- [x] **INFRA-02**: Push notification token is registered with the backend on each login (via API, not direct Supabase)
+- [x] **INFRA-03**: EAS Build produces APK (Android sideload) and IPA (TestFlight) for pilot distribution
 - [x] **INFRA-04**: App shows "offline" banner when device has no internet connection
 
 ### Housekeeping
@@ -32,13 +32,13 @@
 
 ### Engineering
 
-- [ ] **ENG-01**: Engineer sees work orders assigned to them + open/unassigned work orders
-- [ ] **ENG-02**: Work order list shows title, priority, status, and room number
-- [ ] **ENG-03**: Engineer can claim an open work order
-- [ ] **ENG-04**: Engineer can update work order status (OPEN → IN_PROGRESS → DONE)
-- [ ] **ENG-05**: Engineer can add resolution notes to a work order
-- [ ] **ENG-06**: Engineer receives push notification when a work order is assigned to them
-- [ ] **ENG-07**: Work order status updates work offline and sync when back online
+- [x] **ENG-01**: Engineer sees work orders assigned to them + open/unassigned work orders
+- [x] **ENG-02**: Work order list shows title, priority, status, and room number
+- [x] **ENG-03**: Engineer can claim an open work order
+- [x] **ENG-04**: Engineer can update work order status (OPEN → IN_PROGRESS → DONE)
+- [x] **ENG-05**: Engineer can add resolution notes to a work order
+- [x] **ENG-06**: Engineer receives push notification when a work order is assigned to them
+- [x] **ENG-07**: Work order status updates work offline and sync when back online
 
 ### Profile
 
@@ -106,15 +106,15 @@
 | PROF-01 | Phase 2 | Complete |
 | PROF-02 | Phase 2 | Complete |
 | L10N-01 | Phase 2 | Complete |
-| ENG-01 | Phase 3 | Pending |
-| ENG-02 | Phase 3 | Pending |
-| ENG-03 | Phase 3 | Pending |
-| ENG-04 | Phase 3 | Pending |
-| ENG-05 | Phase 3 | Pending |
-| ENG-06 | Phase 3 | Pending |
-| ENG-07 | Phase 3 | Pending |
-| INFRA-02 | Phase 3 | Pending |
-| INFRA-03 | Phase 3 | Pending |
+| ENG-01 | Phase 3 | Complete |
+| ENG-02 | Phase 3 | Complete |
+| ENG-03 | Phase 3 | Complete |
+| ENG-04 | Phase 3 | Complete |
+| ENG-05 | Phase 3 | Complete |
+| ENG-06 | Phase 3 | Complete |
+| ENG-07 | Phase 3 | Complete |
+| INFRA-02 | Phase 3 | Complete |
+| INFRA-03 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 26 total
