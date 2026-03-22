@@ -14,6 +14,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.patelrep.com/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "YOUR_SUPABASE_URL",
