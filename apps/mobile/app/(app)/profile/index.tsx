@@ -1,13 +1,24 @@
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
+import { api } from "@/lib/api/client";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { user } = useAppStore();
   const isSpanish = i18n.language === "es";
+  const [hotelName, setHotelName] = useState<string>("");
+
+  useEffect(() => {
+    if (user?.hotel_id) {
+      api.get<{ data: { name: string } }>(`/hotels/${user.hotel_id}`)
+        .then(res => setHotelName(res.data.name))
+        .catch(() => {});  // silent — display only
+    }
+  }, [user?.hotel_id]);
 
   async function toggleLanguage(value: boolean) {
     const lang = value ? "es" : "en";
@@ -39,6 +50,9 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <Text style={styles.name}>{user?.full_name ?? "Staff"}</Text>
         <Text style={styles.role}>{user?.role?.replace(/_/g, " ").toUpperCase()}</Text>
+        {hotelName ? (
+          <Text style={styles.hotel}>{t("profile.hotel")}: {hotelName}</Text>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -64,6 +78,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 12 },
   name: { fontSize: 20, fontWeight: "700", color: "#111827" },
   role: { fontSize: 13, color: "#6B7280", marginTop: 4 },
+  hotel: { fontSize: 13, color: "#9CA3AF", marginTop: 2 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label: { fontSize: 15, color: "#374151" },
   signOutBtn: { backgroundColor: "#FEE2E2", borderRadius: 12, padding: 14, alignItems: "center" },
