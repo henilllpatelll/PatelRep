@@ -41,6 +41,10 @@ export async function flushSyncQueue(): Promise<void> {
           await api.post("/work-orders", payload);
         } else if (item.entity_type === "work_order" && item.action === "update") {
           await api.patch(`/work-orders/${item.entity_id}`, payload);
+        } else if (item.entity_type === "work_order" && item.action === "claim") {
+          await api.post(`/work-orders/${item.entity_id}/claim`, {});
+        } else if (item.entity_type === "work_order" && item.action === "complete") {
+          await api.post(`/work-orders/${item.entity_id}/complete`, payload);
         }
 
         await deleteSyncQueueItem(item.id);
