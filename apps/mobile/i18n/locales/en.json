@@ -69,7 +69,13 @@
       "normal": "Normal",
       "low": "Low"
     },
-    "noOrders": "No work orders"
+    "noOrders": "No work orders",
+    "myOrders": "My Orders",
+    "status": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    }
   },
   "copilot": {
     "title": "AI Copilot",
