@@ -1,3 +1,5 @@
+import asyncio
+import httpx
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -78,6 +80,31 @@ async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_cur
     return {"data": result.data}
 
 
+async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> None:
+    """Fire-and-forget push notification to engineer on work order assignment."""
+    try:
+        profile = supabase.table("user_profiles")\
+            .select("expo_push_token")\
+            .eq("id", engineer_id)\
+            .single().execute()
+        token = (profile.data or {}).get("expo_push_token")
+        if not token:
+            return
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post("https://exp.host/--/api/v2/push/send", json={
+                "to": token,
+                "title": "Work Order Assigned",
+                "body": title,
+                "data": {
+                    "type": "wo_assignment",
+                    "url": f"/(app)/work-orders/{wo_id}",
+                    "wo_id": wo_id,
+                },
+            })
+    except Exception:
+        pass  # Never block claim response on push failure
+
+
 @router.post("/{wo_id}/claim")
 async def claim_work_order(
     wo_id: str,
@@ -89,7 +116,14 @@ async def claim_work_order(
         .eq("tenant_id", current_user.hotel_id)\
         .eq("status", "open")\
         .execute()
-    return {"data": result.data[0] if result.data else None}
+    wo = result.data[0] if result.data else None
+    if wo:
+        asyncio.create_task(_send_wo_assignment_push(
+            current_user.user_id,
+            wo_id,
+            wo.get("title", "Work order assigned")
+        ))
+    return {"data": wo}
 
 
 @router.post("/{wo_id}/complete")

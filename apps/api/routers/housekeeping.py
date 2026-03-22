@@ -186,7 +186,7 @@ async def get_assignments(
 # POST /housekeeping/assignments
 # ---------------------------------------------------------------------------
 
-async def _send_assignment_push(housekeeper_id: str, room_number: str) -> None:
+async def _send_assignment_push(housekeeper_id: str, room_number: str, room_id: str = "") -> None:
     """Fire-and-forget push notification to housekeeper on room assignment."""
     try:
         profile = supabase.table("user_profiles") \
@@ -201,7 +201,11 @@ async def _send_assignment_push(housekeeper_id: str, room_number: str) -> None:
                 "to": token,
                 "title": "Room Assigned",
                 "body": f"Room {room_number} has been assigned to you",
-                "data": {"type": "room_assignment", "room_number": room_number},
+                "data": {
+                    "type": "room_assignment",
+                    "room_number": room_number,
+                    "url": f"/(app)/my-rooms/{room_id}" if room_id else "/(app)/my-rooms",
+                },
             })
     except Exception:
         pass  # Never block assignment response on push failure
@@ -243,7 +247,7 @@ async def create_assignments(
             .eq("id", str(a.room_id)) \
             .single().execute()
         room_number = (room_info.data or {}).get("room_number", "")
-        asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number))
+        asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number, str(a.room_id)))
 
     return {"data": result.data}
 
