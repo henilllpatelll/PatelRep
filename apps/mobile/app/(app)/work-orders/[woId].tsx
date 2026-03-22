@@ -17,6 +17,8 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
+import { useAppStore } from "@/stores/appStore";
+import { enqueueAction } from "@/lib/offline/db";
 
 type WorkOrder = {
   id: string;
@@ -32,6 +34,7 @@ type WorkOrder = {
 export default function WorkOrderDetailScreen() {
   const { woId } = useLocalSearchParams<{ woId: string }>();
   const { t } = useTranslation();
+  const { isOnline } = useAppStore();
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [completionNotes, setCompletionNotes] = useState("");
@@ -93,13 +96,24 @@ export default function WorkOrderDetailScreen() {
     if (!workOrder) return;
     setCompleting(true);
     try {
-      await api.post(`/work-orders/${workOrder.id}/complete`, {
-        completion_notes: completionNotes,
-        photo_urls: photos,
-      });
-      Alert.alert("Done!", "Work order completed.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      if (isOnline) {
+        await api.post(`/work-orders/${workOrder.id}/complete`, {
+          completion_notes: completionNotes,
+          photo_urls: photos,
+        });
+        Alert.alert("Done!", "Work order completed.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      } else {
+        await enqueueAction(
+          "work_order",
+          "complete",
+          { completion_notes: completionNotes },
+          workOrder.id
+        );
+        setWorkOrder({ ...workOrder, status: "completed" });
+        Alert.alert(t("common.offline") ?? "Saved offline", "Will sync when back online.");
+      }
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
     } finally {
@@ -171,6 +185,7 @@ export default function WorkOrderDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>{t("workOrders.notes")}</Text>
           <TextInput
+            testID="completion-notes"
             style={styles.notesInput}
             multiline
             numberOfLines={4}
