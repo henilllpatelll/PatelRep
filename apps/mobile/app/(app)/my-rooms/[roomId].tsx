@@ -34,19 +34,17 @@ function getTransitions(status: string) {
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { t } = useTranslation();
-  const { isOnline } = useAppStore();
+  const { isOnline, myRooms } = useAppStore();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [showReportIssue, setShowReportIssue] = useState(false);
 
   useEffect(() => {
-    api
-      .get<Room>(`/rooms/${roomId}`)
-      .then(setRoom)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [roomId]);
+    const found = myRooms.find((r) => r.id === roomId);
+    setRoom(found ?? null);
+    setLoading(false);
+  }, [roomId, myRooms]);
 
   async function handleStatusChange(newStatus: string) {
     if (!room) return;
@@ -55,8 +53,9 @@ export default function RoomDetailScreen() {
 
     try {
       if (isOnline) {
-        const updated = await api.patch<Room>(`/rooms/${room.id}/status`, payload);
-        setRoom(updated);
+        const res = await api.patch<{ data: Room }>(`/rooms/${room.id}/status`, payload);
+        void res;
+        setRoom({ ...room, status: newStatus as Room["status"] });
       } else {
         await enqueueAction("room_status", "update", payload, room.id);
         setRoom({ ...room, status: newStatus as Room["status"] });
