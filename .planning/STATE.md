@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-engineer-workflow-push-eas-02-PLAN.md — offline WO claim/complete with enqueueAction + all 23 tests GREEN
-last_updated: "2026-03-22T03:24:40.785Z"
+stopped_at: Completed 03-engineer-workflow-push-eas-01-PLAN.md — push token endpoint + WO assignment push
+last_updated: "2026-03-22T03:26:05.214Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 45
 ---
 
@@ -66,6 +66,7 @@ Progress: [████░░░░░░] 45%
 | Phase 03-engineer-workflow-push-eas P03 | 2 | 2 tasks | 2 files |
 | Phase 03-engineer-workflow-push-eas P04 | 2 | 2 tasks | 3 files |
 | Phase 03-engineer-workflow-push-eas P02 | 8 | 2 tasks | 3 files |
+| Phase 03-engineer-workflow-push-eas P01 | 4 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Recent decisions affecting current work:
 - [Phase 03-engineer-workflow-push-eas]: STATUS_COLORS constant mirrors PRIORITY_COLORS pattern — consistent color map approach in WO screen; t() second arg item.status used as fallback for unmapped status keys
 - [Phase 03-engineer-workflow-push-eas]: work_order/claim flushSyncQueue handler sends empty body {} — claim endpoint takes no payload, consistent with API contract
 - [Phase 03-engineer-workflow-push-eas]: Offline complete path omits photo_urls from enqueueAction — photos require Supabase storage upload which is itself network-dependent; deferred to online path only
+- [Phase 03-01]: test_wo_push.py uses sys.modules mock to stub core.database at import time — avoids real Supabase init in unit tests without full env
+- [Phase 03-01]: PATCH /staff/me/push-token uses get_current_user (not require_role) — all roles register push tokens
+- [Phase 03-01]: All Expo push data payloads include url field for deep link navigation (/(app)/work-orders/{wo_id} and /(app)/my-rooms/{room_id})
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:24:40.782Z
-Stopped at: Completed 03-engineer-workflow-push-eas-02-PLAN.md — offline WO claim/complete with enqueueAction + all 23 tests GREEN
+Last session: 2026-03-22T03:26:05.211Z
+Stopped at: Completed 03-engineer-workflow-push-eas-01-PLAN.md — push token endpoint + WO assignment push
 Resume file: None
