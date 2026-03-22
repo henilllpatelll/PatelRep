@@ -10,6 +10,8 @@ import {
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
+import { useAppStore } from "@/stores/appStore";
+import { enqueueAction } from "@/lib/offline/db";
 
 type WorkOrder = {
   id: string;
@@ -27,10 +29,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "#9CA3AF",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  open: "#3B82F6",
+  in_progress: "#F59E0B",
+  completed: "#10B981",
+};
+
 type Tab = "open" | "in_progress" | "completed";
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
+  const { isOnline } = useAppStore();
   const [tab, setTab] = useState<Tab>("open");
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +62,16 @@ export default function WorkOrdersScreen() {
 
   async function claimWorkOrder(id: string) {
     try {
-      await api.post(`/work-orders/${id}/claim`, {});
+      if (isOnline) {
+        await api.post(`/work-orders/${id}/claim`, {});
+      } else {
+        await enqueueAction("work_order", "claim", {}, id);
+        setWorkOrders((prev) =>
+          prev.map((wo) =>
+            wo.id === id ? { ...wo, status: "in_progress" } : wo
+          )
+        );
+      }
       loadWorkOrders();
     } catch (err) {
       console.error(err);
@@ -114,6 +132,24 @@ export default function WorkOrdersScreen() {
                 <Text style={styles.meta}>Room {item.room_number}</Text>
               )}
 
+              <View style={styles.statusRow}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: (STATUS_COLORS[item.status] ?? "#9CA3AF") + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: STATUS_COLORS[item.status] ?? "#9CA3AF" },
+                    ]}
+                  >
+                    {t(`workOrders.status.${item.status}`, item.status)}
+                  </Text>
+                </View>
+              </View>
+
               {tab === "open" && !item.claimed_by && (
                 <TouchableOpacity
                   style={styles.claimBtn}
@@ -172,6 +208,9 @@ const styles = StyleSheet.create({
   priorityBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   priorityText: { fontSize: 11, fontWeight: "600" },
   meta: { fontSize: 13, color: "#6B7280", marginTop: 4 },
+  statusRow: { marginTop: 6 },
+  statusBadge: { alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  statusText: { fontSize: 11, fontWeight: "600" },
   claimBtn: {
     marginTop: 10,
     backgroundColor: "#1E40AF",
