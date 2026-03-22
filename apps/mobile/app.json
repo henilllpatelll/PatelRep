@@ -24,7 +24,10 @@
       },
       "package": "com.patelrep.app",
       "versionCode": 1,
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -57,6 +60,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0fc41a33-8e3c-40cf-9114-26dc0b95d044"
+      }
+    },
+    "owner": "henilllpatelll"
   }
 }
