@@ -14,7 +14,6 @@
     },
     "preview": {
       "distribution": "internal",
-      "image": "ubuntu-22.04-jdk-17-ndk-r21e",
       "android": {
         "buildType": "apk"
       },
