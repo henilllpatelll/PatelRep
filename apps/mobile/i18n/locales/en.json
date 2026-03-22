@@ -51,7 +51,8 @@
     "reportIssueDescription": "Describe the issue...",
     "issueSubmitted": "Issue reported successfully",
     "issueCategory": "Category",
-    "checkinTime": "Check-in: {{time}}"
+    "checkinTime": "Check-in: {{time}}",
+    "submit": "Submit"
   },
   "workOrders": {
     "title": "Work Orders",
