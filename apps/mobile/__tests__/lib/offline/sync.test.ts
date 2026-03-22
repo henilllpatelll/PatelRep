@@ -87,6 +87,28 @@ describe("flushSyncQueue", () => {
     });
     expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(3);
   });
+
+  it("processes work_order/claim items and calls POST /work-orders/{id}/claim", async () => {
+    mockGetPendingSyncQueue.mockResolvedValue([{
+      id: 4, entity_type: "work_order", action: "claim",
+      entity_id: "wo-99", payload: JSON.stringify({}),
+    }]);
+    mockApi.post.mockResolvedValue({});
+    await flushSyncQueue();
+    expect(mockApi.post).toHaveBeenCalledWith("/work-orders/wo-99/claim", {});
+    expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(4);
+  });
+
+  it("processes work_order/complete items and calls POST /work-orders/{id}/complete", async () => {
+    mockGetPendingSyncQueue.mockResolvedValue([{
+      id: 5, entity_type: "work_order", action: "complete",
+      entity_id: "wo-77", payload: JSON.stringify({ completion_notes: "Fixed the pipe" }),
+    }]);
+    mockApi.post.mockResolvedValue({});
+    await flushSyncQueue();
+    expect(mockApi.post).toHaveBeenCalledWith("/work-orders/wo-77/complete", { completion_notes: "Fixed the pipe" });
+    expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(5);
+  });
 });
 
 describe("refreshRooms", () => {
