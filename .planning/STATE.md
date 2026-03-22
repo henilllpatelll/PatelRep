@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-engineer-workflow-push-eas-00-PLAN.md — Wave 0 TDD stubs in RED state
-last_updated: "2026-03-22T03:19:16.770Z"
+stopped_at: Completed 03-engineer-workflow-push-eas-04-PLAN.md — Status chip on WO card + i18n keys (ENG-01, ENG-02)
+last_updated: "2026-03-22T03:23:15.192Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 16
   percent: 45
 ---
 
@@ -63,6 +63,8 @@ Progress: [████░░░░░░] 45%
 | Phase 02-housekeeper-workflow P07 | 3 | 1 tasks | 1 files |
 | Phase 02-housekeeper-workflow P08 | 2 | 2 tasks | 3 files |
 | Phase 03-engineer-workflow-push-eas P00 | 3 | 2 tasks | 5 files |
+| Phase 03-engineer-workflow-push-eas P03 | 2 | 2 tasks | 2 files |
+| Phase 03-engineer-workflow-push-eas P04 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -101,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase 02-housekeeper-workflow]: rooms.submit key placed after checkinTime in both locale files — consistent with existing ordering pattern in the rooms namespace
 - [Phase 03-engineer-workflow-push-eas]: Wave 0 TDD stubs committed in RED state before any Phase 3 implementation — sync claim/complete handlers, notifications API path, WO detail testID, WO list offline enqueue, ENG-06 push helper
 - [Phase 03-engineer-workflow-push-eas]: WorkOrdersList test 3 and test_wo_push.py are minimal RED stubs — test 3 will turn GREEN in 03-02, test_wo_push.py real assertion added in 03-01
+- [Phase 03-engineer-workflow-push-eas]: api.patch used for push token registration — API endpoint reads user from JWT, no supabase.auth.getUser() needed in mobile client
+- [Phase 03-engineer-workflow-push-eas]: Dual-path notification handler: killed-app uses getLastNotificationResponseAsync() on mount; backgrounded uses addNotificationResponseReceivedListener
+- [Phase 03-engineer-workflow-push-eas]: STATUS_COLORS constant mirrors PRIORITY_COLORS pattern — consistent color map approach in WO screen; t() second arg item.status used as fallback for unmapped status keys
 
 ### Pending Todos
 
@@ -114,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:19:16.767Z
-Stopped at: Completed 03-engineer-workflow-push-eas-00-PLAN.md — Wave 0 TDD stubs in RED state
+Last session: 2026-03-22T03:23:15.189Z
+Stopped at: Completed 03-engineer-workflow-push-eas-04-PLAN.md — Status chip on WO card + i18n keys (ENG-01, ENG-02)
 Resume file: None
