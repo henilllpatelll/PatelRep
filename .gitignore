@@ -67,3 +67,9 @@ yarn-debug.log*
 
 # Git worktrees
 .worktrees/
+
+# Playwright MCP browser sessions
+.playwright-mcp/
+
+# Python ruff cache (project root)
+.ruff_cache/
