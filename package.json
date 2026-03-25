@@ -15,8 +15,10 @@
     "mobile:ios": "npm run ios --workspace=apps/mobile",
     "mobile:android": "npm run android --workspace=apps/mobile"
   },
+  "dependencies": {
+    "patch-package": "^8.0.1"
+  },
   "devDependencies": {
-    "patch-package": "^8.0.1",
     "typescript": "^5.4.0"
   }
 }
