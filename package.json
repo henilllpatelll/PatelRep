@@ -6,7 +6,7 @@
     "apps/mobile"
   ],
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "npx patch-package",
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
