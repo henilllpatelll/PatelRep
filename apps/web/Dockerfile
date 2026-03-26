@@ -12,6 +12,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY apps/web ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# NEXT_PUBLIC_* vars are baked into the JS bundle at build time, not runtime.
+# They must be passed as Docker build args so next build can inline them.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 RUN npm run build
 
 FROM node:20-alpine AS runner
