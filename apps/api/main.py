@@ -45,10 +45,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.app_url,
+        "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:19006",
     ],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -119,15 +119,15 @@ app.include_router(lost_found.router, prefix=PREFIX)
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    import re
     origin = request.headers.get("origin", "")
     allowed = [
         settings.app_url,
+        "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:19006",
     ]
     cors_headers = {}
-    if origin in allowed:
+    if origin in allowed or re.match(r"http://localhost:\d+$", origin):
         cors_headers = {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
