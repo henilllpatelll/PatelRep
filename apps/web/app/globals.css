@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* cache-bust: force Tailwind regeneration after postcss.config.js was added */
 
 @layer base {
   :root {
