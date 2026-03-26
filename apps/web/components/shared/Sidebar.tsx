@@ -163,7 +163,6 @@ export function Sidebar() {
   const avatarBg = getAvatarColor(fullName)
   const roleLabel = role ? ROLE_LABELS[role] : null
 
-  // Determine which nav items to show based on role
   const allowedHrefs: string[] = role ? NAV_BY_ROLE[role] : []
 
   const visibleNavItems: NavItem[] = role
@@ -173,7 +172,6 @@ export function Sidebar() {
   const settingsItem: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
   const billingItem: NavItem = { href: '/settings/billing', label: 'Billing', icon: CreditCard }
 
-  // Partition visible items into sections
   const operationsItems = visibleNavItems.filter((item) => OPERATIONS_HREFS.includes(item.href))
   const peopleItems = visibleNavItems.filter((item) => PEOPLE_HREFS.includes(item.href))
   const knowledgeItems = visibleNavItems.filter((item) => KNOWLEDGE_HREFS.includes(item.href))
@@ -187,7 +185,7 @@ export function Sidebar() {
           {active && (
             <motion.div
               layoutId="sidebar-active"
-              className="absolute inset-0 bg-amber-100 border-l-2 border-amber-400 rounded-xl"
+              className="absolute inset-0 bg-amber-400/10 border-l-2 border-amber-400 rounded-xl"
               style={{ zIndex: -1 }}
               transition={{ type: 'spring', stiffness: 380, damping: 30 }}
             />
@@ -195,18 +193,30 @@ export function Sidebar() {
           <Link
             href={href}
             className={cn(
-              'flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-colors duration-200 relative',
+              'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
-                ? 'text-amber-800 font-semibold'
-                : 'text-stone-500 hover:bg-amber-50 hover:text-stone-700 cursor-pointer'
+                ? 'text-[#FEFAF4] font-semibold'
+                : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
             )}
           >
-            <Icon className={cn('w-4 h-4', active ? 'text-amber-500' : 'text-stone-400')} />
-            {label}
+            <Icon
+              className={cn(
+                'w-4 h-4 shrink-0 transition-colors',
+                active ? 'text-amber-400' : 'text-[#6B5744] group-hover:text-[#C4AE98]'
+              )}
+            />
+            <span
+              className={cn(
+                'inline-block transition-transform duration-150',
+                !active && 'group-hover:translate-x-0.5'
+              )}
+            >
+              {label}
+            </span>
           </Link>
         </div>
         {subNavOpen && subNav && (
-          <div className="mt-0.5 ml-4 pl-2 border-l border-amber-100 space-y-0.5">
+          <div className="mt-0.5 ml-4 pl-2 border-l border-[#2D221A] space-y-0.5">
             {subNav.map(({ href: subHref, label: subLabel }) => {
               const subActive =
                 pathname === subHref ||
@@ -218,8 +228,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-2.5 py-1 text-sm rounded-lg transition-colors duration-200',
                     subActive
-                      ? 'bg-amber-100/80 text-amber-800 font-semibold'
-                      : 'text-stone-500 hover:bg-amber-50 cursor-pointer'
+                      ? 'bg-amber-400/10 text-amber-300 font-semibold'
+                      : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
                   )}
                 >
                   {subLabel}
@@ -239,7 +249,7 @@ export function Sidebar() {
         {active && (
           <motion.div
             layoutId="sidebar-active"
-            className="absolute inset-0 bg-amber-100 border-l-2 border-amber-400 rounded-xl"
+            className="absolute inset-0 bg-amber-400/10 border-l-2 border-amber-400 rounded-xl"
             style={{ zIndex: -1 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
           />
@@ -247,25 +257,37 @@ export function Sidebar() {
         <Link
           href={href}
           className={cn(
-            'flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-colors duration-200 relative',
+            'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
             active
-              ? 'text-amber-800 font-semibold'
-              : 'text-stone-500 hover:bg-amber-50 hover:text-stone-700 cursor-pointer'
+              ? 'text-[#FEFAF4] font-semibold'
+              : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
           )}
         >
-          <Icon className={cn('w-4 h-4', active ? 'text-amber-500' : 'text-stone-400')} />
-          {label}
+          <Icon
+            className={cn(
+              'w-4 h-4 shrink-0 transition-colors',
+              active ? 'text-amber-400' : 'text-[#6B5744] group-hover:text-[#C4AE98]'
+            )}
+          />
+          <span
+            className={cn(
+              'inline-block transition-transform duration-150',
+              !active && 'group-hover:translate-x-0.5'
+            )}
+          >
+            {label}
+          </span>
         </Link>
       </div>
     )
   }
 
   return (
-    <aside className="w-[220px] bg-white/60 backdrop-blur-2xl border-r border-amber-100/50 rounded-r-2xl shadow-sidebar flex flex-col shrink-0">
+    <aside className="w-[240px] bg-[#17130F] border-r border-[#2D221A] flex flex-col shrink-0">
       {/* Logo */}
       <div className="px-4 pt-5 pb-3">
-        <h1 className="text-lg text-amber-600 font-extrabold leading-tight">✦ PatelRep</h1>
-        <p className="text-stone-400 text-xs mt-0.5">Hotel Operations AI</p>
+        <h1 className="text-lg text-amber-400 font-bold leading-tight tracking-tight">✦ PatelRep</h1>
+        <p className="text-[#6B5744] text-xs mt-0.5">Hotel Operations AI</p>
       </div>
 
       {/* Main nav */}
@@ -273,7 +295,7 @@ export function Sidebar() {
         {/* Operations section */}
         {operationsItems.length > 0 && (
           <>
-            <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest px-2 pt-3 pb-1">
+            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pt-3 pb-1">
               Operations
             </p>
             <div className="space-y-0.5">
@@ -285,7 +307,8 @@ export function Sidebar() {
         {/* People section */}
         {peopleItems.length > 0 && (
           <>
-            <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest px-2 pt-3 pb-1">
+            <div className="mx-2 my-2 border-t border-[#2D221A]" />
+            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
               People
             </p>
             <div className="space-y-0.5">
@@ -297,7 +320,8 @@ export function Sidebar() {
         {/* Knowledge section */}
         {knowledgeItems.length > 0 && (
           <>
-            <p className="text-[9px] font-bold text-stone-300 uppercase tracking-widest px-2 pt-3 pb-1">
+            <div className="mx-2 my-2 border-t border-[#2D221A]" />
+            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
               Knowledge
             </p>
             <div className="space-y-0.5">
@@ -308,24 +332,24 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom: Settings / Billing */}
-      <div className="px-3 pt-2 pb-1 space-y-0.5">
+      <div className="px-3 pt-2 pb-1 space-y-0.5 border-t border-[#2D221A]">
         {[settingsItem, ...(canViewBilling ? [billingItem] : [])].map(renderBottomLink)}
       </div>
 
       {/* User identity badge */}
       <div className="px-3 pb-4 pt-2">
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-amber-50 border border-amber-100">
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#201710] border border-[#2D221A]">
           <div
             className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}
           >
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-stone-700 truncate leading-tight">
+            <p className="text-sm font-medium text-[#FEFAF4] truncate leading-tight">
               {fullName}
             </p>
             {roleLabel && (
-              <p className="text-xs text-stone-400 truncate leading-tight mt-0.5">
+              <p className="text-xs text-[#6B5744] truncate leading-tight mt-0.5">
                 {roleLabel}
               </p>
             )}

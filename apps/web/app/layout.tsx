@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
-import { Figtree, JetBrains_Mono } from 'next/font/google'
+import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/shared/Providers'
 
-const figtree = Figtree({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-figtree',
+  variable: '--font-jakarta',
   display: 'swap',
 })
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${figtree.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans bg-[#FEFAF4]">
         <Providers>{children}</Providers>
       </body>

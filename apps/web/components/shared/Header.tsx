@@ -91,13 +91,13 @@ export function Header() {
   }, [dropdownOpen])
 
   return (
-    <header className="h-14 flex items-center justify-between px-6 bg-white/70 backdrop-blur-xl border-b border-stone-100 sticky top-0 z-10 shrink-0">
-      <span className="text-sm font-semibold text-stone-800">{title}</span>
+    <header className="h-14 flex items-center justify-between px-6 bg-[#FEFAF4]/90 backdrop-blur-xl border-b border-[#EDE8DF] sticky top-0 z-10 shrink-0">
+      <span className="text-sm font-semibold text-[#1C1208] tracking-tight">{title}</span>
 
       <div className="flex items-center gap-3">
         {/* Notification bell */}
         <button
-          className="p-2 rounded-xl hover:bg-stone-100 transition-colors text-stone-400 hover:text-stone-600"
+          className="p-2 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
           aria-label="Notifications"
         >
           <Bell size={16} />
@@ -105,7 +105,7 @@ export function Header() {
 
         {/* Hotel chip */}
         {hotel && (
-          <span className="bg-amber-50 text-amber-700 text-xs font-medium rounded-full px-3 py-1 border border-amber-100">
+          <span className="bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A]">
             {hotel.name}
           </span>
         )}
@@ -133,14 +133,14 @@ export function Header() {
 
           {/* Dropdown panel */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-white/90 backdrop-blur-2xl border border-stone-100 rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 mt-1.5 w-52 bg-[#17130F] backdrop-blur-2xl border border-[#2D221A] rounded-xl shadow-lg py-1 z-50">
               {/* User summary */}
-              <div className="px-4 py-2.5 border-b border-stone-100">
-                <p className="text-sm font-medium text-stone-900 truncate">
+              <div className="px-4 py-2.5 border-b border-[#2D221A]">
+                <p className="text-sm font-medium text-[#FEFAF4] truncate">
                   {fullName}
                 </p>
                 {roleLabel && (
-                  <p className="text-xs text-stone-500 mt-0.5 truncate">
+                  <p className="text-xs text-[#6B5744] mt-0.5 truncate">
                     {roleLabel}
                   </p>
                 )}
@@ -153,9 +153,9 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings/profile')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] transition-colors"
                 >
-                  <User size={15} className="text-stone-400 shrink-0" />
+                  <User size={15} className="text-[#6B5744] shrink-0" />
                   Profile
                 </button>
 
@@ -164,17 +164,17 @@ export function Header() {
                     setDropdownOpen(false)
                     router.push('/settings')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] transition-colors"
                 >
-                  <Settings size={15} className="text-stone-400 shrink-0" />
+                  <Settings size={15} className="text-[#6B5744] shrink-0" />
                   Settings
                 </button>
               </div>
 
-              <div className="border-t border-stone-100 py-1">
+              <div className="border-t border-[#2D221A] py-1">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors"
                 >
                   <LogOut size={15} className="shrink-0" />
                   Sign Out
