@@ -16,6 +16,7 @@ import {
   Bell,
   ClipboardList,
   Package,
+  Sparkles,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRole } from '@/lib/hooks/useRole'
@@ -72,6 +73,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/logbook', label: 'Logbook', icon: BookOpen },
   { href: '/sop', label: 'SOP Library', icon: Library },
   { href: '/reports', label: 'Reports', icon: FileText },
+  { href: '/ai', label: 'AI Copilot', icon: Sparkles },
 ]
 
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
@@ -87,6 +89,7 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
     '/logbook',
     '/sop',
     '/reports',
+    '/ai',
   ],
   housekeeping_supervisor: [
     '/dashboard',
@@ -99,6 +102,7 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
     '/logbook',
     '/sop',
     '/reports',
+    '/ai',
   ],
   housekeeper: ['/dashboard', '/housekeeping', '/tasks', '/logbook'],
   chief_engineer: [
@@ -110,6 +114,7 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
     '/logbook',
     '/sop',
     '/reports',
+    '/ai',
   ],
   engineer: ['/dashboard', '/engineering', '/tasks', '/logbook'],
   front_desk: [
@@ -140,6 +145,7 @@ const OPERATIONS_HREFS = [
   '/guest-requests',
   '/lost-found',
   '/tasks',
+  '/ai',
 ]
 
 const PEOPLE_HREFS = ['/staff', '/scheduling']
@@ -243,41 +249,43 @@ export function Sidebar() {
   }
 
   const renderBottomLink = ({ href, label, icon: Icon }: NavItem) => {
-    const active = pathname === href || pathname.startsWith(href + '/')
+    const active = pathname === href
     return (
-      <div key={href} className="relative">
-        {active && (
-          <motion.div
-            layoutId="sidebar-active"
-            className="absolute inset-0 bg-amber-400/10 border-l-2 border-amber-400 rounded-xl"
-            style={{ zIndex: -1 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          />
-        )}
-        <Link
-          href={href}
-          className={cn(
-            'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
-            active
-              ? 'text-[#FEFAF4] font-semibold'
-              : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
+      <div key={href}>
+        <div className="relative">
+          {active && (
+            <motion.div
+              layoutId="sidebar-active"
+              className="absolute inset-0 bg-amber-400/10 border-l-2 border-amber-400 rounded-xl"
+              style={{ zIndex: -1 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            />
           )}
-        >
-          <Icon
+          <Link
+            href={href}
             className={cn(
-              'w-4 h-4 shrink-0 transition-colors',
-              active ? 'text-amber-400' : 'text-[#6B5744] group-hover:text-[#C4AE98]'
-            )}
-          />
-          <span
-            className={cn(
-              'inline-block transition-transform duration-150',
-              !active && 'group-hover:translate-x-0.5'
+              'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
+              active
+                ? 'text-[#FEFAF4] font-semibold'
+                : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
             )}
           >
-            {label}
-          </span>
-        </Link>
+            <Icon
+              className={cn(
+                'w-4 h-4 shrink-0 transition-colors',
+                active ? 'text-amber-400' : 'text-[#6B5744] group-hover:text-[#C4AE98]'
+              )}
+            />
+            <span
+              className={cn(
+                'inline-block transition-transform duration-150',
+                !active && 'group-hover:translate-x-0.5'
+              )}
+            >
+              {label}
+            </span>
+          </Link>
+        </div>
       </div>
     )
   }

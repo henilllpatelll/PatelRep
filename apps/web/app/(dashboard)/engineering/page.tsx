@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'

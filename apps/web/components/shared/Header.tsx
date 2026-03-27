@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, LogOut, Settings, User, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, Settings, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
 import type { UserRole } from '@/stores/authStore'
@@ -30,6 +30,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/lost-found': 'Lost & Found',
   '/tasks': 'Tasks',
   '/onboarding': 'Setup',
+  '/ai': 'AI Copilot',
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -49,7 +50,12 @@ export function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const title = PAGE_TITLES[pathname] ?? 'PatelRep'
+  const title =
+    PAGE_TITLES[pathname] ??
+    Object.entries(PAGE_TITLES)
+      .sort((a, b) => b[0].length - a[0].length)
+      .find(([key]) => pathname.startsWith(key + '/'))?.[1] ??
+    'PatelRep'
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -97,7 +103,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         {/* Notification bell */}
         <button
-          className="p-2 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
+          className="hidden p-2 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
           aria-label="Notifications"
         >
           <Bell size={16} />
@@ -148,17 +154,6 @@ export function Header() {
 
               {/* Menu items */}
               <div className="py-1">
-                <button
-                  onClick={() => {
-                    setDropdownOpen(false)
-                    router.push('/settings/profile')
-                  }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] transition-colors"
-                >
-                  <User size={15} className="text-[#6B5744] shrink-0" />
-                  Profile
-                </button>
-
                 <button
                   onClick={() => {
                     setDropdownOpen(false)

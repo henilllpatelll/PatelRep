@@ -35,6 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.app_env != "production" else None,
     redoc_url=None,
+    redirect_slashes=False,
 )
 
 app.state.limiter = limiter
@@ -45,6 +46,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.app_url,
+        "https://app.patelrep.com",
         "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
     ],
@@ -77,7 +79,7 @@ async def health():
     try:
         # Quick ping to check DB connectivity
         from core.database import supabase
-        supabase.table("tenants").select("id").limit(1).execute()
+        supabase.table("hotels").select("id").limit(1).execute()
         db_ok = True
     except Exception as e:
         db_ok = False

@@ -2,18 +2,14 @@
   "name": "patelrep",
   "private": true,
   "workspaces": [
-    "apps/web",
-    "apps/mobile"
+    "apps/web"
   ],
   "scripts": {
     "postinstall": "npx patch-package || true",
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "cd apps/api && uvicorn main:app --reload --port 8000",
-    "mobile:start": "npm run start --workspace=apps/mobile",
-    "mobile:ios": "npm run ios --workspace=apps/mobile",
-    "mobile:android": "npm run android --workspace=apps/mobile"
+    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn main:app --reload --port 8000"
   },
   "dependencies": {
     "patch-package": "^8.0.1"
