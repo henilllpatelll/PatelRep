@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     opera_oauth_redirect_uri: str = ""
     opera_oauth_base_url: str = "https://api.oracle.com"
 
+    # Billing
+    base_plan_price_cents: int = 9900  # $99.00/month base fee
+
     # Internal
     cron_secret: str
     app_env: str = "development"

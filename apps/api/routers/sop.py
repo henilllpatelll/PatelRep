@@ -1,8 +1,11 @@
+import logging
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import SOPQueryRequest
 from core.database import supabase
 from services.ai.sop_rag import index_sop_document, query_sop
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sop", tags=["sop"])
 
@@ -58,11 +61,16 @@ async def upload_sop_document(
 
     # Upload to Supabase Storage
     storage_path = f"sop-documents/{current_user.hotel_id}/{file.filename}"
-    supabase.storage.from_("sop-documents").upload(
-        storage_path,
-        content,
-        {"content-type": "application/pdf", "upsert": "true"},
-    )
+    try:
+        supabase.storage.from_("sop-documents").upload(
+            storage_path,
+            content,
+            {"content-type": "application/pdf", "upsert": "true"},
+        )
+    except Exception as e:
+        logger.error("SOP storage upload failed for hotel=%s file=%s: %s",
+                     current_user.hotel_id, file.filename, e)
+        raise HTTPException(status_code=500, detail="Failed to upload PDF. Please try again.")
 
     # Create the document record with pending status
     insert_result = supabase.table("sop_documents").insert({

@@ -1,9 +1,12 @@
+import logging
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateGuestRequestRequest
 from core.database import supabase
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/guest-requests", tags=["guest-requests"])
 
@@ -27,8 +30,9 @@ async def create_guest_request(
     result = supabase.table("guest_requests").insert(gr_data).execute()
 
     if result.data:
+        gr_id = result.data[0]["id"]
         # Auto-create a housekeeping task linked to this guest request
-        supabase.table("tasks").insert({
+        task_result = supabase.table("tasks").insert({
             "tenant_id": current_user.hotel_id,
             "title": request.title,
             "description": request.description,
@@ -38,8 +42,10 @@ async def create_guest_request(
             "created_by": current_user.user_id,
             "sla_minutes": 240,
             "due_at": (datetime.now(timezone.utc) + timedelta(minutes=240)).isoformat(),
-            "guest_request_id": result.data[0]["id"],
+            "guest_request_id": gr_id,
         }).execute()
+        if not task_result.data:
+            logger.error("Auto-task creation failed for guest_request=%s", gr_id)
 
     return {"data": result.data[0] if result.data else None}
 

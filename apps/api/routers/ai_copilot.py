@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -105,9 +106,7 @@ async def copilot_chat(
         "gm_insight"
     )
 
-    # Deduct credits (raises 402 if at cap)
-    credits = await check_and_deduct_credits(current_user.hotel_id, interaction_type)
-
+    credits = 0
     prompt_tokens = 0
     completion_tokens = 0
     response_payload = {}
@@ -125,6 +124,8 @@ async def copilot_chat(
                 shift_end=ctx["shift_end"],
                 context=request.context,
             )
+            # Deduct credits only after AI call succeeds
+            credits = await check_and_deduct_credits(current_user.hotel_id, interaction_type)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
 
@@ -156,6 +157,8 @@ async def copilot_chat(
 
         elif intent == "insight_query":
             result = generate_gm_insights(current_user.hotel_id, query=request.message)
+            # Deduct credits only after AI call succeeds
+            credits = await check_and_deduct_credits(current_user.hotel_id, interaction_type)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
             response_payload = {
@@ -179,14 +182,14 @@ async def copilot_chat(
             }
 
         else:
-            # General chat — lightweight response
+            # General chat — lightweight response, no AI call, no credit charge
             response_payload = {
                 "response_type": "answer",
                 "message": (
                     "I can help you create tasks (e.g. 'Room 412 needs towels'), "
                     "check operational insights, or answer SOP questions. What do you need?"
                 ),
-                "credits_used": credits,
+                "credits_used": 0,
                 "model_used": None,
                 "actions": [
                     {"label": "At-risk rooms today", "type": "quick_action"},
@@ -195,6 +198,8 @@ async def copilot_chat(
                 ],
             }
 
+    except HTTPException:
+        raise
     except Exception as exc:
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(
@@ -241,6 +246,14 @@ async def confirm_tasks(
 
     created = []
     for task in tasks:
+        if task.get("room_id"):
+            room_check = supabase.table("rooms").select("id")\
+                .eq("id", task["room_id"])\
+                .eq("tenant_id", current_user.hotel_id)\
+                .maybe_single().execute()
+            if not room_check.data:
+                raise HTTPException(status_code=400, detail="Room not found in your hotel")
+
         priority = task.get("priority", "normal")
         sla = SLA_MINUTES.get(priority, 240)
         due_at = task.get("due_at") or (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()

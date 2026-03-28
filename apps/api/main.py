@@ -77,9 +77,9 @@ async def health():
     db_ok = True
     db_error = None
     try:
-        # Quick ping to check DB connectivity
+        # Quick ping to check DB connectivity (rooms is confirmed accessible)
         from core.database import supabase
-        supabase.table("tenants").select("id").limit(1).execute()
+        supabase.table("rooms").select("id").limit(1).execute()
         db_ok = True
     except Exception as e:
         db_ok = False

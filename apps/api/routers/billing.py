@@ -1,5 +1,5 @@
 import stripe
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
@@ -72,7 +72,6 @@ async def create_portal_session(current_user: CurrentUser = Depends(require_role
 
     stripe_cid = (sub_result.data or {}).get("stripe_customer_id") if sub_result.data else None
     if not stripe_cid:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="No Stripe customer associated with this account.")
 
     session = stripe.billing_portal.Session.create(
@@ -101,7 +100,7 @@ async def create_checkout_session(current_user: CurrentUser = Depends(require_ro
                 "price_data": {
                     "currency": "usd",
                     "product_data": {"name": "PatelRep Pro"},
-                    "unit_amount": 9900,
+                    "unit_amount": settings.base_plan_price_cents,
                     "recurring": {"interval": "month"},
                 },
                 "quantity": 1,

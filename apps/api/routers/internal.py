@@ -1,7 +1,10 @@
+import logging
 from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
 from datetime import date, datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -78,6 +81,7 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
         .execute()
 
     processed = 0
+    errors = 0
     for ledger in (ledgers.data or []):
         sub = ledger.get("subscriptions") or {}
         if sub.get("plan_status") != "active":
@@ -104,10 +108,11 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
                         description=f"AI Credits Overage: {overage_credits} credits @ $0.02",
                     )
                     processed += 1
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error("Stripe invoice failed for customer=%s: %s", stripe_cid, e, exc_info=True)
+                    errors += 1
 
-    return {"status": "ok", "invoices_created": processed}
+    return {"status": "ok", "invoices_created": processed, "errors": errors}
 
 
 @router.post("/logbook/shift-summary")
@@ -125,6 +130,7 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
         .execute()
 
     generated = 0
+    errors = 0
     for shift in (shifts_result.data or []):
         # Simple heuristic: if shift end_time is within 2h window
         end_str = shift.get("end_time", "")
@@ -144,10 +150,12 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
         try:
             generate_shift_summary(shift["tenant_id"], shift["id"], today)
             generated += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("Shift summary failed for tenant=%s shift=%s: %s",
+                         shift["tenant_id"], shift["id"], e, exc_info=True)
+            errors += 1
 
-    return {"status": "ok", "summaries_generated": generated}
+    return {"status": "ok", "summaries_generated": generated, "errors": errors}
 
 
 @router.post("/reports/daily-summary-email")
@@ -162,6 +170,7 @@ async def send_daily_summary_emails(x_cron_secret: str = Header(None)):
         .execute()
 
     emails_sent = 0
+    errors = 0
 
     for hotel in (hotels.data or []):
         hotel_id = hotel["id"]
@@ -255,10 +264,11 @@ Have a great day!
 
             emails_sent += 1
 
-        except Exception:
-            continue
+        except Exception as e:
+            logger.error("Daily summary email failed for hotel=%s: %s", hotel_id, e, exc_info=True)
+            errors += 1
 
-    return {"status": "ok", "emails_queued": emails_sent}
+    return {"status": "ok", "emails_queued": emails_sent, "errors": errors}
 
 
 @router.post("/opera/sync-reservations")

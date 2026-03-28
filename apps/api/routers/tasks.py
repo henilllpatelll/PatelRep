@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateTaskRequest, UpdateTaskRequest
@@ -92,7 +92,6 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
         .maybe_single()\
         .execute()
     if not result.data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Task not found")
     return {"data": result.data}
 
@@ -123,7 +122,7 @@ async def update_task(
 @router.post("/{task_id}/comments")
 async def add_task_comment(
     task_id: str,
-    comment: str,
+    comment: str = Query(...),
     current_user: CurrentUser = Depends(get_current_user)
 ):
     result = supabase.table("task_comments").insert({

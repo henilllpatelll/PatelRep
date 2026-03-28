@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import httpx
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
@@ -6,6 +7,8 @@ from datetime import date, datetime, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/housekeeping", tags=["housekeeping"])
 
@@ -195,6 +198,7 @@ async def _send_assignment_push(housekeeper_id: str, room_number: str, room_id: 
             .maybe_single().execute()
         token = (profile.data or {}).get("expo_push_token")
         if not token:
+            logger.debug("No push token for housekeeper=%s, skipping push", housekeeper_id)
             return
         async with httpx.AsyncClient(timeout=5.0) as client:
             await client.post("https://exp.host/--/api/v2/push/send", json={
@@ -238,6 +242,7 @@ async def create_assignments(
         supabase.table("room_status")\
             .update({"assigned_to": str(a.housekeeper_id)})\
             .eq("room_id", str(a.room_id))\
+            .eq("tenant_id", current_user.hotel_id)\
             .execute()
 
     # Fire-and-forget push notifications (never block the HTTP response)
@@ -245,6 +250,7 @@ async def create_assignments(
         room_info = supabase.table("rooms") \
             .select("room_number") \
             .eq("id", str(a.room_id)) \
+            .eq("tenant_id", current_user.hotel_id) \
             .maybe_single().execute()
         room_number = (room_info.data or {}).get("room_number", "")
         asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number, str(a.room_id)))

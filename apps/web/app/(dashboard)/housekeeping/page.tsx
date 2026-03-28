@@ -73,6 +73,7 @@ export default function HousekeepingPage() {
     setSelectedShift,
     toggleAssignmentMode,
     toggleRiskOnly,
+    setLastSyncedAt,
   } = useHousekeepingStore()
 
   const [dragError, setDragError] = useState<string | null>(null)
@@ -107,7 +108,6 @@ export default function HousekeepingPage() {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
     } catch (error) {
-      console.error('Failed to assign room:', error)
       setDragError('Failed to assign room. Please try again.')
     }
   }
@@ -121,7 +121,8 @@ export default function HousekeepingPage() {
       setPredictionsLoading(true)
       try {
         const res = await housekeepingApi.getPredictions()
-        setPredictions(res.data?.data || [])
+        setPredictions(res.data?.rooms || [])
+        setLastSyncedAt(new Date())
       } catch (e) {
         // silently fail — predictions are optional
       } finally {

@@ -1,10 +1,13 @@
+import logging
+import time
+import httpx
+from dataclasses import dataclass
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from core.config import settings
-from dataclasses import dataclass
-import time
-import httpx
+
+logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
 
@@ -24,8 +27,8 @@ def _fetch_jwks() -> dict:
             )
             _jwks_cache = r.json()
             _jwks_cache_time = now
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("JWKS fetch failed, tokens may not verify: %s", e)
     return _jwks_cache or {"keys": []}
 
 
@@ -69,8 +72,16 @@ async def get_current_user(
     hotel_id = payload.get("hotel_id")
     role = payload.get("role", "none")
 
-    if not user_id or not hotel_id:
+    if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token claims")
+    if not hotel_id:
+        pending = payload.get("pending_invite", False)
+        detail = (
+            "Your invitation is pending. Please accept your staff invitation before signing in."
+            if pending else
+            "No hotel associated with your account. Contact your manager."
+        )
+        raise HTTPException(status_code=403, detail=detail)
 
     return CurrentUser(
         user_id=user_id,

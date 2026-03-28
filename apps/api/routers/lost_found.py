@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timezone
 from middleware.auth import get_current_user, CurrentUser
@@ -76,7 +76,6 @@ async def get_lost_found_item(
         .execute()
 
     if not result.data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Item not found")
 
     return {"data": result.data}

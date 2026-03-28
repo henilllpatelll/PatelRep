@@ -1,6 +1,6 @@
 import asyncio
 import httpx
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateWorkOrderRequest, CompleteWorkOrderRequest, UpdateWorkOrderRequest, AddCommentRequest
@@ -78,7 +78,6 @@ async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_cur
         .maybe_single()\
         .execute()
     if not result.data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Work order not found")
     return {"data": result.data}
 
@@ -156,7 +155,6 @@ async def update_work_order(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     if request.status == "cancelled" and current_user.role not in ("gm", "chief_engineer"):
-        from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Only GM or Chief Engineer can cancel work orders")
 
     update_data = request.model_dump(exclude_none=True)
@@ -177,6 +175,12 @@ async def add_comment(
     request: AddCommentRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    wo_check = supabase.table("work_orders").select("id")\
+        .eq("id", wo_id).eq("tenant_id", current_user.hotel_id)\
+        .maybe_single().execute()
+    if not wo_check.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
     result = supabase.table("work_order_comments").insert({
         "work_order_id": wo_id,
         "tenant_id": current_user.hotel_id,

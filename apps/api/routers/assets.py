@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -144,7 +144,6 @@ async def create_work_order_from_prediction(
 
     pred = pred_result.data
     if not pred:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Prediction not found")
 
     asset = pred.get("assets") or {}
@@ -240,7 +239,6 @@ async def complete_pm_schedule(
 
     sched = sched_result.data
     if not sched:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="PM schedule not found")
 
     now = datetime.now(timezone.utc)
@@ -287,7 +285,6 @@ async def update_pm_schedule(
     update_data = {k: v for k, v in body.items() if k in allowed}
 
     if not update_data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
     result = supabase.table("pm_schedules")\
@@ -368,7 +365,6 @@ async def get_asset(
         .maybe_single() \
         .execute()
     if not result.data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Asset not found")
     return {"data": result.data}
 
@@ -409,7 +405,6 @@ async def run_asset_prediction(
 
     result = await run_single_asset_prediction(current_user.hotel_id, asset_id)
     if result is None:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Asset not found or inactive")
 
     return {"data": result}

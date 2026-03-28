@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import date
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -82,7 +82,6 @@ async def generate_shift_summary_endpoint(
     shift_date = body.get("shift_date")
 
     if not shift_id or not shift_date:
-        from fastapi import HTTPException
         raise HTTPException(status_code=422, detail="shift_id and shift_date are required")
 
     from services.ai.shift_summary import generate_shift_summary

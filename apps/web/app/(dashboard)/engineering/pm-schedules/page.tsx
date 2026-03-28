@@ -585,8 +585,8 @@ export default function PMSchedulesPage() {
       await engineeringApi.deactivatePMSchedule(scheduleId)
       queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
       setConfirmDeactivateId(null)
-    } catch (err) {
-      console.error('Failed to deactivate PM schedule:', err)
+    } catch {
+      // deactivation failed — user can retry
     }
   }
 
@@ -601,8 +601,8 @@ export default function PMSchedulesPage() {
       })
       setSuccessMessage(`Work order created for "${schedule.name}"`)
       setTimeout(() => setSuccessMessage(null), 4000)
-    } catch (err) {
-      console.error('Failed to create work order from PM:', err)
+    } catch {
+      // work order creation failed — user can retry
     }
   }
 
