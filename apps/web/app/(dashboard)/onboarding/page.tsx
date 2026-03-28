@@ -1859,7 +1859,7 @@ function OnboardingPageInner() {
         <div className="max-w-3xl mx-auto">
           <div className="bg-white/[0.88] backdrop-blur-2xl rounded-2xl shadow-xl border border-white/[0.95] overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-amber-100/50">
-              <UIButton variant="ghost" size="sm" onClick={() => router.push('/housekeeping')}>
+              <UIButton variant="ghost" onClick={() => router.push('/housekeeping')} className="h-8 px-2 text-sm">
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </UIButton>
