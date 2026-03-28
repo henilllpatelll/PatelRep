@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
@@ -300,7 +300,7 @@ function ConfirmForm({ code }: { code: string }) {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
   const mode: Mode = code ? 'confirm' : 'request'
@@ -324,5 +324,17 @@ export default function ResetPasswordPage() {
         {mode === 'request' ? <RequestForm /> : <ConfirmForm code={code!} />}
       </motion.div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.08) 0%, transparent 70%), #FEFAF4' }}
+      />
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }

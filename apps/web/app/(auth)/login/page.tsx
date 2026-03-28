@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
@@ -27,7 +27,7 @@ function Spinner({ className = '' }: { className?: string }) {
   )
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const [activeTab, setActiveTab] = useState<Tab>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -321,5 +321,17 @@ export default function LoginPage() {
         <p className="text-center text-xs text-slate-400">EN | ES</p>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(251,191,36,0.08) 0%, transparent 70%), #FEFAF4' }}
+      />
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
