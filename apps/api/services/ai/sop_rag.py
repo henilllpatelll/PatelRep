@@ -3,7 +3,7 @@ import re
 import time
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import pdfplumber
@@ -111,7 +111,7 @@ def index_sop_document(document_id: str, storage_path: str, hotel_id: str) -> No
         # --- 1. Mark as processing ---
         supabase.table("sop_documents").update({
             "indexing_status": "processing",
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", document_id).execute()
 
         # --- 2. Download PDF from Supabase Storage ---
@@ -135,7 +135,7 @@ def index_sop_document(document_id: str, storage_path: str, hotel_id: str) -> No
             logger.warning("document_id=%s produced 0 chunks after parsing", document_id)
             supabase.table("sop_documents").update({
                 "indexing_status": "failed",
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }).eq("id", document_id).execute()
             return
 
@@ -181,8 +181,8 @@ def index_sop_document(document_id: str, storage_path: str, hotel_id: str) -> No
             "indexing_status": "indexed",
             "chunk_count": len(rows),
             "page_count": num_pages,
-            "indexed_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "indexed_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", document_id).execute()
 
         logger.info(
@@ -197,7 +197,7 @@ def index_sop_document(document_id: str, storage_path: str, hotel_id: str) -> No
         try:
             supabase.table("sop_documents").update({
                 "indexing_status": "failed",
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }).eq("id", document_id).execute()
         except Exception as update_exc:
             logger.exception("Also failed to mark document as failed: %s", update_exc)

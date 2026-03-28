@@ -22,18 +22,10 @@ env/
 .env.production.local
 apps/api/.env
 apps/web/.env.local
-apps/mobile/.env
 
 # Next.js
 apps/web/.next/
 apps/web/out/
-
-# Expo / React Native
-apps/mobile/.expo/
-apps/mobile/dist/
-apps/mobile/web-build/
-apps/mobile/android/
-apps/mobile/ios/
 
 # Build outputs
 *.tsbuildinfo

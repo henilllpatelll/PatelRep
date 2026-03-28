@@ -16,7 +16,7 @@ def generate_shift_summary(hotel_id: str, shift_id: str, shift_date: str) -> dic
     shift_result = supabase.table("shifts")\
         .select("name, start_time, end_time, department_id, departments(name)")\
         .eq("id", shift_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     shift = shift_result.data or {}

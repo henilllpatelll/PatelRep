@@ -2,7 +2,7 @@ import asyncio
 import httpx
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase
@@ -192,7 +192,7 @@ async def _send_assignment_push(housekeeper_id: str, room_number: str, room_id: 
         profile = supabase.table("user_profiles") \
             .select("expo_push_token") \
             .eq("id", housekeeper_id) \
-            .single().execute()
+            .maybe_single().execute()
         token = (profile.data or {}).get("expo_push_token")
         if not token:
             return
@@ -245,7 +245,7 @@ async def create_assignments(
         room_info = supabase.table("rooms") \
             .select("room_number") \
             .eq("id", str(a.room_id)) \
-            .single().execute()
+            .maybe_single().execute()
         room_number = (room_info.data or {}).get("room_number", "")
         asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number, str(a.room_id)))
 
@@ -460,7 +460,7 @@ async def submit_inspection(
     if request.overall_result == "passed":
         supabase.table("room_status").update({
             "status": "INSPECTED",
-            "last_inspected_at": datetime.utcnow().isoformat(),
+            "last_inspected_at": datetime.now(timezone.utc).isoformat(),
             "last_inspected_by": current_user.user_id,
         }).eq("room_id", str(request.room_id)).eq("tenant_id", current_user.hotel_id).execute()
 

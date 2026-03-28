@@ -100,6 +100,13 @@ function AuthListener() {
             session.user.user_metadata as Record<string, unknown>,
           ),
         )
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        setUser(session.user)
+        setSession(session)
+        setRole(extractRole(
+          session.user.app_metadata as Record<string, unknown>,
+          session.user.user_metadata as Record<string, unknown>,
+        ))
       } else if (event === 'SIGNED_OUT') {
         clear()
         clearHotel()

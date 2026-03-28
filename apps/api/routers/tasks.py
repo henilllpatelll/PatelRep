@@ -3,7 +3,7 @@ from typing import Optional
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateTaskRequest, UpdateTaskRequest
 from core.database import supabase
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -26,7 +26,7 @@ async def create_task(
         }
 
     sla = SLA_MINUTES.get(request.priority, 240)
-    due_at = request.due_at or (datetime.utcnow() + timedelta(minutes=sla))
+    due_at = request.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla))
 
     task_data = {
         "tenant_id": current_user.hotel_id,
@@ -89,8 +89,11 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
         .select("*, rooms(room_number, floor), task_comments(*)")\
         .eq("id", task_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
+    if not result.data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Task not found")
     return {"data": result.data}
 
 
@@ -105,9 +108,9 @@ async def update_task(
         update_data["assigned_to"] = str(update_data["assigned_to"])
 
     if request.status == "in_progress":
-        update_data["started_at"] = datetime.utcnow().isoformat()
+        update_data["started_at"] = datetime.now(timezone.utc).isoformat()
     elif request.status == "completed":
-        update_data["completed_at"] = datetime.utcnow().isoformat()
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     result = supabase.table("tasks")\
         .update(update_data)\
@@ -142,7 +145,7 @@ async def batch_create_tasks(
     created = []
     for t in tasks:
         priority = t.get("priority", "normal")
-        due_at = t.get("due_at") or (datetime.utcnow() + timedelta(minutes=sla.get(priority, 240))).isoformat()
+        due_at = t.get("due_at") or (datetime.now(timezone.utc) + timedelta(minutes=sla.get(priority, 240))).isoformat()
         row = {
             "tenant_id": current_user.hotel_id,
             "title": t["title"],

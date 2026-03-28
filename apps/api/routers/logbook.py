@@ -63,7 +63,7 @@ async def get_shift_summary(
         .select("*")\
         .eq("shift_id", shift_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not result.data:

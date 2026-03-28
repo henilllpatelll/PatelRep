@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
@@ -80,7 +80,7 @@ def _update_housekeeper_profile(
 
     try:
         start_dt = datetime.fromisoformat(started_approx.replace("Z", "+00:00"))
-        elapsed_minutes = (datetime.utcnow().replace(tzinfo=start_dt.tzinfo) - start_dt).seconds / 60
+        elapsed_minutes = (datetime.now(timezone.utc).replace(tzinfo=start_dt.tzinfo) - start_dt).total_seconds() / 60
     except (ValueError, TypeError):
         return
 
@@ -106,7 +106,7 @@ def _update_housekeeper_profile(
             .update({
                 "avg_clean_minutes": round(new_avg, 2),
                 "completion_count": new_count,
-                "last_updated_at": datetime.utcnow().isoformat(),
+                "last_updated_at": datetime.now(timezone.utc).isoformat(),
             })\
             .eq("id", existing.data["id"])\
             .execute()
@@ -117,7 +117,7 @@ def _update_housekeeper_profile(
             "room_type_id": room_type_id,
             "avg_clean_minutes": round(elapsed_minutes, 2),
             "completion_count": 1,
-            "last_updated_at": datetime.utcnow().isoformat(),
+            "last_updated_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
 
 
@@ -178,7 +178,7 @@ async def get_room(
         .select("*, room_status(*), room_types(*)")
         .eq("id", room_id)
         .eq("tenant_id", current_user.hotel_id)
-        .single()
+        .maybe_single()
         .execute()
     )
     if not result.data:
@@ -202,7 +202,7 @@ async def update_room_status(
         .select("*")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
-        .single()
+        .maybe_single()
         .execute()
     )
     if not current_row.data:
@@ -215,7 +215,7 @@ async def update_room_status(
     _validate_transition(from_status, to_status, current_user.role)
 
     # 3. Build the update payload
-    now_iso = datetime.utcnow().isoformat()
+    now_iso = datetime.now(timezone.utc).isoformat()
     update_payload: dict = {
         "status": to_status,
         "notes": request.notes,

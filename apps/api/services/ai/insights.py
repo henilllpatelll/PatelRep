@@ -2,14 +2,14 @@ import anthropic
 import json
 from core.config import settings
 from core.database import supabase
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
 
 def _get_7day_stats(hotel_id: str) -> dict:
     """Aggregate 7-day operational stats from the DB."""
-    seven_days_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
     # Rooms cleaned in 7 days
     rooms_cleaned = supabase.table("room_status_history")\
@@ -39,7 +39,7 @@ def _get_7day_stats(hotel_id: str) -> dict:
         .select("id", count="exact")\
         .eq("tenant_id", hotel_id)\
         .in_("status", ["open", "in_progress"])\
-        .lt("due_at", datetime.utcnow().isoformat())\
+        .lt("due_at", datetime.now(timezone.utc).isoformat())\
         .execute()
 
     # High-risk rooms
@@ -62,7 +62,7 @@ def _get_7day_stats(hotel_id: str) -> dict:
     hotel = supabase.table("tenants")\
         .select("name")\
         .eq("id", hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
     hotel_name = hotel.data.get("name", "the hotel") if hotel.data else "the hotel"
 

@@ -75,7 +75,7 @@ export function ROIMetricsStrip() {
     queryKey: ['daily-summary'],
     queryFn: () => reportsApi.getDailySummary(),
     refetchInterval: 120_000,
-    enabled: true,
+    enabled: !!session,
   })
 
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -104,7 +104,7 @@ export function ROIMetricsStrip() {
   const openWorkOrders = summary?.open_work_orders ?? stats?.open_tasks ?? 0
   const tasksCompleted = summary?.tasks_completed_today ?? 0
 
-  const totalRooms = stats?.total_rooms ?? 1
+  const totalRooms = stats?.room_count ?? 1
   const inspectedPct = totalRooms > 0 ? Math.round((inspectedToday / totalRooms) * 100) : 0
 
   return (

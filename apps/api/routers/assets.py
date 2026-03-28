@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, Request
 from typing import Optional
 from pydantic import BaseModel
@@ -114,7 +114,7 @@ async def acknowledge_failure_prediction(
         .update({
             "is_acknowledged": True,
             "acknowledged_by": current_user.user_id,
-            "acknowledged_at": datetime.utcnow().isoformat(),
+            "acknowledged_at": datetime.now(timezone.utc).isoformat(),
         }) \
         .eq("id", prediction_id) \
         .eq("tenant_id", current_user.hotel_id) \
@@ -139,7 +139,7 @@ async def create_work_order_from_prediction(
         .select("*, assets(name, id, room_id)")\
         .eq("id", prediction_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     pred = pred_result.data
@@ -160,7 +160,7 @@ async def create_work_order_from_prediction(
 
     sla_map = {"urgent": 60, "normal": 240, "low": 480}
     sla = sla_map[priority]
-    due_at = (datetime.utcnow() + timedelta(minutes=sla)).isoformat()
+    due_at = (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()
 
     description_parts = [pred.get("recommendation", "")]
     if pred.get("ai_reasoning"):
@@ -235,7 +235,7 @@ async def complete_pm_schedule(
         .select("*")\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     sched = sched_result.data
@@ -243,7 +243,7 @@ async def complete_pm_schedule(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="PM schedule not found")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Compute next_due_at based on interval_type
     INTERVAL_DAYS = {
@@ -365,8 +365,11 @@ async def get_asset(
         .select("*, asset_categories(name, code), rooms(room_number), pm_schedules(*)") \
         .eq("id", asset_id) \
         .eq("tenant_id", current_user.hotel_id) \
-        .single() \
+        .maybe_single() \
         .execute()
+    if not result.data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Asset not found")
     return {"data": result.data}
 
 

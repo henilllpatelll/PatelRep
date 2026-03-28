@@ -15,8 +15,10 @@ async def get_subscription(current_user: CurrentUser = Depends(require_role("gm"
     result = supabase.table("subscriptions")\
         .select("*")\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Subscription not found")
     return {"data": result.data}
 
 
@@ -28,7 +30,7 @@ async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
         .eq("tenant_id", current_user.hotel_id)\
         .lte("period_start", today.isoformat())\
         .gte("period_end", today.isoformat())\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not result.data:
@@ -42,7 +44,7 @@ async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
     sub_result = supabase.table("subscriptions")\
         .select("cap_cents")\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
     cap_cents = (sub_result.data or {}).get("cap_cents") if sub_result.data else None
 
@@ -65,7 +67,7 @@ async def create_portal_session(current_user: CurrentUser = Depends(require_role
     sub_result = supabase.table("subscriptions")\
         .select("stripe_customer_id")\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     stripe_cid = (sub_result.data or {}).get("stripe_customer_id") if sub_result.data else None
@@ -86,7 +88,7 @@ async def create_checkout_session(current_user: CurrentUser = Depends(require_ro
     sub_result = supabase.table("subscriptions")\
         .select("stripe_customer_id, stripe_subscription_id")\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     stripe_cid = (sub_result.data or {}).get("stripe_customer_id") if sub_result.data else None
@@ -118,7 +120,7 @@ async def list_invoices(current_user: CurrentUser = Depends(require_role("gm")))
     sub_result = supabase.table("subscriptions")\
         .select("stripe_customer_id")\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     stripe_cid = (sub_result.data or {}).get("stripe_customer_id") if sub_result.data else None

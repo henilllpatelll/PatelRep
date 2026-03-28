@@ -36,16 +36,17 @@ def _get_hotel_context(hotel_id: str) -> dict:
     hotel = supabase.table("tenants")\
         .select("name")\
         .eq("id", hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
     hotel_name = hotel.data.get("name", "the hotel") if hotel.data else "the hotel"
 
     # Try to get current/most recent active shift
-    from datetime import datetime
-    now_time = datetime.utcnow().strftime("%H:%M:%S")
+    from datetime import datetime, timezone
+    now_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
     shift = supabase.table("shifts")\
         .select("name, start_time, end_time")\
+        .eq("tenant_id", hotel_id)\
         .lte("start_time", now_time)\
         .gte("end_time", now_time)\
         .eq("is_active", True)\
@@ -72,19 +73,14 @@ def _resolve_room_id(hotel_id: str, room_number: str) -> str | None:
     """Look up room UUID by room number."""
     if not room_number:
         return None
-    supabase.table("rooms")\
-        .select("room_id")\
+    result = supabase.table("rooms")\
+        .select("id, room_number")\
         .eq("tenant_id", hotel_id)\
+        .eq("room_number", room_number)\
+        .limit(1)\
         .execute()
-    # rooms table may join room_status; try direct rooms table
-    result2 = supabase.table("room_status")\
-        .select("room_id, rooms(room_number)")\
-        .eq("tenant_id", hotel_id)\
-        .execute()
-    for row in (result2.data or []):
-        r = row.get("rooms") or {}
-        if str(r.get("room_number", "")).strip() == str(room_number).strip():
-            return row["room_id"]
+    if result.data:
+        return result.data[0]["id"]
     return None
 
 
@@ -240,14 +236,14 @@ async def confirm_tasks(
     Batch-create tasks after AI confirmation.
     Accepts list of task dicts (from task_preview response).
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
 
     created = []
     for task in tasks:
         priority = task.get("priority", "normal")
         sla = SLA_MINUTES.get(priority, 240)
-        due_at = task.get("due_at") or (datetime.utcnow() + timedelta(minutes=sla)).isoformat()
+        due_at = task.get("due_at") or (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()
 
         row = {
             "tenant_id": current_user.hotel_id,
@@ -271,7 +267,7 @@ async def confirm_tasks(
 @router.get("/risk-alerts")
 async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user)):
     """Get high-risk rooms, SLA breaches, and high-risk assets."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     room_risks = supabase.table("room_readiness_predictions")\
         .select("*, rooms(room_number)")\
@@ -283,7 +279,7 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
         .select("work_order_number, title, due_at")\
         .eq("tenant_id", current_user.hotel_id)\
         .in_("status", ["open", "in_progress"])\
-        .lt("due_at", datetime.utcnow().isoformat())\
+        .lt("due_at", datetime.now(timezone.utc).isoformat())\
         .execute()
 
     asset_risks = supabase.table("assets")\

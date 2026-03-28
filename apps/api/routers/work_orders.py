@@ -5,7 +5,7 @@ from typing import Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateWorkOrderRequest, CompleteWorkOrderRequest, UpdateWorkOrderRequest, AddCommentRequest
 from core.database import supabase
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
@@ -18,7 +18,7 @@ async def create_work_order(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     sla = SLA_MINUTES.get(request.priority, 240)
-    due_at = datetime.utcnow() + timedelta(minutes=sla)
+    due_at = datetime.now(timezone.utc) + timedelta(minutes=sla)
 
     wo_data = {
         "tenant_id": current_user.hotel_id,
@@ -75,8 +75,11 @@ async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_cur
         .select("*, rooms(room_number, floor), assets(*), work_order_photos(*), work_order_comments(*)")\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
+    if not result.data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Work order not found")
     return {"data": result.data}
 
 
@@ -86,7 +89,7 @@ async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> 
         profile = supabase.table("user_profiles")\
             .select("expo_push_token")\
             .eq("id", engineer_id)\
-            .single().execute()
+            .maybe_single().execute()
         token = (profile.data or {}).get("expo_push_token")
         if not token:
             return
@@ -111,7 +114,7 @@ async def claim_work_order(
     current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer"))
 ):
     result = supabase.table("work_orders")\
-        .update({"assigned_to": current_user.user_id, "status": "in_progress", "started_at": datetime.utcnow().isoformat()})\
+        .update({"assigned_to": current_user.user_id, "status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()})\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("status", "open")\
@@ -135,7 +138,7 @@ async def complete_work_order(
     result = supabase.table("work_orders")\
         .update({
             "status": "completed",
-            "completed_at": datetime.utcnow().isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
             "notes": request.notes,
             "labor_hours": request.labor_hours,
             "parts_used": request.parts_used,

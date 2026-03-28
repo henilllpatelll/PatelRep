@@ -12,8 +12,7 @@ AI Staff Copilot SaaS for independent Texas hotels. Quore-style simplicity with 
 PatelRep/
 ├── apps/
 │   ├── api/        FastAPI Python 3.12 — backend (Railway)
-│   ├── web/        Next.js 14 App Router — web dashboard (Railway)
-│   └── mobile/     React Native + Expo SDK 51 — staff app (EAS)
+│   └── web/        Next.js 14 App Router — web dashboard (Railway)
 ├── supabase/
 │   └── migrations/ 001–019.sql — full schema
 ├── spec/           14 spec files (source of truth)
@@ -36,13 +35,6 @@ uvicorn main:app --reload
 cd apps/web
 npm install
 npm run dev
-```
-
-**Mobile (Expo):**
-```bash
-cd apps/mobile
-npm install
-npx expo start
 ```
 
 ---

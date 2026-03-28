@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateLostFoundRequest
 from core.database import supabase
@@ -72,7 +72,7 @@ async def get_lost_found_item(
         .select("*, rooms(room_number)")\
         .eq("id", item_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not result.data:
@@ -93,7 +93,7 @@ async def update_lost_found_item(
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 
     if update_data.get("status") in ("claimed", "donated", "discarded") and "claimed_at" not in update_data:
-        update_data["claimed_at"] = datetime.utcnow().isoformat()
+        update_data["claimed_at"] = datetime.now(timezone.utc).isoformat()
 
     result = supabase.table("lost_found_items")\
         .update(update_data)\

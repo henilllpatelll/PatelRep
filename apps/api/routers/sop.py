@@ -109,7 +109,7 @@ async def get_sop_document(
         .select("*")
         .eq("id", document_id)
         .eq("tenant_id", current_user.hotel_id)
-        .single()
+        .maybe_single()
         .execute()
     )
 
@@ -136,7 +136,7 @@ async def delete_sop_document(
         .select("id, storage_path, tenant_id")
         .eq("id", document_id)
         .eq("tenant_id", current_user.hotel_id)
-        .single()
+        .maybe_single()
         .execute()
     )
 

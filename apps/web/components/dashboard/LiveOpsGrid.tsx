@@ -84,7 +84,7 @@ export function LiveOpsGrid() {
   const urgentWOs = stats ? Math.min(openWorkOrders, Math.ceil(openWorkOrders * 0.25)) : 0
   const normalWOs = openWorkOrders - urgentWOs
 
-  const activeStaff = stats?.staff_count ?? 0
+  const activeStaff = stats?.active_staff ?? 0
 
   return (
     <div className="grid grid-cols-4 gap-4">

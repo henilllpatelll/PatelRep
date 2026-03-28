@@ -274,7 +274,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           completed_steps: completedStepIds,
         },
       })
-      const data = res.data?.data
+      const data = res.data
       setMessages((prev) => [
         ...prev,
         {
@@ -628,7 +628,7 @@ function Step1HotelProfile({
 // Step 2 — Import Rooms
 // ---------------------------------------------------------------------------
 
-type RoomsTab = 'csv' | 'manual'
+type RoomsTab = 'csv' | 'pdf' | 'manual'
 
 interface ManualRoom {
   id: string
@@ -645,15 +645,18 @@ function Step2ImportRooms({
   onComplete: () => void
   onSkip: () => void
 }) {
-  const [tab, setTab] = useState<RoomsTab>('csv')
+  const [tab, setTab] = useState<RoomsTab>('pdf')
   const [isDragging, setIsDragging] = useState(false)
   const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<{
     count?: number
     error?: string
+    warnings?: string[]
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
 
   const [manualRooms, setManualRooms] = useState<ManualRoom[]>([
     { id: uid(), room_number: '', floor: '' },
@@ -681,30 +684,66 @@ function Step2ImportRooms({
     }
   }
 
+  const handlePdfSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setPdfFile(file)
+      setUploadResult(null)
+    }
+  }
+
+  const getAuthToken = () => {
+    if (typeof window === 'undefined') return null
+    const storage = localStorage.getItem(
+      'sb-' +
+        (process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+          .replace('https://', '')
+          .split('.')[0] +
+        '-auth-token'
+    )
+    if (!storage) return null
+    try { return JSON.parse(storage)?.access_token || null } catch { return null }
+  }
+
+  const handlePdfUpload = async () => {
+    if (!pdfFile) return
+    setUploading(true)
+    setUploadResult(null)
+    try {
+      const token = getAuthToken()
+      const formData = new FormData()
+      formData.append('file', pdfFile)
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'}/onboarding/rooms/import-pdf`,
+        {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        }
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || 'Upload failed')
+      }
+      const json = await res.json()
+      setUploadResult({
+        count: json.data?.imported_count,
+        warnings: json.data?.parse_warnings,
+      })
+    } catch (err: any) {
+      setUploadResult({ error: err.message || 'Upload failed. Please try again.' })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleCsvUpload = async () => {
     if (!csvFile) return
     setUploading(true)
     setUploadResult(null)
     try {
-      const token =
-        typeof window !== 'undefined'
-          ? (() => {
-              const storage = localStorage.getItem(
-                'sb-' +
-                  (process.env.NEXT_PUBLIC_SUPABASE_URL || '')
-                    .replace('https://', '')
-                    .split('.')[0] +
-                  '-auth-token'
-              )
-              if (!storage) return null
-              try {
-                return JSON.parse(storage)?.access_token || null
-              } catch {
-                return null
-              }
-            })()
-          : null
-
+      const token = getAuthToken()
       const formData = new FormData()
       formData.append('file', csvFile)
       formData.append('hotel_id', hotelId)
@@ -747,21 +786,103 @@ function Step2ImportRooms({
 
       {/* Tab switcher */}
       <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50 w-fit gap-1">
-        {(['csv', 'manual'] as const).map((t) => (
+        {([
+          { id: 'pdf', label: 'Opera Cloud PDF' },
+          { id: 'csv', label: 'Upload CSV' },
+          { id: 'manual', label: 'Manual Entry' },
+        ] as const).map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.id}
+            onClick={() => { setTab(t.id); setUploadResult(null) }}
             className={cn(
               'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
-              tab === t
+              tab === t.id
                 ? 'bg-white text-amber-700 shadow-sm border border-gray-200'
                 : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            {t === 'csv' ? 'Upload CSV' : 'Manual Entry'}
+            {t.label}
           </button>
         ))}
       </div>
+
+      {tab === 'pdf' && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+            <p className="font-medium mb-0.5">How to export from Opera Cloud</p>
+            <p className="text-blue-700 text-xs">
+              Rooms module → Configuration → Room Types → Export → PDF. Upload the exported file below.
+            </p>
+          </div>
+
+          <div
+            onClick={() => pdfInputRef.current?.click()}
+            className={cn(
+              'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
+              pdfFile
+                ? 'border-green-400 bg-green-50'
+                : 'border-gray-300 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/30'
+            )}
+          >
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={handlePdfSelect}
+            />
+            {pdfFile ? (
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle2 className="w-8 h-8 text-green-500" />
+                <p className="font-medium text-gray-800">{pdfFile.name}</p>
+                <p className="text-sm text-gray-500">
+                  {(pdfFile.size / 1024).toFixed(1)} KB — Click to replace
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="w-8 h-8 text-gray-400" />
+                <p className="font-medium text-gray-700">Drag & drop your Opera Cloud PDF here</p>
+                <p className="text-sm text-gray-400">or click to browse files</p>
+              </div>
+            )}
+          </div>
+
+          {uploadResult && (
+            <div className={cn(
+              'flex items-start gap-2 rounded-lg border p-3',
+              uploadResult.error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+            )}>
+              {uploadResult.error
+                ? <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                : <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />}
+              <div>
+                <p className={cn('text-sm', uploadResult.error ? 'text-red-700' : 'text-green-700')}>
+                  {uploadResult.error ||
+                    `Imported ${uploadResult.count} room${uploadResult.count !== 1 ? 's' : ''} from Opera Cloud PDF.`}
+                </p>
+                {uploadResult.warnings?.map((w, i) => (
+                  <p key={i} className="text-xs text-yellow-700 mt-1">{w}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pdfFile && !uploadResult?.count && (
+            <Button onClick={handlePdfUpload} loading={uploading} disabled={uploading}>
+              <Upload className="w-4 h-4" />
+              Import from PDF
+            </Button>
+          )}
+
+          {uploadResult?.count && (
+            <Button onClick={onComplete}>
+              Continue
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      )}
 
       {tab === 'csv' && (
         <div className="space-y-4">
@@ -1683,7 +1804,7 @@ export default function OnboardingPage() {
     // from /onboarding. This is a hint only — actual auth is enforced by RLS/JWT.
     document.cookie = `pr_hotel_id=${hotel.id}; path=/; max-age=31536000; SameSite=Lax`
     // Also persist to user_metadata so the JWT hook can pick it up on next refresh.
-    supabase.auth.updateUser({ data: { hotel_id: hotel.id } })
+    await supabase.auth.updateUser({ data: { hotel_id: hotel.id } })
     goNext()
   }
 

@@ -104,7 +104,7 @@ async def create_hotel(
     except Exception:
         pass  # Don't fail hotel creation if Stripe is unavailable
 
-    sub_result = supabase.table("subscriptions").select("plan_status, credits_included, cap_cents").eq("tenant_id", hotel_id).single().execute()
+    sub_result = supabase.table("subscriptions").select("plan_status, credits_included, cap_cents").eq("tenant_id", hotel_id).maybe_single().execute()
     subscription = sub_result.data or {"plan_status": "trialing", "credits_included": 5000}
 
     return {"data": {"hotel": hotel, "subscription": subscription}}
@@ -118,7 +118,7 @@ async def get_hotel(
     if current_user.hotel_id != hotel_id:
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
 
-    result = supabase.table("tenants").select("*").eq("id", hotel_id).single().execute()
+    result = supabase.table("tenants").select("*").eq("id", hotel_id).maybe_single().execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Hotel not found")

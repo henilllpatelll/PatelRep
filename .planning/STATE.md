@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Checkpoint: 03-05 Task 2 human-action — eas init, google-services.json, FCM credentials needed"
+status: paused
+stopped_at: "Web-only refocus — mobile phases archived, ready for next web milestone"
 last_updated: "2026-03-22T03:29:00.845Z"
 last_activity: "2026-03-21 — Plan 02-01 complete: extended my-rooms select (vip_flag/ETA/risk) + fire-and-forget assignment push"
 progress:
@@ -122,9 +122,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Pre-Phase 3]: `google-services.json` is missing from the repo — must be generated from Firebase console and added as an EAS secret before Android push testing
-- [Pre-Phase 3]: Push token currently written directly to Supabase bypassing the API — plan must decide whether to add `PATCH /staff/me/push-token` endpoint or keep the direct write (INFRA-02 implementation detail)
-- [Pre-Phase 3]: `lastNotificationResponse` behavior when app is killed (vs backgrounded) has platform-specific quirks — verify Expo Router navigation target before implementing push deep links
+None.
 
 ## Session Continuity
 

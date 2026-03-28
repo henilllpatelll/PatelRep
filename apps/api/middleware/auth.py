@@ -109,8 +109,3 @@ def require_role(*roles: str):
         return current_user
     return check_role
 
-
-def require_cron(x_cron_secret: str = None):
-    """Validates internal cron job requests."""
-    if x_cron_secret != settings.cron_secret:
-        raise HTTPException(status_code=401, detail="Invalid cron secret")

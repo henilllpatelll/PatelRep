@@ -1,11 +1,14 @@
 import httpx
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import RedirectResponse
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
 from services.opera import sync_reservations, bootstrap_opera_data
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -81,21 +84,24 @@ async def opera_callback(
         "tenant_id": hotel_id,
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_expires_at": (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat(),
+        "token_expires_at": (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat(),
         "hotel_id_opera": opera_hotel_id,
         "is_connected": True,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }, on_conflict="tenant_id").execute()
 
     # Trigger background bootstrap (fire and forget — errors don't block the redirect)
+    bootstrap_warning = None
     try:
         bootstrap_opera_data(hotel_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.error("Opera bootstrap failed for hotel=%s: %s", hotel_id, exc)
+        bootstrap_warning = "opera_sync_failed"
 
-    return RedirectResponse(
-        f"{settings.app_url}/settings/integrations?opera=connected"
-    )
+    redirect_url = f"{settings.app_url}/settings/integrations?opera=connected"
+    if bootstrap_warning:
+        redirect_url += f"&warning={bootstrap_warning}"
+    return RedirectResponse(redirect_url)
 
 
 @router.get("/opera/status")
@@ -135,7 +141,7 @@ async def opera_sync(
     return {
         "data": {
             "synced_reservations": result.get("synced", 0),
-            "synced_at": datetime.utcnow().isoformat(),
+            "synced_at": datetime.now(timezone.utc).isoformat(),
         }
     }
 
@@ -168,7 +174,7 @@ async def opera_disconnect(
             "is_connected": False,
             "access_token": None,
             "refresh_token": None,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         })\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()

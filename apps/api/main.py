@@ -79,11 +79,11 @@ async def health():
     try:
         # Quick ping to check DB connectivity
         from core.database import supabase
-        supabase.table("hotels").select("id").limit(1).execute()
+        supabase.table("tenants").select("id").limit(1).execute()
         db_ok = True
     except Exception as e:
         db_ok = False
-        db_error = str(e)[:100]
+        db_error = str(e)[:300]
 
     return {
         "status": "ok" if db_ok else "degraded",

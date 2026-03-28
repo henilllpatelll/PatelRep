@@ -36,13 +36,11 @@ export interface HotelResponse {
 
 export interface HotelStatsResponse {
   data: {
-    total_rooms: number
-    occupied_rooms: number
-    clean_rooms: number
-    dirty_rooms: number
-    maintenance_rooms: number
+    hotel_id: string
+    room_count: number
+    active_staff: number
     open_tasks: number
-    staff_count: number
+    open_work_orders: number
   }
 }
 

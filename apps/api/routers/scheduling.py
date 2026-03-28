@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateShiftAssignmentRequest,
@@ -174,7 +174,7 @@ async def bulk_create_assignments(
     # supabase-py upsert returns all affected rows; we can't easily split
     # created vs updated without a before-snapshot, so we report total.
     total = len(result.data) if result.data else 0
-    return {"created_count": total, "updated_count": 0}
+    return {"data": {"created_count": total, "updated_count": 0}}
 
 
 @router.delete("/assignments/{assignment_id}")
@@ -206,7 +206,7 @@ async def clock_in(
         .select("user_id")\
         .eq("id", assignment_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not fetch.data:
@@ -219,7 +219,7 @@ async def clock_in(
 
     result = supabase.table("shift_assignments")\
         .update({
-            "clocked_in_at": datetime.utcnow().isoformat(),
+            "clocked_in_at": datetime.now(timezone.utc).isoformat(),
             "is_on_shift": True,
         })\
         .eq("id", assignment_id)\
@@ -239,7 +239,7 @@ async def clock_out(
         .select("user_id")\
         .eq("id", assignment_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not fetch.data:
@@ -252,7 +252,7 @@ async def clock_out(
 
     result = supabase.table("shift_assignments")\
         .update({
-            "clocked_out_at": datetime.utcnow().isoformat(),
+            "clocked_out_at": datetime.now(timezone.utc).isoformat(),
             "is_on_shift": False,
         })\
         .eq("id", assignment_id)\

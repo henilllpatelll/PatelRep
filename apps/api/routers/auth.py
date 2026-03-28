@@ -47,7 +47,7 @@ async def set_hotel_context(hotel_id: str, current_user: CurrentUser = Depends(g
         .eq("user_id", current_user.user_id)\
         .eq("tenant_id", hotel_id)\
         .eq("is_active", True)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not role_check.data:

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 
 from core.database import supabase
 
@@ -62,7 +62,7 @@ def get_at_risk_rooms(hotel_id: str) -> list[dict]:
 
     Each row includes nested rooms + room_types data.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=12)
 
     result = (
@@ -89,7 +89,7 @@ def get_at_risk_rooms(hotel_id: str) -> list[dict]:
         try:
             ci = _parse_iso(row["checkin_time"])
             # Make now tz-aware for comparison if ci is tz-aware
-            now_aware = datetime.utcnow().replace(tzinfo=ci.tzinfo) if ci.tzinfo else datetime.utcnow()
+            now_aware = datetime.now(timezone.utc).replace(tzinfo=ci.tzinfo) if ci.tzinfo else datetime.now(timezone.utc)
             cutoff_aware = now_aware + timedelta(hours=12)
             if now_aware <= ci <= cutoff_aware:
                 at_risk.append(row)
@@ -349,7 +349,7 @@ def run_room_predictions(hotel_id: str) -> dict:
             # DIRTY: all rooms ahead must finish, then this room
             minutes_remaining = rooms_ahead * avg_speed + (avg_speed / 2)
 
-        now_utc = datetime.utcnow()
+        now_utc = datetime.now(timezone.utc)
         predicted_ready_at = now_utc + timedelta(minutes=minutes_remaining)
 
         # --- Step 4: Buffer against checkin_time ---

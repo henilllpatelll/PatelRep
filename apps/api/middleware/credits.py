@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from core.database import supabase
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 
 CREDIT_COSTS = {
@@ -30,18 +30,18 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
         .eq("tenant_id", hotel_id)\
         .lte("period_start", today.isoformat())\
         .gte("period_end", today.isoformat())\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if not ledger_result.data:
         # Create ledger for current period
         period_start = date(today.year, today.month, 1)
-        period_end = period_start + relativedelta(months=1) - __import__('datetime').timedelta(days=1)
+        period_end = period_start + relativedelta(months=1) - timedelta(days=1)
 
         sub_result = supabase.table("subscriptions")\
             .select("credits_included, cap_cents, plan_status")\
             .eq("tenant_id", hotel_id)\
-            .single()\
+            .maybe_single()\
             .execute()
 
         credits_included = sub_result.data.get("credits_included", 5000) if sub_result.data else 5000
@@ -58,7 +58,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
             .eq("tenant_id", hotel_id)\
             .lte("period_start", today.isoformat())\
             .gte("period_end", today.isoformat())\
-            .single()\
+            .maybe_single()\
             .execute()
 
     ledger = ledger_result.data
@@ -67,7 +67,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
     sub_result = supabase.table("subscriptions")\
         .select("cap_cents, plan_status")\
         .eq("tenant_id", hotel_id)\
-        .single()\
+        .maybe_single()\
         .execute()
 
     if sub_result.data:

@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import anthropic
 
@@ -42,13 +42,13 @@ def _build_asset_prompt(
     if installation_date:
         try:
             install_dt = datetime.fromisoformat(str(installation_date))
-            age_years = round((datetime.utcnow() - install_dt).days / 365.25, 1)
+            age_years = round((datetime.now(timezone.utc) - install_dt).days / 365.25, 1)
         except Exception:
             age_years = None
     elif purchase_date:
         try:
             purchase_dt = datetime.fromisoformat(str(purchase_date))
-            age_years = round((datetime.utcnow() - purchase_dt).days / 365.25, 1)
+            age_years = round((datetime.now(timezone.utc) - purchase_dt).days / 365.25, 1)
         except Exception:
             age_years = None
     else:
@@ -61,10 +61,10 @@ def _build_asset_prompt(
     if warranty_expires:
         try:
             warranty_dt = datetime.fromisoformat(str(warranty_expires))
-            if warranty_dt < datetime.utcnow():
+            if warranty_dt < datetime.now(timezone.utc):
                 warranty_status = f"EXPIRED on {warranty_expires}"
             else:
-                days_left = (warranty_dt - datetime.utcnow()).days
+                days_left = (warranty_dt - datetime.now(timezone.utc)).days
                 warranty_status = f"Active (expires {warranty_expires}, {days_left} days remaining)"
         except Exception:
             warranty_status = f"Expires {warranty_expires}"
@@ -94,7 +94,7 @@ def _build_asset_prompt(
     pm_count = len(pm_schedules)
     overdue_pms = []
     last_pm_dates = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for pm in pm_schedules:
         if not pm.get("is_active"):
@@ -162,7 +162,7 @@ def _rule_based_fallback(asset: dict, work_orders: list[dict]) -> dict:
     Compute a simple rule-based risk assessment when Claude is unavailable
     or returns unparseable JSON.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     installation_date = asset.get("installation_date") or asset.get("purchase_date")
     expected_lifespan = asset.get("expected_lifespan_years")
     warranty_expires = asset.get("warranty_expires")
@@ -272,7 +272,7 @@ def _analyze_asset(
             "estimated_replace_cost": parsed.get("estimated_replace_cost"),
             "recommendation": parsed.get("recommendation", "Continue standard maintenance."),
             "ai_reasoning": parsed.get("ai_reasoning"),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "is_acknowledged": False,
         }
 
@@ -286,7 +286,7 @@ def _analyze_asset(
         return {
             "tenant_id": hotel_id,
             "asset_id": asset_id,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "is_acknowledged": False,
             **fallback,
         }
@@ -301,7 +301,7 @@ def _analyze_asset(
         return {
             "tenant_id": hotel_id,
             "asset_id": asset_id,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "is_acknowledged": False,
             **fallback,
         }
@@ -344,7 +344,7 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
 
     print(f"[failure_predictions] Found {len(assets)} active assets for hotel {hotel_id}")
 
-    twelve_months_ago = (datetime.utcnow() - timedelta(days=365)).isoformat()
+    twelve_months_ago = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
 
     for asset in assets:
         asset_id = asset.get("id")
@@ -411,7 +411,7 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
         try:
             supabase.table("assets").update({
                 "failure_risk_score": risk_score,
-                "failure_risk_updated_at": datetime.utcnow().isoformat(),
+                "failure_risk_updated_at": datetime.now(timezone.utc).isoformat(),
             }).eq("id", asset_id).execute()
         except Exception as exc:
             logger.warning(
@@ -492,7 +492,7 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
             .eq("id", asset_id)
             .eq("tenant_id", hotel_id)
             .eq("is_active", True)
-            .single()
+            .maybe_single()
             .execute()
         )
         asset = asset_result.data
@@ -502,7 +502,7 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
         logger.error("Failed to fetch asset %s: %s", asset_id, exc)
         return None
 
-    twelve_months_ago = (datetime.utcnow() - timedelta(days=365)).isoformat()
+    twelve_months_ago = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
 
     # 2. Fetch work orders
     try:
@@ -549,7 +549,7 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
     try:
         supabase.table("assets").update({
             "failure_risk_score": prediction_data["risk_score"],
-            "failure_risk_updated_at": datetime.utcnow().isoformat(),
+            "failure_risk_updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", asset_id).execute()
     except Exception as exc:
         logger.warning("Failed to update failure_risk_score for asset %s: %s", asset_id, exc)

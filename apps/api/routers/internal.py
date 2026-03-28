@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -45,7 +45,7 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
             "is_pm_generated": True,
             "pm_schedule_id": pm["id"],
             "sla_minutes": 480,
-            "due_at": (datetime.utcnow() + __import__("datetime").timedelta(hours=8)).isoformat(),
+            "due_at": (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat(),
         }).execute()
         created_count += 1
 
@@ -215,7 +215,7 @@ async def send_daily_summary_emails(x_cron_secret: str = Header(None)):
             gm_profile = supabase.table("user_profiles")\
                 .select("full_name")\
                 .eq("id", gm_id)\
-                .single()\
+                .maybe_single()\
                 .execute()
             gm_name = gm_profile.data.get("full_name", "General Manager") if gm_profile.data else "General Manager"
 

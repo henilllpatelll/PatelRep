@@ -3,7 +3,7 @@ from typing import Optional
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateGuestRequestRequest
 from core.database import supabase
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/guest-requests", tags=["guest-requests"])
 
@@ -37,7 +37,7 @@ async def create_guest_request(
             "room_id": str(request.room_id) if request.room_id else None,
             "created_by": current_user.user_id,
             "sla_minutes": 240,
-            "due_at": (datetime.utcnow().isoformat()),
+            "due_at": (datetime.now(timezone.utc) + timedelta(minutes=240)).isoformat(),
             "guest_request_id": result.data[0]["id"],
         }).execute()
 
@@ -79,7 +79,7 @@ async def update_guest_request(
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 
     if update_data.get("status") == "resolved" and "resolved_at" not in update_data:
-        update_data["resolved_at"] = datetime.utcnow().isoformat()
+        update_data["resolved_at"] = datetime.now(timezone.utc).isoformat()
 
     result = supabase.table("guest_requests")\
         .update(update_data)\
