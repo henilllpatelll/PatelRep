@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, forwardRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -1733,10 +1733,14 @@ const AI_TIPS: Record<number, string> = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { setHotel, setSubscription } = useHotelStore()
 
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(() => {
+    const step = parseInt(searchParams.get('step') ?? '1', 10)
+    return Number.isFinite(step) ? Math.min(Math.max(step, 1), STEPS.length) : 1
+  })
   const [hotelId, setHotelId] = useState<string>('')
   const [hotelName, setHotelName] = useState<string>('')
 
@@ -1768,6 +1772,17 @@ export default function OnboardingPage() {
       return [s.id, status]
     })
   ) as Record<number, StepStatus>
+
+  // When deep-linking to a step (e.g. /onboarding?step=2 from "Add Rooms"),
+  // the hotel already exists — load it from the session so Step2+ have a valid hotelId.
+  useEffect(() => {
+    if (currentStep <= 1) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const id: string | undefined =
+        user?.app_metadata?.hotel_id ?? user?.user_metadata?.hotel_id
+      if (id) setHotelId(id)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh session when reaching the Done step so the JWT hook injects hotel_id.
   // Without this the middleware sees no hotel_id in the token and redirects back here.
