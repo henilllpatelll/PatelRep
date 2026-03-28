@@ -645,6 +645,7 @@ function Step2ImportRooms({
   onComplete: () => void
   onSkip: () => void
 }) {
+  const supabase = createClient()
   const [tab, setTab] = useState<RoomsTab>('pdf')
   const [isDragging, setIsDragging] = useState(false)
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -692,25 +693,13 @@ function Step2ImportRooms({
     }
   }
 
-  const getAuthToken = () => {
-    if (typeof window === 'undefined') return null
-    const storage = localStorage.getItem(
-      'sb-' +
-        (process.env.NEXT_PUBLIC_SUPABASE_URL || '')
-          .replace('https://', '')
-          .split('.')[0] +
-        '-auth-token'
-    )
-    if (!storage) return null
-    try { return JSON.parse(storage)?.access_token || null } catch { return null }
-  }
-
   const handlePdfUpload = async () => {
     if (!pdfFile) return
     setUploading(true)
     setUploadResult(null)
     try {
-      const token = getAuthToken()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
       const formData = new FormData()
       formData.append('file', pdfFile)
 
@@ -743,7 +732,8 @@ function Step2ImportRooms({
     setUploading(true)
     setUploadResult(null)
     try {
-      const token = getAuthToken()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
       const formData = new FormData()
       formData.append('file', csvFile)
       formData.append('hotel_id', hotelId)
