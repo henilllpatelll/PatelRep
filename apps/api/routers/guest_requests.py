@@ -42,9 +42,11 @@ async def create_guest_request(
             "created_by": current_user.user_id,
             "sla_minutes": 240,
             "due_at": (datetime.now(timezone.utc) + timedelta(minutes=240)).isoformat(),
-            "guest_request_id": gr_id,
         }).execute()
-        if not task_result.data:
+        if task_result.data:
+            task_id = task_result.data[0]["id"]
+            supabase.table("guest_requests").update({"task_id": task_id}).eq("id", gr_id).execute()
+        else:
             logger.error("Auto-task creation failed for guest_request=%s", gr_id)
 
     return {"data": result.data[0] if result.data else None}

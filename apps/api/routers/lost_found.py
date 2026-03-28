@@ -21,7 +21,7 @@ async def create_lost_found_item(
         "location_found": request.location_found,
         "notes": request.notes,
         "found_by": current_user.user_id,
-        "status": "found",
+        "status": "unclaimed",
     }
     result = supabase.table("lost_found_items").insert(data).execute()
     return {"data": result.data[0] if result.data else None}

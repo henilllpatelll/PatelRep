@@ -33,7 +33,7 @@ async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
         .maybe_single()\
         .execute()
 
-    if not result.data:
+    if not result or not result.data:
         return {"data": {"message": "No billing period found"}}
 
     ledger = result.data
@@ -46,7 +46,7 @@ async def get_credits(current_user: CurrentUser = Depends(require_role("gm"))):
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()
-    cap_cents = (sub_result.data or {}).get("cap_cents") if sub_result.data else None
+    cap_cents = sub_result.data.get("cap_cents") if sub_result and sub_result.data else None
 
     return {
         "data": {

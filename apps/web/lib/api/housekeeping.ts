@@ -74,7 +74,7 @@ export const housekeepingApi = {
 
   getAssignments: (date: string, shiftId?: string) =>
     apiClient.get('/housekeeping/assignments', {
-      params: { date, shift_id: shiftId },
+      params: { date: date || undefined, shift_id: shiftId },
     }),
 
   saveAssignments: (data: AssignmentPayload) =>
