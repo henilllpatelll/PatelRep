@@ -1731,6 +1731,9 @@ function OnboardingPageInner() {
     const step = parseInt(searchParams.get('step') ?? '1', 10)
     return Number.isFinite(step) ? Math.min(Math.max(step, 1), STEPS.length) : 1
   })
+  // When deep-linked to a specific step (e.g. "Add Rooms" → ?step=2), render
+  // only the step content — no progress header, AI sidebar, or wizard nav.
+  const standalone = searchParams.get('step') !== null
   const [hotelId, setHotelId] = useState<string>('')
   const [hotelName, setHotelName] = useState<string>('')
 
@@ -1816,7 +1819,11 @@ function OnboardingPageInner() {
   // Step 2 complete
   const handleRoomsComplete = () => {
     setCompletionState((prev) => ({ ...prev, roomsImported: true }))
-    goNext()
+    if (standalone) {
+      router.push('/housekeeping')
+    } else {
+      goNext()
+    }
   }
 
   // Step 3 complete
@@ -1845,6 +1852,33 @@ function OnboardingPageInner() {
     ...(completionState.operaConnected ? ['opera_connected'] : []),
     ...(completionState.sopCount > 0 ? ['sop_uploaded'] : []),
   ]
+
+  if (standalone) {
+    return (
+      <div className="min-h-full">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white/[0.88] backdrop-blur-2xl rounded-2xl shadow-xl border border-white/[0.95] overflow-hidden">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-amber-100/50">
+              <UIButton variant="ghost" size="sm" onClick={() => router.push('/housekeeping')}>
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </UIButton>
+              <h2 className="text-base font-semibold text-slate-800">Add Rooms</h2>
+            </div>
+            <div className="p-6">
+              <Card className="p-6">
+                <Step2ImportRooms
+                  hotelId={hotelId}
+                  onComplete={handleRoomsComplete}
+                  onSkip={() => router.push('/housekeeping')}
+                />
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-full">
