@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, forwardRef, useEffect } from 'react'
+import { useState, useCallback, useRef, forwardRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
@@ -1731,7 +1731,7 @@ const AI_TIPS: Record<number, string> = {
 // Main wizard page
 // ---------------------------------------------------------------------------
 
-export default function OnboardingPage() {
+function OnboardingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -1941,5 +1941,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingPageInner />
+    </Suspense>
   )
 }
