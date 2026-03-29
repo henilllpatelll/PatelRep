@@ -341,7 +341,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     value={editForm.category}
-                    onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                    onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value as WorkOrder['category'] }))}
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   >
                     {['plumbing','electrical','hvac','furniture','appliance','structural','safety','general'].map((c) => (
@@ -350,7 +350,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   </select>
                   <select
                     value={editForm.priority}
-                    onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value }))}
+                    onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as WorkOrder['priority'] }))}
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   >
                     <option value="urgent">Urgent</option>
