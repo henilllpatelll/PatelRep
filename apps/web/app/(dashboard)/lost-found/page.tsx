@@ -28,21 +28,21 @@ type ActiveTab = 'all' | LostFoundStatus
 
 const TABS: { value: ActiveTab; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'found', label: 'Found' },
+  { value: 'unclaimed', label: 'Unclaimed' },
   { value: 'claimed', label: 'Claimed' },
   { value: 'donated', label: 'Donated' },
   { value: 'discarded', label: 'Discarded' },
 ]
 
 const STATUS_STYLES: Record<LostFoundStatus, string> = {
-  found: 'bg-blue-50 text-blue-700',
+  unclaimed: 'bg-blue-50 text-blue-700',
   claimed: 'bg-green-50 text-green-700',
   donated: 'bg-purple-50 text-purple-700',
   discarded: 'bg-gray-100 text-gray-600',
 }
 
 const STATUS_LABELS: Record<LostFoundStatus, string> = {
-  found: 'Found',
+  unclaimed: 'Unclaimed',
   claimed: 'Claimed',
   donated: 'Donated',
   discarded: 'Discarded',
@@ -50,7 +50,7 @@ const STATUS_LABELS: Record<LostFoundStatus, string> = {
 
 const TAB_ACTIVE_STYLES: Record<ActiveTab, string> = {
   all: 'bg-gray-800 text-white border-gray-800',
-  found: 'bg-blue-600 text-white border-blue-600',
+  unclaimed: 'bg-blue-600 text-white border-blue-600',
   claimed: 'bg-green-600 text-white border-green-600',
   donated: 'bg-purple-600 text-white border-purple-600',
   discarded: 'bg-gray-500 text-white border-gray-500',
@@ -58,7 +58,7 @@ const TAB_ACTIVE_STYLES: Record<ActiveTab, string> = {
 
 const TAB_INACTIVE_STYLES: Record<ActiveTab, string> = {
   all: 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50',
-  found: 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50',
+  unclaimed: 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50',
   claimed: 'bg-white text-green-700 border-green-200 hover:bg-green-50',
   donated: 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50',
   discarded: 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
@@ -162,7 +162,7 @@ function ItemCard({
       )}
 
       {/* Claimed info */}
-      {item.status !== 'found' && item.claimed_at && (
+      {item.status !== 'unclaimed' && item.claimed_at && (
         <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
           <CheckCircle className="w-3 h-3 text-green-500" />
           {item.status === 'claimed'
@@ -171,8 +171,8 @@ function ItemCard({
         </p>
       )}
 
-      {/* Action buttons — only for "found" status */}
-      {canAct && item.status === 'found' && (
+      {/* Action buttons — only for "unclaimed" status */}
+      {canAct && item.status === 'unclaimed' && (
         <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
           {isPending ? (
             <span className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -506,7 +506,7 @@ export default function LostFoundPage() {
 
   // ── Counts ──
   const counts = {
-    found: items?.filter((i) => i.status === 'found').length ?? 0,
+    unclaimed: items?.filter((i) => i.status === 'unclaimed').length ?? 0,
     claimed: items?.filter((i) => i.status === 'claimed').length ?? 0,
     donated: items?.filter((i) => i.status === 'donated').length ?? 0,
     discarded: items?.filter((i) => i.status === 'discarded').length ?? 0,
@@ -566,8 +566,8 @@ export default function LostFoundPage() {
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-4">
-          <p className="text-2xl font-bold text-blue-600">{counts.found}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Found</p>
+          <p className="text-2xl font-bold text-blue-600">{counts.unclaimed}</p>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Unclaimed</p>
         </Card>
         <Card className="p-4">
           <p className="text-2xl font-bold text-green-600">{counts.claimed}</p>

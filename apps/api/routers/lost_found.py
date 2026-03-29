@@ -21,7 +21,7 @@ async def create_lost_found_item(
         "location_found": request.location_found,
         "notes": request.notes,
         "found_by": current_user.user_id,
-        "status": "found",
+        "status": "unclaimed",
     }
     result = supabase.table("lost_found_items").insert(data).execute()
     return {"data": result.data[0] if result.data else None}
@@ -87,7 +87,7 @@ async def update_lost_found_item(
     body: dict,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Update lost & found item status (found → claimed/donated/discarded)."""
+    """Update lost & found item status (unclaimed → claimed/donated/discarded)."""
     allowed_fields = {"status", "notes", "claimed_by_name", "claimed_at", "claimed_by_contact"}
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 

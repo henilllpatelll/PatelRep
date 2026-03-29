@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 
-export type LostFoundStatus = 'found' | 'claimed' | 'donated' | 'discarded'
+export type LostFoundStatus = 'unclaimed' | 'claimed' | 'donated' | 'discarded'
 
 export interface LostFoundItem {
   id: string
