@@ -420,7 +420,10 @@ export default function LogbookPage() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { isSupervisor } = useRole()
+
+  useEffect(() => { setMounted(true) }, [])
 
   const session = useAuthStore((s) => s.session)
   const hotelId: string = (() => {
@@ -530,7 +533,7 @@ export default function LogbookPage() {
       </div>
 
       {/* AI Shift Summary — visible to GM/supervisors on today's view */}
-      {isToday && (
+      {mounted && isToday && (
         <AISummaryPanel shiftDate={selectedDate} isSupervisor={isSupervisor} />
       )}
 

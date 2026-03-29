@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/logbook': 'Logbook',
   '/sop': 'SOP Library',
   '/reports': 'Reports',
+  '/billing': 'Billing',
   '/settings': 'Settings',
   '/settings/billing': 'Billing',
   '/settings/integrations': 'Integrations',

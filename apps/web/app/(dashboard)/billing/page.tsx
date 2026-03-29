@@ -5,6 +5,7 @@ import { CreditCard, TrendingUp, CheckCircle, ExternalLink } from 'lucide-react'
 import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
+import { useAuthStore } from '@/stores/authStore'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,8 @@ function SkeletonCard({ rows = 4 }: { rows?: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { isGM } = useRole()
+  const { isGM, role } = useRole()
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
 
   const { data: subData, isLoading: subLoading } = useQuery({
     queryKey: ['billing-subscription'],
@@ -78,6 +80,15 @@ export default function BillingPage() {
     queryFn: () => billingApi.getCredits(),
     select: (res) => res.data as CreditUsage,
   })
+
+  // Auth loading guard — wait for role to be available before checking access
+  if (isAuthLoading || !role) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-amber-500" />
+      </div>
+    )
+  }
 
   // Non-GM guard
   if (!isGM) {
