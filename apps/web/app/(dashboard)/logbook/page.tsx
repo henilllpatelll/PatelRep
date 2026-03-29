@@ -49,13 +49,85 @@ function formatDisplayDate(dateStr: string): string {
   return format(d, 'MMM d, yyyy')
 }
 
-const DURATION_OPTIONS = [
-  { label: 'No expiry', value: 0 },
-  { label: '8 hours (end of shift)', value: 8 },
-  { label: '24 hours', value: 24 },
-  { label: '48 hours', value: 48 },
-  { label: '7 days', value: 168 },
-]
+// ── Expiry Picker ─────────────────────────────────────────────────────────────
+
+interface ExpiryPickerProps {
+  value: number  // total hours; 0 = no expiry
+  onChange: (hours: number) => void
+}
+
+function ExpiryPicker({ value, onChange }: ExpiryPickerProps) {
+  const isCustom = value > 0
+  // Derive unit + amount from stored hours
+  const [unit, setUnit] = useState<'hours' | 'days'>(value > 0 && value % 24 === 0 ? 'days' : 'hours')
+  const [amount, setAmount] = useState(
+    value > 0 ? (value % 24 === 0 ? value / 24 : value) : 1
+  )
+
+  function handleModeChange(custom: boolean) {
+    if (!custom) { onChange(0); return }
+    onChange(unit === 'hours' ? amount : amount * 24)
+  }
+
+  function handleAmountChange(n: number) {
+    const safe = Math.max(1, n)
+    setAmount(safe)
+    onChange(unit === 'hours' ? safe : safe * 24)
+  }
+
+  function handleUnitChange(u: 'hours' | 'days') {
+    setUnit(u)
+    onChange(u === 'hours' ? amount : amount * 24)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => handleModeChange(false)}
+          className={`flex-1 py-1.5 text-sm rounded-lg border font-medium transition-colors ${
+            !isCustom
+              ? 'bg-gray-800 text-white border-gray-800'
+              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          No expiry
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeChange(true)}
+          className={`flex-1 py-1.5 text-sm rounded-lg border font-medium transition-colors ${
+            isCustom
+              ? 'bg-amber-500 text-white border-amber-500'
+              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Custom
+        </button>
+      </div>
+      {isCustom && (
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={1}
+            value={amount}
+            onChange={(e) => handleAmountChange(Number(e.target.value))}
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+          />
+          <select
+            value={unit}
+            onChange={(e) => handleUnitChange(e.target.value as 'hours' | 'days')}
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+          >
+            <option value="hours">hours</option>
+            <option value="days">days</option>
+          </select>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Entry card ────────────────────────────────────────────────────────────────
 
@@ -387,15 +459,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 <Clock size={13} className="text-gray-400" />
                 Auto-delete after
               </label>
-              <select
-                value={expiresHours}
-                onChange={(e) => setExpiresHours(Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-              >
-                {DURATION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <ExpiryPicker value={expiresHours} onChange={setExpiresHours} />
             </div>
 
             {error && (
@@ -506,15 +570,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
               <Clock size={13} className="text-gray-400" />
               Auto-delete after
             </label>
-            <select
-              value={expiresHours}
-              onChange={(e) => setExpiresHours(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-            >
-              {DURATION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <ExpiryPicker value={expiresHours} onChange={setExpiresHours} />
           </div>
 
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}

@@ -14,12 +14,27 @@ def _expires_at(hours: Optional[int]) -> Optional[str]:
     return None
 
 
+def _build_entries_query(hotel_id: str, department_id, shift_id, entry_date, page, per_page):
+    q = supabase.table("logbook_entries")\
+        .select("*, departments(name)")\
+        .eq("tenant_id", hotel_id)\
+        .order("created_at", desc=True)\
+        .range((page - 1) * per_page, page * per_page - 1)
+    if department_id:
+        q = q.eq("department_id", department_id)
+    if shift_id:
+        q = q.eq("shift_id", shift_id)
+    if entry_date:
+        q = q.gte("created_at", f"{entry_date.isoformat()}T00:00:00")\
+             .lte("created_at", f"{entry_date.isoformat()}T23:59:59")
+    return q
+
+
 @router.post("/entries")
 async def create_logbook_entry(
     request: CreateLogbookEntryRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Create a new logbook entry for a department/shift."""
     payload = {
         "tenant_id": current_user.hotel_id,
         "department_id": str(request.department_id),
@@ -31,7 +46,12 @@ async def create_logbook_entry(
     if expires:
         payload["expires_at"] = expires
 
-    result = supabase.table("logbook_entries").insert(payload).execute()
+    try:
+        result = supabase.table("logbook_entries").insert(payload).execute()
+    except Exception:
+        payload.pop("expires_at", None)
+        result = supabase.table("logbook_entries").insert(payload).execute()
+
     return {"data": result.data[0] if result.data else None}
 
 
@@ -44,26 +64,24 @@ async def list_logbook_entries(
     per_page: int = Query(20),
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """List logbook entries — expired entries are excluded automatically."""
     now = datetime.now(timezone.utc).isoformat()
+    kwargs = dict(
+        hotel_id=current_user.hotel_id,
+        department_id=department_id,
+        shift_id=shift_id,
+        entry_date=entry_date,
+        page=page,
+        per_page=per_page,
+    )
 
-    query = supabase.table("logbook_entries")\
-        .select("*, departments(name)")\
-        .eq("tenant_id", current_user.hotel_id)\
-        .or_(f"expires_at.is.null,expires_at.gt.{now}")\
-        .order("created_at", desc=True)\
-        .range((page - 1) * per_page, page * per_page - 1)
+    try:
+        result = _build_entries_query(**kwargs)\
+            .or_(f"expires_at.is.null,expires_at.gt.{now}")\
+            .execute()
+    except Exception:
+        # expires_at column not yet migrated — fetch without filter
+        result = _build_entries_query(**kwargs).execute()
 
-    if department_id:
-        query = query.eq("department_id", department_id)
-    if shift_id:
-        query = query.eq("shift_id", shift_id)
-    if entry_date:
-        date_start = f"{entry_date.isoformat()}T00:00:00"
-        date_end = f"{entry_date.isoformat()}T23:59:59"
-        query = query.gte("created_at", date_start).lte("created_at", date_end)
-
-    result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
 
 
@@ -73,7 +91,6 @@ async def update_logbook_entry(
     request: UpdateLogbookEntryRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Update content or expiry. Author or supervisor/GM only."""
     row = supabase.table("logbook_entries")\
         .select("author_id, tenant_id")\
         .eq("id", entry_id)\
@@ -93,15 +110,19 @@ async def update_logbook_entry(
     if request.content is not None:
         updates["content"] = request.content
     if request.expires_hours is not None:
-        updates["expires_at"] = _expires_at(request.expires_hours)  # None when 0 = remove expiry
+        updates["expires_at"] = _expires_at(request.expires_hours)
 
     if not updates:
         raise HTTPException(status_code=422, detail="No fields to update")
 
-    result = supabase.table("logbook_entries")\
-        .update(updates)\
-        .eq("id", entry_id)\
-        .execute()
+    try:
+        result = supabase.table("logbook_entries").update(updates).eq("id", entry_id).execute()
+    except Exception:
+        updates.pop("expires_at", None)
+        if not updates:
+            raise HTTPException(status_code=422, detail="No fields to update (expires_at column not yet migrated)")
+        result = supabase.table("logbook_entries").update(updates).eq("id", entry_id).execute()
+
     return {"data": result.data[0] if result.data else None}
 
 
@@ -110,7 +131,6 @@ async def delete_logbook_entry(
     entry_id: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Delete a logbook entry. Author or supervisor/GM only."""
     row = supabase.table("logbook_entries")\
         .select("author_id, tenant_id")\
         .eq("id", entry_id)\
@@ -135,7 +155,6 @@ async def get_shift_summary(
     shift_id: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Get AI-generated summary for a specific shift."""
     result = supabase.table("shift_summaries")\
         .select("*")\
         .eq("shift_id", shift_id)\
@@ -154,7 +173,6 @@ async def generate_shift_summary_endpoint(
     body: dict,
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
 ):
-    """Generate AI shift summary using Claude Sonnet."""
     shift_id = body.get("shift_id")
     shift_date = body.get("shift_date")
 
