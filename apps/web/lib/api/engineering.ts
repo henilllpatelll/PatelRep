@@ -151,7 +151,6 @@ export const engineeringApi = {
     notes?: string
     title?: string
     description?: string
-    category?: string
   }) => apiClient.patch(`/work-orders/${id}`, payload) as Promise<{ data: WorkOrder }>,
 
   deleteWorkOrder: (id: string) =>
