@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CreateLogbookEntryRequest
+from models.requests import CreateLogbookEntryRequest, UpdateLogbookEntryRequest
 from core.database import supabase
 
 router = APIRouter(prefix="/logbook", tags=["logbook"])
+
+
+def _expires_at(hours: Optional[int]) -> Optional[str]:
+    if hours and hours > 0:
+        return (datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat()
+    return None
 
 
 @router.post("/entries")
@@ -14,13 +20,18 @@ async def create_logbook_entry(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Create a new logbook entry for a department/shift."""
-    result = supabase.table("logbook_entries").insert({
+    payload = {
         "tenant_id": current_user.hotel_id,
         "department_id": str(request.department_id),
         "shift_id": str(request.shift_id) if request.shift_id else None,
         "author_id": current_user.user_id,
         "content": request.content,
-    }).execute()
+    }
+    expires = _expires_at(request.expires_hours)
+    if expires:
+        payload["expires_at"] = expires
+
+    result = supabase.table("logbook_entries").insert(payload).execute()
     return {"data": result.data[0] if result.data else None}
 
 
@@ -33,10 +44,13 @@ async def list_logbook_entries(
     per_page: int = Query(20),
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """List logbook entries with optional filters."""
+    """List logbook entries — expired entries are excluded automatically."""
+    now = datetime.now(timezone.utc).isoformat()
+
     query = supabase.table("logbook_entries")\
         .select("*, departments(name)")\
         .eq("tenant_id", current_user.hotel_id)\
+        .or_(f"expires_at.is.null,expires_at.gt.{now}")\
         .order("created_at", desc=True)\
         .range((page - 1) * per_page, page * per_page - 1)
 
@@ -51,6 +65,69 @@ async def list_logbook_entries(
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
+
+
+@router.patch("/entries/{entry_id}")
+async def update_logbook_entry(
+    entry_id: str,
+    request: UpdateLogbookEntryRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Update content or expiry. Author or supervisor/GM only."""
+    row = supabase.table("logbook_entries")\
+        .select("author_id, tenant_id")\
+        .eq("id", entry_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    is_author = row.data["author_id"] == current_user.user_id
+    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "chief_engineer")
+    if not (is_author or is_privileged):
+        raise HTTPException(status_code=403, detail="Not allowed to edit this entry")
+
+    updates: dict = {}
+    if request.content is not None:
+        updates["content"] = request.content
+    if request.expires_hours is not None:
+        updates["expires_at"] = _expires_at(request.expires_hours)  # None when 0 = remove expiry
+
+    if not updates:
+        raise HTTPException(status_code=422, detail="No fields to update")
+
+    result = supabase.table("logbook_entries")\
+        .update(updates)\
+        .eq("id", entry_id)\
+        .execute()
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/entries/{entry_id}", status_code=204)
+async def delete_logbook_entry(
+    entry_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Delete a logbook entry. Author or supervisor/GM only."""
+    row = supabase.table("logbook_entries")\
+        .select("author_id, tenant_id")\
+        .eq("id", entry_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    is_author = row.data["author_id"] == current_user.user_id
+    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "chief_engineer")
+    if not (is_author or is_privileged):
+        raise HTTPException(status_code=403, detail="Not allowed to delete this entry")
+
+    supabase.table("logbook_entries").delete().eq("id", entry_id).execute()
+    return None
 
 
 @router.get("/shift-summary/{shift_id}")

@@ -8,6 +8,7 @@ export interface LogbookEntry {
   content: string
   is_ai_generated: boolean
   author_id: string
+  expires_at?: string | null
   created_at: string
   // Joined
   user_profiles?: { preferred_name?: string; full_name?: string }
@@ -36,8 +37,15 @@ export const logbookApi = {
     department_id: string
     shift_id?: string
     content: string
+    expires_hours?: number
   }) =>
     apiClient.post('/logbook/entries', payload) as Promise<{ data: LogbookEntry }>,
+
+  updateEntry: (id: string, payload: { content?: string; expires_hours?: number }) =>
+    apiClient.patch(`/logbook/entries/${id}`, payload) as Promise<{ data: LogbookEntry }>,
+
+  deleteEntry: (id: string) =>
+    apiClient.delete(`/logbook/entries/${id}`) as Promise<void>,
 
   listDepartments: (hotelId: string) =>
     apiClient.get(`/hotels/${hotelId}/departments`) as Promise<{ data: Department[] }>,

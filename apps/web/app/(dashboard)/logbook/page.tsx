@@ -12,14 +12,17 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Clock,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
 import { logbookApi, LogbookEntry } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { KebabMenu } from '@/components/shared/KebabMenu'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,15 +44,29 @@ function nextDay(dateStr: string): string {
 }
 
 function formatDisplayDate(dateStr: string): string {
-  // Parse as local date to avoid timezone shifts (dateStr is YYYY-MM-DD)
   const [year, month, day] = dateStr.split('-').map(Number)
   const d = new Date(year, month - 1, day)
   return format(d, 'MMM d, yyyy')
 }
 
+const DURATION_OPTIONS = [
+  { label: 'No expiry', value: 0 },
+  { label: '8 hours (end of shift)', value: 8 },
+  { label: '24 hours', value: 24 },
+  { label: '48 hours', value: 48 },
+  { label: '7 days', value: 168 },
+]
+
 // ── Entry card ────────────────────────────────────────────────────────────────
 
-function EntryCard({ entry }: { entry: LogbookEntry }) {
+interface EntryCardProps {
+  entry: LogbookEntry
+  canEdit: boolean
+  onEdit: (entry: LogbookEntry) => void
+  onDelete: (entry: LogbookEntry) => void
+}
+
+function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
   const authorName =
     entry.user_profiles?.preferred_name ??
     entry.user_profiles?.full_name ??
@@ -67,16 +84,30 @@ function EntryCard({ entry }: { entry: LogbookEntry }) {
             <span>{authorName}</span>
             <span aria-hidden="true">·</span>
             <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600">{deptName}</span>
+            {entry.expires_at && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="flex items-center gap-1 text-amber-600">
+                  <Clock className="w-3 h-3" />
+                  expires {formatDistanceToNow(new Date(entry.expires_at), { addSuffix: true })}
+                </span>
+              </>
+            )}
           </div>
           <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
             {entry.content}
           </p>
         </div>
-        {entry.is_ai_generated && (
-          <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-200 rounded font-medium shrink-0">
-            AI
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {entry.is_ai_generated && (
+            <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-200 rounded font-medium">
+              AI
+            </span>
+          )}
+          {canEdit && (
+            <KebabMenu onEdit={() => onEdit(entry)} onDelete={() => onDelete(entry)} />
+          )}
+        </div>
       </div>
     </div>
   )
@@ -137,7 +168,6 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
 
   return (
     <div className="rounded-xl border border-purple-200 bg-purple-50 overflow-hidden">
-      {/* Collapsible header */}
       <button
         onClick={() => setIsOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-100 transition-colors"
@@ -156,7 +186,6 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
         )}
       </button>
 
-      {/* Expanded content */}
       {isOpen && (
         <div className="px-4 pb-4 border-t border-purple-200">
           {summaryText ? (
@@ -231,26 +260,26 @@ interface CreateEntryModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  deptMap: Record<string, string> // id → name
+  deptMap: Record<string, string>
 }
 
 function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryModalProps) {
   const [deptId, setDeptId] = useState('')
   const [content, setContent] = useState('')
+  const [expiresHours, setExpiresHours] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const deptEntries = Object.entries(deptMap)
 
-  // Reset on open
   useEffect(() => {
     if (isOpen) {
       setDeptId(deptEntries.length > 0 ? deptEntries[0][0] : '')
       setContent('')
+      setExpiresHours(0)
       setError(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
-  // Close on Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -261,7 +290,11 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
 
   const mutation = useMutation({
     mutationFn: () =>
-      logbookApi.createEntry({ department_id: deptId, content: content.trim() }),
+      logbookApi.createEntry({
+        department_id: deptId,
+        content: content.trim(),
+        expires_hours: expiresHours > 0 ? expiresHours : undefined,
+      }),
     onSuccess: () => {
       onSuccess()
       onClose()
@@ -275,14 +308,8 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!deptId.trim()) {
-      setError('Department is required.')
-      return
-    }
-    if (content.trim().length < 10) {
-      setError('Entry must be at least 10 characters.')
-      return
-    }
+    if (!deptId.trim()) { setError('Department is required.'); return }
+    if (content.trim().length < 10) { setError('Entry must be at least 10 characters.'); return }
     mutation.mutate()
   }
 
@@ -290,14 +317,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal */}
+      <div className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50" onClick={onClose} aria-hidden="true" />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           role="dialog"
@@ -306,7 +326,6 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
           className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
@@ -314,17 +333,12 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Logbook Entry</h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="Close modal"
-            >
+            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" aria-label="Close modal">
               <X size={18} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Department */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Department <span className="text-red-500">*</span>
@@ -337,9 +351,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                   required
                 >
                   {deptEntries.map(([id, name]) => (
-                    <option key={id} value={id}>
-                      {name}
-                    </option>
+                    <option key={id} value={id}>{name}</option>
                   ))}
                 </select>
               ) : (
@@ -354,7 +366,6 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               )}
             </div>
 
-            {/* Content */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Entry <span className="text-red-500">*</span>
@@ -371,7 +382,22 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               <p className="text-xs text-gray-400 mt-1">{content.trim().length} chars (min 10)</p>
             </div>
 
-            {/* Error */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Clock size={13} className="text-gray-400" />
+                Auto-delete after
+              </label>
+              <select
+                value={expiresHours}
+                onChange={(e) => setExpiresHours(Number(e.target.value))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              >
+                {DURATION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
                 <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
@@ -379,7 +405,6 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               </div>
             )}
 
-            {/* Footer */}
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
               <button
                 type="button"
@@ -395,15 +420,9 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Saving…
-                  </>
+                  <><Loader2 size={14} className="animate-spin" />Saving…</>
                 ) : (
-                  <>
-                    <Plus size={14} />
-                    Add Entry
-                  </>
+                  <><Plus size={14} />Add Entry</>
                 )}
               </button>
             </div>
@@ -414,6 +433,111 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
   )
 }
 
+// ── Edit Entry Modal ──────────────────────────────────────────────────────────
+
+interface EditEntryModalProps {
+  entry: LogbookEntry | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
+  const currentExpiresHours = (() => {
+    if (!entry?.expires_at) return 0
+    const remaining = Math.ceil((new Date(entry.expires_at).getTime() - Date.now()) / 3_600_000)
+    // Snap to nearest option or default to 24
+    if (remaining <= 8) return 8
+    if (remaining <= 24) return 24
+    if (remaining <= 48) return 48
+    return 168
+  })()
+
+  const [content, setContent] = useState(entry?.content ?? '')
+  const [expiresHours, setExpiresHours] = useState(currentExpiresHours)
+  const [error, setError] = useState<string | null>(null)
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () =>
+      logbookApi.updateEntry(entry!.id, {
+        content: content.trim(),
+        expires_hours: expiresHours,
+      }),
+    onSuccess: () => { setError(null); onSaved() },
+    onError: (err: Error) => setError(err.message || 'Failed to save'),
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (content.trim().length < 10) { setError('Entry must be at least 10 characters.'); return }
+    setError(null)
+    mutate()
+  }
+
+  if (!entry) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold text-gray-900">Edit Entry</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Entry <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={5}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
+              minLength={10}
+            />
+            <p className="text-xs text-gray-400 mt-1">{content.trim().length} chars (min 10)</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+              <Clock size={13} className="text-gray-400" />
+              Auto-delete after
+            </label>
+            <select
+              value={expiresHours}
+              onChange={(e) => setExpiresHours(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            >
+              {DURATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+
+          <div className="flex gap-3 pt-1 border-t border-gray-100">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || content.trim().length < 10}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+            >
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LogbookPage() {
@@ -421,12 +545,15 @@ export default function LogbookPage() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<LogbookEntry | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<LogbookEntry | null>(null)
   const [mounted, setMounted] = useState(false)
-  const { isSupervisor } = useRole()
+  const { isSupervisor, isGM } = useRole()
 
   useEffect(() => { setMounted(true) }, [])
 
   const session = useAuthStore((s) => s.session)
+  const currentUserId: string = session?.user?.id ?? ''
   const hotelId: string = (() => {
     if (!session?.access_token) return ''
     try {
@@ -438,7 +565,6 @@ export default function LogbookPage() {
 
   const queryClient = useQueryClient()
 
-  // ── Departments query (used for create modal) ──────────────────────────────
   const { data: deptsData } = useQuery({
     queryKey: ['hotel-departments', hotelId],
     queryFn: () => logbookApi.listDepartments(hotelId),
@@ -447,7 +573,6 @@ export default function LogbookPage() {
     select: (res) => res.data,
   })
 
-  // ── Entries query ──────────────────────────────────────────────────────────
   const {
     data: entries,
     isLoading,
@@ -462,8 +587,6 @@ export default function LogbookPage() {
     select: (res) => res.data as LogbookEntry[],
   })
 
-  // ── Build dept map from loaded entries ─────────────────────────────────────
-  // Merge entries-sourced depts with API-fetched depts (API is preferred when available)
   const deptMapFromEntries: Record<string, string> = {}
   ;(entries ?? []).forEach((e) => {
     if (e.departments?.name && e.department_id) {
@@ -476,16 +599,32 @@ export default function LogbookPage() {
     deptMapFromApi[d.id] = d.name
   })
 
-  // Prefer API data; fall back to entries data
   const deptMap: Record<string, string> =
-    Object.keys(deptMapFromApi).length > 0
-      ? deptMapFromApi
-      : deptMapFromEntries
-
-  // Dept tabs for filter: all unique depts visible in current entries
+    Object.keys(deptMapFromApi).length > 0 ? deptMapFromApi : deptMapFromEntries
   const deptTabsFromEntries = Object.entries(deptMapFromEntries)
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Delete mutation (optimistic) ───────────────────────────────────────────
+  const { mutate: deleteEntry, isPending: deleting } = useMutation({
+    mutationFn: (id: string) => logbookApi.deleteEntry(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['logbook-entries', selectedDate, selectedDeptId] })
+      const previous = queryClient.getQueryData(['logbook-entries', selectedDate, selectedDeptId])
+      queryClient.setQueryData(['logbook-entries', selectedDate, selectedDeptId], (old: any) => {
+        if (!old?.data) return old
+        return { ...old, data: old.data.filter((e: LogbookEntry) => e.id !== id) }
+      })
+      setDeleteTarget(null)
+      return { previous }
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['logbook-entries', selectedDate, selectedDeptId], context.previous)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
+    },
+  })
 
   function handlePrevDay() {
     setSelectedDate((d) => prevDay(d))
@@ -509,8 +648,6 @@ export default function LogbookPage() {
 
   const isToday = selectedDate === today
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
@@ -533,7 +670,7 @@ export default function LogbookPage() {
         </button>
       </div>
 
-      {/* AI Shift Summary — visible to GM/supervisors on today's view */}
+      {/* AI Shift Summary */}
       {mounted && isToday && (
         <AISummaryPanel shiftDate={selectedDate} isSupervisor={isSupervisor} />
       )}
@@ -547,7 +684,6 @@ export default function LogbookPage() {
         >
           <ChevronLeft size={16} />
         </button>
-
         <button
           onClick={handleToday}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
@@ -558,11 +694,9 @@ export default function LogbookPage() {
         >
           Today
         </button>
-
         <span className="px-3 py-1.5 text-sm font-semibold text-gray-900 bg-white border border-gray-200 rounded-lg min-w-[130px] text-center">
           {formatDisplayDate(selectedDate)}
         </span>
-
         <button
           onClick={handleNextDay}
           disabled={isToday}
@@ -576,7 +710,6 @@ export default function LogbookPage() {
       {/* Department filter tabs */}
       {deptTabsFromEntries.length > 0 && (
         <div className="flex items-center gap-1 border-b border-gray-200 overflow-x-auto -mb-px">
-          {/* All tab */}
           <button
             onClick={() => setSelectedDeptId(null)}
             className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
@@ -587,35 +720,24 @@ export default function LogbookPage() {
           >
             All
             {entries && (
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                  selectedDeptId === null
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-gray-100 text-gray-500'
-                }`}
-              >
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${selectedDeptId === null ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
                 {entries.length}
               </span>
             )}
           </button>
-
-          {/* Per-dept tabs */}
-          {deptTabsFromEntries.map(([id, name]) => {
-            const isActive = selectedDeptId === id
-            return (
-              <button
-                key={id}
-                onClick={() => setSelectedDeptId(id)}
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-amber-200 text-amber-700'
-                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-                }`}
-              >
-                {name}
-              </button>
-            )
-          })}
+          {deptTabsFromEntries.map(([id, name]) => (
+            <button
+              key={id}
+              onClick={() => setSelectedDeptId(id)}
+              className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                selectedDeptId === id
+                  ? 'border-amber-200 text-amber-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
         </div>
       )}
 
@@ -647,11 +769,16 @@ export default function LogbookPage() {
       ) : entries && entries.length > 0 ? (
         <div className="space-y-3">
           {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              canEdit={isGM || isSupervisor || entry.author_id === currentUserId}
+              onEdit={setEditTarget}
+              onDelete={setDeleteTarget}
+            />
           ))}
         </div>
       ) : (
-        /* Empty state */
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
             <BookOpen size={28} className="text-gray-300" />
@@ -682,6 +809,26 @@ export default function LogbookPage() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleEntryCreated}
         deptMap={deptMap}
+      />
+
+      {/* Edit entry modal */}
+      <EditEntryModal
+        key={editTarget?.id ?? ''}
+        entry={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => {
+          setEditTarget(null)
+          queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
+        }}
+      />
+
+      {/* Delete confirm */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete this entry?`}
+        onConfirm={() => deleteTarget && deleteEntry(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
     </div>
   )

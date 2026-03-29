@@ -293,3 +293,19 @@ async def sync_opera_reservations(x_cron_secret: str = Header(None)):
             results.append({"hotel_id": hotel_id, "error": str(e)})
 
     return {"status": "ok", "results": results, "hotels_synced": len(results)}
+
+
+
+@router.post("/logbook/cleanup-expired")
+async def cleanup_expired_logbook_entries(x_cron_secret: str = Header(None)):
+    """Cron job: hard-delete logbook entries past their expires_at."""
+    verify_cron(x_cron_secret)
+    now = datetime.now(timezone.utc).isoformat()
+    result = supabase.table("logbook_entries")\
+        .delete()\
+        .not_.is_("expires_at", "null")\
+        .lt("expires_at", now)\
+        .execute()
+    deleted = len(result.data) if result.data else 0
+    logger.info(f"Cleaned up {deleted} expired logbook entries")
+    return {"status": "ok", "deleted": deleted}

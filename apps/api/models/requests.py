@@ -245,6 +245,12 @@ class CreateLogbookEntryRequest(BaseModel):
     department_id: UUID4
     shift_id: Optional[UUID4] = None
     content: str
+    expires_hours: Optional[int] = None  # 8, 24, 48, 168 — None = permanent
+
+
+class UpdateLogbookEntryRequest(BaseModel):
+    content: Optional[str] = None
+    expires_hours: Optional[int] = None  # 0 = remove expiry, positive = set new expiry
 
 
 # --- Hotel / Tenant Updates ---
