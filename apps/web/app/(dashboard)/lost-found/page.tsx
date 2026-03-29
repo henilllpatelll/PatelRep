@@ -203,12 +203,6 @@ function ItemCard({
               >
                 Donate
               </button>
-              <button
-                onClick={() => onQuickUpdate(item.id, 'discarded')}
-                className="px-3 py-1.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
-              >
-                Discard
-              </button>
             </>
           )}
         </div>
@@ -812,6 +806,7 @@ export default function LostFoundPage() {
 
       {/* ── Edit Modal ── */}
       <EditItemModal
+        key={editTarget?.id ?? ''}
         item={editTarget}
         onClose={() => setEditTarget(null)}
         onSaved={() => {
