@@ -60,7 +60,6 @@ export interface UpdateTaskData {
   notes?: string
   title?: string
   description?: string
-  location_text?: string
 }
 
 export interface TaskListFilters {
