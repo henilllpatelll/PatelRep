@@ -1,6 +1,5 @@
 import csv
 import io
-import pdfplumber
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from middleware.auth import require_role, get_current_user_no_hotel, CurrentUser
 from models.requests import CopilotChatRequest
@@ -110,48 +109,6 @@ def _import_rooms_batch(rooms_input: list[dict], hotel_id: str) -> dict:
     return {"imported_count": imported_count, "skipped_count": skipped_count, "errors": errors}
 
 
-def _normalize_header(h: str) -> str:
-    """Lowercase, strip punctuation/spaces for fuzzy column matching."""
-    return h.lower().replace(" ", "").replace(".", "").replace("_", "").replace("-", "") if h else ""
-
-
-# Map of normalized header → field name
-_ROOM_COL_MAP = {
-    "room": "room_number",
-    "roomno": "room_number",
-    "roomnumber": "room_number",
-    "rm": "room_number",
-    "rmno": "room_number",
-    "floor": "floor",
-    "fl": "floor",
-    "roomtype": "room_type_code",
-    "rmtype": "room_type_code",
-    "type": "room_type_code",
-    "roomclass": "room_type_code",
-    "class": "room_type_code",
-    "roomtypecode": "room_type_code",
-    "code": "room_type_code",
-    "description": "room_type_name",
-    "roomtypename": "room_type_name",
-    "typename": "room_type_name",
-    "name": "room_type_name",
-    "building": "building",
-    "bldg": "building",
-    "bld": "building",
-}
-
-
-def _map_headers(raw_headers: list[str]) -> dict[int, str]:
-    """Return {column_index: field_name} for recognized columns."""
-    mapping: dict[int, str] = {}
-    for i, h in enumerate(raw_headers):
-        norm = _normalize_header(h or "")
-        if norm in _ROOM_COL_MAP:
-            field = _ROOM_COL_MAP[norm]
-            if field not in mapping.values():  # first match wins
-                mapping[i] = field
-    return mapping
-
 ONBOARDING_STEPS = [
     "hotel_profile",
     "rooms_imported",
@@ -255,73 +212,6 @@ async def import_rooms_csv(
     return {"data": result}
 
 
-@router.post("/rooms/import-pdf")
-async def import_rooms_pdf(
-    file: UploadFile = File(...),
-    current_user: CurrentUser = Depends(require_role("gm"))
-):
-    """
-    Import rooms from an Opera Cloud room list PDF.
-    Detects table columns automatically (Room No., Floor, Room Type/Class, Description).
-    """
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="File must be a .pdf")
-
-    content = await file.read()
-    rooms_input: list[dict] = []
-    parse_errors: list[str] = []
-
-    try:
-        with pdfplumber.open(io.BytesIO(content)) as pdf:
-            for page_num, page in enumerate(pdf.pages, start=1):
-                tables = page.extract_tables()
-                for table in tables:
-                    if not table or len(table) < 2:
-                        continue
-
-                    # First row = headers
-                    raw_headers = [str(c).strip() if c else "" for c in table[0]]
-                    col_map = _map_headers(raw_headers)
-
-                    # Need at least room_number + floor + room_type_code
-                    required = {"room_number", "floor", "room_type_code"}
-                    if not required.issubset(col_map.values()):
-                        # Try positional fallback: assume first 3 cols are room, floor, type
-                        if len(raw_headers) >= 3:
-                            col_map = {0: "room_number", 1: "floor", 2: "room_type_code"}
-                            if len(raw_headers) >= 4:
-                                col_map[3] = "room_type_name"
-                        else:
-                            parse_errors.append(
-                                f"Page {page_num}: could not identify required columns "
-                                f"(found: {raw_headers})"
-                            )
-                            continue
-
-                    for row in table[1:]:
-                        if not row or all(c is None or str(c).strip() == "" for c in row):
-                            continue
-                        room_data: dict = {}
-                        for col_idx, field in col_map.items():
-                            val = row[col_idx] if col_idx < len(row) else None
-                            room_data[field] = str(val).strip() if val else ""
-                        rooms_input.append(room_data)
-
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Could not parse PDF: {exc}")
-
-    if not rooms_input:
-        detail = "No room data found in PDF."
-        if parse_errors:
-            detail += " " + "; ".join(parse_errors)
-        raise HTTPException(status_code=422, detail=detail)
-
-    result = _import_rooms_batch(rooms_input, current_user.hotel_id)
-    if parse_errors:
-        result["parse_warnings"] = parse_errors
-    return {"data": result}
-
-
 @router.post("/ai-assistant")
 async def onboarding_ai_assistant(
     request: CopilotChatRequest,
@@ -342,7 +232,7 @@ async def onboarding_ai_assistant(
 
     STEP_CONTEXT = {
         1: "The GM is setting up their Hotel Profile (name, address, room count, timezone). Help them understand the setup and answer questions about pricing ($99/month base, room count determines the monthly cap at $2.50/room).",
-        2: "The GM is importing rooms via CSV or manually. The CSV format needs: room_number (e.g. '101'), floor (integer), room_type_code (e.g. 'KS' for King Suite, 'SD' for Standard Double). They can also connect Opera Cloud to import automatically.",
+        2: "The GM is importing rooms via CSV upload or by adding rooms one at a time manually. The CSV format needs: room_number (e.g. '101'), floor (integer), room_type_code (e.g. 'KS' for King Suite, 'SD' for Standard Double), and optionally room_type_name and building.",
         3: "The GM is inviting staff. Roles available: housekeeping_supervisor (manages HK team + inspections), housekeeper (marks rooms clean on mobile), chief_engineer (manages work orders + PM schedules), engineer (claims and completes work orders), front_desk (creates guest requests, views room status).",
         4: "The GM is connecting Opera Cloud (optional). This enables: automatic room status updates on checkout, guest VIP flags, check-in times for predictions. They need their Opera OHIP credentials. It's skippable — they can connect it later in Settings > Integrations.",
         5: "The GM is uploading SOPs (Standard Operating Procedures) as PDFs (optional). These get indexed for AI Q&A. Good SOPs to upload: housekeeping procedures, VIP protocols, emergency procedures, brand standards. Skippable for now.",

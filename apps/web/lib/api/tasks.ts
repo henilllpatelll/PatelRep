@@ -89,4 +89,7 @@ export const tasksApi = {
 
   addComment: (taskId: string, comment: string) =>
     apiClient.post(`/tasks/${taskId}/comments`, undefined, { params: { comment } }),
+
+  delete: (taskId: string) =>
+    apiClient.delete(`/tasks/${taskId}`),
 }

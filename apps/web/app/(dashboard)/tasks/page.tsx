@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, ClipboardList, Clock, Bot, Bed, Wrench, Users, HelpCircle,
-  X, Send, Loader2,
+  X, Send, Loader2, Pencil,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { KebabMenu } from '@/components/shared/KebabMenu'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -116,10 +118,12 @@ interface TaskCardProps {
   task: Task
   onOpen: (t: Task) => void
   onStatusChange: (taskId: string, status: TaskStatus) => void
+  onEdit: (t: Task) => void
+  onDelete: (t: Task) => void
   updating: boolean
 }
 
-function TaskCard({ task, onOpen, onStatusChange, updating }: TaskCardProps) {
+function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: TaskCardProps) {
   return (
     <div
       className={`bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl ${priorityStripe(task.priority)} overflow-hidden cursor-pointer hover:shadow-md transition-shadow`}
@@ -149,6 +153,7 @@ function TaskCard({ task, onOpen, onStatusChange, updating }: TaskCardProps) {
           <div className="flex flex-col items-end gap-2 shrink-0">
             {priorityBadge(task.priority)}
             {statusBadge(task.status)}
+            <KebabMenu onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
           </div>
         </div>
 
@@ -316,12 +321,22 @@ interface TaskDetailDrawerProps {
   onClose: () => void
   onStatusChange: (taskId: string, status: TaskStatus) => void
   onComment: (taskId: string, comment: string) => Promise<void>
+  onSaved: () => void
   updating: boolean
+  startInEditMode?: boolean
 }
 
-function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }: TaskDetailDrawerProps) {
+function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, updating, startInEditMode }: TaskDetailDrawerProps) {
+  const queryClient = useQueryClient()
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(startInEditMode ?? false)
+  const [editForm, setEditForm] = useState({ title: task.title, description: task.description ?? '', priority: task.priority, location_text: task.location_text ?? '' })
+
+  const { mutate: saveEdit, isPending: saving } = useMutation({
+    mutationFn: () => tasksApi.update(task.id, { title: editForm.title, description: editForm.description || undefined, priority: editForm.priority as Priority, location_text: editForm.location_text || undefined }),
+    onSuccess: () => { setIsEditing(false); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved() },
+  })
 
   const handleComment = async () => {
     if (!comment.trim()) return
@@ -344,13 +359,41 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, updating }
             <span className="text-gray-400">{taskTypeIcon(task.task_type)}</span>
             <h2 className="font-semibold text-gray-900 text-sm">Task Details</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setIsEditing((v) => !v)} className="text-gray-400 hover:text-gray-600 p-1" title="Edit">
+              <Pencil size={15} />
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Inline edit form */}
+          {isEditing && (
+            <div className="bg-amber-50/60 border border-amber-200/60 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-amber-800">Edit Task</p>
+              <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50" placeholder="Title" />
+              <textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" placeholder="Description (optional)" />
+              <div className="grid grid-cols-2 gap-2">
+                <select value={editForm.priority} onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as Priority }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+                  <option value="urgent">Urgent</option>
+                  <option value="normal">Normal</option>
+                  <option value="low">Low</option>
+                </select>
+                <input value={editForm.location_text} onChange={(e) => setEditForm((f) => ({ ...f, location_text: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50" placeholder="Location" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => saveEdit()} disabled={saving || !editForm.title.trim()} className="flex-1 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-1">
+                  {saving && <Loader2 size={12} className="animate-spin" />}Save
+                </button>
+                <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          )}
+
           {/* Title + badges */}
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -534,6 +577,17 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
   const [showCreate, setShowCreate] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [drawerEditMode, setDrawerEditMode] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
+
+  const { mutate: deleteTask, isPending: deleting } = useMutation({
+    mutationFn: (id: string) => tasksApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setDeleteTarget(null)
+      setSelectedTask(null)
+    },
+  })
 
   const filters = {
     ...(statusFilter !== 'all' && { status: statusFilter as TaskStatus }),
@@ -664,8 +718,10 @@ export default function TasksPage() {
             <TaskCard
               key={task.id}
               task={task}
-              onOpen={setSelectedTask}
+              onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
               onStatusChange={handleStatusChange}
+              onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}
+              onDelete={setDeleteTarget}
               updating={updating}
             />
           ))}
@@ -688,9 +744,20 @@ export default function TasksPage() {
           onClose={() => setSelectedTask(null)}
           onStatusChange={handleStatusChange}
           onComment={handleComment}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
           updating={updating}
+          startInEditMode={drawerEditMode}
         />
       )}
+
+      {/* Delete Confirm */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete "${deleteTarget?.title ?? 'Task'}"`}
+        onConfirm={() => deleteTarget && deleteTask(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
     </div>
   )
 }

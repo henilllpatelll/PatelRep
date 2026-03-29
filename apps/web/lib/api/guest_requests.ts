@@ -43,10 +43,18 @@ export const guestRequestsApi = {
   updateRequest: (
     id: string,
     payload: {
+      title?: string
+      description?: string
+      room_id?: string
+      guest_name?: string
       status?: GuestRequestStatus
       notes?: string
+      resolved_at?: string
       assigned_to?: string
     },
   ) =>
     apiClient.patch(`/guest-requests/${id}`, payload) as Promise<{ data: GuestRequest }>,
+
+  deleteRequest: (id: string) =>
+    apiClient.delete(`/guest-requests/${id}`),
 }

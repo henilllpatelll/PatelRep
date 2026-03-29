@@ -63,5 +63,22 @@ yarn-debug.log*
 # Playwright MCP browser sessions
 .playwright-mcp/
 
+# Playwright e2e tests
+e2e/.auth/
+playwright-report/
+test-results/
+
 # Python ruff cache (project root)
 .ruff_cache/
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/worktrees/
+.claude/skills/
+
+# Playwright test screenshots (root-level)
+test-*.png
+login-page.png
+
+# GSD planning archive
+.planning/archive/

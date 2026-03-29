@@ -20,6 +20,8 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { KebabMenu } from '@/components/shared/KebabMenu'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,8 @@ interface GuestRequestCardProps {
   request: GuestRequest
   canAct: boolean
   onUpdateStatus: (id: string, status: GuestRequestStatus) => void
+  onEdit: (request: GuestRequest) => void
+  onDelete: (request: GuestRequest) => void
   isUpdating: boolean
   updatingId: string | null
 }
@@ -74,6 +78,8 @@ function GuestRequestCard({
   request,
   canAct,
   onUpdateStatus,
+  onEdit,
+  onDelete,
   isUpdating,
   updatingId,
 }: GuestRequestCardProps) {
@@ -81,12 +87,15 @@ function GuestRequestCard({
 
   return (
     <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
-      {/* Top row: request number + status badge */}
+      {/* Top row: request number + status badge + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <span className="font-mono text-xs text-gray-400 tracking-wider">
           GR-{String(request.request_number).padStart(3, '0')}
         </span>
-        <StatusBadge status={request.status} />
+        <div className="flex items-center gap-1">
+          <StatusBadge status={request.status} />
+          <KebabMenu onEdit={() => onEdit(request)} onDelete={() => onDelete(request)} />
+        </div>
       </div>
 
       {/* Title */}
@@ -206,6 +215,91 @@ function SkeletonCard() {
       <div className="flex gap-2 pt-2 border-t border-gray-100">
         <div className="h-7 w-16 bg-gray-200 rounded-lg" />
         <div className="h-7 w-20 bg-gray-200 rounded-lg" />
+      </div>
+    </div>
+  )
+}
+
+// ─── Edit Request Modal ───────────────────────────────────────────────────────
+
+interface EditRequestModalProps {
+  request: GuestRequest | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) {
+  const [form, setForm] = useState({
+    title: request?.title ?? '',
+    description: request?.description ?? '',
+    guest_name: request?.guest_name ?? '',
+    status: request?.status ?? 'open',
+  })
+  const [error, setError] = useState<string | null>(null)
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () =>
+      guestRequestsApi.updateRequest(request!.id, {
+        title: form.title.trim() || undefined,
+        description: form.description.trim() || undefined,
+        guest_name: form.guest_name.trim() || undefined,
+        status: form.status as GuestRequestStatus,
+      }),
+    onSuccess: () => { setError(null); onSaved() },
+    onError: (err: Error) => setError(err.message || 'Failed to save'),
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.title.trim()) { setError('Title is required.'); return }
+    setError(null)
+    mutate()
+  }
+
+  if (!request) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Edit Guest Request</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-red-500">*</span></label>
+            <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name</label>
+            <input type="text" value={form.guest_name} onChange={(e) => setForm((f) => ({ ...f, guest_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="escalated">Escalated</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="ghost" onClick={onClose} className="flex-1 justify-center">Cancel</Button>
+            <Button type="submit" variant="primary" disabled={isPending || !form.title.trim()} className="flex-1 justify-center">
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )
@@ -365,6 +459,8 @@ export default function GuestRequestsPage() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('open')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<GuestRequest | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<GuestRequest | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   // ── Fetch all requests, filter client-side ──
@@ -384,6 +480,16 @@ export default function GuestRequestsPage() {
   }
 
   const filtered = (requests ?? []).filter((r) => r.status === activeTab)
+
+  // ── Delete mutation ──
+  const { mutate: deleteRequest, isPending: deleting } = useMutation({
+    mutationFn: (id: string) => guestRequestsApi.deleteRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setDeleteTarget(null)
+    },
+  })
 
   // ── Status update mutation ──
   const { mutate: updateStatus, isPending: isUpdating } = useMutation({
@@ -536,6 +642,8 @@ export default function GuestRequestsPage() {
               request={request}
               canAct={canAct}
               onUpdateStatus={handleUpdateStatus}
+              onEdit={setEditTarget}
+              onDelete={setDeleteTarget}
               isUpdating={isUpdating}
               updatingId={updatingId}
             />
@@ -551,6 +659,26 @@ export default function GuestRequestsPage() {
           setShowCreateModal(false)
           queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
         }}
+      />
+
+      {/* ── Edit Modal ── */}
+      <EditRequestModal
+        request={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => {
+          setEditTarget(null)
+          queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+        }}
+      />
+
+      {/* ── Delete Confirm ── */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete GR-${String(deleteTarget?.request_number ?? '').padStart(3, '0')}?`}
+        description="This will also delete the linked task."
+        onConfirm={() => deleteTarget && deleteRequest(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
     </div>
   )

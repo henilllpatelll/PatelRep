@@ -45,11 +45,18 @@ export const lostFoundApi = {
   updateItem: (
     id: string,
     payload: {
-      status?: LostFoundStatus
+      description?: string
+      location_found?: string
+      room_id?: string
       notes?: string
+      status?: LostFoundStatus
       claimed_by_name?: string
       claimed_by_contact?: string
+      claimed_at?: string
     },
   ) =>
     apiClient.patch(`/lost-found/${id}`, payload) as Promise<{ data: LostFoundItem }>,
+
+  deleteItem: (id: string) =>
+    apiClient.delete(`/lost-found/${id}`),
 }

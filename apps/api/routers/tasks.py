@@ -119,6 +119,25 @@ async def update_task(
     return {"data": result.data[0] if result.data else None}
 
 
+@router.delete("/{task_id}", status_code=204)
+async def delete_task(
+    task_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    result = supabase.table("tasks") \
+        .delete() \
+        .eq("id", task_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+    # Belt-and-suspenders: delete orphaned comments if cascade FK not set
+    supabase.table("task_comments") \
+        .delete() \
+        .eq("task_id", task_id) \
+        .execute()
+
+
 @router.post("/{task_id}/comments")
 async def add_task_comment(
     task_id: str,

@@ -169,6 +169,35 @@ async def update_work_order(
     return {"data": result.data[0] if result.data else None}
 
 
+@router.delete("/{wo_id}", status_code=204)
+async def delete_work_order(
+    wo_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    wo_check = supabase.table("work_orders") \
+        .select("id") \
+        .eq("id", wo_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .maybe_single() \
+        .execute()
+    if not wo_check.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    supabase.table("work_order_comments") \
+        .delete() \
+        .eq("work_order_id", wo_id) \
+        .execute()
+    supabase.table("work_order_photos") \
+        .delete() \
+        .eq("work_order_id", wo_id) \
+        .execute()
+    supabase.table("work_orders") \
+        .delete() \
+        .eq("id", wo_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+
+
 @router.post("/{wo_id}/comments")
 async def add_comment(
     wo_id: str,

@@ -3,13 +3,14 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { useQueries } from '@tanstack/react-query'
+import { useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { engineeringApi } from '@/lib/api/engineering'
 import { WorkOrderCard } from '@/components/engineering/WorkOrderCard'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useRole } from '@/lib/hooks/useRole'
 import { Button } from '@/components/ui/Button'
 import type { WorkOrder } from '@/lib/api/engineering'
@@ -68,10 +69,22 @@ export default function EngineeringPage() {
   const isEngineer = role === 'engineer'
   const canCreate = isGM || isChief || isEngineer
 
+  const queryClient = useQueryClient()
   const [category, setCategory] = useState('')
   const [priority, setPriority] = useState('')
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
+  const [drawerEditMode, setDrawerEditMode] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<WorkOrder | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  const { mutate: deleteWO, isPending: deleting } = useMutation({
+    mutationFn: (id: string) => engineeringApi.deleteWorkOrder(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      if (selectedWO?.id === id) { setSelectedWO(null); setDrawerEditMode(false) }
+      setDeleteTarget(null)
+    },
+  })
 
   const results = useQueries({
     queries: KANBAN_STATUSES.map(status => ({
@@ -171,7 +184,13 @@ export default function EngineeringPage() {
                     <p className="text-xs text-stone-400 text-center py-8">No {STATUS_LABELS[status].toLowerCase()} work orders</p>
                   ) : (
                     filteredWOs.map(wo => (
-                      <WorkOrderCard key={wo.id} wo={wo} onClick={setSelectedWO} />
+                      <WorkOrderCard
+                        key={wo.id}
+                        wo={wo}
+                        onClick={(w) => { setDrawerEditMode(false); setSelectedWO(w) }}
+                        onEdit={(w) => { setDrawerEditMode(true); setSelectedWO(w) }}
+                        onDelete={setDeleteTarget}
+                      />
                     ))
                   )}
                 </div>
@@ -188,10 +207,18 @@ export default function EngineeringPage() {
       <WorkOrderDetailDrawer
         wo={selectedWO}
         isOpen={!!selectedWO}
-        onClose={() => setSelectedWO(null)}
-        onUpdate={() => {
-          setSelectedWO(null)
-        }}
+        onClose={() => { setSelectedWO(null); setDrawerEditMode(false) }}
+        onUpdate={() => { setSelectedWO(null); setDrawerEditMode(false) }}
+        startInEditMode={drawerEditMode}
+      />
+
+      {/* Delete confirm */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete WO-${String(deleteTarget?.work_order_number ?? '').padStart(3, '0')}?`}
+        onConfirm={() => deleteTarget && deleteWO(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
 
       {/* Create modal */}

@@ -15,6 +15,7 @@ import {
   PauseCircle,
   XCircle,
   RotateCcw,
+  Pencil,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { engineeringApi, WorkOrder, WorkOrderComment } from '@/lib/api/engineering'
@@ -26,6 +27,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onUpdate: () => void
+  startInEditMode?: boolean
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -89,7 +91,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) {
+export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEditMode }: Props) {
   const { role, isGM } = useRole()
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -110,6 +112,16 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
 
   // Comment state
   const [commentText, setCommentText] = useState('')
+
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(startInEditMode ?? false)
+  const [editForm, setEditForm] = useState({
+    title: wo?.title ?? '',
+    description: wo?.description ?? '',
+    category: wo?.category ?? 'general',
+    priority: wo?.priority ?? 'normal',
+    notes: wo?.notes ?? '',
+  })
 
   // Fetch full WO detail (includes comments and photos) when open
   const { data: woDetail, isLoading: detailLoading, refetch: refetchDetail } = useQuery({
@@ -162,6 +174,17 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
     },
   })
 
+  const editMutation = useMutation({
+    mutationFn: () => engineeringApi.updateWorkOrder(wo!.id, {
+      title: editForm.title || undefined,
+      description: editForm.description || undefined,
+      category: editForm.category,
+      priority: editForm.priority,
+      notes: editForm.notes || undefined,
+    }),
+    onSuccess: () => { setIsEditing(false); invalidate() },
+  })
+
   // Escape key + focus
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -182,7 +205,15 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
     setLaborHours('')
     setPartsUsed('')
     setCommentText('')
-  }, [wo?.id])
+    setIsEditing(startInEditMode ?? false)
+    setEditForm({
+      title: wo?.title ?? '',
+      description: wo?.description ?? '',
+      category: wo?.category ?? 'general',
+      priority: wo?.priority ?? 'normal',
+      notes: wo?.notes ?? '',
+    })
+  }, [wo?.id, startInEditMode])
 
   if (!isOpen || !wo) return null
 
@@ -268,17 +299,91 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate }: Props) 
             )}
           </div>
 
-          <button
-            onClick={onClose}
-            className="ml-2 shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="Close drawer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 ml-2 shrink-0">
+            <button
+              onClick={() => setIsEditing((v) => !v)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Edit work order"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Close drawer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/60">
+
+          {/* Section: Inline edit */}
+          {isEditing && (
+            <div className="p-5 bg-amber-50/60 border-b border-amber-200/40">
+              <p className="text-xs font-semibold text-amber-800 mb-3">Edit Work Order</p>
+              <div className="space-y-3">
+                <input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="Title"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                />
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  placeholder="Description (optional)"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                  >
+                    {['plumbing','electrical','hvac','furniture','appliance','structural','safety','general'].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={editForm.priority}
+                    onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value }))}
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                  >
+                    <option value="urgent">Urgent</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Notes (optional)"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => editMutation.mutate()}
+                    disabled={editMutation.isPending || !editForm.title.trim()}
+                    className="flex-1 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-1"
+                  >
+                    {editMutation.isPending && <Loader2 size={12} className="animate-spin" />}
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Section: Details */}
           <div className="p-5">

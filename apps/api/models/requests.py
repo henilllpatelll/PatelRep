@@ -59,9 +59,14 @@ class CreateTaskRequest(BaseModel):
 
 
 class UpdateTaskRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    task_type: Optional[Literal["housekeeping", "engineering", "guest_request", "lost_found", "general"]] = None
+    priority: Optional[Literal["urgent", "normal", "low"]] = None
     status: Optional[Literal["open", "in_progress", "completed", "cancelled", "escalated"]] = None
     assigned_to: Optional[UUID4] = None
-    priority: Optional[Literal["urgent", "normal", "low"]] = None
+    location_text: Optional[str] = None
+    due_at: Optional[datetime] = None
     notes: Optional[str] = None
 
 
@@ -86,12 +91,19 @@ class CompleteWorkOrderRequest(BaseModel):
 
 
 class UpdateWorkOrderRequest(BaseModel):
-    status: Optional[Literal["open", "in_progress", "on_hold", "completed", "cancelled"]] = None
-    priority: Optional[Literal["urgent", "normal", "low"]] = None
-    assigned_to: Optional[UUID4] = None
-    notes: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[Literal["plumbing", "electrical", "hvac", "furniture", "appliance", "structural", "safety", "general"]] = None
+    priority: Optional[Literal["urgent", "normal", "low"]] = None
+    status: Optional[Literal["open", "in_progress", "on_hold", "completed", "cancelled"]] = None
+    assigned_to: Optional[UUID4] = None
+    room_id: Optional[UUID4] = None
+    location_text: Optional[str] = None
+    asset_id: Optional[UUID4] = None
+    due_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    labor_hours: Optional[float] = None
+    parts_used: Optional[str] = None
 
 
 class AddCommentRequest(BaseModel):

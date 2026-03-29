@@ -2,6 +2,7 @@
 import type { WorkOrder } from '@/lib/api/engineering'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { KebabMenu } from '@/components/shared/KebabMenu'
 
 const CATEGORY_ICONS: Record<string, string> = {
   plumbing: '💧',
@@ -43,9 +44,11 @@ function priorityVariant(priority: string): 'high' | 'medium' | 'low' {
 interface Props {
   wo: WorkOrder
   onClick: (wo: WorkOrder) => void
+  onEdit?: (wo: WorkOrder) => void
+  onDelete?: (wo: WorkOrder) => void
 }
 
-export function WorkOrderCard({ wo, onClick }: Props) {
+export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
   const sla =
     wo.due_at && wo.status !== 'completed' && wo.status !== 'cancelled'
       ? formatSLA(wo.due_at)
@@ -103,6 +106,12 @@ export function WorkOrderCard({ wo, onClick }: Props) {
               <span className={`text-xs ${sla.breached ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
                 {sla.text}
               </span>
+            )}
+            {(onEdit || onDelete) && (
+              <KebabMenu
+                onEdit={() => onEdit?.(wo)}
+                onDelete={() => onDelete?.(wo)}
+              />
             )}
           </div>
         </div>

@@ -88,7 +88,10 @@ async def update_lost_found_item(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Update lost & found item status (unclaimed → claimed/donated/discarded)."""
-    allowed_fields = {"status", "notes", "claimed_by_name", "claimed_at", "claimed_by_contact"}
+    allowed_fields = {
+        "description", "location_found", "room_id", "notes",
+        "status", "claimed_by_name", "claimed_by_contact", "claimed_at",
+    }
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 
     if update_data.get("status") in ("claimed", "donated", "discarded") and "claimed_at" not in update_data:
@@ -101,3 +104,17 @@ async def update_lost_found_item(
         .execute()
 
     return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/{item_id}", status_code=204)
+async def delete_lost_found_item(
+    item_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    result = supabase.table("lost_found_items") \
+        .delete() \
+        .eq("id", item_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Item not found")

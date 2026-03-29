@@ -21,6 +21,8 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { KebabMenu } from '@/components/shared/KebabMenu'
+import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -103,6 +105,8 @@ interface ItemCardProps {
   canAct: boolean
   onMarkClaimed: (item: LostFoundItem) => void
   onQuickUpdate: (id: string, status: LostFoundStatus) => void
+  onEdit: (item: LostFoundItem) => void
+  onDelete: (item: LostFoundItem) => void
   isUpdating: boolean
   updatingId: string | null
 }
@@ -112,6 +116,8 @@ function ItemCard({
   canAct,
   onMarkClaimed,
   onQuickUpdate,
+  onEdit,
+  onDelete,
   isUpdating,
   updatingId,
 }: ItemCardProps) {
@@ -123,13 +129,16 @@ function ItemCard({
 
   return (
     <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
-      {/* Top row: status badge + time */}
+      {/* Top row: status badge + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <StatusBadge status={item.status} />
-        <span className="text-xs text-gray-400 flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+          </span>
+          <KebabMenu onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} />
+        </div>
       </div>
 
       {/* Description */}
@@ -204,6 +213,107 @@ function ItemCard({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Edit Item Modal ──────────────────────────────────────────────────────────
+
+interface EditItemModalProps {
+  item: LostFoundItem | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
+  const [form, setForm] = useState({
+    description: item?.description ?? '',
+    location_found: item?.location_found ?? '',
+    notes: item?.notes ?? '',
+    status: item?.status ?? 'unclaimed',
+    claimed_by_name: item?.claimed_by_name ?? '',
+    claimed_by_contact: item?.claimed_by_contact ?? '',
+  })
+  const [error, setError] = useState<string | null>(null)
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () =>
+      lostFoundApi.updateItem(item!.id, {
+        description: form.description.trim() || undefined,
+        location_found: form.location_found.trim() || undefined,
+        notes: form.notes.trim() || undefined,
+        status: form.status as LostFoundStatus,
+        claimed_by_name: form.claimed_by_name.trim() || undefined,
+        claimed_by_contact: form.claimed_by_contact.trim() || undefined,
+      }),
+    onSuccess: () => { setError(null); onSaved() },
+    onError: (err: Error) => setError(err.message || 'Failed to save'),
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.description.trim()) { setError('Description is required.'); return }
+    setError(null)
+    mutate()
+  }
+
+  if (!item) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location Found</label>
+            <input type="text" value={form.location_found} onChange={(e) => setForm((f) => ({ ...f, location_found: e.target.value }))} placeholder="e.g. Room 204, Pool area" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="unclaimed">Unclaimed</option>
+              <option value="claimed">Claimed</option>
+              <option value="donated">Donated</option>
+              <option value="discarded">Discarded</option>
+            </select>
+          </div>
+          {form.status === 'claimed' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Claimed By Name</label>
+                <input type="text" value={form.claimed_by_name} onChange={(e) => setForm((f) => ({ ...f, claimed_by_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info</label>
+                <input type="text" value={form.claimed_by_contact} onChange={(e) => setForm((f) => ({ ...f, claimed_by_contact: e.target.value }))} placeholder="Phone or email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+            </>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Any additional details..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
+              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
@@ -494,6 +604,8 @@ export default function LostFoundPage() {
   const [search, setSearch] = useState('')
   const [showLogModal, setShowLogModal] = useState(false)
   const [claimTarget, setClaimTarget] = useState<LostFoundItem | null>(null)
+  const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   // ── Fetch all items ──
@@ -533,6 +645,15 @@ export default function LostFoundPage() {
     onSettled: () => setUpdatingId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+    },
+  })
+
+  // ── Delete mutation ──
+  const { mutate: deleteItem, isPending: deleting } = useMutation({
+    mutationFn: (id: string) => lostFoundApi.deleteItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+      setDeleteTarget(null)
     },
   })
 
@@ -660,6 +781,8 @@ export default function LostFoundPage() {
               canAct={canAct}
               onMarkClaimed={(i) => setClaimTarget(i)}
               onQuickUpdate={handleQuickUpdate}
+              onEdit={setEditTarget}
+              onDelete={setDeleteTarget}
               isUpdating={isUpdating}
               updatingId={updatingId}
             />
@@ -685,6 +808,25 @@ export default function LostFoundPage() {
           setClaimTarget(null)
           queryClient.invalidateQueries({ queryKey: ['lost-found'] })
         }}
+      />
+
+      {/* ── Edit Modal ── */}
+      <EditItemModal
+        item={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => {
+          setEditTarget(null)
+          queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+        }}
+      />
+
+      {/* ── Delete Confirm ── */}
+      <DeleteConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete "${deleteTarget?.description ?? 'item'}"`}
+        onConfirm={() => deleteTarget && deleteItem(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
     </div>
   )

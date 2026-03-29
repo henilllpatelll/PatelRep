@@ -82,8 +82,11 @@ async def update_guest_request(
     body: dict,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    """Update guest request status or notes."""
-    allowed_fields = {"status", "notes", "resolved_at", "assigned_to"}
+    """Update guest request — full edit with cascade to linked task."""
+    allowed_fields = {
+        "title", "description", "room_id", "guest_name",
+        "status", "notes", "resolved_at", "assigned_to",
+    }
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 
     if update_data.get("status") == "resolved" and "resolved_at" not in update_data:
@@ -94,4 +97,56 @@ async def update_guest_request(
         .eq("id", request_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
+
+    # Cascade title/description edits to the linked task
+    if result.data:
+        gr = result.data[0]
+        task_id = gr.get("task_id")
+        task_cascade: dict = {}
+        if "title" in update_data:
+            task_cascade["title"] = update_data["title"]
+        if "description" in update_data:
+            task_cascade["description"] = update_data["description"]
+        if task_id and task_cascade:
+            supabase.table("tasks") \
+                .update(task_cascade) \
+                .eq("id", task_id) \
+                .eq("tenant_id", current_user.hotel_id) \
+                .execute()
+
     return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/{request_id}", status_code=204)
+async def delete_guest_request(
+    request_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    gr = supabase.table("guest_requests") \
+        .select("task_id") \
+        .eq("id", request_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .maybe_single() \
+        .execute()
+
+    if not gr.data:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+
+    task_id = gr.data.get("task_id")
+
+    supabase.table("guest_requests") \
+        .delete() \
+        .eq("id", request_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+
+    if task_id:
+        supabase.table("task_comments") \
+            .delete() \
+            .eq("task_id", task_id) \
+            .execute()
+        supabase.table("tasks") \
+            .delete() \
+            .eq("id", task_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute()

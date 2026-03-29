@@ -9,7 +9,11 @@
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn main:app --reload --port 8000"
+    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn main:app --reload --port 8000",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "patch-package": "^8.0.1"
