@@ -645,9 +645,21 @@ export default function LostFoundPage() {
   // ── Delete mutation ──
   const { mutate: deleteItem, isPending: deleting } = useMutation({
     mutationFn: (id: string) => lostFoundApi.deleteItem(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['lost-found'] })
+      const previous = queryClient.getQueryData(['lost-found'])
+      queryClient.setQueryData(['lost-found'], (old: any) => {
+        if (!old?.data) return old
+        return { ...old, data: old.data.filter((i: LostFoundItem) => i.id !== id) }
+      })
       setDeleteTarget(null)
+      return { previous }
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) queryClient.setQueryData(['lost-found'], context.previous)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
     },
   })
 
