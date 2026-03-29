@@ -381,7 +381,6 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
     e.preventDefault()
     setError(null)
     if (!deptId.trim()) { setError('Department is required.'); return }
-    if (content.trim().length < 10) { setError('Entry must be at least 10 characters.'); return }
     mutation.mutate()
   }
 
@@ -449,9 +448,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 placeholder="Describe what happened during your shift…"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
                 required
-                minLength={10}
               />
-              <p className="text-xs text-gray-400 mt-1">{content.trim().length} chars (min 10)</p>
             </div>
 
             <div>
@@ -480,7 +477,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               </button>
               <button
                 type="submit"
-                disabled={mutation.isPending || content.trim().length < 10 || !deptId.trim()}
+                disabled={mutation.isPending || !content.trim() || !deptId.trim()}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? (
@@ -532,7 +529,6 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (content.trim().length < 10) { setError('Entry must be at least 10 characters.'); return }
     setError(null)
     mutate()
   }
@@ -560,9 +556,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
-              minLength={10}
             />
-            <p className="text-xs text-gray-400 mt-1">{content.trim().length} chars (min 10)</p>
           </div>
 
           <div>
@@ -581,7 +575,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
             </button>
             <button
               type="submit"
-              disabled={isPending || content.trim().length < 10}
+              disabled={isPending || !content.trim()}
               className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
