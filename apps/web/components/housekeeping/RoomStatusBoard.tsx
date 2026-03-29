@@ -174,6 +174,12 @@ export function RoomStatusBoard() {
       .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
     if (preds.length > 0) setPredictions(preds)
     setLastSyncedAt(new Date())
+    // Sync the detail drawer with the freshest room data so status updates
+    // are reflected immediately without needing a hard reload.
+    setSelectedRoom((prev: any) => {
+      if (!prev) return prev
+      return rooms.find((r: any) => r.room_id === prev.room_id) ?? prev
+    })
   }, [boardData])
 
   // ── Supabase Realtime subscription ────────────────────────────────────────

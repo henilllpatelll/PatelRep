@@ -65,10 +65,7 @@ export interface BulkAssignmentData {
 // ─── Response interfaces ──────────────────────────────────────────────────────
 
 export interface ShiftListResponse {
-  data: {
-    shifts: Shift[]
-    total: number
-  }
+  data: Shift[]
 }
 
 export interface ShiftResponse {
@@ -78,10 +75,7 @@ export interface ShiftResponse {
 }
 
 export interface AssignmentListResponse {
-  data: {
-    assignments: ShiftAssignment[]
-    total: number
-  }
+  data: ShiftAssignment[]
 }
 
 export interface AssignmentResponse {

@@ -1085,7 +1085,7 @@ export default function SchedulingPage() {
   const shiftsQuery = useQuery({
     queryKey: ['schedules-shifts'],
     queryFn: () => schedulingApi.listShifts({ is_active: undefined }),
-    select: (res) => res.data.shifts,
+    select: (res) => res.data,
     staleTime: 5 * 60_000,
   })
 
@@ -1107,7 +1107,7 @@ export default function SchedulingPage() {
     },
     select: (res) => {
       // Filter client-side to the visible week
-      return res.data.assignments.filter(
+      return res.data.filter(
         (a) => a.work_date >= dateFrom && a.work_date <= dateTo,
       )
     },

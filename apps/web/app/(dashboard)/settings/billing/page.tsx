@@ -13,6 +13,7 @@ import {
 import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage, Invoice } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
+import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -92,7 +93,8 @@ function SkeletonCard({ rows = 4 }: { rows?: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsBillingPage() {
-  const { isGM } = useRole()
+  const { isGM, role } = useRole()
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
   const [portalError, setPortalError] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
@@ -136,6 +138,15 @@ export default function SettingsBillingPage() {
       setCheckoutError(err.message || 'Failed to start checkout.')
     },
   })
+
+  // Auth loading guard — role is null until fetchProfile() resolves
+  if (isAuthLoading || !role) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-amber-500" />
+      </div>
+    )
+  }
 
   // Non-GM guard
   if (!isGM) {

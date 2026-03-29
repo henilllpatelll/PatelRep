@@ -26,14 +26,18 @@ type DateRange = '7d' | '30d' | '90d'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function getDateRange(range: DateRange): { start_date: string; end_date: string } {
   const today = new Date()
   const days = range === '7d' ? 7 : range === '30d' ? 30 : 90
   const start = new Date(today)
   start.setDate(start.getDate() - days)
   return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: today.toISOString().split('T')[0],
+    start_date: toLocalDateStr(start),
+    end_date: toLocalDateStr(today),
   }
 }
 
@@ -141,7 +145,7 @@ function SkeletonBlock({ className = '' }: { className?: string }) {
 
 function DailySummaryTab() {
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    toLocalDateStr(new Date())
   )
 
   const { data, isLoading, isError } = useQuery({
@@ -160,7 +164,7 @@ function DailySummaryTab() {
         <input
           type="date"
           value={selectedDate}
-          max={new Date().toISOString().split('T')[0]}
+          max={toLocalDateStr(new Date())}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
