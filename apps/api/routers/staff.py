@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import require_role, get_current_user, get_current_user_no_hotel, CurrentUser
 from models.requests import InviteStaffRequest, AddStaffDirectRequest, UpdatePushTokenRequest
 from core.database import supabase
+from core.config import settings
+import httpx
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 
@@ -166,14 +168,28 @@ async def add_staff_direct(
     except Exception as e:
         err_str = str(e)
         if "already been registered" in err_str or "already registered" in err_str:
-            # Auth user exists from a previous partial attempt — find them and reuse their ID
+            # Auth user exists from a previous partial attempt — look them up by email
+            # via the GoTrue admin REST API (more reliable than list_users pagination)
             try:
-                all_users = supabase.auth.admin.list_users()
-                users_list = all_users if isinstance(all_users, list) else getattr(all_users, "users", [])
-                existing = next((u for u in users_list if getattr(u, "email", "") == body.email), None)
+                resp = httpx.get(
+                    f"{settings.supabase_url}/auth/v1/admin/users",
+                    headers={
+                        "apikey": settings.supabase_service_role_key,
+                        "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                    },
+                    params={"filter": body.email, "per_page": 1000},
+                    timeout=10.0,
+                )
+                resp.raise_for_status()
+                raw = resp.json()
+                users_list = raw.get("users", raw) if isinstance(raw, dict) else raw
+                existing = next(
+                    (u for u in users_list if u.get("email", "").lower() == body.email.lower()),
+                    None,
+                )
                 if not existing:
-                    raise HTTPException(status_code=400, detail="User exists but could not be located.")
-                user_id = str(existing.id)
+                    raise HTTPException(status_code=400, detail=f"'{body.email}' already exists in auth but could not be located. Please contact support.")
+                user_id = str(existing["id"])
                 # Update their password to the one being set now
                 supabase.auth.admin.update_user_by_id(user_id, {"password": temp_password})
             except HTTPException:
