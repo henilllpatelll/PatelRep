@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, LogOut, Settings, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, Settings, ChevronDown, Menu } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
 import type { UserRole } from '@/stores/authStore'
@@ -43,7 +43,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
   front_desk: 'Front Desk',
 }
 
-export function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void
+}
+
+export function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, signOut } = useAuth()
@@ -98,10 +102,20 @@ export function Header() {
   }, [dropdownOpen])
 
   return (
-    <header className="h-14 flex items-center justify-between px-6 bg-[#FEFAF4]/90 backdrop-blur-xl border-b border-[#EDE8DF] sticky top-0 z-10 shrink-0">
-      <span className="text-sm font-semibold text-[#1C1208] tracking-tight">{title}</span>
-
+    <header className="h-14 flex items-center justify-between px-4 md:px-6 bg-[#FEFAF4]/90 backdrop-blur-xl border-b border-[#EDE8DF] sticky top-0 z-10 shrink-0">
       <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="md:hidden p-2 -ml-1 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
+          aria-label="Open menu"
+        >
+          <Menu size={18} />
+        </button>
+        <span className="text-sm font-semibold text-[#1C1208] tracking-tight">{title}</span>
+      </div>
+
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Notification bell */}
         <button
           className="hidden p-2 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
@@ -110,9 +124,9 @@ export function Header() {
           <Bell size={16} />
         </button>
 
-        {/* Hotel chip */}
+        {/* Hotel chip — hidden on mobile to avoid overflow */}
         {hotel && (
-          <span className="bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A]">
+          <span className="hidden md:inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A]">
             {hotel.name}
           </span>
         )}

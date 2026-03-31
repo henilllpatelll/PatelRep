@@ -154,7 +154,12 @@ const KNOWLEDGE_HREFS = ['/sop', '/reports', '/logbook']
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const { role, canViewBilling } = useRole()
   const { user } = useAuth()
@@ -198,6 +203,7 @@ export function Sidebar() {
           )}
           <Link
             href={href}
+            onClick={onMobileClose}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
@@ -231,6 +237,7 @@ export function Sidebar() {
                 <Link
                   key={subHref}
                   href={subHref}
+                  onClick={onMobileClose}
                   className={cn(
                     'block px-2.5 py-1 text-sm rounded-lg transition-colors duration-200',
                     subActive
@@ -263,6 +270,7 @@ export function Sidebar() {
           )}
           <Link
             href={href}
+            onClick={onMobileClose}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
@@ -291,7 +299,17 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-[240px] bg-[#17130F] border-r border-[#2D221A] flex flex-col shrink-0">
+    <aside
+      className={cn(
+        'bg-[#17130F] border-r border-[#2D221A] flex flex-col shrink-0',
+        // Mobile: fixed overlay drawer
+        'fixed inset-y-0 left-0 z-40 w-[280px] transition-transform duration-300 ease-in-out',
+        // Desktop: in-flow, always visible
+        'md:relative md:w-[240px] md:translate-x-0',
+        // Mobile open/close
+        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      )}
+    >
       {/* Logo */}
       <div className="px-4 pt-5 pb-3">
         <h1 className="text-lg text-amber-400 font-bold leading-tight tracking-tight">✦ PatelRep</h1>
