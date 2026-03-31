@@ -162,9 +162,26 @@ async def add_staff_direct(
                 "full_name": body.full_name,
             }
         })
-        user_id = auth_response.user.id
+        user_id = str(auth_response.user.id)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        err_str = str(e)
+        if "already been registered" in err_str or "already registered" in err_str:
+            # Auth user exists from a previous partial attempt — find them and reuse their ID
+            try:
+                all_users = supabase.auth.admin.list_users()
+                users_list = all_users if isinstance(all_users, list) else getattr(all_users, "users", [])
+                existing = next((u for u in users_list if getattr(u, "email", "") == body.email), None)
+                if not existing:
+                    raise HTTPException(status_code=400, detail="User exists but could not be located.")
+                user_id = str(existing.id)
+                # Update their password to the one being set now
+                supabase.auth.admin.update_user_by_id(user_id, {"password": temp_password})
+            except HTTPException:
+                raise
+            except Exception as inner_e:
+                raise HTTPException(status_code=400, detail=str(inner_e))
+        else:
+            raise HTTPException(status_code=400, detail=err_str)
 
     supabase.table("user_profiles").upsert({
         "id": user_id,
@@ -182,7 +199,7 @@ async def add_staff_direct(
     if body.department_id:
         role_data["department_id"] = str(body.department_id)
 
-    supabase.table("user_roles").insert(role_data).execute()
+    supabase.table("user_roles").upsert(role_data, on_conflict="user_id,tenant_id,role").execute()
     return {"data": {"success": True, "user_id": user_id, "full_name": body.full_name, "temp_password": temp_password}}
 
 
