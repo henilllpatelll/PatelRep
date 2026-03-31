@@ -34,10 +34,11 @@ async function request(method: string, path: string, body?: any, options: Reques
   })
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: res.statusText } }))
-    throw new Error(err.error?.message || 'Request failed')
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.error?.message || err.detail || 'Request failed')
   }
 
+  if (res.status === 204) return null
   const json = await res.json()
   return json
 }

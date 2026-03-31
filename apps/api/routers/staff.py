@@ -122,7 +122,7 @@ async def add_staff_direct(
 ):
     """Create a staff member directly without sending an invite email."""
     import secrets
-    temp_password = secrets.token_urlsafe(16)
+    temp_password = body.password if body.password else secrets.token_urlsafe(12)
 
     try:
         auth_response = supabase.auth.admin.create_user({
@@ -155,7 +155,7 @@ async def add_staff_direct(
         role_data["department_id"] = str(body.department_id)
 
     supabase.table("user_roles").insert(role_data).execute()
-    return {"data": {"success": True, "user_id": user_id, "full_name": body.full_name}}
+    return {"data": {"success": True, "user_id": user_id, "full_name": body.full_name, "temp_password": temp_password}}
 
 
 @router.patch("/{staff_id}")

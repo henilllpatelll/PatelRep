@@ -98,11 +98,6 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
   const isEngineer = role === 'engineer'
   const isChief = role === 'chief_engineer'
-  const canClaim = (isEngineer || isChief || isGM) && wo?.status === 'open'
-  const canComplete = (isEngineer || isChief || isGM) && wo?.status === 'in_progress'
-  const canHold = (isChief || isGM) && wo?.status === 'in_progress'
-  const canCancel = (isChief || isGM) && (wo?.status === 'open' || wo?.status === 'on_hold')
-  const canReopen = (isChief || isGM) && wo?.status === 'on_hold'
 
   // Completion form state
   const [showCompleteForm, setShowCompleteForm] = useState(false)
@@ -134,6 +129,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const fullWo: WorkOrder = (woDetail?.data ?? wo) as WorkOrder
   const comments: WorkOrderComment[] = fullWo?.work_order_comments ?? []
   const photos = fullWo?.work_order_photos ?? []
+
+  const canClaim = (isEngineer || isChief || isGM) && fullWo?.status === 'open'
+  const canComplete = (isEngineer || isChief || isGM) && fullWo?.status === 'in_progress'
+  const canHold = (isChief || isGM) && fullWo?.status === 'in_progress'
+  const canCancel = (isChief || isGM) && (fullWo?.status === 'open' || fullWo?.status === 'on_hold')
+  const canReopen = (isChief || isGM) && fullWo?.status === 'on_hold'
 
   // Mutations
   const invalidate = () => {
@@ -217,10 +218,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
   if (!isOpen || !wo) return null
 
-  const sla = wo.due_at ? slaDisplay(wo.due_at, wo.status) : null
-  const location = wo.rooms?.room_number
-    ? `Room ${wo.rooms.room_number}`
-    : wo.location_text ?? null
+  const sla = fullWo.due_at ? slaDisplay(fullWo.due_at, fullWo.status) : null
+  const location = fullWo.rooms?.room_number
+    ? `Room ${fullWo.rooms.room_number}`
+    : fullWo.location_text ?? null
 
   return (
     <>
@@ -237,7 +238,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={`Work Order WO-${wo.work_order_number} details`}
+        aria-label={`Work Order WO-${fullWo.work_order_number} details`}
         className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
@@ -247,24 +248,24 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             {/* WO number + badges */}
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-mono text-gray-400 shrink-0">
-                WO-{wo.work_order_number}
+                WO-{fullWo.work_order_number}
               </span>
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase border ${PRIORITY_STYLES[wo.priority] ?? PRIORITY_STYLES.normal}`}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase border ${PRIORITY_STYLES[fullWo.priority] ?? PRIORITY_STYLES.normal}`}
               >
-                {wo.priority}
+                {fullWo.priority}
               </span>
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[wo.status] ?? 'bg-gray-100 text-gray-500'}`}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[fullWo.status] ?? 'bg-gray-100 text-gray-500'}`}
               >
-                {wo.status.replace(/_/g, ' ')}
+                {fullWo.status.replace(/_/g, ' ')}
               </span>
-              {wo.is_pm_generated && (
+              {fullWo.is_pm_generated && (
                 <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded font-medium border border-teal-200">
                   PM
                 </span>
               )}
-              {wo.is_ai_created && (
+              {fullWo.is_ai_created && (
                 <span className="text-xs px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded font-medium border border-violet-200">
                   AI
                 </span>
@@ -272,12 +273,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             </div>
 
             {/* Title */}
-            <h2 className="text-base font-bold text-gray-900 leading-snug pr-2">{wo.title}</h2>
+            <h2 className="text-base font-bold text-gray-900 leading-snug pr-2">{fullWo.title}</h2>
 
             {/* Category + location */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
               <span>
-                {CATEGORY_ICONS[wo.category]} {wo.category}
+                {CATEGORY_ICONS[fullWo.category]} {fullWo.category}
               </span>
               {location && (
                 <span className="flex items-center gap-1">
@@ -389,53 +390,53 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           <div className="p-5">
             <SectionHeading>Details</SectionHeading>
             <dl className="space-y-2 text-sm">
-              {wo.description && (
+              {fullWo.description && (
                 <div>
                   <dt className="text-xs text-gray-400 mb-0.5">Description</dt>
-                  <dd className="text-gray-700 leading-relaxed">{wo.description}</dd>
+                  <dd className="text-gray-700 leading-relaxed">{fullWo.description}</dd>
                 </div>
               )}
-              {wo.assets && (
+              {fullWo.assets && (
                 <div className="flex items-center gap-1.5 text-gray-600">
                   <Wrench className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                  <span>Asset: <span className="font-medium text-gray-900">{wo.assets.name}</span></span>
+                  <span>Asset: <span className="font-medium text-gray-900">{fullWo.assets.name}</span></span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-500 pt-1">
-                {wo.created_at && (
+                {fullWo.created_at && (
                   <div>
                     <span className="text-gray-400">Created</span>
-                    <p className="text-gray-700 font-medium">{formatTs(wo.created_at)}</p>
+                    <p className="text-gray-700 font-medium">{formatTs(fullWo.created_at)}</p>
                   </div>
                 )}
-                {wo.started_at && (
+                {fullWo.started_at && (
                   <div>
                     <span className="text-gray-400">Started</span>
-                    <p className="text-gray-700 font-medium">{formatTs(wo.started_at)}</p>
+                    <p className="text-gray-700 font-medium">{formatTs(fullWo.started_at)}</p>
                   </div>
                 )}
-                {wo.completed_at && (
+                {fullWo.completed_at && (
                   <div>
                     <span className="text-gray-400">Completed</span>
-                    <p className="text-gray-700 font-medium">{formatTs(wo.completed_at)}</p>
+                    <p className="text-gray-700 font-medium">{formatTs(fullWo.completed_at)}</p>
                   </div>
                 )}
-                {wo.labor_hours != null && (
+                {fullWo.labor_hours != null && (
                   <div>
                     <span className="text-gray-400">Labor hours</span>
-                    <p className="text-gray-700 font-medium">{wo.labor_hours}h</p>
+                    <p className="text-gray-700 font-medium">{fullWo.labor_hours}h</p>
                   </div>
                 )}
-                {wo.parts_used && (
+                {fullWo.parts_used && (
                   <div className="col-span-2">
                     <span className="text-gray-400">Parts used</span>
-                    <p className="text-gray-700 font-medium">{wo.parts_used}</p>
+                    <p className="text-gray-700 font-medium">{fullWo.parts_used}</p>
                   </div>
                 )}
-                {wo.notes && (
+                {fullWo.notes && (
                   <div className="col-span-2">
                     <span className="text-gray-400">Notes</span>
-                    <p className="text-gray-700">{wo.notes}</p>
+                    <p className="text-gray-700">{fullWo.notes}</p>
                   </div>
                 )}
               </div>

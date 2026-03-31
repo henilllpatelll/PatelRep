@@ -321,7 +321,7 @@ interface TaskDetailDrawerProps {
   onClose: () => void
   onStatusChange: (taskId: string, status: TaskStatus) => void
   onComment: (taskId: string, comment: string) => Promise<void>
-  onSaved: () => void
+  onSaved: (updated: Task) => void
   updating: boolean
   startInEditMode?: boolean
 }
@@ -335,7 +335,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
 
   const { mutate: saveEdit, isPending: saving } = useMutation({
     mutationFn: () => tasksApi.update(task.id, { title: editForm.title, description: editForm.description || undefined, priority: editForm.priority as Priority, location_text: editForm.location_text || undefined }),
-    onSuccess: () => { setIsEditing(false); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved() },
+    onSuccess: (result: any) => { setIsEditing(false); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved(result?.data ?? { ...task, ...editForm }) },
   })
 
   const handleComment = async () => {
@@ -744,7 +744,7 @@ export default function TasksPage() {
           onClose={() => setSelectedTask(null)}
           onStatusChange={handleStatusChange}
           onComment={handleComment}
-          onSaved={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+          onSaved={(updated) => { setSelectedTask(updated); queryClient.invalidateQueries({ queryKey: ['tasks'] }) }}
           updating={updating}
           startInEditMode={drawerEditMode}
         />

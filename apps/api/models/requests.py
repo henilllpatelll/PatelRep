@@ -281,6 +281,7 @@ class AddStaffDirectRequest(BaseModel):
     role: Literal["gm", "housekeeping_supervisor", "housekeeper", "chief_engineer", "engineer", "front_desk"]
     department_id: Optional[UUID4] = None
     phone: Optional[str] = None
+    password: Optional[str] = None
 
 
 # --- Push Token ---

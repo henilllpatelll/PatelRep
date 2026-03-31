@@ -110,7 +110,7 @@ async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> 
 @router.post("/{wo_id}/claim")
 async def claim_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
 ):
     result = supabase.table("work_orders")\
         .update({"assigned_to": current_user.user_id, "status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()})\

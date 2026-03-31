@@ -74,6 +74,12 @@ const inviteSchema = z.object({
 
 type InviteFormValues = z.infer<typeof inviteSchema>
 
+const directSchema = inviteSchema.extend({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+type DirectFormValues = z.infer<typeof directSchema>
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
@@ -182,20 +188,44 @@ function ConfirmDeactivateDialog({
 
 function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const queryClient = useQueryClient()
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null)
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<DirectFormValues>({
+    resolver: zodResolver(directSchema),
     defaultValues: { role: 'housekeeper' },
   })
 
   const mutation = useMutation({
-    mutationFn: (data: InviteFormValues) =>
-      staffApi.addDirect({ full_name: data.full_name, email: data.email, role: data.role, department_id: data.department_id }),
-    onSuccess: () => {
+    mutationFn: (data: DirectFormValues) =>
+      staffApi.addDirect({ full_name: data.full_name, email: data.email, role: data.role, department_id: data.department_id, password: data.password }),
+    onSuccess: (res, data) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
-      onSuccess()
+      setCreatedCredentials({ email: data.email, password: data.password, name: data.full_name })
     },
     onError: (err: any) => setError('root', { message: err.message || 'Failed to add staff member.' }),
   })
+
+  if (createdCredentials) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
+            <h2 className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
+            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-sm text-gray-600"><span className="font-medium">{createdCredentials.name}</span> has been added. Share these login credentials with them:</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2 font-mono text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Email</span><span className="font-medium text-gray-900">{createdCredentials.email}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Password</span><span className="font-medium text-gray-900">{createdCredentials.password}</span></div>
+            </div>
+            <p className="text-xs text-gray-400">They can change their password after logging in.</p>
+            <Button variant="primary" onClick={() => { onSuccess(); onClose() }} className="w-full justify-center">Done</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -206,7 +236,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
-          <p className="text-xs text-gray-500">Creates an account immediately — no email sent. The staff member can log in via password reset if needed.</p>
+          <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
           {errors.root && (
             <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               <AlertTriangle size={15} className="shrink-0" />{errors.root.message}
@@ -221,6 +251,11 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
             <input {...register('email')} type="email" placeholder="maria@sunriseinn.com" className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.email ? 'border-red-300' : 'border-amber-200/40 hover:border-amber-200'}`} />
             {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input {...register('password')} type="password" placeholder="Min. 8 characters" className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.password ? 'border-red-300' : 'border-amber-200/40 hover:border-amber-200'}`} />
+            {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Role</label>
