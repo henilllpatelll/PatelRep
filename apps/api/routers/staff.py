@@ -168,6 +168,7 @@ async def add_staff_direct(
 
     supabase.table("user_profiles").upsert({
         "id": user_id,
+        "tenant_id": current_user.hotel_id,
         "full_name": body.full_name,
         "preferred_name": body.full_name.split()[0] if body.full_name else body.full_name,
     }).execute()
