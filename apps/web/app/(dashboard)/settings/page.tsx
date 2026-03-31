@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useQuery } from '@tanstack/react-query'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
 import { AlertTriangle, CheckCircle2, Building2, Layers } from 'lucide-react'
@@ -99,6 +100,14 @@ export default function SettingsPage() {
 
   const { hotel, setHotel } = useHotelStore()
 
+  // Fetch full hotel profile (store only has id/name/timezone/room_count)
+  const { data: fullHotel } = useQuery({
+    queryKey: ['hotel-full', hotel?.id],
+    queryFn: () => hotelsApi.get(hotel!.id),
+    enabled: !!hotel?.id,
+    select: (res) => res.data,
+  })
+
   const {
     register,
     handleSubmit,
@@ -118,21 +127,21 @@ export default function SettingsPage() {
     },
   })
 
-  // Populate form when hotel data is available
+  // Populate form from full hotel data fetched from API
   useEffect(() => {
-    if (hotel) {
+    if (fullHotel) {
       reset({
-        name: (hotel as any).name ?? '',
-        address: (hotel as any).address ?? '',
-        city: (hotel as any).city ?? '',
-        state: (hotel as any).state ?? '',
-        zip: (hotel as any).zip ?? '',
-        phone: (hotel as any).phone ?? '',
-        timezone: hotel.timezone ?? 'America/Chicago',
-        room_count: hotel.room_count ?? 50,
+        name: fullHotel.name ?? '',
+        address: fullHotel.address ?? '',
+        city: fullHotel.city ?? '',
+        state: fullHotel.state ?? '',
+        zip: fullHotel.zip ?? '',
+        phone: fullHotel.phone ?? '',
+        timezone: fullHotel.timezone ?? 'America/Chicago',
+        room_count: fullHotel.room_count ?? 50,
       })
     }
-  }, [hotel, reset])
+  }, [fullHotel, reset])
 
   // Auto-dismiss toast after 3 seconds
   useEffect(() => {

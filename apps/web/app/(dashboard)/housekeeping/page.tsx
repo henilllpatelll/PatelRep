@@ -206,7 +206,7 @@ export default function HousekeepingPage() {
               onClick={() => assignmentMode && toggleAssignmentMode()}
               className={`px-3 py-1.5 font-medium transition-colors ${
                 !assignmentMode
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-amber-500 text-white'
                   : 'text-gray-700 hover:bg-white/50'
               }`}
             >
@@ -216,7 +216,7 @@ export default function HousekeepingPage() {
               onClick={() => !assignmentMode && toggleAssignmentMode()}
               className={`px-3 py-1.5 font-medium transition-colors ${
                 assignmentMode
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-amber-500 text-white'
                   : 'text-gray-700 hover:bg-white/50'
               }`}
             >

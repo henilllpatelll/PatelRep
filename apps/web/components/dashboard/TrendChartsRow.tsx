@@ -71,7 +71,7 @@ export function TrendChartsRow() {
 
   if (maintLoading || staffLoading) {
     return (
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SkeletonChart />
         <SkeletonChart />
       </div>
@@ -98,7 +98,7 @@ export function TrendChartsRow() {
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-stone-700 mb-4">SLA Compliance (30 days)</h3>
         {maint ? (
-          <div className="flex items-center gap-8">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
             <SLAGauge pct={Math.round(slaPct)} />
             <div className="flex-1 space-y-3">
               <div>

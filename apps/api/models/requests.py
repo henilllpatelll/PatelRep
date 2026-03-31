@@ -275,6 +275,14 @@ class InviteStaffRequest(BaseModel):
     hotel_id: Optional[str] = None  # passed during onboarding before hotel_id is in JWT
 
 
+class AddStaffDirectRequest(BaseModel):
+    full_name: str
+    email: str
+    role: Literal["gm", "housekeeping_supervisor", "housekeeper", "chief_engineer", "engineer", "front_desk"]
+    department_id: Optional[UUID4] = None
+    phone: Optional[str] = None
+
+
 # --- Push Token ---
 class UpdatePushTokenRequest(BaseModel):
     token: str

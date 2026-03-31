@@ -89,7 +89,7 @@ export function ROIMetricsStrip() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -108,7 +108,7 @@ export function ROIMetricsStrip() {
   const inspectedPct = totalRooms > 0 ? Math.round((inspectedToday / totalRooms) * 100) : 0
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <MetricCard
         label="Rooms Inspected Today"
         value={inspectedToday}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import require_role, get_current_user, get_current_user_no_hotel, CurrentUser
-from models.requests import InviteStaffRequest, UpdatePushTokenRequest
+from models.requests import InviteStaffRequest, AddStaffDirectRequest, UpdatePushTokenRequest
 from core.database import supabase
 
 router = APIRouter(prefix="/staff", tags=["staff"])
@@ -113,6 +113,49 @@ async def invite_staff(
         pass
 
     return {"data": invitation}
+
+
+@router.post("/add-direct")
+async def add_staff_direct(
+    body: AddStaffDirectRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Create a staff member directly without sending an invite email."""
+    import secrets
+    temp_password = secrets.token_urlsafe(16)
+
+    try:
+        auth_response = supabase.auth.admin.create_user({
+            "email": body.email,
+            "password": temp_password,
+            "email_confirm": True,
+            "user_metadata": {
+                "hotel_id": current_user.hotel_id,
+                "role": body.role,
+                "full_name": body.full_name,
+            }
+        })
+        user_id = auth_response.user.id
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    supabase.table("user_profiles").upsert({
+        "id": user_id,
+        "full_name": body.full_name,
+        "preferred_name": body.full_name.split()[0] if body.full_name else body.full_name,
+    }).execute()
+
+    role_data = {
+        "user_id": user_id,
+        "tenant_id": current_user.hotel_id,
+        "role": body.role,
+        "is_active": True,
+    }
+    if body.department_id:
+        role_data["department_id"] = str(body.department_id)
+
+    supabase.table("user_roles").insert(role_data).execute()
+    return {"data": {"success": True, "user_id": user_id, "full_name": body.full_name}}
 
 
 @router.patch("/{staff_id}")

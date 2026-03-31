@@ -82,4 +82,7 @@ export const staffApi = {
 
   resendInvitation: (invitationId: string): Promise<void> =>
     apiClient.post(`/staff/invitations/${invitationId}/resend`),
+
+  addDirect: (data: { full_name: string; email: string; role: UserRole; department_id?: string }): Promise<{ data: { success: boolean; user_id: string; full_name: string } }> =>
+    apiClient.post('/staff/add-direct', data),
 }

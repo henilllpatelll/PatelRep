@@ -352,6 +352,14 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
+  // When departments load while modal is already open, set the first dept
+  useEffect(() => {
+    if (isOpen && !deptId && deptEntries.length > 0) {
+      setDeptId(deptEntries[0][0])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, deptEntries.length])
+
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()

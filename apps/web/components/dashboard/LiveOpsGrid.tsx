@@ -67,7 +67,7 @@ export function LiveOpsGrid() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <CardSkeleton />
         <CardSkeleton />
         <CardSkeleton />
@@ -87,7 +87,7 @@ export function LiveOpsGrid() {
   const activeStaff = stats?.active_staff ?? 0
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Card 1: Room Status */}
       <Card>
         <h3 className="text-sm font-semibold text-stone-700 mb-3">Room Status</h3>

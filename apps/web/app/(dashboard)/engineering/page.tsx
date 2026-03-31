@@ -161,7 +161,8 @@ export default function EngineeringPage() {
         )}
 
         {/* Kanban board */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="overflow-x-auto -mx-1 px-1">
+        <div className="grid grid-cols-3 gap-4 min-w-[520px]">
           {KANBAN_STATUSES.map((status) => {
             const filteredWOs = workOrdersByStatus[status]
             return (
@@ -198,10 +199,13 @@ export default function EngineeringPage() {
             )
           })}
         </div>
+        </div>
       </div>
 
-      {/* Sidebar */}
-      <FailurePredictionSidebar />
+      {/* Sidebar — hidden on mobile, visible on large screens */}
+      <div className="hidden lg:block">
+        <FailurePredictionSidebar />
+      </div>
 
       {/* Detail drawer */}
       <WorkOrderDetailDrawer

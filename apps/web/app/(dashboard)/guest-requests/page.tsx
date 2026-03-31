@@ -481,13 +481,27 @@ export default function GuestRequestsPage() {
 
   const filtered = (requests ?? []).filter((r) => r.status === activeTab)
 
-  // ── Delete mutation ──
+  // ── Delete mutation (optimistic) ──
   const { mutate: deleteRequest, isPending: deleting } = useMutation({
     mutationFn: (id: string) => guestRequestsApi.deleteRequest(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['guest-requests'] })
+      const previous = queryClient.getQueryData(['guest-requests'])
+      queryClient.setQueryData(['guest-requests'], (old: any) => {
+        if (!old?.data) return old
+        return { ...old, data: old.data.filter((r: GuestRequest) => r.id !== id) }
+      })
+      setDeleteTarget(null)
+      return { previous }
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['guest-requests'], context.previous)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      setDeleteTarget(null)
     },
   })
 
@@ -663,6 +677,7 @@ export default function GuestRequestsPage() {
 
       {/* ── Edit Modal ── */}
       <EditRequestModal
+        key={editTarget?.id ?? 'none'}
         request={editTarget}
         onClose={() => setEditTarget(null)}
         onSaved={() => {

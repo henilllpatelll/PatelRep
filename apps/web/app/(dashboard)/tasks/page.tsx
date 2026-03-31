@@ -126,7 +126,7 @@ interface TaskCardProps {
 function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: TaskCardProps) {
   return (
     <div
-      className={`bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl ${priorityStripe(task.priority)} overflow-hidden cursor-pointer hover:shadow-md transition-shadow`}
+      className={`bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl ${priorityStripe(task.priority)} cursor-pointer hover:shadow-md transition-shadow`}
       onClick={() => onOpen(task)}
     >
       <div className="p-4">
