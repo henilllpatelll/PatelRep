@@ -42,10 +42,36 @@ async def list_staff(
             .execute()
         profiles_map = {p["id"]: p for p in (profiles_result.data or [])}
 
-    for r in roles:
-        r["user_profiles"] = profiles_map.get(r["user_id"], {})
+    # Fetch emails from auth admin API
+    emails_map: dict = {}
+    if user_ids:
+        try:
+            auth_users = supabase.auth.admin.list_users()
+            uid_set = set(user_ids)
+            for u in (auth_users if isinstance(auth_users, list) else getattr(auth_users, "users", [])):
+                uid = str(getattr(u, "id", ""))
+                if uid in uid_set:
+                    emails_map[uid] = getattr(u, "email", "") or ""
+        except Exception:
+            pass
 
-    return {"data": roles}
+    staff_list = []
+    for r in roles:
+        profile = profiles_map.get(r["user_id"], {})
+        staff_list.append({
+            "id": r["id"],
+            "user_id": r["user_id"],
+            "hotel_id": r["tenant_id"],
+            "full_name": profile.get("full_name", ""),
+            "email": emails_map.get(str(r["user_id"]), ""),
+            "role": r["role"],
+            "department_id": r.get("department_id"),
+            "status": "active" if r.get("is_active") else "inactive",
+            "avatar_url": profile.get("avatar_url"),
+            "created_at": r["created_at"],
+        })
+
+    return {"data": {"staff": staff_list, "total": len(staff_list)}}
 
 
 @router.get("/invitations")
@@ -59,7 +85,8 @@ async def list_invitations(
         .is_("accepted_at", "null")\
         .order("created_at", desc=True)\
         .execute()
-    return {"data": result.data}
+    invitations = result.data or []
+    return {"data": {"invitations": invitations, "total": len(invitations)}}
 
 
 @router.post("/invite")
