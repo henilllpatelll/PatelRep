@@ -142,7 +142,6 @@ async def create_shift_assignment(
         "user_id": str(request.user_id),
         "shift_id": str(request.shift_id),
         "work_date": request.work_date.isoformat(),
-        "assigned_by": current_user.user_id,
     }).execute()
     return {"data": result.data[0] if result.data else None}
 
@@ -162,7 +161,6 @@ async def bulk_create_assignments(
             "user_id": str(item.user_id),
             "shift_id": str(item.shift_id),
             "work_date": item.work_date.isoformat(),
-            "assigned_by": current_user.user_id,
         }
         for item in body.assignments
     ]
