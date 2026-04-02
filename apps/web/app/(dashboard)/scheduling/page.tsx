@@ -34,7 +34,9 @@ import {
   type UpdateShiftData,
 } from '@/lib/api/scheduling'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
+import { logbookApi } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
+import { useHotelStore } from '@/stores/hotelStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -392,6 +394,14 @@ interface CreateShiftModalProps {
 function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModalProps) {
   const queryClient = useQueryClient()
   const isEdit = !!existingShift
+  const hotelId = useHotelStore((s) => s.hotel?.id ?? '')
+
+  const { data: deptData } = useQuery({
+    queryKey: ['departments', hotelId],
+    queryFn: () => logbookApi.listDepartments(hotelId),
+    enabled: !!hotelId && !isEdit,
+  })
+  const departments: { id: string; name: string }[] = (deptData as any)?.data ?? []
 
   const [name, setName] = useState(existingShift?.name ?? '')
   const [departmentId, setDepartmentId] = useState(existingShift?.department_id ?? '')
@@ -519,8 +529,8 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-colors appearance-none"
               >
                 <option value="">Select department…</option>
-                {DEPARTMENTS.filter((d) => d.id !== 'all').map((d) => (
-                  <option key={d.id} value={d.id}>{d.label}</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
