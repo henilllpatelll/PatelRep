@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDroppable } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -184,6 +185,21 @@ export function AssignmentSidebar() {
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [addedHousekeepers, setAddedHousekeepers] = useState<HousekeeperAssignment[]>([])
+  const [showAddDropdown, setShowAddDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showAddDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowAddDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showAddDropdown])
 
   // ── Fetch assignments ───────────────────────────────────────────────────
   const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
@@ -192,6 +208,40 @@ export function AssignmentSidebar() {
   })
 
   const housekeepers: HousekeeperAssignment[] = (assignmentsData as any)?.data ?? []
+
+  // ── Fetch staff for the add-housekeeper dropdown ────────────────────────
+  const { data: staffData } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => staffApi.list(),
+  })
+  const housekeeperStaff: StaffMember[] = (staffData?.data?.staff ?? []).filter(
+    (s) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor',
+  )
+
+  // Merge: API assignments + manually added (deduplicated)
+  const assignedIds = new Set(housekeepers.map((h) => h.housekeeper_id))
+  const mergedHousekeepers: HousekeeperAssignment[] = [
+    ...housekeepers,
+    ...addedHousekeepers.filter((h) => !assignedIds.has(h.housekeeper_id)),
+  ]
+  const mergedIds = new Set(mergedHousekeepers.map((h) => h.housekeeper_id))
+  const availableToAdd = housekeeperStaff.filter((s) => !mergedIds.has(s.user_id))
+
+  const handleAddHousekeeper = (s: StaffMember) => {
+    setAddedHousekeepers((prev) => [
+      ...prev,
+      {
+        housekeeper_id: s.user_id,
+        name: s.full_name,
+        rooms_assigned: 0,
+        rooms_done: 0,
+        total_rooms: 0,
+        current_room: null,
+        current_room_status: null,
+      },
+    ])
+    setShowAddDropdown(false)
+  }
 
   // ── Build a room number lookup from the board store rooms ─────────────
   const roomNumberMap = rooms.reduce<Record<string, string>>((acc, r) => {
@@ -274,7 +324,35 @@ export function AssignmentSidebar() {
       <Card className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
         {/* Header */}
         <div className="px-4 py-3 border-b border-white/60">
-          <h3 className="font-semibold text-gray-900 text-sm">Housekeepers Today</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 text-sm">Housekeepers Today</h3>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowAddDropdown((v) => !v)}
+                className="w-6 h-6 rounded-full bg-brand-600 text-white text-base leading-none flex items-center justify-center hover:bg-brand-700 transition-colors"
+                title="Add housekeeper"
+              >
+                +
+              </button>
+              {showAddDropdown && (
+                <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto">
+                  {availableToAdd.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-gray-400">All housekeepers added</p>
+                  ) : (
+                    availableToAdd.map((s) => (
+                      <button
+                        key={s.user_id}
+                        onClick={() => handleAddHousekeeper(s)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {s.full_name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
           <p className="text-xs text-gray-400 mt-0.5">Drag a room card onto a name to assign</p>
         </div>
 
@@ -292,13 +370,13 @@ export function AssignmentSidebar() {
                 </div>
               ))}
             </div>
-          ) : housekeepers.length === 0 ? (
+          ) : mergedHousekeepers.length === 0 ? (
             <p className="p-4 text-xs text-gray-400 text-center">
-              No housekeepers assigned yet for this date.
+              Tap + to add housekeepers for today.
             </p>
           ) : (
             <div className="divide-y divide-white/60">
-              {housekeepers.map((hk) => (
+              {mergedHousekeepers.map((hk) => (
                 <HousekeeperDropRow
                   key={hk.housekeeper_id}
                   hk={hk}
