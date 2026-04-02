@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
@@ -48,13 +48,156 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-      <span
-        className={`w-2 h-2 rounded-full ${
-          lastSyncedAt ? 'bg-green-400' : 'bg-gray-300'
-        }`}
-      />
+      <span className={`w-2 h-2 rounded-full ${lastSyncedAt ? 'bg-green-400' : 'bg-gray-300'}`} />
       {label}
     </span>
+  )
+}
+
+// ── Housekeeper chip bar (mobile-first tap-to-assign) ─────────────────────────
+
+function HousekeeperBar() {
+  const queryClient = useQueryClient()
+  const {
+    selectedDate,
+    selectedShift,
+    activeAssigneeId,
+    setActiveAssignee,
+    pendingAssignments,
+    clearPendingAssignments,
+  } = useHousekeepingStore()
+
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['housekeeping-assignments', selectedDate],
+    queryFn: () => housekeepingApi.getAssignments(selectedDate, selectedShift ?? undefined),
+  })
+
+  const housekeepers: any[] = (data as any)?.data ?? []
+  const pendingCount = Object.keys(pendingAssignments).length
+  const hasPending = pendingCount > 0
+
+  const handleSave = async () => {
+    if (!hasPending) return
+    setSaveLoading(true)
+    try {
+      await housekeepingApi.saveAssignments({
+        date: selectedDate,
+        shift_id: selectedShift ?? '',
+        assignments: Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => ({
+          room_id: roomId,
+          housekeeper_id: housekeeperId,
+        })),
+        is_ai_suggested: false,
+      })
+      clearPendingAssignments()
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2500)
+    } catch {
+      // noop — sidebar shows error on desktop
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  function getInitials(name: string) {
+    return name.split(' ').slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('')
+  }
+
+  return (
+    <div className="rounded-xl bg-white/80 backdrop-blur-sm border border-white/90 shadow-sm p-3 space-y-2.5">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-gray-700">
+          {activeAssigneeId
+            ? <span className="text-amber-700">Tap rooms to assign &rarr;</span>
+            : 'Select a housekeeper:'}
+        </p>
+        <div className="flex items-center gap-2">
+          {saveSuccess && (
+            <span className="text-xs text-green-600 font-medium">Saved ✓</span>
+          )}
+          {hasPending && (
+            <button
+              onClick={handleSave}
+              disabled={saveLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-60"
+            >
+              {saveLoading ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/25 rounded-full text-[10px] font-bold">{pendingCount}</span></>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Housekeeper chips */}
+      {isLoading ? (
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="w-24 h-9 bg-gray-200 rounded-lg animate-pulse shrink-0" />
+          ))}
+        </div>
+      ) : housekeepers.length === 0 ? (
+        <p className="text-xs text-gray-400">
+          No housekeepers on shift.{' '}
+          <Link href="/staff" className="text-amber-600 underline">Add staff</Link>
+        </p>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
+          {housekeepers.map((hk) => {
+            const isActive = activeAssigneeId === hk.housekeeper_id
+            const initials = getInitials(hk.name)
+            const assignedCount = pendingAssignments
+              ? Object.values(pendingAssignments).filter((id) => id === hk.housekeeper_id).length
+              : 0
+
+            return (
+              <button
+                key={hk.housekeeper_id}
+                onClick={() =>
+                  setActiveAssignee(
+                    isActive ? null : hk.housekeeper_id,
+                    isActive ? null : hk.name,
+                  )
+                }
+                className={`flex items-center gap-2 shrink-0 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all select-none ${
+                  isActive
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm scale-[1.02]'
+                    : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 active:bg-amber-50'
+                }`}
+              >
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
+                  {initials}
+                </span>
+                <span>{hk.name.split(' ')[0]}</span>
+                {(hk.rooms_assigned > 0 || assignedCount > 0) && (
+                  <span
+                    className={`text-[10px] px-1 py-0.5 rounded-full min-w-[18px] text-center ${
+                      isActive
+                        ? 'bg-white/25 text-white'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {hk.rooms_assigned + assignedCount}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -80,9 +223,7 @@ export default function HousekeepingPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   )
 
@@ -107,7 +248,7 @@ export default function HousekeepingPage() {
       })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
-    } catch (error) {
+    } catch {
       setDragError('Failed to assign room. Please try again.')
     }
   }
@@ -115,7 +256,6 @@ export default function HousekeepingPage() {
   const [predictions, setPredictions] = useState<RoomPrediction[]>([])
   const [predictionsLoading, setPredictionsLoading] = useState(false)
 
-  // Fetch predictions on mount and when selectedDate changes
   useEffect(() => {
     const fetchPredictions = async () => {
       setPredictionsLoading(true)
@@ -123,7 +263,7 @@ export default function HousekeepingPage() {
         const res = await housekeepingApi.getPredictions()
         setPredictions(res.data?.rooms || [])
         setLastSyncedAt(new Date())
-      } catch (e) {
+      } catch {
         // silently fail — predictions are optional
       } finally {
         setPredictionsLoading(false)
@@ -132,143 +272,111 @@ export default function HousekeepingPage() {
     fetchPredictions()
   }, [selectedDate])
 
-  // Navigate by relative day offset
   const navigate = (delta: number) => {
     const current = parseISO(selectedDate)
     setSelectedDate(format(addDays(current, delta), 'yyyy-MM-dd'))
   }
 
-  // Human-readable date label
   const dateLabel = format(parseISO(selectedDate), 'MMM d, yyyy')
-
-  // Summary stats from unfiltered rooms
   const totalRooms = rooms.length
-  const needAttention = rooms.filter(
-    (r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS',
-  ).length
+  const needAttention = rooms.filter((r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
   const readyRooms = rooms.filter((r) => r.status === 'INSPECTED').length
   const highRiskCount = predictions.filter((p) => p.risk_level === 'HIGH').length
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        {/* Left: title + date nav + shift */}
-        <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left: title + date nav */}
+        <div className="space-y-1.5">
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Housekeeping Board</h1>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Prev day */}
-            <Button
-              variant="ghost"
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
               onClick={() => navigate(-1)}
-              className="px-2 py-1 text-sm"
+              className="px-2.5 py-1 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
               aria-label="Previous day"
             >
-              &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
-            </Button>
+              &#8592; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
+            </button>
 
-            {/* Current date */}
-            <span className="px-3 py-1 rounded-lg bg-white/70 backdrop-blur-sm border border-white/90 text-sm font-medium text-gray-900">
+            <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-sm font-semibold text-gray-900 shadow-sm">
               {dateLabel}
             </span>
 
-            {/* Next day */}
-            <Button
-              variant="ghost"
+            <button
               onClick={() => navigate(1)}
-              className="px-2 py-1 text-sm"
+              className="px-2.5 py-1 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
               aria-label="Next day"
             >
-              {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
-            </Button>
+              {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &#8594;
+            </button>
 
-            {/* Shift selector */}
             <select
               value={selectedShift ?? ''}
               onChange={(e) => setSelectedShift(e.target.value || null)}
-              className="ml-1 px-3 py-1 rounded-lg border border-white/90 text-sm text-gray-700 bg-white/70 backdrop-blur-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              className="px-2.5 py-1 rounded-lg border border-white/90 text-xs text-gray-700 bg-white/70 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
             >
               {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
+                <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Right: view/assign toggle + at-risk + add rooms */}
+        {/* Right: actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* View / Assign mode toggle */}
-          <div className="inline-flex rounded-lg border border-white/90 overflow-hidden text-sm bg-white/70 backdrop-blur-sm">
+          {/* View / Assign toggle */}
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs bg-white shadow-sm">
             <button
               onClick={() => assignmentMode && toggleAssignmentMode()}
-              className={`px-3 py-1.5 font-medium transition-colors ${
-                !assignmentMode
-                  ? 'bg-amber-500 text-white'
-                  : 'text-gray-700 hover:bg-white/50'
+              className={`px-3 py-2 font-medium transition-colors ${
+                !assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              View Mode
+              View
             </button>
             <button
               onClick={() => !assignmentMode && toggleAssignmentMode()}
-              className={`px-3 py-1.5 font-medium transition-colors ${
-                assignmentMode
-                  ? 'bg-amber-500 text-white'
-                  : 'text-gray-700 hover:bg-white/50'
+              className={`px-3 py-2 font-medium transition-colors ${
+                assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              Assign Mode
+              Assign
             </button>
           </div>
 
-          {/* At Risk filter */}
           <Button
             variant={showRiskOnly ? 'primary' : 'ghost'}
             onClick={toggleRiskOnly}
-            className={`px-3 py-1.5 text-sm ${showRiskOnly ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+            className={`px-2.5 py-1.5 text-xs ${showRiskOnly ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
           >
-            <span className="text-base leading-none">&#9888;</span>
-            At Risk Only
+            &#9888; At Risk
           </Button>
 
-          {/* Add rooms link */}
           <Link
             href="/onboarding?step=2"
-            className="px-3 py-1.5 rounded-lg border border-white/90 bg-white/70 backdrop-blur-sm text-sm text-gray-700 hover:bg-white/90 transition-colors"
+            className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
           >
-            + Add Rooms
+            + Rooms
           </Link>
         </div>
       </div>
 
-      {/* ── Sync badge + summary stats ────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Stats */}
-        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-          <span>
-            <strong className="text-gray-900">{totalRooms}</strong> total rooms
-          </span>
-          <span>
-            <strong className="text-orange-600">{needAttention}</strong> need attention
-          </span>
-          <span>
-            <strong className="text-green-600">{readyRooms}</strong> ready
-          </span>
+      {/* ── Stats + sync ─────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+          <span><strong className="text-gray-900 text-sm">{totalRooms}</strong> rooms</span>
+          <span><strong className="text-orange-600">{needAttention}</strong> need attention</span>
+          <span><strong className="text-green-600">{readyRooms}</strong> ready</span>
           {highRiskCount > 0 && (
-            <span>
-              <strong className="text-red-600">{highRiskCount}</strong> at risk
-            </span>
+            <span><strong className="text-red-600">{highRiskCount}</strong> at risk</span>
           )}
         </div>
-
-        {/* Sync indicator */}
         <SyncBadge lastSyncedAt={lastSyncedAt} />
       </div>
 
-      {/* ── Prediction Alerts ──────────────────────────────────────────────── */}
+      {/* ── Prediction alerts ─────────────────────────────────────────────── */}
       {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
         <PredictionPanel predictions={predictions} isLoading={predictionsLoading} />
       )}
@@ -287,6 +395,9 @@ export default function HousekeepingPage() {
         </div>
       )}
 
+      {/* ── Housekeeper bar (mobile assign mode) ──────────────────────────── */}
+      {assignmentMode && <HousekeeperBar />}
+
       {/* ── Main layout ───────────────────────────────────────────────────── */}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 items-start">
@@ -295,8 +406,12 @@ export default function HousekeepingPage() {
             <RoomStatusBoard />
           </div>
 
-          {/* Sidebar — only in assign mode */}
-          {assignmentMode && <AssignmentSidebar />}
+          {/* Sidebar — desktop only */}
+          {assignmentMode && (
+            <div className="hidden lg:block">
+              <AssignmentSidebar />
+            </div>
+          )}
         </div>
       </DndContext>
     </div>

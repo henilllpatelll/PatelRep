@@ -44,6 +44,7 @@ interface Props {
   assignmentMode: boolean
   onStatusChange?: (roomId: string, newStatus: string) => void
   onOpenDetail?: (room: any) => void
+  onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
 }
 
@@ -60,7 +61,7 @@ function formatTime(isoString: string | null | undefined): string | null {
   }
 }
 
-export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, pendingAssignee }: Props) {
+export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, onAssign, pendingAssignee }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -95,6 +96,10 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
   // ── Event handlers ─────────────────────────────────────────────────────────
   function handleCardClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return
+    if (assignmentMode && onAssign) {
+      onAssign(room.room_id)
+      return
+    }
     if (onOpenDetail) onOpenDetail(room)
   }
 
@@ -106,7 +111,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
   // ── Card classes ───────────────────────────────────────────────────────────
   const cardBase = cn(
     'aspect-[4/3] rounded-2xl p-3 flex flex-col justify-between group relative transition-all duration-200 overflow-hidden',
-    isDragging ? 'cursor-grabbing' : assignmentMode ? 'cursor-grab' : 'cursor-pointer',
+    isDragging ? 'cursor-grabbing' : 'cursor-pointer',
   )
 
   const pendingRing = isPending && assignmentMode
@@ -175,7 +180,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
         {assignmentMode && pendingAssignee ? (
           <div className="flex items-center gap-0.5 min-w-0">
             <User className="w-3 h-3 text-purple-500 shrink-0" />
-            <span className="text-[10px] text-purple-700 font-medium truncate">{pendingAssignee}</span>
+            <span className="text-[10px] text-purple-700 font-medium">&#10003; Assigned</span>
           </div>
         ) : !assignmentMode && assignedName ? (
           <div className="flex items-center gap-0.5 min-w-0">
@@ -262,7 +267,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, p
 
       {/* Assignment mode hints */}
       {assignmentMode && !isPending && (
-        <p className="text-[10px] text-purple-500 mt-1">Drag to assign</p>
+        <p className="text-[10px] text-purple-400 mt-1">Tap to assign</p>
       )}
       {assignmentMode && isPending && (
         <button

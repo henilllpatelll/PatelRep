@@ -16,6 +16,8 @@ export interface HousekeepingStore {
   selectedShift: string | null
   assignmentMode: boolean
   pendingAssignments: Record<string, string>
+  activeAssigneeId: string | null
+  activeAssigneeName: string | null
   statusFilter: string | null
   showRiskOnly: boolean
   lastSyncedAt: Date | null
@@ -29,6 +31,7 @@ export interface HousekeepingStore {
   setPendingAssignment: (roomId: string, housekeeperId: string) => void
   removePendingAssignment: (roomId: string) => void
   clearPendingAssignments: () => void
+  setActiveAssignee: (id: string | null, name: string | null) => void
   setStatusFilter: (status: string | null) => void
   toggleRiskOnly: () => void
   setLastSyncedAt: (date: Date) => void
@@ -48,6 +51,8 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   selectedShift: null,
   assignmentMode: false,
   pendingAssignments: {},
+  activeAssigneeId: null,
+  activeAssigneeName: null,
   statusFilter: null,
   showRiskOnly: false,
   lastSyncedAt: null,
@@ -69,8 +74,9 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   toggleAssignmentMode: () =>
     set((state) => ({
       assignmentMode: !state.assignmentMode,
-      // Clear pending assignments when leaving assignment mode
       pendingAssignments: state.assignmentMode ? {} : state.pendingAssignments,
+      activeAssigneeId: null,
+      activeAssigneeName: null,
     })),
 
   setPendingAssignment: (roomId, housekeeperId) =>
@@ -86,6 +92,8 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
     }),
 
   clearPendingAssignments: () => set({ pendingAssignments: {} }),
+
+  setActiveAssignee: (id, name) => set({ activeAssigneeId: id, activeAssigneeName: name }),
 
   setStatusFilter: (status) => set({ statusFilter: status }),
 

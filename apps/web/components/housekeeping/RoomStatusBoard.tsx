@@ -97,7 +97,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter }: SummaryBarProps) {
   }, {})
 
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
       {STATUS_CHIPS.map((chip) => {
         const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
         const isActive = statusFilter === chip.key
@@ -144,6 +144,8 @@ export function RoomStatusBoard() {
     lastSyncedAt,
     pendingAssignments,
     assignmentMode,
+    activeAssigneeId,
+    setPendingAssignment,
     selectedDate,
     selectedShift,
     statusFilter,
@@ -216,6 +218,11 @@ export function RoomStatusBoard() {
     })
   }
 
+  // ── Tap-to-assign (mobile assign mode) ───────────────────────────────────
+  const handleTapAssign = (roomId: string) => {
+    if (activeAssigneeId) setPendingAssignment(roomId, activeAssigneeId)
+  }
+
   // ── Derived data ──────────────────────────────────────────────────────────
   const rooms = filteredRooms()
 
@@ -281,6 +288,7 @@ export function RoomStatusBoard() {
                         handleStatusChange(roomId, newStatus)
                       }
                       onOpenDetail={() => setSelectedRoom(room)}
+                      onAssign={assignmentMode ? handleTapAssign : undefined}
                       pendingAssignee={pendingAssignments[room.room_id] ?? null}
                     />
                   ))}
