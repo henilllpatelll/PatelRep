@@ -2,7 +2,7 @@
 name = "api"
 
 [services.build]
-builder = "dockerfile"
+builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
 
 [services.deploy]
@@ -15,7 +15,7 @@ restartPolicyMaxRetries = 3
 name = "@patelrep/web"
 
 [services.build]
-builder = "dockerfile"
+builder = "DOCKERFILE"
 dockerfilePath = "apps/web/Dockerfile"
 
 [services.deploy]
