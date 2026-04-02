@@ -40,7 +40,11 @@ async function request(method: string, path: string, body?: any, options: Reques
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.error?.message || err.detail || 'Request failed')
+    // FastAPI validation errors return detail as an array of {loc, msg, type} objects
+    const detail = Array.isArray(err.detail)
+      ? err.detail.map((d: any) => d.msg ?? JSON.stringify(d)).join(', ')
+      : err.detail
+    throw new Error(err.error?.message || detail || 'Request failed')
   }
 
   if (res.status === 204) return null
