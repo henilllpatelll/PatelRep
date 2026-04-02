@@ -40,7 +40,7 @@ export interface InspectionRecord {
 
 export interface AssignmentPayload {
   date: string
-  shift_id: string
+  shift_id: string | null
   assignments: { room_id: string; housekeeper_id: string }[]
   is_ai_suggested: boolean
 }
