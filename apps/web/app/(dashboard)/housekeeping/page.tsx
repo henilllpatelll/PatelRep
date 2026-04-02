@@ -12,6 +12,7 @@ import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
+import { staffApi } from '@/lib/api/staff'
 import { Button } from '@/components/ui/Button'
 
 // ── Shift options ─────────────────────────────────────────────────────────────
@@ -71,11 +72,13 @@ function HousekeeperBar() {
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['housekeeping-assignments', selectedDate],
-    queryFn: () => housekeepingApi.getAssignments(selectedDate, selectedShift ?? undefined),
+    queryKey: ['staff-list'],
+    queryFn: () => staffApi.list(),
   })
 
-  const housekeepers: any[] = (data as any)?.data ?? []
+  const housekeepers: any[] = (data?.data?.staff ?? [])
+    .filter((s: any) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor')
+    .map((s: any) => ({ housekeeper_id: s.user_id, name: s.full_name }))
   const pendingCount = Object.keys(pendingAssignments).length
   const hasPending = pendingCount > 0
 
@@ -146,7 +149,7 @@ function HousekeeperBar() {
         </div>
       ) : housekeepers.length === 0 ? (
         <p className="text-xs text-gray-400">
-          No housekeepers on shift.{' '}
+          No housekeeper staff found.{' '}
           <Link href="/staff" className="text-amber-600 underline">Add staff</Link>
         </p>
       ) : (
