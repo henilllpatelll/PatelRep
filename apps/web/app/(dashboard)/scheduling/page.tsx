@@ -454,24 +454,36 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-sm">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Sheet / Dialog */}
+      <div className="relative bg-white w-full sm:max-w-sm sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+
+        {/* Drag handle (mobile only) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-900">
-            {isEdit ? 'Edit Shift' : 'Create Shift'}
+            {isEdit ? 'Edit Shift' : 'New Shift'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto">
           {errorMsg && (
             <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               <AlertCircle size={14} className="shrink-0" />
@@ -486,7 +498,8 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Morning"
-              className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+              autoFocus
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-colors"
             />
           </div>
 
@@ -497,13 +510,11 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
               <select
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-colors appearance-none"
               >
                 <option value="">Select department…</option>
                 {DEPARTMENTS.filter((d) => d.id !== 'all').map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.label}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.label}</option>
                 ))}
               </select>
             </div>
@@ -517,7 +528,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
@@ -526,7 +537,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-colors"
               />
             </div>
           </div>
@@ -553,7 +564,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 pb-5">
+        <div className="flex gap-3 px-5 py-4 border-t border-gray-100">
           <Button
             variant="ghost"
             onClick={onClose}
