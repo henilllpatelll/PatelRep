@@ -228,7 +228,7 @@ async def create_assignments(
             "room_id": str(a.room_id),
             "assigned_to": str(a.housekeeper_id),
             "assigned_by": current_user.user_id,
-            "shift_id": str(request.shift_id),
+            "shift_id": str(request.shift_id) if request.shift_id else None,
             "assignment_date": request.date.isoformat(),
             "is_ai_suggested": request.is_ai_suggested,
         }

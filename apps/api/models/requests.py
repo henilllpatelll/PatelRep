@@ -124,7 +124,7 @@ class RoomAssignmentItem(BaseModel):
 
 class CreateAssignmentsRequest(BaseModel):
     date: date
-    shift_id: UUID4
+    shift_id: Optional[UUID4] = None
     assignments: List[RoomAssignmentItem]
     is_ai_suggested: bool = False
 

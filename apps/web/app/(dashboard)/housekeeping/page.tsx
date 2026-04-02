@@ -88,7 +88,7 @@ function HousekeeperBar() {
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
-        shift_id: selectedShift ?? '',
+        shift_id: selectedShift ?? null,
         assignments: Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => ({
           room_id: roomId,
           housekeeper_id: housekeeperId,

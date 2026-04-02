@@ -146,6 +146,7 @@ export function RoomStatusBoard() {
     assignmentMode,
     activeAssigneeId,
     setPendingAssignment,
+    removePendingAssignment,
     selectedDate,
     selectedShift,
     statusFilter,
@@ -211,7 +212,10 @@ export function RoomStatusBoard() {
 
   // ── Status change handler ─────────────────────────────────────────────────
   const handleStatusChange = async (roomId: string, status: string) => {
-    if (status === '__remove_assignment') return
+    if (status === '__remove_assignment') {
+      removePendingAssignment(roomId)
+      return
+    }
     await housekeepingApi.updateRoomStatus(roomId, status)
     queryClient.invalidateQueries({
       queryKey: ['housekeeping-board', selectedDate, selectedShift],
