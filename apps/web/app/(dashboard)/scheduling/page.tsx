@@ -320,7 +320,7 @@ function AssignShiftModal({
             >
               <option value="">Select staff member…</option>
               {staff.map((m) => (
-                <option key={m.id} value={m.id}>{m.full_name}</option>
+                <option key={m.id} value={m.user_id}>{m.full_name}</option>
               ))}
             </select>
           </div>
@@ -905,7 +905,7 @@ function WeekCalendar({
                 </tr>
               ) : (
                 filteredStaff.map((member) => {
-                  const memberAssignments = assignmentMap[member.id] ?? {}
+                  const memberAssignments = assignmentMap[member.user_id] ?? {}
                   return (
                     <tr key={member.id} className="hover:bg-gray-50 transition-colors group">
                       {/* Staff name cell */}
