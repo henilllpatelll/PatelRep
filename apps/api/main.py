@@ -47,7 +47,7 @@ app.add_middleware(
     allow_origins=[
         settings.app_url,
         "https://app.patelrep.com",
-        "https://patelrepweb-production.up.railway.app",
+        "https://patelrepweb-production-869a.up.railway.app",
         "https://patelrep-web.vercel.app",
     ],
     allow_origin_regex=r"http://localhost:\d+",
@@ -125,7 +125,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     origin = request.headers.get("origin", "")
     allowed = [
         settings.app_url,
-        "https://patelrepweb-production.up.railway.app",
+        "https://patelrepweb-production-869a.up.railway.app",
         "https://patelrep-web.vercel.app",
     ]
     cors_headers = {}

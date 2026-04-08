@@ -140,12 +140,12 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 | Service | URL |
 |---|---|
-| API (Railway) | https://api-production-18a4.up.railway.app |
-| Web (Railway) | https://patelrepweb-production.up.railway.app |
+| API (Railway) | https://api-production-a914.up.railway.app |
+| Web (Railway) | https://patelrepweb-production-869a.up.railway.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 
-Railway project: `11334115-db5b-4bde-8978-84c0c36ad2f8` · env: `888dee35-b911-4266-9b37-73b9b9523436`
-API service: `6a88c728-3c90-45a2-b519-99a563e2395a` · web service: `b34edf7a-34a8-40ce-aa48-a486fb423cb5`
+Railway project: `16d3d022-cf7e-4d4a-8ec0-6a97ddb74e93` · env: `1b702af9-fb05-4635-8121-4a1462d2c93b`
+API service: `3d6e22bc-bc67-4a8e-b88e-5d983573922a` · web service: `8ed9664c-9257-4c01-820c-ba92be27e37b`
 
 ### Env vars (by tier)
 **API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`

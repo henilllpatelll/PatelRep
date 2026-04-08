@@ -88,11 +88,13 @@ function HousekeeperBar() {
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
-        shift_id: selectedShift ?? null,
-        assignments: Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => ({
-          room_id: roomId,
-          housekeeper_id: housekeeperId,
-        })),
+        shift_id: null,
+        assignments: Object.entries(pendingAssignments)
+          .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
+          .map(([roomId, housekeeperId]) => ({
+            room_id: roomId,
+            housekeeper_id: housekeeperId,
+          })),
         is_ai_suggested: false,
       })
       clearPendingAssignments()
@@ -237,15 +239,10 @@ export default function HousekeepingPage() {
     const housekeeperId = over.data?.current?.housekeeperId as string | undefined
     if (!housekeeperId) return
 
-    if (!selectedShift) {
-      setDragError('Please select a shift before assigning rooms.')
-      return
-    }
-
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
-        shift_id: selectedShift,
+        shift_id: null,
         assignments: [{ room_id: roomId, housekeeper_id: housekeeperId }],
         is_ai_suggested: false,
       })
