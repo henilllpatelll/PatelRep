@@ -103,4 +103,7 @@ export const housekeepingApi = {
 
   getRoomHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
+
+  getMyRooms: () =>
+    apiClient.get('/housekeeping/my-rooms'),
 }

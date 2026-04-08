@@ -15,6 +15,7 @@ import {
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { useRole } from '@/lib/hooks/useRole'
+import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { InspectionModal } from '@/components/housekeeping/InspectionModal'
 import { Button } from '@/components/ui/Button'
 
@@ -95,8 +96,8 @@ function TransitionButton({
   const labels: Record<RoomStatus, string> = {
     DIRTY: 'Mark Dirty',
     IN_PROGRESS: 'Mark In Progress',
-    CLEAN: 'Mark Clean',
-    INSPECTED: 'Mark Inspected',
+    CLEAN: 'Mark Ready for Inspection',
+    INSPECTED: 'Mark Clean',
     OOO: 'Mark Out of Order',
     PICKUP: 'Mark Pickup',
   }
@@ -256,7 +257,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
             <div className="flex items-center gap-2 mb-3">
               <Circle className={`w-4 h-4 fill-current ${getStatusDotClass(status)}`} />
               <span className={`font-semibold text-sm ${getStatusTextClass(status)}`}>
-                {status.replace(/_/g, ' ')}
+                {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
               </span>
               {assignedName && (
                 <span className="text-sm text-gray-500">— Assigned to {assignedName}</span>
@@ -281,7 +282,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
                     className="text-sm px-3 py-1.5"
                     onClick={() => setShowInspectionModal(true)}
                   >
-                    Inspect Room
+                    Inspect &amp; Mark Clean
                   </Button>
                 )}
                 {availableTransitions.map((t) => (
@@ -389,7 +390,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
                               {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
                             </span>
                             <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
-                              {fromStatus ? `${fromStatus.replace(/_/g, ' ')} → ${entryStatus.replace(/_/g, ' ')}` : entryStatus.replace(/_/g, ' ')}
+                              {fromStatus
+                                ? `${STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')} → ${STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}`
+                                : (STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' '))
+                              }
                             </span>
                             {actor && (
                               <span className="text-xs text-gray-500 truncate">

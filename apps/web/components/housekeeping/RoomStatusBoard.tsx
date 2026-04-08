@@ -9,7 +9,7 @@ import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { Card } from '@/components/ui/Card'
 import { createClient } from '@/lib/supabase/client'
-import { STATUS_BG } from '@/lib/utils/roomStatus'
+import { STATUS_BG, STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 
 // ── Status chip config ────────────────────────────────────────────────────────
 
@@ -45,14 +45,14 @@ const STATUS_CHIPS: StatusChip[] = [
   },
   {
     key: 'CLEAN',
-    label: 'Clean',
+    label: 'Ready',
     activeBg: 'bg-yellow-500',
     activeText: 'text-white',
     inactiveBg: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
   },
   {
     key: 'INSPECTED',
-    label: 'Inspected',
+    label: 'Clean',
     activeBg: 'bg-green-600',
     activeText: 'text-white',
     inactiveBg: 'bg-green-50 text-green-700 hover:bg-green-100',
@@ -186,21 +186,25 @@ export function RoomStatusBoard() {
   }, [boardData])
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
+  // Listens to both room_status (status changes) and room_assignments (new
+  // assignments) so every device auto-refreshes when either changes.
   useEffect(() => {
+    const invalidateBoard = () => {
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+      realtimeDebounce.current = setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['housekeeping-board', selectedDate, selectedShift],
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['housekeeping-assignments', selectedDate],
+        })
+      }, 500)
+    }
+
     const channel = supabase
       .channel('room_status_board_realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'room_status' },
-        () => {
-          if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
-          realtimeDebounce.current = setTimeout(() => {
-            queryClient.invalidateQueries({
-              queryKey: ['housekeeping-board', selectedDate, selectedShift],
-            })
-          }, 500)
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status' }, invalidateBoard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments' }, invalidateBoard)
       .subscribe()
 
     return () => {
@@ -220,6 +224,8 @@ export function RoomStatusBoard() {
     queryClient.invalidateQueries({
       queryKey: ['housekeeping-board', selectedDate, selectedShift],
     })
+    // Refresh history panel in the detail drawer if it's open for this room
+    queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
   // ── Tap-to-assign (mobile assign mode) ───────────────────────────────────

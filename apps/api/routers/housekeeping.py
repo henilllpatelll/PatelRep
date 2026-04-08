@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import httpx
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import date, datetime, timezone
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -235,7 +235,19 @@ async def create_assignments(
         for a in request.assignments
     ]
 
-    result = supabase.table("room_assignments").upsert(assignments_data).execute()
+    try:
+        result = supabase.table("room_assignments").upsert(
+            assignments_data,
+            on_conflict="room_id,assignment_date",
+        ).execute()
+    except Exception as e:
+        err = str(e)
+        if "23505" in err or "duplicate key" in err:
+            raise HTTPException(
+                status_code=409,
+                detail="One or more rooms are already assigned for that date.",
+            )
+        raise HTTPException(status_code=500, detail="Failed to save assignments. Please try again.")
 
     # Mirror assigned_to on room_status for quick lookups
     for a in request.assignments:
@@ -462,14 +474,9 @@ async def submit_inspection(
     ]
     supabase.table("inspection_results").insert(results_data).execute()
 
-    # Update room status based on inspection result (don't rely on DB trigger)
-    if request.overall_result == "passed":
-        supabase.table("room_status").update({
-            "status": "INSPECTED",
-            "last_inspected_at": datetime.now(timezone.utc).isoformat(),
-            "last_inspected_by": current_user.user_id,
-        }).eq("room_id", str(request.room_id)).eq("tenant_id", current_user.hotel_id).execute()
-
+    # room_status is updated by the on_inspection_complete DB trigger (migration 017).
+    # We only write the history record here — one entry, correct changed_by and notes.
+    if request.overall_result in ("passed", "conditional"):
         supabase.table("room_status_history").insert({
             "room_id": str(request.room_id),
             "tenant_id": current_user.hotel_id,
@@ -477,14 +484,9 @@ async def submit_inspection(
             "to_status": "INSPECTED",
             "changed_by": current_user.user_id,
             "change_source": "app",
-            "notes": f"Inspection passed: {request.notes}" if request.notes else "Inspection passed",
+            "notes": f"Inspection {request.overall_result}: {request.notes}" if request.notes else f"Inspection {request.overall_result}",
         }).execute()
-
     elif request.overall_result == "failed":
-        supabase.table("room_status").update({
-            "status": "DIRTY",
-        }).eq("room_id", str(request.room_id)).eq("tenant_id", current_user.hotel_id).execute()
-
         supabase.table("room_status_history").insert({
             "room_id": str(request.room_id),
             "tenant_id": current_user.hotel_id,

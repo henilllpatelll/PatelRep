@@ -13,6 +13,9 @@ import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { useRole } from '@/lib/hooks/useRole'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 // ── Shift options ─────────────────────────────────────────────────────────────
@@ -206,9 +209,171 @@ function HousekeeperBar() {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Housekeeper simple view ───────────────────────────────────────────────────
 
-export default function HousekeepingPage() {
+function HousekeeperRoomItem({
+  room,
+  onAction,
+}: {
+  room: any
+  onAction: (roomId: string, status: string) => Promise<void>
+}) {
+  const [loading, setLoading] = useState(false)
+  const roomNumber = room.rooms?.room_number ?? '—'
+  const roomType = room.rooms?.room_types?.name ?? ''
+  const status: string = room.status ?? 'DIRTY'
+  const vip = !!room.vip_flag
+
+  const statusConfig: Record<string, { label: string; pill: string }> = {
+    DIRTY:      { label: 'To Clean',             pill: 'bg-red-100 text-red-700' },
+    PICKUP:     { label: 'Pickup',               pill: 'bg-purple-100 text-purple-700' },
+    IN_PROGRESS:{ label: 'In Progress',          pill: 'bg-blue-100 text-blue-700' },
+    CLEAN:      { label: 'Awaiting Inspection',  pill: 'bg-amber-100 text-amber-700' },
+    INSPECTED:  { label: 'Approved',             pill: 'bg-green-100 text-green-700' },
+  }
+  const cfg = statusConfig[status] ?? { label: status, pill: 'bg-gray-100 text-gray-600' }
+
+  async function handle(newStatus: string) {
+    setLoading(true)
+    try { await onAction(room.room_id, newStatus) } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-base font-bold text-gray-900">Room {roomNumber}</span>
+          {vip && (
+            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+              VIP
+            </span>
+          )}
+        </div>
+        {roomType && <p className="text-xs text-gray-400">{roomType}</p>}
+        <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
+          {cfg.label}
+        </span>
+      </div>
+
+      <div className="shrink-0 text-right">
+        {(status === 'DIRTY' || status === 'PICKUP') && (
+          <button
+            disabled={loading}
+            onClick={() => handle('IN_PROGRESS')}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
+          >
+            {loading ? '…' : 'Start'}
+          </button>
+        )}
+        {status === 'IN_PROGRESS' && (
+          <button
+            disabled={loading}
+            onClick={() => handle('CLEAN')}
+            className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-xl hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50"
+          >
+            {loading ? '…' : 'Done'}
+          </button>
+        )}
+        {status === 'CLEAN' && (
+          <span className="text-xs text-amber-600 font-medium">
+            Waiting for<br />supervisor
+          </span>
+        )}
+        {status === 'INSPECTED' && (
+          <span className="text-sm text-green-600 font-semibold">✓ Approved</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HousekeeperMyRoomsView() {
+  const { user } = useAuth()
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const queryClient = useQueryClient()
+  const supabase = createClient()
+
+  const { data: boardData, isLoading } = useQuery({
+    queryKey: ['housekeeping-board', today],
+    queryFn: () => housekeepingApi.getBoard(today, undefined, false),
+  })
+
+  const allRooms: any[] = (boardData as any)?.data ?? []
+  const myRooms = allRooms
+    .filter((r: any) => r.assigned_to === user?.id)
+    .sort((a: any, b: any) => {
+      const priority: Record<string, number> = {
+        IN_PROGRESS: 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,
+      }
+      return (priority[a.status] ?? 5) - (priority[b.status] ?? 5)
+    })
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('hk_my_rooms_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [today]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAction(roomId: string, status: string) {
+    await housekeepingApi.updateRoomStatus(roomId, status)
+    queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+  }
+
+  const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP').length
+  const inProgressCount = myRooms.filter((r: any) => r.status === 'IN_PROGRESS').length
+  const doneCount = myRooms.filter((r: any) => r.status === 'CLEAN' || r.status === 'INSPECTED').length
+
+  return (
+    <div className="space-y-4 max-w-lg mx-auto">
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900">My Rooms</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
+      </div>
+
+      {myRooms.length > 0 && (
+        <div className="flex gap-5 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm text-sm">
+          <span><strong className="text-red-600">{todoCount}</strong> to do</span>
+          <span><strong className="text-blue-600">{inProgressCount}</strong> in progress</span>
+          <span><strong className="text-green-600">{doneCount}</strong> done</span>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : myRooms.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="text-gray-400">No rooms assigned to you today.</p>
+          <p className="text-gray-300 text-sm mt-1">Check with your supervisor.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {myRooms.map((room: any) => (
+            <HousekeeperRoomItem
+              key={room.room_id}
+              room={room}
+              onAction={handleAction}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Supervisor / GM board view ────────────────────────────────────────────────
+
+function SupervisorHousekeepingPage() {
   const queryClient = useQueryClient()
   const {
     selectedDate,
@@ -416,4 +581,16 @@ export default function HousekeepingPage() {
       </DndContext>
     </div>
   )
+}
+
+// ── Role-gated entry point ────────────────────────────────────────────────────
+
+export default function HousekeepingPage() {
+  const { role } = useRole()
+
+  if (role === 'housekeeper') {
+    return <HousekeeperMyRoomsView />
+  }
+
+  return <SupervisorHousekeepingPage />
 }

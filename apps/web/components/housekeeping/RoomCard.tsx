@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRole } from '@/lib/hooks/useRole'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
+import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 
 // ── Status → card bg + border ────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           variant={(STATUS_TO_BADGE_VARIANT[status] ?? 'default') as any}
           className="text-[10px] px-1.5 py-0"
         >
-          {status.replace(/_/g, ' ')}
+          {STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')}
         </Badge>
         {isHighRisk && (
           <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
@@ -231,10 +232,10 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors"
               onClick={(e) => handleStatusChange('CLEAN', e)}
             >
-              Done
+              Ready for Inspection
             </button>
           )}
           {status === 'CLEAN' && canSupervise && (

@@ -5,9 +5,19 @@ import { format, formatDistanceToNow } from 'date-fns'
 export const STATUS_LABELS: Record<string, string> = {
   DIRTY: 'Dirty',
   IN_PROGRESS: 'In Progress',
-  CLEAN: 'Clean',
-  INSPECTED: 'Inspected',
+  CLEAN: 'Ready for Inspection',
+  INSPECTED: 'Clean',
   OOO: 'Out of Order',
+  PICKUP: 'Pickup',
+}
+
+// Short labels for compact badges and filter chips
+export const STATUS_SHORT_LABELS: Record<string, string> = {
+  DIRTY: 'Dirty',
+  IN_PROGRESS: 'In Progress',
+  CLEAN: 'Ready',
+  INSPECTED: 'Clean',
+  OOO: 'OOO',
   PICKUP: 'Pickup',
 }
 
