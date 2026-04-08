@@ -170,12 +170,6 @@ export function RoomStatusBoard() {
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
-  const [reassignConfirm, setReassignConfirm] = useState<{
-    roomId: string
-    roomNumber: string
-    fromName: string
-    toName: string
-  } | null>(null)
 
   // Debounce ref for realtime invalidation
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -270,22 +264,25 @@ export function RoomStatusBoard() {
       return
     }
 
-    // Reassigning from a different housekeeper — show confirmation first
-    if (roomData?.assigned_to) {
-      setReassignConfirm({
-        roomId,
-        roomNumber: roomData?.rooms?.room_number ?? roomId,
-        fromName: hkNameById[roomData.assigned_to] ?? 'another housekeeper',
-        toName: hkNameById[activeAssigneeId] ?? 'this housekeeper',
-      })
-      return
-    }
-
+    // Reassigning from a different housekeeper — add to pending directly;
+    // the sidebar's strikethrough display lets the supervisor review before saving.
     setAssignError(null)
     setPendingAssignment(roomId, activeAssigneeId)
-  }, [activeAssigneeId, pendingAssignments, allRooms, hkNameById, setPendingAssignment])
+  }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
 
   // ── Derived data ──────────────────────────────────────────────────────────
+  // Maps roomId → housekeeper name for rooms already assigned to someone OTHER
+  // than the active assignee, so RoomCard can show the dimmed "already assigned" state.
+  const roomAssignedNames = useMemo(() =>
+    allRooms.reduce<Record<string, string>>((acc, r: any) => {
+      if (r.room_id && r.assigned_to && r.assigned_to !== activeAssigneeId) {
+        acc[r.room_id] = hkNameById[r.assigned_to] ?? 'another housekeeper'
+      }
+      return acc
+    }, {}),
+    [allRooms, activeAssigneeId, hkNameById]
+  )
+
   const rooms = filteredRooms()
 
   // Group by floor
@@ -313,39 +310,6 @@ export function RoomStatusBoard() {
 
   return (
     <div className="space-y-4">
-      {/* Reassign confirmation dialog */}
-      {reassignConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm">
-            <h3 className="font-semibold text-gray-900 text-base mb-1">Reassign Room?</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Room <span className="font-medium text-gray-900">{reassignConfirm.roomNumber}</span> is
-              currently assigned to{' '}
-              <span className="font-medium text-gray-900">{reassignConfirm.fromName}</span>.
-              Reassign to{' '}
-              <span className="font-medium text-gray-900">{reassignConfirm.toName}</span>?
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setPendingAssignment(reassignConfirm.roomId, activeAssigneeId!)
-                  setReassignConfirm(null)
-                }}
-                className="flex-1 py-2 px-4 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-              >
-                Yes, Reassign
-              </button>
-              <button
-                onClick={() => setReassignConfirm(null)}
-                className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Status summary bar */}
       <StatusSummaryBar
         rooms={allRooms}
@@ -396,6 +360,7 @@ export function RoomStatusBoard() {
                       onOpenDetail={() => setSelectedRoom(room)}
                       onAssign={assignmentMode ? handleTapAssign : undefined}
                       pendingAssignee={pendingAssignments[room.room_id] ?? null}
+                      assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
                     />
                   ))}
                 </div>

@@ -47,6 +47,7 @@ interface Props {
   onOpenDetail?: (room: any) => void
   onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
+  assignedToName?: string | null   // name of housekeeper already assigned (different from active assignee)
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
@@ -62,7 +63,7 @@ function formatTime(isoString: string | null | undefined): string | null {
   }
 }
 
-export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, onAssign, pendingAssignee }: Props) {
+export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, onAssign, pendingAssignee, assignedToName }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -124,6 +125,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
     : ''
 
   const draggingOpacity = isDragging ? 'opacity-50' : ''
+  const alreadyAssigned = assignmentMode && !!assignedToName && !isPending
 
   const statusClasses = isPending && assignmentMode
     ? 'bg-violet-50 border border-purple-300'
@@ -135,7 +137,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       style={style}
       {...(assignmentMode ? listeners : {})}
       {...(assignmentMode ? attributes : {})}
-      className={cn(cardBase, statusClasses, pendingRing, vipGlow, draggingOpacity)}
+      className={cn(cardBase, statusClasses, pendingRing, vipGlow, draggingOpacity, alreadyAssigned && 'opacity-60')}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -267,8 +269,13 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       )}
 
       {/* Assignment mode hints */}
-      {assignmentMode && !isPending && (
+      {assignmentMode && !isPending && !alreadyAssigned && (
         <p className="text-[10px] text-purple-400 mt-1">Tap to assign</p>
+      )}
+      {alreadyAssigned && (
+        <p className="text-[10px] text-amber-600 mt-1">
+          Assigned: {assignedToName} · tap to reassign
+        </p>
       )}
       {assignmentMode && isPending && (
         <button
