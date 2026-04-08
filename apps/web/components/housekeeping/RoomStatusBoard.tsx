@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { staffApi } from '@/lib/api/staff'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { Card } from '@/components/ui/Card'
@@ -154,8 +155,27 @@ export function RoomStatusBoard() {
     setStatusFilter,
   } = useHousekeepingStore()
 
+  // ── Staff name lookup (cache hit — same key as AssignmentSidebar) ─────────
+  const { data: staffData } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => staffApi.list(),
+  })
+  const hkNameById = useMemo(() =>
+    ((staffData?.data?.staff ?? []) as any[]).reduce<Record<string, string>>(
+      (acc, s) => { acc[s.user_id] = s.full_name; return acc },
+      {}
+    ),
+    [staffData]
+  )
+
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
+  const [reassignConfirm, setReassignConfirm] = useState<{
+    roomId: string
+    roomNumber: string
+    fromName: string
+    toName: string
+  } | null>(null)
 
   // Debounce ref for realtime invalidation
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -241,17 +261,29 @@ export function RoomStatusBoard() {
       return
     }
 
-    // Already assigned in DB to this housekeeper
     const roomData = allRooms.find((r: any) => r.room_id === roomId)
+
+    // Already assigned in DB to this housekeeper
     if (roomData?.assigned_to === activeAssigneeId) {
       setAssignError('Room is already assigned to this housekeeper')
       setTimeout(() => setAssignError(null), 3000)
       return
     }
 
+    // Reassigning from a different housekeeper — show confirmation first
+    if (roomData?.assigned_to) {
+      setReassignConfirm({
+        roomId,
+        roomNumber: roomData?.rooms?.room_number ?? roomId,
+        fromName: hkNameById[roomData.assigned_to] ?? 'another housekeeper',
+        toName: hkNameById[activeAssigneeId] ?? 'this housekeeper',
+      })
+      return
+    }
+
     setAssignError(null)
     setPendingAssignment(roomId, activeAssigneeId)
-  }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
+  }, [activeAssigneeId, pendingAssignments, allRooms, hkNameById, setPendingAssignment])
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const rooms = filteredRooms()
@@ -281,6 +313,39 @@ export function RoomStatusBoard() {
 
   return (
     <div className="space-y-4">
+      {/* Reassign confirmation dialog */}
+      {reassignConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm">
+            <h3 className="font-semibold text-gray-900 text-base mb-1">Reassign Room?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Room <span className="font-medium text-gray-900">{reassignConfirm.roomNumber}</span> is
+              currently assigned to{' '}
+              <span className="font-medium text-gray-900">{reassignConfirm.fromName}</span>.
+              Reassign to{' '}
+              <span className="font-medium text-gray-900">{reassignConfirm.toName}</span>?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setPendingAssignment(reassignConfirm.roomId, activeAssigneeId!)
+                  setReassignConfirm(null)
+                }}
+                className="flex-1 py-2 px-4 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                Yes, Reassign
+              </button>
+              <button
+                onClick={() => setReassignConfirm(null)}
+                className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status summary bar */}
       <StatusSummaryBar
         rooms={allRooms}

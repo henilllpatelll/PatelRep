@@ -183,7 +183,7 @@ export function AssignmentSidebar() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[] | null>(null)
   const [saveLoading, setSaveLoading] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   // ── Fetch assignments ───────────────────────────────────────────────────
@@ -257,7 +257,15 @@ export function AssignmentSidebar() {
     if (!hasPending) return
     setSaveLoading(true)
     setSaveError(null)
-    setSaveSuccess(false)
+    setSaveSuccessMsg(null)
+
+    // Count new assignments vs reassignments before the save clears state
+    const reassignCount = Object.entries(pendingAssignments).filter(([roomId, hkId]) => {
+      const r = rooms.find((r: any) => r.room_id === roomId)
+      return r?.assigned_to && r.assigned_to !== hkId
+    }).length
+    const newCount = Object.keys(pendingAssignments).length - reassignCount
+
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
@@ -277,8 +285,11 @@ export function AssignmentSidebar() {
       queryClient.invalidateQueries({
         queryKey: ['housekeeping-assignments', selectedDate],
       })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      const parts: string[] = []
+      if (newCount > 0) parts.push(`${newCount} assignment${newCount !== 1 ? 's' : ''} saved`)
+      if (reassignCount > 0) parts.push(`${reassignCount} room${reassignCount !== 1 ? 's' : ''} reassigned`)
+      setSaveSuccessMsg(parts.join(', ') + '.')
+      setTimeout(() => setSaveSuccessMsg(null), 3000)
     } catch (err: any) {
       setSaveError(err?.message ?? 'Failed to save assignments')
     } finally {
@@ -349,14 +360,27 @@ export function AssignmentSidebar() {
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => {
                 const roomNumber = roomNumberMap[roomId] ?? roomId
-                const hk = mergedHousekeepers.find((h) => h.housekeeper_id === housekeeperId)
+                const toHk = mergedHousekeepers.find((h) => h.housekeeper_id === housekeeperId)
+                const currentAssignedTo = rooms.find((r: any) => r.room_id === roomId)?.assigned_to
+                const fromHk = currentAssignedTo && currentAssignedTo !== housekeeperId
+                  ? mergedHousekeepers.find((h) => h.housekeeper_id === currentAssignedTo)
+                  : null
                 return (
                   <div key={roomId} className="flex items-center justify-between text-xs">
                     <span className="text-gray-600">
-                      Room {roomNumber} &rarr;{' '}
-                      <span className="font-medium text-gray-800">
-                        {hk?.name ?? housekeeperId}
-                      </span>
+                      Room {roomNumber}{' '}
+                      {fromHk ? (
+                        <>
+                          <span className="line-through text-gray-400">{fromHk.name.split(' ')[0]}</span>
+                          {' '}&rarr;{' '}
+                          <span className="font-medium text-amber-700">{toHk?.name ?? housekeeperId}</span>
+                        </>
+                      ) : (
+                        <>
+                          &rarr;{' '}
+                          <span className="font-medium text-gray-800">{toHk?.name ?? housekeeperId}</span>
+                        </>
+                      )}
                     </span>
                     <button
                       onClick={() => removePendingAssignment(roomId)}
@@ -373,9 +397,9 @@ export function AssignmentSidebar() {
         )}
 
         {/* Success / error feedback */}
-        {saveSuccess && (
+        {saveSuccessMsg && (
           <div className="mx-4 mb-2 px-3 py-2 bg-green-50 text-green-700 text-xs rounded-lg">
-            Assignments saved successfully.
+            {saveSuccessMsg}
           </div>
         )}
         {saveError && (
