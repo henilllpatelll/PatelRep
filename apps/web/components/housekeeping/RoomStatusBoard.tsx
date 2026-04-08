@@ -268,9 +268,6 @@ export function RoomStatusBoard() {
     .map(Number)
     .sort((a, b) => a - b)
 
-  // All rooms (unfiltered) for summary counts — pull directly from store
-  const allRooms = useHousekeepingStore.getState().rooms
-
   // ── Render ────────────────────────────────────────────────────────────────
   if (isLoading) return <SkeletonGrid />
 
