@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
@@ -138,6 +138,7 @@ export function RoomStatusBoard() {
 
   const {
     filteredRooms,
+    rooms: allRooms,
     setRooms,
     setPredictions,
     setLastSyncedAt,
@@ -154,6 +155,7 @@ export function RoomStatusBoard() {
   } = useHousekeepingStore()
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+  const [assignError, setAssignError] = useState<string | null>(null)
 
   // Debounce ref for realtime invalidation
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -229,9 +231,27 @@ export function RoomStatusBoard() {
   }
 
   // ── Tap-to-assign (mobile assign mode) ───────────────────────────────────
-  const handleTapAssign = (roomId: string) => {
-    if (activeAssigneeId) setPendingAssignment(roomId, activeAssigneeId)
-  }
+  const handleTapAssign = useCallback((roomId: string) => {
+    if (!activeAssigneeId) return
+
+    // Already pending for this housekeeper
+    if (pendingAssignments[roomId] === activeAssigneeId) {
+      setAssignError('Room already added to this housekeeper')
+      setTimeout(() => setAssignError(null), 3000)
+      return
+    }
+
+    // Already assigned in DB to this housekeeper
+    const roomData = allRooms.find((r: any) => r.room_id === roomId)
+    if (roomData?.assigned_to === activeAssigneeId) {
+      setAssignError('Room is already assigned to this housekeeper')
+      setTimeout(() => setAssignError(null), 3000)
+      return
+    }
+
+    setAssignError(null)
+    setPendingAssignment(roomId, activeAssigneeId)
+  }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const rooms = filteredRooms()
@@ -270,6 +290,20 @@ export function RoomStatusBoard() {
         statusFilter={statusFilter}
         onFilter={setStatusFilter}
       />
+
+      {/* Assign error banner */}
+      {assignError && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+          <span>{assignError}</span>
+          <button
+            onClick={() => setAssignError(null)}
+            className="shrink-0 text-red-500 hover:text-red-700 font-medium"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Floor-grouped grid */}
       {sortedFloors.length === 0 ? (

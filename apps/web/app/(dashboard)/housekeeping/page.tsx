@@ -296,6 +296,7 @@ function HousekeeperMyRoomsView() {
   const { data: boardData, isLoading } = useQuery({
     queryKey: ['housekeeping-board', today],
     queryFn: () => housekeepingApi.getBoard(today, undefined, false),
+    refetchInterval: 30_000,
   })
 
   const allRooms: any[] = (boardData as any)?.data ?? []
@@ -322,7 +323,18 @@ function HousekeeperMyRoomsView() {
   }, [today]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAction(roomId: string, status: string) {
-    await housekeepingApi.updateRoomStatus(roomId, status)
+    // Optimistic update — reflect new status immediately without waiting for refetch
+    queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
+      if (!old?.data) return old
+      return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status } : r) }
+    })
+    try {
+      await housekeepingApi.updateRoomStatus(roomId, status)
+    } catch {
+      // Rollback on error
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      return
+    }
     queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
   }
 
