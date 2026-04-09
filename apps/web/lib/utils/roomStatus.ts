@@ -38,9 +38,9 @@ export const STATUS_COLORS: Record<
     badge: 'bg-blue-100 text-blue-700',
   },
   CLEAN: {
-    bg: 'bg-yellow-50',
-    border: 'border-yellow-400',
-    badge: 'bg-yellow-100 text-yellow-700',
+    bg: 'bg-amber-50',
+    border: 'border-amber-400',
+    badge: 'bg-amber-100 text-amber-700',
   },
   INSPECTED: {
     bg: 'bg-green-50',
@@ -61,7 +61,7 @@ export const STATUS_COLORS: Record<
 
 export const STATUS_BG: Record<string, string> = {
   INSPECTED:     '#4ADE80',
-  CLEAN:         '#99F6E4',
+  CLEAN:         '#FCD34D',
   IN_PROGRESS:   '#7DD3FC',
   PICK_UP:       '#DDD6FE',
   PICKUP:        '#DDD6FE',   // API value alias

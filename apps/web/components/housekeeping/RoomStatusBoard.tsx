@@ -46,10 +46,10 @@ const STATUS_CHIPS: StatusChip[] = [
   },
   {
     key: 'CLEAN',
-    label: 'Ready',
-    activeBg: 'bg-yellow-500',
+    label: 'Inspect',
+    activeBg: 'bg-amber-500',
     activeText: 'text-white',
-    inactiveBg: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
+    inactiveBg: 'bg-amber-50 text-amber-700 hover:bg-amber-100',
   },
   {
     key: 'INSPECTED',

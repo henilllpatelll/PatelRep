@@ -13,8 +13,8 @@ import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 const STATUS_CARD_STYLES: Record<string, string> = {
   DIRTY:          'bg-red-50 border-2 border-red-200',
   IN_PROGRESS:    'bg-blue-50 border-2 border-blue-200',
-  CLEAN:          'bg-emerald-50 border-2 border-emerald-200',
-  INSPECTED:      'bg-violet-50 border-2 border-violet-200',
+  CLEAN:          'bg-amber-50 border-2 border-amber-300',
+  INSPECTED:      'bg-green-50 border-2 border-green-200',
   DO_NOT_DISTURB: 'bg-stone-100 border-2 border-stone-200 opacity-75',
   OUT_OF_ORDER:   'bg-stone-200 border-2 border-stone-300',
   VACANT:         'bg-white border-2 border-stone-100',
