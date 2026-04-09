@@ -80,6 +80,34 @@ async def update_shift(
     return {"data": result.data[0]}
 
 
+@router.delete("/shifts/{shift_id}", status_code=204)
+async def delete_shift(
+    shift_id: str,
+    current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES))
+):
+    """Delete a shift definition. Blocked if any assignments reference this shift."""
+    # Guard: refuse if any assignment still references this shift
+    refs = supabase.table("shift_assignments")\
+        .select("id", count="exact")\
+        .eq("shift_id", shift_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+    if refs.count and refs.count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot delete — {refs.count} assignment(s) still use this shift. Remove them first or mark the shift inactive."
+        )
+
+    result = supabase.table("shifts")\
+        .delete()\
+        .eq("id", shift_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Shift not found")
+
+
 # ---------------------------------------------------------------------------
 # Assignments
 # ---------------------------------------------------------------------------

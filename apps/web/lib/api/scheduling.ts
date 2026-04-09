@@ -104,6 +104,9 @@ export const schedulingApi = {
   updateShift: (id: string, data: UpdateShiftData): Promise<ShiftResponse> =>
     apiClient.patch(`/schedules/shifts/${id}`, data),
 
+  deleteShift: (id: string): Promise<void> =>
+    apiClient.delete(`/schedules/shifts/${id}`),
+
   // Assignments
   listAssignments: (params?: { work_date?: string; shift_id?: string; user_id?: string }): Promise<AssignmentListResponse> =>
     apiClient.get('/schedules/assignments', { params }),

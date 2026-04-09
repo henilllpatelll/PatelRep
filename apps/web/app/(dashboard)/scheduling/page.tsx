@@ -463,7 +463,18 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
     },
   })
 
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const deleteMutation = useMutation({
+    mutationFn: () => schedulingApi.deleteShift(existingShift!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules-shifts'] })
+      onSuccess()
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.message || 'Failed to delete shift.')
+    },
+  })
+
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
 
   const handleSave = () => {
     setErrorMsg(null)
@@ -607,6 +618,16 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
 
         {/* Footer */}
         <div className="flex gap-3 px-5 py-4 border-t border-gray-100">
+          {isEdit && (
+            <Button
+              variant="ghost"
+              onClick={() => deleteMutation.mutate()}
+              disabled={isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 mr-auto"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={onClose}
