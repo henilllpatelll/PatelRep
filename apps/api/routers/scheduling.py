@@ -85,19 +85,7 @@ async def delete_shift(
     shift_id: str,
     current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES))
 ):
-    """Delete a shift definition. Blocked if any assignments reference this shift."""
-    # Guard: refuse if any assignment still references this shift
-    refs = supabase.table("shift_assignments")\
-        .select("id", count="exact")\
-        .eq("shift_id", shift_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .execute()
-    if refs.count and refs.count > 0:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot delete — {refs.count} assignment(s) still use this shift. Remove them first or mark the shift inactive."
-        )
-
+    """Delete a shift definition. shift_assignments cascade-delete via FK."""
     result = supabase.table("shifts")\
         .delete()\
         .eq("id", shift_id)\
