@@ -231,6 +231,8 @@ function TodayRoster() {
 
 interface AssignShiftModalProps {
   initialDate?: Date
+  initialUserId?: string
+  existingAssignmentId?: string
   shifts: Shift[]
   staff: StaffMember[]
   onClose: () => void
@@ -239,13 +241,15 @@ interface AssignShiftModalProps {
 
 function AssignShiftModal({
   initialDate,
+  initialUserId,
+  existingAssignmentId,
   shifts,
   staff,
   onClose,
   onSuccess,
 }: AssignShiftModalProps) {
   const queryClient = useQueryClient()
-  const [userId, setUserId] = useState('')
+  const [userId, setUserId] = useState(initialUserId ?? '')
   const [shiftId, setShiftId] = useState('')
   const [workDate, setWorkDate] = useState(
     initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -261,6 +265,18 @@ function AssignShiftModal({
     },
     onError: (err: any) => {
       setErrorMsg(err.message || 'Failed to assign shift. Please try again.')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => schedulingApi.deleteAssignment(existingAssignmentId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules-assignments'] })
+      queryClient.invalidateQueries({ queryKey: ['schedules-today-roster'] })
+      onSuccess()
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.message || 'Failed to remove shift.')
     },
   })
 
@@ -358,10 +374,20 @@ function AssignShiftModal({
 
         {/* Footer */}
         <div className="flex gap-3 px-5 py-4 border-t border-gray-100">
+          {existingAssignmentId && (
+            <Button
+              variant="ghost"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending || assignMutation.isPending}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 mr-auto"
+            >
+              {deleteMutation.isPending ? 'Removing…' : 'Remove Shift'}
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={onClose}
-            disabled={assignMutation.isPending}
+            disabled={assignMutation.isPending || deleteMutation.isPending}
             className="flex-1"
           >
             Cancel
@@ -369,7 +395,7 @@ function AssignShiftModal({
           <Button
             variant="primary"
             onClick={handleSave}
-            disabled={assignMutation.isPending}
+            disabled={assignMutation.isPending || deleteMutation.isPending}
             className="flex-1"
           >
             <Calendar size={14} />
@@ -744,7 +770,7 @@ interface WeekCalendarProps {
   isLoading: boolean
   isError: boolean
   onRefetch: () => void
-  onCellClick: (staffMember: StaffMember, day: Date) => void
+  onCellClick: (staffMember: StaffMember, day: Date, existingAssignment?: ShiftAssignment) => void
 }
 
 function WeekCalendar({
@@ -942,7 +968,7 @@ function WeekCalendar({
                           >
                             {shift ? (
                               <button
-                                onClick={() => onCellClick(member, day)}
+                                onClick={() => onCellClick(member, day, assignment)}
                                 className={`inline-flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer hover:opacity-80 ${
                                   isClockedOut
                                     ? 'bg-gray-100 text-gray-400 line-through'
@@ -1100,6 +1126,8 @@ export default function SchedulingPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assignModalDate, setAssignModalDate] = useState<Date | undefined>(undefined)
+  const [assignModalUserId, setAssignModalUserId] = useState<string | undefined>(undefined)
+  const [assignModalExistingId, setAssignModalExistingId] = useState<string | undefined>(undefined)
 
   // ── Week navigation
   const prevWeek = useCallback(() => setWeekStart((w) => subWeeks(w, 1)), [])
@@ -1148,9 +1176,11 @@ export default function SchedulingPage() {
   const assignments = assignmentsQuery.data ?? []
 
   // ── Cell click → open assign modal
-  const handleCellClick = useCallback((member: StaffMember, day: Date) => {
+  const handleCellClick = useCallback((member: StaffMember, day: Date, existingAssignment?: ShiftAssignment) => {
     if (!isSupervisor) return
     setAssignModalDate(day)
+    setAssignModalUserId(member.user_id)
+    setAssignModalExistingId(existingAssignment?.id)
     setShowAssignModal(true)
   }, [isSupervisor])
 
@@ -1247,6 +1277,8 @@ export default function SchedulingPage() {
       {showAssignModal && (
         <AssignShiftModal
           initialDate={assignModalDate}
+          initialUserId={assignModalUserId}
+          existingAssignmentId={assignModalExistingId}
           shifts={shifts}
           staff={staff}
           onClose={() => setShowAssignModal(false)}

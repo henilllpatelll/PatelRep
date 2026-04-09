@@ -127,9 +127,13 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
 
   function handleSubmit() {
     setSubmitError(null)
+    if (!template) {
+      setSubmitError('No inspection template is set up for this hotel. Please create one in Settings before inspecting rooms.')
+      return
+    }
     const payload = {
       room_id: roomId,
-      template_id: template?.id ?? null,
+      template_id: template.id,
       overall_result: calculatedResult,
       notes: notes.trim() || undefined,
       items: items.map((item, idx) => ({
@@ -192,6 +196,13 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                 )}
 
                 {/* Checklist sections */}
+                {!templatesLoading && !template && (
+                  <div className="flex items-start gap-2 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                    <span className="shrink-0 mt-0.5">⚠</span>
+                    <span>No inspection template configured for this hotel. Please create one in Settings before running inspections.</span>
+                  </div>
+                )}
+
                 {items.length > 0 ? (
                   Object.entries(sections).map(([section, sectionItems]) => (
                     <div key={section}>
@@ -342,7 +353,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
               type="button"
               variant="primary"
               onClick={handleSubmit}
-              disabled={mutation.isPending || templatesLoading}
+              disabled={mutation.isPending || templatesLoading || !template}
             >
               {mutation.isPending ? (
                 <>
