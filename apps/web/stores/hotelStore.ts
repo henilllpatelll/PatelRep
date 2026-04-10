@@ -6,6 +6,7 @@ interface Hotel {
   timezone: string
   room_count: number
   logo_url?: string
+  front_desk_modules?: string[]
 }
 
 interface Subscription {

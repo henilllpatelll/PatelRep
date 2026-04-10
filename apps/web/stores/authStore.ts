@@ -14,10 +14,13 @@ interface AuthStore {
   user: User | null
   session: Session | null
   role: UserRole | null
+  /** Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. */
+  effectiveRole: UserRole | null
   isLoading: boolean
   setUser: (user: User | null) => void
   setSession: (session: Session | null) => void
   setRole: (role: UserRole | null) => void
+  setEffectiveRole: (role: UserRole | null) => void
   setLoading: (isLoading: boolean) => void
   clear: () => void
 }
@@ -28,15 +31,18 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       session: null,
       role: null,
+      effectiveRole: null,
       isLoading: true,
       setUser: (user) => set({ user }),
       setSession: (session) => set({ session }),
       setRole: (role) => set({ role }),
+      setEffectiveRole: (effectiveRole) => set({ effectiveRole }),
       setLoading: (isLoading) => set({ isLoading }),
-      clear: () => set({ user: null, session: null, role: null, isLoading: false }),
+      clear: () => set({ user: null, session: null, role: null, effectiveRole: null, isLoading: false }),
     }),
     {
       name: 'auth-store',
+      // effectiveRole is deliberately excluded — it's re-fetched fresh each session load
       partialize: (state) => ({ user: state.user, session: state.session, role: state.role }),
     }
   )

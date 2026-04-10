@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "bugs": [
+    {
+      "id": "bug-001",
+      "timestamp": "2026-04-09T17:11:54.892Z",
+      "error_message": "Wrong reference: 019 should be 025",
+      "file": "CLAUDE.md",
+      "root_cause": "Used \"019\" instead of \"025\"",
+      "fix": "Changed 019 → 025",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:11:54.892Z"
+    },
+    {
+      "id": "bug-002",
+      "timestamp": "2026-04-09T17:17:08.160Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:17:08.160Z"
+    },
+    {
+      "id": "bug-003",
+      "timestamp": "2026-04-09T17:54:04.461Z",
+      "error_message": "CSS fix: template_id",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "template_id: template?.id ?? null, → template.id,",
+      "fix": "Changed template_id: template?.id ?? null, → template.id,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:54:04.461Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-04-09T17:54:27.437Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const handleCellClick = useCallback((member: StaffMember, da; setAssignModalUserId(member.user_id)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-09T17:55:16.105Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-04-09T17:54:35.299Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "mutationFn: (data: CreateAssignmentData) => schedulingApi.createAssignment(data), → () => schedulingApi.deleteAssignment(existingAssignmentId!),",
+      "fix": "Changed mutationFn: (data: CreateAssignmentData) => schedulingApi.createAssignment(data), → () => schedulingApi.deleteAssignment(existingAssignmentId!),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:54:35.299Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-04-09T17:54:44.850Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 28→38 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:54:44.850Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-04-09T17:54:49.923Z",
+      "error_message": "Wrong reference: void should be existingAssignment",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "Used \"void\" instead of \"existingAssignment\"",
+      "fix": "Changed void → existingAssignment",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T17:54:49.923Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-04-09T18:14:40.159Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/scheduling.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T18:14:40.159Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-04-09T18:14:57.212Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "mutationFn: ({ id, data → () => schedulingApi.deleteShift(existingShift!.id),",
+      "fix": "Changed mutationFn: ({ id, data → () => schedulingApi.deleteShift(existingShift!.id),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T18:14:57.212Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-04-09T18:19:15.470Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/scheduling.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 26→14 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T18:19:15.470Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-04-10T22:00:06.902Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/auth.py",
+      "root_cause": "Had \"id, name, timezone, room_count, logo_url\"",
+      "fix": "Changed to \"id, name, timezone, room_count, logo_url, front_d",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:00:06.902Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-04-10T22:01:34.107Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: {/* Front Desk Tab */}; {activeTab === 'front_desk' && (",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-10T22:02:08.815Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-04-10T22:01:47.454Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:01:47.454Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-04-10T22:01:54.448Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:01:54.448Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-04-10T22:02:30.178Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:02:30.178Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-04-10T22:15:25.019Z",
+      "error_message": "Missing error handling in useAuth",
+      "file": "apps/web/lib/hooks/useAuth.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:15:25.019Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-04-10T22:15:33.646Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/hooks/useRole.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:15:33.646Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-04-10T22:17:36.193Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:17:36.193Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-04-10T22:18:14.055Z",
+      "error_message": "Null/undefined access in ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:18:14.055Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-04-10T22:29:10.145Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/staff.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:29:10.145Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-04-10T22:29:16.094Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/staff.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-10T22:29:16.094Z"
+    }
+  ]
+}

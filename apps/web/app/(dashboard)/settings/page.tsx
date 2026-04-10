@@ -6,8 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
 import { useHotelStore } from '@/stores/hotelStore'
+import { useRole } from '@/lib/hooks/useRole'
 import { hotelsApi } from '@/lib/api/hotels'
-import { AlertTriangle, CheckCircle2, Building2, Layers } from 'lucide-react'
+import { staffApi } from '@/lib/api/staff'
+import type { CustomRole, CreateCustomRoleData } from '@/lib/api/staff'
+import type { UserRole } from '@/stores/authStore'
+import {
+  AlertTriangle, CheckCircle2, Building2, Layers, Sliders,
+  Bed, Bell, Package, ClipboardList, BookOpen, Library, FileText,
+  ShieldCheck, Plus, Pencil, Trash2, X,
+  Wrench, Users, Calendar, Sparkles,
+} from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -53,7 +62,80 @@ const DEPARTMENTS = [
   { name: 'Management', color: 'bg-violet-500', description: 'Hotel operations and oversight' },
 ]
 
-type Tab = 'general' | 'departments'
+type Tab = 'general' | 'departments' | 'front_desk' | 'roles'
+
+const FRONT_DESK_MODULES = [
+  { key: 'housekeeping',    label: 'Housekeeping',    description: 'Room board, assignments and inspections', icon: Bed },
+  { key: 'guest-requests',  label: 'Guest Requests',  description: 'Guest service requests and escalations', icon: Bell },
+  { key: 'lost-found',      label: 'Lost & Found',    description: 'Log and look up guest items', icon: Package },
+  { key: 'tasks',           label: 'Tasks',           description: 'Assign and track ad-hoc tasks', icon: ClipboardList },
+  { key: 'logbook',         label: 'Logbook',         description: 'Shift-by-shift log entries', icon: BookOpen },
+  { key: 'sop',             label: 'SOP Library',     description: 'Standard operating procedures', icon: Library },
+  { key: 'reports',         label: 'Reports',         description: 'Analytics and daily summaries', icon: FileText },
+]
+
+const DEFAULT_FD_MODULES = ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook']
+
+// ─── Custom Roles Constants ───────────────────────────────────────────────────
+
+const ALL_MODULES = [
+  { key: 'housekeeping',   label: 'Housekeeping' },
+  { key: 'engineering',    label: 'Engineering' },
+  { key: 'guest-requests', label: 'Guest Requests' },
+  { key: 'lost-found',     label: 'Lost & Found' },
+  { key: 'tasks',          label: 'Tasks' },
+  { key: 'staff',          label: 'Staff' },
+  { key: 'scheduling',     label: 'Schedule' },
+  { key: 'logbook',        label: 'Logbook' },
+  { key: 'sop',            label: 'SOP Library' },
+  { key: 'reports',        label: 'Reports' },
+  { key: 'ai',             label: 'AI Copilot' },
+]
+
+const BASE_ROLES = [
+  { value: 'housekeeper',            label: 'Housekeeper' },
+  { value: 'engineer',               label: 'Engineer' },
+  { value: 'housekeeping_supervisor', label: 'Housekeeping Supervisor' },
+  { value: 'chief_engineer',         label: 'Chief Engineer' },
+  { value: 'front_desk',             label: 'Front Desk' },
+  { value: 'gm',                     label: 'General Manager' },
+]
+
+const BASE_ROLE_LABELS: Record<string, string> = {
+  housekeeper:             'Housekeeper',
+  engineer:                'Engineer',
+  housekeeping_supervisor: 'Supervisor',
+  chief_engineer:          'Chief Engineer',
+  front_desk:              'Front Desk',
+  gm:                      'GM',
+}
+
+const BASE_ROLE_COLORS: Record<string, string> = {
+  housekeeper:             'bg-teal-100 text-teal-700',
+  engineer:                'bg-sky-100 text-sky-700',
+  housekeeping_supervisor: 'bg-teal-100 text-teal-800',
+  chief_engineer:          'bg-sky-100 text-sky-800',
+  front_desk:              'bg-amber-100 text-amber-700',
+  gm:                      'bg-violet-100 text-violet-700',
+}
+
+const MODULE_LABELS: Record<string, string> = Object.fromEntries(ALL_MODULES.map(m => [m.key, m.label]))
+
+// ─── Role Form Types ──────────────────────────────────────────────────────────
+
+interface RoleFormValues {
+  name: string
+  description: string
+  base_role: string
+  allowed_modules: string[]
+}
+
+const EMPTY_ROLE_FORM: RoleFormValues = {
+  name: '',
+  description: '',
+  base_role: 'front_desk',
+  allowed_modules: ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook'],
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -91,20 +173,209 @@ function Input({
   )
 }
 
+function RoleCard({
+  role,
+  onEdit,
+  onDelete,
+}: {
+  role: CustomRole
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-sm font-semibold text-slate-900">{role.name}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BASE_ROLE_COLORS[role.base_role] ?? 'bg-gray-100 text-gray-600'}`}>
+              {BASE_ROLE_LABELS[role.base_role] ?? role.base_role}
+            </span>
+          </div>
+          {role.description && (
+            <p className="text-xs text-gray-500 mb-2">{role.description}</p>
+          )}
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {role.allowed_modules.map(mod => (
+              <span key={mod} className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                {MODULE_LABELS[mod] ?? mod}
+              </span>
+            ))}
+            {role.allowed_modules.length === 0 && (
+              <span className="text-xs text-gray-400 italic">No modules selected</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+            aria-label="Edit role"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            aria-label="Delete role"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function RoleFormCard({
+  values,
+  onChange,
+  onSave,
+  onCancel,
+  saving,
+  isNew,
+}: {
+  values: RoleFormValues
+  onChange: (v: RoleFormValues) => void
+  onSave: () => void
+  onCancel: () => void
+  saving: boolean
+  isNew?: boolean
+}) {
+  const toggleModule = (key: string) => {
+    onChange({
+      ...values,
+      allowed_modules: values.allowed_modules.includes(key)
+        ? values.allowed_modules.filter(m => m !== key)
+        : [...values.allowed_modules, key],
+    })
+  }
+
+  return (
+    <Card className="p-5 space-y-4 border-amber-200/60 bg-amber-50/20">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">
+          {isNew ? 'New Role' : 'Edit Role'}
+        </h3>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+          aria-label="Close"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700">Role Name</label>
+          <input
+            value={values.name}
+            onChange={e => onChange({ ...values, name: e.target.value })}
+            placeholder="e.g. Night Auditor"
+            className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700">Base Role</label>
+          <select
+            value={values.base_role}
+            onChange={e => onChange({ ...values, base_role: e.target.value })}
+            className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+          >
+            {BASE_ROLES.map(r => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-700">
+          Description <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <input
+          value={values.description}
+          onChange={e => onChange({ ...values, description: e.target.value })}
+          placeholder="Briefly describe this role's responsibilities"
+          className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Module Access</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {ALL_MODULES.map(({ key, label }) => {
+            const enabled = values.allowed_modules.includes(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleModule(key)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
+                  enabled
+                    ? 'bg-amber-50 border-amber-200 text-amber-800 font-medium'
+                    : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${enabled ? 'bg-amber-500' : 'bg-stone-300'}`} />
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          onClick={onSave}
+          disabled={saving || !values.name.trim()}
+        >
+          {saving ? 'Saving…' : isNew ? 'Create Role' : 'Save Changes'}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('general')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [fdModules, setFdModules] = useState<string[]>(DEFAULT_FD_MODULES)
+  const [fdSaving, setFdSaving] = useState(false)
+
+  // Roles tab state
+  const [roleFormOpen, setRoleFormOpen] = useState<'create' | string | null>(null)
+  const [roleForm, setRoleForm] = useState<RoleFormValues>(EMPTY_ROLE_FORM)
+  const [roleSaving, setRoleSaving] = useState(false)
 
   const { hotel, setHotel } = useHotelStore()
+  const { isGM } = useRole()
 
   // Fetch full hotel profile (store only has id/name/timezone/room_count)
   const { data: fullHotel } = useQuery({
     queryKey: ['hotel-full', hotel?.id],
     queryFn: () => hotelsApi.get(hotel!.id),
     enabled: !!hotel?.id,
+    select: (res) => res.data,
+  })
+
+  // Fetch custom roles (GM-only)
+  const { data: customRoles = [], refetch: refetchCustomRoles } = useQuery({
+    queryKey: ['custom-roles', hotel?.id],
+    queryFn: () => staffApi.listCustomRoles(),
+    enabled: !!hotel?.id && isGM,
     select: (res) => res.data,
   })
 
@@ -126,6 +397,13 @@ export default function SettingsPage() {
       room_count: 50,
     },
   })
+
+  // Hydrate front desk modules from API data
+  useEffect(() => {
+    if (fullHotel?.front_desk_modules) {
+      setFdModules(fullHotel.front_desk_modules)
+    }
+  }, [fullHotel])
 
   // Populate form from full hotel data fetched from API
   useEffect(() => {
@@ -175,9 +453,61 @@ export default function SettingsPage() {
     [hotel, setHotel, reset]
   )
 
+  const saveFdModules = useCallback(async () => {
+    if (!hotel?.id) return
+    setFdSaving(true)
+    try {
+      const res = await hotelsApi.update(hotel.id, { front_desk_modules: fdModules })
+      setHotel({ ...hotel, front_desk_modules: res.data.front_desk_modules ?? fdModules })
+      setToast({ type: 'success', message: 'Front desk access saved.' })
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to save. Please try again.' })
+    } finally {
+      setFdSaving(false)
+    }
+  }, [hotel, fdModules, setHotel])
+
+  const saveRole = useCallback(async () => {
+    if (!hotel?.id) return
+    setRoleSaving(true)
+    try {
+      const payload: CreateCustomRoleData = {
+        name: roleForm.name.trim(),
+        description: roleForm.description.trim() || undefined,
+        base_role: roleForm.base_role as UserRole,
+        allowed_modules: roleForm.allowed_modules,
+      }
+      if (roleFormOpen === 'create') {
+        await staffApi.createCustomRole(payload)
+      } else if (roleFormOpen) {
+        await staffApi.updateCustomRole(roleFormOpen, payload)
+      }
+      setRoleFormOpen(null)
+      await refetchCustomRoles()
+      setToast({ type: 'success', message: roleFormOpen === 'create' ? 'Role created.' : 'Role updated.' })
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to save role.' })
+    } finally {
+      setRoleSaving(false)
+    }
+  }, [hotel, roleFormOpen, roleForm, refetchCustomRoles])
+
+  const deleteRole = useCallback(async (roleId: string) => {
+    if (!hotel?.id) return
+    try {
+      await staffApi.deleteCustomRole(roleId)
+      await refetchCustomRoles()
+      setToast({ type: 'success', message: 'Role removed.' })
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to delete role.' })
+    }
+  }, [hotel, refetchCustomRoles])
+
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'general', label: 'General', icon: Building2 },
     { key: 'departments', label: 'Departments', icon: Layers },
+    ...(isGM ? [{ key: 'front_desk' as Tab, label: 'Front Desk', icon: Sliders }] : []),
+    ...(isGM ? [{ key: 'roles' as Tab, label: 'Roles', icon: ShieldCheck }] : []),
   ]
 
   return (
@@ -369,6 +699,137 @@ export default function SettingsPage() {
           <p className="text-xs text-gray-400 px-1">
             Department customization is available on request. Contact support to add or rename departments.
           </p>
+        </div>
+      )}
+
+      {/* Front Desk Tab */}
+      {activeTab === 'front_desk' && (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Choose which modules front desk staff can access from the sidebar.
+            Dashboard is always visible.
+          </p>
+          <Card className="overflow-hidden p-0 divide-y divide-stone-100">
+            {FRONT_DESK_MODULES.map(({ key, label, description, icon: Icon }) => {
+              const enabled = fdModules.includes(key)
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-amber-50/30 transition-colors"
+                >
+                  <Icon className="w-4 h-4 text-amber-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    onClick={() =>
+                      setFdModules(prev =>
+                        enabled ? prev.filter(m => m !== key) : [...prev, key]
+                      )
+                    }
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                      enabled ? 'bg-amber-400' : 'bg-stone-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                        enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                </div>
+              )
+            })}
+          </Card>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={saveFdModules}
+              disabled={fdSaving}
+            >
+              {fdSaving ? 'Saving…' : 'Save Access'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Roles Tab */}
+      {activeTab === 'roles' && (
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-gray-500 flex-1">
+              Define named roles with custom module access for your team. Dashboard is always visible.
+            </p>
+            {roleFormOpen !== 'create' && (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  setRoleForm({ ...EMPTY_ROLE_FORM })
+                  setRoleFormOpen('create')
+                }}
+              >
+                <Plus size={14} className="inline mr-1.5 -mt-0.5" />
+                New Role
+              </Button>
+            )}
+          </div>
+
+          {roleFormOpen === 'create' && (
+            <RoleFormCard
+              values={roleForm}
+              onChange={setRoleForm}
+              onSave={saveRole}
+              onCancel={() => setRoleFormOpen(null)}
+              saving={roleSaving}
+              isNew
+            />
+          )}
+
+          {customRoles.length === 0 && roleFormOpen !== 'create' && (
+            <Card className="p-8 text-center">
+              <ShieldCheck className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-500">No custom roles yet</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Create a role to define custom module access for your team.
+              </p>
+            </Card>
+          )}
+
+          <div className="space-y-3">
+            {customRoles.map((cr) =>
+              roleFormOpen === cr.id ? (
+                <RoleFormCard
+                  key={cr.id}
+                  values={roleForm}
+                  onChange={setRoleForm}
+                  onSave={saveRole}
+                  onCancel={() => setRoleFormOpen(null)}
+                  saving={roleSaving}
+                />
+              ) : (
+                <RoleCard
+                  key={cr.id}
+                  role={cr}
+                  onEdit={() => {
+                    setRoleForm({
+                      name: cr.name,
+                      description: cr.description ?? '',
+                      base_role: cr.base_role,
+                      allowed_modules: cr.allowed_modules,
+                    })
+                    setRoleFormOpen(cr.id)
+                  }}
+                  onDelete={() => deleteRole(cr.id)}
+                />
+              )
+            )}
+          </div>
         </div>
       )}
 

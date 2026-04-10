@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
+import { staffApi } from '@/lib/api/staff'
 
 export interface AuthState {
   user: User | null
@@ -23,12 +24,22 @@ function extractRole(user: User | null): UserRole | null {
 }
 
 export function useAuth(): AuthState {
-  const { user, session, isLoading, setUser, setSession, setRole, setLoading, clear } =
+  const { user, session, isLoading, setUser, setSession, setRole, setEffectiveRole, setLoading, clear } =
     useAuthStore()
 
   const supabase = createClient()
 
   useEffect(() => {
+    const fetchEffectiveRole = async () => {
+      try {
+        const res = await staffApi.getEffectiveRole()
+        setEffectiveRole((res.data?.effective_role as UserRole) ?? null)
+      } catch {
+        // Non-critical — fall back silently to base role
+        setEffectiveRole(null)
+      }
+    }
+
     // Get the current session on mount
     const initSession = async () => {
       const {
@@ -39,6 +50,8 @@ export function useAuth(): AuthState {
         setUser(currentSession.user)
         setSession(currentSession)
         setRole(extractRole(currentSession.user))
+        // Fetch effective role before clearing isLoading — prevents dashboard flash
+        await fetchEffectiveRole()
       }
       setLoading(false)
     }
@@ -53,6 +66,7 @@ export function useAuth(): AuthState {
         setUser(newSession.user)
         setSession(newSession)
         setRole(extractRole(newSession.user))
+        fetchEffectiveRole()
       } else {
         clear()
       }

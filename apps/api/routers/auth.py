@@ -16,7 +16,7 @@ async def get_me(current_user: CurrentUser = Depends(get_current_user)):
         .execute()
 
     hotel_result = supabase.table("tenants")\
-        .select("id, name, timezone, room_count, logo_url")\
+        .select("id, name, timezone, room_count, logo_url, front_desk_modules")\
         .eq("id", current_user.hotel_id)\
         .maybe_single()\
         .execute()

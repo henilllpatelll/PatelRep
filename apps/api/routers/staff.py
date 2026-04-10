@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import require_role, get_current_user, get_current_user_no_hotel, CurrentUser
-from models.requests import InviteStaffRequest, AddStaffDirectRequest, UpdatePushTokenRequest
+from models.requests import InviteStaffRequest, AddStaffDirectRequest, UpdatePushTokenRequest, CreateRoleScheduleRequest, CreateCustomRoleRequest, UpdateCustomRoleRequest
 from core.database import supabase
 from core.config import settings
+from datetime import date as date_type
 import httpx
 
 router = APIRouter(prefix="/staff", tags=["staff"])
@@ -19,6 +20,43 @@ async def update_push_token(
         .eq("id", current_user.user_id)\
         .execute()
     return {"data": {"success": True}}
+
+
+@router.get("/me/effective-role")
+async def get_effective_role(current_user: CurrentUser = Depends(get_current_user)):
+    """Returns today's effective role for the caller, applying any day-of-week schedule override."""
+    today = date_type.today()
+    # Python weekday(): 0=Mon…6=Sun → our DB convention: 0=Sun, 1=Mon…6=Sat
+    db_day = (today.weekday() + 1) % 7
+
+    result = supabase.table("staff_role_schedules")\
+        .select("id, override_role, days_of_week, start_date, end_date")\
+        .eq("hotel_id", current_user.hotel_id)\
+        .eq("user_id", current_user.user_id)\
+        .eq("is_active", True)\
+        .execute()
+
+    effective_role = current_user.role
+    schedule_id = None
+
+    for s in (result.data or []):
+        if s.get("start_date") and date_type.fromisoformat(s["start_date"]) > today:
+            continue
+        if s.get("end_date") and date_type.fromisoformat(s["end_date"]) < today:
+            continue
+        if db_day in (s.get("days_of_week") or []):
+            effective_role = s["override_role"]
+            schedule_id = s["id"]
+            break
+
+    return {
+        "data": {
+            "base_role": current_user.role,
+            "effective_role": effective_role,
+            "schedule_id": schedule_id,
+            "is_overridden": effective_role != current_user.role,
+        }
+    }
 
 
 @router.get("")
@@ -217,6 +255,127 @@ async def add_staff_direct(
 
     supabase.table("user_roles").upsert(role_data, on_conflict="user_id,tenant_id,role").execute()
     return {"data": {"success": True, "user_id": user_id, "full_name": body.full_name, "temp_password": temp_password}}
+
+
+@router.get("/custom-roles")
+async def list_custom_roles(
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """List all active custom roles for the hotel."""
+    result = supabase.table("custom_roles")\
+        .select("id, name, description, base_role, allowed_modules, created_at")\
+        .eq("hotel_id", current_user.hotel_id)\
+        .eq("is_active", True)\
+        .order("created_at")\
+        .execute()
+    return {"data": result.data or []}
+
+
+@router.post("/custom-roles")
+async def create_custom_role(
+    body: CreateCustomRoleRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Create a named custom role with a module permission set."""
+    result = supabase.table("custom_roles").insert({
+        "hotel_id": current_user.hotel_id,
+        "name": body.name,
+        "description": body.description,
+        "base_role": body.base_role,
+        "allowed_modules": body.allowed_modules,
+    }).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to create custom role")
+    return {"data": result.data[0]}
+
+
+@router.patch("/custom-roles/{role_id}")
+async def update_custom_role(
+    role_id: str,
+    body: UpdateCustomRoleRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Update a custom role's name, description, base role, or module set."""
+    update_data = {k: v for k, v in body.model_dump(exclude_none=True).items()}
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No fields to update")
+    result = supabase.table("custom_roles")\
+        .update(update_data)\
+        .eq("id", role_id)\
+        .eq("hotel_id", current_user.hotel_id)\
+        .execute()
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/custom-roles/{role_id}")
+async def delete_custom_role(
+    role_id: str,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """Soft-delete a custom role (sets is_active=false)."""
+    supabase.table("custom_roles")\
+        .update({"is_active": False})\
+        .eq("id", role_id)\
+        .eq("hotel_id", current_user.hotel_id)\
+        .execute()
+    return {"data": {"success": True}}
+
+
+@router.get("/{user_id}/role-schedules")
+async def get_role_schedules(
+    user_id: str,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """List active role schedule overrides for a staff member."""
+    result = supabase.table("staff_role_schedules")\
+        .select("id, override_role, days_of_week, start_date, end_date, created_at")\
+        .eq("hotel_id", current_user.hotel_id)\
+        .eq("user_id", user_id)\
+        .eq("is_active", True)\
+        .order("created_at")\
+        .execute()
+    return {"data": result.data or []}
+
+
+@router.post("/{user_id}/role-schedules")
+async def create_role_schedule(
+    user_id: str,
+    body: CreateRoleScheduleRequest,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """Create a day-of-week role schedule override for a staff member."""
+    if not body.days_of_week:
+        raise HTTPException(status_code=422, detail="At least one day_of_week is required")
+
+    row: dict = {
+        "hotel_id": current_user.hotel_id,
+        "user_id": user_id,
+        "override_role": body.override_role,
+        "days_of_week": body.days_of_week,
+    }
+    if body.start_date:
+        row["start_date"] = body.start_date.isoformat()
+    if body.end_date:
+        row["end_date"] = body.end_date.isoformat()
+
+    result = supabase.table("staff_role_schedules").insert(row).execute()
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.delete("/{user_id}/role-schedules/{schedule_id}")
+async def delete_role_schedule(
+    user_id: str,
+    schedule_id: str,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """Soft-delete a role schedule override."""
+    supabase.table("staff_role_schedules")\
+        .update({"is_active": False})\
+        .eq("id", schedule_id)\
+        .eq("hotel_id", current_user.hotel_id)\
+        .eq("user_id", user_id)\
+        .execute()
+    return {"data": {"success": True}}
 
 
 @router.patch("/{staff_id}")

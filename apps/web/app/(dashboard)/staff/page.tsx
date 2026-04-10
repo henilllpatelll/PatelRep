@@ -16,8 +16,11 @@ import {
   Pencil,
   UserX,
   Clock,
+  Calendar,
+  Plus,
+  Trash2,
 } from 'lucide-react'
-import { staffApi, type StaffMember, type StaffInvitation } from '@/lib/api/staff'
+import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
@@ -429,6 +432,19 @@ function InviteModal({
   )
 }
 
+// ─── Schedule helpers ─────────────────────────────────────────────────────────
+
+const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'chief_engineer'>> = {
+  housekeeper: 'housekeeping_supervisor',
+  engineer: 'chief_engineer',
+}
+
+const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+function formatScheduleDays(days: number[]): string {
+  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' · ')
+}
+
 // ─── Edit Staff Modal ─────────────────────────────────────────────────────────
 
 function EditStaffModal({
@@ -443,8 +459,18 @@ function EditStaffModal({
   const queryClient = useQueryClient()
   const [role, setRole] = useState<UserRole>(staff.role)
   const [error, setError] = useState<string | null>(null)
+  const [selectedDays, setSelectedDays] = useState<number[]>([])
 
-  const mutation = useMutation({
+  const overrideRole = SCHEDULE_OVERRIDE[staff.role]
+
+  const schedulesQuery = useQuery({
+    queryKey: ['role-schedules', staff.user_id],
+    queryFn: () => staffApi.getRoleSchedules(staff.user_id),
+    enabled: !!overrideRole,
+    select: (res) => res.data,
+  })
+
+  const updateMutation = useMutation({
     mutationFn: () => staffApi.update(staff.user_id, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
@@ -453,29 +479,60 @@ function EditStaffModal({
     onError: (err: any) => setError(err.message || 'Failed to update staff member.'),
   })
 
+  const createScheduleMutation = useMutation({
+    mutationFn: () =>
+      staffApi.createRoleSchedule(staff.user_id, {
+        override_role: overrideRole!,
+        days_of_week: selectedDays,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['role-schedules', staff.user_id] })
+      setSelectedDays([])
+    },
+    onError: (err: any) => setError(err.message || 'Failed to create schedule.'),
+  })
+
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (scheduleId: string) => staffApi.deleteRoleSchedule(staff.user_id, scheduleId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['role-schedules', staff.user_id] }),
+    onError: (err: any) => setError(err.message || 'Failed to remove schedule.'),
+  })
+
+  const toggleDay = (day: number) =>
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    )
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
+      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
+
+        {/* Sticky header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-white/80 backdrop-blur-xl z-10">
           <h2 className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors">
             <X size={18} />
           </button>
         </div>
-        <div className="px-6 py-5 space-y-4">
-          <div className="flex items-center gap-3 pb-1">
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Identity */}
+          <div className="flex items-center gap-3">
             <Avatar name={staff.full_name} role={staff.role} />
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{staff.full_name}</p>
               <p className="text-xs text-gray-500 truncate">{staff.email}</p>
             </div>
           </div>
+
           {error && (
             <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               <AlertTriangle size={15} className="shrink-0" />{error}
             </div>
           )}
+
+          {/* Base role */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Role</label>
             <select
@@ -488,10 +545,96 @@ function EditStaffModal({
               ))}
             </select>
           </div>
-          <div className="flex gap-3 pt-2">
-            <Button variant="ghost" onClick={onClose} disabled={mutation.isPending} className="flex-1">Cancel</Button>
-            <Button variant="primary" onClick={() => mutation.mutate()} disabled={mutation.isPending || role === staff.role} className="flex-1">
-              {mutation.isPending ? 'Saving…' : 'Save Changes'}
+
+          {/* Role Schedule — only for housekeeper / engineer */}
+          {overrideRole && (
+            <div className="space-y-3 border-t border-white/60 pt-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Calendar size={14} className="text-amber-500" />
+                Role Schedule
+              </div>
+              <p className="text-xs text-gray-500">
+                On scheduled days,{' '}
+                <span className="font-medium">{staff.full_name.split(' ')[0]}</span> acts as{' '}
+                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> — full dashboard
+                and feature access for that role.
+              </p>
+
+              {/* Existing schedules */}
+              {schedulesQuery.isLoading ? (
+                <p className="text-xs text-gray-400">Loading…</p>
+              ) : (schedulesQuery.data ?? []).length === 0 ? (
+                <p className="text-xs text-gray-400 italic">No schedule overrides set.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {(schedulesQuery.data ?? []).map((s: RoleSchedule) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between px-3 py-2 bg-amber-50/70 border border-amber-100 rounded-lg"
+                    >
+                      <span className="text-xs font-medium text-gray-800">
+                        {formatScheduleDays(s.days_of_week)}
+                        <span className="text-gray-400 font-normal ml-2">
+                          → {ROLE_LABELS[overrideRole]}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => deleteScheduleMutation.mutate(s.id)}
+                        disabled={deleteScheduleMutation.isPending}
+                        className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors disabled:opacity-40"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Day picker */}
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-medium text-gray-600">Select days to add:</p>
+                <div className="flex gap-1.5">
+                  {DAY_LABELS.map((label, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleDay(idx)}
+                      className={`w-8 h-8 rounded-full text-xs font-semibold transition-colors ${
+                        selectedDays.includes(idx)
+                          ? 'bg-amber-400 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => createScheduleMutation.mutate()}
+                  disabled={selectedDays.length === 0 || createScheduleMutation.isPending}
+                  className="text-xs h-8"
+                >
+                  <Plus size={13} />
+                  {createScheduleMutation.isPending ? 'Adding…' : 'Add Schedule'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2 border-t border-white/60">
+            <Button variant="ghost" onClick={onClose} disabled={updateMutation.isPending} className="flex-1">
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => updateMutation.mutate()}
+              disabled={updateMutation.isPending || role === staff.role}
+              className="flex-1"
+            >
+              {updateMutation.isPending ? 'Saving…' : 'Save Role'}
             </Button>
           </div>
         </div>

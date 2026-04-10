@@ -1,3 +1,10 @@
+# OpenWolf
+
+@.wolf/OPENWOLF.md
+
+This project uses OpenWolf for context management. Read and follow .wolf/OPENWOLF.md every session. Check .wolf/cerebrum.md before generating code. Check .wolf/anatomy.md before reading files.
+
+
 # PatelRep — Claude Instructions
 
 AI Staff Copilot SaaS for 50–150 room Texas hotels ($99/mo + $0.02/AI credit, cap $2.50/room/month).
@@ -43,7 +50,7 @@ PatelRep/
 │   │   ├── lib/hooks/    React Query hooks
 │   │   ├── stores/       Zustand: authStore, hotelStore, housekeepingStore, engineeringStore
 │   │   └── middleware.ts Route guard → /login (no session) or /onboarding (no hotel_id)
-├── supabase/migrations/  001–019 sequential SQL — schema source of truth
+├── supabase/migrations/  001–025 sequential SQL — schema source of truth
 ├── spec/                 14 markdown specs — requirements source of truth
 ├── .planning/            GSD: STATE.md, ROADMAP.md, phases/
 └── railway.toml          Two services: api + web (both Dockerfile)
@@ -55,6 +62,9 @@ PatelRep/
 
 | Domain | API router | Web route |
 |---|---|---|
+| Auth | auth.py | (auth)/login |
+| Hotels / Onboarding | hotels.py, onboarding.py | (dashboard)/onboarding |
+| Rooms | rooms.py | — (internal API, no dedicated web route) |
 | Housekeeping | housekeeping.py | (dashboard)/housekeeping |
 | Engineering | work_orders.py, assets.py | (dashboard)/engineering |
 | Tasks | tasks.py | (dashboard)/tasks |
@@ -68,6 +78,8 @@ PatelRep/
 | Reports | reports.py | (dashboard)/reports |
 | Billing | billing.py | (dashboard)/billing |
 | Opera Integration | integrations.py | (dashboard)/settings |
+| Notifications | notifications.py | — (push/in-app, no dedicated web route) |
+| Webhooks | webhooks.py | — (Stripe webhook handler only) |
 
 ---
 
@@ -118,7 +130,8 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 - `room_assignments`: `assigned_to` (housekeeper UUID), `assignment_date` (DATE)
 - `room_status` join: `rooms!inner(id, room_number, floor, room_type_id, room_types(name, code, base_clean_minutes))`
 - `housekeeper_profiles`: rolling avg clean time per housekeeper × room_type
-- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration
+- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime on housekeeping/engineering tables
+- Note: two files share the `020` prefix (`020_fix_credits_decimal.sql`, `020_logbook_expires.sql`) — numbering collision in the sequence
 
 ---
 

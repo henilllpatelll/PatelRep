@@ -23,14 +23,17 @@ function hasRole(role: UserRole | null, allowed: UserRole[]): boolean {
 
 export function useRole(): RoleCapabilities {
   const role = useAuthStore((state) => state.role)
+  const effectiveRole = useAuthStore((state) => state.effectiveRole)
+  // Schedule override wins when present; all role-gated UI reads this value
+  const resolved = effectiveRole ?? role
 
   return {
-    role,
-    isGM: role === 'gm',
-    isSupervisor: hasRole(role, SUPERVISOR_ROLES),
-    canAssignRooms: hasRole(role, ASSIGN_ROOMS_ROLES),
-    canViewBilling: role === 'gm',
-    canManageStaff: role === 'gm',
-    canViewEngineering: hasRole(role, ENGINEERING_ROLES),
+    role: resolved,
+    isGM: resolved === 'gm',
+    isSupervisor: hasRole(resolved, SUPERVISOR_ROLES),
+    canAssignRooms: hasRole(resolved, ASSIGN_ROOMS_ROLES),
+    canViewBilling: resolved === 'gm',
+    canManageStaff: resolved === 'gm',
+    canViewEngineering: hasRole(resolved, ENGINEERING_ROLES),
   }
 }

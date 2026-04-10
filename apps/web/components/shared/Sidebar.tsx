@@ -21,6 +21,7 @@ import {
 import { motion } from 'framer-motion'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/stores/authStore'
@@ -163,6 +164,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const { role, canViewBilling } = useRole()
   const { user } = useAuth()
+  const { hotel } = useHotelStore()
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -174,7 +176,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const avatarBg = getAvatarColor(fullName)
   const roleLabel = role ? ROLE_LABELS[role] : null
 
-  const allowedHrefs: string[] = role ? NAV_BY_ROLE[role] : []
+  const allowedHrefs: string[] =
+    role === 'front_desk'
+      ? ['/dashboard', ...(hotel?.front_desk_modules ?? ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook']).map(m => `/${m}`)]
+      : role ? NAV_BY_ROLE[role] : []
 
   const visibleNavItems: NavItem[] = role
     ? ALL_NAV_ITEMS.filter((item) => allowedHrefs.includes(item.href))

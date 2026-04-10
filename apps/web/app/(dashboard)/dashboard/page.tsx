@@ -1,11 +1,17 @@
 'use client'
+import { useRole } from '@/lib/hooks/useRole'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
 import { LiveOpsGrid } from '@/components/dashboard/LiveOpsGrid'
 import { TrendChartsRow } from '@/components/dashboard/TrendChartsRow'
+import { HousekeeperDashboard } from '@/components/dashboard/HousekeeperDashboard'
+import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard'
+import { EngineerDashboard } from '@/components/dashboard/EngineerDashboard'
+import { ChiefEngineerDashboard } from '@/components/dashboard/ChiefEngineerDashboard'
+import { FrontDeskDashboard } from '@/components/dashboard/FrontDeskDashboard'
 import { useHotelStore } from '@/stores/hotelStore'
 
-export default function DashboardPage() {
+function GMDashboard() {
   const { hotel } = useHotelStore()
   return (
     <div className="space-y-5">
@@ -23,4 +29,24 @@ export default function DashboardPage() {
       <TrendChartsRow />
     </div>
   )
+}
+
+export default function DashboardPage() {
+  const { role } = useRole()
+
+  switch (role) {
+    case 'housekeeper':
+      return <HousekeeperDashboard />
+    case 'housekeeping_supervisor':
+      return <SupervisorDashboard />
+    case 'engineer':
+      return <EngineerDashboard />
+    case 'chief_engineer':
+      return <ChiefEngineerDashboard />
+    case 'front_desk':
+      return <FrontDeskDashboard />
+    case 'gm':
+    default:
+      return <GMDashboard />
+  }
 }

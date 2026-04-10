@@ -3,6 +3,14 @@ from typing import Optional, List, Literal
 from datetime import datetime, date
 
 
+# --- Staff Role Schedules ---
+class CreateRoleScheduleRequest(BaseModel):
+    override_role: Literal["housekeeping_supervisor", "chief_engineer"]
+    days_of_week: List[int]  # 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+
 # --- Hotel / Tenant ---
 class CreateHotelRequest(BaseModel):
     name: str
@@ -263,6 +271,7 @@ class UpdateHotelRequest(BaseModel):
     phone: Optional[str] = None
     room_count: Optional[int] = None
     timezone: Optional[str] = None
+    front_desk_modules: Optional[List[str]] = None
 
 
 # --- Staff Invitation ---
@@ -287,3 +296,18 @@ class AddStaffDirectRequest(BaseModel):
 # --- Push Token ---
 class UpdatePushTokenRequest(BaseModel):
     token: str
+
+
+# --- Custom Roles ---
+class CreateCustomRoleRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    base_role: Literal["housekeeper", "engineer", "housekeeping_supervisor", "chief_engineer", "front_desk", "gm"]
+    allowed_modules: List[str] = []
+
+
+class UpdateCustomRoleRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    base_role: Optional[Literal["housekeeper", "engineer", "housekeeping_supervisor", "chief_engineer", "front_desk", "gm"]] = None
+    allowed_modules: Optional[List[str]] = None
