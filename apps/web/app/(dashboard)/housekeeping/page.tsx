@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
+import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { AssignmentSidebar } from '@/components/housekeeping/AssignmentSidebar'
 import { PredictionPanel } from '@/components/housekeeping/PredictionPanel'
 import { RoomPrediction, housekeepingApi } from '@/lib/api/housekeeping'
@@ -214,9 +215,11 @@ function HousekeeperBar() {
 function HousekeeperRoomItem({
   room,
   onAction,
+  onOpenDetail,
 }: {
   room: any
   onAction: (roomId: string, status: string) => Promise<void>
+  onOpenDetail: (room: any) => void
 }) {
   const [loading, setLoading] = useState(false)
   const roomNumber = room.rooms?.room_number ?? '—'
@@ -233,13 +236,20 @@ function HousekeeperRoomItem({
   }
   const cfg = statusConfig[status] ?? { label: status, pill: 'bg-gray-100 text-gray-600' }
 
-  async function handle(newStatus: string) {
+  async function handle(newStatus: string, e: React.MouseEvent) {
+    e.stopPropagation()
     setLoading(true)
     try { await onAction(room.room_id, newStatus) } finally { setLoading(false) }
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+    <div
+      className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:bg-gray-50 transition-colors"
+      onClick={() => onOpenDetail(room)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(room) } }}
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-base font-bold text-gray-900">Room {roomNumber}</span>
@@ -253,13 +263,14 @@ function HousekeeperRoomItem({
         <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
           {cfg.label}
         </span>
+        <p className="text-[10px] text-gray-300 mt-1">Tap for notes &amp; issues</p>
       </div>
 
       <div className="shrink-0 text-right">
         {(status === 'DIRTY' || status === 'PICKUP') && (
           <button
             disabled={loading}
-            onClick={() => handle('IN_PROGRESS')}
+            onClick={(e) => handle('IN_PROGRESS', e)}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
           >
             {loading ? '…' : 'Start'}
@@ -268,7 +279,7 @@ function HousekeeperRoomItem({
         {status === 'IN_PROGRESS' && (
           <button
             disabled={loading}
-            onClick={() => handle('CLEAN')}
+            onClick={(e) => handle('CLEAN', e)}
             className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-xl hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50"
           >
             {loading ? '…' : 'Done'}
@@ -292,6 +303,7 @@ function HousekeeperMyRoomsView() {
   const today = format(new Date(), 'yyyy-MM-dd')
   const queryClient = useQueryClient()
   const supabase = createClient()
+  const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
 
   const { data: boardData, isLoading } = useQuery({
     queryKey: ['housekeeping-board', today],
@@ -375,10 +387,17 @@ function HousekeeperMyRoomsView() {
               key={room.room_id}
               room={room}
               onAction={handleAction}
+              onOpenDetail={setSelectedRoom}
             />
           ))}
         </div>
       )}
+      <RoomDetailDrawer
+        room={selectedRoom}
+        isOpen={selectedRoom !== null}
+        onClose={() => setSelectedRoom(null)}
+        onStatusChange={handleAction}
+      />
     </div>
   )
 }

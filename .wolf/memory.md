@@ -3,6 +3,9 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 10:29 | Created ../../.claude/.mcp.json | — | ~102 |
+| 02:05 | Global auto-refresh (60s refetchInterval + refetchOnWindowFocus) | Providers.tsx | success | ~80 |
+| 02:05 | Add Note + Report Issue (work order) sections to RoomDetailDrawer | RoomDetailDrawer.tsx | success | ~400 |
+| 02:05 | Make housekeeper room items clickable; wire RoomDetailDrawer into HousekeeperMyRoomsView | housekeeping/page.tsx | success | ~200 |
 | 17:02 | Phase 2: Front Desk config panel — GM toggles modules per hotel. Added migration 026, UpdateHotelRequest.front_desk_modules, hotelStore Hotel interface, hotels.ts UpdateHotelData, settings page Front Desk tab with toggles, Sidebar dynamic front_desk nav | supabase/migrations/026_front_desk_modules.sql, apps/api/models/requests.py, apps/api/routers/auth.py, apps/web/stores/hotelStore.ts, apps/web/lib/api/hotels.ts, apps/web/app/(dashboard)/settings/page.tsx, apps/web/components/shared/Sidebar.tsx | success | ~3800 |
 | 10:00 | Phase 3: Dual-role schedule switching — migration 027 (staff_role_schedules), 4 API endpoints (/me/effective-role, /{id}/role-schedules CRUD), authStore.effectiveRole, useAuth fetches effective role pre-load, useRole resolves effectiveRole??role, staff.ts API methods, EditStaffModal expanded with day-picker schedule UI | 027_staff_role_schedules.sql, staff.py, requests.py, authStore.ts, useAuth.ts, useRole.ts, staff.ts, staff/page.tsx | success | ~5200 |
 
@@ -235,3 +238,19 @@
 | 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 5→9 lines | ~108 |
 | 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | expanded (+8 lines) | ~108 |
 | 21:53 | Session end: 17 writes across 6 files (InspectionModal.tsx, RoomDetailDrawer.tsx, CreateWorkOrderModal.tsx, WorkOrderDetailDrawer.tsx, RoomStatusBoard.tsx) | 11 reads | ~2999 tok |
+| 21:53 | Session end: 17 writes across 6 files (InspectionModal.tsx, RoomDetailDrawer.tsx, CreateWorkOrderModal.tsx, WorkOrderDetailDrawer.tsx, RoomStatusBoard.tsx) | 11 reads | ~2999 tok |
+
+## Session: 2026-04-11 21:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:57 | Edited apps/web/components/shared/Providers.tsx | CSS: refetchInterval | ~98 |
+| 21:57 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+17 lines) | ~319 |
+| 21:57 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~876 |
+| 21:58 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+144 lines) | ~1978 |
+| 02:03 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | CSS: onOpenDetail, e | ~998 |
+| 02:03 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 1 import(s) | ~89 |
+| 02:03 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | modified HousekeeperMyRoomsView() | ~73 |
+| 02:03 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 7→8 lines | ~70 |
+| 02:03 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | expanded (+6 lines) | ~81 |
+| 02:05 | Session end: 9 writes across 3 files (Providers.tsx, RoomDetailDrawer.tsx, page.tsx) | 7 reads | ~23362 tok |

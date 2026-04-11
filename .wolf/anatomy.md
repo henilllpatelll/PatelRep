@@ -1,11 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T02:52:48.262Z
-> Files: 535 tracked | Anatomy hits: 0 | Misses: 0
-
-## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
-
-- `project_status.md` — Declares in (~783 tok)
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T07:03:50.095Z
+> Files: 514 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -910,62 +906,6 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
-## apps/api/routers/
-
-- `housekeeping.py` — API: 5 endpoints (~6490 tok)
-- `rooms.py` — API: 5 endpoints (~3933 tok)
-- `staff.py` — API: 9 endpoints (~4736 tok)
-- `tasks.py` — API: 7 endpoints (~1844 tok)
-
-## apps/web/app/(dashboard)/engineering/
-
-- `page.tsx` — EngineeringPage (~36 tok)
-
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — dynamic (~6533 tok)
-
-## apps/web/app/(dashboard)/housekeeping/rooms/
-
-- `page.tsx` — StatusBadge — renders table (~7727 tok)
-
-## apps/web/app/(dashboard)/staff/
-
-- `page.tsx` — ROLE_OPTIONS — renders form (~12878 tok)
-
-## apps/web/app/(dashboard)/tasks/
-
-- `page.tsx` — STATUS_TABS — renders form (~10167 tok)
-
-## apps/web/components/engineering/
-
-- `CreateWorkOrderModal.tsx` — CATEGORIES (~3541 tok)
-- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~8322 tok)
-
-## apps/web/components/housekeeping/
-
-- `InspectionModal.tsx` — calcOverallResult (~4520 tok)
-- `RoomCard.tsx` — STATUS_CARD_STYLES (~3315 tok)
-- `RoomDetailDrawer.tsx` — STATUS_TRANSITIONS (~4836 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4096 tok)
-
-## apps/web/components/shared/
-
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3580 tok)
-
-## apps/web/lib/api/
-
-- `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1228 tok)
-- `tasks.ts` — ── Types ───────────────────────────────────────────────────────────────────── (~698 tok)
-
-## apps/web/lib/hooks/
-
-- `useAuth.ts` — Exports AuthState, useAuth (~752 tok)
-
-## apps/web/stores/
-
-- `authStore.ts` — Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. (~540 tok)
-
-## supabase/migrations/
-
-- `029_assign_custom_roles.sql` — Phase 5: Assign custom roles to staff members (~134 tok)
+- `page.tsx` — dynamic (~6768 tok)

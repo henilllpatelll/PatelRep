@@ -504,7 +504,11 @@
       "file": "apps/web/components/housekeeping/RoomCard.tsx",
       "root_cause": "Button label 'Ready for Inspection' reads as a status, not an action",
       "fix": "Renamed button to 'Done Cleaning' to clarify it's an action",
-      "tags": ["ui", "housekeeping", "roomcard"],
+      "tags": [
+        "ui",
+        "housekeeping",
+        "roomcard"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T02:44:00.000Z"
@@ -516,7 +520,12 @@
       "file": "apps/api/routers/rooms.py, apps/api/routers/housekeeping.py",
       "root_cause": "DB trigger handle_room_status_history fires on every room_status UPDATE, but API code also manually inserted to room_status_history — double write on every action",
       "fix": "Removed manual room_status_history inserts from rooms.py and housekeeping.py submit_inspection. DB trigger alone handles history.",
-      "tags": ["history", "housekeeping", "duplicate", "trigger"],
+      "tags": [
+        "history",
+        "housekeeping",
+        "duplicate",
+        "trigger"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T02:44:00.000Z"
@@ -528,7 +537,11 @@
       "file": "apps/api/routers/rooms.py",
       "root_cause": "get_room_history had no date filter — returned up to 50 all-time entries",
       "fix": "Added .gte('created_at', today_start) filter with UTC offset",
-      "tags": ["history", "housekeeping", "filter"],
+      "tags": [
+        "history",
+        "housekeeping",
+        "filter"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T02:44:00.000Z"
@@ -540,7 +553,11 @@
       "file": "apps/api/routers/housekeeping.py",
       "root_cause": "list_inspections returned raw inspected_by UUID. FK points to auth.users not user_profiles so join syntax won't work.",
       "fix": "After fetching rows, collect unique inspector UUIDs, batch-query user_profiles, build name_map. Also added +00:00 UTC offset to date filter.",
-      "tags": ["inspections", "housekeeping", "inspector-name"],
+      "tags": [
+        "inspections",
+        "housekeeping",
+        "inspector-name"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T02:44:00.000Z"
@@ -552,10 +569,206 @@
       "file": "apps/api/routers/tasks.py",
       "root_cause": "list_tasks filtered assigned_to=user_id for housekeepers. Tasks they created without self-assigning were invisible.",
       "fix": "Changed to OR condition: assigned_to=uid OR created_by=uid using supabase .or_() filter",
-      "tags": ["tasks", "housekeeper", "visibility"],
+      "tags": [
+        "tasks",
+        "housekeeper",
+        "visibility"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T02:44:00.000Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-04-11T02:50:24.807Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:50:24.807Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-04-11T02:50:36.182Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 16→25 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:50:36.182Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-04-11T02:51:27.401Z",
+      "error_message": "Wrong reference: isEditing should be chief",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Used \"isEditing\" instead of \"chief\"",
+      "fix": "Changed isEditing → chief",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:51:27.401Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-04-11T02:51:49.924Z",
+      "error_message": "CSS fix: backgroundColor",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "backgroundColor: isActive ? 'rgba(255,255,255,0.8)' : '#9CA3AF' → showRiskOnly ? 'rgba(255,255,255,0.8)' : '#f97316'",
+      "fix": "Changed backgroundColor: isActive ? 'rgba(255,255,255,0.8)' : '#9CA3AF' → showRiskOnly ? 'rgba(255,255,255,0.8)' : '#f97316'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:51:49.924Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-04-11T02:51:59.449Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:51:59.449Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-04-11T02:52:37.170Z",
+      "error_message": "Missing await",
+      "file": "apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:52:37.170Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-04-11T02:52:48.278Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:52:48.278Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-04-11T02:57:05.353Z",
+      "error_message": "CSS fix: staleTime, refetchOnWindowFocus",
+      "file": "apps/web/components/shared/Providers.tsx",
+      "root_cause": "staleTime: 30 * 1000, // 30 seconds → 30 * 1000,        // 30 seconds; refetchOnWindowFocus: false, → true,  // fresh data when staff switch back to the tab",
+      "fix": "Changed staleTime: 30 * 1000, // 30 seconds → 30 * 1000,        // 30 seconds; refetchOnWindowFocus: false, → true,  // fresh data when staff switch back to the tab",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:57:05.353Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-04-11T02:57:34.882Z",
+      "error_message": "Missing error handling in RoomDetailDrawer",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:57:34.882Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-04-11T02:58:06.015Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:58:06.015Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-04-11T07:03:06.499Z",
+      "error_message": "CSS fix: newStatus",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "newStatus: string) { → string, e: React.MouseEvent) {",
+      "fix": "Changed newStatus: string) { → string, e: React.MouseEvent) {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T07:03:06.499Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-04-11T07:03:50.131Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T07:03:50.131Z"
     }
   ]
 }

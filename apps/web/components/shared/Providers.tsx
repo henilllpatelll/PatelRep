@@ -129,8 +129,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30 * 1000, // 30 seconds
-            refetchOnWindowFocus: false,
+            staleTime: 30 * 1000,        // 30 seconds
+            refetchInterval: 60 * 1000,  // auto-refresh every 60s — no manual refresh needed
+            refetchOnWindowFocus: true,  // fresh data when staff switch back to the tab
           },
         },
       }),
