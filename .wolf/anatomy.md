@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T07:10:20.720Z
-> Files: 517 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T22:04:14.747Z
+> Files: 514 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -906,15 +906,6 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
-## apps/web/app/(dashboard)/housekeeping/
+## apps/web/components/housekeeping/
 
-- `page.tsx` — dynamic (~6768 tok)
-
-## apps/web/app/(dashboard)/tasks/
-
-- `page.tsx` — STATUS_TABS — renders form (~10270 tok)
-
-## apps/web/components/engineering/
-
-- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1209 tok)
-- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~8344 tok)
+- `InspectionModal.tsx` — calcOverallResult (~4524 tok)

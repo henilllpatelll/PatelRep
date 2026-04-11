@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 201129,
-    "total_reads": 231,
-    "total_writes": 266,
-    "total_sessions": 15,
-    "anatomy_hits": 33,
-    "anatomy_misses": 198,
-    "repeated_reads_blocked": 87,
-    "estimated_savings_vs_bare_cli": 25174
+    "total_tokens_estimated": 225258,
+    "total_reads": 264,
+    "total_writes": 281,
+    "total_sessions": 17,
+    "anatomy_hits": 37,
+    "anatomy_misses": 227,
+    "repeated_reads_blocked": 118,
+    "estimated_savings_vs_bare_cli": 25974
   },
   "sessions": [
     {
@@ -3215,6 +3215,345 @@
         "writes_count": 12,
         "repeated_reads_blocked": 0,
         "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-04-11-2153",
+      "started": "2026-04-11T02:53:58.141Z",
+      "ended": "2026-04-11T07:11:28.782Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+          "tokens_estimated": 4096,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3315,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 4836,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/engineering.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 6533,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderCard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 98,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 319,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 876,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 1978,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 998,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 89,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 73,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 70,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 81,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx",
+          "tokens_estimated": 349,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderCard.tsx",
+          "tokens_estimated": 160,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+          "tokens_estimated": 59,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18780,
+        "output_tokens_estimated": 5150,
+        "reads_count": 10,
+        "writes_count": 12,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-04-11-1624",
+      "started": "2026-04-11T21:24:09.765Z",
+      "ended": "2026-04-11T21:38:08.988Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/staff.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/028_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/029_assign_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 6,
+        "writes_count": 0,
+        "repeated_reads_blocked": 10,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-04-11-1624",
+      "started": "2026-04-11T21:24:09.765Z",
+      "ended": "2026-04-11T21:47:05.455Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/staff.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/028_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/029_assign_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 6,
+        "writes_count": 0,
+        "repeated_reads_blocked": 10,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-04-11-1624",
+      "started": "2026-04-11T21:24:09.765Z",
+      "ended": "2026-04-11T22:04:30.549Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/staff.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/028_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/029_assign_custom_roles.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/009_inspections.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx",
+          "tokens_estimated": 49,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx",
+          "tokens_estimated": 23,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx",
+          "tokens_estimated": 127,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 199,
+        "reads_count": 11,
+        "writes_count": 3,
+        "repeated_reads_blocked": 11,
+        "anatomy_lookups": 0
       }
     }
   ],
