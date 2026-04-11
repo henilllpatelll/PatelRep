@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 153837,
-    "total_reads": 214,
-    "total_writes": 245,
+    "total_tokens_estimated": 201129,
+    "total_reads": 231,
+    "total_writes": 266,
     "total_sessions": 15,
-    "anatomy_hits": 25,
-    "anatomy_misses": 189,
+    "anatomy_hits": 33,
+    "anatomy_misses": 198,
     "repeated_reads_blocked": 87,
-    "estimated_savings_vs_bare_cli": 23574
+    "estimated_savings_vs_bare_cli": 25174
   },
   "sessions": [
     {
@@ -2972,6 +2972,247 @@
         "output_tokens_estimated": 4582,
         "reads_count": 7,
         "writes_count": 9,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-04-11-2153",
+      "started": "2026-04-11T02:53:58.141Z",
+      "ended": "2026-04-11T07:08:31.137Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+          "tokens_estimated": 4096,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3315,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 4836,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/engineering.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 6533,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 98,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 319,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 876,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 1978,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 998,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 89,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 73,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 70,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 81,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18780,
+        "output_tokens_estimated": 4582,
+        "reads_count": 7,
+        "writes_count": 9,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-04-11-2153",
+      "started": "2026-04-11T02:53:58.141Z",
+      "ended": "2026-04-11T07:10:38.241Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+          "tokens_estimated": 4096,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3315,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 4836,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/engineering.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 6533,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderCard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 98,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 319,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 876,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+          "tokens_estimated": 1978,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 998,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 89,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 73,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 70,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 81,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx",
+          "tokens_estimated": 349,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderCard.tsx",
+          "tokens_estimated": 160,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+          "tokens_estimated": 59,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18780,
+        "output_tokens_estimated": 5150,
+        "reads_count": 10,
+        "writes_count": 12,
         "repeated_reads_blocked": 0,
         "anatomy_lookups": 4
       }

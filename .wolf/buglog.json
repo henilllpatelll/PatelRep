@@ -769,6 +769,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-11T07:03:50.131Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-04-11T07:09:39.882Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 27→37 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T07:09:39.882Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-04-11T07:10:20.754Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Condition was: if (h > 48)",
+      "fix": "Changed to: if (h >= 24)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T07:10:20.754Z"
     }
   ]
 }

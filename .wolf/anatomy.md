@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T07:03:50.095Z
-> Files: 514 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T07:10:20.720Z
+> Files: 517 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -909,3 +909,12 @@
 ## apps/web/app/(dashboard)/housekeeping/
 
 - `page.tsx` — dynamic (~6768 tok)
+
+## apps/web/app/(dashboard)/tasks/
+
+- `page.tsx` — STATUS_TABS — renders form (~10270 tok)
+
+## apps/web/components/engineering/
+
+- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1209 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~8344 tok)
