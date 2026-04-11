@@ -16,11 +16,14 @@ interface AuthStore {
   role: UserRole | null
   /** Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. */
   effectiveRole: UserRole | null
+  /** allowed_modules from the staff member's assigned custom role. null = no custom role. Never persisted. */
+  customRoleModules: string[] | null
   isLoading: boolean
   setUser: (user: User | null) => void
   setSession: (session: Session | null) => void
   setRole: (role: UserRole | null) => void
   setEffectiveRole: (role: UserRole | null) => void
+  setCustomRoleModules: (modules: string[] | null) => void
   setLoading: (isLoading: boolean) => void
   clear: () => void
 }
@@ -32,13 +35,15 @@ export const useAuthStore = create<AuthStore>()(
       session: null,
       role: null,
       effectiveRole: null,
+      customRoleModules: null,
       isLoading: true,
       setUser: (user) => set({ user }),
       setSession: (session) => set({ session }),
       setRole: (role) => set({ role }),
       setEffectiveRole: (effectiveRole) => set({ effectiveRole }),
+      setCustomRoleModules: (customRoleModules) => set({ customRoleModules }),
       setLoading: (isLoading) => set({ isLoading }),
-      clear: () => set({ user: null, session: null, role: null, effectiveRole: null, isLoading: false }),
+      clear: () => set({ user: null, session: null, role: null, effectiveRole: null, customRoleModules: null, isLoading: false }),
     }),
     {
       name: 'auth-store',

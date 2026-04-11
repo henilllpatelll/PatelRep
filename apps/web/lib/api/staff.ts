@@ -13,6 +13,8 @@ export interface StaffMember {
   status: 'active' | 'inactive'
   avatar_url?: string
   created_at: string
+  custom_role_id?: string
+  custom_role_name?: string
 }
 
 export interface StaffInvitation {
@@ -36,6 +38,7 @@ export interface UpdateStaffData {
   role?: UserRole
   department_id?: string
   status?: 'active' | 'inactive'
+  custom_role_id?: string | null
 }
 
 export interface RoleSchedule {
@@ -126,7 +129,7 @@ export const staffApi = {
   addDirect: (data: { full_name: string; email: string; role: UserRole; department_id?: string; password?: string }): Promise<{ data: { success: boolean; user_id: string; full_name: string; temp_password: string } }> =>
     apiClient.post('/staff/add-direct', data),
 
-  getEffectiveRole: (): Promise<{ data: { base_role: string; effective_role: string; schedule_id: string | null; is_overridden: boolean } }> =>
+  getEffectiveRole: (): Promise<{ data: { base_role: string; effective_role: string; schedule_id: string | null; is_overridden: boolean; custom_role: { id: string; name: string; allowed_modules: string[] } | null } }> =>
     apiClient.get('/staff/me/effective-role'),
 
   getRoleSchedules: (userId: string): Promise<{ data: RoleSchedule[] }> =>

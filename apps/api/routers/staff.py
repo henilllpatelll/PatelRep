@@ -49,12 +49,33 @@ async def get_effective_role(current_user: CurrentUser = Depends(get_current_use
             schedule_id = s["id"]
             break
 
+    # Look up custom role assignment for this user
+    ur_result = supabase.table("user_roles")\
+        .select("custom_role_id")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("user_id", current_user.user_id)\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+
+    custom_role = None
+    if ur_result.data and ur_result.data[0].get("custom_role_id"):
+        cr_result = supabase.table("custom_roles")\
+            .select("id, name, allowed_modules")\
+            .eq("id", ur_result.data[0]["custom_role_id"])\
+            .eq("is_active", True)\
+            .single()\
+            .execute()
+        if cr_result.data:
+            custom_role = cr_result.data
+
     return {
         "data": {
             "base_role": current_user.role,
             "effective_role": effective_role,
             "schedule_id": schedule_id,
             "is_overridden": effective_role != current_user.role,
+            "custom_role": custom_role,
         }
     }
 
@@ -65,7 +86,7 @@ async def list_staff(
 ):
     """List all active staff members for the hotel."""
     roles_result = supabase.table("user_roles")\
-        .select("id, user_id, tenant_id, role, department_id, is_active, created_at")\
+        .select("id, user_id, tenant_id, role, department_id, is_active, created_at, custom_role_id")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("role")\
@@ -73,6 +94,16 @@ async def list_staff(
 
     roles = roles_result.data or []
     user_ids = list({r["user_id"] for r in roles})
+
+    # Batch-fetch custom role names
+    custom_role_ids = list({r["custom_role_id"] for r in roles if r.get("custom_role_id")})
+    custom_roles_map: dict = {}
+    if custom_role_ids:
+        cr_result = supabase.table("custom_roles")\
+            .select("id, name")\
+            .in_("id", custom_role_ids)\
+            .execute()
+        custom_roles_map = {cr["id"]: cr["name"] for cr in (cr_result.data or [])}
 
     profiles_map: dict = {}
     if user_ids:
@@ -109,6 +140,8 @@ async def list_staff(
             "status": "active" if r.get("is_active") else "inactive",
             "avatar_url": profile.get("avatar_url"),
             "created_at": r["created_at"],
+            "custom_role_id": r.get("custom_role_id"),
+            "custom_role_name": custom_roles_map.get(r.get("custom_role_id")),
         })
 
     return {"data": {"staff": staff_list, "total": len(staff_list)}}
@@ -385,7 +418,7 @@ async def update_staff(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """Update a staff member's role, department, or active status."""
-    allowed_fields = {"role", "department_id", "is_active"}
+    allowed_fields = {"role", "department_id", "is_active", "custom_role_id"}
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
 
     if not update_data:

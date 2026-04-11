@@ -150,3 +150,32 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 17:38 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md | members() → PROGRESS() | ~68 |
+| 17:39 | Session end: 1 writes across 1 files (project_status.md) | 1 reads | ~72 tok |
+
+## Session: 2026-04-10 17:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:07 | Created supabase/migrations/029_assign_custom_roles.sql | — | ~134 |
+| 21:07 | Edited apps/api/routers/staff.py | expanded (+10 lines) | ~223 |
+| 21:07 | Edited apps/api/routers/staff.py | 3→5 lines | ~68 |
+| 21:07 | Edited apps/api/routers/staff.py | inline fix | ~22 |
+| 21:07 | Edited apps/api/routers/staff.py | modified get() | ~281 |
+| 21:07 | Edited apps/web/lib/api/staff.ts | 13→15 lines | ~91 |
+| 21:07 | Edited apps/web/lib/api/staff.ts | 5→6 lines | ~42 |
+| 21:08 | Edited apps/web/lib/api/staff.ts | 2→2 lines | ~77 |
+| 21:08 | Edited apps/web/stores/authStore.ts | 14→17 lines | ~202 |
+| 21:08 | Edited apps/web/stores/authStore.ts | 11→13 lines | ~171 |
+| 21:08 | Edited apps/web/lib/hooks/useAuth.ts | 2→2 lines | ~42 |
+| 21:08 | Edited apps/web/lib/hooks/useAuth.ts | 6→8 lines | ~101 |
+| 21:08 | Edited apps/web/components/shared/Sidebar.tsx | 3→4 lines | ~54 |
+| 21:08 | Edited apps/web/components/shared/Sidebar.tsx | 4→6 lines | ~95 |
+| 21:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | inline fix | ~34 |
+| 21:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | added nullish coalescing | ~248 |
+| 21:09 | Edited apps/web/app/(dashboard)/staff/page.tsx | added nullish coalescing | ~298 |
+| 21:09 | Edited apps/web/app/(dashboard)/staff/page.tsx | added nullish coalescing | ~36 |
+| 21:09 | Edited apps/web/app/(dashboard)/staff/page.tsx | expanded (+7 lines) | ~158 |
+| 21:09 | Phase 5: assign custom roles to staff — migration 029, staff.py (list+effective-role+update), authStore customRoleModules, useAuth, Sidebar, staff/page.tsx | 8 files | complete | ~3200 |
+| 21:09 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md | modified COMPLETE() | ~261 |
+| 21:09 | Session end: 20 writes across 8 files (029_assign_custom_roles.sql, staff.py, staff.ts, authStore.ts, useAuth.ts) | 11 reads | ~2666 tok |

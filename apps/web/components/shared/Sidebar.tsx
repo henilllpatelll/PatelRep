@@ -165,6 +165,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { role, canViewBilling } = useRole()
   const { user } = useAuth()
   const { hotel } = useHotelStore()
+  const customRoleModules = useAuthStore((state) => state.customRoleModules)
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -177,7 +178,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const roleLabel = role ? ROLE_LABELS[role] : null
 
   const allowedHrefs: string[] =
-    role === 'front_desk'
+    customRoleModules
+      ? ['/dashboard', ...customRoleModules.map(m => `/${m}`)]
+      : role === 'front_desk'
       ? ['/dashboard', ...(hotel?.front_desk_modules ?? ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook']).map(m => `/${m}`)]
       : role ? NAV_BY_ROLE[role] : []
 

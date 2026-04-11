@@ -1,11 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-10T22:31:48.417Z
-> Files: 535 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-11T02:09:33.418Z
+> Files: 521 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `project_status.md` — Declares in (~588 tok)
+- `project_status.md` — Declares in (~783 tok)
 
 ## ./
 
@@ -910,56 +910,30 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
-## apps/api/models/
-
-- `requests.py` — --- Staff Role Schedules --- (~2702 tok)
-
 ## apps/api/routers/
 
-- `auth.py` — API: 2 endpoints (~579 tok)
-- `staff.py` — API: 11 endpoints (~4358 tok)
-
-## apps/web/app/(dashboard)/dashboard/
-
-- `page.tsx` — GMDashboard (~543 tok)
-
-## apps/web/app/(dashboard)/settings/
-
-- `page.tsx` — hotelProfileSchema (~9194 tok)
+- `staff.py` — API: 9 endpoints (~4736 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS — renders form (~12367 tok)
-
-## apps/web/components/dashboard/
-
-- `ChiefEngineerDashboard.tsx` — SLAGaugeSmall (~3304 tok)
-- `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2006 tok)
-- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~2443 tok)
-- `HousekeeperDashboard.tsx` — STATUS_MAP (~2059 tok)
-- `SupervisorDashboard.tsx` — STATUS_LABELS (~2593 tok)
+- `page.tsx` — ROLE_OPTIONS — renders form (~12878 tok)
 
 ## apps/web/components/shared/
 
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3530 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3577 tok)
 
 ## apps/web/lib/api/
 
-- `hotels.ts` — API routes: POST, GET, PATCH (4 endpoints) (~416 tok)
-- `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1181 tok)
+- `staff.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1228 tok)
 
 ## apps/web/lib/hooks/
 
-- `useAuth.ts` — Exports AuthState, useAuth (~713 tok)
-- `useRole.ts` — Exports RoleCapabilities, useRole (~362 tok)
+- `useAuth.ts` — Exports AuthState, useAuth (~752 tok)
 
 ## apps/web/stores/
 
-- `authStore.ts` — Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. (~442 tok)
-- `hotelStore.ts` — Exports useHotelStore (~205 tok)
+- `authStore.ts` — Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. (~540 tok)
 
 ## supabase/migrations/
 
-- `026_front_desk_modules.sql` — Add front_desk_modules to tenants (~96 tok)
-- `027_staff_role_schedules.sql` — Phase 3: Dual-role / schedule-based switching (~263 tok)
-- `028_custom_roles.sql` — Phase 4: Custom role builder (~265 tok)
+- `029_assign_custom_roles.sql` — Phase 5: Assign custom roles to staff members (~134 tok)

@@ -20,7 +20,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
-import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule } from '@/lib/api/staff'
+import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule, type CustomRole } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
@@ -458,6 +458,7 @@ function EditStaffModal({
 }) {
   const queryClient = useQueryClient()
   const [role, setRole] = useState<UserRole>(staff.role)
+  const [customRoleId, setCustomRoleId] = useState<string | null>(staff.custom_role_id ?? null)
   const [error, setError] = useState<string | null>(null)
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
@@ -470,8 +471,14 @@ function EditStaffModal({
     select: (res) => res.data,
   })
 
+  const customRolesQuery = useQuery({
+    queryKey: ['custom-roles'],
+    queryFn: () => staffApi.listCustomRoles(),
+    select: (res) => res.data,
+  })
+
   const updateMutation = useMutation({
-    mutationFn: () => staffApi.update(staff.user_id, { role }),
+    mutationFn: () => staffApi.update(staff.user_id, { role, custom_role_id: customRoleId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       onSuccess()
@@ -545,6 +552,24 @@ function EditStaffModal({
               ))}
             </select>
           </div>
+
+          {/* Custom Role */}
+          {(customRolesQuery.data ?? []).length > 0 && (
+            <div className="space-y-1.5 border-t border-white/60 pt-4">
+              <label className="block text-sm font-medium text-gray-700">Custom Role</label>
+              <p className="text-xs text-gray-500">Override this staff member's sidebar with a custom permission set.</p>
+              <select
+                value={customRoleId ?? ''}
+                onChange={(e) => setCustomRoleId(e.target.value || null)}
+                className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              >
+                <option value="">— None (use base role) —</option>
+                {(customRolesQuery.data ?? []).map((cr: CustomRole) => (
+                  <option key={cr.id} value={cr.id}>{cr.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Role Schedule — only for housekeeper / engineer */}
           {overrideRole && (
@@ -631,7 +656,7 @@ function EditStaffModal({
             <Button
               variant="primary"
               onClick={() => updateMutation.mutate()}
-              disabled={updateMutation.isPending || role === staff.role}
+              disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null))}
               className="flex-1"
             >
               {updateMutation.isPending ? 'Saving…' : 'Save Role'}
@@ -869,7 +894,14 @@ export default function StaffPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <RoleBadge role={member.role} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <RoleBadge role={member.role} />
+                      {member.custom_role_name && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                          {member.custom_role_name}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span

@@ -24,7 +24,7 @@ function extractRole(user: User | null): UserRole | null {
 }
 
 export function useAuth(): AuthState {
-  const { user, session, isLoading, setUser, setSession, setRole, setEffectiveRole, setLoading, clear } =
+  const { user, session, isLoading, setUser, setSession, setRole, setEffectiveRole, setCustomRoleModules, setLoading, clear } =
     useAuthStore()
 
   const supabase = createClient()
@@ -34,9 +34,11 @@ export function useAuth(): AuthState {
       try {
         const res = await staffApi.getEffectiveRole()
         setEffectiveRole((res.data?.effective_role as UserRole) ?? null)
+        setCustomRoleModules(res.data?.custom_role?.allowed_modules ?? null)
       } catch {
         // Non-critical — fall back silently to base role
         setEffectiveRole(null)
+        setCustomRoleModules(null)
       }
     }
 
