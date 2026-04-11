@@ -391,13 +391,11 @@ function SupervisorHousekeepingPage() {
     selectedDate,
     selectedShift,
     assignmentMode,
-    showRiskOnly,
     lastSyncedAt,
     rooms,
     setSelectedDate,
     setSelectedShift,
     toggleAssignmentMode,
-    toggleRiskOnly,
     setLastSyncedAt,
   } = useHousekeepingStore()
 
@@ -522,14 +520,6 @@ function SupervisorHousekeepingPage() {
               Assign
             </button>
           </div>
-
-          <Button
-            variant={showRiskOnly ? 'primary' : 'ghost'}
-            onClick={toggleRiskOnly}
-            className={`px-2.5 py-1.5 text-xs ${showRiskOnly ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-          >
-            &#9888; At Risk
-          </Button>
 
           <Link
             href="/onboarding?step=2"

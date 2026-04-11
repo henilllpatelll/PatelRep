@@ -4,7 +4,9 @@ import { useState, useMemo, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
+import { housekeepingApi } from '@/lib/api/housekeeping'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
+import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -434,10 +436,17 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function RoomsPage() {
+  const queryClient = useQueryClient()
   const [floorFilter, setFloorFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+
+  async function handleStatusChange(roomId: string, newStatus: string) {
+    await housekeepingApi.updateRoomStatus(roomId, newStatus)
+    queryClient.invalidateQueries({ queryKey: ['rooms'] })
+  }
 
   const { data, isLoading, isError, error } = useQuery<{ data: RoomStatus[] }>({
     queryKey: ['rooms'],
@@ -638,7 +647,11 @@ export default function RoomsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="secondary" className="px-3 py-1 text-xs">
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-1 text-xs"
+                          onClick={() => setSelectedRoom(room)}
+                        >
                           Edit
                         </Button>
                       </td>
@@ -655,6 +668,14 @@ export default function RoomsPage() {
       {showImportModal && (
         <ImportModal onClose={() => setShowImportModal(false)} />
       )}
+
+      {/* Room detail / edit drawer */}
+      <RoomDetailDrawer
+        room={selectedRoom}
+        isOpen={selectedRoom !== null}
+        onClose={() => setSelectedRoom(null)}
+        onStatusChange={handleStatusChange}
+      />
     </div>
   )
 }

@@ -131,6 +131,20 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
       setSubmitError('No inspection template is set up for this hotel. Please create one in Settings before inspecting rooms.')
       return
     }
+
+    // Validate required items are answered (pass or fail)
+    const unansweredRequired = items.filter((item, idx) => {
+      const key = item.id ?? String(idx)
+      const result = itemResults[key]
+      return item.is_required && (result === undefined || result === 'na')
+    })
+    if (unansweredRequired.length > 0) {
+      setSubmitError(
+        `${unansweredRequired.length} required item${unansweredRequired.length > 1 ? 's' : ''} (●) must be marked Pass or Fail before submitting.`
+      )
+      return
+    }
+
     const payload = {
       room_id: roomId,
       template_id: template.id,

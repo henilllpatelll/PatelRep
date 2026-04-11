@@ -88,9 +88,12 @@ interface SummaryBarProps {
   rooms: any[]
   statusFilter: string | null
   onFilter: (status: string | null) => void
+  showRiskOnly?: boolean
+  onToggleRisk?: () => void
+  riskCount?: number
 }
 
-function StatusSummaryBar({ rooms, statusFilter, onFilter }: SummaryBarProps) {
+function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggleRisk, riskCount }: SummaryBarProps) {
   const counts = rooms.reduce<Record<string, number>>((acc, r) => {
     const s = r.status || 'DIRTY'
     acc[s] = (acc[s] || 0) + 1
@@ -127,6 +130,25 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter }: SummaryBarProps) {
           </button>
         )
       })}
+
+      {/* At Risk toggle chip */}
+      {onToggleRisk && (
+        <button
+          onClick={onToggleRisk}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            showRiskOnly
+              ? 'bg-orange-500 text-white'
+              : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+          }`}
+        >
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: showRiskOnly ? 'rgba(255,255,255,0.8)' : '#f97316' }}
+          />
+          At Risk
+          <span className={`font-bold ${showRiskOnly ? 'opacity-90' : ''}`}>{riskCount ?? 0}</span>
+        </button>
+      )}
     </div>
   )
 }
@@ -153,7 +175,18 @@ export function RoomStatusBoard() {
     selectedShift,
     statusFilter,
     setStatusFilter,
+    showRiskOnly,
+    toggleRiskOnly,
+    predictions,
   } = useHousekeepingStore()
+
+  const riskCount = useMemo(
+    () => allRooms.filter((r: any) => {
+      const pred = predictions[r.room_id] ?? r.prediction
+      return pred?.risk_level === 'HIGH' || pred?.risk_level === 'MEDIUM'
+    }).length,
+    [allRooms, predictions],
+  )
 
   // ── Staff name lookup (cache hit — same key as AssignmentSidebar) ─────────
   const { data: staffData } = useQuery({
@@ -315,6 +348,9 @@ export function RoomStatusBoard() {
         rooms={allRooms}
         statusFilter={statusFilter}
         onFilter={setStatusFilter}
+        showRiskOnly={showRiskOnly}
+        onToggleRisk={toggleRiskOnly}
+        riskCount={riskCount}
       />
 
       {/* Assign error banner */}

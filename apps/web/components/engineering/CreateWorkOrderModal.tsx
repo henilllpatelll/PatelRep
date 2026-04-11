@@ -100,6 +100,10 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
       setValidationError('Please describe the issue for AI to process.')
       return
     }
+    if (!locationText.trim()) {
+      setValidationError('Location is required.')
+      return
+    }
 
     mutation.mutate()
   }
@@ -169,6 +173,19 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   }`}
                 />
               </button>
+            </div>
+
+            {/* Location — required, shown first */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Location <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                value={locationText}
+                onChange={(e) => setLocationText(e.target.value)}
+                placeholder="e.g. Room 214 or Lobby restroom"
+              />
             </div>
 
             {/* Title (only when AI is off) */}
@@ -253,19 +270,6 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   </label>
                 ))}
               </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Location <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <Input
-                type="text"
-                value={locationText}
-                onChange={(e) => setLocationText(e.target.value)}
-                placeholder="e.g. Room 214 or Lobby restroom"
-              />
             </div>
 
             {/* Description */}

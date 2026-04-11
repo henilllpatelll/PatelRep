@@ -301,13 +301,15 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           </div>
 
           <div className="flex items-center gap-1 ml-2 shrink-0">
-            <button
-              onClick={() => setIsEditing((v) => !v)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="Edit work order"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
+            {(isChief || isGM) && (
+              <button
+                onClick={() => setIsEditing((v) => !v)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                aria-label="Edit work order"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -321,8 +323,8 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/60">
 
-          {/* Section: Inline edit */}
-          {isEditing && (
+          {/* Section: Inline edit — chief/GM only */}
+          {isEditing && (isChief || isGM) && (
             <div className="p-5 bg-amber-50/60 border-b border-amber-200/40">
               <p className="text-xs font-semibold text-amber-800 mb-3">Edit Work Order</p>
               <div className="space-y-3">

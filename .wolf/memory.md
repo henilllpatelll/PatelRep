@@ -179,3 +179,59 @@
 | 21:09 | Phase 5: assign custom roles to staff — migration 029, staff.py (list+effective-role+update), authStore customRoleModules, useAuth, Sidebar, staff/page.tsx | 8 files | complete | ~3200 |
 | 21:09 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md | modified COMPLETE() | ~261 |
 | 21:09 | Session end: 20 writes across 8 files (029_assign_custom_roles.sql, staff.py, staff.ts, authStore.ts, useAuth.ts) | 11 reads | ~2666 tok |
+| 21:23 | Session end: 20 writes across 8 files (029_assign_custom_roles.sql, staff.py, staff.ts, authStore.ts, useAuth.ts) | 11 reads | ~2666 tok |
+
+## Session: 2026-04-11 21:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:26 | Edited apps/web/components/shared/Sidebar.tsx | added 1 import(s) | ~29 |
+| 21:26 | Session end: 1 writes across 1 files (Sidebar.tsx) | 1 reads | ~3606 tok |
+| 21:36 | Edited apps/web/lib/api/tasks.ts | 9→10 lines | ~60 |
+| 21:36 | Edited apps/web/components/shared/Sidebar.tsx | 11→10 lines | ~83 |
+| 21:36 | Edited apps/web/components/shared/Sidebar.tsx | 3→3 lines | ~30 |
+| 21:36 | Created apps/web/app/(dashboard)/engineering/page.tsx | — | ~36 |
+| 21:36 | Edited apps/web/app/(dashboard)/tasks/page.tsx | expanded (+8 lines) | ~148 |
+| 21:36 | Edited apps/web/app/(dashboard)/tasks/page.tsx | "text-xs text-gray-400 cap" → "text-xs text-gray-400" | ~28 |
+| 21:37 | Edited apps/web/app/(dashboard)/tasks/page.tsx | expanded (+7 lines) | ~365 |
+| 21:37 | Edited apps/web/app/(dashboard)/tasks/page.tsx | CSS: task_type | ~357 |
+| 21:37 | Edited apps/web/app/(dashboard)/tasks/page.tsx | CSS: focus, focus, focus | ~895 |
+| 21:37 | Session end: 10 writes across 3 files (Sidebar.tsx, tasks.ts, page.tsx) | 5 reads | ~5622 tok |
+
+## Session: 2026-04-11 21:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:43 | Edited apps/web/components/housekeeping/RoomCard.tsx | 8→8 lines | ~105 |
+| 21:43 | Edited apps/api/routers/rooms.py | reduced (-9 lines) | ~44 |
+| 21:43 | Edited apps/api/routers/rooms.py | modified get_room_history() | ~152 |
+| 21:43 | Edited apps/api/routers/housekeeping.py | removed 24 lines | ~61 |
+| 21:43 | Edited apps/api/routers/housekeeping.py | 11→12 lines | ~147 |
+| 21:43 | Edited apps/api/routers/housekeeping.py | 10→12 lines | ~155 |
+| 21:43 | Edited apps/api/routers/tasks.py | 3→4 lines | ~62 |
+| 21:44 | Edited apps/api/routers/housekeeping.py | modified in() | ~463 |
+| 21:44 | Session end: 8 writes across 4 files (RoomCard.tsx, rooms.py, housekeeping.py, tasks.py) | 9 reads | ~1189 tok |
+| 21:46 | Session end: 8 writes across 4 files (RoomCard.tsx, rooms.py, housekeeping.py, tasks.py) | 9 reads | ~1189 tok |
+
+## Session: 2026-04-11 21:46
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:50 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added nullish coalescing | ~218 |
+| 21:50 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified formatHistoryTimestamp() | ~437 |
+| 21:50 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added 1 condition(s) | ~72 |
+| 21:51 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | expanded (+13 lines) | ~583 |
+| 21:51 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | removed 14 lines | ~9 |
+| 21:51 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 9→11 lines | ~132 |
+| 21:51 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 2→2 lines | ~29 |
+| 21:51 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | modified StatusSummaryBar() | ~90 |
+| 21:51 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: hover | ~562 |
+| 21:51 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added optional chaining | ~187 |
+| 21:52 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→8 lines | ~67 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 13→11 lines | ~62 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | removed 9 lines | ~5 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | added 2 import(s) | ~122 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | CSS: roomId, newStatus, queryKey | ~172 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 5→9 lines | ~108 |
+| 21:52 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | expanded (+8 lines) | ~108 |
+| 21:53 | Session end: 17 writes across 6 files (InspectionModal.tsx, RoomDetailDrawer.tsx, CreateWorkOrderModal.tsx, WorkOrderDetailDrawer.tsx, RoomStatusBoard.tsx) | 11 reads | ~2999 tok |

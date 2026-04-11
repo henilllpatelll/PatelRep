@@ -389,12 +389,21 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
                             <span className="text-xs text-gray-400 shrink-0">
                               {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
                             </span>
-                            <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
-                              {fromStatus
-                                ? `${STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')} → ${STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}`
-                                : (STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' '))
-                              }
-                            </span>
+                            {fromStatus ? (
+                              <>
+                                <span className={`text-xs font-semibold ${getStatusTextClass(fromStatus)}`}>
+                                  {STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')}
+                                </span>
+                                <span className="text-xs text-gray-400">→</span>
+                                <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
+                                  {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
+                                </span>
+                              </>
+                            ) : (
+                              <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
+                                {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
+                              </span>
+                            )}
                             {actor && (
                               <span className="text-xs text-gray-500 truncate">
                                 — {actor}
