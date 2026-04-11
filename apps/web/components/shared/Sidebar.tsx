@@ -58,10 +58,9 @@ const ALL_NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/engineering',
-    label: 'Engineering',
+    label: 'Maintenance',
     icon: Wrench,
     subNav: [
-      { href: '/engineering', label: 'Work Orders' },
       { href: '/engineering/assets', label: 'Assets' },
       { href: '/engineering/pm-schedules', label: 'PM Schedules' },
       { href: '/engineering/predictions', label: 'Predictions' },
@@ -132,9 +131,9 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
 const ROLE_LABELS: Record<UserRole, string> = {
   gm: 'General Manager',
   housekeeping_supervisor: 'Housekeeping Supervisor',
-  chief_engineer: 'Chief Engineer',
+  chief_engineer: 'Chief of Maintenance',
   housekeeper: 'Housekeeper',
-  engineer: 'Engineer',
+  engineer: 'Maintenance Tech',
   front_desk: 'Front Desk',
 }
 

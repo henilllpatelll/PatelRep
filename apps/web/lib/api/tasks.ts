@@ -55,6 +55,7 @@ export interface CreateTaskData {
 
 export interface UpdateTaskData {
   status?: TaskStatus
+  task_type?: TaskType
   priority?: Priority
   assigned_to?: string
   notes?: string

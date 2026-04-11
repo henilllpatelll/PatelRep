@@ -24,11 +24,19 @@ const STATUS_TABS: Array<{ value: 'all' | TaskStatus; label: string }> = [
 
 const TASK_TYPES: Array<{ value: TaskType; label: string }> = [
   { value: 'housekeeping', label: 'Housekeeping' },
-  { value: 'engineering', label: 'Engineering' },
+  { value: 'engineering', label: 'Maintenance' },
   { value: 'guest_request', label: 'Guest Request' },
   { value: 'lost_found', label: 'Lost & Found' },
   { value: 'general', label: 'General' },
 ]
+
+const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  housekeeping: 'Housekeeping',
+  engineering: 'Maintenance',
+  guest_request: 'Guest Request',
+  lost_found: 'Lost & Found',
+  general: 'General',
+}
 
 const PRIORITIES: Array<{ value: Priority; label: string }> = [
   { value: 'urgent', label: 'Urgent' },
@@ -134,7 +142,7 @@ function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-gray-400">{taskTypeIcon(task.task_type)}</span>
-              <span className="text-xs text-gray-400 capitalize">{task.task_type.replace('_', ' ')}</span>
+              <span className="text-xs text-gray-400">{TASK_TYPE_LABELS[task.task_type]}</span>
               {task.is_ai_created && (
                 <span className="flex items-center gap-0.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
                   <Bot size={10} />AI
@@ -331,11 +339,18 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(startInEditMode ?? false)
-  const [editForm, setEditForm] = useState({ title: task.title, description: task.description ?? '', priority: task.priority, location_text: task.location_text ?? '' })
+  const [editForm, setEditForm] = useState({ title: task.title, description: task.description ?? '', priority: task.priority, task_type: task.task_type, location_text: task.location_text ?? '' })
+  const [showCompleteForm, setShowCompleteForm] = useState(false)
+  const [completeNotes, setCompleteNotes] = useState('')
 
   const { mutate: saveEdit, isPending: saving } = useMutation({
-    mutationFn: () => tasksApi.update(task.id, { title: editForm.title, description: editForm.description || undefined, priority: editForm.priority as Priority, location_text: editForm.location_text || undefined }),
+    mutationFn: () => tasksApi.update(task.id, { title: editForm.title, description: editForm.description || undefined, priority: editForm.priority as Priority, task_type: editForm.task_type as TaskType, location_text: editForm.location_text || undefined }),
     onSuccess: (result: any) => { setIsEditing(false); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved(result?.data ?? { ...task, ...editForm }) },
+  })
+
+  const { mutate: completeTask, isPending: completing } = useMutation({
+    mutationFn: () => tasksApi.update(task.id, { status: 'completed', notes: completeNotes.trim() || undefined }),
+    onSuccess: (result: any) => { setShowCompleteForm(false); setCompleteNotes(''); queryClient.invalidateQueries({ queryKey: ['tasks'] }); onSaved(result?.data ?? { ...task, status: 'completed' }) },
   })
 
   const handleComment = async () => {
@@ -383,8 +398,13 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                   <option value="normal">Normal</option>
                   <option value="low">Low</option>
                 </select>
-                <input value={editForm.location_text} onChange={(e) => setEditForm((f) => ({ ...f, location_text: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50" placeholder="Location" />
+                <select value={editForm.task_type} onChange={(e) => setEditForm((f) => ({ ...f, task_type: e.target.value as TaskType }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+                  {TASK_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
               </div>
+              <input value={editForm.location_text} onChange={(e) => setEditForm((f) => ({ ...f, location_text: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50" placeholder="Location" />
               <div className="flex gap-2">
                 <button onClick={() => saveEdit()} disabled={saving || !editForm.title.trim()} className="flex-1 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-1">
                   {saving && <Loader2 size={12} className="animate-spin" />}Save
@@ -491,9 +511,9 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                     Start Task
                   </button>
                 )}
-                {task.status === 'in_progress' && (
+                {task.status === 'in_progress' && !showCompleteForm && (
                   <button
-                    onClick={() => onStatusChange(task.id, 'completed')}
+                    onClick={() => setShowCompleteForm(true)}
                     disabled={updating}
                     className="flex-1 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
@@ -508,6 +528,34 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                   Cancel
                 </button>
               </div>
+              {showCompleteForm && (
+                <div className="mt-3 bg-green-50/60 border border-green-200/60 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-green-800">Completion Notes (optional)</p>
+                  <textarea
+                    value={completeNotes}
+                    onChange={(e) => setCompleteNotes(e.target.value)}
+                    rows={2}
+                    placeholder="What was done? Any follow-up needed?"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400/50 resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => completeTask()}
+                      disabled={completing}
+                      className="flex-1 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                    >
+                      {completing && <Loader2 size={12} className="animate-spin" />}
+                      Confirm Complete
+                    </button>
+                    <button
+                      onClick={() => { setShowCompleteForm(false); setCompleteNotes('') }}
+                      className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
