@@ -238,16 +238,7 @@ async def update_room_status(
         .execute()
     )
 
-    # 5. Write history
-    supabase.table("room_status_history").insert({
-        "room_id": room_id,
-        "tenant_id": current_user.hotel_id,
-        "from_status": from_status,
-        "to_status": to_status,
-        "changed_by": current_user.user_id,
-        "change_source": "app",
-        "notes": request.notes,
-    }).execute()
+    # 5. History is written automatically by the handle_room_status_history DB trigger.
 
     # 6. Update housekeeper speed profile (IN_PROGRESS → CLEAN)
     if from_status == "IN_PROGRESS" and to_status == "CLEAN":
@@ -271,11 +262,13 @@ async def get_room_history(
     room_id: str,
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    today_start = f"{date.today().isoformat()}T00:00:00+00:00"
     result = (
         supabase.table("room_status_history")
         .select("*")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
+        .gte("created_at", today_start)
         .order("created_at", desc=True)
         .limit(50)
         .execute()

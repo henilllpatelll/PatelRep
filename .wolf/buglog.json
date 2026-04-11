@@ -336,6 +336,226 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-10T22:29:16.094Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-04-11T02:08:56.446Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Custom Role */}; {(customRolesQuery.data ?? []).length > 0 && ( | Also: disabled={updateMutation.isPending || (role === staff.role &",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-11T02:09:07.427Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-04-11T02:09:33.434Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→10 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:09:33.434Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-04-11T02:36:36.881Z",
+      "error_message": "CSS fix: label",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "label: 'Engineering', → 'Maintenance',",
+      "fix": "Changed label: 'Engineering', → 'Maintenance',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:36:36.881Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-04-11T02:36:40.253Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had 'Chief Engineer'",
+      "fix": "Changed to 'Chief of Maintenance'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:36:40.253Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-04-11T02:36:56.128Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Had \"text-xs text-gray-400 capitalize\"",
+      "fix": "Changed to \"text-xs text-gray-400\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:36:56.128Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-04-11T02:37:05.455Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:37:05.455Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-04-11T02:37:27.228Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "hover: bg-gray-50 disabled:opacity-50 transition-colors\" → bg-gray-50\"",
+      "fix": "Changed hover: bg-gray-50 disabled:opacity-50 transition-colors\" → bg-gray-50\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:37:27.228Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-04-11T02:43:11.578Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 12→3 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:43:11.578Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-04-11T02:43:28.950Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "21 lines replaced/restructured",
+      "fix": "Rewrote 24→4 lines (21 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:43:28.950Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-04-11T02:43:48.007Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:43:48.007Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-04-11T02:44:00.000Z",
+      "error_message": "Room card shows 'Ready for Inspection' button on IN_PROGRESS card — looks like a second status label",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Button label 'Ready for Inspection' reads as a status, not an action",
+      "fix": "Renamed button to 'Done Cleaning' to clarify it's an action",
+      "tags": ["ui", "housekeeping", "roomcard"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:44:00.000Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-04-11T02:44:00.000Z",
+      "error_message": "Status history showing every action twice",
+      "file": "apps/api/routers/rooms.py, apps/api/routers/housekeeping.py",
+      "root_cause": "DB trigger handle_room_status_history fires on every room_status UPDATE, but API code also manually inserted to room_status_history — double write on every action",
+      "fix": "Removed manual room_status_history inserts from rooms.py and housekeeping.py submit_inspection. DB trigger alone handles history.",
+      "tags": ["history", "housekeeping", "duplicate", "trigger"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:44:00.000Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-04-11T02:44:00.000Z",
+      "error_message": "Status history shows all-time entries, not just today",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "get_room_history had no date filter — returned up to 50 all-time entries",
+      "fix": "Added .gte('created_at', today_start) filter with UTC offset",
+      "tags": ["history", "housekeeping", "filter"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:44:00.000Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-04-11T02:44:00.000Z",
+      "error_message": "Inspections tab shows UUID as inspector name instead of actual name",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "list_inspections returned raw inspected_by UUID. FK points to auth.users not user_profiles so join syntax won't work.",
+      "fix": "After fetching rows, collect unique inspector UUIDs, batch-query user_profiles, build name_map. Also added +00:00 UTC offset to date filter.",
+      "tags": ["inspections", "housekeeping", "inspector-name"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:44:00.000Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-04-11T02:44:00.000Z",
+      "error_message": "Housekeeper can add tasks but cannot see them",
+      "file": "apps/api/routers/tasks.py",
+      "root_cause": "list_tasks filtered assigned_to=user_id for housekeepers. Tasks they created without self-assigning were invisible.",
+      "fix": "Changed to OR condition: assigned_to=uid OR created_by=uid using supabase .or_() filter",
+      "tags": ["tasks", "housekeeper", "visibility"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-11T02:44:00.000Z"
     }
   ]
 }

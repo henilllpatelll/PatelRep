@@ -75,9 +75,10 @@ async def list_tasks(
     if room_id:
         query = query.eq("room_id", room_id)
 
-    # Housekeeper sees only their tasks
+    # Housekeeper sees tasks assigned to them OR tasks they created
     if current_user.role == "housekeeper":
-        query = query.eq("assigned_to", current_user.user_id)
+        uid = current_user.user_id
+        query = query.or_(f"assigned_to.eq.{uid},created_by.eq.{uid}")
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}

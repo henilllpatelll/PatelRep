@@ -237,7 +237,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
               className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors"
               onClick={(e) => handleStatusChange('CLEAN', e)}
             >
-              Ready for Inspection
+              Done Cleaning
             </button>
           )}
           {status === 'CLEAN' && canSupervise && (

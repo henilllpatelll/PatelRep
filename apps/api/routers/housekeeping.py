@@ -475,27 +475,7 @@ async def submit_inspection(
     supabase.table("inspection_results").insert(results_data).execute()
 
     # room_status is updated by the on_inspection_complete DB trigger (migration 017).
-    # We only write the history record here — one entry, correct changed_by and notes.
-    if request.overall_result in ("passed", "conditional"):
-        supabase.table("room_status_history").insert({
-            "room_id": str(request.room_id),
-            "tenant_id": current_user.hotel_id,
-            "from_status": "CLEAN",
-            "to_status": "INSPECTED",
-            "changed_by": current_user.user_id,
-            "change_source": "app",
-            "notes": f"Inspection {request.overall_result}: {request.notes}" if request.notes else f"Inspection {request.overall_result}",
-        }).execute()
-    elif request.overall_result == "failed":
-        supabase.table("room_status_history").insert({
-            "room_id": str(request.room_id),
-            "tenant_id": current_user.hotel_id,
-            "from_status": "CLEAN",
-            "to_status": "DIRTY",
-            "changed_by": current_user.user_id,
-            "change_source": "app",
-            "notes": f"Inspection failed: {request.notes}" if request.notes else "Inspection failed",
-        }).execute()
+    # History is written automatically by the handle_room_status_history DB trigger.
 
     return {"data": inspection.data[0]}
 
@@ -524,8 +504,8 @@ async def list_inspections(
             "rooms!inner(room_number)"
         )
         .eq("tenant_id", current_user.hotel_id)
-        .gte("completed_at", f"{from_date.isoformat()}T00:00:00")
-        .lte("completed_at", f"{to_date.isoformat()}T23:59:59")
+        .gte("completed_at", f"{from_date.isoformat()}T00:00:00+00:00")
+        .lte("completed_at", f"{to_date.isoformat()}T23:59:59+00:00")
         .order("completed_at", desc=True)
     )
 
@@ -537,14 +517,28 @@ async def list_inspections(
     res = query.execute()
     rows = res.data or []
 
+    # Resolve inspector UUIDs → names in one query
+    inspector_ids = list({r["inspected_by"] for r in rows if r.get("inspected_by")})
+    name_map: dict[str, str] = {}
+    if inspector_ids:
+        profiles = (
+            supabase.table("user_profiles")
+            .select("id, preferred_name, full_name")
+            .in_("id", inspector_ids)
+            .execute()
+        )
+        for p in (profiles.data or []):
+            name_map[p["id"]] = p.get("preferred_name") or p.get("full_name") or p["id"]
+
     # Flatten for convenience
     output = []
     for row in rows:
         room = row.get("rooms") or {}
+        inspector_id = row.get("inspected_by", "")
         output.append({
             "id": row.get("id"),
             "room_number": room.get("room_number", ""),
-            "inspector_name": row.get("inspected_by", ""),
+            "inspector_name": name_map.get(inspector_id, inspector_id),
             "overall_result": row.get("overall_result"),
             "notes": row.get("notes"),
             "completed_at": row.get("completed_at"),
