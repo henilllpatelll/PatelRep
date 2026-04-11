@@ -92,6 +92,16 @@ function priorityStripe(p: Priority) {
   return 'border-l-4 border-l-gray-200'
 }
 
+function formatDuration(totalMinutes: number): string {
+  const abs = Math.abs(totalMinutes)
+  const days = Math.floor(abs / 1440)
+  const hours = Math.floor((abs % 1440) / 60)
+  const mins = abs % 60
+  if (days >= 1) return days === 1 ? '1 day' : `${days} days`
+  if (hours > 0) return `${hours}h ${mins}m`
+  return `${mins}m`
+}
+
 function SlaIndicator({ task }: { task: Task }) {
   if (!task.due_at || task.status === 'completed' || task.status === 'cancelled') return null
   const now = Date.now()
@@ -101,14 +111,14 @@ function SlaIndicator({ task }: { task: Task }) {
   if (diffMin < 0) {
     return (
       <span className="text-xs text-red-600 font-medium flex items-center gap-1">
-        <Clock size={10} />Overdue {Math.abs(diffMin)}m
+        <Clock size={10} />Overdue {formatDuration(diffMin)}
       </span>
     )
   }
   if (diffMin < 30) {
     return (
       <span className="text-xs text-orange-600 font-medium flex items-center gap-1">
-        <Clock size={10} />{diffMin}m left
+        <Clock size={10} />{formatDuration(diffMin)} left
       </span>
     )
   }

@@ -77,9 +77,14 @@ function slaDisplay(dueAt: string, status: string): { text: string; overdue: boo
   const m = Math.floor((abs % 3600000) / 60000)
   const suffix = overdue ? 'overdue' : 'left'
   let text: string
-  if (h > 48) text = `${Math.floor(h / 24)}d ${suffix}`
-  else if (h > 0) text = `${h}h ${m}m ${suffix}`
-  else text = `${m}m ${suffix}`
+  if (h >= 24) {
+    const d = Math.floor(h / 24)
+    text = `${d} ${d === 1 ? 'day' : 'days'} ${suffix}`
+  } else if (h > 0) {
+    text = `${h}h ${m}m ${suffix}`
+  } else {
+    text = `${m}m ${suffix}`
+  }
   return { text, overdue }
 }
 

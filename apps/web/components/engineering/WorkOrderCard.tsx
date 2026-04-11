@@ -30,7 +30,10 @@ function formatSLA(dueAt: string): { text: string; breached: boolean } {
   const h = Math.floor(abs / 3600000)
   const m = Math.floor((abs % 3600000) / 60000)
   const suffix = breached ? 'overdue' : 'left'
-  if (h > 48) return { text: `${Math.floor(h / 24)}d ${suffix}`, breached }
+  if (h >= 24) {
+    const d = Math.floor(h / 24)
+    return { text: `${d} ${d === 1 ? 'day' : 'days'} ${suffix}`, breached }
+  }
   if (h > 0) return { text: `${h}h ${m}m ${suffix}`, breached }
   return { text: `${m}m ${suffix}`, breached }
 }
