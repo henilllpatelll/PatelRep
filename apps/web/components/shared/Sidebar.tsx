@@ -24,6 +24,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/stores/authStore'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
