@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, ClipboardList, Clock, Bot, Bed, Wrench, Users, HelpCircle,
@@ -630,8 +631,20 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
 
 export default function TasksPage() {
   const queryClient = useQueryClient()
-  const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>(
+    (searchParams.get('tab') as 'all' | TaskStatus) || 'all'
+  )
   const [typeFilter, setTypeFilter] = useState<TaskType | ''>('')
+
+  function handleTabChange(tab: 'all' | TaskStatus) {
+    setStatusFilter(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === 'all') params.delete('tab')
+    else params.set('tab', tab)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
   const [showCreate, setShowCreate] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -716,7 +729,7 @@ export default function TasksPage() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setStatusFilter(tab.value)}
+            onClick={() => handleTabChange(tab.value)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? 'bg-white text-gray-900 shadow-sm'

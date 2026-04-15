@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ClipboardCheck, Users, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
@@ -19,15 +20,15 @@ const STATUS_LABELS: Record<StatusKey, string> = {
   PICKUP: 'Pickup',
 }
 
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
 export function SupervisorDashboard() {
   const user = useAuthStore(s => s.user)
+  const [greeting, setGreeting] = useState('Good morning')
+  useEffect(() => {
+    const h = new Date().getHours()
+    if (h < 12) setGreeting('Good morning')
+    else if (h < 18) setGreeting('Good afternoon')
+    else setGreeting('Good evening')
+  }, [])
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
     user?.email?.split('@')[0] ||
@@ -64,9 +65,9 @@ export function SupervisorDashboard() {
       {/* Greeting */}
       <div>
         <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          {getGreeting()}, {fullName}!
+          {greeting}, {fullName}!
         </h1>
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]">
+        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>

@@ -16,6 +16,17 @@
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 
+## Session: 2026-04-15 (Audit Fix Sprint)
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| — | B8: todayISO() UTC→local fix | housekeepingStore.ts | success | ~50 |
+| — | B7/B5: greeting hydration — useEffect+useState for all 4 dashboards | dashboard/page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx | success | ~300 |
+| — | N12: raw DB enum labels in reports stat cards | reports/page.tsx | success | ~30 |
+| — | N14: + New Work Order button + CreateWorkOrderModal wired | engineering/work-orders/page.tsx | success | ~200 |
+| — | N15: URL tab sync (?tab=) for guest-requests and tasks | guest-requests/page.tsx, tasks/page.tsx | success | ~200 |
+| — | Audit: marked B5/B7/B8/N5/N12/N14/N15 fixed in DAY_SIMULATION_AUDIT.md | DAY_SIMULATION_AUDIT.md | success | ~100 |
+
 ## Session: 2026-04-10 (Phase 4)
 
 | Time | Action | File(s) | Outcome | ~Tokens |
@@ -335,3 +346,62 @@
 | 20:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover, hover | ~336 |
 | 20:35 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: r, next | ~123 |
 | 20:36 | Session end: 7 writes across 2 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx) | 7 reads | ~23808 tok |
+| 20:37 | Session end: 7 writes across 2 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx) | 7 reads | ~23808 tok |
+
+## Session: 2026-04-15 22:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:48 | Created DAY_SIMULATION_AUDIT.md | — | ~2536 |
+| 03:48 | Day simulation audit v2 — Playwright against production | DAY_SIMULATION_AUDIT.md, .wolf/buglog.json, .wolf/cerebrum.md | 5 new bugs (064-068), 3 new nav issues, 8 fixed items confirmed | ~12000 |
+| 22:49 | Session end: 1 writes across 1 files (DAY_SIMULATION_AUDIT.md) | 7 reads | ~15190 tok |
+
+## Session: 2026-04-15 08:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-15 08:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:27 | Created DAY_SIMULATION_AUDIT.md | — | ~2047 |
+| 08:27 | Session end: 1 writes across 1 files (DAY_SIMULATION_AUDIT.md) | 0 reads | ~2193 tok |
+
+## Session: 2026-04-15 08:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:33 | Edited apps/web/stores/housekeepingStore.ts | added 1 import(s) | ~19 |
+| 08:33 | Edited apps/web/stores/housekeepingStore.ts | modified todayISO() | ~21 |
+| 08:33 | Edited apps/web/app/(dashboard)/reports/page.tsx | inline fix | ~37 |
+| 08:33 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 1 import(s) | ~30 |
+| 08:33 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | added 1 import(s) | ~39 |
+| 08:33 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | added 1 import(s) | ~39 |
+| 08:33 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 1 import(s) | ~39 |
+| 08:33 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 2 condition(s) | ~224 |
+| 08:33 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | modified EngineerDashboard() | ~96 |
+| 08:33 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | modified HousekeeperDashboard() | ~97 |
+| 08:33 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | modified SupervisorDashboard() | ~96 |
+| 08:34 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | 6→6 lines | ~109 |
+| 08:34 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | 6→6 lines | ~109 |
+| 08:34 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 6→6 lines | ~109 |
+| 08:34 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added 2 import(s) | ~134 |
+| 08:34 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added 1 import(s) | ~32 |
+| 08:34 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 import(s) | ~49 |
+| 08:34 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 2→3 lines | ~49 |
+| 08:34 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | CSS: tab, scroll | ~136 |
+| 08:34 | Edited apps/web/app/(dashboard)/tasks/page.tsx | CSS: tab, scroll | ~160 |
+| 08:34 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | expanded (+8 lines) | ~204 |
+| 08:34 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~16 |
+| 08:34 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~16 |
+| 08:35 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | CSS: queryKey | ~181 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~18 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~22 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~19 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~17 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~18 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~20 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~13 |
+| 08:35 | Edited DAY_SIMULATION_AUDIT.md | 8→8 lines | ~211 |
+| 08:36 | Session end: 32 writes across 6 files (housekeepingStore.ts, page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx) | 14 reads | ~4321 tok |

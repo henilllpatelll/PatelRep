@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Bell,
   Plus,
@@ -457,8 +458,19 @@ export default function GuestRequestsPage() {
   const canCreate = isGM || isFrontDesk || isSupervisor
   const canAct = isGM || isFrontDesk || isSupervisor
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('open')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    (searchParams.get('tab') as ActiveTab) || 'open'
+  )
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  function handleTabChange(tab: ActiveTab) {
+    setActiveTab(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', tab)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
   const [editTarget, setEditTarget] = useState<GuestRequest | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<GuestRequest | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -575,7 +587,7 @@ export default function GuestRequestsPage() {
           return (
             <button
               key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
+              onClick={() => handleTabChange(tab.value)}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 isActive
                   ? tab.value === 'open'

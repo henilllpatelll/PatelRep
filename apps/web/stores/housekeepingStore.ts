@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { format } from 'date-fns'
 
 export interface RoomPrediction {
   room_id: string
@@ -41,7 +42,7 @@ export interface HousekeepingStore {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().split('T')[0]
+  return format(new Date(), 'yyyy-MM-dd')
 }
 
 export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({

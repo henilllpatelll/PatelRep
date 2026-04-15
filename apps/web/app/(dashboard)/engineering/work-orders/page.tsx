@@ -4,12 +4,14 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Wrench, Search, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Wrench, Search, AlertCircle, CheckCircle2, Plus } from 'lucide-react'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -116,6 +118,7 @@ export default function WorkOrdersPage() {
 
   const [activeTab, setActiveTab] = useState<StatusTab>('open')
   const [search, setSearch] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const isEngineer = role === 'engineer'
   const canManage = role === 'chief_engineer' || role === 'gm'
@@ -173,14 +176,22 @@ export default function WorkOrdersPage() {
   return (
     <div className="space-y-5 max-w-4xl">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-          <Wrench className="w-5 h-5 text-amber-600 shrink-0" />
-          Work Orders
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Wrench className="w-5 h-5 text-amber-600 shrink-0" />
+            Work Orders
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
+          </p>
+        </div>
+        {canManage && (
+          <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
+            <Plus className="w-4 h-4" />
+            New Work Order
+          </Button>
+        )}
       </div>
 
       {/* Urgent alert */}
@@ -258,6 +269,17 @@ export default function WorkOrdersPage() {
             />
           ))}
         </div>
+      )}
+
+      {showCreateModal && (
+        <CreateWorkOrderModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(_wo) => {
+            setShowCreateModal(false)
+            queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+          }}
+        />
       )}
     </div>
   )

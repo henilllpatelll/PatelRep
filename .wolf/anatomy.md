@@ -1,14 +1,14 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T01:35:03.783Z
-> Files: 527 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T13:35:56.598Z
+> Files: 523 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
 - `.gitignore` — Git ignore rules (~257 tok)
 - `BUGS.md` — Bug Fix List — Playwright Audit (2026-03-28) (~3485 tok)
 - `CLAUDE.md` — OpenWolf (~2110 tok)
-- `DAY_SIMULATION_AUDIT.md` — Day Simulation Audit — PatelRep (~3020 tok)
+- `DAY_SIMULATION_AUDIT.md` — Day Simulation Audit — PatelRep (~1911 tok)
 - `package-lock.json` — npm lock file (~84759 tok)
 - `package.json` — Node.js package manifest (~196 tok)
 - `playwright.config.ts` — Playwright test configuration (~300 tok)
@@ -907,42 +907,32 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
-## apps/api/routers/
+## apps/web/app/(dashboard)/dashboard/
 
-- `rooms.py` — API: 6 endpoints (~4375 tok)
-
-## apps/web/app/(dashboard)/engineering/
-
-- `page.tsx` — EngineeringPage (~37 tok)
+- `page.tsx` — GMDashboard (~636 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~2674 tok)
+- `page.tsx` — dynamic (~2914 tok)
 
-## apps/web/app/(dashboard)/housekeeping/
+## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — dynamic (~6778 tok)
+- `page.tsx` — TABS — renders form (~8158 tok)
 
-## apps/web/app/(dashboard)/housekeeping/assignments/
+## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — todayISO — renders table (~2596 tok)
+- `page.tsx` — dynamic — renders table (~7345 tok)
+
+## apps/web/app/(dashboard)/tasks/
+
+- `page.tsx` — STATUS_TABS — renders form (~10410 tok)
 
 ## apps/web/components/dashboard/
 
-- `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2055 tok)
-- `HousekeeperDashboard.tsx` — STATUS_MAP (~2101 tok)
-- `SupervisorDashboard.tsx` — STATUS_LABELS (~2642 tok)
+- `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
+- `HousekeeperDashboard.tsx` — STATUS_MAP (~2145 tok)
+- `SupervisorDashboard.tsx` — STATUS_LABELS (~2685 tok)
 
-## apps/web/components/housekeeping/
+## apps/web/stores/
 
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8293 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4132 tok)
-
-## apps/web/components/shared/
-
-- `Header.tsx` — PAGE_TITLES (~1892 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3603 tok)
-
-## apps/web/lib/api/
-
-- `housekeeping.ts` — API routes: GET, POST, PATCH (12 endpoints) (~887 tok)
+- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1000 tok)

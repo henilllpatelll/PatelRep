@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useRole } from '@/lib/hooks/useRole'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
@@ -13,13 +14,20 @@ import { useHotelStore } from '@/stores/hotelStore'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
+  const [greeting, setGreeting] = useState('Good morning')
+  useEffect(() => {
+    const h = new Date().getHours()
+    if (h < 12) setGreeting('Good morning')
+    else if (h < 18) setGreeting('Good afternoon')
+    else setGreeting('Good evening')
+  }, [])
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          Good morning{hotel ? `, ${hotel.name}` : ''}!
+          {greeting}{hotel ? `, ${hotel.name}` : ''}!
         </h1>
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]">
+        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
       </div>

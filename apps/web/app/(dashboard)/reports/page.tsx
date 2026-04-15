@@ -195,7 +195,7 @@ function DailySummaryTab() {
                 className={`rounded-lg px-4 py-3 text-center ${STATUS_BG[status] || 'bg-gray-50 text-gray-700 border border-gray-200'}`}
               >
                 <p className="text-2xl font-bold">{count}</p>
-                <p className="text-xs font-medium mt-0.5">{status}</p>
+                <p className="text-xs font-medium mt-0.5">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
               </div>
             ))}
           </div>

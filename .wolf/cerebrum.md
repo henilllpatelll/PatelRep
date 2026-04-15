@@ -23,6 +23,9 @@
 - [2026-04-14] **Notes via updateRoomStatus silently fail** — `PATCH /rooms/{id}/status` validates transitions; same-to-same status (e.g. DIRTY→DIRTY) is not in ALLOWED_TRANSITIONS and throws 400. Always use `POST /rooms/{id}/notes` for note-only saves. Frontend: `housekeepingApi.addNote(roomId, text)`.
 - [2026-04-14] **doneCount must be INSPECTED-only** — CLEAN means "awaiting inspection", not done. Both `housekeeping/page.tsx` and `HousekeeperDashboard.tsx` had this wrong. Filter only `status === 'INSPECTED'` for completion counts.
 - [2026-04-14] **Framer Motion layoutId must be unique per DOM subtree** — Sharing `layoutId="sidebar-active"` between main nav and bottom links causes cross-subtree spring animations. Bottom links use `layoutId="sidebar-bottom-active"`.
+- [2026-04-15] **Never use toISOString() for local-date strings** — `new Date().toISOString().split('T')[0]` returns a UTC date. For a Texas hotel (CDT = UTC−5), this shows the *next* day after ~7 PM local time. Always use `format(new Date(), 'yyyy-MM-dd')` from date-fns for local-timezone date strings. Bug found in `housekeepingStore.ts:todayISO()`.
+- [2026-04-15] **Time-based greetings in SSR cause hydration errors** — Calling `new Date().getHours()` inside a component that renders on the server produces a different string than the client (different clock instant + different timezone). Wrap time-dependent text in `useEffect`+`useState` to make it client-only, or add `suppressHydrationWarning` on the element.
+- [2026-04-15] **Raw DB enum values must be formatted before display** — Status keys from API responses (`IN_PROGRESS`, `INSPECTED`, `UNCLAIMED`) are PostgreSQL enum values. Always apply `.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())` or use a STATUS_LABELS map before rendering in UI. Reports, Guest Requests, and Lost & Found stat cards showed raw enums.
 
 ## Decision Log
 

@@ -1009,6 +1009,260 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T01:34:09.017Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-04-15T03:48:00.000Z",
+      "error_message": "React hydration errors #418/#423/#425 on every dashboard page load (10 errors)",
+      "file": "apps/web/components/dashboard/EngineerDashboard.tsx + HousekeeperDashboard.tsx + SupervisorDashboard.tsx + app/(dashboard)/dashboard/page.tsx:20",
+      "root_cause": "new Date().getHours() called during SSR for time-based greeting produces different result on server (UTC) vs client (local time), text content mismatch. GM dashboard hardcodes Good morning with no time check.",
+      "fix": "Wrap greeting in useEffect+useState to defer to client-only render, or add suppressHydrationWarning on greeting element.",
+      "tags": [
+        "hydration",
+        "react",
+        "ssr",
+        "greeting",
+        "dashboard"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T03:48:00.000Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-04-15T03:48:00.000Z",
+      "error_message": "Room Board defaults to tomorrow for US hotels after ~7 PM local time",
+      "file": "apps/web/stores/housekeepingStore.ts:43-44",
+      "root_cause": "todayISO() uses new Date().toISOString().split(\"T\")[0] which is UTC. For Texas hotel CDT=UTC-5, after 7pm local toISOString returns next calendar day.",
+      "fix": "Replace todayISO() with format(new Date(), \"yyyy-MM-dd\") from date-fns which uses local timezone.",
+      "tags": [
+        "timezone",
+        "date",
+        "housekeeping",
+        "zustand",
+        "utc"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T03:48:00.000Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-04-15T03:48:00.000Z",
+      "error_message": "AI Copilot floating panel returns Something went wrong for every query",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx:283-287",
+      "root_cause": "aiApi.chat() throws on every call in production. Likely missing ANTHROPIC_API_KEY on Railway or broken /v1/ai/chat route. Catch block swallows actual error.",
+      "fix": "Check Railway env vars for ANTHROPIC_API_KEY. Log actual error from catch before showing generic message.",
+      "tags": [
+        "ai",
+        "copilot",
+        "api",
+        "production",
+        "railway"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T03:48:00.000Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-04-15T03:48:00.000Z",
+      "error_message": "AI Auto-Assign shows misleading AI suggestions applied toast but assignments table stays empty",
+      "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "API call completes but assignments query does not refresh or date format mismatch means saved data is not returned. False confirmation is worse than prior silent failure.",
+      "fix": "Invalidate assignments query after AI auto-assign AND verify API persists to correct date format.",
+      "tags": [
+        "ai",
+        "assignments",
+        "housekeeping",
+        "false-confirmation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T03:48:00.000Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-04-15T03:48:00.000Z",
+      "error_message": "Raw DB enum labels shown in stat cards on Reports, Guest Requests, Lost & Found pages",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx:198",
+      "root_cause": "Status keys from API response are PostgreSQL enum values (IN_PROGRESS, INSPECTED, UNCLAIMED) rendered directly without formatting.",
+      "fix": "Apply status.replace(/_/g, \" \").replace(/\bw/g, c => c.toUpperCase()) or build a STATUS_LABELS lookup map.",
+      "tags": [
+        "display",
+        "formatting",
+        "enum",
+        "reports",
+        "guest-requests",
+        "lost-found"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T03:48:00.000Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-04-15T13:33:33.722Z",
+      "error_message": "Wrong return value",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "Was returning: new Date().toISOString().split('T')[0]",
+      "fix": "Now returns: format(new Date(), 'yyyy-MM-dd')",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T13:33:33.723Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-04-15T13:33:40.997Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Had '@/lib/hooks/useRole'",
+      "fix": "Changed to 'react'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T13:34:29.256Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-04-15T13:33:53.099Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→19 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T13:33:53.099Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-04-15T13:33:55.412Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/EngineerDashboard.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T13:33:55.412Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-04-15T13:33:57.332Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T13:33:57.332Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-04-15T13:33:58.884Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T13:33:58.884Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-04-15T13:34:46.259Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: const searchParams = useSearchParams(); const router = useRouter()",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T13:34:48.136Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-04-15T13:34:57.729Z",
+      "error_message": "Wrong reference: setActiveTab should be handleTabChange",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "Used \"setActiveTab\" instead of \"handleTabChange\"",
+      "fix": "Changed setActiveTab → handleTabChange",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T13:34:58.474Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-04-15T00:00:00.000Z",
+      "error_message": "Room Board shows tomorrow's date after ~7 PM local time for Texas hotels",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "todayISO() used toISOString().split('T')[0] which returns UTC date, not local date. UTC-5/6 offset means next-day UTC after 7 PM local.",
+      "fix": "Replaced with format(new Date(), 'yyyy-MM-dd') from date-fns which uses local timezone",
+      "tags": ["timezone", "date", "housekeeping", "store"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-04-15T00:00:00.000Z",
+      "error_message": "React hydration errors #418/#423/#425 on every dashboard page load",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx",
+      "root_cause": "getGreeting() and hardcoded 'Good morning' called new Date().getHours() during render — server (UTC) and client (CDT) produce different hour values, causing text mismatch",
+      "fix": "Removed getGreeting() functions; added useState('Good morning') + useEffect to set greeting client-only. Added suppressHydrationWarning on date <p> elements.",
+      "tags": ["hydration", "ssr", "timezone", "react", "dashboard"],
+      "related_bugs": ["bug-077"],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-04-15T00:00:00.000Z",
+      "error_message": "Reports page shows raw PostgreSQL enum values (IN_PROGRESS, INSPECTED) as stat card labels",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "Room status breakdown keys from API are raw PG enum strings; rendered directly with {status}",
+      "fix": "Applied .replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()) at reports/page.tsx:198",
+      "tags": ["display", "enum", "reports", "formatting"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T00:00:00.000Z"
     }
   ]
 }
