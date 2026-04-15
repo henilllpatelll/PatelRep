@@ -207,7 +207,8 @@ export default function WorkOrdersPage() {
       {/* Status tabs + search */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Tabs */}
-        <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm text-xs shrink-0">
+        <div className="overflow-x-auto shrink-0">
+        <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm text-xs">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -221,6 +222,7 @@ export default function WorkOrdersPage() {
               {tab.label}
             </button>
           ))}
+        </div>
         </div>
 
         {/* Search */}

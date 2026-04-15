@@ -104,16 +104,15 @@ export function ROIMetricsStrip() {
   const openWorkOrders = summary?.open_work_orders ?? stats?.open_tasks ?? 0
   const tasksCompleted = summary?.tasks_completed_today ?? 0
 
-  const totalRooms = stats?.room_count ?? 1
-  const inspectedPct = totalRooms > 0 ? Math.round((inspectedToday / totalRooms) * 100) : 0
+  const totalRooms = stats?.room_count ?? 0
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <MetricCard
         label="Rooms Inspected Today"
         value={inspectedToday}
+        suffix={totalRooms > 0 ? ` / ${totalRooms}` : ''}
         icon={CheckCircle}
-        trend={inspectedPct - 100}
       />
       <MetricCard
         label="Open Work Orders"

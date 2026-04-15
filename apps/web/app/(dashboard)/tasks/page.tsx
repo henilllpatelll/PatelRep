@@ -174,7 +174,10 @@ function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: 
           <div className="flex flex-col items-end gap-2 shrink-0">
             {priorityBadge(task.priority)}
             {statusBadge(task.status)}
-            <KebabMenu onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
+            <KebabMenu
+                onEdit={task.status === 'open' || task.status === 'in_progress' ? () => onEdit(task) : undefined}
+                onDelete={() => onDelete(task)}
+              />
           </div>
         </div>
 
