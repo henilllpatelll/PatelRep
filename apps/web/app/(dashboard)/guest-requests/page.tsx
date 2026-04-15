@@ -18,6 +18,7 @@ import {
   type GuestRequest,
   type GuestRequestStatus,
 } from '@/lib/api/guest_requests'
+import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -230,11 +231,24 @@ interface EditRequestModalProps {
 }
 
 function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) {
+  const { role } = useRole()
+  const canAssign = role === 'gm' || role === 'housekeeping_supervisor' || role === 'front_desk'
+
+  const { data: housekeepers = [] } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => staffApi.list(),
+    enabled: canAssign,
+    select: (res) => (res.data as { staff: StaffMember[] }).staff.filter(
+      s => s.role === 'housekeeper' && s.status === 'active'
+    ),
+  })
+
   const [form, setForm] = useState({
     title: request?.title ?? '',
     description: request?.description ?? '',
     guest_name: request?.guest_name ?? '',
     status: request?.status ?? 'open',
+    assigned_to: '',
   })
   const [error, setError] = useState<string | null>(null)
 
@@ -245,6 +259,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
         description: form.description.trim() || undefined,
         guest_name: form.guest_name.trim() || undefined,
         status: form.status as GuestRequestStatus,
+        assigned_to: form.assigned_to || undefined,
       }),
     onSuccess: () => { setError(null); onSaved() },
     onError: (err: Error) => setError(err.message || 'Failed to save'),
@@ -288,6 +303,21 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
               <option value="resolved">Resolved</option>
             </select>
           </div>
+          {canAssign && housekeepers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Assign to housekeeper</label>
+              <select
+                value={form.assigned_to}
+                onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              >
+                <option value="">Unassigned</option>
+                {housekeepers.map(h => (
+                  <option key={h.user_id} value={h.user_id}>{h.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
             <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />

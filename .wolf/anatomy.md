@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T13:35:56.598Z
-> Files: 523 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T18:52:01.292Z
+> Files: 526 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -917,21 +917,33 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS — renders form (~8158 tok)
+- `page.tsx` — TABS — renders form (~8578 tok)
 
 ## apps/web/app/(dashboard)/reports/
 
 - `page.tsx` — dynamic — renders table (~7345 tok)
 
+## apps/web/app/(dashboard)/settings/
+
+- `page.tsx` — hotelProfileSchema (~8884 tok)
+
+## apps/web/app/(dashboard)/staff/
+
+- `page.tsx` — ROLE_OPTIONS — renders form (~13024 tok)
+
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~10410 tok)
+- `page.tsx` — STATUS_TABS — renders form (~10846 tok)
 
 ## apps/web/components/dashboard/
 
 - `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
 - `HousekeeperDashboard.tsx` — STATUS_MAP (~2145 tok)
-- `SupervisorDashboard.tsx` — STATUS_LABELS (~2685 tok)
+- `SupervisorDashboard.tsx` — STATUS_LABELS (~3871 tok)
+
+## apps/web/components/shared/
+
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3595 tok)
 
 ## apps/web/stores/
 

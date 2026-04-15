@@ -1235,7 +1235,12 @@
       "file": "apps/web/stores/housekeepingStore.ts",
       "root_cause": "todayISO() used toISOString().split('T')[0] which returns UTC date, not local date. UTC-5/6 offset means next-day UTC after 7 PM local.",
       "fix": "Replaced with format(new Date(), 'yyyy-MM-dd') from date-fns which uses local timezone",
-      "tags": ["timezone", "date", "housekeeping", "store"],
+      "tags": [
+        "timezone",
+        "date",
+        "housekeeping",
+        "store"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T00:00:00.000Z"
@@ -1247,8 +1252,16 @@
       "file": "apps/web/app/(dashboard)/dashboard/page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx",
       "root_cause": "getGreeting() and hardcoded 'Good morning' called new Date().getHours() during render — server (UTC) and client (CDT) produce different hour values, causing text mismatch",
       "fix": "Removed getGreeting() functions; added useState('Good morning') + useEffect to set greeting client-only. Added suppressHydrationWarning on date <p> elements.",
-      "tags": ["hydration", "ssr", "timezone", "react", "dashboard"],
-      "related_bugs": ["bug-077"],
+      "tags": [
+        "hydration",
+        "ssr",
+        "timezone",
+        "react",
+        "dashboard"
+      ],
+      "related_bugs": [
+        "bug-077"
+      ],
       "occurrences": 1,
       "last_seen": "2026-04-15T00:00:00.000Z"
     },
@@ -1259,10 +1272,79 @@
       "file": "apps/web/app/(dashboard)/reports/page.tsx",
       "root_cause": "Room status breakdown keys from API are raw PG enum strings; rendered directly with {status}",
       "fix": "Applied .replace(/_/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()) at reports/page.tsx:198",
-      "tags": ["display", "enum", "reports", "formatting"],
+      "tags": [
+        "display",
+        "enum",
+        "reports",
+        "formatting"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-04-15T18:48:43.421Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "key: 'reports',         label: 'Reports',         description: 'Analytics and daily summaries', icon: FileText → 'ai',              label: 'AI Copilot',      description: 'AI-powered hotel insights and automation', icon: Sparkles",
+      "fix": "Changed key: 'reports',         label: 'Reports',         description: 'Analytics and daily summaries', icon: FileText → 'ai',              label: 'AI Copilot',      description: 'AI-powered hotel insights and automation', icon: Sparkles",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T18:48:43.421Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-04-15T18:49:45.445Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T18:49:45.445Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-04-15T18:50:11.880Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T18:50:11.880Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-04-15T18:50:44.515Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {canAssign && housekeepers.length > 0 && (; <label className=\"block text-xs font-medium text-gray-700 mb",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T18:51:03.985Z"
     }
   ]
 }

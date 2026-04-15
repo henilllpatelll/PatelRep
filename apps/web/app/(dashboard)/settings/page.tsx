@@ -12,7 +12,7 @@ import { staffApi } from '@/lib/api/staff'
 import type { CustomRole, CreateCustomRoleData } from '@/lib/api/staff'
 import type { UserRole } from '@/stores/authStore'
 import {
-  AlertTriangle, CheckCircle2, Building2, Layers, Sliders,
+  CheckCircle2, Building2, Layers, Sliders,
   Bed, Bell, Package, ClipboardList, BookOpen, Library, FileText,
   ShieldCheck, Plus, Pencil, Trash2, X,
   Wrench, Users, Calendar, Sparkles,
@@ -66,15 +66,19 @@ type Tab = 'general' | 'departments' | 'front_desk' | 'roles'
 
 const FRONT_DESK_MODULES = [
   { key: 'housekeeping',    label: 'Housekeeping',    description: 'Room board, assignments and inspections', icon: Bed },
+  { key: 'engineering',     label: 'Maintenance',     description: 'Work orders and maintenance tracking', icon: Wrench },
   { key: 'guest-requests',  label: 'Guest Requests',  description: 'Guest service requests and escalations', icon: Bell },
   { key: 'lost-found',      label: 'Lost & Found',    description: 'Log and look up guest items', icon: Package },
   { key: 'tasks',           label: 'Tasks',           description: 'Assign and track ad-hoc tasks', icon: ClipboardList },
+  { key: 'staff',           label: 'Staff',           description: 'View and manage hotel staff', icon: Users },
+  { key: 'scheduling',      label: 'Schedule',        description: 'Staff scheduling and shifts', icon: Calendar },
   { key: 'logbook',         label: 'Logbook',         description: 'Shift-by-shift log entries', icon: BookOpen },
   { key: 'sop',             label: 'SOP Library',     description: 'Standard operating procedures', icon: Library },
   { key: 'reports',         label: 'Reports',         description: 'Analytics and daily summaries', icon: FileText },
+  { key: 'ai',              label: 'AI Copilot',      description: 'AI-powered hotel insights and automation', icon: Sparkles },
 ]
 
-const DEFAULT_FD_MODULES = ['housekeeping', 'guest-requests', 'lost-found', 'tasks', 'logbook']
+const DEFAULT_FD_MODULES = ['housekeeping', 'engineering', 'guest-requests', 'lost-found', 'tasks', 'logbook']
 
 // ─── Custom Roles Constants ───────────────────────────────────────────────────
 
@@ -833,38 +837,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Danger Zone — shown on General tab */}
-      {activeTab === 'general' && (
-        <Card className="p-6 space-y-3 border-red-200 bg-red-50">
-          <h2 className="text-base font-semibold text-red-700">Danger Zone</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">Delete this hotel</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Permanently remove this hotel and all associated data.
-              </p>
-            </div>
-            <div className="relative group">
-              <button
-                type="button"
-                disabled
-                className="px-4 py-2 text-sm font-medium text-red-400 bg-red-50 border border-red-200 rounded-lg cursor-not-allowed"
-                aria-disabled="true"
-              >
-                Delete Hotel
-              </button>
-              {/* Tooltip */}
-              <div className="absolute right-0 bottom-full mb-2 w-44 hidden group-hover:block">
-                <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 text-center shadow-lg">
-                  <AlertTriangle size={11} className="inline mr-1 mb-0.5" />
-                  Contact support to delete
-                  <div className="absolute bottom-0 right-6 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   )
 }

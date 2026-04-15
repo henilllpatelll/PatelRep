@@ -8,6 +8,8 @@ import {
   X, Send, Loader2, Pencil,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
+import { staffApi, type StaffMember } from '@/lib/api/staff'
+import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { KebabMenu } from '@/components/shared/KebabMenu'
@@ -213,16 +215,30 @@ interface CreateTaskModalProps {
 }
 
 function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) {
+  const { role } = useRole()
+  const canAssign = role === 'gm' || role === 'housekeeping_supervisor' || role === 'front_desk'
+
+  const { data: staffData } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => staffApi.list(),
+    enabled: canAssign,
+    select: (res) => (res.data as { staff: StaffMember[] }).staff.filter(
+      s => s.role === 'housekeeper' && s.status === 'active'
+    ),
+  })
+  const housekeepers = staffData ?? []
+
   const [form, setForm] = useState<CreateTaskData>({
     title: '',
     task_type: 'general',
     priority: 'normal',
     description: '',
     location_text: '',
+    assigned_to: undefined,
   })
   const [error, setError] = useState<string | null>(null)
 
-  const set = (k: keyof CreateTaskData, v: string) => setForm((f) => ({ ...f, [k]: v }))
+  const set = (k: keyof CreateTaskData, v: string) => setForm((f) => ({ ...f, [k]: v || undefined }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -298,6 +314,22 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             />
           </div>
+
+          {canAssign && housekeepers.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Assign to (optional)</label>
+              <select
+                value={form.assigned_to ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value || undefined }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white"
+              >
+                <option value="">Unassigned</option>
+                {housekeepers.map(h => (
+                  <option key={h.user_id} value={h.user_id}>{h.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Description (optional)</label>

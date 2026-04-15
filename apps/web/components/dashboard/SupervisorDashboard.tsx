@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { ClipboardCheck, Users, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { ClipboardCheck, Users, AlertTriangle, ArrowRight, CheckCircle2, Bell, ClipboardList } from 'lucide-react'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
+import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
+import { tasksApi, type Task } from '@/lib/api/tasks'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/stores/authStore'
@@ -46,10 +48,24 @@ export function SupervisorDashboard() {
     refetchInterval: 30_000,
   })
 
+  const { data: requestsData } = useQuery({
+    queryKey: ['guest-requests-open'],
+    queryFn: () => guestRequestsApi.listRequests({ status: 'open', per_page: 6 }),
+    refetchInterval: 30_000,
+  })
+
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks', { status: 'open' }],
+    queryFn: () => tasksApi.list({ status: 'open', per_page: 6 }),
+    refetchInterval: 60_000,
+  })
+
   const summary = summaryData?.data
   const breakdown = summary?.room_status_breakdown ?? {}
   const alerts = alertsData?.data
   const hkRisks = alerts?.housekeeping_risks ?? []
+  const openRequests: GuestRequest[] = (requestsData as { data?: GuestRequest[] })?.data ?? []
+  const openTasks: Task[] = (tasksData as { data?: Task[] })?.data ?? []
 
   const totalRooms = Object.values(breakdown).reduce((a, b) => a + b, 0)
   const inspected = breakdown['INSPECTED'] ?? 0
@@ -194,6 +210,79 @@ export function SupervisorDashboard() {
           )}
         </Card>
       )}
+
+      {/* Guest Requests + Tasks row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-amber-500" />
+              Open Guest Requests
+              {openRequests.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                  {openRequests.length}
+                </span>
+              )}
+            </h2>
+            <Link href="/guest-requests" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+              All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {openRequests.length === 0 ? (
+            <div className="py-4 text-center">
+              <CheckCircle2 className="w-7 h-7 text-green-300 mx-auto mb-1.5" />
+              <p className="text-sm text-stone-400">No open guest requests</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {openRequests.map(r => (
+                <div key={r.id} className="flex items-center gap-2 py-1.5 border-b border-stone-100 last:border-0">
+                  <Bell className="w-3 h-3 text-amber-400 shrink-0" />
+                  <p className="text-sm text-stone-700 truncate flex-1">{r.title}</p>
+                  {r.rooms?.room_number && (
+                    <span className="text-xs text-stone-400 shrink-0">Rm {r.rooms.room_number}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-amber-500" />
+              Open Tasks
+              {openTasks.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                  {openTasks.length}
+                </span>
+              )}
+            </h2>
+            <Link href="/tasks" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+              All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {openTasks.length === 0 ? (
+            <div className="py-4 text-center">
+              <CheckCircle2 className="w-7 h-7 text-green-300 mx-auto mb-1.5" />
+              <p className="text-sm text-stone-400">No open tasks</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {openTasks.map(t => (
+                <div key={t.id} className="flex items-center gap-2 py-1.5 border-b border-stone-100 last:border-0">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.priority === 'urgent' ? 'bg-red-500' : t.priority === 'normal' ? 'bg-amber-400' : 'bg-stone-300'}`} />
+                  <p className="text-sm text-stone-700 truncate flex-1">{t.title}</p>
+                  {t.user_profiles && (
+                    <span className="text-xs text-stone-400 shrink-0">{t.user_profiles.preferred_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-3">

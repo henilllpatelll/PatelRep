@@ -405,3 +405,45 @@
 | 08:35 | Edited DAY_SIMULATION_AUDIT.md | inline fix | ~13 |
 | 08:35 | Edited DAY_SIMULATION_AUDIT.md | 8→8 lines | ~211 |
 | 08:36 | Session end: 32 writes across 6 files (housekeepingStore.ts, page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx) | 14 reads | ~4321 tok |
+| 08:38 | Session end: 32 writes across 6 files (housekeepingStore.ts, page.tsx, EngineerDashboard.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx) | 14 reads | ~4321 tok |
+
+## Session: 2026-04-15 08:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:42 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~11 |
+| 08:42 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~12 |
+| 08:42 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~12 |
+| 08:42 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~9 |
+| 08:42 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | modified GuestRequestsPage() | ~53 |
+| 08:42 | Edited apps/web/app/(dashboard)/tasks/page.tsx | modified TasksPage() | ~48 |
+| 08:43 | Session end: 6 writes across 1 files (page.tsx) | 3 reads | ~18813 tok |
+| 08:46 | Session end: 6 writes across 1 files (page.tsx) | 3 reads | ~18813 tok |
+
+## Session: 2026-04-15 09:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-15 13:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:48 | Edited apps/web/components/shared/Sidebar.tsx | 13→12 lines | ~58 |
+| 13:48 | Edited apps/web/components/shared/Sidebar.tsx | 11→10 lines | ~43 |
+| 13:48 | Edited apps/web/app/(dashboard)/settings/page.tsx | 11→15 lines | ~417 |
+| 13:49 | Edited apps/web/app/(dashboard)/settings/page.tsx | — | ~0 |
+| 13:49 | Edited apps/web/app/(dashboard)/settings/page.tsx | 6→6 lines | ~62 |
+| 13:49 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 2 import(s) | ~174 |
+| 13:49 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | expanded (+12 lines) | ~162 |
+| 13:49 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: openRequests, openTasks | ~99 |
+| 13:50 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added optional chaining | ~1247 |
+| 13:50 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 2 import(s) | ~131 |
+| 13:50 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added nullish coalescing | ~252 |
+| 13:51 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added nullish coalescing | ~374 |
+| 13:51 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added 1 import(s) | ~62 |
+| 13:51 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | modified EditRequestModal() | ~336 |
+| 13:51 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | CSS: assigned_to | ~384 |
+| 13:52 | Edited apps/web/app/(dashboard)/staff/page.tsx | added 1 condition(s) | ~176 |
+| $(date +%H:%M) | Role access audit — 6 fixes applied | Sidebar, settings/page.tsx, SupervisorDashboard, tasks/page.tsx, guest-requests/page.tsx, staff/page.tsx | completed | ~4800 |
+| 13:52 | Session end: 16 writes across 3 files (Sidebar.tsx, page.tsx, SupervisorDashboard.tsx) | 12 reads | ~25942 tok |
