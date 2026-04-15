@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Bell,
@@ -449,7 +449,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function GuestRequestsPage() {
+function GuestRequestsPageContent() {
   const { isGM, role } = useRole()
   const queryClient = useQueryClient()
 
@@ -708,5 +708,13 @@ export default function GuestRequestsPage() {
         loading={deleting}
       />
     </div>
+  )
+}
+
+export default function GuestRequestsPage() {
+  return (
+    <Suspense>
+      <GuestRequestsPageContent />
+    </Suspense>
   )
 }

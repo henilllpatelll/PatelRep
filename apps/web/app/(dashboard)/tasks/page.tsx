@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -629,7 +629,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function TasksPage() {
+function TasksPageContent() {
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -830,5 +830,13 @@ export default function TasksPage() {
         loading={deleting}
       />
     </div>
+  )
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense>
+      <TasksPageContent />
+    </Suspense>
   )
 }
