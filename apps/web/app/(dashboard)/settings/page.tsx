@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -383,6 +383,8 @@ export default function SettingsPage() {
     select: (res) => res.data,
   })
 
+  const hydratedRef = useRef(false)
+
   const {
     register,
     handleSubmit,
@@ -409,9 +411,10 @@ export default function SettingsPage() {
     }
   }, [fullHotel])
 
-  // Populate form from full hotel data fetched from API
+  // Populate form once on initial load — skip on background refetches to avoid
+  // wiping user's in-progress edits.
   useEffect(() => {
-    if (fullHotel) {
+    if (fullHotel && !hydratedRef.current) {
       reset({
         name: fullHotel.name ?? '',
         address: fullHotel.address ?? '',
@@ -422,6 +425,7 @@ export default function SettingsPage() {
         timezone: fullHotel.timezone ?? 'America/Chicago',
         room_count: fullHotel.room_count ?? 50,
       })
+      hydratedRef.current = true
     }
   }, [fullHotel, reset])
 

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T18:52:01.292Z
-> Files: 526 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T19:11:15.803Z
+> Files: 529 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -907,6 +907,11 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
+## apps/api/routers/
+
+- `housekeeping.py` — API: 5 endpoints (~6755 tok)
+- `rooms.py` — API: 6 endpoints (~4436 tok)
+
 ## apps/web/app/(dashboard)/dashboard/
 
 - `page.tsx` — GMDashboard (~636 tok)
@@ -919,13 +924,17 @@
 
 - `page.tsx` — TABS — renders form (~8578 tok)
 
+## apps/web/app/(dashboard)/housekeeping/inspections/
+
+- `page.tsx` — todayISO — renders table (~2082 tok)
+
 ## apps/web/app/(dashboard)/reports/
 
 - `page.tsx` — dynamic — renders table (~7345 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
-- `page.tsx` — hotelProfileSchema (~8884 tok)
+- `page.tsx` — hotelProfileSchema (~8930 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
@@ -938,7 +947,7 @@
 ## apps/web/components/dashboard/
 
 - `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
-- `HousekeeperDashboard.tsx` — STATUS_MAP (~2145 tok)
+- `HousekeeperDashboard.tsx` — STATUS_MAP (~2155 tok)
 - `SupervisorDashboard.tsx` — STATUS_LABELS (~3871 tok)
 
 ## apps/web/components/shared/

@@ -14,6 +14,12 @@ function todayISO(): string {
   return format(new Date(), 'yyyy-MM-dd')
 }
 
+function sevenDaysAgoISO(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 7)
+  return format(d, 'yyyy-MM-dd')
+}
+
 type InspectionResult = 'passed' | 'failed' | 'conditional'
 
 function resultBadge(result: InspectionResult) {
@@ -33,7 +39,7 @@ function resultBadge(result: InspectionResult) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InspectionsPage() {
-  const [dateFrom, setDateFrom] = useState(todayISO())
+  const [dateFrom, setDateFrom] = useState(sevenDaysAgoISO())
   const [dateTo, setDateTo] = useState(todayISO())
   const [resultFilter, setResultFilter] = useState<string>('all')
 

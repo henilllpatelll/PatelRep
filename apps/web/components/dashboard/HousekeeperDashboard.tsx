@@ -76,8 +76,9 @@ export function HousekeeperDashboard() {
     'there'
 
   const { data: myRoomsData, isLoading: roomsLoading } = useQuery({
-    queryKey: ['my-rooms'],
+    queryKey: ['my-rooms', user?.id],
     queryFn: () => housekeepingApi.getMyRooms(),
+    enabled: !!user?.id,
     refetchInterval: 60_000,
   })
 

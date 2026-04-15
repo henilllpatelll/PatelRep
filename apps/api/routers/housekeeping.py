@@ -78,6 +78,22 @@ async def get_housekeeping_board(
 async def get_my_rooms(
     current_user: CurrentUser = Depends(require_role("housekeeper")),
 ):
+    # Fetch today's assignments for this housekeeper from the assignments table
+    # (room_status.assigned_to persists across days, so we scope by assignment_date)
+    today = date.today()
+    assignments = (
+        supabase.table("room_assignments")
+        .select("room_id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assigned_to", current_user.user_id)
+        .eq("assignment_date", today.isoformat())
+        .execute()
+    )
+    room_ids = [a["room_id"] for a in (assignments.data or [])]
+    if not room_ids:
+        return {"data": []}
+
+    # Return current status for all rooms assigned today (all statuses, not filtered)
     result = (
         supabase.table("room_status")
         .select(
@@ -86,8 +102,7 @@ async def get_my_rooms(
             "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
-        .eq("assigned_to", current_user.user_id)
-        .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
+        .in_("room_id", room_ids)
         .execute()
     )
     return {"data": result.data or []}
@@ -475,7 +490,16 @@ async def submit_inspection(
     supabase.table("inspection_results").insert(results_data).execute()
 
     # room_status is updated by the on_inspection_complete DB trigger (migration 017).
-    # History is written automatically by the handle_room_status_history DB trigger.
+    # History must be written explicitly — the status-history trigger was dropped in migration 024.
+    supabase.table("room_status_history").insert({
+        "room_id": str(request.room_id),
+        "tenant_id": current_user.hotel_id,
+        "from_status": "CLEAN",
+        "to_status": "INSPECTED",
+        "changed_by": current_user.user_id,
+        "change_source": "inspection",
+        "notes": request.notes,
+    }).execute()
 
     return {"data": inspection.data[0]}
 
