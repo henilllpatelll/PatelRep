@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
+import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -174,7 +175,8 @@ export default function WorkOrdersPage() {
   ).length
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="flex flex-col lg:flex-row gap-6 max-w-5xl">
+    <div className="flex-1 min-w-0 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -284,5 +286,7 @@ export default function WorkOrdersPage() {
         />
       )}
     </div>
+    <FailurePredictionSidebar />
+  </div>
   )
 }

@@ -492,3 +492,26 @@
 
 | 14:24 | Fixed 7 UI issues: removed housekeeper edit in rooms page, removed 'reassign' wording, sorted room assignments, moved location field to top of task form, replaced guest name with room number in guest requests, clarified supervisor dashboard wording and metrics, fixed inspection button navigation | rooms/page.tsx, assignments/page.tsx, tasks/page.tsx, guest-requests/page.tsx, SupervisorDashboard.tsx | done | ~4500 |
 | 14:24 | Session end: 18 writes across 2 files (page.tsx, SupervisorDashboard.tsx) | 10 reads | ~28908 tok |
+| 14:25 | Session end: 18 writes across 2 files (page.tsx, SupervisorDashboard.tsx) | 10 reads | ~28908 tok |
+
+## Session: 2026-04-15 14:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:34 | Edited apps/web/components/dashboard/ROIMetricsStrip.tsx | 15→14 lines | ~145 |
+| 14:34 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 3→4 lines | ~64 |
+| 14:34 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 4→5 lines | ~20 |
+| 14:34 | Edited apps/web/components/shared/KebabMenu.tsx | modified KebabMenu() | ~40 |
+| 14:34 | Edited apps/web/components/shared/KebabMenu.tsx | 7→9 lines | ~98 |
+| 14:35 | Edited apps/web/app/(dashboard)/tasks/page.tsx | modified onEdit() | ~58 |
+
+## Session: 2026-04-15 18:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:28 | Edited apps/web/components/dashboard/TrendChartsRow.tsx | "grid grid-cols-2 gap-4" → "grid grid-cols-1 gap-4 sm" | ~17 |
+| 18:28 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added 1 import(s) | ~51 |
+| 18:28 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | CSS: lg | ~35 |
+| 18:28 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 13→15 lines | ~108 |
+| 18:28 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 8→10 lines | ~140 |
+| 18:29 | Fixed 3 UI bugs: TrendChartsRow responsive grid, FailurePredictionSidebar re-integrated with flex-col/lg:flex-row layout, TaskDetailDrawer pencil gated on status | TrendChartsRow.tsx, work-orders/page.tsx, tasks/page.tsx | fixed | ~2k |

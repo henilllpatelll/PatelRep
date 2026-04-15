@@ -421,9 +421,11 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
             <h2 className="font-semibold text-gray-900 text-sm">Task Details</h2>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setIsEditing((v) => !v)} className="text-gray-400 hover:text-gray-600 p-1" title="Edit">
-              <Pencil size={15} />
-            </button>
+            {task.status !== 'completed' && task.status !== 'cancelled' && (
+              <button onClick={() => setIsEditing((v) => !v)} className="text-gray-400 hover:text-gray-600 p-1" title="Edit">
+                <Pencil size={15} />
+              </button>
+            )}
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
               <X size={18} />
             </button>
