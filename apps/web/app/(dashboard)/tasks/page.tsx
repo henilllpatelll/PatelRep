@@ -267,6 +267,17 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Location (optional)</label>
+            <input
+              value={form.location_text}
+              onChange={(e) => set('location_text', e.target.value)}
+              placeholder="e.g. Room 302, Lobby, Pool area"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              autoFocus
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Title *</label>
             <input
               value={form.title}
@@ -274,7 +285,6 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
               placeholder="e.g. Fix leaking faucet in Room 302"
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               required
-              autoFocus
             />
           </div>
 
@@ -303,16 +313,6 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
                 ))}
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Location (optional)</label>
-            <input
-              value={form.location_text}
-              onChange={(e) => set('location_text', e.target.value)}
-              placeholder="e.g. Room 302, Lobby, Pool area"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-            />
           </div>
 
           {canAssign && housekeepers.length > 0 && (

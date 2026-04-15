@@ -465,3 +465,30 @@
 | 14:11 | Edited apps/web/app/(dashboard)/settings/page.tsx | modified if() | ~172 |
 | 14:11 | Edited apps/web/app/(dashboard)/settings/page.tsx | inline fix | ~19 |
 | 14:12 | Session end: 11 writes across 4 files (rooms.py, housekeeping.py, HousekeeperDashboard.tsx, page.tsx) | 11 reads | ~12162 tok |
+| 14:16 | Session end: 11 writes across 4 files (rooms.py, housekeeping.py, HousekeeperDashboard.tsx, page.tsx) | 11 reads | ~12162 tok |
+
+## Session: 2026-04-15 14:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:21 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | added 1 import(s) | ~96 |
+| 14:21 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | modified RoomsPage() | ~64 |
+| 14:21 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 3→5 lines | ~66 |
+| 14:21 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 9→11 lines | ~132 |
+| 14:21 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | CSS: numeric | ~60 |
+| 14:21 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 2 import(s) | ~200 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: assignedTotal, sum, hk | ~340 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 23→23 lines | ~338 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 3→3 lines | ~57 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 6→6 lines | ~96 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 3→3 lines | ~46 |
+| 14:22 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 7→7 lines | ~115 |
+| 14:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 49→49 lines | ~664 |
+| 14:23 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added 1 import(s) | ~62 |
+| 14:23 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added optional chaining | ~489 |
+| 14:23 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | setGuestName() → setRoomNumber() | ~182 |
+| 14:23 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added 2 condition(s) | ~406 |
+| 14:23 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | CSS: room_number | ~118 |
+
+| 14:24 | Fixed 7 UI issues: removed housekeeper edit in rooms page, removed 'reassign' wording, sorted room assignments, moved location field to top of task form, replaced guest name with room number in guest requests, clarified supervisor dashboard wording and metrics, fixed inspection button navigation | rooms/page.tsx, assignments/page.tsx, tasks/page.tsx, guest-requests/page.tsx, SupervisorDashboard.tsx | done | ~4500 |
+| 14:24 | Session end: 18 writes across 2 files (page.tsx, SupervisorDashboard.tsx) | 10 reads | ~28908 tok |

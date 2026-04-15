@@ -7,6 +7,7 @@ import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/roo
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
+import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -437,6 +438,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
 export default function RoomsPage() {
   const queryClient = useQueryClient()
+  const { role } = useRole()
+  const isHousekeeper = role === 'housekeeper'
   const [floorFilter, setFloorFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -616,9 +619,11 @@ export default function RoomsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     Assigned To
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Actions
-                  </th>
+                  {!isHousekeeper && (
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/40">
@@ -646,15 +651,17 @@ export default function RoomsPage() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="secondary"
-                          className="px-3 py-1 text-xs"
-                          onClick={() => setSelectedRoom(room)}
-                        >
-                          Edit
-                        </Button>
-                      </td>
+                      {!isHousekeeper && (
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="secondary"
+                            className="px-3 py-1 text-xs"
+                            onClick={() => setSelectedRoom(room)}
+                          >
+                            Edit
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}

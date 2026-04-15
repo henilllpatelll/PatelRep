@@ -18,6 +18,7 @@ import {
   type GuestRequest,
   type GuestRequestStatus,
 } from '@/lib/api/guest_requests'
+import { roomsApi } from '@/lib/api/rooms'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
@@ -243,24 +244,43 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
     ),
   })
 
+  const { data: roomsData } = useQuery({
+    queryKey: ['rooms-list'],
+    queryFn: () => roomsApi.list(),
+    select: (res) => (res as any).data ?? [],
+  })
+  const rooms: any[] = roomsData ?? []
+
   const [form, setForm] = useState({
     title: request?.title ?? '',
     description: request?.description ?? '',
-    guest_name: request?.guest_name ?? '',
+    room_number: request?.rooms?.room_number ?? '',
     status: request?.status ?? 'open',
     assigned_to: '',
   })
   const [error, setError] = useState<string | null>(null)
 
   const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      guestRequestsApi.updateRequest(request!.id, {
+    mutationFn: () => {
+      const trimmed = form.room_number.trim()
+      let room_id: string | undefined = request?.room_id
+      if (trimmed) {
+        const match = rooms.find((r: any) =>
+          (r.rooms?.room_number ?? '').toLowerCase() === trimmed.toLowerCase()
+        )
+        if (!match) throw new Error(`Room "${trimmed}" not found. Check the room number.`)
+        room_id = match.room_id
+      } else {
+        room_id = undefined
+      }
+      return guestRequestsApi.updateRequest(request!.id, {
         title: form.title.trim() || undefined,
         description: form.description.trim() || undefined,
-        guest_name: form.guest_name.trim() || undefined,
+        room_id,
         status: form.status as GuestRequestStatus,
         assigned_to: form.assigned_to || undefined,
-      }),
+      })
+    },
     onSuccess: () => { setError(null); onSaved() },
     onError: (err: Error) => setError(err.message || 'Failed to save'),
   })
@@ -291,8 +311,8 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
             <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name</label>
-            <input type="text" value={form.guest_name} onChange={(e) => setForm((f) => ({ ...f, guest_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
+            <input type="text" value={form.room_number} onChange={(e) => setForm((f) => ({ ...f, room_number: e.target.value }))} placeholder="e.g. 302" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -346,20 +366,27 @@ interface CreateRequestModalProps {
 
 function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalProps) {
   const [title, setTitle] = useState('')
-  const [guestName, setGuestName] = useState('')
+  const [roomNumber, setRoomNumber] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  const { data: roomsData } = useQuery({
+    queryKey: ['rooms-list'],
+    queryFn: () => roomsApi.list(),
+    select: (res) => (res as any).data ?? [],
+  })
+  const rooms: any[] = roomsData ?? []
+
   const { mutate, isPending } = useMutation({
-    mutationFn: () =>
+    mutationFn: (roomId: string | undefined) =>
       guestRequestsApi.createRequest({
         title: title.trim(),
-        guest_name: guestName.trim() || undefined,
+        room_id: roomId,
         description: description.trim() || undefined,
       }),
     onSuccess: () => {
       setTitle('')
-      setGuestName('')
+      setRoomNumber('')
       setDescription('')
       setError(null)
       onCreate()
@@ -375,13 +402,26 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
       setError('Please enter a title for the request.')
       return
     }
-    setError(null)
-    mutate()
+    const trimmed = roomNumber.trim()
+    if (trimmed && rooms.length > 0) {
+      const match = rooms.find((r: any) =>
+        (r.rooms?.room_number ?? '').toLowerCase() === trimmed.toLowerCase()
+      )
+      if (!match) {
+        setError(`Room "${trimmed}" not found. Check the room number.`)
+        return
+      }
+      setError(null)
+      mutate(match.room_id)
+    } else {
+      setError(null)
+      mutate(undefined)
+    }
   }
 
   function handleClose() {
     setTitle('')
-    setGuestName('')
+    setRoomNumber('')
     setDescription('')
     setError(null)
     onClose()
@@ -426,16 +466,16 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
             />
           </div>
 
-          {/* Guest name */}
+          {/* Room number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Guest name <span className="text-gray-400 font-normal">(optional)</span>
+              Room number <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="text"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="e.g. John Smith"
+              value={roomNumber}
+              onChange={(e) => setRoomNumber(e.target.value)}
+              placeholder="e.g. 302"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40"
             />
           </div>

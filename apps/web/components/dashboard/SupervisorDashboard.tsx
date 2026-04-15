@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { format } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { ClipboardCheck, Users, AlertTriangle, ArrowRight, CheckCircle2, Bell, ClipboardList } from 'lucide-react'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
+import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { tasksApi, type Task } from '@/lib/api/tasks'
 import { Card } from '@/components/ui/Card'
@@ -60,6 +62,16 @@ export function SupervisorDashboard() {
     refetchInterval: 60_000,
   })
 
+  const todayISO = format(new Date(), 'yyyy-MM-dd')
+  const { data: assignmentsData } = useQuery({
+    queryKey: ['hk-assignments-today', todayISO],
+    queryFn: () => housekeepingApi.getAssignments(todayISO),
+    refetchInterval: 60_000,
+  })
+  const assignedTotal: number = ((assignmentsData as any)?.data ?? []).reduce(
+    (sum: number, hk: any) => sum + (hk.rooms_assigned ?? 0), 0
+  )
+
   const summary = summaryData?.data
   const breakdown = summary?.room_status_breakdown ?? {}
   const alerts = alertsData?.data
@@ -70,9 +82,7 @@ export function SupervisorDashboard() {
   const totalRooms = Object.values(breakdown).reduce((a, b) => a + b, 0)
   const inspected = breakdown['INSPECTED'] ?? 0
   const cleanPending = breakdown['CLEAN'] ?? 0
-  const inProgress = breakdown['IN_PROGRESS'] ?? 0
-  const dirty = breakdown['DIRTY'] ?? 0
-  const inspectedPct = totalRooms > 0 ? Math.round((inspected / totalRooms) * 100) : 0
+  const inspectedPct = assignedTotal > 0 ? Math.round((inspected / assignedTotal) * 100) : 0
 
   const priorityStatuses: StatusKey[] = ['DIRTY', 'IN_PROGRESS', 'CLEAN', 'INSPECTED', 'OOO', 'PICKUP']
 
@@ -94,17 +104,17 @@ export function SupervisorDashboard() {
           <p className="text-2xl font-bold text-stone-900">{totalRooms}</p>
           <p className="text-xs text-stone-400 mt-0.5">Total Rooms</p>
         </Card>
-        <Card className={`p-3 text-center${dirty + inProgress > 0 ? ' border-amber-200 bg-amber-50' : ''}`}>
-          <p className={`text-2xl font-bold ${dirty + inProgress > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
-            {dirty + inProgress}
+        <Card className={`p-3 text-center${assignedTotal > 0 ? ' border-amber-200 bg-amber-50' : ''}`}>
+          <p className={`text-2xl font-bold ${assignedTotal > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+            {assignedTotal}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Needs Cleaning</p>
+          <p className="text-xs text-stone-400 mt-0.5">Assigned Today</p>
         </Card>
         <Card className={`p-3 text-center${cleanPending > 0 ? ' border-blue-100 bg-blue-50' : ''}`}>
           <p className={`text-2xl font-bold ${cleanPending > 0 ? 'text-blue-600' : 'text-stone-900'}`}>
             {cleanPending}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Awaiting Inspect</p>
+          <p className="text-xs text-stone-400 mt-0.5">Ready to Inspect</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="text-2xl font-bold text-green-600">{inspectedPct}%</p>
@@ -151,8 +161,8 @@ export function SupervisorDashboard() {
               <ClipboardCheck className="w-4 h-4 text-amber-500" />
               Inspection Queue
             </h2>
-            <Link href="/housekeeping/inspections" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              Inspect <ArrowRight className="w-3 h-3" />
+            <Link href="/housekeeping" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+              Go to Board <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           {cleanPending === 0 ? (
@@ -167,10 +177,10 @@ export function SupervisorDashboard() {
                 {cleanPending === 1 ? 'room is' : 'rooms are'} clean and ready for inspection
               </p>
               <Link
-                href="/housekeeping/inspections"
+                href="/housekeeping"
                 className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 text-white text-xs font-semibold rounded-lg hover:bg-amber-500 transition-colors"
               >
-                Start Inspections <ArrowRight className="w-3 h-3" />
+                Start Inspecting <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           )}
@@ -202,7 +212,7 @@ export function SupervisorDashboard() {
                     <p className="text-xs text-stone-500 capitalize">{r.risk_level} risk</p>
                   </div>
                   <Link href="/housekeeping/assignments" className="text-xs text-amber-600 hover:underline">
-                    Reassign
+                    View
                   </Link>
                 </div>
               ))}
@@ -293,7 +303,7 @@ export function SupervisorDashboard() {
             <p className="text-xs text-stone-400 mt-0.5">Assign rooms to housekeepers</p>
           </Card>
         </Link>
-        <Link href="/housekeeping/inspections">
+        <Link href="/housekeeping">
           <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer">
             <ClipboardCheck className="w-5 h-5 text-amber-500 mb-2" />
             <p className="text-sm font-semibold text-stone-700">Run Inspections</p>

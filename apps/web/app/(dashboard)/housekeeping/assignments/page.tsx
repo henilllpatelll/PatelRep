@@ -218,7 +218,9 @@ export default function AssignmentsPage() {
                             {(hk.rooms ?? []).length === 0 ? (
                               <span className="text-xs text-gray-400">No rooms listed</span>
                             ) : (
-                              (hk.rooms ?? []).map((r) => (
+                              [...(hk.rooms ?? [])].sort((a, b) =>
+                              a.room_number.localeCompare(b.room_number, undefined, { numeric: true })
+                            ).map((r) => (
                                 <span
                                   key={r.room_id}
                                   className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${statusBadge(r.status)}`}
