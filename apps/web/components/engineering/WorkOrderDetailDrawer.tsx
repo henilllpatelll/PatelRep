@@ -16,9 +16,11 @@ import {
   XCircle,
   RotateCcw,
   Pencil,
+  ClipboardList,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { engineeringApi, WorkOrder, WorkOrderComment } from '@/lib/api/engineering'
+import { tasksApi } from '@/lib/api/tasks'
 import { useRole } from '@/lib/hooks/useRole'
 import { Button } from '@/components/ui/Button'
 
@@ -113,6 +115,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   // Comment state
   const [commentText, setCommentText] = useState('')
 
+  // Push to Housekeeping state
+  const [hkTaskNote, setHkTaskNote] = useState('')
+  const [hkTaskPriority, setHkTaskPriority] = useState<'urgent' | 'normal' | 'low'>('normal')
+  const [hkTaskSuccess, setHkTaskSuccess] = useState(false)
+
   // Edit mode
   const [isEditing, setIsEditing] = useState(startInEditMode ?? false)
   const [editForm, setEditForm] = useState({
@@ -180,6 +187,21 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     },
   })
 
+  const hkTaskMutation = useMutation({
+    mutationFn: () =>
+      tasksApi.create({
+        title: hkTaskNote.trim() || `Housekeeping needed — Room ${fullWo.rooms?.room_number}`,
+        description: `From WO-${fullWo.work_order_number}: ${hkTaskNote.trim()}`,
+        task_type: 'housekeeping',
+        priority: hkTaskPriority,
+        room_id: fullWo.room_id,
+      }),
+    onSuccess: () => {
+      setHkTaskNote('')
+      setHkTaskSuccess(true)
+    },
+  })
+
   const editMutation = useMutation({
     mutationFn: () => engineeringApi.updateWorkOrder(wo!.id, {
       title: editForm.title || undefined,
@@ -211,6 +233,9 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     setLaborHours('')
     setPartsUsed('')
     setCommentText('')
+    setHkTaskNote('')
+    setHkTaskPriority('normal')
+    setHkTaskSuccess(false)
     setIsEditing(startInEditMode ?? false)
     setEditForm({
       title: wo?.title ?? '',
@@ -610,6 +635,72 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       Cancel
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section: Push to Housekeeping */}
+          {fullWo.room_id && (isEngineer || isChief || isGM) && (
+            <div className="p-5">
+              <SectionHeading>Push to Housekeeping</SectionHeading>
+              {hkTaskSuccess ? (
+                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <CheckCircle className="w-4 h-4 shrink-0" />
+                  Task pushed to housekeeping.
+                  <button
+                    type="button"
+                    onClick={() => setHkTaskSuccess(false)}
+                    className="ml-auto text-green-600 hover:text-green-800"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    Create a housekeeping task for{' '}
+                    <span className="font-medium text-gray-700">
+                      Room {fullWo.rooms?.room_number}
+                    </span>.
+                  </p>
+                  <textarea
+                    value={hkTaskNote}
+                    onChange={(e) => setHkTaskNote(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. Deep clean needed — repair complete, debris in bathroom"
+                    className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white/70 backdrop-blur-sm resize-none transition-colors"
+                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={hkTaskPriority}
+                      onChange={(e) => setHkTaskPriority(e.target.value as 'urgent' | 'normal' | 'low')}
+                      className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="low">Low</option>
+                    </select>
+                    <Button
+                      variant="ghost"
+                      onClick={() => { if (hkTaskNote.trim()) hkTaskMutation.mutate() }}
+                      disabled={!hkTaskNote.trim() || hkTaskMutation.isPending}
+                      className="text-teal-700 border-teal-200 hover:bg-teal-50"
+                    >
+                      {hkTaskMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ClipboardList className="w-3.5 h-3.5" />
+                      )}
+                      Push to Housekeeping
+                    </Button>
+                  </div>
+                  {hkTaskMutation.isError && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      Failed to create task. Please try again.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

@@ -1636,7 +1636,12 @@
       "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
       "root_cause": "Outer grid used `grid grid-cols-2 gap-4` with no responsive breakpoint, forcing both chart cards into half-width on mobile and clipping the SLA stat boxes",
       "fix": "Changed to `grid grid-cols-1 gap-4 sm:grid-cols-2` so each card gets full width on mobile",
-      "tags": ["layout", "mobile", "dashboard", "tsx"],
+      "tags": [
+        "layout",
+        "mobile",
+        "dashboard",
+        "tsx"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T23:35:00.000Z"
@@ -1648,7 +1653,13 @@
       "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "root_cause": "FailurePredictionSidebar was not imported anywhere — the component (w-72 shrink-0) had previously been placed in a flex-row layout that stacked and overlapped content on mobile screens",
       "fix": "Re-integrated FailurePredictionSidebar with responsive layout: flex-col on mobile (stacks below), lg:flex-row on desktop (true sidebar). Inner content wrapped in flex-1 min-w-0.",
-      "tags": ["layout", "mobile", "engineering", "sidebar", "tsx"],
+      "tags": [
+        "layout",
+        "mobile",
+        "engineering",
+        "sidebar",
+        "tsx"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T23:35:00.000Z"
@@ -1660,8 +1671,16 @@
       "file": "apps/web/app/(dashboard)/tasks/page.tsx",
       "root_cause": "TaskDetailDrawer rendered the Pencil edit button unconditionally in the drawer header — bypassed the KebabMenu status guard that was fixed in the previous commit",
       "fix": "Wrapped pencil button in `task.status !== 'completed' && task.status !== 'cancelled'` guard",
-      "tags": ["tasks", "completed-task", "edit", "drawer", "tsx"],
-      "related_bugs": ["bug-103"],
+      "tags": [
+        "tasks",
+        "completed-task",
+        "edit",
+        "drawer",
+        "tsx"
+      ],
+      "related_bugs": [
+        "bug-103"
+      ],
       "occurrences": 1,
       "last_seen": "2026-04-15T23:35:00.000Z"
     },
@@ -1672,10 +1691,112 @@
       "file": "apps/web/app/(dashboard)/staff/page.tsx",
       "root_cause": "Early return `if (!isGM) return (...)` at line 677 placed before all hook declarations (lines 689-752), violating React Rules of Hooks.",
       "fix": "Moved all useState, useMemo, useQuery, useMutation hooks above the early return. Added `enabled: isGM` to both useQuery calls to avoid API calls for non-GM users.",
-      "tags": ["rules-of-hooks", "staff", "conditional-hooks", "railway-build", "next-build"],
+      "tags": [
+        "rules-of-hooks",
+        "staff",
+        "conditional-hooks",
+        "railway-build",
+        "next-build"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-15T00:00:00.000Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-04-15T23:44:33.973Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T23:44:33.973Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-04-15T23:44:40.990Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/housekeeping.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T23:44:40.990Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-04-15T23:45:12.514Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Section: Push to Housekeeping */}; {fullWo.room_id && (isEngineer || isChief || isGM) && (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T23:45:35.439Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-04-15T23:46:27.561Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T23:46:27.561Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-04-15T23:46:48.480Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Inspections Tab */}; {activeTab === 'inspections' && (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T23:47:21.815Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-04-15T23:46:59.877Z",
+      "error_message": "CSS fix: type",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "type: 'error', message: err.message || 'Failed to delete role.' → 'error', message: err.message || 'Failed to delete template.'",
+      "fix": "Changed type: 'error', message: err.message || 'Failed to delete role.' → 'error', message: err.message || 'Failed to delete template.'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T23:47:09.050Z"
     }
   ]
 }

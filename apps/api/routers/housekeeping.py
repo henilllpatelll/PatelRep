@@ -660,3 +660,91 @@ async def create_inspection_template(
         supabase.table("inspection_template_items").insert(items_data).execute()
 
     return {"data": tmpl.data[0]}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /housekeeping/inspections/templates/{template_id}
+# ---------------------------------------------------------------------------
+
+@router.patch("/inspections/templates/{template_id}")
+async def update_inspection_template(
+    template_id: str,
+    body: dict,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Update an inspection template name/default flag and replace its items."""
+    update_data: dict = {}
+    if "name" in body:
+        update_data["name"] = body["name"]
+    if "is_default" in body:
+        update_data["is_default"] = body["is_default"]
+    if "is_active" in body:
+        update_data["is_active"] = body["is_active"]
+
+    if update_data:
+        supabase.table("inspection_templates") \
+            .update(update_data) \
+            .eq("id", template_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute()
+
+    if "items" in body:
+        supabase.table("inspection_template_items") \
+            .delete() \
+            .eq("template_id", template_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute()
+        items = body["items"] or []
+        if items:
+            items_data = [
+                {
+                    "template_id": template_id,
+                    "tenant_id": current_user.hotel_id,
+                    "section": item.get("section", "General"),
+                    "description": item.get("description", ""),
+                    "is_required": item.get("is_required", True),
+                    "sort_order": idx,
+                }
+                for idx, item in enumerate(items)
+            ]
+            supabase.table("inspection_template_items").insert(items_data).execute()
+
+    tmpl = supabase.table("inspection_templates") \
+        .select("id, name, room_type_id, is_default, is_active") \
+        .eq("id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .maybe_single().execute()
+
+    if not tmpl.data:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    item_result = supabase.table("inspection_template_items") \
+        .select("id, section, description, is_required, sort_order") \
+        .eq("template_id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .order("sort_order") \
+        .execute()
+
+    return {"data": {**tmpl.data, "items": item_result.data or []}}
+
+
+# ---------------------------------------------------------------------------
+# DELETE /housekeeping/inspections/templates/{template_id}
+# ---------------------------------------------------------------------------
+
+@router.delete("/inspections/templates/{template_id}", status_code=204)
+async def delete_inspection_template(
+    template_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Delete an inspection template and all its items."""
+    supabase.table("inspection_template_items") \
+        .delete() \
+        .eq("template_id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    supabase.table("inspection_templates") \
+        .delete() \
+        .eq("id", template_id) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()

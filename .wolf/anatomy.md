@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T19:11:15.803Z
-> Files: 529 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T23:47:21.766Z
+> Files: 536 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -909,7 +909,7 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 5 endpoints (~6755 tok)
+- `housekeeping.py` — API: 5 endpoints (~7713 tok)
 - `rooms.py` — API: 6 endpoints (~4436 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
@@ -918,15 +918,23 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~2914 tok)
+- `page.tsx` — dynamic (~2988 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS — renders form (~8578 tok)
+- `page.tsx` — TABS — renders form (~8948 tok)
+
+## apps/web/app/(dashboard)/housekeeping/assignments/
+
+- `page.tsx` — todayISO — renders table (~2640 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
 - `page.tsx` — todayISO — renders table (~2082 tok)
+
+## apps/web/app/(dashboard)/housekeeping/rooms/
+
+- `page.tsx` — StatusBadge — renders table (~7807 tok)
 
 ## apps/web/app/(dashboard)/reports/
 
@@ -934,25 +942,36 @@
 
 ## apps/web/app/(dashboard)/settings/
 
-- `page.tsx` — hotelProfileSchema (~8930 tok)
+- `page.tsx` — hotelProfileSchema (~13062 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS — renders form (~13024 tok)
+- `page.tsx` — ROLE_OPTIONS — renders form (~13084 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~10846 tok)
+- `page.tsx` — STATUS_TABS — renders form (~10908 tok)
 
 ## apps/web/components/dashboard/
 
 - `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
 - `HousekeeperDashboard.tsx` — STATUS_MAP (~2155 tok)
-- `SupervisorDashboard.tsx` — STATUS_LABELS (~3871 tok)
+- `ROIMetricsStrip.tsx` — MetricCard (~1124 tok)
+- `SupervisorDashboard.tsx` — STATUS_LABELS (~3970 tok)
+- `TrendChartsRow.tsx` — today (~1954 tok)
+
+## apps/web/components/engineering/
+
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~9563 tok)
 
 ## apps/web/components/shared/
 
+- `KebabMenu.tsx` — KebabMenu (~631 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~3595 tok)
+
+## apps/web/lib/api/
+
+- `housekeeping.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1080 tok)
 
 ## apps/web/stores/
 

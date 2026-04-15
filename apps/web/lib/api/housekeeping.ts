@@ -109,4 +109,19 @@ export const housekeepingApi = {
 
   getMyRooms: () =>
     apiClient.get('/housekeeping/my-rooms'),
+
+  createInspectionTemplate: (data: {
+    name: string
+    is_default?: boolean
+    items: Array<{ section: string; description: string; is_required: boolean }>
+  }) => apiClient.post('/housekeeping/inspections/templates', data) as Promise<{ data: InspectionTemplate }>,
+
+  updateInspectionTemplate: (id: string, data: {
+    name?: string
+    is_default?: boolean
+    items?: Array<{ section: string; description: string; is_required: boolean }>
+  }) => apiClient.patch(`/housekeeping/inspections/templates/${id}`, data) as Promise<{ data: InspectionTemplate }>,
+
+  deleteInspectionTemplate: (id: string) =>
+    apiClient.delete(`/housekeeping/inspections/templates/${id}`),
 }

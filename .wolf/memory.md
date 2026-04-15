@@ -3,6 +3,9 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 10:29 | Created ../../.claude/.mcp.json | — | ~102 |
+| 18:47 | Added "Push to Housekeeping" section in WorkOrderDetailDrawer — engineer/chief/GM can write a note and push a housekeeping task for the WO room | WorkOrderDetailDrawer.tsx, tasks.ts | done | ~800 |
+| 18:47 | Added Inspections tab to Settings page — GM/supervisor can create/edit/delete inspection checklist templates | settings/page.tsx, housekeeping.ts | done | ~1200 |
+| 18:47 | Added PATCH + DELETE endpoints for inspection templates | apps/api/routers/housekeeping.py | done | ~300 |
 | 02:05 | Global auto-refresh (60s refetchInterval + refetchOnWindowFocus) | Providers.tsx | success | ~80 |
 | 02:05 | Add Note + Report Issue (work order) sections to RoomDetailDrawer | RoomDetailDrawer.tsx | success | ~400 |
 | 02:05 | Make housekeeper room items clickable; wire RoomDetailDrawer into HousekeeperMyRoomsView | housekeeping/page.tsx | success | ~200 |
@@ -525,3 +528,26 @@
 | 18:33 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: enabled, enabled, Guard | ~955 |
 | 23:34 | Fixed Railway build failure — conditional hooks in StaffPage | apps/web/app/(dashboard)/staff/page.tsx | Moved all hooks above early isGM return; added enabled:isGM to queries | ~200 |
 | 18:34 | Session end: 1 writes across 1 files (page.tsx) | 1 reads | ~13979 tok |
+| 18:35 | Session end: 1 writes across 1 files (page.tsx) | 1 reads | ~13979 tok |
+
+## Session: 2026-04-15 18:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:44 | Edited apps/api/routers/housekeeping.py | modified update_inspection_template() | ~968 |
+| 18:44 | Edited apps/web/lib/api/housekeeping.ts | expanded (+15 lines) | ~212 |
+| 18:44 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 15→16 lines | ~57 |
+| 18:44 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added 1 import(s) | ~36 |
+| 18:45 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 2→7 lines | ~89 |
+| 18:45 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added optional chaining | ~189 |
+| 18:45 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 2→5 lines | ~42 |
+| 18:45 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added optional chaining | ~972 |
+| 18:45 | Edited apps/web/app/(dashboard)/settings/page.tsx | added 1 import(s) | ~49 |
+| 18:45 | Edited apps/web/app/(dashboard)/settings/page.tsx | inline fix | ~22 |
+| 18:46 | Edited apps/web/app/(dashboard)/settings/page.tsx | modified TemplateCard() | ~2557 |
+| 18:46 | Edited apps/web/app/(dashboard)/settings/page.tsx | 2→7 lines | ~104 |
+| 18:46 | Edited apps/web/app/(dashboard)/settings/page.tsx | added nullish coalescing | ~207 |
+| 18:46 | Edited apps/web/app/(dashboard)/settings/page.tsx | added 4 condition(s) | ~565 |
+| 18:47 | Edited apps/web/app/(dashboard)/settings/page.tsx | 6→7 lines | ~138 |
+| 18:47 | Edited apps/web/app/(dashboard)/settings/page.tsx | expanded (+81 lines) | ~890 |
+| 18:48 | Session end: 16 writes across 4 files (housekeeping.py, housekeeping.ts, WorkOrderDetailDrawer.tsx, page.tsx) | 10 reads | ~22782 tok |
