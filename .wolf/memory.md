@@ -515,3 +515,13 @@
 | 18:28 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 13→15 lines | ~108 |
 | 18:28 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 8→10 lines | ~140 |
 | 18:29 | Fixed 3 UI bugs: TrendChartsRow responsive grid, FailurePredictionSidebar re-integrated with flex-col/lg:flex-row layout, TaskDetailDrawer pencil gated on status | TrendChartsRow.tsx, work-orders/page.tsx, tasks/page.tsx | fixed | ~2k |
+| 18:30 | Session end: 5 writes across 2 files (TrendChartsRow.tsx, page.tsx) | 15 reads | ~16610 tok |
+| 18:30 | Session end: 5 writes across 2 files (TrendChartsRow.tsx, page.tsx) | 15 reads | ~16610 tok |
+
+## Session: 2026-04-15 18:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:33 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: enabled, enabled, Guard | ~955 |
+| 23:34 | Fixed Railway build failure — conditional hooks in StaffPage | apps/web/app/(dashboard)/staff/page.tsx | Moved all hooks above early isGM return; added enabled:isGM to queries | ~200 |
+| 18:34 | Session end: 1 writes across 1 files (page.tsx) | 1 reads | ~13979 tok |

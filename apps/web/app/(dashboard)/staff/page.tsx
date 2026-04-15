@@ -674,17 +674,7 @@ export default function StaffPage() {
   const { canManageStaff, isGM } = useRole()
   const queryClient = useQueryClient()
 
-  if (!isGM) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <AlertTriangle className="w-6 h-6 text-gray-400" />
-        </div>
-        <p className="text-sm font-medium text-gray-700">Access restricted</p>
-        <p className="text-xs text-gray-400 mt-1">Staff management is only available to managers.</p>
-      </div>
-    )
-  }
+  // ── All hooks must be called unconditionally before any early returns ───────
 
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showAddDirectModal, setShowAddDirectModal] = useState(false)
@@ -708,12 +698,14 @@ export default function StaffPage() {
     queryKey: ['staff'],
     queryFn: () => staffApi.list(),
     select: (res) => res.data.staff,
+    enabled: isGM,
   })
 
   const invitationsQuery = useQuery({
     queryKey: ['staff-invitations'],
     queryFn: () => staffApi.listInvitations(),
     select: (res) => res.data.invitations,
+    enabled: isGM,
   })
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -752,6 +744,20 @@ export default function StaffPage() {
   }, [staffQuery.data, roleFilter, statusFilter, searchQuery])
 
   const invitations = invitationsQuery.data ?? []
+
+  // ── Guard: non-GM sees access restricted ───────────────────────────────────
+
+  if (!isGM) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <AlertTriangle className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-sm font-medium text-gray-700">Access restricted</p>
+        <p className="text-xs text-gray-400 mt-1">Staff management is only available to managers.</p>
+      </div>
+    )
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

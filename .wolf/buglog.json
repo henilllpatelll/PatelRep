@@ -1664,6 +1664,18 @@
       "related_bugs": ["bug-103"],
       "occurrences": 1,
       "last_seen": "2026-04-15T23:35:00.000Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-04-15T00:00:00.000Z",
+      "error_message": "React Hook 'useState' is called conditionally. React Hooks must be called in the exact same order in every component render.",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Early return `if (!isGM) return (...)` at line 677 placed before all hook declarations (lines 689-752), violating React Rules of Hooks.",
+      "fix": "Moved all useState, useMemo, useQuery, useMutation hooks above the early return. Added `enabled: isGM` to both useQuery calls to avoid API calls for non-GM users.",
+      "tags": ["rules-of-hooks", "staff", "conditional-hooks", "railway-build", "next-build"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T00:00:00.000Z"
     }
   ]
 }
