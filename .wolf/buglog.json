@@ -817,6 +817,198 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-04-11T22:04:14.760Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-04-15T01:25:30.921Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Had 'CLEAN'",
+      "fix": "Changed to 'INSPECTED'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T01:25:43.899Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-04-15T01:25:37.375Z",
+      "error_message": "CSS fix: queryKey",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "queryKey: ['housekeeping-assignments', selectedDate] → ['staff-list']",
+      "fix": "Changed queryKey: ['housekeeping-assignments', selectedDate] → ['staff-list']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:25:37.376Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-04-15T01:26:01.010Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: {/* AI message banner */}; {aiMessage && (",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-15T01:26:15.473Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-04-15T01:26:09.198Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:26:09.198Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-04-15T01:26:21.063Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had 'Inspections'",
+      "fix": "Changed to 'Inspection History'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:26:21.063Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-04-15T01:26:48.946Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "No early return/throw for edge case: h < 12",
+      "fix": "Added guard clause: if (h < 12)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:26:48.946Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-04-15T01:27:03.230Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/dashboard/EngineerDashboard.tsx",
+      "root_cause": "No early return/throw for edge case: h < 12",
+      "fix": "Added guard clause: if (h < 12)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:27:03.230Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-04-15T01:27:12.394Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "No early return/throw for edge case: h < 12",
+      "fix": "Added guard clause: if (h < 12)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:27:12.394Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-04-15T01:27:33.497Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:27:33.497Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-04-15T01:29:03.486Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Had '/engineering/assets'",
+      "fix": "Changed to '/engineering/work-orders'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:29:03.486Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-04-15T01:33:45.896Z",
+      "error_message": "CSS fix: room",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "room: any | null → any) => void",
+      "fix": "Changed room: any | null → any) => void",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:33:45.896Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-04-15T01:34:09.017Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-15T01:34:09.017Z"
     }
   ]
 }

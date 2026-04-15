@@ -7,6 +7,8 @@
 | 02:05 | Add Note + Report Issue (work order) sections to RoomDetailDrawer | RoomDetailDrawer.tsx | success | ~400 |
 | 02:05 | Make housekeeper room items clickable; wire RoomDetailDrawer into HousekeeperMyRoomsView | housekeeping/page.tsx | success | ~200 |
 | 17:02 | Phase 2: Front Desk config panel — GM toggles modules per hotel. Added migration 026, UpdateHotelRequest.front_desk_modules, hotelStore Hotel interface, hotels.ts UpdateHotelData, settings page Front Desk tab with toggles, Sidebar dynamic front_desk nav | supabase/migrations/026_front_desk_modules.sql, apps/api/models/requests.py, apps/api/routers/auth.py, apps/web/stores/hotelStore.ts, apps/web/lib/api/hotels.ts, apps/web/app/(dashboard)/settings/page.tsx, apps/web/components/shared/Sidebar.tsx | success | ~3800 |
+| 20:11 | Day simulation audit — walked all role workflows, found 6 bugs + 11 nav issues + 3 structural gaps, wrote DAY_SIMULATION_AUDIT.md | DAY_SIMULATION_AUDIT.md | success | ~3200 |
+| 20:35 | Fixed G1 (work-orders page already existed, untracked), G3 (AI auto-assign feedback already implemented), G2 (inspection queue: added cleanQueue/onNextRoom props + sticky banner to RoomDetailDrawer, wired in RoomStatusBoard) | RoomDetailDrawer.tsx, RoomStatusBoard.tsx | success | ~800 |
 | 10:00 | Phase 3: Dual-role schedule switching — migration 027 (staff_role_schedules), 4 API endpoints (/me/effective-role, /{id}/role-schedules CRUD), authStore.effectiveRole, useAuth fetches effective role pre-load, useRole resolves effectiveRole??role, staff.ts API methods, EditStaffModal expanded with day-picker schedule UI | 027_staff_role_schedules.sql, staff.py, requests.py, authStore.ts, useAuth.ts, useRole.ts, staff.ts, staff/page.tsx | success | ~5200 |
 
 ## Session: 2026-04-09 10:31
@@ -274,3 +276,62 @@
 | 17:04 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added optional chaining | ~23 |
 | 17:04 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added optional chaining | ~127 |
 | 17:04 | Session end: 3 writes across 1 files (InspectionModal.tsx) | 11 reads | ~199 tok |
+| 17:13 | Session end: 3 writes across 1 files (InspectionModal.tsx) | 11 reads | ~199 tok |
+
+## Session: 2026-04-13 04:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-15 20:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:11 | Created DAY_SIMULATION_AUDIT.md | — | ~3222 |
+| 20:11 | Session end: 1 writes across 1 files (DAY_SIMULATION_AUDIT.md) | 21 reads | ~6937 tok |
+
+## Session: 2026-04-15 20:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:25 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | "CLEAN" → "INSPECTED" | ~23 |
+| 20:25 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 3→4 lines | ~84 |
+| 20:25 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | "text-[10px] text-gray-300" → "text-xs text-gray-400 mt-" | ~23 |
+| 20:25 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 3→3 lines | ~47 |
+| 20:26 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | CSS: type, text | ~77 |
+| 20:26 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | added optional chaining | ~232 |
+| 20:26 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | CSS: hover | ~167 |
+| 20:26 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~21 |
+| 20:26 | Edited apps/web/components/shared/Sidebar.tsx | 5→6 lines | ~79 |
+| 20:26 | Edited apps/web/components/shared/Sidebar.tsx | 8→8 lines | ~78 |
+| 20:26 | Edited apps/web/components/shared/Header.tsx | inline fix | ~19 |
+| 20:26 | Edited apps/web/components/shared/Header.tsx | removed 9 lines | ~18 |
+| 20:26 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | added 2 condition(s) | ~60 |
+| 20:26 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | inline fix | ~19 |
+| 20:26 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | inline fix | ~11 |
+| 20:27 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | added 2 condition(s) | ~59 |
+| 20:27 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | inline fix | ~11 |
+| 20:27 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 2 condition(s) | ~60 |
+| 20:27 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | inline fix | ~11 |
+| 20:27 | Edited apps/api/routers/rooms.py | modified AddRoomNoteRequest() | ~112 |
+| 20:27 | Edited apps/api/routers/rooms.py | modified add_room_note() | ~469 |
+| 20:27 | Edited apps/web/lib/api/housekeeping.ts | 5→8 lines | ~94 |
+| 20:27 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | updateRoomStatus() → addNote() | ~144 |
+| 20:27 | Edited apps/web/app/(dashboard)/engineering/page.tsx | modified EngineeringPage() | ~37 |
+| 20:28 | Created apps/web/app/(dashboard)/engineering/work-orders/page.tsx | — | ~2674 |
+| 20:29 | Edited apps/web/components/shared/Header.tsx | 2→3 lines | ~32 |
+| 20:29 | Fixed B1-B6 bugs + N1-N5/N7 nav issues from DAY_SIMULATION_AUDIT | housekeeping/page.tsx, assignments/page.tsx, Sidebar.tsx, Header.tsx, dashboards, RoomDetailDrawer.tsx, rooms.py, housekeeping.ts, new work-orders/page.tsx | 13 fixes applied across 12 files | ~8000 |
+| 20:29 | Session end: 26 writes across 9 files (page.tsx, Sidebar.tsx, Header.tsx, HousekeeperDashboard.tsx, EngineerDashboard.tsx) | 15 reads | ~7681 tok |
+
+## Session: 2026-04-15 20:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 6→8 lines | ~56 |
+| 20:33 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified RoomDetailDrawer() | ~135 |
+| 20:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~18 |
+| 20:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added optional chaining | ~217 |
+| 20:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 condition(s) | ~61 |
+| 20:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover, hover | ~336 |
+| 20:35 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: r, next | ~123 |
+| 20:36 | Session end: 7 writes across 2 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx) | 7 reads | ~23808 tok |

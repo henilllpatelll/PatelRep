@@ -52,7 +52,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     subNav: [
       { href: '/housekeeping', label: 'Room Board' },
       { href: '/housekeeping/assignments', label: 'Assignments' },
-      { href: '/housekeeping/inspections', label: 'Inspections' },
+      { href: '/housekeeping/inspections', label: 'Inspection History' },
       { href: '/housekeeping/rooms', label: 'All Rooms' },
     ],
   },
@@ -61,6 +61,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Maintenance',
     icon: Wrench,
     subNav: [
+      { href: '/engineering/work-orders', label: 'Work Orders' },
       { href: '/engineering/assets', label: 'Assets' },
       { href: '/engineering/pm-schedules', label: 'PM Schedules' },
       { href: '/engineering/predictions', label: 'Predictions' },
@@ -270,7 +271,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <div className="relative">
           {active && (
             <motion.div
-              layoutId="sidebar-active"
+              layoutId="sidebar-bottom-active"
               className="absolute inset-0 bg-amber-400/10 border-l-2 border-amber-400 rounded-xl"
               style={{ zIndex: -1 }}
               transition={{ type: 'spring', stiffness: 380, damping: 30 }}

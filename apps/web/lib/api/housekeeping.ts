@@ -101,6 +101,9 @@ export const housekeepingApi = {
   updateRoomStatus: (roomId: string, status: string, notes?: string) =>
     apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),
 
+  addNote: (roomId: string, text: string) =>
+    apiClient.post(`/rooms/${roomId}/notes`, { text }),
+
   getRoomHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
 

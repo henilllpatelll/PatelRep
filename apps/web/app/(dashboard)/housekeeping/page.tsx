@@ -104,6 +104,7 @@ function HousekeeperBar() {
       clearPendingAssignments()
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+      queryClient.invalidateQueries({ queryKey: ['staff-list'] })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2500)
     } catch {
@@ -263,7 +264,7 @@ function HousekeeperRoomItem({
         <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
           {cfg.label}
         </span>
-        <p className="text-[10px] text-gray-300 mt-1">Tap for notes &amp; issues</p>
+        <p className="text-xs text-gray-400 mt-1">Tap for notes &amp; issues</p>
       </div>
 
       <div className="shrink-0 text-right">
@@ -352,7 +353,7 @@ function HousekeeperMyRoomsView() {
 
   const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP').length
   const inProgressCount = myRooms.filter((r: any) => r.status === 'IN_PROGRESS').length
-  const doneCount = myRooms.filter((r: any) => r.status === 'CLEAN' || r.status === 'INSPECTED').length
+  const doneCount = myRooms.filter((r: any) => r.status === 'INSPECTED').length
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">

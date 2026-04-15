@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   X,
@@ -41,6 +41,8 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onStatusChange: (roomId: string, newStatus: string) => void
+  cleanQueue?: any[]
+  onNextRoom?: (room: any) => void
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
@@ -139,13 +141,14 @@ function TransitionButton({
   )
 }
 
-export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Props) {
+export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQueue, onNextRoom }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
   const [showInspectionModal, setShowInspectionModal] = useState(false)
+  const [showNextBanner, setShowNextBanner] = useState(false)
 
   // ── Note state ─────────────────────────────────────────────────────────────
   const [noteText, setNoteText] = useState('')
@@ -166,7 +169,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
   const roomId: string | null = room?.room_id ?? null
   const status: RoomStatus = (room?.status ?? 'DIRTY') as RoomStatus
 
-  // Reset note/WO forms when room changes
+  // Reset note/WO forms and inspection banner when room changes
   useEffect(() => {
     setNoteText('')
     setNoteSuccess(false)
@@ -178,14 +181,26 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
     setWoPriority('normal')
     setWoSuccess(null)
     setWoError(null)
+    setShowNextBanner(false)
   }, [roomId])
+
+  const nextCleanRoom = useMemo(() => {
+    if (!cleanQueue?.length || !room) return null
+    const others = cleanQueue.filter((r) => r.room_id !== room.room_id)
+    return others[0] ?? null
+  }, [cleanQueue, room])
+
+  const remainingCount = useMemo(() => {
+    if (!cleanQueue || !room) return 0
+    return cleanQueue.filter((r) => r.room_id !== room.room_id).length
+  }, [cleanQueue, room])
 
   async function handleAddNote() {
     if (!noteText.trim() || !roomId) return
     setNoteLoading(true)
     setNoteError(null)
     try {
-      await housekeepingApi.updateRoomStatus(roomId, status, noteText.trim())
+      await housekeepingApi.addNote(roomId, noteText.trim())
       setNoteText('')
       setNoteSuccess(true)
       setTimeout(() => setNoteSuccess(false), 4000)
@@ -658,6 +673,28 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
             )}
           </div>
         </div>
+
+        {/* Inspect queue banner — shown after a successful inspection when more CLEAN rooms exist */}
+        {showNextBanner && nextCleanRoom && (
+          <div className="shrink-0 border-t border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+            <span className="text-sm text-green-800 flex-1 leading-tight">
+              Inspected · <strong>{remainingCount}</strong> room{remainingCount !== 1 ? 's' : ''} left
+            </span>
+            <button
+              onClick={() => { setShowNextBanner(false); onNextRoom!(nextCleanRoom) }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shrink-0"
+            >
+              Next →
+            </button>
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-300 text-green-700 hover:bg-green-100 transition-colors shrink-0"
+            >
+              Done
+            </button>
+          </div>
+        )}
       </div>
 
       <InspectionModal
@@ -667,7 +704,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange }: Prop
         onClose={() => setShowInspectionModal(false)}
         onSuccess={() => {
           setShowInspectionModal(false)
-          onClose()
+          if (nextCleanRoom && onNextRoom) {
+            setShowNextBanner(true)
+          } else {
+            onClose()
+          }
         }}
       />
     </>

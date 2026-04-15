@@ -1,4 +1,31 @@
 {
-  "suggestions": [],
-  "generated_at": null
+  "generated_at": "2026-04-13T09:01:00.738Z",
+  "achievements": [
+    "Role UX overhaul complete (5 phases): role-specific dashboards, Front Desk config panel (migration 026), dual-role schedule switching (migration 027), custom role builder (migration 028), custom role assignment to staff (migration 029)",
+    "Custom role system fully wired end-to-end: DB → API → authStore.customRoleModules → Sidebar nav filtering, overriding base role + front_desk_modules logic",
+    "Housekeeping UX polish: RoomDetailDrawer expanded with note + work order sections, housekeeper room items now clickable, auto-refresh global (60s refetchInterval + refetchOnWindowFocus)",
+    "Bug fixes shipped: overdue time formatted as h/m or days (not raw minutes), InspectionModal guarded against null template, inspection submit blocked when no real template configured",
+    "Engineering UX fixes: WorkOrderCard formatSLA corrected, CreateWorkOrderModal improved, scheduling delete-shift endpoint fixed"
+  ],
+  "improvements": [
+    "settings/page.tsx was rewritten in one shot at ~9194 tokens — extract the Roles tab (RoleCard, RoleFormCard) and Front Desk tab into separate component files to reduce god-component risk",
+    "staff.py has grown across 5 phases; audit route ordering — static paths (/custom-roles) must remain registered before dynamic paths (/{id}) to avoid FastAPI shadowing bugs",
+    "InspectionModal received 4+ edit passes across sessions — likely has accumulated optional-chaining patches. A focused read + single coherent rewrite would reduce fragility",
+    "scheduling/page.tsx had 10+ writes in one session — review for leftover debug state or redundant null-guards",
+    "Two migrations share the '020' prefix (020_fix_credits_decimal.sql, 020_logbook_expires.sql) — document or rename to 020a/020b to prevent future tooling confusion"
+  ],
+  "next_tasks": [
+    "HUMAN ACTION REQUIRED (mobile unblock): add google-services.json from Firebase console + run `eas init` to unblock Mobile Phase 3 (Engineer workflow + push notifications)",
+    "Verify custom role nav filtering in production: log in as staff with a custom role and confirm Sidebar shows only allowed_modules, not base role items",
+    "Wire role-specific dashboard components to real API data — memory log shows components were created (HousekeeperDashboard, etc.) but check if they use live queries or placeholders",
+    "Run `/gsd:progress` to check GSD phase state for next planned milestone work",
+    "Add smoke tests for new staff endpoints: /me/effective-role, /custom-roles CRUD, PATCH with custom_role_id — currently no test coverage for role UX phases"
+  ],
+  "risks": [
+    "BILLING RISK: AI credit middleware must log actual token usage — if any new AI-touching route added during role UX phases bypassed credits.py middleware, Stripe true-up will under-bill",
+    "SIDEBAR LOGIC COMPLEXITY: customRoleModules now overrides both base role AND front_desk_modules — three-way conditional in Sidebar with no test coverage; a subtle bug here would silently hide nav items from staff",
+    "MOBILE BLOCKED: Phase 3 (push notifications + engineer workflow) cannot proceed without Firebase google-services.json. If this stays unresolved, EAS build slot scheduling will drift",
+    "MIGRATION SEQUENCE: 029 migrations are numbered sequentially but the 020 collision means automated migration tools (e.g., supabase db push) may apply them out of order on a fresh DB",
+    "OPERA INTEGRATION: still feature-flagged and untested — any schema changes from migrations 026-029 that touch user_roles or tenants could silently break the Opera sync path at pilot time"
+  ]
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -49,8 +49,10 @@ export default function AssignmentsPage() {
   useEffect(() => {
     setDate(todayISO())
   }, [])
+  const queryClient = useQueryClient()
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['housekeeping-assignments-page', date],
@@ -70,11 +72,22 @@ export default function AssignmentsPage() {
 
   const handleAiAutoAssign = async () => {
     setAiLoading(true)
+    setAiMessage(null)
     try {
-      await housekeepingApi.aiSuggestAssignments(date)
-      // In a real implementation this would open a suggestions modal
-    } catch {
-      // noop
+      const result = await housekeepingApi.aiSuggestAssignments(date)
+      const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
+      setAiMessage({
+        type: 'success',
+        text: count !== null
+          ? `AI suggested ${count} assignment${count !== 1 ? 's' : ''} — review the table below.`
+          : 'AI suggestions applied — review the table below.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments-page', date] })
+    } catch (err: any) {
+      setAiMessage({
+        type: 'error',
+        text: err?.message || 'AI auto-assign failed. Please try again.',
+      })
     } finally {
       setAiLoading(false)
     }
@@ -130,6 +143,18 @@ export default function AssignmentsPage() {
           </span>
         )}
       </div>
+
+      {/* AI message banner */}
+      {aiMessage && (
+        <div className={`flex items-start gap-2.5 px-4 py-3 rounded-lg border text-sm ${
+          aiMessage.type === 'success'
+            ? 'bg-green-50 border-green-200 text-green-800'
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <span className="font-medium">{aiMessage.text}</span>
+          <button onClick={() => setAiMessage(null)} className="ml-auto shrink-0 opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
 
       {/* Table */}
       <Card className="overflow-hidden p-0">

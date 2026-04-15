@@ -414,6 +414,8 @@ export function RoomStatusBoard() {
         onStatusChange={(roomId: string, newStatus: string) =>
           handleStatusChange(roomId, newStatus)
         }
+        cleanQueue={allRooms.filter((r: any) => r.status === 'CLEAN')}
+        onNextRoom={(next: any) => setSelectedRoom(next)}
       />
     </div>
   )

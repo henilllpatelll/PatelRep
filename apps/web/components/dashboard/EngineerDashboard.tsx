@@ -62,6 +62,13 @@ function SkeletonRow() {
   )
 }
 
+function getGreeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export function EngineerDashboard() {
   const user = useAuthStore(s => s.user)
   const fullName: string =
@@ -95,7 +102,7 @@ export function EngineerDashboard() {
       {/* Greeting */}
       <div>
         <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          Good morning, {fullName}!
+          {getGreeting()}, {fullName}!
         </h1>
         <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}

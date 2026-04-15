@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, LogOut, Settings, ChevronDown, Menu } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, Menu } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
 import type { UserRole } from '@/stores/authStore'
@@ -15,6 +15,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/housekeeping/inspections': 'Inspections',
   '/housekeeping/rooms': 'All Rooms',
   '/engineering': 'Engineering',
+  '/engineering/work-orders': 'Work Orders',
   '/engineering/assets': 'Assets',
   '/engineering/pm-schedules': 'PM Schedules',
   '/engineering/predictions': 'Predictions',
@@ -116,14 +117,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Notification bell */}
-        <button
-          className="hidden p-2 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
-          aria-label="Notifications"
-        >
-          <Bell size={16} />
-        </button>
-
         {/* Hotel chip — hidden on mobile to avoid overflow */}
         {hotel && (
           <span className="hidden md:inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A]">

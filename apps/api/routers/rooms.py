@@ -1,9 +1,14 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
+from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
+
+
+class AddRoomNoteRequest(BaseModel):
+    text: str
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -274,6 +279,48 @@ async def get_room_history(
         .execute()
     )
     return {"data": result.data or []}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/notes
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/notes")
+async def add_room_note(
+    room_id: str,
+    request: AddRoomNoteRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Add a note to a room without triggering a status change."""
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Note text cannot be empty")
+
+    # Verify room belongs to tenant and get current status
+    current_row = (
+        supabase.table("room_status")
+        .select("status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    current_status = current_row.data.get("status", "DIRTY")
+
+    # Write directly to history — from_status == to_status marks this as a note-only entry
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": current_status,
+        "to_status": current_status,
+        "notes": request.text.strip(),
+        "changed_by": current_user.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+    return {"data": {"ok": True}}
 
 
 # ---------------------------------------------------------------------------

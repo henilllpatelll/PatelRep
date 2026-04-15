@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function EngineeringPage() {
-  redirect('/engineering/assets')
+  redirect('/engineering/work-orders')
 }
