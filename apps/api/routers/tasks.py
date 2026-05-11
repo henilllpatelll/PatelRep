@@ -8,6 +8,18 @@ from datetime import datetime, timedelta, timezone
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
+TASK_UPDATE_COLUMNS = {
+    "title",
+    "description",
+    "task_type",
+    "priority",
+    "status",
+    "assigned_to",
+    "location_text",
+    "due_at",
+    "started_at",
+    "completed_at",
+}
 
 
 @router.post("")
@@ -90,11 +102,10 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
         .select("*, rooms(room_number, floor), task_comments(*)")\
         .eq("id", task_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
         .execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Task not found")
-    return {"data": result.data}
+    return {"data": result.data[0]}
 
 
 @router.patch("/{task_id}")
@@ -103,21 +114,46 @@ async def update_task(
     request: UpdateTaskRequest,
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    update_data = request.model_dump(exclude_none=True)
+    raw_update = request.model_dump(exclude_none=True)
+    notes = raw_update.pop("notes", None)
+    update_data = {k: v for k, v in raw_update.items() if k in TASK_UPDATE_COLUMNS}
     if "assigned_to" in update_data:
         update_data["assigned_to"] = str(update_data["assigned_to"])
+    if "due_at" in update_data and hasattr(update_data["due_at"], "isoformat"):
+        update_data["due_at"] = update_data["due_at"].isoformat()
 
     if request.status == "in_progress":
         update_data["started_at"] = datetime.now(timezone.utc).isoformat()
     elif request.status == "completed":
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
 
-    result = supabase.table("tasks")\
-        .update(update_data)\
-        .eq("id", task_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .execute()
-    return {"data": result.data[0] if result.data else None}
+    if update_data:
+        result = supabase.table("tasks")\
+            .update(update_data)\
+            .eq("id", task_id)\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+    else:
+        result = supabase.table("tasks")\
+            .select("*")\
+            .eq("id", task_id)\
+            .eq("tenant_id", current_user.hotel_id)\
+            .maybe_single()\
+            .execute()
+
+    task = result.data[0] if isinstance(result.data, list) and result.data else result.data
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if isinstance(notes, str) and notes.strip():
+        supabase.table("task_comments").insert({
+            "task_id": task_id,
+            "tenant_id": current_user.hotel_id,
+            "user_id": current_user.user_id,
+            "comment": notes.strip(),
+        }).execute()
+
+    return {"data": task}
 
 
 @router.delete("/{task_id}", status_code=204)
@@ -145,6 +181,15 @@ async def add_task_comment(
     comment: str = Query(...),
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    task = supabase.table("tasks")\
+        .select("id")\
+        .eq("id", task_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not task.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+
     result = supabase.table("task_comments").insert({
         "task_id": task_id,
         "tenant_id": current_user.hotel_id,

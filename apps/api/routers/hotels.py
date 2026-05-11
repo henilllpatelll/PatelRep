@@ -130,7 +130,7 @@ async def get_hotel(
 async def update_hotel(
     hotel_id: str,
     body: UpdateHotelRequest,
-    current_user: CurrentUser = Depends(require_role(*ALL_STAFF_ROLES)),
+    current_user: CurrentUser = Depends(require_role("gm")),
 ):
     if current_user.hotel_id != hotel_id:
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
@@ -204,6 +204,9 @@ async def list_hotel_departments(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """List all departments for a hotel."""
+    if current_user.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+
     result = supabase.table("departments")\
         .select("id, name, code")\
         .eq("tenant_id", hotel_id)\

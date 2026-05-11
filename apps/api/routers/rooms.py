@@ -183,12 +183,11 @@ async def get_room(
         .select("*, room_status(*), room_types(*)")
         .eq("id", room_id)
         .eq("tenant_id", current_user.hotel_id)
-        .maybe_single()
         .execute()
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Room not found")
-    return {"data": result.data}
+    return {"data": result.data[0]}
 
 
 # ---------------------------------------------------------------------------

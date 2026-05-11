@@ -362,11 +362,10 @@ async def get_asset(
         .select("*, asset_categories(name, code), rooms(room_number), pm_schedules(*)") \
         .eq("id", asset_id) \
         .eq("tenant_id", current_user.hotel_id) \
-        .maybe_single() \
         .execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Asset not found")
-    return {"data": result.data}
+    return {"data": result.data[0]}
 
 
 # ---------------------------------------------------------------------------

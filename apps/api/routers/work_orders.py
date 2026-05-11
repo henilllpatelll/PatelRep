@@ -75,11 +75,10 @@ async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_cur
         .select("*, rooms(room_number, floor), assets(*), work_order_photos(*), work_order_comments(*)")\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
         .execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Work order not found")
-    return {"data": result.data}
+    return {"data": result.data[0]}
 
 
 async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> None:
@@ -112,11 +111,21 @@ async def claim_work_order(
     wo_id: str,
     current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
 ):
+    wo_check = supabase.table("work_orders")\
+        .select("id, status")\
+        .eq("id", wo_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not wo_check.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    if wo_check.data["status"] != "open":
+        raise HTTPException(status_code=409, detail="Work order is no longer open")
+
     result = supabase.table("work_orders")\
         .update({"assigned_to": current_user.user_id, "status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()})\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .eq("status", "open")\
         .execute()
     wo = result.data[0] if result.data else None
     if wo:
@@ -134,6 +143,15 @@ async def complete_work_order(
     request: CompleteWorkOrderRequest,
     current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
 ):
+    wo_check = supabase.table("work_orders")\
+        .select("id")\
+        .eq("id", wo_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not wo_check.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
     result = supabase.table("work_orders")\
         .update({
             "status": "completed",

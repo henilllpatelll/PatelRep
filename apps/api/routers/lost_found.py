@@ -72,13 +72,12 @@ async def get_lost_found_item(
         .select("*, rooms(room_number)")\
         .eq("id", item_id)\
         .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
         .execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    return {"data": result.data}
+    return {"data": result.data[0]}
 
 
 @router.patch("/{item_id}")

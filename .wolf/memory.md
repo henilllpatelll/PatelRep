@@ -3,10 +3,14 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 10:29 | Created ../../.claude/.mcp.json | — | ~102 |
+| 00:00 | Tenant isolation test session — 25 unit tests pass; live prod API: IDOR found on GET /hotels/{id}/departments (bug-005, fixed), task comment injection (bug-006, fixed), 500 on resource ID probe (bug-007, not yet fixed) | apps/api/routers/hotels.py, tasks.py, .wolf/buglog.json | 2 security fixes applied, 1 open | ~9k |
+| session | Load test (30 workers, 30s, production API) — 0% 5xx, 406 reqs @ 12.6 RPS; p95 latency spikes: /my-rooms 5790ms, /board 4319ms, /work-orders 4108ms; all 78 /my-rooms returned 4xx (GM token has no room assignments — expected) | apps/api/tests/load/load_test.py | created load test script |
+| session | Fixed RBAC: FrontDeskDashboard now calls housekeepingApi.getBoard instead of reportsApi.getDailySummary (was 403). Created e2e/helpers/rbac-users.ts + e2e/16-rbac.spec.ts for per-role RBAC testing. PATCH /hotels and /settings already GM-only, middleware RBAC already correct | apps/web/components/dashboard/FrontDeskDashboard.tsx, e2e/helpers/rbac-users.ts, e2e/16-rbac.spec.ts | done | ~4000 |
 | 18:47 | Added "Push to Housekeeping" section in WorkOrderDetailDrawer — engineer/chief/GM can write a note and push a housekeeping task for the WO room | WorkOrderDetailDrawer.tsx, tasks.ts | done | ~800 |
 | 18:47 | Added Inspections tab to Settings page — GM/supervisor can create/edit/delete inspection checklist templates | settings/page.tsx, housekeeping.ts | done | ~1200 |
 | 18:47 | Added PATCH + DELETE endpoints for inspection templates | apps/api/routers/housekeeping.py | done | ~300 |
 | 02:05 | Global auto-refresh (60s refetchInterval + refetchOnWindowFocus) | Providers.tsx | success | ~80 |
+| 19:52 | Created 25-test tenant isolation suite — Hotel A GM cannot read or mutate Hotel B data across rooms, tasks, WOs, staff, guest_requests, lost_found, logbook, SOPs, billing | apps/api/tests/smoke/test_tenant_isolation.py | 25/25 pass | ~600 |
 | 02:05 | Add Note + Report Issue (work order) sections to RoomDetailDrawer | RoomDetailDrawer.tsx | success | ~400 |
 | 02:05 | Make housekeeper room items clickable; wire RoomDetailDrawer into HousekeeperMyRoomsView | housekeeping/page.tsx | success | ~200 |
 | 17:02 | Phase 2: Front Desk config panel — GM toggles modules per hotel. Added migration 026, UpdateHotelRequest.front_desk_modules, hotelStore Hotel interface, hotels.ts UpdateHotelData, settings page Front Desk tab with toggles, Sidebar dynamic front_desk nav | supabase/migrations/026_front_desk_modules.sql, apps/api/models/requests.py, apps/api/routers/auth.py, apps/web/stores/hotelStore.ts, apps/web/lib/api/hotels.ts, apps/web/app/(dashboard)/settings/page.tsx, apps/web/components/shared/Sidebar.tsx | success | ~3800 |
@@ -551,3 +555,121 @@
 | 18:47 | Edited apps/web/app/(dashboard)/settings/page.tsx | 6→7 lines | ~138 |
 | 18:47 | Edited apps/web/app/(dashboard)/settings/page.tsx | expanded (+81 lines) | ~890 |
 | 18:48 | Session end: 16 writes across 4 files (housekeeping.py, housekeeping.ts, WorkOrderDetailDrawer.tsx, page.tsx) | 10 reads | ~22782 tok |
+| 18:50 | Session end: 16 writes across 4 files (housekeeping.py, housekeeping.ts, WorkOrderDetailDrawer.tsx, page.tsx) | 10 reads | ~22782 tok |
+
+## Session: 2026-04-16 09:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-16 09:46
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:46 | Loaded OpenWolf instructions, anatomy, cerebrum, buglog, and PatelRep skills before debugging | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json | ready for baseline checks; rg access denied noted | ~3000 |
+| 18:49 | Fixed Playwright default Railway URL after e2e setup hit Railway Not Found | playwright.config.ts | e2e now targets live web service URL | ~300 |
+| 18:52 | Guarded login controls until client hydration to fix pre-hydration fill race in e2e and real use | apps/web/app/(auth)/login/page.tsx | login inputs/buttons now enable after useEffect hydration | ~450 |
+| 18:59 | Re-ran checks: focused login e2e passed; API pytest and web type-check passed; authenticated e2e blocked by deleted Railway deployment and NXDOMAIN Supabase project | e2e, apps/api/tests, apps/web | continuing final build/lint | ~600 |
+| 11:21 | Relinked local workspace to new Railway project lucid-patience after old link caused unauthorized status | Railway project 32eec86f-0e61-456b-90e8-7bbf02ef9ffe | workspace linked to production environment | ~300 |
+| 11:23 | Added api service to new Railway project | Railway service api e1e263fc-3453-4bdc-b3a5-23f195984cb6 | project now has web and api services | ~250 |
+| 11:33 | Added Docker ignore files and corrected API Railway APP_ENV/API_URL variables | .dockerignore, apps/api/.dockerignore, Railway api variables | prevents local env files entering images; API runtime set to production | ~600 |
+| 11:49 | Completed new Railway deployment and full e2e verification | Railway, .dockerignore, apps/api/.dockerignore, playwright.config.ts, e2e specs | API/web live; full e2e 98 passed, 3 skipped | ~1200 |
+| 11:57 | Final local verification after Railway setup | apps/web, apps/api, e2e | full e2e 98 passed/3 skipped; web type-check passed; API pytest 60 passed | ~450 |
+| 12:35 | Ran live production smoke across API health, web login, dashboard routes, workflows, and Railway logs | production web/API, Railway logs | health/login passed; core workflows passed; found billing client crash and notes/schema 500s | ~4500 |
+| 12:36 | Recorded production smoke findings in OpenWolf buglog and cerebrum | .wolf/buglog.json, .wolf/cerebrum.md | added bug-117 through bug-120 and smoke auth/schema learnings | ~500 |
+| 12:46 | Read OpenWolf instructions, anatomy, cerebrum, buglog, API/web skills | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json | confirmed known production smoke bugs 117-119 and project conventions | ~6k |
+| 12:51 | Patched billing null-safe formatting, task/guest request note handling, PostgREST error handler, and middleware auth validation | apps/web/app/(dashboard)/billing/page.tsx, apps/web/lib/api/billing.ts, apps/api/routers/tasks.py, apps/api/routers/guest_requests.py, apps/api/main.py, apps/web/middleware.ts | code edits applied, pending tests | ~4k |
+| 12:52 | Added focused smoke regression tests and anatomy entry | apps/api/tests/smoke/test_notes_regressions.py, .wolf/anatomy.md | tests cover notes mapping, guest task_id refresh, and safe PostgREST 422 | ~2k |
+| 12:53 | Ran focused API notes regression tests | apps/api/tests/smoke/test_notes_regressions.py | 4 passed, warnings only from dependencies | ~500 |
+| 12:53 | Ran full API smoke suite | apps/api/tests/smoke | 64 passed, dependency warnings only | ~500 |
+| 12:54 | Fixed /settings/billing nullable billing field type errors after type-check failure | apps/web/app/(dashboard)/settings/billing/page.tsx | applied same safe numeric defaults as /billing | ~1k |
+| 12:54 | Ran web type-check after billing fixes | apps/web | passed | ~300 |
+| 12:56 | Updated OpenWolf buglog and cerebrum with smoke fixes and tooling gotchas | .wolf/buglog.json, .wolf/cerebrum.md | recorded billing, notes, PostgREST, rg, type-check, and PowerShell path issues | ~1k |
+| 12:56 | Validated buglog JSON and cleaned anatomy whitespace after diff-check failure | .wolf/buglog.json, .wolf/anatomy.md | buglog parses; rerunning diff-check | ~300 |
+| 12:57 | Re-ran web type-check and reviewed scoped status | apps/web, app/api touched files | type-check passed; expected app + OpenWolf files modified | ~300 |
+| 13:11 | Re-ran local /billing Playwright smoke after dev server restart | e2e/14-billing.spec.ts, /billing | 3 Playwright tests passed; direct console/pageerror smoke had zero errors | ~500 |
+| 13:21 | Deployed smoke fixes to Railway and verified production billing/API notes flows | Railway web/API, /billing, /v1/tasks, /v1/guest-requests | web/API deployments succeeded; production /billing has no page/console errors; API smoke records created and cleaned | ~1k |
+| 13:24 | Checked OpenWolf instructions, bug history, git status, and billing search targets | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .wolf/buglog.json, apps/web billing files | Found prior billing null-safety bug and dirty worktree; rg is blocked so using Select-String | ~4000 |
+| 13:26 | Verified billing fix state against production and type-check | apps/web/app/(dashboard)/billing/page.tsx, apps/web/app/(dashboard)/settings/billing/page.tsx, apps/web/lib/api/billing.ts | Current production /billing renders with no console errors; @patelrep/web type-check passes | ~2500 |
+| 13:27 | Reproduced billing on localhost dev server | http://localhost:3000/billing | Local billing page renders after GM login with no page error; only React DevTools info logs | ~1200 |
+| 13:27 | Logged billing recurrence and verification learning | .wolf/buglog.json, .wolf/cerebrum.md | Added bug-130 and noted current prod/local billing surfaces are clean | ~900 |
+| 13:34 | Loaded OpenWolf and Railway/browser testing instructions | .wolf/OPENWOLF.md, skill files | following project/session protocol | ~900 |
+| 13:34 | Checked cerebrum and initial credential search | .wolf/cerebrum.md, repo search | rg denied; falling back to PowerShell search | ~1200 |
+| 13:35 | Searched e2e files and credential-bearing fixtures | e2e/, env/test files | found auth setup path; broad masked search returned limited results | ~500 |
+| 13:35 | Found existing GM e2e auth setup and production Playwright base URL | e2e/auth.setup.ts, playwright.config.ts | role-specific credentials not yet found | ~700 |
+| 13:43 | Ran read-only backend JWT matrix and browser route matrix | production API/web | found hidden-route access and role dashboard 403s | ~2200 |
+| 13:44 | Checked Railway production logs | Railway api/@patelrep/web | API shows expected 403s from tests; web filtered logs empty | ~900 |
+| 13:45 | Updated OpenWolf records with production RBAC findings | .wolf/cerebrum.md, .wolf/buglog.json, .wolf/anatomy.md | captured setup gaps and permission bugs | ~600 |
+| 14:08 | Patched backend hotel update RBAC and web route/nav/dashboard guards | hotels.py, middleware.ts, Sidebar.tsx, dashboard/page.tsx, housekeeping/page.tsx | local code updated; validation next | ~900 |
+| 14:09 | Ran validation for RBAC fixes | npm type-check, API pytest, web build | all passed; build has existing lint warnings | ~700 |
+| 14:10 | Marked RBAC buglog entries as fixed and added RBAC fix pattern | .wolf/buglog.json, .wolf/cerebrum.md | OpenWolf records updated after code fix | ~250 |
+| 14:10 | Validated buglog JSON after accounting for BOM | .wolf/buglog.json | parses with BOM stripped; no encoding rewrite applied | ~150 |
+
+## Session: 2026-05-10 14:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:37 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | added 1 import(s) | ~149 |
+| 14:37 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | modified FrontDeskDashboard() | ~161 |
+| 14:37 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | CSS: allRooms, breakdown, s | ~80 |
+| 14:38 | Created e2e/helpers/rbac-users.ts | — | ~1468 |
+| 14:38 | Created e2e/16-rbac.spec.ts | — | ~1809 |
+| 14:39 | Session end: 5 writes across 3 files (FrontDeskDashboard.tsx, rbac-users.ts, 16-rbac.spec.ts) | 25 reads | ~25214 tok |
+
+## Session: 2026-05-10 14:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-10 14:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:48 | Created apps/api/tests/smoke/test_tenant_isolation.py | — | ~6707 |
+| 14:49 | Edited apps/api/tests/smoke/test_tenant_isolation.py | get() → filter() | ~70 |
+| 14:49 | Edited apps/api/tests/smoke/test_tenant_isolation.py | inline fix | ~19 |
+| 14:49 | Session end: 3 writes across 1 files (test_tenant_isolation.py) | 7 reads | ~6796 tok |
+| 14:54 | Edited apps/api/routers/work_orders.py | modified claim_work_order() | ~596 |
+| 14:54 | Edited apps/api/tests/smoke/test_tenant_isolation.py | modified test_work_orders_claim_hotel_b_raises_404() | ~325 |
+| 14:54 | Edited apps/api/tests/smoke/test_tenant_isolation.py | modified raises() | ~109 |
+| 14:54 | Session end: 6 writes across 2 files (test_tenant_isolation.py, work_orders.py) | 8 reads | ~7826 tok |
+
+## Session: 2026-05-10 14:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:03 | Edited apps/web/app/(dashboard)/billing/page.tsx | expanded (+6 lines) | ~157 |
+| 15:03 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | expanded (+6 lines) | ~237 |
+| 15:03 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | CSS: enabled | ~54 |
+| 15:04 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | inline fix | ~8 |
+| 15:04 | Fixed billing query guard (enabled: isGM) on billing/page.tsx + refetchInterval:false on both billing pages + staffQuery enabled:canManageStaff on scheduling page | billing/page.tsx, settings/billing/page.tsx, scheduling/page.tsx | 3 403s eliminated, billing poll interval from 60s to on-demand | ~200 |
+| 15:06 | Session end: 4 writes across 1 files (page.tsx) | 8 reads | ~18686 tok |
+| 15:07 | Session end: 4 writes across 1 files (page.tsx) | 8 reads | ~18686 tok |
+
+## Session: 2026-05-10 15:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:10 | Created apps/api/tests/load/load_test.py | — | ~3866 |
+| 15:10 | Created apps/api/tests/load/__init__.py | — | ~0 |
+| 15:10 | Edited apps/api/tests/load/load_test.py | modified _load_dotenv() | ~218 |
+| 15:12 | Session end: 3 writes across 2 files (load_test.py, __init__.py) | 9 reads | ~11797 tok |
+| 16:41 | Session end: 3 writes across 2 files (load_test.py, __init__.py) | 9 reads | ~11797 tok |
+
+## Session: 2026-05-11 12:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-11 12:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:01 | Edited apps/api/routers/hotels.py | modified list_hotel_departments() | ~147 |
+| 13:01 | Edited apps/api/routers/tasks.py | modified add_task_comment() | ~206 |
+| 13:13 | Session end: 2 writes across 2 files (hotels.py, tasks.py) | 15 reads | ~11509 tok |
+| 14:06 | Edited apps/api/routers/rooms.py | 11→10 lines | ~94 |
+| 14:06 | Edited apps/api/routers/tasks.py | 9→8 lines | ~95 |
+| 14:06 | Edited apps/api/routers/work_orders.py | 9→8 lines | ~109 |
+| 14:06 | Edited apps/api/routers/lost_found.py | 11→10 lines | ~91 |
+| 14:06 | Edited apps/api/routers/assets.py | 9→8 lines | ~103 |
