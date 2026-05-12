@@ -8,6 +8,8 @@ from models.requests import CopilotChatRequest
 from core.database import supabase
 from services.ai.task_parser import parse_nl_tasks
 from services.ai.insights import generate_gm_insights
+import openai
+import anthropic
 import time
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -200,6 +202,21 @@ async def copilot_chat(
 
     except HTTPException:
         raise
+    except (openai.RateLimitError, openai.AuthenticationError, anthropic.RateLimitError, anthropic.AuthenticationStatusError) as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            interaction_type=interaction_type,
+            model_used="gpt-4o-mini",
+            credits_charged=credits,
+            prompt_tokens=0,
+            completion_tokens=0,
+            latency_ms=latency,
+            success=False,
+            error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI service temporarily unavailable. Please try again later.")
     except Exception as exc:
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(

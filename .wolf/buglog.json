@@ -394,8 +394,16 @@
       "file": "apps/web/app/(dashboard)/reports/page.tsx",
       "root_cause": "Tab nav wrapper <div> had no overflow-x-auto; 3+ tabs overflow off-screen on viewports <500px",
       "fix": "Added overflow-x-auto to wrapper div and min-w-max + shrink-0 to nav/buttons",
-      "tags": ["mobile", "layout", "overflow", "reports", "tabs"],
-      "related_bugs": ["bug-024"],
+      "tags": [
+        "mobile",
+        "layout",
+        "overflow",
+        "reports",
+        "tabs"
+      ],
+      "related_bugs": [
+        "bug-024"
+      ],
       "occurrences": 1,
       "last_seen": "2026-05-11T00:00:00.000Z"
     },
@@ -406,8 +414,16 @@
       "file": "apps/web/app/(dashboard)/settings/page.tsx",
       "root_cause": "Tab wrapper had no overflow-x-auto; tabs without shrink-0 wrap or overflow off screen",
       "fix": "Added overflow-x-auto to wrapper div and shrink-0 to each tab button",
-      "tags": ["mobile", "layout", "overflow", "settings", "tabs"],
-      "related_bugs": ["bug-023"],
+      "tags": [
+        "mobile",
+        "layout",
+        "overflow",
+        "settings",
+        "tabs"
+      ],
+      "related_bugs": [
+        "bug-023"
+      ],
       "occurrences": 1,
       "last_seen": "2026-05-11T00:00:00.000Z"
     },
@@ -418,7 +434,13 @@
       "file": "apps/web/app/(dashboard)/settings/page.tsx",
       "root_cause": "City/State/ZIP used grid-cols-6 with col-span-1 for State; on 375px phone the State column is ~50px leaving ~26px text area — too narrow",
       "fix": "Changed to grid-cols-3 sm:grid-cols-6 so City/State/ZIP stack properly on mobile; State + ZIP each get adequate width",
-      "tags": ["mobile", "layout", "form", "settings", "grid"],
+      "tags": [
+        "mobile",
+        "layout",
+        "form",
+        "settings",
+        "grid"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-11T00:00:00.000Z"
@@ -430,7 +452,13 @@
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "root_cause": "overflow-x-auto was present but no visual cue signaled that the chip row was scrollable",
       "fix": "Wrapped chips in relative container; added right-edge fade gradient (pointer-events-none) as scroll hint",
-      "tags": ["mobile", "ux", "housekeeping", "scroll", "affordance"],
+      "tags": [
+        "mobile",
+        "ux",
+        "housekeeping",
+        "scroll",
+        "affordance"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-11T00:00:00.000Z"
@@ -442,7 +470,12 @@
       "file": "apps/web/app/(dashboard)/tasks/page.tsx",
       "root_cause": "Tab container used w-fit without overflow-x-auto; text wrapped on narrow screens",
       "fix": "Added overflow-x-auto + max-w-full to container; added shrink-0 + whitespace-nowrap to tab buttons",
-      "tags": ["mobile", "layout", "tasks", "tabs"],
+      "tags": [
+        "mobile",
+        "layout",
+        "tasks",
+        "tabs"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-11T00:00:00.000Z"
@@ -454,7 +487,13 @@
       "file": "apps/api/middleware/credits.py",
       "root_cause": "supabase-py 2.5.0 maybe_single().execute() returns None (not APIResponse) when no row exists. Code accessed ledger_result.data and sub_result.data without guarding against None result object.",
       "fix": "Guarded all maybe_single() results: 'if not (ledger_result and ledger_result.data)', '(sub_result.data or {}).get(...)  if sub_result else default', 'ledger = (ledger_result.data if ledger_result else None) or {}'",
-      "tags": ["supabase", "credits", "ai", "500", "maybe_single"],
+      "tags": [
+        "supabase",
+        "credits",
+        "ai",
+        "500",
+        "maybe_single"
+      ],
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-05-12T03:39:50.000Z"
@@ -466,7 +505,12 @@
       "file": "apps/api/routers/work_orders.py",
       "root_cause": "PATCH /{wo_id} had no pre-flight existence check. Supabase UPDATE against a non-matching row returns empty data silently; code returned {'data': None} with 200.",
       "fix": "Added maybe_single() existence check before UPDATE, raises 404 if not found. Consistent with other WO mutation endpoints.",
-      "tags": ["work-orders", "404", "patch", "existence-check"],
+      "tags": [
+        "work-orders",
+        "404",
+        "patch",
+        "existence-check"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-12T03:45:00.000Z"
@@ -478,10 +522,67 @@
       "file": "apps/api/middleware/auth.py",
       "root_cause": "HTTPBearer() with default auto_error=True raises HTTP 403 when Authorization header is missing. RFC 7235 requires 401 with WWW-Authenticate header for missing credentials.",
       "fix": "Set HTTPBearer(auto_error=False) and added explicit 401 + WWW-Authenticate header in get_current_user and get_current_user_no_hotel.",
-      "tags": ["auth", "401", "403", "http-bearer"],
+      "tags": [
+        "auth",
+        "401",
+        "403",
+        "http-bearer"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-12T03:45:00.000Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-05-12T04:39:16.726Z",
+      "error_message": "Wrong reference: data should be and",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Used \"data\" instead of \"and\"",
+      "fix": "Changed data → and",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T04:39:16.726Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-05-12T05:10:00.000Z",
+      "error_message": "column room_readiness_predictions.id does not exist (PostgREST 42703)",
+      "file": "apps/api/services/ai/insights.py",
+      "root_cause": "room_readiness_predictions uses room_id as its PRIMARY KEY (not id). _get_7day_stats was selecting 'id' for the count query causing PostgREST 42703 on every /ai/insights and insight_query copilot call.",
+      "fix": "Changed select('id', count='exact') to select('room_id', count='exact') on the room_readiness_predictions query.",
+      "tags": ["ai", "insights", "supabase", "postgrest", "wrong-column"],
+      "related_bugs": ["bug-028"],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:10:00.000Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-05-12T05:15:00.000Z",
+      "error_message": "model: claude-3-5-sonnet-20241022 not found (Anthropic 404)",
+      "file": "apps/api/services/ai/insights.py, apps/api/services/ai/sop_rag.py, apps/api/services/ai/failure_predictions.py, apps/api/routers/ai_copilot.py",
+      "root_cause": "claude-3-5-sonnet-20241022 is not available on the current Anthropic API key. Model superseded by Claude 4.x family.",
+      "fix": "Replaced all claude-3-5-sonnet-20241022 references with claude-sonnet-4-6 across 4 files.",
+      "tags": ["ai", "anthropic", "model-not-found", "claude"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:15:00.000Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-05-12T05:20:00.000Z",
+      "error_message": "AI service error: Error code: 429 - insufficient_quota (OpenAI)",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "OPENAI_API_KEY was blank in Railway. After adding the key, the provided key had no billing/quota on the OpenAI account. Raw OpenAI error was leaking to clients via the generic except block.",
+      "fix": "Added specific except clause for openai.RateLimitError and openai.AuthenticationError (and Anthropic equivalents) that returns clean 503 instead of exposing raw provider error messages.",
+      "tags": ["ai", "openai", "rate-limit", "error-handling", "secret-leak"],
+      "related_bugs": ["bug-033"],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:20:00.000Z"
     }
   ]
 }
