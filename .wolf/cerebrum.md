@@ -32,6 +32,10 @@
 - **Realtime audit (2026-05-11):** Only 2 files have Supabase Realtime subscriptions — both in housekeeping (RoomStatusBoard.tsx and housekeeping/page.tsx). Engineering work-orders and AI Service Recovery use refetchInterval: 30_000 polling only (no WebSocket). Migration 025 only adds room_status and room_assignments to supabase_realtime publication — work_orders is NOT in it.
 - **Supabase Realtime postgres_changes does NOT enforce RLS on payloads:** Without a filter clause, every subscriber receives the full new/old row data for ALL tenants. Always add `filter: 'tenant_id=eq.${hotelId}'` to postgres_changes subscriptions. RLS on the table (migration 016) only applies to direct DB queries, NOT to Realtime WebSocket messages.
 
+- **Mobile tab overflow pattern (2026-05-11):** Horizontal tab bars (`flex gap-1`) clip silently on phones. Every tab nav wrapper needs `overflow-x-auto` and each tab button needs `shrink-0 whitespace-nowrap`. Affected: reports/page.tsx, settings/page.tsx, tasks/page.tsx — all fixed.
+- **Mobile grid layout (2026-05-11):** `grid-cols-6` with col-span-1 children renders ~50px columns on 375px phones. Narrow form fields (State code, quantity inputs) truncate content. Fix with responsive `grid-cols-N sm:grid-cols-6` so small columns get adequate width on mobile.
+- **Button tap target (2026-05-11):** `Button.tsx` base style now uses `py-2.5 min-h-[44px]` — meets Apple HIG and WCAG 2.5.5. Sidebar nav links use `py-2.5`. Sub-nav links use `py-2`.
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->

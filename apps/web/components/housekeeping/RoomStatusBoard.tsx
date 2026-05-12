@@ -102,7 +102,8 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
   }, {})
 
   return (
-    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+    <div className="relative mb-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
       {STATUS_CHIPS.map((chip) => {
         const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
         const isActive = statusFilter === chip.key
@@ -150,6 +151,9 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
           <span className={`font-bold ${showRiskOnly ? 'opacity-90' : ''}`}>{riskCount ?? 0}</span>
         </button>
       )}
+      </div>
+      {/* Fade hint — signals horizontal scroll when chips overflow */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white to-transparent" />
     </div>
   )
 }

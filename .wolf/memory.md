@@ -8,6 +8,7 @@
 | 19:45 | Cron job testing: verified all 7 /internal/* endpoints; fixed billing PGRST200 (split queries), fixed daily-summary-email None guard + logbook insert; Anthropic key needs rotation | apps/api/routers/internal.py | 2/3 bugs fixed, 1 pending key rotation | ~8200 |
 | 00:00 | Tenant isolation test session — 25 unit tests pass; live prod API: IDOR found on GET /hotels/{id}/departments (bug-005, fixed), task comment injection (bug-006, fixed), 500 on resource ID probe (bug-007, not yet fixed) | apps/api/routers/hotels.py, tasks.py, .wolf/buglog.json | 2 security fixes applied, 1 open | ~9k |
 | session | Load test (30 workers, 30s, production API) — 0% 5xx, 406 reqs @ 12.6 RPS; p95 latency spikes: /my-rooms 5790ms, /board 4319ms, /work-orders 4108ms; all 78 /my-rooms returned 4xx (GM token has no room assignments — expected) | apps/api/tests/load/load_test.py | created load test script |
+| session | Mobile usability test (60 Playwright tests, 4 viewports: iPhone SE/14/Android/Tablet) — 56 passed, 1 failed (login button 36px); identified 2 critical tab overflow bugs (Reports + Settings) + 1 high form layout bug (Settings State field); all routes render with no horizontal overflow; screenshots in mobile-test-screenshots/ | e2e/mobile-usability.spec.ts, playwright.mobile.config.ts | 5 fixable issues found |
 | session | Fixed RBAC: FrontDeskDashboard now calls housekeepingApi.getBoard instead of reportsApi.getDailySummary (was 403). Created e2e/helpers/rbac-users.ts + e2e/16-rbac.spec.ts for per-role RBAC testing. PATCH /hotels and /settings already GM-only, middleware RBAC already correct | apps/web/components/dashboard/FrontDeskDashboard.tsx, e2e/helpers/rbac-users.ts, e2e/16-rbac.spec.ts | done | ~4000 |
 | 18:47 | Added "Push to Housekeeping" section in WorkOrderDetailDrawer — engineer/chief/GM can write a note and push a housekeeping task for the WO room | WorkOrderDetailDrawer.tsx, tasks.ts | done | ~800 |
 | 18:47 | Added Inspections tab to Settings page — GM/supervisor can create/edit/delete inspection checklist templates | settings/page.tsx, housekeeping.ts | done | ~1200 |
@@ -715,3 +716,23 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-05-12 19:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:00 | Created e2e/mobile-usability.spec.ts | — | ~3607 |
+| 20:01 | Created playwright.mobile.config.ts | — | ~234 |
+| 20:16 | Session end: 2 writes across 2 files (mobile-usability.spec.ts, playwright.mobile.config.ts) | 27 reads | ~22438 tok |
+| 20:17 | Edited apps/web/app/(dashboard)/reports/page.tsx | 18→18 lines | ~207 |
+| 20:17 | Edited apps/web/app/(dashboard)/settings/page.tsx | 17→17 lines | ~190 |
+| 20:17 | Edited apps/web/app/(dashboard)/settings/page.tsx | CSS: sm, sm | ~326 |
+| 20:18 | Edited apps/web/components/shared/Sidebar.tsx | 6→6 lines | ~98 |
+| 20:18 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→4 lines | ~44 |
+| 20:18 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 7→10 lines | ~96 |
+| 20:18 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 14→14 lines | ~168 |
+| 20:18 | Edited apps/web/components/ui/Button.tsx | "inline-flex items-center " → "inline-flex items-center " | ~60 |
+| 20:19 | Edited apps/web/components/shared/Sidebar.tsx | "group flex items-center g" → "group flex items-center g" | ~37 |
+| 20:20 | Session end: 11 writes across 6 files (mobile-usability.spec.ts, playwright.mobile.config.ts, page.tsx, Sidebar.tsx, RoomStatusBoard.tsx) | 32 reads | ~46205 tok |
+| 22:07 | Session end: 11 writes across 6 files (mobile-usability.spec.ts, playwright.mobile.config.ts, page.tsx, Sidebar.tsx, RoomStatusBoard.tsx) | 32 reads | ~46205 tok |
+| 22:14 | Session end: 11 writes across 6 files (mobile-usability.spec.ts, playwright.mobile.config.ts, page.tsx, Sidebar.tsx, RoomStatusBoard.tsx) | 32 reads | ~46205 tok |

@@ -354,6 +354,98 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-12T00:14:55.871Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-05-12T01:18:48.372Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/ui/Button.tsx",
+      "root_cause": "Had 'inline-flex items-center justify-center gap-2 px-",
+      "fix": "Changed to 'inline-flex items-center justify-center gap-2 px-",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T01:18:48.372Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-05-12T01:19:04.143Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had 'group flex items-center gap-2.5 px-3 py-2 text-sm",
+      "fix": "Changed to 'group flex items-center gap-2.5 px-3 py-2.5 text-",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T01:19:04.143Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "error_message": "Reports 'Maintenance' tab clipped on phone — unreachable by GM on mobile",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "Tab nav wrapper <div> had no overflow-x-auto; 3+ tabs overflow off-screen on viewports <500px",
+      "fix": "Added overflow-x-auto to wrapper div and min-w-max + shrink-0 to nav/buttons",
+      "tags": ["mobile", "layout", "overflow", "reports", "tabs"],
+      "related_bugs": ["bug-024"],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "error_message": "Settings 'Front Desk', 'Roles', 'Inspections' tabs clipped on all viewports",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "Tab wrapper had no overflow-x-auto; tabs without shrink-0 wrap or overflow off screen",
+      "fix": "Added overflow-x-auto to wrapper div and shrink-0 to each tab button",
+      "tags": ["mobile", "layout", "overflow", "settings", "tabs"],
+      "related_bugs": ["bug-023"],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "error_message": "Settings State input shows 'T.' (truncated 'TX') on phones — grid-cols-6 makes State column ~50px wide",
+      "file": "apps/web/app/(dashboard)/settings/page.tsx",
+      "root_cause": "City/State/ZIP used grid-cols-6 with col-span-1 for State; on 375px phone the State column is ~50px leaving ~26px text area — too narrow",
+      "fix": "Changed to grid-cols-3 sm:grid-cols-6 so City/State/ZIP stack properly on mobile; State + ZIP each get adequate width",
+      "tags": ["mobile", "layout", "form", "settings", "grid"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "error_message": "Housekeeping status filter chips: 'Inspected' and 'Clean' partially hidden with no scroll affordance",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "overflow-x-auto was present but no visual cue signaled that the chip row was scrollable",
+      "fix": "Wrapped chips in relative container; added right-edge fade gradient (pointer-events-none) as scroll hint",
+      "tags": ["mobile", "ux", "housekeeping", "scroll", "affordance"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-05-11T00:00:00.000Z",
+      "error_message": "Tasks 'In Progress' tab wraps to 2 lines on 375px phones",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Tab container used w-fit without overflow-x-auto; text wrapped on narrow screens",
+      "fix": "Added overflow-x-auto + max-w-full to container; added shrink-0 + whitespace-nowrap to tab buttons",
+      "tags": ["mobile", "layout", "tasks", "tabs"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-11T00:00:00.000Z"
     }
   ]
 }

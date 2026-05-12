@@ -215,7 +215,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             href={href}
             onClick={onMobileClose}
             className={cn(
-              'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
+              'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
                 ? 'text-[#FEFAF4] font-semibold'
                 : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
@@ -249,7 +249,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   href={subHref}
                   onClick={onMobileClose}
                   className={cn(
-                    'block px-2.5 py-1 text-sm rounded-lg transition-colors duration-200',
+                    'block px-2.5 py-2 text-sm rounded-lg transition-colors duration-200',
                     subActive
                       ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
@@ -282,7 +282,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             href={href}
             onClick={onMobileClose}
             className={cn(
-              'group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 relative',
+              'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
                 ? 'text-[#FEFAF4] font-semibold'
                 : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'
