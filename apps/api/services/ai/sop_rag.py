@@ -295,7 +295,7 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
 
         # --- 6. Call Claude Sonnet ---
         claude_response = claude.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SOP_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
@@ -385,7 +385,7 @@ def _log_ai_interaction(
             "tenant_id": hotel_id,
             "user_id": user_id,
             "interaction_type": "sop_query",
-            "model_used": "claude-3-5-sonnet-20241022",
+            "model_used": "claude-sonnet-4-6",
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "credits_charged": credits_charged,

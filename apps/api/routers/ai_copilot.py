@@ -166,7 +166,7 @@ async def copilot_chat(
                 "message": "Here are your operational insights:",
                 "insights": result["insights"],
                 "credits_used": credits,
-                "model_used": "claude-3-5-sonnet-20241022",
+                "model_used": "claude-sonnet-4-6",
             }
 
         elif intent == "sop_query":
@@ -328,7 +328,7 @@ async def get_gm_insights(
             hotel_id=current_user.hotel_id,
             user_id=current_user.user_id,
             interaction_type="gm_insight",
-            model_used="claude-3-5-sonnet-20241022",
+            model_used="claude-sonnet-4-6",
             credits_charged=credits,
             prompt_tokens=0,
             completion_tokens=0,
@@ -343,7 +343,7 @@ async def get_gm_insights(
         hotel_id=current_user.hotel_id,
         user_id=current_user.user_id,
         interaction_type="gm_insight",
-        model_used="claude-3-5-sonnet-20241022",
+        model_used="claude-sonnet-4-6",
         credits_charged=credits,
         prompt_tokens=result["prompt_tokens"],
         completion_tokens=result["completion_tokens"],

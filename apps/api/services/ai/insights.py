@@ -118,7 +118,7 @@ Return ONLY the JSON array. No markdown, no preamble."""
         user_msg = f"{stats_summary}\n\nSpecific question: {query}"
 
     response = claude.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-sonnet-4-6",
         max_tokens=1024,
         system=system_prompt,
         messages=[{"role": "user", "content": user_msg}],

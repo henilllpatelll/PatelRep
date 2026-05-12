@@ -241,7 +241,7 @@ def _analyze_asset(
         user_prompt = _build_asset_prompt(asset, category_name, work_orders, pm_schedules)
 
         response = claude.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-6",
             max_tokens=512,
             system=FAILURE_ANALYSIS_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
