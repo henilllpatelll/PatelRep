@@ -39,7 +39,7 @@ def _get_hotel_context(hotel_id: str) -> dict:
         .eq("id", hotel_id)\
         .maybe_single()\
         .execute()
-    hotel_name = hotel.data.get("name", "the hotel") if hotel.data else "the hotel"
+    hotel_name = (hotel.data or {}).get("name", "the hotel") if hotel else "the hotel"
 
     # Try to get current/most recent active shift
     from datetime import datetime, timezone
@@ -251,7 +251,7 @@ async def confirm_tasks(
                 .eq("id", task["room_id"])\
                 .eq("tenant_id", current_user.hotel_id)\
                 .maybe_single().execute()
-            if not room_check.data:
+            if not (room_check and room_check.data):
                 raise HTTPException(status_code=400, detail="Room not found in your hotel")
 
         priority = task.get("priority", "normal")
