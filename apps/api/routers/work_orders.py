@@ -175,6 +175,15 @@ async def update_work_order(
     if request.status == "cancelled" and current_user.role not in ("gm", "chief_engineer"):
         raise HTTPException(status_code=403, detail="Only GM or Chief Engineer can cancel work orders")
 
+    wo_check = supabase.table("work_orders")\
+        .select("id")\
+        .eq("id", wo_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not (wo_check and wo_check.data):
+        raise HTTPException(status_code=404, detail="Work order not found")
+
     update_data = request.model_dump(exclude_none=True)
     if "assigned_to" in update_data:
         update_data["assigned_to"] = str(update_data["assigned_to"])

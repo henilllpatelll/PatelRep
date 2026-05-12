@@ -33,7 +33,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
         .maybe_single()\
         .execute()
 
-    if not ledger_result.data:
+    if not (ledger_result and ledger_result.data):
         # Create ledger for current period
         period_start = date(today.year, today.month, 1)
         period_end = period_start + relativedelta(months=1) - timedelta(days=1)
@@ -44,7 +44,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
             .maybe_single()\
             .execute()
 
-        credits_included = sub_result.data.get("credits_included", 5000) if sub_result.data else 5000
+        credits_included = (sub_result.data or {}).get("credits_included", 5000) if sub_result else 5000
 
         supabase.table("credit_ledger").insert({
             "tenant_id": hotel_id,
@@ -61,7 +61,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
             .maybe_single()\
             .execute()
 
-    ledger = ledger_result.data
+    ledger = (ledger_result.data if ledger_result else None) or {}
 
     # Check cap
     sub_result = supabase.table("subscriptions")\
@@ -70,7 +70,7 @@ async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> floa
         .maybe_single()\
         .execute()
 
-    if sub_result.data:
+    if sub_result and sub_result.data:
         sub = sub_result.data
         if sub.get("cap_cents"):
             current_overage = ledger.get("overage_cost_cents", 0)

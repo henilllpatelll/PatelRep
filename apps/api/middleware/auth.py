@@ -2,6 +2,7 @@ import logging
 import time
 import httpx
 from dataclasses import dataclass
+from typing import Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
@@ -9,7 +10,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 _jwks_cache: dict | None = None
 _jwks_cache_time: float = 0.0
@@ -65,8 +66,14 @@ def _decode_token(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
 ) -> CurrentUser:
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     payload = _decode_token(credentials.credentials)
     user_id = payload.get("sub")
     hotel_id = payload.get("hotel_id")
@@ -92,9 +99,15 @@ async def get_current_user(
 
 
 async def get_current_user_no_hotel(
-    credentials: HTTPAuthorizationCredentials = Security(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
 ) -> CurrentUser:
     """Auth dependency for endpoints that run before a hotel exists (e.g. POST /hotels)."""
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     payload = _decode_token(credentials.credentials)
     user_id = payload.get("sub")
 
