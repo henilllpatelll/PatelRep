@@ -44,7 +44,7 @@ def _get_7day_stats(hotel_id: str) -> dict:
 
     # High-risk rooms
     high_risk = supabase.table("room_readiness_predictions")\
-        .select("id", count="exact")\
+        .select("room_id", count="exact")\
         .eq("tenant_id", hotel_id)\
         .eq("risk_level", "HIGH")\
         .execute()
