@@ -151,7 +151,7 @@ export default function WorkOrdersPage() {
         assigned_to: isEngineer ? user?.id : undefined,
         per_page: 50,
       }),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const workOrders: WorkOrder[] = data?.data ?? []

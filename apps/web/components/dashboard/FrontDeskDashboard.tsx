@@ -83,13 +83,13 @@ export function FrontDeskDashboard() {
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ['guest-requests-open'],
     queryFn: () => guestRequestsApi.listRequests({ status: 'open', per_page: 8 }),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const { data: activeRequestsData } = useQuery({
     queryKey: ['guest-requests-active'],
     queryFn: () => guestRequestsApi.listRequests({ status: 'in_progress', per_page: 8 }),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const allRooms: any[] = (boardData as any)?.data ?? []

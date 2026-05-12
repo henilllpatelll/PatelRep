@@ -10,7 +10,7 @@ export function AIRiskAlertsPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['ai-risk-alerts'],
     queryFn: () => aiApi.getRiskAlerts(),
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 
   const alerts = data?.data

@@ -47,13 +47,13 @@ export function SupervisorDashboard() {
   const { data: alertsData, isLoading: alertsLoading } = useQuery({
     queryKey: ['ai-risk-alerts'],
     queryFn: () => aiApi.getRiskAlerts(),
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 
   const { data: requestsData } = useQuery({
     queryKey: ['guest-requests-open'],
     queryFn: () => guestRequestsApi.listRequests({ status: 'open', per_page: 6 }),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const { data: tasksData } = useQuery({

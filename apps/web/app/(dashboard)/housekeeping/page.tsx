@@ -316,7 +316,7 @@ function HousekeeperMyRoomsView() {
   const { data: boardData, isLoading } = useQuery({
     queryKey: ['housekeeping-board', today],
     queryFn: () => housekeepingApi.getBoard(today, undefined, false),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const allRooms: any[] = (boardData as any)?.data ?? []
