@@ -202,7 +202,7 @@ async def copilot_chat(
 
     except HTTPException:
         raise
-    except (openai.RateLimitError, openai.AuthenticationError, anthropic.RateLimitError, anthropic.AuthenticationStatusError) as exc:
+    except (openai.RateLimitError, openai.AuthenticationError, anthropic.RateLimitError, anthropic.AuthenticationError) as exc:
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(
             hotel_id=current_user.hotel_id,
