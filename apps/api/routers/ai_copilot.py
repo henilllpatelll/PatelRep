@@ -320,7 +320,23 @@ async def get_gm_insights(
     credits = await check_and_deduct_credits(current_user.hotel_id, "gm_insight")
     start = time.time()
 
-    result = generate_gm_insights(current_user.hotel_id)
+    try:
+        result = generate_gm_insights(current_user.hotel_id)
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            interaction_type="gm_insight",
+            model_used="claude-3-5-sonnet-20241022",
+            credits_charged=credits,
+            prompt_tokens=0,
+            completion_tokens=0,
+            latency_ms=latency,
+            success=False,
+            error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI insights temporarily unavailable. Please try again later.")
 
     latency = int((time.time() - start) * 1000)
     await log_ai_interaction(
