@@ -64,7 +64,7 @@ def _get_7day_stats(hotel_id: str) -> dict:
         .eq("id", hotel_id)\
         .maybe_single()\
         .execute()
-    hotel_name = hotel.data.get("name", "the hotel") if hotel.data else "the hotel"
+    hotel_name = (hotel.data or {}).get("name", "the hotel") if hotel else "the hotel"
 
     wo_count = len(wo_opened.data or [])
     wo_done = wo_completed.count or 0
