@@ -49,10 +49,43 @@ async def list_work_orders(
     per_page: int = Query(20),
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    query = supabase.table("work_orders")\
-        .select("*, rooms(room_number), assets(name)")\
-        .eq("tenant_id", current_user.hotel_id)\
-        .order("created_at", desc=True)\
+    if current_user.role == "engineer":
+        # OR-filter (assigned_to=me OR assigned_to IS NULL) forces a seq-scan.
+        # Two indexed queries + Python merge is faster under concurrent load.
+        fetch_up_to = page * per_page  # enough rows to slice the requested page
+
+        def _base():
+            q = supabase.table("work_orders") \
+                .select("*, rooms(room_number), assets(name)") \
+                .eq("tenant_id", current_user.hotel_id) \
+                .order("created_at", desc=True) \
+                .range(0, fetch_up_to - 1)
+            if status:
+                q = q.eq("status", status)
+            if category:
+                q = q.eq("category", category)
+            if priority:
+                q = q.eq("priority", priority)
+            return q
+
+        r_mine = _base().eq("assigned_to", current_user.user_id).execute()
+        r_open = _base().is_("assigned_to", "null").execute()
+
+        seen: set = set()
+        merged = []
+        for row in (r_mine.data or []) + (r_open.data or []):
+            if row["id"] not in seen:
+                seen.add(row["id"])
+                merged.append(row)
+        merged.sort(key=lambda r: r["created_at"], reverse=True)
+
+        start = (page - 1) * per_page
+        return {"data": merged[start: start + per_page], "meta": {"page": page, "per_page": per_page}}
+
+    query = supabase.table("work_orders") \
+        .select("*, rooms(room_number), assets(name)") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .order("created_at", desc=True) \
         .range((page - 1) * per_page, page * per_page - 1)
 
     if status:
@@ -61,9 +94,8 @@ async def list_work_orders(
         query = query.eq("category", category)
     if priority:
         query = query.eq("priority", priority)
-
-    if current_user.role == "engineer":
-        query = query.or_(f"assigned_to.eq.{current_user.user_id},assigned_to.is.null")
+    if assigned_to:
+        query = query.eq("assigned_to", assigned_to)
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
