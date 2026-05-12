@@ -11,6 +11,7 @@ import { EngineerDashboard } from '@/components/dashboard/EngineerDashboard'
 import { ChiefEngineerDashboard } from '@/components/dashboard/ChiefEngineerDashboard'
 import { FrontDeskDashboard } from '@/components/dashboard/FrontDeskDashboard'
 import { useHotelStore } from '@/stores/hotelStore'
+import { useAuthStore } from '@/stores/authStore'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
@@ -41,6 +42,20 @@ function GMDashboard() {
 
 export default function DashboardPage() {
   const { role } = useRole()
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
+
+  if (isAuthLoading || !role) {
+    return (
+      <div className="space-y-4">
+        <div className="h-9 w-64 rounded-lg bg-stone-100 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-stone-100 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   switch (role) {
     case 'housekeeper':
@@ -54,7 +69,8 @@ export default function DashboardPage() {
     case 'front_desk':
       return <FrontDeskDashboard />
     case 'gm':
-    default:
       return <GMDashboard />
+    default:
+      return null
   }
 }

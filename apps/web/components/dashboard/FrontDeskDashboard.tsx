@@ -2,8 +2,9 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Package, Bed, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { format } from 'date-fns'
 import { useAuthStore } from '@/stores/authStore'
-import { reportsApi } from '@/lib/api/reports'
+import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { hotelsApi } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
@@ -65,9 +66,10 @@ export function FrontDeskDashboard() {
     user?.email?.split('@')[0] ||
     'Front Desk'
 
-  const { data: summaryData, isLoading: summaryLoading } = useQuery({
-    queryKey: ['daily-summary'],
-    queryFn: () => reportsApi.getDailySummary(),
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const { data: boardData, isLoading: summaryLoading } = useQuery({
+    queryKey: ['housekeeping-board-frontdesk', today],
+    queryFn: () => housekeepingApi.getBoard(today, undefined, false),
     refetchInterval: 60_000,
   })
 
@@ -90,7 +92,12 @@ export function FrontDeskDashboard() {
     refetchInterval: 30_000,
   })
 
-  const breakdown = summaryData?.data?.room_status_breakdown ?? {}
+  const allRooms: any[] = (boardData as any)?.data ?? []
+  const breakdown: Record<string, number> = {}
+  for (const r of allRooms) {
+    const s: string = r.status ?? 'UNKNOWN'
+    breakdown[s] = (breakdown[s] ?? 0) + 1
+  }
   const totalRooms = statsData?.data?.room_count ?? 0
   const inspected = breakdown['INSPECTED'] ?? 0
   const inspectedPct = totalRooms > 0 ? Math.round((inspected / totalRooms) * 100) : 0

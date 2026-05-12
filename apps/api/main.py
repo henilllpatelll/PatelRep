@@ -1,6 +1,10 @@
+import logging
+import re
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from postgrest.exceptions import APIError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -16,6 +20,7 @@ from routers import (
     guest_requests, logbook, reports, onboarding, staff, lost_found
 )
 
+logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -119,23 +124,49 @@ app.include_router(staff.router, prefix=PREFIX)
 app.include_router(lost_found.router, prefix=PREFIX)
 
 
-@app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
-    import re
+def _cors_headers_for(request: Request) -> dict[str, str]:
     origin = request.headers.get("origin", "")
     allowed = [
         settings.app_url,
         "https://patelrepweb-production-869a.up.railway.app",
         "https://patelrep-web.vercel.app",
     ]
-    cors_headers = {}
     if origin in allowed or re.match(r"http://localhost:\d+$", origin):
-        cors_headers = {
+        return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
         }
+    return {}
+
+
+@app.exception_handler(APIError)
+async def postgrest_exception_handler(request: Request, exc: APIError):
+    code = getattr(exc, "code", None) or "DATABASE_ERROR"
+    message = getattr(exc, "message", "") or ""
+    status_code = 422 if code == "PGRST204" or "schema cache" in message.lower() else 400
+    safe_message = (
+        "One or more fields are not supported by this endpoint."
+        if status_code == 422
+        else "Database request failed. Please check the request and try again."
+    )
+    logger.warning("PostgREST request failed: code=%s path=%s", code, request.url.path)
+    return JSONResponse(
+        status_code=status_code,
+        content={"error": {"code": code, "message": safe_message}},
+        headers=_cors_headers_for(request),
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled API error on %s", request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"error": {"code": "INTERNAL_ERROR", "message": str(exc)}},
-        headers=cors_headers,
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "Unexpected server error. Please try again.",
+            }
+        },
+        headers=_cors_headers_for(request),
     )

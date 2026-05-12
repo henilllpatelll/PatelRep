@@ -71,19 +71,30 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
     from core.config import settings
     stripe.api_key = settings.stripe_secret_key
 
-    # Get all active paid subscriptions with overage
     today = date.today()
     period_start = date(today.year, today.month, 1)
 
+    # credit_ledger and subscriptions share tenant_id but have no direct FK —
+    # fetch them separately and join in Python.
     ledgers = supabase.table("credit_ledger")\
-        .select("*, subscriptions(stripe_customer_id, plan_status, cap_cents, stripe_subscription_id)")\
+        .select("tenant_id, credits_used, credits_included")\
         .eq("period_start", period_start.isoformat())\
         .execute()
 
     processed = 0
     errors = 0
     for ledger in (ledgers.data or []):
-        sub = ledger.get("subscriptions") or {}
+        tenant_id = ledger.get("tenant_id")
+        if not tenant_id:
+            continue
+
+        sub_result = supabase.table("subscriptions")\
+            .select("stripe_customer_id, plan_status, cap_cents, stripe_subscription_id")\
+            .eq("tenant_id", tenant_id)\
+            .maybe_single()\
+            .execute()
+        sub = (sub_result.data if sub_result else None) or {}
+
         if sub.get("plan_status") != "active":
             continue
         stripe_cid = sub.get("stripe_customer_id")
@@ -226,9 +237,10 @@ async def send_daily_summary_emails(x_cron_secret: str = Header(None)):
                 .eq("id", gm_id)\
                 .maybe_single()\
                 .execute()
-            gm_name = gm_profile.data.get("full_name", "General Manager") if gm_profile.data else "General Manager"
+            # maybe_single().execute() may return None (not APIResponse) when no row exists
+            gm_profile_data = (gm_profile.data if gm_profile else None) or {}
+            gm_name = gm_profile_data.get("full_name", "General Manager")
 
-            # Generate email body (simple text format — in production, use Resend/SendGrid)
             dirty_count = status_counts.get("DIRTY", 0)
             clean_count = status_counts.get("CLEAN", 0)
             inspected_count = status_counts.get("INSPECTED", 0)
@@ -253,15 +265,9 @@ Have a great day!
 — PatelRep AI
 """
 
-            # Log the intended email (in production, integrate with Resend/SendGrid)
-            # For now, insert a logbook entry as the "email"
-            supabase.table("logbook_entries").insert({
-                "tenant_id": hotel_id,
-                "author_id": gm_id,
-                "content": f"[Daily Summary — {today}]\n{email_body}",
-                "is_ai_generated": True,
-            }).execute()
-
+            # Log email body to server log until Resend/SendGrid is integrated.
+            # logbook_entries requires department_id NOT NULL, so no stub insert.
+            logger.info("Daily summary for hotel=%s gm=%s:\n%s", hotel_id, gm_id, email_body)
             emails_sent += 1
 
         except Exception as e:

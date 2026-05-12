@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
+import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
@@ -155,9 +156,15 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+function getHotelIdFromToken(token: string | undefined): string {
+  try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
+}
+
 export function RoomStatusBoard() {
   const queryClient = useQueryClient()
   const supabase = createClient()
+  const session = useAuthStore((s) => s.session)
+  const hotelId = getHotelIdFromToken(session?.access_token)
 
   const {
     filteredRooms,
@@ -250,18 +257,20 @@ export function RoomStatusBoard() {
       }, 500)
     }
 
+    if (!hotelId) return
+
     const channel = supabase
       .channel('room_status_board_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status' }, invalidateBoard)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments' }, invalidateBoard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, invalidateBoard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments', filter: `tenant_id=eq.${hotelId}` }, invalidateBoard)
       .subscribe()
 
     return () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-    // Re-subscribe when date/shift change
-  }, [selectedDate, selectedShift]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Re-subscribe when date/shift/tenant change
+  }, [selectedDate, selectedShift, hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Status change handler ─────────────────────────────────────────────────
   const handleStatusChange = async (roomId: string, status: string) => {

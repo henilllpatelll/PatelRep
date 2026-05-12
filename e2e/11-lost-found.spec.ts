@@ -18,7 +18,7 @@ test.describe('Lost & Found', () => {
     // Tabs include a count badge so the accessible name is e.g. "All 3" or just "All"
     // Match by contained text to handle both cases
     await expect(page.locator('button', { hasText: /^All/ }).first()).toBeVisible()
-    await expect(page.locator('button', { hasText: 'Claimed' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Claimed', exact: true })).toBeVisible()
   })
 
   test('switching tabs does not crash', async ({ page }) => {

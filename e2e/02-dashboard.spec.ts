@@ -25,8 +25,8 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('link', { name: /housekeeping/i })).toBeVisible()
   })
 
-  test('has link to engineering', async ({ page }) => {
-    await expect(page.getByRole('link', { name: /engineering/i })).toBeVisible()
+  test('has link to maintenance', async ({ page }) => {
+    await expect(page.getByRole('link', { name: /maintenance/i })).toBeVisible()
   })
 
   test('has link to staff', async ({ page }) => {

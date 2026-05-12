@@ -189,6 +189,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const settingsItem: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
   const billingItem: NavItem = { href: '/settings/billing', label: 'Billing', icon: CreditCard }
+  const bottomItems = role === 'gm'
+    ? [settingsItem, ...(canViewBilling ? [billingItem] : [])]
+    : []
 
   const operationsItems = visibleNavItems.filter((item) => OPERATIONS_HREFS.includes(item.href))
   const peopleItems = visibleNavItems.filter((item) => PEOPLE_HREFS.includes(item.href))
@@ -366,7 +369,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Bottom: Settings / Billing */}
       <div className="px-3 pt-2 pb-1 space-y-0.5 border-t border-[#2D221A]">
-        {[settingsItem, ...(canViewBilling ? [billingItem] : [])].map(renderBottomLink)}
+        {bottomItems.map(renderBottomLink)}
       </div>
 
       {/* User identity badge */}

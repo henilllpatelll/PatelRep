@@ -2,12 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Wrench, Search, AlertCircle, CheckCircle2, Plus } from 'lucide-react'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -112,10 +113,17 @@ function WorkOrderRow({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+function getHotelIdFromToken(token: string | undefined): string {
+  try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
+}
+
 export default function WorkOrdersPage() {
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
+  const session = useAuthStore((s) => s.session)
+  const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
+  const supabase = createClient()
 
   const [activeTab, setActiveTab] = useState<StatusTab>('open')
   const [search, setSearch] = useState('')
@@ -123,6 +131,17 @@ export default function WorkOrdersPage() {
 
   const isEngineer = role === 'engineer'
   const canManage = role === 'chief_engineer' || role === 'gm'
+
+  useEffect(() => {
+    if (!hotelId) return
+    const channel = supabase
+      .channel('wo_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['work-orders', activeTab, isEngineer ? user?.id : null],

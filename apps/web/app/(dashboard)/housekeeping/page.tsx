@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
+import { useAuthStore } from '@/stores/authStore'
 
 // ── Shift options ─────────────────────────────────────────────────────────────
 
@@ -299,11 +300,17 @@ function HousekeeperRoomItem({
   )
 }
 
+function getHotelIdFromToken(token: string | undefined): string {
+  try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
+}
+
 function HousekeeperMyRoomsView() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
+  const hotelId = getHotelIdFromToken(session?.access_token)
   const today = format(new Date(), 'yyyy-MM-dd')
   const queryClient = useQueryClient()
   const supabase = createClient()
+  const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
 
   const { data: boardData, isLoading } = useQuery({
@@ -323,17 +330,25 @@ function HousekeeperMyRoomsView() {
     })
 
   useEffect(() => {
+    if (!hotelId) return
+
+    const invalidate = () => {
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+      realtimeDebounce.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      }, 500)
+    }
+
     const channel = supabase
       .channel('hk_my_rooms_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments', filter: `tenant_id=eq.${hotelId}` }, invalidate)
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [today]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+      supabase.removeChannel(channel)
+    }
+  }, [today, hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAction(roomId: string, status: string) {
     // Optimistic update — reflect new status immediately without waiting for refetch
@@ -407,6 +422,7 @@ function HousekeeperMyRoomsView() {
 
 function SupervisorHousekeepingPage() {
   const queryClient = useQueryClient()
+  const { canAssignRooms } = useRole()
   const {
     selectedDate,
     selectedShift,
@@ -420,6 +436,10 @@ function SupervisorHousekeepingPage() {
   } = useHousekeepingStore()
 
   const [dragError, setDragError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (assignmentMode && !canAssignRooms) toggleAssignmentMode()
+  }, [assignmentMode, canAssignRooms, toggleAssignmentMode])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -522,31 +542,35 @@ function SupervisorHousekeepingPage() {
         {/* Right: actions */}
         <div className="flex flex-wrap items-center gap-2">
           {/* View / Assign toggle */}
-          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs bg-white shadow-sm">
-            <button
-              onClick={() => assignmentMode && toggleAssignmentMode()}
-              className={`px-3 py-2 font-medium transition-colors ${
-                !assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              View
-            </button>
-            <button
-              onClick={() => !assignmentMode && toggleAssignmentMode()}
-              className={`px-3 py-2 font-medium transition-colors ${
-                assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              Assign
-            </button>
-          </div>
+          {canAssignRooms && (
+            <>
+              <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs bg-white shadow-sm">
+                <button
+                  onClick={() => assignmentMode && toggleAssignmentMode()}
+                  className={`px-3 py-2 font-medium transition-colors ${
+                    !assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => !assignmentMode && toggleAssignmentMode()}
+                  className={`px-3 py-2 font-medium transition-colors ${
+                    assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Assign
+                </button>
+              </div>
 
-          <Link
-            href="/onboarding?step=2"
-            className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            + Rooms
-          </Link>
+              <Link
+                href="/onboarding?step=2"
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                + Rooms
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -583,7 +607,7 @@ function SupervisorHousekeepingPage() {
       )}
 
       {/* ── Housekeeper bar (mobile assign mode) ──────────────────────────── */}
-      {assignmentMode && <HousekeeperBar />}
+      {assignmentMode && canAssignRooms && <HousekeeperBar />}
 
       {/* ── Main layout ───────────────────────────────────────────────────── */}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -594,7 +618,7 @@ function SupervisorHousekeepingPage() {
           </div>
 
           {/* Sidebar — desktop only */}
-          {assignmentMode && (
+          {assignmentMode && canAssignRooms && (
             <div className="hidden lg:block">
               <AssignmentSidebar />
             </div>
@@ -609,9 +633,24 @@ function SupervisorHousekeepingPage() {
 
 export default function HousekeepingPage() {
   const { role } = useRole()
+  const isAuthLoading = useAuthStore((state) => state.isLoading)
+
+  if (isAuthLoading || !role) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-56 rounded-lg bg-gray-100 animate-pulse" />
+        <div className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
+        <div className="h-72 rounded-2xl bg-gray-100 animate-pulse" />
+      </div>
+    )
+  }
 
   if (role === 'housekeeper') {
     return <HousekeeperMyRoomsView />
+  }
+
+  if (role !== 'gm' && role !== 'housekeeping_supervisor' && role !== 'front_desk') {
+    return null
   }
 
   return <SupervisorHousekeepingPage />

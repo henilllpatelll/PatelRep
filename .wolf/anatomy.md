@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-15T23:47:21.766Z
-> Files: 536 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T00:15:22.227Z
+> Files: 556 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -907,10 +907,37 @@
 - `lost_found.py` — API: POST, GET, PATCH (4 endpoints) (~1038 tok)
 - `notifications.py` — API: GET, PATCH, POST (3 endpoints) (~420 tok)
 
+## Docker Context Additions
+
+
 ## apps/api/routers/
 
+- `assets.py` — API: 12 endpoints (~4333 tok)
+- `hotels.py` — API: 5 endpoints (~2089 tok)
 - `housekeeping.py` — API: 5 endpoints (~7713 tok)
-- `rooms.py` — API: 6 endpoints (~4436 tok)
+- `internal.py` — API: 8 endpoints (~3214 tok)
+- `lost_found.py` — API: 5 endpoints (~1143 tok)
+- `rooms.py` — API: 6 endpoints (~4430 tok)
+- `tasks.py` — API: 7 endpoints (~2244 tok)
+- `work_orders.py` — API: 8 endpoints (~2428 tok)
+
+## apps/api/services/ai/
+
+- `shift_summary.py` — generate_shift_summary (~1408 tok)
+
+## apps/api/tests/load/
+
+- `__init__.py` (~0 tok)
+- `load_test.py` — class: get_auth_token, worker, print_report, main (~3936 tok)
+
+## apps/api/tests/smoke/
+
+- `test_notes_regressions.py` — Regression tests for task/guest request notes mapping, guest request task_id refresh, and PostgREST schema error responses (~1900 tok)
+- `test_tenant_isolation.py` — _FakeAdminAuth: list_users, table, b_row, eq + 23 more (~6720 tok)
+
+## apps/web/app/(dashboard)/billing/
+
+- `page.tsx` — numberOrDefault (~3422 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
 
@@ -918,11 +945,15 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~2988 tok)
+- `page.tsx` — dynamic (~3223 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
 - `page.tsx` — TABS — renders form (~8948 tok)
+
+## apps/web/app/(dashboard)/housekeeping/
+
+- `page.tsx` — dynamic (~7215 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -940,9 +971,17 @@
 
 - `page.tsx` — dynamic — renders table (~7345 tok)
 
+## apps/web/app/(dashboard)/scheduling/
+
+- `page.tsx` — DEPARTMENTS (~14636 tok)
+
 ## apps/web/app/(dashboard)/settings/
 
 - `page.tsx` — hotelProfileSchema (~13062 tok)
+
+## apps/web/app/(dashboard)/settings/billing/
+
+- `page.tsx` — numberOrDefault (~5323 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
@@ -955,6 +994,7 @@
 ## apps/web/components/dashboard/
 
 - `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~2526 tok)
 - `HousekeeperDashboard.tsx` — STATUS_MAP (~2155 tok)
 - `ROIMetricsStrip.tsx` — MetricCard (~1124 tok)
 - `SupervisorDashboard.tsx` — STATUS_LABELS (~3970 tok)
@@ -963,6 +1003,10 @@
 ## apps/web/components/engineering/
 
 - `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~9563 tok)
+
+## apps/web/components/housekeeping/
+
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4256 tok)
 
 ## apps/web/components/shared/
 
@@ -976,3 +1020,15 @@
 ## apps/web/stores/
 
 - `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1000 tok)
+
+## e2e/
+
+- `16-rbac.spec.ts` — RBAC smoke tests — verifies that Next.js middleware correctly blocks (~1809 tok)
+
+## e2e/helpers/
+
+- `rbac-users.ts` — RBAC test user helpers. (~1468 tok)
+
+## supabase/migrations/
+
+- `030_enable_realtime_work_orders.sql` — Enable Supabase Realtime for engineering work orders. (~53 tok)

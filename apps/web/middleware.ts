@@ -2,9 +2,50 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/reset-password']
+const ALL_ROLES = ['housekeeper', 'engineer', 'housekeeping_supervisor', 'chief_engineer', 'front_desk', 'gm'] as const
+
+type UserRole = (typeof ALL_ROLES)[number]
+
+const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
+  { prefix: '/dashboard', roles: [...ALL_ROLES] },
+  { prefix: '/housekeeping/assignments', roles: ['gm', 'housekeeping_supervisor'] },
+  { prefix: '/housekeeping/inspections', roles: ['gm', 'housekeeping_supervisor'] },
+  { prefix: '/housekeeping/rooms', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
+  { prefix: '/housekeeping', roles: ['gm', 'housekeeping_supervisor', 'housekeeper', 'front_desk'] },
+  { prefix: '/engineering', roles: ['gm', 'chief_engineer', 'engineer'] },
+  { prefix: '/tasks', roles: [...ALL_ROLES] },
+  { prefix: '/scheduling', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
+  { prefix: '/staff', roles: ['gm'] },
+  { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
+  { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
+  { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
+  { prefix: '/logbook', roles: [...ALL_ROLES] },
+  { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
+  { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
+  { prefix: '/billing', roles: ['gm'] },
+  { prefix: '/settings', roles: ['gm'] },
+]
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))
+}
+
+function decodeJwtClaims(accessToken: string | undefined): Record<string, unknown> {
+  if (!accessToken) return {}
+  try {
+    const payload = accessToken.split('.')[1]
+    if (!payload) return {}
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+function getRouteRoles(pathname: string): UserRole[] | null {
+  const match = ROLE_ROUTE_RULES.find(({ prefix }) => pathname === prefix || pathname.startsWith(prefix + '/'))
+  return match?.roles ?? null
 }
 
 export async function middleware(request: NextRequest) {
@@ -33,9 +74,12 @@ export async function middleware(request: NextRequest) {
   )
 
   const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const {
     data: { session },
   } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  const jwtClaims = decodeJwtClaims(session?.access_token)
 
   const { pathname } = request.nextUrl
 
@@ -63,6 +107,7 @@ export async function middleware(request: NextRequest) {
   // Check JWT claims first (app_metadata via hook, user_metadata as fallback),
   // then fall back to the pr_hotel_id cookie set by the onboarding page on hotel creation.
   const hotelId =
+    (jwtClaims.hotel_id as string | undefined) ??
     (user.app_metadata as Record<string, unknown>)?.hotel_id ??
     (user.user_metadata as Record<string, unknown>)?.hotel_id ??
     request.cookies.get('pr_hotel_id')?.value
@@ -70,6 +115,19 @@ export async function middleware(request: NextRequest) {
   if (!hotelId && pathname !== '/onboarding') {
     const url = request.nextUrl.clone()
     url.pathname = '/onboarding'
+    return NextResponse.redirect(url)
+  }
+
+  const role =
+    (jwtClaims.role as UserRole | undefined) ??
+    ((user.app_metadata as Record<string, unknown>)?.role as UserRole | undefined) ??
+    ((user.user_metadata as Record<string, unknown>)?.role as UserRole | undefined)
+  const allowedRoles = getRouteRoles(pathname)
+
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    url.searchParams.set('unauthorized', pathname)
     return NextResponse.redirect(url)
   }
 

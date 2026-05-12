@@ -6,18 +6,19 @@ export interface Subscription {
   trial_end?: string
   current_period_start?: string
   current_period_end?: string
-  base_fee_cents: number
-  credits_included: number
+  base_fee_cents?: number
+  credits_included?: number
 }
 
 export interface CreditUsage {
-  period: string          // e.g. "2026-03"
-  credits_included: number
-  credits_used: number
-  credits_remaining: number
-  overage_credits: number
-  overage_cost_cents: number
+  period?: string          // e.g. "2026-03"
+  credits_included?: number
+  credits_used?: number
+  credits_remaining?: number
+  overage_credits?: number
+  overage_cost_cents?: number
   cap_cents?: number | null
+  message?: string
 }
 
 export interface Invoice {

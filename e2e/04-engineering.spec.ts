@@ -1,9 +1,9 @@
 /**
- * Engineering — work orders kanban, assets, PM schedules, predictions.
+ * Engineering / Maintenance - work orders, assets, PM schedules, predictions.
  */
 import { test, expect } from '@playwright/test'
 
-test.describe('Engineering — Work Orders', () => {
+test.describe('Engineering - Work Orders', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/engineering')
     await page.waitForLoadState('networkidle')
@@ -14,25 +14,19 @@ test.describe('Engineering — Work Orders', () => {
     await expect(page.locator('text=Application error')).not.toBeVisible()
   })
 
-  test('shows kanban column headers', async ({ page }) => {
-    // Kanban heading elements — use heading role to avoid matching status badge spans
-    await expect(page.getByRole('heading', { name: 'Open' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'In Progress' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Completed' })).toBeVisible()
+  test('shows status filters', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Open', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'In Progress', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Completed', exact: true })).toBeVisible()
   })
 
-  test('category filter is present', async ({ page }) => {
-    // Native <select> with "All Categories" as default option — check by combobox role
-    const selects = page.getByRole('combobox')
-    // At least one select should be visible (category or priority)
-    await expect(selects.first()).toBeVisible()
+  test('search input is present', async ({ page }) => {
+    await expect(page.getByPlaceholder(/search by room/i)).toBeVisible()
   })
 
-  test('priority filter is present', async ({ page }) => {
-    // At least 2 select elements (category + priority)
-    const selects = page.getByRole('combobox')
-    const count = await selects.count()
-    expect(count).toBeGreaterThanOrEqual(1)
+  test('status filters switch without crashing', async ({ page }) => {
+    await page.getByRole('button', { name: 'Completed', exact: true }).click()
+    await expect(page.locator('text=Application error')).not.toBeVisible()
   })
 
   test('New Work Order button is visible', async ({ page }) => {
@@ -43,7 +37,6 @@ test.describe('Engineering — Work Orders', () => {
   test('opens Create Work Order modal', async ({ page }) => {
     const btn = page.getByRole('button', { name: /new work order|add work order/i })
     await btn.click()
-    // Modal/dialog should appear
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 })
   })
 
@@ -52,13 +45,12 @@ test.describe('Engineering — Work Orders', () => {
     await btn.click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
-    // Try Escape or a close button
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5_000 })
   })
 })
 
-test.describe('Engineering — Assets', () => {
+test.describe('Engineering - Assets', () => {
   test('loads without error', async ({ page }) => {
     await page.goto('/engineering/assets')
     await page.waitForLoadState('networkidle')
@@ -75,7 +67,7 @@ test.describe('Engineering — Assets', () => {
   })
 })
 
-test.describe('Engineering — PM Schedules', () => {
+test.describe('Engineering - PM Schedules', () => {
   test('loads without error', async ({ page }) => {
     await page.goto('/engineering/pm-schedules')
     await page.waitForLoadState('networkidle')
@@ -84,7 +76,7 @@ test.describe('Engineering — PM Schedules', () => {
   })
 })
 
-test.describe('Engineering — Predictions', () => {
+test.describe('Engineering - Predictions', () => {
   test('loads without error', async ({ page }) => {
     await page.goto('/engineering/predictions')
     await page.waitForLoadState('networkidle')

@@ -19,8 +19,9 @@ def generate_shift_summary(hotel_id: str, shift_id: str, shift_date: str) -> dic
         .maybe_single()\
         .execute()
 
-    shift = shift_result.data or {}
+    shift = (shift_result.data if shift_result else None) or {}
     shift_name = shift.get("name", "Shift")
+    department_id = shift.get("department_id")
     dept_name = shift.get("departments", {}).get("name", "All Departments") if shift.get("departments") else "All Departments"
 
     # 2. Get logbook entries for this shift
@@ -101,18 +102,21 @@ Keep it concise, factual, and actionable. Use hotel industry terminology."""
 
     summary_text = message.content[0].text
 
-    # 7. Store in shift_summaries table
-    supabase.table("shift_summaries").upsert({
+    # 7. Store in shift_summaries table (schema: tenant_id, shift_id, shift_date,
+    #    department_id, summary_text, stats JSONB)
+    supabase.table("shift_summaries").insert({
         "tenant_id": hotel_id,
         "shift_id": shift_id,
         "shift_date": shift_date,
+        "department_id": department_id,
         "summary_text": summary_text,
-        "tasks_completed": len(completed_tasks),
-        "open_work_orders": len(open_work_orders),
-        "logbook_entries_count": len(logbook_entries),
-        "generated_by_ai": True,
-        "model_used": "claude-sonnet-4-6",
-    }, on_conflict="tenant_id,shift_id").execute()
+        "stats": {
+            "tasks_completed": len(completed_tasks),
+            "open_work_orders": len(open_work_orders),
+            "logbook_entries_count": len(logbook_entries),
+            "model_used": "claude-sonnet-4-6",
+        },
+    }).execute()
 
     # 8. Log AI interaction
     supabase.table("ai_interactions").insert({

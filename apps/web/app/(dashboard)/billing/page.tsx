@@ -9,11 +9,20 @@ import { useAuthStore } from '@/stores/authStore'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
+function numberOrDefault(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-function formatDate(dateStr: string): string {
+function formatNumber(value: unknown): string {
+  return numberOrDefault(value).toLocaleString()
+}
+
+function formatCents(cents: unknown): string {
+  return `$${(numberOrDefault(cents) / 100).toFixed(2)}`
+}
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return ''
   return format(new Date(dateStr), 'MMM d, yyyy')
 }
 
@@ -73,12 +82,18 @@ export default function BillingPage() {
     queryKey: ['billing-subscription'],
     queryFn: () => billingApi.getSubscription(),
     select: (res) => res.data as Subscription,
+    enabled: isGM,
+    refetchInterval: false,
+    staleTime: 5 * 60_000,
   })
 
   const { data: creditData, isLoading: creditLoading } = useQuery({
     queryKey: ['billing-credits'],
     queryFn: () => billingApi.getCredits(),
     select: (res) => res.data as CreditUsage,
+    enabled: isGM,
+    refetchInterval: false,
+    staleTime: 5 * 60_000,
   })
 
   // Auth loading guard — wait for role to be available before checking access
@@ -100,13 +115,19 @@ export default function BillingPage() {
   }
 
   // Credit percentage
+  const creditsIncluded = numberOrDefault(creditData?.credits_included)
+  const creditsUsed = numberOrDefault(creditData?.credits_used)
+  const creditsRemaining = numberOrDefault(creditData?.credits_remaining)
+  const overageCredits = numberOrDefault(creditData?.overage_credits)
+  const overageCostCents = numberOrDefault(creditData?.overage_cost_cents)
+
   const creditPct =
-    creditData && creditData.credits_included > 0
-      ? Math.round((creditData.credits_used / creditData.credits_included) * 100)
+    creditsIncluded > 0
+      ? Math.round((creditsUsed / creditsIncluded) * 100)
       : 0
 
   // Period display (e.g. "2026-03" → "March 2026")
-  const periodLabel = creditData
+  const periodLabel = creditData?.period
     ? format(new Date(`${creditData.period}-01`), 'MMMM yyyy')
     : ''
 
@@ -145,7 +166,7 @@ export default function BillingPage() {
             <div className="flex items-center gap-2">
               <span className="text-gray-500">Base fee</span>
               <span className="font-medium text-gray-900">
-                {subData ? `${formatCents(subData.base_fee_cents)}/month` : '$99/month'}
+                {subData ? `${formatCents(subData.base_fee_cents ?? 9900)}/month` : '$99/month'}
               </span>
             </div>
 
@@ -205,10 +226,10 @@ export default function BillingPage() {
           <div className="flex items-baseline justify-between mb-2">
             <p className="text-sm font-medium text-gray-700">
               <span className="text-lg font-bold text-gray-900">
-                {creditData.credits_used.toLocaleString()}
+                {formatNumber(creditsUsed)}
               </span>{' '}
               /{' '}
-              <span className="font-semibold">{creditData.credits_included.toLocaleString()}</span>{' '}
+              <span className="font-semibold">{formatNumber(creditsIncluded)}</span>{' '}
               credits used
             </p>
             <span
@@ -237,14 +258,14 @@ export default function BillingPage() {
             <div className="flex justify-between">
               <span className="text-gray-500">Credits remaining</span>
               <span className="font-medium text-gray-900">
-                {creditData.credits_remaining.toLocaleString()}
+                {formatNumber(creditsRemaining)}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-500">Overage credits</span>
               <span className="font-medium text-gray-900">
-                {creditData.overage_credits.toLocaleString()}
+                {formatNumber(overageCredits)}
               </span>
             </div>
 
@@ -252,10 +273,10 @@ export default function BillingPage() {
               <span className="text-gray-500">Overage cost</span>
               <span
                 className={`font-medium ${
-                  creditData.overage_cost_cents > 0 ? 'text-orange-600' : 'text-gray-900'
+                  overageCostCents > 0 ? 'text-orange-600' : 'text-gray-900'
                 }`}
               >
-                {formatCents(creditData.overage_cost_cents)}
+                {formatCents(overageCostCents)}
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +28,7 @@ function Spinner({ className = '' }: { className?: string }) {
 }
 
 function LoginContent() {
+  const [isHydrated, setIsHydrated] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,6 +39,10 @@ function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // After sign-in, redirect to ?redirectTo param, or onboarding if no hotel, else dashboard
   const getRedirectPath = (hotelId: string | undefined | null): string => {
@@ -189,6 +194,7 @@ function LoginContent() {
         <div className="flex bg-stone-100 rounded-xl p-1">
           <button
             type="button"
+            disabled={!isHydrated || loading}
             onClick={() => handleTabChange('password')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'password'
@@ -200,6 +206,7 @@ function LoginContent() {
           </button>
           <button
             type="button"
+            disabled={!isHydrated || loading}
             onClick={() => handleTabChange('magic')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
               activeTab === 'magic'
@@ -232,6 +239,7 @@ function LoginContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@hotel.com"
                 required
+                disabled={!isHydrated || loading}
                 autoComplete="email"
               />
             </div>
@@ -251,6 +259,7 @@ function LoginContent() {
               <Input
                 id="password-pw"
                 type="password"
+                disabled={!isHydrated || loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
@@ -262,7 +271,7 @@ function LoginContent() {
               type="submit"
               variant="primary"
               className="w-full"
-              disabled={loading || !email || !password}
+              disabled={!isHydrated || loading || !email || !password}
             >
               {loading ? (
                 <>
@@ -295,6 +304,7 @@ function LoginContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@hotel.com"
                 required
+                disabled={!isHydrated || loading}
                 autoComplete="email"
               />
             </div>
@@ -303,7 +313,7 @@ function LoginContent() {
               type="submit"
               variant="primary"
               className="w-full"
-              disabled={loading || !email}
+              disabled={!isHydrated || loading || !email}
             >
               {loading ? (
                 <>

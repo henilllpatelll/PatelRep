@@ -29,6 +29,8 @@
 - **Production RBAC findings (2026-05-10):** Sidebar filtering is not a route guard. Lower-privilege users can directly open hidden dashboard routes; backend may still 403 data calls. `/settings` is visible to every role, and `PATCH /v1/hotels/{hotel_id}` is currently guarded by `ALL_STAFF_ROLES`, so settings updates need a stricter backend role gate.
 - **Production field dashboards (2026-05-10):** Housekeeper and engineer dashboards issue forbidden reports requests (`/reports/daily-summary`, `/reports/staff-performance`, `/reports/maintenance`). `/housekeeping` also calls `/staff` for roles that cannot access staff, producing console/API 403 noise.
 - **RBAC fix pattern (2026-05-10):** Frontend route RBAC now lives in `apps/web/middleware.ts` using decoded Supabase JWT role claims after `getUser()` verification. Dashboard pages must render a loading skeleton while `useAuthStore.isLoading || !role` to avoid briefly mounting GM-only data components.
+- **Realtime audit (2026-05-11):** Only 2 files have Supabase Realtime subscriptions — both in housekeeping (RoomStatusBoard.tsx and housekeeping/page.tsx). Engineering work-orders and AI Service Recovery use refetchInterval: 30_000 polling only (no WebSocket). Migration 025 only adds room_status and room_assignments to supabase_realtime publication — work_orders is NOT in it.
+- **Supabase Realtime postgres_changes does NOT enforce RLS on payloads:** Without a filter clause, every subscriber receives the full new/old row data for ALL tenants. Always add `filter: 'tenant_id=eq.${hotelId}'` to postgres_changes subscriptions. RLS on the table (migration 016) only applies to direct DB queries, NOT to Realtime WebSocket messages.
 
 ## Do-Not-Repeat
 
@@ -55,6 +57,11 @@
 
 ## Key Learnings
 
+- **Cron secret guard (2026-05-11):** All `/v1/internal/*` cron endpoints are registered under `/v1/internal` (router prefix `/internal` + app prefix `/v1`). Auth uses `X-Cron-Secret` header. Missing or wrong header returns 401. Confirmed working in production.
+- **supabase-py 2.5.0 maybe_single() returns None (not APIResponse) when no row found:** Guard every `maybe_single().execute()` result with `if result` before accessing `.data`. Pattern: `val = (result.data if result else None) or {}`.
+- **credit_ledger → subscriptions: no PostgREST join** — These two tables both link to `tenants` via `tenant_id` but have no direct FK between them. `.select("*, subscriptions(...)")` on `credit_ledger` raises PGRST200. Always do two separate queries joined by `tenant_id` in Python.
+- **logbook_entries requires department_id NOT NULL** — Any insert to `logbook_entries` must include `department_id`. Inserts from cron jobs without a department context must fetch a department_id first or be deferred.
+- **ANTHROPIC_API_KEY in Railway production is invalid (2026-05-11)** — The shift-summary cron and any other Anthropic SDK calls will 401 until the key is rotated in Railway → api service env vars.
 - **Load test results (2026-05-10, 30 workers 30s production):** 0% 5xx — API stable under concurrency. 4xx = 19.2% (all from `/housekeeping/my-rooms` with GM token — GM has no room assignments; real housekeeper tokens return 200). p50 ~400-900ms acceptable. p95 spikes: `/my-rooms` 5.8s, `/housekeeping/board` 4.3s, `/work-orders` 4.1s, `/guest-requests` 3.1s — classic Supabase connection pool / unindexed query degradation under concurrent load. Core bottleneck is Supabase, not FastAPI.
 - **Load test lives at:** `apps/api/tests/load/load_test.py` — reads `apps/api/.env` + `apps/web/.env.local` automatically; no extra config needed. Run with `python apps/api/tests/load/load_test.py --workers 30 --duration 30`.
 

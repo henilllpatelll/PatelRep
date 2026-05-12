@@ -3,6 +3,9 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 10:29 | Created ../../.claude/.mcp.json | — | ~102 |
+| session | Deployed migration 030 + 025 SQL via db query --linked; room_status, room_assignments, work_orders now in supabase_realtime publication; all 3 realtime subscriptions have tenant_id filter; TSC clean | RoomStatusBoard.tsx, housekeeping/page.tsx, work-orders/page.tsx, 030 migration | DONE |
+| 20:00 | Realtime audit — found cross-tenant data leak (bug-014) and missing engineering WO realtime (bug-015) | RoomStatusBoard.tsx, housekeeping/page.tsx, engineering/work-orders/page.tsx | critical + medium findings | ~4000 |
+| 19:45 | Cron job testing: verified all 7 /internal/* endpoints; fixed billing PGRST200 (split queries), fixed daily-summary-email None guard + logbook insert; Anthropic key needs rotation | apps/api/routers/internal.py | 2/3 bugs fixed, 1 pending key rotation | ~8200 |
 | 00:00 | Tenant isolation test session — 25 unit tests pass; live prod API: IDOR found on GET /hotels/{id}/departments (bug-005, fixed), task comment injection (bug-006, fixed), 500 on resource ID probe (bug-007, not yet fixed) | apps/api/routers/hotels.py, tasks.py, .wolf/buglog.json | 2 security fixes applied, 1 open | ~9k |
 | session | Load test (30 workers, 30s, production API) — 0% 5xx, 406 reqs @ 12.6 RPS; p95 latency spikes: /my-rooms 5790ms, /board 4319ms, /work-orders 4108ms; all 78 /my-rooms returned 4xx (GM token has no room assignments — expected) | apps/api/tests/load/load_test.py | created load test script |
 | session | Fixed RBAC: FrontDeskDashboard now calls housekeepingApi.getBoard instead of reportsApi.getDailySummary (was 403). Created e2e/helpers/rbac-users.ts + e2e/16-rbac.spec.ts for per-role RBAC testing. PATCH /hotels and /settings already GM-only, middleware RBAC already correct | apps/web/components/dashboard/FrontDeskDashboard.tsx, e2e/helpers/rbac-users.ts, e2e/16-rbac.spec.ts | done | ~4000 |
@@ -673,3 +676,42 @@
 | 14:06 | Edited apps/api/routers/work_orders.py | 9→8 lines | ~109 |
 | 14:06 | Edited apps/api/routers/lost_found.py | 11→10 lines | ~91 |
 | 14:06 | Edited apps/api/routers/assets.py | 9→8 lines | ~103 |
+| 14:18 | Session end: 7 writes across 6 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 18 reads | ~14435 tok |
+| 14:24 | Session end: 7 writes across 6 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 18 reads | ~14435 tok |
+| 14:35 | Edited apps/api/routers/internal.py | subscriptions() → maybe_single() | ~655 |
+| 14:35 | Edited apps/api/routers/internal.py | 6→8 lines | ~124 |
+| 14:35 | Edited apps/api/routers/internal.py | 2→1 lines | ~16 |
+| 14:35 | Edited apps/api/routers/internal.py | reduced (-6 lines) | ~82 |
+| 14:40 | Session end: 11 writes across 7 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 21 reads | ~18526 tok |
+| 14:46 | Session end: 11 writes across 7 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 21 reads | ~18526 tok |
+| 14:49 | Edited apps/api/routers/internal.py | 3→3 lines | ~36 |
+| 14:49 | Edited apps/api/services/ai/shift_summary.py | 12→15 lines | ~185 |
+| 14:49 | Edited apps/api/services/ai/shift_summary.py | 3→4 lines | ~73 |
+| 14:49 | Edited apps/api/routers/internal.py | 3→3 lines | ~31 |
+| 14:49 | Edited apps/api/services/ai/shift_summary.py | 7→7 lines | ~76 |
+| 14:51 | Edited apps/api/services/ai/shift_summary.py | upsert() → insert() | ~138 |
+| 14:53 | Session end: 17 writes across 8 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 22 reads | ~20462 tok |
+| 14:59 | Session end: 17 writes across 8 files (hotels.py, tasks.py, rooms.py, work_orders.py, lost_found.py) | 22 reads | ~20462 tok |
+
+## Session: 2026-05-11 18:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:14 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~190 |
+| 19:14 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | inline fix | ~15 |
+| 19:14 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added 2 import(s) | ~127 |
+| 19:14 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added error handling | ~109 |
+| 19:14 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: filter, filter | ~196 |
+| 19:14 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added error handling | ~162 |
+| 19:14 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | CSS: filter, filter | ~251 |
+| 19:15 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added error handling | ~354 |
+| 19:15 | Created supabase/migrations/030_enable_realtime_work_orders.sql | — | ~53 |
+| 19:15 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 2→1 lines | ~13 |
+| 19:16 | Session end: 10 writes across 3 files (RoomStatusBoard.tsx, page.tsx, 030_enable_realtime_work_orders.sql) | 11 reads | ~4487 tok |
+| 19:21 | Session end: 10 writes across 3 files (RoomStatusBoard.tsx, page.tsx, 030_enable_realtime_work_orders.sql) | 11 reads | ~4487 tok |
+| 19:30 | Session end: 10 writes across 3 files (RoomStatusBoard.tsx, page.tsx, 030_enable_realtime_work_orders.sql) | 16 reads | ~19065 tok |
+
+## Session: 2026-05-12 19:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

@@ -1172,6 +1172,7 @@ export default function SchedulingPage() {
     queryFn: () => staffApi.list(),
     select: (res) => res.data.staff,
     staleTime: 5 * 60_000,
+    enabled: canManageStaff,
   })
 
   const assignmentsQuery = useQuery({
