@@ -2,6 +2,9 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| session 2026-05-12c | work-orders OR-filter fix: split into 2 indexed queries + migration 032 partial index for unclaimed WOs. p95 4184ms→2380ms (-43%). Committed + deployed. | work_orders.py, 032_work_orders_unclaimed_index.sql | DONE |
+| session 2026-05-12b | Load test (40 workers, 60s): 0% 5xx, p95 overall 4212ms→2056ms (-51%) after migration 031 (6 new compound indexes on room_assignments, guest_requests, notifications, work_orders). Committed load_test.py + LOAD_TEST_REPORT.md. Both Railway services deployed (API via --path-as-root). | supabase/migrations/031_load_perf_indexes.sql, apps/api/tests/load/ | DONE — committed + deployed |
+| session 2026-05-12 | AI endpoint full fix session: fixed room_readiness_predictions.id→room_id (bug-032), upgraded Anthropic model to claude-sonnet-4-6 (bug-033), added OPENAI_API_KEY to Railway, added graceful 503 for provider errors, fixed anthropic.AuthenticationStatusError→AuthenticationError (bug-034). GET /ai/insights and insight_query now 200. Task_creation returns clean 503 (OpenAI account has no billing quota). | ai_copilot.py, insights.py, failure_predictions.py, sop_rag.py | DONE — 4 commits deployed |
 | 10:29 | Created ../../.claude/.mcp.json | — | ~102 |
 | session | Deployed migration 030 + 025 SQL via db query --linked; room_status, room_assignments, work_orders now in supabase_realtime publication; all 3 realtime subscriptions have tenant_id filter; TSC clean | RoomStatusBoard.tsx, housekeeping/page.tsx, work-orders/page.tsx, 030 migration | DONE |
 | 20:00 | Realtime audit — found cross-tenant data leak (bug-014) and missing engineering WO realtime (bug-015) | RoomStatusBoard.tsx, housekeeping/page.tsx, engineering/work-orders/page.tsx | critical + medium findings | ~4000 |
@@ -759,3 +762,72 @@
 | 22:44 | Edited apps/api/middleware/auth.py | modified get_current_user_no_hotel() | ~135 |
 
 | 03:50 | Production log monitor session: found 3 bugs, fixed all 3 | credits.py, work_orders.py, auth.py | bug-028/029/030 logged | ~4200 |
+| 22:51 | Edited apps/api/routers/ai_copilot.py | expanded (+16 lines) | ~386 |
+| 22:53 | Session end: 8 writes across 4 files (credits.py, work_orders.py, auth.py, ai_copilot.py) | 11 reads | ~5107 tok |
+| 23:34 | Session end: 8 writes across 4 files (credits.py, work_orders.py, auth.py, ai_copilot.py) | 11 reads | ~5107 tok |
+| 23:37 | Edited apps/api/services/ai/insights.py | inline fix | ~25 |
+| 23:39 | Edited apps/api/routers/ai_copilot.py | inline fix | ~25 |
+| 23:39 | Edited apps/api/routers/ai_copilot.py | inline fix | ~15 |
+
+## Session: 2026-05-12 23:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:45 | Edited apps/api/services/ai/insights.py | 5→5 lines | ~56 |
+| 23:55 | Edited apps/api/routers/ai_copilot.py | added 2 import(s) | ~144 |
+| 23:55 | Edited apps/api/routers/ai_copilot.py | expanded (+15 lines) | ~379 |
+| 23:59 | Edited apps/api/routers/ai_copilot.py | inline fix | ~37 |
+| 00:01 | Session end: 4 writes across 2 files (insights.py, ai_copilot.py) | 7 reads | ~4332 tok |
+| 00:04 | Session end: 4 writes across 2 files (insights.py, ai_copilot.py) | 7 reads | ~4332 tok |
+
+## Session: 2026-05-12 00:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:11 | Created supabase/migrations/031_load_perf_indexes.sql | — | ~820 |
+| 00:15 | Created apps/api/tests/load/LOAD_TEST_REPORT.md | — | ~1950 |
+| 00:27 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md | modified optimization() | ~181 |
+| 00:28 | Session end: 3 writes across 3 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md) | 5 reads | ~7098 tok |
+| 00:30 | Session end: 3 writes across 3 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md) | 5 reads | ~7098 tok |
+| 00:32 | Edited apps/api/routers/work_orders.py | modified list_work_orders() | ~662 |
+| 00:33 | Created supabase/migrations/032_work_orders_unclaimed_index.sql | — | ~171 |
+| 00:36 | Session end: 5 writes across 5 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md, work_orders.py, 032_work_orders_unclaimed_index.sql) | 7 reads | ~11279 tok |
+| 00:38 | Session end: 5 writes across 5 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md, work_orders.py, 032_work_orders_unclaimed_index.sql) | 7 reads | ~11279 tok |
+| 00:43 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 3→3 lines | ~10 |
+| 00:43 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 3→3 lines | ~10 |
+| 00:43 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 11→11 lines | ~109 |
+| 00:44 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 11→11 lines | ~127 |
+| 00:44 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | inline fix | ~9 |
+| 00:46 | Session end: 10 writes across 9 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md, work_orders.py, 032_work_orders_unclaimed_index.sql) | 13 reads | ~28478 tok |
+| 00:49 | Session end: 10 writes across 9 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md, work_orders.py, 032_work_orders_unclaimed_index.sql) | 13 reads | ~28478 tok |
+| 00:53 | Created apps/api/tests/load/LOAD_TEST_REPORT.md | — | ~2506 |
+| 00:53 | Session end: 11 writes across 9 files (031_load_perf_indexes.sql, LOAD_TEST_REPORT.md, project_status.md, work_orders.py, 032_work_orders_unclaimed_index.sql) | 14 reads | ~32991 tok |
+
+## Session: 2026-05-12 00:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:59 | Edited apps/api/routers/webhooks.py | modified _ts() | ~671 |
+| 01:00 | Edited apps/api/routers/webhooks.py | expanded (+12 lines) | ~268 |
+| 01:00 | Edited apps/api/routers/webhooks.py | added 1 import(s) | ~46 |
+| 01:00 | Edited apps/api/routers/webhooks.py | modified _ts() | ~68 |
+| 01:00 | Edited apps/api/routers/webhooks.py | 4→3 lines | ~41 |
+| 01:04 | Stripe billing webhook audit + fix | apps/api/routers/webhooks.py | Added 4 missing event handlers (subscription.created, subscription.deleted, checkout.session.completed, invoice.paid); fixed subscription.updated to store sub_id + period dates; all 6 webhook event types now verified in production | ~8000 |
+| 01:04 | Stripe billing webhook audit + fix | apps/api/routers/webhooks.py | Added 4 missing event handlers (subscription.created, subscription.deleted, checkout.session.completed, invoice.paid); fixed subscription.updated to store sub_id + period dates; all 6 event types verified in production | ~8000 |
+| 01:04 | Session end: 5 writes across 1 files (webhooks.py) | 9 reads | ~7477 tok |
+| 12:26 | Full-stack production validation | API/web/Railway/e2e | API health ok; web/mobile pass; workflows mostly pass; logged bugs 042-046 | ~45000 |
+| 13:12 | Fixed reported realtime/Lost & Found/RSC/tests/Railway issues | supabase/migrations/033_realtime_room_status_and_lost_found_contact.sql, apps/web/components/shared/Sidebar.tsx, apps/api/tests/smoke/*, AGENTS.md, CLAUDE.md, apps/api/main.py, apps/web/.env.production, e2e/helpers/rbac-users.ts | Added schema/realtime hardening, disabled dashboard nav prefetch, tightened smoke auth/WO expectations, removed stale Railway URLs; API tests and web build pass | ~18000 |
+| 13:23 | Applied migration 033 to Supabase | supabase/migrations/033_realtime_room_status_and_lost_found_contact.sql | Executed SQL against linked project oacnwalhcpqdabivweki, repaired migration history for 033, verified claimed_by_contact column, Realtime publication entries, and FULL replica identity | ~7000 |
+| 13:38 | Live production cross-tenant isolation validation | production API/Supabase temporary tenants | Created two tenant-isolation test tenants, seeded rooms/tasks/WOs/guest requests/lost-found/logbook/SOP/billing data, ran 72 bidirectional API probes, verified no data or mutation leak, cleaned up all tenant/auth data | ~38000 |
+| 13:48 | Loaded OpenWolf/cerebrum/anatomy and PatelRep API/web skills; inspected root/web package scripts and Playwright config | .wolf/*, package.json, apps/web/package.json, playwright.config.ts | validation context ready; rg blocked with Access denied so using PowerShell search | ~1800 |
+| 13:50 | Ran API smoke tests and web build/type/lint checks; sampled Railway API deployments/logs | apps/api/tests, apps/web, Railway api | API tests 89 passed; web build/type passed; lint warnings only; Railway API logs show SOP delete 500 NoneType bug | ~2600 |
+| 13:59 | Ran production API workflow/isolation probes and production Playwright chromium suite | production API/web, e2e | API matrix mostly passed; Opera webhook and SOP query 500s found; tenant isolation no leak but cross-tenant mutate returns 500; Playwright 96 passed, 5 failed | ~3400 |
+| 14:17 | Completed frontend route/realtime audit, pulled Railway logs, and logged validation learnings/bugs | .wolf/cerebrum.md, .wolf/buglog.json, production web/API/Railway | Focused route audit 28/28 passed; realtime passed; logged Opera webhook, SOP AI 500, and stale Playwright harness failures | ~2600 |
+| 14:55 | Fixed production validation bugs and redeployed API | apps/api/routers/*, apps/api/services/ai/sop_rag.py, e2e/*.spec.ts, e2e/helpers/rbac-users.ts | API tests 89/89 pass; web type/build/lint and targeted Playwright suites pass; production probes pass 17/17; Railway API deployment 8b4b1da2 is healthy | ~18000 |
+| 17:56 | loaded OpenWolf, anatomy, cerebrum, buglog, PatelRep API/web, Railway, and Browser skill context | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json | ready for production validation | ~8000 |
+| 17:59 | ran local API and web production checks | apps/api/tests, apps/web | API 89 passed; web build/type-check passed; lint warnings only | ~2500 |
+| 18:25 | completed production validation matrix and logged new findings | API, web, Railway, e2e, .wolf/buglog.json, .wolf/cerebrum.md | found room-status 500, RSC console noise, realtime UI non-update; most checks passed | ~6000 |
+| 20:15 | Fixed validation bugs and redeployed API/web | apps/api/routers/rooms.py, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx, apps/web/components/dashboard/*, apps/web/components/engineering/WorkOrderDetailDrawer.tsx, apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | API room-status profile update now non-fatal, dashboard RSC console clean, housekeeping board freshness passes in production; API tests 89 passed, web lint/type/build passed, targeted Playwright 14 passed/2 skipped | ~18000 |
+| 22:25 | Full production web readiness pass and logbook hydration fix | apps/web/app/(dashboard)/logbook/page.tsx, Railway web | Initial route audit found /logbook React hydration errors on desktop/mobile; fixed client-only date initialization, redeployed web deployment fef8cde9, verified lint/type/build, 44/44 route-console audit, and full Playwright 164 passed/3 skipped | ~25000 |
+| 23:54 | Full local/API/web/mobile validation and mobile readiness fixes | apps/mobile/package.json, apps/mobile/package-lock.json, apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/lib/offline/sync.test.ts | API smoke 89/89, web lint/build/type-check, production Playwright 164 passed/3 skipped, mobile type-check/Jest pass; fixed mobile npm ERESOLVE, test mock casts, and audit vulnerabilities | ~12000 |
+| 23:58 | Root/web dependency audit follow-up | package-lock.json, .wolf/buglog.json, .wolf/cerebrum.md | Ran non-force npm audit fix and reverified web lint/build/type-check; remaining audit items require planned Next/Supabase major upgrades, not force-fix | ~3000 |

@@ -594,6 +594,7 @@ CREATE TABLE lost_found_items (
                       'unclaimed', 'claimed', 'donated', 'discarded'
                     )),
   claimed_by_name   TEXT,
+  claimed_by_contact TEXT,
   claimed_at        TIMESTAMPTZ,
   notes             TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()

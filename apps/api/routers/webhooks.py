@@ -1,6 +1,7 @@
 import hmac
 import hashlib
 import json
+from datetime import datetime, timezone as tz, date
 from fastapi import APIRouter, Request, HTTPException
 import stripe
 from core.database import supabase
@@ -56,7 +57,7 @@ async def opera_webhook(request: Request):
         .maybe_single()\
         .execute()
 
-    if not creds.data:
+    if not creds or not creds.data:
         return {"status": "ignored", "reason": "hotel not found or not connected"}
 
     hotel_id = creds.data["tenant_id"]
@@ -97,14 +98,41 @@ async def stripe_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
 
-    if event.type == "customer.subscription.updated":
+    if event.type in ("customer.subscription.created", "customer.subscription.updated"):
+        sub = event.data.object
+        hotel_id = sub.metadata.get("hotel_id")
+        if hotel_id:
+            def _ts(unix):
+                if not unix:
+                    return None
+                return datetime.fromtimestamp(unix, tz=tz.utc).isoformat()
+
+            supabase.table("subscriptions").update({
+                "plan_status": sub.status,
+                "stripe_subscription_id": sub.id,
+                "trial_end": _ts(getattr(sub, "trial_end", None)),
+                "current_period_start": _ts(getattr(sub, "current_period_start", None)),
+                "current_period_end": _ts(getattr(sub, "current_period_end", None)),
+            }).eq("tenant_id", hotel_id).execute()
+
+    elif event.type == "customer.subscription.deleted":
         sub = event.data.object
         hotel_id = sub.metadata.get("hotel_id")
         if hotel_id:
             supabase.table("subscriptions")\
-                .update({"plan_status": sub.status})\
+                .update({"plan_status": "cancelled"})\
                 .eq("tenant_id", hotel_id)\
                 .execute()
+
+    elif event.type == "checkout.session.completed":
+        session = event.data.object
+        hotel_id = (session.metadata or {}).get("hotel_id")
+        stripe_sub_id = getattr(session, "subscription", None)
+        if hotel_id and stripe_sub_id:
+            supabase.table("subscriptions").update({
+                "plan_status": "active",
+                "stripe_subscription_id": stripe_sub_id,
+            }).eq("tenant_id", hotel_id).execute()
 
     elif event.type == "invoice.payment_failed":
         sub_id = event.data.object.subscription
@@ -113,5 +141,26 @@ async def stripe_webhook(request: Request):
                 .update({"plan_status": "past_due"})\
                 .eq("stripe_subscription_id", sub_id)\
                 .execute()
+
+    elif event.type == "invoice.paid":
+        inv = event.data.object
+        sub_id = getattr(inv, "subscription", None)
+        stripe_invoice_id = inv.id
+        if sub_id and stripe_invoice_id:
+            # Resolve tenant from subscription
+            sub_row = supabase.table("subscriptions")\
+                .select("tenant_id")\
+                .eq("stripe_subscription_id", sub_id)\
+                .maybe_single()\
+                .execute()
+            if sub_row and sub_row.data:
+                tenant_id = sub_row.data["tenant_id"]
+                today = date.today().isoformat()
+                supabase.table("credit_ledger")\
+                    .update({"stripe_invoice_id": stripe_invoice_id})\
+                    .eq("tenant_id", tenant_id)\
+                    .lte("period_start", today)\
+                    .gte("period_end", today)\
+                    .execute()
 
     return {"status": "ok"}

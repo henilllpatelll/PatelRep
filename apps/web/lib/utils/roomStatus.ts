@@ -38,14 +38,14 @@ export const STATUS_COLORS: Record<
     badge: 'bg-blue-100 text-blue-700',
   },
   CLEAN: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-400',
-    badge: 'bg-amber-100 text-amber-700',
-  },
-  INSPECTED: {
     bg: 'bg-green-50',
     border: 'border-green-400',
     badge: 'bg-green-100 text-green-700',
+  },
+  INSPECTED: {
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-400',
+    badge: 'bg-emerald-100 text-emerald-800',
   },
   OOO: {
     bg: 'bg-gray-100',
@@ -60,8 +60,8 @@ export const STATUS_COLORS: Record<
 }
 
 export const STATUS_BG: Record<string, string> = {
-  INSPECTED:     '#4ADE80',
-  CLEAN:         '#FCD34D',
+  INSPECTED:     '#10B981',
+  CLEAN:         '#22C55E',
   IN_PROGRESS:   '#7DD3FC',
   PICK_UP:       '#DDD6FE',
   PICKUP:        '#DDD6FE',   // API value alias
@@ -74,8 +74,8 @@ export const STATUS_BG: Record<string, string> = {
 }
 
 export const STATUS_TEXT: Record<string, string> = {
-  INSPECTED:     '#064E3B',
-  CLEAN:         '#134E4A',
+  INSPECTED:     '#FFFFFF',
+  CLEAN:         '#FFFFFF',
   IN_PROGRESS:   '#0C4A6E',
   PICK_UP:       '#5B21B6',
   PICKUP:        '#5B21B6',   // API value alias

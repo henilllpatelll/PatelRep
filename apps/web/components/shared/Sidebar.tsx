@@ -213,6 +213,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           )}
           <Link
             href={href}
+            prefetch={false}
             onClick={onMobileClose}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',
@@ -247,6 +248,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 <Link
                   key={subHref}
                   href={subHref}
+                  prefetch={false}
                   onClick={onMobileClose}
                   className={cn(
                     'block px-2.5 py-2 text-sm rounded-lg transition-colors duration-200',
@@ -280,6 +282,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           )}
           <Link
             href={href}
+            prefetch={false}
             onClick={onMobileClose}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',

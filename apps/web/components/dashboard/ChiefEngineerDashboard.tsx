@@ -95,27 +95,27 @@ export function ChiefEngineerDashboard() {
 
       {/* Fleet health strip */}
       <div className="grid grid-cols-4 gap-3">
-        <Card className={`p-3 text-center${urgentWOs.length > 0 ? ' border-red-200 bg-red-50' : ''}`}>
-          <p className={`text-2xl font-bold ${urgentWOs.length > 0 ? 'text-red-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${urgentWOs.length > 0 ? 'bg-red-50/50 border-red-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${urgentWOs.length > 0 ? 'text-red-600' : 'text-stone-900'}`}>
             {urgentWOs.length}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Urgent WOs</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${urgentWOs.length > 0 ? 'text-red-500' : 'text-stone-500'}`}>Urgent WOs</p>
         </Card>
-        <Card className="p-3 text-center">
-          <p className="text-2xl font-bold text-stone-900">{openWOs.length}</p>
-          <p className="text-xs text-stone-400 mt-0.5">Open WOs</p>
+        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-stone-900">{openWOs.length}</p>
+          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Open WOs</p>
         </Card>
-        <Card className={`p-3 text-center${unassignedWOs.length > 0 ? ' border-amber-200 bg-amber-50' : ''}`}>
-          <p className={`text-2xl font-bold ${unassignedWOs.length > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${unassignedWOs.length > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${unassignedWOs.length > 0 ? 'text-amber-700' : 'text-stone-900'}`}>
             {unassignedWOs.length}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Unassigned</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${unassignedWOs.length > 0 ? 'text-amber-600' : 'text-stone-500'}`}>Unassigned</p>
         </Card>
-        <Card className={`p-3 text-center${highRiskAssets.length > 0 ? ' border-orange-200 bg-orange-50' : ''}`}>
-          <p className={`text-2xl font-bold ${highRiskAssets.length > 0 ? 'text-orange-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${highRiskAssets.length > 0 ? 'bg-orange-50/50 border-orange-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${highRiskAssets.length > 0 ? 'text-orange-600' : 'text-stone-900'}`}>
             {highRiskAssets.length}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">At-Risk Assets</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${highRiskAssets.length > 0 ? 'text-orange-600' : 'text-stone-500'}`}>At-Risk</p>
         </Card>
       </div>
 
@@ -127,7 +127,7 @@ export function ChiefEngineerDashboard() {
               <Wrench className="w-4 h-4 text-amber-500" />
               Work Order Queue
             </h2>
-            <Link href="/engineering" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/engineering" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               Manage <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -169,7 +169,7 @@ export function ChiefEngineerDashboard() {
               <Calendar className="w-4 h-4 text-amber-500" />
               PM Due in 7 Days
             </h2>
-            <Link href="/engineering/pm-schedules" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/engineering/pm-schedules" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               All PM <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -188,15 +188,18 @@ export function ChiefEngineerDashboard() {
                 const dueDate = new Date(pm.next_due_at)
                 const isOverdue = dueDate < now
                 return (
-                  <div key={pm.id} className="flex items-start gap-2 py-1.5 border-b border-stone-100 last:border-0">
+                  <Link key={pm.id} href="/engineering/pm-schedules" className="flex items-start gap-3 py-2 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isOverdue ? 'bg-red-50 group-hover:bg-red-100' : 'bg-stone-100 group-hover:bg-amber-100'}`}>
+                      <Calendar className={`w-4 h-4 transition-colors ${isOverdue ? 'text-red-500' : 'text-stone-500 group-hover:text-amber-600'}`} />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-stone-800 truncate">{pm.name}</p>
-                      <p className="text-xs text-stone-400">{pm.assets?.name ?? '—'}</p>
+                      <p className="text-sm font-semibold text-stone-800 truncate group-hover:text-amber-700 transition-colors">{pm.name}</p>
+                      <p className="text-xs font-medium text-stone-500">{pm.assets?.name ?? '—'}</p>
                     </div>
                     <Badge variant={isOverdue ? 'high' : 'medium'}>
                       {isOverdue ? 'Overdue' : format(dueDate, 'MMM d')}
                     </Badge>
-                  </div>
+                  </Link>
                 )
               })}
               {pmDueSoon.length > 5 && (
@@ -220,7 +223,7 @@ export function ChiefEngineerDashboard() {
                 </span>
               )}
             </h2>
-            <Link href="/engineering/predictions" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/engineering/predictions" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               All predictions <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -231,13 +234,18 @@ export function ChiefEngineerDashboard() {
           ) : (
             <div className="space-y-2">
               {highRiskAssets.slice(0, 4).map(p => (
-                <div key={p.id} className="flex items-center justify-between bg-white/60 rounded-xl px-3 py-2.5 border border-orange-100">
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">{p.assets?.name ?? 'Unknown Asset'}</p>
-                    <p className="text-xs text-stone-500">{p.assets?.asset_categories?.name} · {p.risk_score}% failure risk</p>
+                <Link key={p.id} href="/engineering/predictions" className="flex items-center justify-between bg-white rounded-xl px-3 py-3 border border-orange-100 hover:border-orange-300 hover:shadow-sm transition-all group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 group-hover:bg-orange-100 transition-colors">
+                      <Zap className="w-4 h-4 text-orange-500 group-hover:text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-stone-900 group-hover:text-orange-700 transition-colors">{p.assets?.name ?? 'Unknown Asset'}</p>
+                      <p className="text-xs font-medium text-stone-500">{p.assets?.asset_categories?.name}</p>
+                    </div>
                   </div>
-                  <Badge variant="high">{p.risk_score}%</Badge>
-                </div>
+                  <Badge variant="high" className="shrink-0">{p.risk_score}% Risk</Badge>
+                </Link>
               ))}
               {highRiskAssets.length > 4 && (
                 <p className="text-xs text-stone-400 pt-1">+{highRiskAssets.length - 4} more assets</p>

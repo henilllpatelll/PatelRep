@@ -29,12 +29,42 @@ export interface RbacTestUser {
   userId?: string
 }
 
-const API_URL =
+function loadEnvFile(filePath: string) {
+  try {
+    const fs = require('fs')
+    if (!fs.existsSync(filePath)) return
+    for (const raw of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      const line = raw.trim()
+      if (!line || line.startsWith('#')) continue
+      const idx = line.indexOf('=')
+      if (idx < 0) continue
+      const key = line.slice(0, idx).trim()
+      if (process.env[key]) continue
+      let value = line.slice(idx + 1).trim()
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1)
+      }
+      process.env[key] = value
+    }
+  } catch {
+    // Tests can still rely on process.env when local env files are unavailable.
+  }
+}
+
+loadEnvFile('apps/web/.env.production')
+loadEnvFile('apps/web/.env.local')
+loadEnvFile('apps/api/.env')
+
+const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.API_URL ||
-  'https://api-production-a914.up.railway.app'
+  'https://api-production-130b.up.railway.app'
+).replace(/\/+$/, '').replace(/\/v1$/, '')
 
-const TEST_PASSWORD = 'RbacTest2026!'
+export const TEST_PASSWORD = 'RbacTest2026!'
 
 const ROLE_DEFINITIONS: Omit<RbacTestUser, 'userId'>[] = [
   { role: 'housekeeping_supervisor', email: 'test-hk-supervisor@patelrep-test.com', password: TEST_PASSWORD },

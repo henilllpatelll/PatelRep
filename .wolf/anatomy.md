@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T00:15:22.227Z
-> Files: 556 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T06:00:25.029Z
+> Files: 569 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
+
+- `project_status.md` — Declares in (~924 tok)
 
 ## ./
 
@@ -12,6 +16,7 @@
 - `package-lock.json` — npm lock file (~84759 tok)
 - `package.json` — Node.js package manifest (~196 tok)
 - `playwright.config.ts` — Playwright test configuration (~300 tok)
+- `playwright.mobile.config.ts` — Declares BASE_URL (~234 tok)
 - `railway.toml` (~63 tok)
 - `README.md` — Project documentation (~330 tok)
 
@@ -910,8 +915,14 @@
 ## Docker Context Additions
 
 
+## apps/api/middleware/
+
+- `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~1173 tok)
+- `credits.py` — check_and_deduct_credits, log_ai_interaction (~1065 tok)
+
 ## apps/api/routers/
 
+- `ai_copilot.py` — API: 4 endpoints (~3917 tok)
 - `assets.py` — API: 12 endpoints (~4333 tok)
 - `hotels.py` — API: 5 endpoints (~2089 tok)
 - `housekeeping.py` — API: 5 endpoints (~7713 tok)
@@ -919,15 +930,18 @@
 - `lost_found.py` — API: 5 endpoints (~1143 tok)
 - `rooms.py` — API: 6 endpoints (~4430 tok)
 - `tasks.py` — API: 7 endpoints (~2244 tok)
-- `work_orders.py` — API: 8 endpoints (~2428 tok)
+- `webhooks.py` — API: 2 endpoints (~1774 tok)
+- `work_orders.py` — API: 8 endpoints (~2889 tok)
 
 ## apps/api/services/ai/
 
+- `insights.py` — generate_gm_insights (~1388 tok)
 - `shift_summary.py` — generate_shift_summary (~1408 tok)
 
 ## apps/api/tests/load/
 
 - `__init__.py` (~0 tok)
+- `LOAD_TEST_REPORT.md` — PatelRep Load Test Report (~2349 tok)
 - `load_test.py` — class: get_auth_token, worker, print_report, main (~3936 tok)
 
 ## apps/api/tests/smoke/
@@ -969,7 +983,7 @@
 
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~7345 tok)
+- `page.tsx` — dynamic — renders table (~7355 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
@@ -977,7 +991,7 @@
 
 ## apps/web/app/(dashboard)/settings/
 
-- `page.tsx` — hotelProfileSchema (~13062 tok)
+- `page.tsx` — hotelProfileSchema (~13078 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
@@ -989,10 +1003,11 @@
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~10908 tok)
+- `page.tsx` — STATUS_TABS — renders form (~10922 tok)
 
 ## apps/web/components/dashboard/
 
+- `AIRiskAlertsPanel.tsx` — AIRiskAlertsPanel (~1658 tok)
 - `EngineerDashboard.tsx` — PRIORITY_VARIANT (~2098 tok)
 - `FrontDeskDashboard.tsx` — getHotelIdFromSession (~2526 tok)
 - `HousekeeperDashboard.tsx` — STATUS_MAP (~2155 tok)
@@ -1006,12 +1021,16 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4256 tok)
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4330 tok)
 
 ## apps/web/components/shared/
 
 - `KebabMenu.tsx` — KebabMenu (~631 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3595 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3614 tok)
+
+## apps/web/components/ui/
+
+- `Button.tsx` — VARIANTS (~420 tok)
 
 ## apps/web/lib/api/
 
@@ -1021,9 +1040,14 @@
 
 - `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1000 tok)
 
+## apps/mobile/
+
+- `package-lock.json` — npm lock file for Expo mobile dependencies, including patched transitive overrides (~260000 tok)
+
 ## e2e/
 
 - `16-rbac.spec.ts` — RBAC smoke tests — verifies that Next.js middleware correctly blocks (~1809 tok)
+- `mobile-usability.spec.ts` — Mobile Usability Testing — PatelRep Production (~3607 tok)
 
 ## e2e/helpers/
 
@@ -1032,3 +1056,7 @@
 ## supabase/migrations/
 
 - `030_enable_realtime_work_orders.sql` — Enable Supabase Realtime for engineering work orders. (~53 tok)
+- `031_load_perf_indexes.sql` — ============================================================================= (~820 tok)
+- `032_work_orders_unclaimed_index.sql` — ============================================================================= (~171 tok)
+
+- `033_realtime_room_status_and_lost_found_contact.sql` - Idempotently hardens Realtime publication/replica identity for room boards and adds lost_found_items.claimed_by_contact. (~243 tok)

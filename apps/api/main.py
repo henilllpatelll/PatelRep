@@ -52,7 +52,7 @@ app.add_middleware(
     allow_origins=[
         settings.app_url,
         "https://app.patelrep.com",
-        "https://patelrepweb-production-869a.up.railway.app",
+        "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
     ],
     allow_origin_regex=r"http://localhost:\d+",
@@ -128,7 +128,7 @@ def _cors_headers_for(request: Request) -> dict[str, str]:
     origin = request.headers.get("origin", "")
     allowed = [
         settings.app_url,
-        "https://patelrepweb-production-869a.up.railway.app",
+        "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
     ]
     if origin in allowed or re.match(r"http://localhost:\d+$", origin):

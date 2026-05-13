@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -158,7 +158,7 @@ function HousekeeperBar() {
       ) : housekeepers.length === 0 ? (
         <p className="text-xs text-gray-400">
           No housekeeper staff found.{' '}
-          <Link href="/staff" className="text-amber-600 underline">Add staff</Link>
+          <Link href="/staff" prefetch={false} className="text-amber-600 underline">Add staff</Link>
         </p>
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
@@ -309,14 +309,14 @@ function HousekeeperMyRoomsView() {
   const hotelId = getHotelIdFromToken(session?.access_token)
   const today = format(new Date(), 'yyyy-MM-dd')
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
 
   const { data: boardData, isLoading } = useQuery({
     queryKey: ['housekeeping-board', today],
     queryFn: () => housekeepingApi.getBoard(today, undefined, false),
-    refetchInterval: 60_000,
+    refetchInterval: 10_000,
   })
 
   const allRooms: any[] = (boardData as any)?.data ?? []
@@ -329,8 +329,28 @@ function HousekeeperMyRoomsView() {
       return (priority[a.status] ?? 5) - (priority[b.status] ?? 5)
     })
 
+  const applyRoomStatusPayload = useCallback((payload: any) => {
+    const row = payload?.new
+    if (!row?.room_id) return
+
+    const mergeRoom = (room: any) =>
+      room.room_id === row.room_id ? { ...room, ...row } : room
+
+    queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
+      if (!old?.data) return old
+      return { ...old, data: (old.data as any[]).map(mergeRoom) }
+    })
+
+    setSelectedRoom((current: any | null) =>
+      current?.room_id === row.room_id ? mergeRoom(current) : current,
+    )
+  }, [queryClient, today])
+
   useEffect(() => {
     if (!hotelId) return
+    if (session?.access_token) {
+      supabase.realtime.setAuth(session.access_token)
+    }
 
     const invalidate = () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
@@ -341,14 +361,17 @@ function HousekeeperMyRoomsView() {
 
     const channel = supabase
       .channel('hk_my_rooms_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, (payload) => {
+        applyRoomStatusPayload(payload)
+        invalidate()
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments', filter: `tenant_id=eq.${hotelId}` }, invalidate)
       .subscribe()
     return () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-  }, [today, hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyRoomStatusPayload, hotelId, queryClient, session?.access_token, supabase, today])
 
   async function handleAction(roomId: string, status: string) {
     // Optimistic update — reflect new status immediately without waiting for refetch
@@ -485,7 +508,7 @@ function SupervisorHousekeepingPage() {
       }
     }
     fetchPredictions()
-  }, [selectedDate])
+  }, [selectedDate, setLastSyncedAt])
 
   const navigate = (delta: number) => {
     const current = parseISO(selectedDate)
@@ -565,6 +588,7 @@ function SupervisorHousekeepingPage() {
 
               <Link
                 href="/onboarding?step=2"
+                prefetch={false}
                 className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
               >
                 + Rooms

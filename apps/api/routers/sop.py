@@ -1,4 +1,6 @@
 import logging
+import openai
+import anthropic
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import SOPQueryRequest
@@ -121,7 +123,7 @@ async def get_sop_document(
         .execute()
     )
 
-    if not result.data:
+    if not result or not result.data:
         raise HTTPException(status_code=404, detail="SOP document not found.")
 
     return {"data": result.data}
@@ -148,7 +150,7 @@ async def delete_sop_document(
         .execute()
     )
 
-    if not fetch_result.data:
+    if not fetch_result or not fetch_result.data:
         raise HTTPException(status_code=404, detail="SOP document not found.")
 
     storage_path: str = fetch_result.data.get("storage_path", "")
@@ -177,9 +179,17 @@ async def query_sop_endpoint(
     request: SOPQueryRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    result = query_sop(
-        query=request.query,
-        hotel_id=current_user.hotel_id,
-        user_id=current_user.user_id,
-    )
+    try:
+        result = query_sop(
+            query=request.query,
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+        )
+    except (
+        openai.RateLimitError,
+        openai.AuthenticationError,
+        anthropic.RateLimitError,
+        anthropic.AuthenticationError,
+    ):
+        raise HTTPException(status_code=503, detail="AI service temporarily unavailable. Please try again later.")
     return {"data": result}

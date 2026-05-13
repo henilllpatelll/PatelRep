@@ -161,7 +161,7 @@ async def delete_guest_request(
         .maybe_single() \
         .execute()
 
-    if not gr.data:
+    if not gr or not gr.data:
         raise HTTPException(status_code=404, detail="Guest request not found")
 
     task_id = gr.data.get("task_id")

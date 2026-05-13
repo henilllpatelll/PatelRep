@@ -98,7 +98,7 @@ async def update_logbook_entry(
         .maybe_single()\
         .execute()
 
-    if not row.data:
+    if not row or not row.data:
         raise HTTPException(status_code=404, detail="Entry not found")
 
     is_author = row.data["author_id"] == current_user.user_id
@@ -116,12 +116,24 @@ async def update_logbook_entry(
         raise HTTPException(status_code=422, detail="No fields to update")
 
     try:
-        result = supabase.table("logbook_entries").update(updates).eq("id", entry_id).execute()
+        result = (
+            supabase.table("logbook_entries")
+            .update(updates)
+            .eq("id", entry_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .execute()
+        )
     except Exception:
         updates.pop("expires_at", None)
         if not updates:
             raise HTTPException(status_code=422, detail="No fields to update (expires_at column not yet migrated)")
-        result = supabase.table("logbook_entries").update(updates).eq("id", entry_id).execute()
+        result = (
+            supabase.table("logbook_entries")
+            .update(updates)
+            .eq("id", entry_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .execute()
+        )
 
     return {"data": result.data[0] if result.data else None}
 
@@ -138,7 +150,7 @@ async def delete_logbook_entry(
         .maybe_single()\
         .execute()
 
-    if not row.data:
+    if not row or not row.data:
         raise HTTPException(status_code=404, detail="Entry not found")
 
     is_author = row.data["author_id"] == current_user.user_id
@@ -146,7 +158,11 @@ async def delete_logbook_entry(
     if not (is_author or is_privileged):
         raise HTTPException(status_code=403, detail="Not allowed to delete this entry")
 
-    supabase.table("logbook_entries").delete().eq("id", entry_id).execute()
+    supabase.table("logbook_entries")\
+        .delete()\
+        .eq("id", entry_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
     return None
 
 
@@ -162,8 +178,8 @@ async def get_shift_summary(
         .maybe_single()\
         .execute()
 
-    if not result.data:
-        return {"data": {"message": "No summary available. Generate one using POST /logbook/shift-summary/generate"}}
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Shift summary not found")
 
     return {"data": result.data}
 

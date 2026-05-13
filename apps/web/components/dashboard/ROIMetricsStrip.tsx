@@ -22,20 +22,22 @@ interface MetricCardProps {
 function MetricCard({ label, value, prefix, suffix, trend, icon: Icon, danger }: MetricCardProps) {
   const animated = useCountUp(value)
   return (
-    <Card className={`p-4 flex items-start gap-3${danger ? ' border-red-200 bg-red-50' : ''}`}>
-      <div className="bg-amber-50 rounded-xl p-2.5 shrink-0">
-        <Icon className="w-4 h-4 text-amber-600" />
+    <Card className={`p-3 flex items-center gap-3${danger ? ' border-red-200 bg-red-50' : ''}`}>
+      <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+        <Icon className="w-5 h-5 text-amber-600" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-stone-400 font-medium">{label}</p>
-        <p className="text-2xl font-bold text-stone-900 font-mono mt-0.5">
-          {prefix}{animated}{suffix}
-        </p>
-        {trend !== undefined && (
-          <Badge variant={trend >= 0 ? 'low' : 'high'} className="mt-1">
-            {trend >= 0 ? '+' : ''}{trend}%
-          </Badge>
-        )}
+      <div className="flex-1 min-w-0 flex justify-between items-center">
+        <p className="text-sm text-stone-500 font-medium">{label}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xl font-bold text-stone-900 font-mono">
+            {prefix}{animated}{suffix}
+          </p>
+          {trend !== undefined && (
+            <Badge variant={trend >= 0 ? 'low' : 'high'}>
+              {trend >= 0 ? '+' : ''}{trend}%
+            </Badge>
+          )}
+        </div>
       </div>
     </Card>
   )

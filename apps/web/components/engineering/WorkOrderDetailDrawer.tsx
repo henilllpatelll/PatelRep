@@ -8,7 +8,7 @@ import {
   MapPin,
   Wrench,
   MessageSquare,
-  Image,
+  Image as ImageIcon,
   Loader2,
   CheckCircle,
   AlertTriangle,
@@ -244,7 +244,15 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
       priority: wo?.priority ?? 'normal',
       notes: wo?.notes ?? '',
     })
-  }, [wo?.id, startInEditMode])
+  }, [
+    startInEditMode,
+    wo?.category,
+    wo?.description,
+    wo?.id,
+    wo?.notes,
+    wo?.priority,
+    wo?.title,
+  ])
 
   if (!isOpen || !wo) return null
 
@@ -711,7 +719,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             <div className="p-5">
               <SectionHeading>Photos</SectionHeading>
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Image className="w-4 h-4 text-gray-400" />
+                <ImageIcon className="w-4 h-4 text-gray-400" />
                 <span>{photos.length} photo{photos.length !== 1 ? 's' : ''} attached</span>
                 <span className="text-xs text-gray-400">
                   ({photos.filter((p) => p.photo_type === 'before').length} before,{' '}

@@ -9,8 +9,8 @@ type BadgeVariant =
 const BADGE_VARIANTS: Record<BadgeVariant, string> = {
   dirty:          'bg-red-50 text-red-800 border-red-200',
   in_progress:    'bg-blue-50 text-blue-800 border-blue-200',
-  clean:          'bg-amber-50 text-amber-800 border-amber-300',
-  inspected:      'bg-green-50 text-green-800 border-green-200',
+  clean:          'bg-green-50 text-green-700 border-green-200',
+  inspected:      'bg-emerald-100 text-emerald-800 border-emerald-300',
   do_not_disturb: 'bg-stone-100 text-stone-600 border-stone-200',
   out_of_order:   'bg-stone-200 text-stone-700 border-stone-300',
   high:           'bg-red-100 text-red-700 border-red-200',

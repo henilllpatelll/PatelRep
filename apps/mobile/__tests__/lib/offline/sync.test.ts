@@ -16,7 +16,7 @@ jest.mock("@react-native-community/netinfo", () => ({
 import { api } from "@/lib/api/client";
 import { getPendingSyncQueue, deleteSyncQueueItem, upsertRooms } from "@/lib/offline/db";
 
-const mockApi = api as {
+const mockApi = api as unknown as {
   get: jest.Mock;
   patch: jest.Mock;
   post: jest.Mock;

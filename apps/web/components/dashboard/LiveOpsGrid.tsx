@@ -5,6 +5,7 @@ import { reportsApi } from '@/lib/api/reports'
 import { hotelsApi } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import Link from 'next/link'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
   if (!accessToken) return ''
@@ -97,10 +98,10 @@ export function LiveOpsGrid() {
             if (count === 0 && !['DIRTY', 'CLEAN', 'INSPECTED'].includes(status)) return null
             const cfg = STATUS_CONFIG[status]
             return (
-              <div key={status} className="flex justify-between items-center hover:bg-amber-50/50 rounded-lg px-1 -mx-1 py-0.5">
-                <span className="text-stone-500">{cfg.label}</span>
+              <Link href={`/housekeeping?status=${status}`} key={status} className="flex justify-between items-center hover:bg-amber-50 rounded-lg px-2 -mx-2 py-1.5 transition-colors group cursor-pointer">
+                <span className="text-stone-500 group-hover:text-amber-700 transition-colors">{cfg.label}</span>
                 <Badge variant={cfg.variant}>{count}</Badge>
-              </div>
+              </Link>
             )
           })}
           {Object.keys(breakdown).length === 0 && (
@@ -152,7 +153,11 @@ export function LiveOpsGrid() {
       <Card>
         <h3 className="text-sm font-semibold text-stone-700 mb-3">Today's Arrivals</h3>
         <p className="text-3xl font-bold text-stone-900">—</p>
-        <p className="text-xs text-stone-400 mt-1">Opera integration needed</p>
+        <div className="mt-2">
+          <Link href="/settings" className="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
+            Connect PMS for live arrivals &rarr;
+          </Link>
+        </div>
       </Card>
     </div>
   )

@@ -149,7 +149,7 @@ async def claim_work_order(
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()
-    if not wo_check.data:
+    if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     if wo_check.data["status"] != "open":
         raise HTTPException(status_code=409, detail="Work order is no longer open")
@@ -181,7 +181,7 @@ async def complete_work_order(
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()
-    if not wo_check.data:
+    if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
 
     result = supabase.table("work_orders")\
@@ -239,7 +239,7 @@ async def delete_work_order(
         .eq("tenant_id", current_user.hotel_id) \
         .maybe_single() \
         .execute()
-    if not wo_check.data:
+    if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
 
     supabase.table("work_order_comments") \
@@ -266,7 +266,7 @@ async def add_comment(
     wo_check = supabase.table("work_orders").select("id")\
         .eq("id", wo_id).eq("tenant_id", current_user.hotel_id)\
         .maybe_single().execute()
-    if not wo_check.data:
+    if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
 
     result = supabase.table("work_order_comments").insert({

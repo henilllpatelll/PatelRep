@@ -430,6 +430,9 @@ async def update_staff(
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
 
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
     return {"data": result.data[0] if result.data else None}
 
 
@@ -442,10 +445,13 @@ async def deactivate_staff(
     if staff_id == current_user.user_id:
         raise HTTPException(status_code=400, detail="Cannot deactivate your own account")
 
-    supabase.table("user_roles")\
+    result = supabase.table("user_roles")\
         .update({"is_active": False})\
         .eq("user_id", staff_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Staff member not found")
 
     return {"data": {"success": True, "deactivated_user_id": staff_id}}

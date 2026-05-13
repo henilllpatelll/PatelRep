@@ -13,8 +13,8 @@ import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 const STATUS_CARD_STYLES: Record<string, string> = {
   DIRTY:          'bg-red-50 border-2 border-red-200',
   IN_PROGRESS:    'bg-blue-50 border-2 border-blue-200',
-  CLEAN:          'bg-amber-50 border-2 border-amber-300',
-  INSPECTED:      'bg-green-50 border-2 border-green-200',
+  CLEAN:          'bg-green-50 border-2 border-green-200',
+  INSPECTED:      'bg-emerald-50 border-2 border-emerald-300',
   DO_NOT_DISTURB: 'bg-stone-100 border-2 border-stone-200 opacity-75',
   OUT_OF_ORDER:   'bg-stone-200 border-2 border-stone-300',
   VACANT:         'bg-white border-2 border-stone-100',
@@ -234,7 +234,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
               onClick={(e) => handleStatusChange('CLEAN', e)}
             >
               Done Cleaning
@@ -242,7 +242,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'CLEAN' && canSupervise && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Inspect

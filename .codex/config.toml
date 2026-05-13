@@ -1,0 +1,7 @@
+[mcp_servers.Railway]
+args = [
+    "/c",
+    "npx",
+    "@railway/mcp-server",
+]
+command = "cmd"

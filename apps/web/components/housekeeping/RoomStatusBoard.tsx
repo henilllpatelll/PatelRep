@@ -47,17 +47,17 @@ const STATUS_CHIPS: StatusChip[] = [
   },
   {
     key: 'CLEAN',
-    label: 'Inspect',
-    activeBg: 'bg-amber-500',
-    activeText: 'text-white',
-    inactiveBg: 'bg-amber-50 text-amber-700 hover:bg-amber-100',
-  },
-  {
-    key: 'INSPECTED',
-    label: 'Clean',
+    label: 'To Inspect',
     activeBg: 'bg-green-600',
     activeText: 'text-white',
     inactiveBg: 'bg-green-50 text-green-700 hover:bg-green-100',
+  },
+  {
+    key: 'INSPECTED',
+    label: 'Ready',
+    activeBg: 'bg-emerald-600',
+    activeText: 'text-white',
+    inactiveBg: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
   },
   {
     key: 'OOO',
@@ -166,7 +166,7 @@ function getHotelIdFromToken(token: string | undefined): string {
 
 export function RoomStatusBoard() {
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
 
@@ -217,6 +217,28 @@ export function RoomStatusBoard() {
 
   // Debounce ref for realtime invalidation
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const applyRoomStatusPayload = useCallback((payload: any) => {
+    const row = payload?.new
+    if (!row?.room_id) return
+
+    const mergeRoom = (room: any) =>
+      room.room_id === row.room_id
+        ? {
+            ...room,
+            ...row,
+            rooms: room.rooms,
+            prediction: room.prediction,
+          }
+        : room
+
+    setRooms(useHousekeepingStore.getState().rooms.map(mergeRoom))
+    queryClient.setQueryData(
+      ['housekeeping-board', selectedDate, selectedShift],
+      (old: any) => old?.data ? { ...old, data: old.data.map(mergeRoom) } : old,
+    )
+    setSelectedRoom((prev: any) => prev?.room_id === row.room_id ? mergeRoom(prev) : prev)
+    setLastSyncedAt(new Date())
+  }, [queryClient, selectedDate, selectedShift, setLastSyncedAt, setRooms])
 
   // ── React Query fetch ─────────────────────────────────────────────────────
   const { isLoading, isError, data: boardData } = useQuery({
@@ -226,6 +248,7 @@ export function RoomStatusBoard() {
       selectedShift ?? undefined,
       true,
     ),
+    refetchInterval: 10_000,
   })
 
   useEffect(() => {
@@ -243,7 +266,7 @@ export function RoomStatusBoard() {
       if (!prev) return prev
       return rooms.find((r: any) => r.room_id === prev.room_id) ?? prev
     })
-  }, [boardData])
+  }, [boardData, setLastSyncedAt, setPredictions, setRooms])
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
   // Listens to both room_status (status changes) and room_assignments (new
@@ -262,10 +285,16 @@ export function RoomStatusBoard() {
     }
 
     if (!hotelId) return
+    if (session?.access_token) {
+      supabase.realtime.setAuth(session.access_token)
+    }
 
     const channel = supabase
       .channel('room_status_board_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, invalidateBoard)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_status', filter: `tenant_id=eq.${hotelId}` }, (payload) => {
+        applyRoomStatusPayload(payload)
+        invalidateBoard()
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_assignments', filter: `tenant_id=eq.${hotelId}` }, invalidateBoard)
       .subscribe()
 
@@ -274,7 +303,7 @@ export function RoomStatusBoard() {
       supabase.removeChannel(channel)
     }
     // Re-subscribe when date/shift/tenant change
-  }, [selectedDate, selectedShift, hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyRoomStatusPayload, hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
   // ── Status change handler ─────────────────────────────────────────────────
   const handleStatusChange = async (roomId: string, status: string) => {

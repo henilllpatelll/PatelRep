@@ -476,17 +476,18 @@ async def test_work_orders_complete_hotel_b_raises_404(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_work_orders_update_hotel_b_is_noop(monkeypatch):
+async def test_work_orders_update_hotel_b_raises_404(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(wo_router, "supabase", db)
 
-    result = await wo_router.update_work_order(
-        "wo-b-1",
-        UpdateWorkOrderRequest(priority="urgent"),
-        current_user=USER_A,
-    )
+    with pytest.raises(HTTPException) as exc:
+        await wo_router.update_work_order(
+            "wo-b-1",
+            UpdateWorkOrderRequest(priority="urgent"),
+            current_user=USER_A,
+        )
 
-    assert result["data"] is None
+    assert exc.value.status_code == 404
     assert db.b_row("work_orders", "wo-b-1")["priority"] == "normal"
 
 
@@ -682,11 +683,11 @@ async def test_hotel_b_data_untouched_after_hotel_a_probes(monkeypatch):
     with pytest.raises(HTTPException):
         await lf_router.get_lost_found_item("lf-b-1", current_user=USER_A)
 
-    # Hardened 404s (claim and complete now pre-check tenant ownership)
+    # Hardened 404s (claim, complete, and update now pre-check tenant ownership)
     with pytest.raises(HTTPException):
         await wo_router.claim_work_order("wo-b-1", current_user=USER_A)
-    # update_work_order has no 404 guard but the UPDATE matches nothing cross-tenant
-    await wo_router.update_work_order("wo-b-1", UpdateWorkOrderRequest(priority="urgent"), current_user=USER_A)
+    with pytest.raises(HTTPException):
+        await wo_router.update_work_order("wo-b-1", UpdateWorkOrderRequest(priority="urgent"), current_user=USER_A)
 
     # Verify original Hotel B state is completely unchanged
     assert db.b_row("room_status", "rs-b-1")["status"] == "DIRTY"

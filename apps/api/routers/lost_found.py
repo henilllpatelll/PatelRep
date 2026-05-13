@@ -102,6 +102,9 @@ async def update_lost_found_item(
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
 
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Item not found")
+
     return {"data": result.data[0] if result.data else None}
 
 

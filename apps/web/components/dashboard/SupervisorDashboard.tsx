@@ -100,25 +100,25 @@ export function SupervisorDashboard() {
 
       {/* Progress strip */}
       <div className="grid grid-cols-4 gap-3">
-        <Card className="p-3 text-center">
-          <p className="text-2xl font-bold text-stone-900">{totalRooms}</p>
-          <p className="text-xs text-stone-400 mt-0.5">Total Rooms</p>
+        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-stone-900">{totalRooms}</p>
+          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Rooms</p>
         </Card>
-        <Card className={`p-3 text-center${assignedTotal > 0 ? ' border-amber-200 bg-amber-50' : ''}`}>
-          <p className={`text-2xl font-bold ${assignedTotal > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${assignedTotal > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${assignedTotal > 0 ? 'text-amber-700' : 'text-stone-900'}`}>
             {assignedTotal}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Assigned Today</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${assignedTotal > 0 ? 'text-amber-600' : 'text-stone-500'}`}>Assigned</p>
         </Card>
-        <Card className={`p-3 text-center${cleanPending > 0 ? ' border-blue-100 bg-blue-50' : ''}`}>
-          <p className={`text-2xl font-bold ${cleanPending > 0 ? 'text-blue-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${cleanPending > 0 ? 'bg-green-50/50 border-green-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${cleanPending > 0 ? 'text-green-600' : 'text-stone-900'}`}>
             {cleanPending}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Ready to Inspect</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${cleanPending > 0 ? 'text-green-600' : 'text-stone-500'}`}>To Inspect</p>
         </Card>
-        <Card className="p-3 text-center">
-          <p className="text-2xl font-bold text-green-600">{inspectedPct}%</p>
-          <p className="text-xs text-stone-400 mt-0.5">Inspected</p>
+        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center bg-emerald-50/50 border-emerald-100">
+          <p className="text-2xl sm:text-3xl font-bold text-emerald-700">{inspectedPct}%</p>
+          <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-wider">Ready</p>
         </Card>
       </div>
 
@@ -127,7 +127,7 @@ export function SupervisorDashboard() {
         <Card>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-stone-700">Room Status Breakdown</h2>
-            <Link href="/housekeeping" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/housekeeping" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               Board <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -161,7 +161,7 @@ export function SupervisorDashboard() {
               <ClipboardCheck className="w-4 h-4 text-amber-500" />
               Inspection Queue
             </h2>
-            <Link href="/housekeeping" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/housekeeping" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               Go to Board <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -171,14 +171,15 @@ export function SupervisorDashboard() {
               <p className="text-sm text-stone-400">No rooms waiting for inspection</p>
             </div>
           ) : (
-            <div className="py-2">
-              <p className="text-3xl font-bold text-blue-600">{cleanPending}</p>
+            <div className="py-2 flex flex-col items-center">
+              <p className="text-3xl font-bold text-green-600">{cleanPending}</p>
               <p className="text-sm text-stone-500 mt-1">
                 {cleanPending === 1 ? 'room is' : 'rooms are'} clean and ready for inspection
               </p>
               <Link
                 href="/housekeeping"
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 text-white text-xs font-semibold rounded-lg hover:bg-amber-500 transition-colors"
+                prefetch={false}
+                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm shadow-green-200"
               >
                 Start Inspecting <ArrowRight className="w-3 h-3" />
               </Link>
@@ -211,7 +212,7 @@ export function SupervisorDashboard() {
                     <p className="text-sm font-medium text-stone-800">Room {r.rooms?.room_number ?? '—'}</p>
                     <p className="text-xs text-stone-500 capitalize">{r.risk_level} risk</p>
                   </div>
-                  <Link href="/housekeeping/assignments" className="text-xs text-amber-600 hover:underline">
+                  <Link href="/housekeeping/assignments" prefetch={false} className="text-xs text-amber-600 hover:underline">
                     View
                   </Link>
                 </div>
@@ -234,7 +235,7 @@ export function SupervisorDashboard() {
                 </span>
               )}
             </h2>
-            <Link href="/guest-requests" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/guest-requests" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -246,13 +247,15 @@ export function SupervisorDashboard() {
           ) : (
             <div className="space-y-1.5">
               {openRequests.map(r => (
-                <div key={r.id} className="flex items-center gap-2 py-1.5 border-b border-stone-100 last:border-0">
-                  <Bell className="w-3 h-3 text-amber-400 shrink-0" />
-                  <p className="text-sm text-stone-700 truncate flex-1">{r.title}</p>
+                <Link key={r.id} href="/guest-requests" className="flex items-center gap-3 py-2.5 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
+                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
+                    <Bell className="w-3.5 h-3.5 text-amber-500 group-hover:text-amber-600 transition-colors" />
+                  </div>
+                  <p className="text-sm font-medium text-stone-700 group-hover:text-amber-700 truncate flex-1 transition-colors">{r.title}</p>
                   {r.rooms?.room_number && (
-                    <span className="text-xs text-stone-400 shrink-0">Rm {r.rooms.room_number}</span>
+                    <Badge variant="default" className="shrink-0">Rm {r.rooms.room_number}</Badge>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -269,7 +272,7 @@ export function SupervisorDashboard() {
                 </span>
               )}
             </h2>
-            <Link href="/tasks" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/tasks" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -281,13 +284,15 @@ export function SupervisorDashboard() {
           ) : (
             <div className="space-y-1.5">
               {openTasks.map(t => (
-                <div key={t.id} className="flex items-center gap-2 py-1.5 border-b border-stone-100 last:border-0">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.priority === 'urgent' ? 'bg-red-500' : t.priority === 'normal' ? 'bg-amber-400' : 'bg-stone-300'}`} />
-                  <p className="text-sm text-stone-700 truncate flex-1">{t.title}</p>
+                <Link key={t.id} href="/tasks" className="flex items-center gap-3 py-2.5 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${t.priority === 'urgent' ? 'bg-red-50 group-hover:bg-red-100' : t.priority === 'normal' ? 'bg-amber-50 group-hover:bg-amber-100' : 'bg-stone-100 group-hover:bg-stone-200'}`}>
+                     <span className={`w-2 h-2 rounded-full ${t.priority === 'urgent' ? 'bg-red-500' : t.priority === 'normal' ? 'bg-amber-500' : 'bg-stone-400'}`} />
+                  </div>
+                  <p className="text-sm font-medium text-stone-700 group-hover:text-blue-700 truncate flex-1 transition-colors">{t.title}</p>
                   {t.user_profiles && (
-                    <span className="text-xs text-stone-400 shrink-0">{t.user_profiles.preferred_name}</span>
+                    <span className="text-xs font-medium text-stone-500 shrink-0">{t.user_profiles.preferred_name}</span>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -296,14 +301,14 @@ export function SupervisorDashboard() {
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/housekeeping/assignments">
+        <Link href="/housekeeping/assignments" prefetch={false}>
           <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer">
             <Users className="w-5 h-5 text-amber-500 mb-2" />
             <p className="text-sm font-semibold text-stone-700">Manage Assignments</p>
             <p className="text-xs text-stone-400 mt-0.5">Assign rooms to housekeepers</p>
           </Card>
         </Link>
-        <Link href="/housekeeping">
+        <Link href="/housekeeping" prefetch={false}>
           <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer">
             <ClipboardCheck className="w-5 h-5 text-amber-500 mb-2" />
             <p className="text-sm font-semibold text-stone-700">Run Inspections</p>

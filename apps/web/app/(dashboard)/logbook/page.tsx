@@ -599,8 +599,8 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LogbookPage() {
-  const today = todayIso()
-  const [selectedDate, setSelectedDate] = useState(today)
+  const [today, setToday] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editTarget, setEditTarget] = useState<LogbookEntry | null>(null)
@@ -608,7 +608,12 @@ export default function LogbookPage() {
   const [mounted, setMounted] = useState(false)
   const { isSupervisor, isGM } = useRole()
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    const currentDate = todayIso()
+    setToday(currentDate)
+    setSelectedDate((prev) => prev || currentDate)
+    setMounted(true)
+  }, [])
 
   const session = useAuthStore((s) => s.session)
   const currentUserId: string = session?.user?.id ?? ''
@@ -642,6 +647,7 @@ export default function LogbookPage() {
         entry_date: selectedDate,
         department_id: selectedDeptId ?? undefined,
       }),
+    enabled: !!selectedDate,
     select: (res) => res.data as LogbookEntry[],
   })
 
@@ -685,17 +691,19 @@ export default function LogbookPage() {
   })
 
   function handlePrevDay() {
+    if (!selectedDate) return
     setSelectedDate((d) => prevDay(d))
     setSelectedDeptId(null)
   }
 
   function handleNextDay() {
-    if (selectedDate >= today) return
+    if (!selectedDate || !today || selectedDate >= today) return
     setSelectedDate((d) => nextDay(d))
     setSelectedDeptId(null)
   }
 
   function handleToday() {
+    if (!today) return
     setSelectedDate(today)
     setSelectedDeptId(null)
   }
@@ -704,7 +712,27 @@ export default function LogbookPage() {
     queryClient.invalidateQueries({ queryKey: ['logbook-entries', selectedDate] })
   }
 
-  const isToday = selectedDate === today
+  const isToday = !!today && selectedDate === today
+
+  if (!mounted || !today || !selectedDate) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="h-7 w-48 rounded-lg bg-gray-100 animate-pulse" />
+            <div className="h-4 w-80 max-w-full rounded bg-gray-100 animate-pulse mt-2" />
+          </div>
+          <div className="h-9 w-28 rounded-lg bg-gray-100 animate-pulse" />
+        </div>
+        <div className="h-9 w-80 max-w-full rounded-lg bg-gray-100 animate-pulse" />
+        <div className="space-y-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">

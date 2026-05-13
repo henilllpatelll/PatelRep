@@ -456,7 +456,7 @@ export default function RoomsPage() {
     queryFn: () => roomsApi.list(),
   })
 
-  const rooms: RoomStatus[] = data?.data ?? []
+  const rooms: RoomStatus[] = useMemo(() => data?.data ?? [], [data?.data])
 
   // Extract unique floors for the filter dropdown
   const floors = useMemo(() => {

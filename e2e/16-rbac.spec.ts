@@ -19,6 +19,8 @@ import {
   TEST_PASSWORD,
 } from './helpers/rbac-users'
 
+const EMPTY_STORAGE = { cookies: [], origins: [] }
+
 // ── Route access matrix (mirrors NAV_BY_ROLE in Sidebar.tsx) ──────────────────
 
 const ROLE_ALLOWED: Record<string, string[]> = {
@@ -75,12 +77,18 @@ test.afterAll(async () => {
 })
 
 // GM access — uses the durable GM test account, no separate context needed
-test('GM can access all routes', async ({ page }) => {
-  await loginViaUI(page, GM_TEST_USER.email, GM_TEST_USER.password)
-  for (const route of ROLE_ALLOWED['gm'].slice(0, 5)) {
-    await page.goto(route)
-    await expect(page).not.toHaveURL(/\/login/)
-    await expect(page).not.toHaveURL(/\/dashboard\?unauthorized/)
+test('GM can access all routes', async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
+  const page = await ctx.newPage()
+  try {
+    await loginViaUI(page, GM_TEST_USER.email, GM_TEST_USER.password)
+    for (const route of ROLE_ALLOWED['gm'].slice(0, 5)) {
+      await page.goto(route)
+      await expect(page).not.toHaveURL(/\/login/)
+      await expect(page).not.toHaveURL(/\/dashboard\?unauthorized/)
+    }
+  } finally {
+    await ctx.close()
   }
 })
 
@@ -89,7 +97,7 @@ test('Housekeeper is blocked from restricted routes', async ({ browser }) => {
   const hkUser = seededUsers.find(u => u.role === 'housekeeper')
   if (!hkUser) return test.skip()
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
   const page = await ctx.newPage()
   try {
     await loginViaUI(page, hkUser.email, hkUser.password)
@@ -107,7 +115,7 @@ test('Housekeeper can access their allowed routes', async ({ browser }) => {
   const hkUser = seededUsers.find(u => u.role === 'housekeeper')
   if (!hkUser) return test.skip()
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
   const page = await ctx.newPage()
   try {
     await loginViaUI(page, hkUser.email, hkUser.password)
@@ -126,7 +134,7 @@ test('Engineer is blocked from restricted routes', async ({ browser }) => {
   const engUser = seededUsers.find(u => u.role === 'engineer')
   if (!engUser) return test.skip()
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
   const page = await ctx.newPage()
   try {
     await loginViaUI(page, engUser.email, engUser.password)
@@ -144,7 +152,7 @@ test('Front desk is blocked from restricted routes', async ({ browser }) => {
   const fdUser = seededUsers.find(u => u.role === 'front_desk')
   if (!fdUser) return test.skip()
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
   const page = await ctx.newPage()
   try {
     await loginViaUI(page, fdUser.email, fdUser.password)
@@ -162,7 +170,7 @@ test('Front desk dashboard loads without 403 errors', async ({ browser }) => {
   const fdUser = seededUsers.find(u => u.role === 'front_desk')
   if (!fdUser) return test.skip()
 
-  const ctx = await browser.newContext()
+  const ctx = await browser.newContext({ storageState: EMPTY_STORAGE })
   const page = await ctx.newPage()
   const forbidden: string[] = []
 

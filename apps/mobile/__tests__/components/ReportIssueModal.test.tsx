@@ -27,7 +27,7 @@ import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 
 const mockApiPost = api.post as jest.Mock;
 const mockEnqueueAction = enqueueAction as jest.Mock;
-const mockUseAppStore = useAppStore as jest.Mock;
+const mockUseAppStore = useAppStore as unknown as jest.Mock;
 
 const defaultProps = {
   visible: true,

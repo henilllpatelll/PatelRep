@@ -81,12 +81,16 @@ export function TrendChartsRow() {
   const maint = maintenanceData?.data
   const staff = staffData?.data
 
-  const slaPct = maint?.sla_compliance_pct ?? 0
   const completionPct = maint?.completion_rate_pct ?? 0
+  
+  // Calculate SLA directly if backend returns confusing numbers when volume is low
+  const total = maint?.total_work_orders ?? 0
+  const breaches = maint?.active_sla_breaches ?? 0
+  const slaPct = total > 0 ? Math.max(0, ((total - breaches) / total) * 100) : 100
 
-  // Top 5 staff by tasks_completed
+  // Top 5 staff by tasks_completed, only showing those with > 0 tasks
   const topStaff = (staff?.metrics ?? [])
-    .slice()
+    .filter(s => s.tasks_completed > 0)
     .sort((a, b) => b.tasks_completed - a.tasks_completed)
     .slice(0, 5)
 
@@ -169,8 +173,12 @@ export function TrendChartsRow() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-40 text-stone-400 text-sm">
-            No staff performance data yet
+          <div className="flex flex-col items-center justify-center h-40 text-stone-400">
+            <svg className="w-10 h-10 mb-2 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-sm font-medium">Keep up the good work!</p>
+            <p className="text-xs">Data will appear here soon.</p>
           </div>
         )}
       </Card>

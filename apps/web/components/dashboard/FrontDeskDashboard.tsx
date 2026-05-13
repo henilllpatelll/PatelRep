@@ -24,8 +24,8 @@ type StatusKey = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICK
 const ROOM_STATUS_CONFIG: Record<StatusKey, { label: string; color: string }> = {
   DIRTY:       { label: 'Dirty',       color: 'text-red-600' },
   IN_PROGRESS: { label: 'In Progress', color: 'text-amber-600' },
-  CLEAN:       { label: 'Clean',       color: 'text-blue-600' },
-  INSPECTED:   { label: 'Inspected ✓', color: 'text-green-600' },
+  CLEAN:       { label: 'Clean',       color: 'text-green-600' },
+  INSPECTED:   { label: 'Inspected ✓', color: 'text-emerald-600' },
   OOO:         { label: 'Out of Order',color: 'text-stone-400' },
   PICKUP:      { label: 'Pickup',      color: 'text-purple-600' },
 }
@@ -41,11 +41,13 @@ const REQUEST_STATUS_VARIANT = {
 
 function GuestRequestRow({ req }: { req: GuestRequest }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-stone-100 last:border-0 hover:bg-amber-50/30 rounded-lg -mx-1 px-2 transition-colors">
-      <Bell className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+    <Link href="/guest-requests" className="flex items-center gap-3 py-3 px-2 border-b border-stone-100 last:border-0 hover:bg-stone-50 rounded-xl -mx-2 transition-colors group">
+      <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors border border-stone-100">
+        <Bell className="w-4 h-4 text-stone-500 group-hover:text-amber-600 transition-colors" />
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-stone-800 truncate">{req.title}</p>
-        <p className="text-xs text-stone-400">
+        <p className="text-sm font-bold text-stone-900 group-hover:text-amber-700 truncate transition-colors">{req.title}</p>
+        <p className="text-xs font-medium text-stone-500 mt-0.5">
           {req.rooms?.room_number ? `Room ${req.rooms.room_number}` : req.guest_name ?? 'No room'}
           {' · '}
           {new Date(req.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -54,7 +56,7 @@ function GuestRequestRow({ req }: { req: GuestRequest }) {
       <Badge variant={REQUEST_STATUS_VARIANT[req.status] ?? 'default'}>
         {req.status === 'in_progress' ? 'Active' : req.status}
       </Badge>
-    </div>
+    </Link>
   )
 }
 
@@ -120,19 +122,19 @@ export function FrontDeskDashboard() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3 text-center">
-          <p className="text-2xl font-bold text-green-600">{inspectedPct}%</p>
-          <p className="text-xs text-stone-400 mt-0.5">Rooms Ready</p>
+        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center bg-emerald-50/50 border-emerald-100">
+          <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{inspectedPct}%</p>
+          <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-wider">Rooms Ready</p>
         </Card>
-        <Card className={`p-3 text-center${openRequests.length > 0 ? ' border-amber-200 bg-amber-50' : ''}`}>
-          <p className={`text-2xl font-bold ${openRequests.length > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${openRequests.length > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
+          <p className={`text-2xl sm:text-3xl font-bold ${openRequests.length > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
             {openRequests.length}
           </p>
-          <p className="text-xs text-stone-400 mt-0.5">Open Requests</p>
+          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${openRequests.length > 0 ? 'text-amber-600' : 'text-stone-500'}`}>Requests</p>
         </Card>
-        <Card className="p-3 text-center">
-          <p className="text-2xl font-bold text-stone-900">—</p>
-          <p className="text-xs text-stone-400 mt-0.5">Arrivals Today</p>
+        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-stone-900">—</p>
+          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Arrivals</p>
         </Card>
       </div>
 
@@ -144,7 +146,7 @@ export function FrontDeskDashboard() {
               <Bed className="w-4 h-4 text-amber-500" />
               Room Status
             </h2>
-            <Link href="/housekeeping" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/housekeeping" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               Board <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -179,7 +181,7 @@ export function FrontDeskDashboard() {
               <Bell className="w-4 h-4 text-amber-500" />
               Guest Requests
             </h2>
-            <Link href="/guest-requests" className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
+            <Link href="/guest-requests" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
               All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -199,7 +201,7 @@ export function FrontDeskDashboard() {
       </div>
 
       {/* Quick action */}
-      <Link href="/lost-found">
+      <Link href="/lost-found" prefetch={false}>
         <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer flex items-center gap-3">
           <Package className="w-5 h-5 text-amber-500 shrink-0" />
           <div className="flex-1">

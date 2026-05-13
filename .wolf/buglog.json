@@ -555,8 +555,16 @@
       "file": "apps/api/services/ai/insights.py",
       "root_cause": "room_readiness_predictions uses room_id as its PRIMARY KEY (not id). _get_7day_stats was selecting 'id' for the count query causing PostgREST 42703 on every /ai/insights and insight_query copilot call.",
       "fix": "Changed select('id', count='exact') to select('room_id', count='exact') on the room_readiness_predictions query.",
-      "tags": ["ai", "insights", "supabase", "postgrest", "wrong-column"],
-      "related_bugs": ["bug-028"],
+      "tags": [
+        "ai",
+        "insights",
+        "supabase",
+        "postgrest",
+        "wrong-column"
+      ],
+      "related_bugs": [
+        "bug-028"
+      ],
       "occurrences": 1,
       "last_seen": "2026-05-12T05:10:00.000Z"
     },
@@ -567,7 +575,12 @@
       "file": "apps/api/services/ai/insights.py, apps/api/services/ai/sop_rag.py, apps/api/services/ai/failure_predictions.py, apps/api/routers/ai_copilot.py",
       "root_cause": "claude-3-5-sonnet-20241022 is not available on the current Anthropic API key. Model superseded by Claude 4.x family.",
       "fix": "Replaced all claude-3-5-sonnet-20241022 references with claude-sonnet-4-6 across 4 files.",
-      "tags": ["ai", "anthropic", "model-not-found", "claude"],
+      "tags": [
+        "ai",
+        "anthropic",
+        "model-not-found",
+        "claude"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-12T05:15:00.000Z"
@@ -579,10 +592,643 @@
       "file": "apps/api/routers/ai_copilot.py",
       "root_cause": "OPENAI_API_KEY was blank in Railway. After adding the key, the provided key had no billing/quota on the OpenAI account. Raw OpenAI error was leaking to clients via the generic except block.",
       "fix": "Added specific except clause for openai.RateLimitError and openai.AuthenticationError (and Anthropic equivalents) that returns clean 503 instead of exposing raw provider error messages.",
-      "tags": ["ai", "openai", "rate-limit", "error-handling", "secret-leak"],
-      "related_bugs": ["bug-033"],
+      "tags": [
+        "ai",
+        "openai",
+        "rate-limit",
+        "error-handling",
+        "secret-leak"
+      ],
+      "related_bugs": [
+        "bug-033"
+      ],
       "occurrences": 1,
       "last_seen": "2026-05-12T05:20:00.000Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-05-12T04:59:22.356Z",
+      "error_message": "Wrong reference: AuthenticationStatusError should be AuthenticationError",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "Used \"AuthenticationStatusError\" instead of \"AuthenticationError\"",
+      "fix": "Changed AuthenticationStatusError → AuthenticationError",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T04:59:22.356Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-05-12T05:32:54.492Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 28→60 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:32:54.492Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-05-12T05:43:12.971Z",
+      "error_message": "Wrong reference: 30_000 should be 60_000",
+      "file": "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+      "root_cause": "Used \"30_000\" instead of \"60_000\"",
+      "fix": "Changed 30_000 → 60_000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-12T05:43:16.798Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-05-12T05:43:56.936Z",
+      "error_message": "CSS fix: refetchInterval",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "refetchInterval: 30_000, → 60_000,",
+      "fix": "Changed refetchInterval: 30_000, → 60_000,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:43:56.936Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-05-12T05:44:02.673Z",
+      "error_message": "CSS fix: refetchInterval",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "refetchInterval: 30_000, → 60_000,",
+      "fix": "Changed refetchInterval: 30_000, → 60_000,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:44:02.673Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-05-12T05:44:06.524Z",
+      "error_message": "Wrong reference: 30_000 should be 120_000",
+      "file": "apps/web/components/dashboard/AIRiskAlertsPanel.tsx",
+      "root_cause": "Used \"30_000\" instead of \"120_000\"",
+      "fix": "Changed 30_000 → 120_000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:44:06.524Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-05-12T05:59:51.031Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/webhooks.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 18→56 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T05:59:51.031Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-05-12T17:26:42.6297364Z",
+      "error_message": "API smoke suite failed 3 tests after auth/work-order hardening",
+      "file": "apps/api/tests/smoke/test_health.py, apps/api/tests/smoke/test_tenant_isolation.py",
+      "root_cause": "Tests still expect missing auth to return 403 and cross-tenant PATCH work-order to be a 200 data:null no-op. Current production behavior is stricter: missing auth returns 401 and cross-tenant/nonexistent work-order PATCH returns 404.",
+      "fix": "Updated smoke tests to expect 401 for unauthenticated/invalid auth and 404 for cross-tenant work-order PATCH.",
+      "tags": [
+        "tests",
+        "api",
+        "auth",
+        "tenant-isolation",
+        "work-orders"
+      ],
+      "related_bugs": [
+        "bug-029",
+        "bug-030"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T17:26:42.6297364Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-05-12T17:26:42.6297364Z",
+      "error_message": "PATCH /v1/lost-found/{id} returns 422 PGRST204 when claimed_by_contact is sent",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Endpoint allowlist includes claimed_by_contact, but the production lost_found_items table does not expose that column in PostgREST schema. Status=claimed and claimed_by_name work; adding claimed_by_contact fails.",
+      "fix": "Added migration 033 to create lost_found_items.claimed_by_contact and notify PostgREST to reload schema.",
+      "tags": [
+        "lost-found",
+        "schema-mismatch",
+        "pgrst204",
+        "production-validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T17:26:42.6297364Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-05-12T17:26:42.6297364Z",
+      "error_message": "Supabase Realtime subscribed to room_status but did not receive tenant-filtered UPDATE payload during production room status mutation",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx, supabase/migrations/025_enable_realtime.sql",
+      "root_cause": "Production validation confirmed channel status SUBSCRIBED, API PATCH /rooms/{id}/status returned 200, and room was restored, but no postgres_changes event arrived within 12 seconds. Publication/filter/auth configuration needs investigation.",
+      "fix": "Added migration 033 to idempotently add room_status and room_assignments to supabase_realtime and set FULL replica identity for reliable tenant-filtered UPDATE payloads.",
+      "tags": [
+        "realtime",
+        "supabase",
+        "housekeeping",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-014",
+        "bug-015"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T17:26:42.6297364Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-05-12T17:26:42.6297364Z",
+      "error_message": "Dashboard emits Next.js RSC prefetch console errors for several routes, then falls back to browser navigation",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Console pass captured Failed to fetch RSC payload messages for /tasks, /housekeeping, /guest-requests, /lost-found, and /engineering while on /dashboard. Navigation succeeds, but production console is noisy.",
+      "fix": "Disabled Next Link prefetch on Sidebar main, subnav, and bottom navigation links to prevent noisy dashboard RSC prefetch fetches.",
+      "tags": [
+        "frontend",
+        "nextjs",
+        "console-error",
+        "rsc",
+        "production-validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T17:26:42.6297364Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-05-12T17:26:42.6297364Z",
+      "error_message": "Legacy -869a Railway web host returns 404 Application not found",
+      "file": "AGENTS.md, .wolf/cerebrum.md",
+      "root_cause": "Project memory/infrastructure notes still reference the older -869a Railway URL, but the canonical production web URL is https://patelrepweb-production.up.railway.app.",
+      "fix": "Updated docs, API CORS allowlist, web production env, and e2e helpers to use https://patelrepweb-production.up.railway.app and https://api-production-130b.up.railway.app.",
+      "tags": [
+        "railway",
+        "configuration",
+        "docs",
+        "production-url"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T17:26:42.6297364Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-05-12T18:12:00.000Z",
+      "error_message": "Supabase Realtime did not emit tenant-filtered room_status UPDATE after PATCH /v1/rooms/{room_id}/status",
+      "file": "supabase/migrations/033_realtime_room_status_and_lost_found_contact.sql",
+      "root_cause": "Production needed an explicit idempotent Realtime publication and replica identity hardening pass for room_status/room_assignments so filtered UPDATE streams have the row images Realtime needs.",
+      "fix": "Applied migration 033 to Supabase: set REPLICA IDENTITY FULL and ensured room_status and room_assignments are in supabase_realtime.",
+      "tags": [
+        "realtime",
+        "supabase",
+        "housekeeping",
+        "room-status"
+      ],
+      "related_bugs": [
+        "bug-014",
+        "bug-044"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T18:12:00.000Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-05-12T18:12:00.000Z",
+      "error_message": "PATCH /v1/lost-found/{id} returned 422 PGRST204 when claimed_by_contact was sent",
+      "file": "supabase/migrations/033_realtime_room_status_and_lost_found_contact.sql, spec/02_database_schema.md",
+      "root_cause": "The API/frontend contract allowed claimed_by_contact but production lost_found_items did not have the column in the schema cache.",
+      "fix": "Applied migration 033 to Supabase: added claimed_by_contact TEXT, documented it in the schema spec, and sent NOTIFY pgrst to refresh PostgREST.",
+      "tags": [
+        "lost-found",
+        "schema-mismatch",
+        "pgrst204"
+      ],
+      "related_bugs": [
+        "bug-043"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T18:12:00.000Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-05-12T18:12:00.000Z",
+      "error_message": "Dashboard emitted failed Next.js RSC prefetch console errors",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Sidebar links were eligible for automatic App Router prefetching, which produced noisy failed RSC payload fetches on the production dashboard even though manual navigation succeeded.",
+      "fix": "Set prefetch={false} on Sidebar main nav, subnav, and bottom nav links.",
+      "tags": [
+        "frontend",
+        "nextjs",
+        "rsc",
+        "prefetch"
+      ],
+      "related_bugs": [
+        "bug-045"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T18:12:00.000Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-05-12T18:12:00.000Z",
+      "error_message": "API smoke tests had stale auth and work-order status expectations",
+      "file": "apps/api/tests/smoke/test_endpoints.py, apps/api/tests/smoke/test_health.py, apps/api/tests/smoke/test_tenant_isolation.py",
+      "root_cause": "Tests still allowed old HTTPBearer 403 behavior and old cross-tenant work-order PATCH no-op behavior after API hardening.",
+      "fix": "Updated smoke tests to expect 401 auth failures and 404 for cross-tenant work-order PATCH.",
+      "tags": [
+        "tests",
+        "api",
+        "auth",
+        "work-orders"
+      ],
+      "related_bugs": [
+        "bug-029",
+        "bug-030",
+        "bug-042"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T18:12:00.000Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-05-12T18:12:00.000Z",
+      "error_message": "Stale Railway production URLs remained in docs/config/helpers",
+      "file": "AGENTS.md, CLAUDE.md, apps/api/main.py, apps/web/.env.production, e2e/helpers/rbac-users.ts, .wolf/cerebrum.md",
+      "root_cause": "Infrastructure notes and fallback URLs referenced retired Railway hosts after production moved to the canonical web/API domains.",
+      "fix": "Replaced stale Railway references with https://patelrepweb-production.up.railway.app and https://api-production-130b.up.railway.app; grep confirms retired host strings are gone.",
+      "tags": [
+        "railway",
+        "docs",
+        "configuration"
+      ],
+      "related_bugs": [
+        "bug-046"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T18:12:00.000Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-05-12T18:35:53.000Z",
+      "error_message": "Live cross-tenant probes returned HTTP 500 instead of 404/403 for no-match tenant-scoped resources",
+      "file": "apps/api/routers/rooms.py, apps/api/routers/logbook.py, apps/api/routers/work_orders.py, apps/api/routers/guest_requests.py, apps/api/routers/sop.py",
+      "root_cause": "Several router handlers call maybe_single().execute() and then access .data without guarding for supabase-py returning None when the tenant-scoped query has no rows.",
+      "fix": "FIXED 2026-05-12: added `if not result or not result.data` guards across rooms/logbook/work_orders/guest_requests/sop no-match maybe_single paths; verified in production with 404 probes.",
+      "tags": [
+        "api",
+        "tenant-isolation",
+        "maybe_single",
+        "production-validation",
+        "500-error"
+      ],
+      "related_bugs": [
+        "bug-007"
+      ],
+      "occurrences": 10,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-05-12T18:35:53.000Z",
+      "error_message": "PATCH /v1/lost-found/{id} returns 200 with data:null for cross-tenant IDs",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "update_lost_found_item performs a tenant-scoped update but does not check whether any row matched before returning 200.",
+      "fix": "FIXED 2026-05-12: update_lost_found_item now checks update result rows and raises 404 when no current-tenant item matched; verified in production.",
+      "tags": [
+        "lost-found",
+        "tenant-isolation",
+        "status-contract",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-052"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-05-12T18:35:53.000Z",
+      "error_message": "PATCH/DELETE /v1/staff/{user_id} returns 200 for cross-tenant user IDs without mutating",
+      "file": "apps/api/routers/staff.py",
+      "root_cause": "update_staff and deactivate_staff run tenant-scoped updates but do not verify a matching user_roles row was updated, so cross-tenant IDs produce success responses.",
+      "fix": "FIXED 2026-05-12: update_staff and deactivate_staff now check update result rows and raise 404 when no current-tenant staff row matched; verified in production.",
+      "tags": [
+        "staff",
+        "tenant-isolation",
+        "status-contract",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-052"
+      ],
+      "occurrences": 4,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-05-12T19:15:53.5380088Z",
+      "error_message": "POST /v1/webhooks/opera with unknown/minimal hotel payload returns HTTP 500",
+      "file": "apps/api/routers/webhooks.py",
+      "root_cause": "opera_webhook calls maybe_single().execute() for opera_credentials and then accesses creds.data without guarding for supabase-py returning None when no connected Opera credentials match.",
+      "fix": "FIXED 2026-05-12: opera_webhook now guards `if not creds or not creds.data` and returns the documented ignored response for unknown/unconnected hotel IDs; verified in production.",
+      "tags": [
+        "webhook",
+        "opera",
+        "maybe_single",
+        "500-error",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-052"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-05-12T19:15:53.5380088Z",
+      "error_message": "POST /v1/sop/query returns HTTP 500 when OpenAI quota/rate limit is hit",
+      "file": "apps/api/routers/sop.py, apps/api/services/ai/sop_rag.py",
+      "root_cause": "SOP query path lets OpenAI RateLimitError/insufficient_quota escape to the generic exception handler. The main copilot task path correctly maps provider failures to a friendly 503, but SOP RAG does not.",
+      "fix": "FIXED 2026-05-12: SOP query catches OpenAI/Anthropic quota/auth failures and returns generic HTTP 503; provider-unavailable path now logs a warning without traceback; verified in production.",
+      "tags": [
+        "sop",
+        "openai",
+        "ai",
+        "rate-limit",
+        "500-error",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-011"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-05-12T19:15:53.5380088Z",
+      "error_message": "Production Playwright suite failed 5 tests despite focused route audit passing",
+      "file": "e2e/11-lost-found.spec.ts, e2e/16-rbac.spec.ts, e2e/mobile-usability.spec.ts",
+      "root_cause": "Lost & Found tests use exact accessible name \"Claimed\" even the button includes a count (\"Claimed 1\"). RBAC helper did not load NEXT_PUBLIC_SUPABASE_ANON_KEY outside the app env, causing Supabase auth 401. Mobile login tests inherited authenticated storage state and landed on Dashboard instead of Login.",
+      "fix": "FIXED 2026-05-12: Playwright Lost & Found tab locators tolerate count badges, RBAC helper loads env files and normalizes /v1, and mobile login tests run with clean storage; targeted suites pass.",
+      "tags": [
+        "e2e",
+        "playwright",
+        "test-maintenance",
+        "production-validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-05-12T20:15:00.000Z",
+      "error_message": "Railway deploy can target the wrong monorepo service/Dockerfile when workspace path and root railway.toml are mixed",
+      "file": "railway.toml, apps/api/Dockerfile",
+      "root_cause": "Using Railway MCP deploy with apps/api workspace path caused Railway to read the root service manifest and start a web Dockerfile build for the API service. The bad deployment was removed after a corrected CLI upload.",
+      "fix": "Use `railway up apps/api --path-as-root --service api --detach -m \"...\"` and verify deployment metadata shows builder DOCKERFILE, dockerfilePath Dockerfile, and healthcheckPath /health before treating it as valid.",
+      "tags": [
+        "railway",
+        "deployment",
+        "monorepo",
+        "production-validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T20:15:00.000Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-05-12T23:27:06.351Z",
+      "error_message": "rg --files apps/api/tests e2e failed with 'Access is denied' in PowerShell",
+      "file": "developer tooling / local shell environment",
+      "root_cause": "The ripgrep executable was present but not executable from this workspace/session, so validation file discovery had to fall back to Get-ChildItem.",
+      "fix": "Not fixed in this session; used PowerShell Get-ChildItem fallback for discovery.",
+      "tags": [
+        "tooling",
+        "rg",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T23:27:06.351Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-05-12T23:27:06.351Z",
+      "error_message": "PATCH /v1/rooms/{room_id}/status returns HTTP 500 on IN_PROGRESS -> CLEAN during production validation",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "_update_housekeeper_profile runs only on IN_PROGRESS -> CLEAN and still has a maybe_single().execute() result path that accesses .data when supabase-py returns None, producing AttributeError NoneType has no attribute data after the room_status update succeeds.",
+      "fix": "FIXED 2026-05-13: guarded maybe_single result access in _update_housekeeper_profile and made the non-critical housekeeper profile update log-and-continue after the status update/history insert. Verified production PATCH IN_PROGRESS -> CLEAN returns 200.",
+      "tags": [
+        "api",
+        "housekeeping",
+        "room-status",
+        "maybe_single",
+        "500-error",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-052"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-12T23:27:06.351Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-05-12T23:27:06.351Z",
+      "error_message": "Production dashboard emits Next.js Failed to fetch RSC payload console errors for prefetched dashboard routes",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Authenticated dashboard navigation/prefetch still attempts RSC payload fetches for routes including /tasks, /guest-requests, /engineering, /lost-found, /housekeeping, /staff, /ai, /scheduling, and /logbook; fetch fails and falls back to browser navigation.",
+      "fix": "FIXED 2026-05-13: disabled prefetch on dashboard quick links and role dashboards behind middleware. Production browser probe showed 0 RSC console errors and 0 bad RSC responses.",
+      "tags": [
+        "frontend",
+        "nextjs",
+        "rsc",
+        "console-error",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-045",
+        "bug-049"
+      ],
+      "occurrences": 10,
+      "last_seen": "2026-05-12T23:27:06.351Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-05-12T23:27:06.351Z",
+      "error_message": "Two-session production realtime check did not show a visible room_status update in the second browser session within 15 seconds",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx, supabase realtime configuration",
+      "root_cause": "A visible room 134 was changed DIRTY -> PICKUP through the API with HTTP 200 and restored afterward, but a second logged-in /housekeeping browser session did not render the new status within the observation window. Either the Realtime subscription is not firing in production or the UI is not applying the payload to the current board state.",
+      "fix": "FIXED 2026-05-13: stabilized Supabase Realtime client creation/auth, applied room_status payloads directly to Zustand/React Query caches, and added a 10s React Query refetch fallback for supervisor and housekeeper boards. Production browser freshness probe passed for cross-session room status updates.",
+      "tags": [
+        "frontend",
+        "realtime",
+        "supabase",
+        "housekeeping",
+        "production-validation"
+      ],
+      "related_bugs": [
+        "bug-014",
+        "bug-044",
+        "bug-047"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T23:27:06.351Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-05-12T23:27:06.351Z",
+      "error_message": "Browser-use Node REPL could not initialize: Node runtime v22.18.0 is below required >= v22.22.0",
+      "file": "local Codex/browser-use runtime",
+      "root_cause": "The browser-use skill requires a newer Node runtime for node_repl than the node.exe resolved in this environment.",
+      "fix": "Not fixed in this session; fell back to shell Playwright audits for browser validation.",
+      "tags": [
+        "tooling",
+        "browser-use",
+        "node-repl",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-12T23:27:06.351Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-05-13T04:20:00.000Z",
+      "error_message": "Production /logbook emitted React hydration errors on desktop and mobile route audit",
+      "file": "apps/web/app/(dashboard)/logbook/page.tsx",
+      "root_cause": "Logbook computed todayIso() during server render and again in the browser. Around UTC/Texas date boundaries, Railway and the hotel user's browser can render different selected dates, causing React hydration mismatch errors 418/423/425.",
+      "fix": "FIXED 2026-05-13: moved logbook today/selectedDate initialization to a client-only mount effect, disabled entry query until selectedDate is available, and rendered a deterministic skeleton before mount. Redeployed web and verified 44/44 desktop/mobile route audit plus full Playwright suite passed.",
+      "tags": [
+        "frontend",
+        "logbook",
+        "hydration",
+        "timezone",
+        "production-validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-13T04:20:00.000Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-05-13T04:54:06.6127484-05:00",
+      "error_message": "apps/mobile npm install failed with ERESOLVE because react-test-renderer resolved to 18.3.1 while React is pinned to 18.2.0",
+      "file": "apps/mobile/package.json",
+      "root_cause": "react-test-renderer was declared as ^18.2.0, allowing npm to install 18.3.1. Expo SDK 51 uses React 18.2.0, and react-test-renderer 18.3.1 has a peer dependency on React ^18.3.1.",
+      "fix": "Pinned react-test-renderer to exact version 18.2.0 and generated apps/mobile/package-lock.json from a successful npm install.",
+      "tags": [
+        "mobile",
+        "dependencies",
+        "npm",
+        "expo",
+        "test-tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T04:54:06.6127484-05:00"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-05-13T04:54:06.6127484-05:00",
+      "error_message": "apps/mobile TypeScript failed TS2352 on direct casts from real module types to jest.Mock",
+      "file": "apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/lib/offline/sync.test.ts",
+      "root_cause": "Strict TypeScript rejects direct casts from Zustand/API module types to Jest mock types because the shapes do not overlap enough.",
+      "fix": "Changed the test-only casts to go through unknown before narrowing to jest.Mock-typed objects.",
+      "tags": [
+        "mobile",
+        "typescript",
+        "jest",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-065"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-13T04:54:06.6127484-05:00"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-05-13T04:54:06.6127484-05:00",
+      "error_message": "apps/mobile npm audit reported high/moderate transitive vulnerabilities through Expo and React Native CLI packages after dependency install",
+      "file": "apps/mobile/package.json, apps/mobile/package-lock.json",
+      "root_cause": "Expo SDK 51 and React Native CLI transitive dependencies pulled vulnerable versions of @xmldom/xmldom, fast-xml-parser, postcss, send, tar, and a dev-only @tootallnate/once chain.",
+      "fix": "Added npm overrides for the vulnerable transitive packages and reran npm install; npm audit now reports 0 vulnerabilities.",
+      "tags": [
+        "mobile",
+        "security",
+        "npm-audit",
+        "dependencies"
+      ],
+      "related_bugs": [
+        "bug-065"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T04:54:06.6127484-05:00"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-05-13T04:54:06.6127484-05:00",
+      "error_message": "Root/web npm audit reported Next.js, @supabase/ssr cookie, and eslint-config-next transitive advisories",
+      "file": "package-lock.json, apps/web/package.json",
+      "root_cause": "The current web stack is pinned to Next 14.2.35, @supabase/ssr 0.3.0, and eslint-config-next 14.2.35. npm's remaining fixes require breaking upgrades to Next/eslint-config-next 16.x and @supabase/ssr 0.10.x.",
+      "fix": "Ran non-force npm audit fix to update compatible transitive packages and reran web lint/build/type-check successfully. Remaining advisories are not force-fixed because they require a planned Next/Supabase major compatibility pass.",
+      "tags": [
+        "web",
+        "security",
+        "npm-audit",
+        "nextjs",
+        "dependencies"
+      ],
+      "related_bugs": [
+        "bug-067"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T04:54:06.6127484-05:00"
     }
   ]
 }

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timezone, date
@@ -5,6 +6,8 @@ from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
+
+logger = logging.getLogger(__name__)
 
 
 class AddRoomNoteRequest(BaseModel):
@@ -71,10 +74,11 @@ def _update_housekeeper_profile(
         .maybe_single()\
         .execute()
 
-    if not room.data or not room.data.get("room_type_id"):
+    room_data = (room.data if room else None) or {}
+    if not room_data.get("room_type_id"):
         return
 
-    room_type_id = room.data["room_type_id"]
+    room_type_id = room_data["room_type_id"]
 
     # Estimate time from last status change to now
     # We approximate using the room_status.updated_at as the IN_PROGRESS start time
@@ -101,9 +105,10 @@ def _update_housekeeper_profile(
         .maybe_single()\
         .execute()
 
-    if existing.data:
-        old_avg = float(existing.data.get("avg_clean_minutes") or elapsed_minutes)
-        old_count = int(existing.data.get("completion_count") or 0)
+    existing_data = (existing.data if existing else None) or {}
+    if existing_data:
+        old_avg = float(existing_data.get("avg_clean_minutes") or elapsed_minutes)
+        old_count = int(existing_data.get("completion_count") or 0)
         new_count = old_count + 1
         new_avg = (old_avg * old_count + elapsed_minutes) / new_count
 
@@ -113,7 +118,7 @@ def _update_housekeeper_profile(
                 "completion_count": new_count,
                 "last_updated_at": datetime.now(timezone.utc).isoformat(),
             })\
-            .eq("id", existing.data["id"])\
+            .eq("id", existing_data["id"])\
             .execute()
     else:
         supabase.table("housekeeper_profiles").insert({
@@ -209,7 +214,7 @@ async def update_room_status(
         .maybe_single()
         .execute()
     )
-    if not current_row.data:
+    if not current_row or not current_row.data:
         raise HTTPException(status_code=404, detail="Room status record not found")
 
     from_status: str = current_row.data.get("status")
@@ -255,12 +260,20 @@ async def update_room_status(
 
     # 6. Update housekeeper speed profile (IN_PROGRESS → CLEAN)
     if from_status == "IN_PROGRESS" and to_status == "CLEAN":
-        _update_housekeeper_profile(
-            hotel_id=current_user.hotel_id,
-            room_id=room_id,
-            user_id=current_row.data.get("assigned_to"),
-            room_status_data=current_row.data,
-        )
+        try:
+            _update_housekeeper_profile(
+                hotel_id=current_user.hotel_id,
+                room_id=room_id,
+                user_id=current_row.data.get("assigned_to"),
+                room_status_data=current_row.data,
+            )
+        except Exception:
+            logger.warning(
+                "Failed to update housekeeper profile for room_id=%s hotel_id=%s",
+                room_id,
+                current_user.hotel_id,
+                exc_info=True,
+            )
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
@@ -310,7 +323,7 @@ async def add_room_note(
         .maybe_single()
         .execute()
     )
-    if not current_row.data:
+    if not current_row or not current_row.data:
         raise HTTPException(status_code=404, detail="Room not found")
 
     current_status = current_row.data.get("status", "DIRTY")

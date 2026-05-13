@@ -1,0 +1,440 @@
+{
+  "Dashboard": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-dashboard.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 17,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Housekeeping": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-housekeeping.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 150,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Room Board",
+        "width": 230,
+        "height": 36
+      },
+      {
+        "tag": "a",
+        "text": "Assignments",
+        "width": 230,
+        "height": 36
+      },
+      {
+        "tag": "a",
+        "text": "Inspection History",
+        "width": 230,
+        "height": 36
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Engineering": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-engineering.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 25,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Work Orders",
+        "width": 230,
+        "height": 36
+      },
+      {
+        "tag": "a",
+        "text": "Assets",
+        "width": 230,
+        "height": 36
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Tasks": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-tasks.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 33,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Guest Requests": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-guest-requests.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 23,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Logbook": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-logbook.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 23,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Lost & Found": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-lost-found.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 23,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Reports": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-reports.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 21,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Billing": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-billing.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 16,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Settings": {
+    "viewport": "390×844",
+    "screenshot": "iphone-14-settings.png",
+    "horizontalOverflow": false,
+    "smallTapTargets": 29,
+    "smallTapTargetDetails": [
+      {
+        "tag": "a",
+        "text": "Dashboard",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Housekeeping",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Maintenance",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Guest Requests",
+        "width": 255,
+        "height": 40
+      },
+      {
+        "tag": "a",
+        "text": "Lost & Found",
+        "width": 255,
+        "height": 40
+      }
+    ],
+    "overflowingText": 0,
+    "overflowingTextDetails": [],
+    "navVisible": true,
+    "navCollapsed": false
+  },
+  "Housekeeping-StatusButton": {
+    "found": true,
+    "width": 88.234375,
+    "height": 40,
+    "adequate": true
+  },
+  "Engineering-WorkOrderRows": {
+    "rowCount": 0
+  },
+  "Navigation": {
+    "hasNav": true,
+    "isCollapsed": false
+  },
+  "GuestRequests-CreateButton": {
+    "visible": true,
+    "width": 145.671875,
+    "height": 44
+  }
+}

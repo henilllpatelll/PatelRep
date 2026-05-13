@@ -8,6 +8,7 @@ from typing import List, Optional
 
 import pdfplumber
 import anthropic
+import openai
 from openai import OpenAI
 
 from core.config import settings
@@ -350,6 +351,25 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
             "completion_tokens": completion_tokens,
         }
 
+    except (
+        openai.RateLimitError,
+        openai.AuthenticationError,
+        anthropic.RateLimitError,
+        anthropic.AuthenticationError,
+    ) as exc:
+        latency_ms = int((time.time() - start_ts) * 1000)
+        logger.warning("SOP query provider unavailable for hotel_id=%s: %s", hotel_id, exc)
+        _log_ai_interaction(
+            hotel_id=hotel_id,
+            user_id=user_id,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            credits_charged=0.0,
+            latency_ms=latency_ms,
+            success=False,
+            error_message=str(exc),
+        )
+        raise
     except Exception as exc:
         latency_ms = int((time.time() - start_ts) * 1000)
         logger.exception("SOP query failed for hotel_id=%s: %s", hotel_id, exc)

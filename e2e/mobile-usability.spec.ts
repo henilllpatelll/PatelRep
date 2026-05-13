@@ -41,6 +41,10 @@ async function loginAndSaveState(page: Page) {
   await page.goto(`${BASE_URL}/login`)
   await page.waitForLoadState('networkidle')
 
+  if (!page.url().includes('/login')) {
+    return
+  }
+
   // Try password login fields
   const emailInput = page.locator('#email-pw, input[type="email"]').first()
   const passwordInput = page.locator('#password-pw, input[type="password"]').first()
@@ -129,7 +133,10 @@ let authState: string | null = null
 test.describe.serial('Mobile Usability — Login', () => {
   for (const vp of VIEWPORTS) {
     test(`Login page renders on ${vp.name} (${vp.width}×${vp.height})`, async ({ browser }) => {
-      const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } })
+      const context = await browser.newContext({
+        viewport: { width: vp.width, height: vp.height },
+        storageState: { cookies: [], origins: [] },
+      })
       const page = await context.newPage()
 
       await page.goto(`${BASE_URL}/login`)
