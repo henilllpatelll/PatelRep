@@ -497,7 +497,7 @@ async def submit_inspection(
         "from_status": "CLEAN",
         "to_status": "INSPECTED",
         "changed_by": current_user.user_id,
-        "change_source": "inspection",
+        "change_source": "app",
         "notes": request.notes,
     }).execute()
 
