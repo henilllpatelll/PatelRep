@@ -465,6 +465,18 @@ async def submit_inspection(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
+    # Capture current status before the DB trigger changes it
+    current_rs = (
+        supabase.table("room_status")
+        .select("status")
+        .eq("room_id", str(request.room_id))
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    from_status = (current_rs.data or {}).get("status", "CLEAN")
+    to_status = "DIRTY" if request.overall_result == "failed" else "INSPECTED"
+
     inspection = supabase.table("inspections").insert({
         "tenant_id": current_user.hotel_id,
         "room_id": str(request.room_id),
@@ -494,8 +506,8 @@ async def submit_inspection(
     supabase.table("room_status_history").insert({
         "room_id": str(request.room_id),
         "tenant_id": current_user.hotel_id,
-        "from_status": "CLEAN",
-        "to_status": "INSPECTED",
+        "from_status": from_status,
+        "to_status": to_status,
         "changed_by": current_user.user_id,
         "change_source": "app",
         "notes": request.notes,
