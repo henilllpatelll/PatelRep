@@ -1229,6 +1229,38 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-05-13T04:54:06.6127484-05:00"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-05-13T16:59:16.533Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 37→49 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T16:59:16.534Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-05-13T17:09:55.174Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/railway.toml",
+      "root_cause": "Had \"Dockerfile\"",
+      "fix": "Changed to \"apps/api/Dockerfile\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "toml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-13T17:09:55.174Z"
     }
   ]
 }

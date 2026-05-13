@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-12T06:00:25.029Z
-> Files: 569 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-13T17:14:54.188Z
+> Files: 572 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
@@ -9,6 +9,7 @@
 
 ## ./
 
+- `.dockerignore` — /__pycache__ (~71 tok)
 - `.gitignore` — Git ignore rules (~257 tok)
 - `BUGS.md` — Bug Fix List — Playwright Audit (2026-03-28) (~3485 tok)
 - `CLAUDE.md` — OpenWolf (~2110 tok)
@@ -915,6 +916,10 @@
 ## Docker Context Additions
 
 
+## apps/api/
+
+- `railway.toml` (~52 tok)
+
 ## apps/api/middleware/
 
 - `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~1173 tok)
@@ -922,13 +927,13 @@
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 4 endpoints (~3917 tok)
+- `ai_copilot.py` — API: 4 endpoints (~3913 tok)
 - `assets.py` — API: 12 endpoints (~4333 tok)
 - `hotels.py` — API: 5 endpoints (~2089 tok)
-- `housekeeping.py` — API: 5 endpoints (~7713 tok)
+- `housekeeping.py` — API: 5 endpoints (~7829 tok)
 - `internal.py` — API: 8 endpoints (~3214 tok)
 - `lost_found.py` — API: 5 endpoints (~1143 tok)
-- `rooms.py` — API: 6 endpoints (~4430 tok)
+- `rooms.py` — API: 6 endpoints (~4563 tok)
 - `tasks.py` — API: 7 endpoints (~2244 tok)
 - `webhooks.py` — API: 2 endpoints (~1774 tok)
 - `work_orders.py` — API: 8 endpoints (~2889 tok)
@@ -942,12 +947,16 @@
 
 - `__init__.py` (~0 tok)
 - `LOAD_TEST_REPORT.md` — PatelRep Load Test Report (~2349 tok)
-- `load_test.py` — class: get_auth_token, worker, print_report, main (~3936 tok)
+- `load_test.py` — from: get_auth_token, worker, print_report, main (~3932 tok)
 
 ## apps/api/tests/smoke/
 
 - `test_notes_regressions.py` — Regression tests for task/guest request notes mapping, guest request task_id refresh, and PostgREST schema error responses (~1900 tok)
 - `test_tenant_isolation.py` — _FakeAdminAuth: list_users, table, b_row, eq + 23 more (~6720 tok)
+
+## apps/mobile/
+
+- `package-lock.json` — npm lock file for Expo mobile dependencies, including patched transitive overrides (~260000 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
@@ -1040,10 +1049,6 @@
 
 - `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1000 tok)
 
-## apps/mobile/
-
-- `package-lock.json` — npm lock file for Expo mobile dependencies, including patched transitive overrides (~260000 tok)
-
 ## e2e/
 
 - `16-rbac.spec.ts` — RBAC smoke tests — verifies that Next.js middleware correctly blocks (~1809 tok)
@@ -1058,5 +1063,3 @@
 - `030_enable_realtime_work_orders.sql` — Enable Supabase Realtime for engineering work orders. (~53 tok)
 - `031_load_perf_indexes.sql` — ============================================================================= (~820 tok)
 - `032_work_orders_unclaimed_index.sql` — ============================================================================= (~171 tok)
-
-- `033_realtime_room_status_and_lost_found_contact.sql` - Idempotently hardens Realtime publication/replica identity for room boards and adds lost_found_items.claimed_by_contact. (~243 tok)

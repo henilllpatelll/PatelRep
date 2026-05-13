@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 1344706,
-    "total_reads": 1124,
-    "total_writes": 822,
-    "total_sessions": 51,
-    "anatomy_hits": 228,
-    "anatomy_misses": 882,
-    "repeated_reads_blocked": 447,
-    "estimated_savings_vs_bare_cli": 1036609
+    "total_tokens_estimated": 1372638,
+    "total_reads": 1135,
+    "total_writes": 828,
+    "total_sessions": 54,
+    "anatomy_hits": 234,
+    "anatomy_misses": 887,
+    "repeated_reads_blocked": 451,
+    "estimated_savings_vs_bare_cli": 1041745
   },
   "sessions": [
     {
@@ -12485,6 +12485,136 @@
         "reads_count": 9,
         "writes_count": 5,
         "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-13-1119",
+      "started": "2026-05-13T16:19:25.746Z",
+      "ended": "2026-05-13T16:20:44.542Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
+          "tokens_estimated": 3917,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 7713,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 4430,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/load/load_test.py",
+          "tokens_estimated": 3936,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
+          "tokens_estimated": 16,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 12,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/load/load_test.py",
+          "tokens_estimated": 24,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/load/load_test.py",
+          "tokens_estimated": 12,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 19996,
+        "output_tokens_estimated": 72,
+        "reads_count": 4,
+        "writes_count": 5,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-13-1134",
+      "started": "2026-05-13T16:34:15.189Z",
+      "ended": "2026-05-13T16:44:06.884Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/notes",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 7707,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/009_inspections.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/004_rooms.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/railway.toml",
+          "tokens_estimated": 63,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 94,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 7770,
+        "output_tokens_estimated": 94,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 3,
         "anatomy_lookups": 2
       }
     }
