@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest

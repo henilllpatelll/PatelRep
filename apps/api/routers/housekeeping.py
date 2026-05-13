@@ -3,7 +3,7 @@ import logging
 import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import date, datetime, timezone
+from datetime import date
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase

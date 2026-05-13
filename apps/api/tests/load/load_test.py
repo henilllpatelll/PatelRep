@@ -17,10 +17,9 @@ import asyncio
 import os
 import sys
 import argparse
-import statistics
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -145,7 +144,8 @@ async def get_auth_token(client: httpx.AsyncClient) -> tuple[str, str, str]:
     token = data["access_token"]
 
     # Decode JWT claims without verifying sig (load test only)
-    import base64, json as _json
+    import base64
+    import json as _json
     payload_b64 = token.split(".")[1]
     # Add padding
     payload_b64 += "=" * (-len(payload_b64) % 4)
