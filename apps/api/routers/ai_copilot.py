@@ -10,9 +10,11 @@ from services.ai.insights import generate_gm_insights
 import openai
 import anthropic
 import time
+import logging
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 limiter = Limiter(key_func=get_remote_address)
+logger = logging.getLogger(__name__)
 
 
 def detect_intent(message: str) -> str:
@@ -230,7 +232,8 @@ async def copilot_chat(
             success=False,
             error_message=str(exc),
         )
-        raise HTTPException(status_code=500, detail=f"AI service error: {str(exc)}")
+        logger.exception("AI copilot request failed for hotel=%s interaction=%s", current_user.hotel_id, interaction_type)
+        raise HTTPException(status_code=500, detail="AI service temporarily unavailable. Please try again later.")
 
     latency = int((time.time() - start) * 1000)
     await log_ai_interaction(

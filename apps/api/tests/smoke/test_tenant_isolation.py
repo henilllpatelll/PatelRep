@@ -14,11 +14,28 @@ Coverage:
   lost_found / logbook / sop_documents / billing subscriptions
 """
 from types import SimpleNamespace
+from datetime import date
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from jose import jwt
 
+from core.config import settings
+from main import app
 from middleware.auth import CurrentUser
-from models.requests import UpdateRoomStatusRequest, UpdateTaskRequest, UpdateWorkOrderRequest
+from models.requests import (
+    BulkShiftAssignmentItem,
+    BulkShiftAssignmentRequest,
+    CreateAssignmentsRequest,
+    CreateShiftAssignmentRequest,
+    CreateShiftRequest,
+    CreateTaskRequest,
+    CreateWorkOrderRequest,
+    RoomAssignmentItem,
+    UpdateRoomStatusRequest,
+    UpdateTaskRequest,
+    UpdateWorkOrderRequest,
+)
 from routers import rooms as rooms_router
 from routers import tasks as tasks_router
 from routers import work_orders as wo_router
@@ -28,6 +45,8 @@ from routers import lost_found as lf_router
 from routers import logbook as logbook_router
 from routers import billing as billing_router
 from routers import sop as sop_router
+from routers import housekeeping as housekeeping_router
+from routers import scheduling as scheduling_router
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +54,25 @@ from routers import sop as sop_router
 # ---------------------------------------------------------------------------
 
 USER_A = CurrentUser(user_id="user-a-1", hotel_id="hotel-a", role="gm", email="gm@hotel-a.com")
+ENGINEER_A = CurrentUser(user_id="engineer-a-1", hotel_id="hotel-a", role="engineer", email="eng@hotel-a.com")
+ROOM_B_UUID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+DEPT_B_UUID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+STAFF_B_UUID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+ASSET_B_UUID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+SHIFT_B_UUID = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+
+
+def _auth_header(role: str = "gm", hotel_id: str | None = "hotel-a", user_id: str = "user-a-1") -> dict[str, str]:
+    payload = {
+        "sub": user_id,
+        "role": role,
+        "email": f"{role}@example.com",
+        "aud": "authenticated",
+    }
+    if hotel_id is not None:
+        payload["hotel_id"] = hotel_id
+    token = jwt.encode(payload, settings.supabase_jwt_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
 
 
 # ---------------------------------------------------------------------------
@@ -42,8 +80,15 @@ USER_A = CurrentUser(user_id="user-a-1", hotel_id="hotel-a", role="gm", email="g
 # ---------------------------------------------------------------------------
 
 class _FakeAdminAuth:
+    def __init__(self):
+        self.invites = []
+
     def list_users(self):
         return []
+
+    def invite_user_by_email(self, email, options=None):
+        self.invites.append((email, options or {}))
+        return SimpleNamespace(user=SimpleNamespace(id="invited-user"))
 
 
 class _FakeAuth:
@@ -68,6 +113,13 @@ class FakeMultiTenantDB:
                     "id": "room-b-1",
                     "tenant_id": "hotel-b",
                     "room_number": "101",
+                    "floor": 1,
+                    "room_type_id": "rt-1",
+                },
+                {
+                    "id": ROOM_B_UUID,
+                    "tenant_id": "hotel-b",
+                    "room_number": "102",
                     "floor": 1,
                     "room_type_id": "rt-1",
                 },
@@ -152,6 +204,16 @@ class FakeMultiTenantDB:
                     "department_id": None,
                     "created_at": "2026-01-01T00:00:00+00:00",
                 },
+                {
+                    "id": "ur-b-2",
+                    "tenant_id": "hotel-b",
+                    "user_id": STAFF_B_UUID,
+                    "role": "housekeeper",
+                    "is_active": True,
+                    "custom_role_id": None,
+                    "department_id": DEPT_B_UUID,
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                },
             ],
             "user_profiles": [],
             "subscriptions": [
@@ -166,7 +228,30 @@ class FakeMultiTenantDB:
             "custom_roles": [],
             "staff_role_schedules": [],
             "staff_invitations": [],
-            "departments": [],
+            "departments": [
+                {
+                    "id": DEPT_B_UUID,
+                    "tenant_id": "hotel-b",
+                    "name": "Hotel B Housekeeping",
+                    "code": "HK",
+                },
+            ],
+            "assets": [
+                {
+                    "id": ASSET_B_UUID,
+                    "tenant_id": "hotel-b",
+                    "name": "Hotel B PTAC",
+                },
+            ],
+            "shifts": [
+                {
+                    "id": SHIFT_B_UUID,
+                    "tenant_id": "hotel-b",
+                    "name": "Hotel B AM",
+                },
+            ],
+            "room_assignments": [],
+            "shift_assignments": [],
         }
         # Audit log — test assertions use these to prove no Hotel B mutation occurred
         self.inserts: list[tuple[str, dict]] = []
@@ -375,6 +460,27 @@ async def test_tasks_list_returns_empty_for_hotel_a(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_tasks_create_rejects_cross_tenant_references(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(tasks_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await tasks_router.create_task(
+            CreateTaskRequest(
+                title="Inspect room",
+                task_type="housekeeping",
+                room_id=ROOM_B_UUID,
+                department_id=DEPT_B_UUID,
+                assigned_to=STAFF_B_UUID,
+            ),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "tasks"]
+
+
+@pytest.mark.asyncio
 async def test_tasks_get_hotel_b_raises_404(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(tasks_router, "supabase", db)
@@ -431,6 +537,27 @@ async def test_work_orders_list_returns_empty_for_hotel_a(monkeypatch):
     )
 
     assert result["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_work_orders_create_rejects_cross_tenant_references(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(wo_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await wo_router.create_work_order(
+            CreateWorkOrderRequest(
+                title="Fix AC",
+                category="hvac",
+                room_id=ROOM_B_UUID,
+                asset_id=ASSET_B_UUID,
+                assigned_to=STAFF_B_UUID,
+            ),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "work_orders"]
 
 
 @pytest.mark.asyncio
@@ -503,6 +630,91 @@ async def test_work_orders_delete_hotel_b_raises_404_and_leaves_data_intact(monk
     assert db.b_row("work_orders", "wo-b-1") is not None
 
 
+@pytest.mark.asyncio
+async def test_engineer_cannot_update_work_order_assigned_to_someone_else(monkeypatch):
+    db = FakeMultiTenantDB()
+    db._rows["work_orders"].append({
+        "id": "wo-a-assigned-other",
+        "tenant_id": "hotel-a",
+        "title": "Assigned to someone else",
+        "status": "in_progress",
+        "priority": "normal",
+        "assigned_to": "engineer-a-2",
+    })
+    monkeypatch.setattr(wo_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await wo_router.update_work_order(
+            "wo-a-assigned-other",
+            UpdateWorkOrderRequest(priority="urgent"),
+            current_user=ENGINEER_A,
+        )
+
+    assert exc.value.status_code == 403
+    assert db.b_row("work_orders", "wo-a-assigned-other")["priority"] == "normal"
+
+
+@pytest.mark.asyncio
+async def test_engineer_can_update_unassigned_open_work_order(monkeypatch):
+    db = FakeMultiTenantDB()
+    db._rows["work_orders"].append({
+        "id": "wo-a-open",
+        "tenant_id": "hotel-a",
+        "title": "Open work order",
+        "status": "open",
+        "priority": "normal",
+        "assigned_to": None,
+    })
+    monkeypatch.setattr(wo_router, "supabase", db)
+
+    response = await wo_router.update_work_order(
+        "wo-a-open",
+        UpdateWorkOrderRequest(priority="urgent"),
+        current_user=ENGINEER_A,
+    )
+
+    assert response["data"]["priority"] == "urgent"
+
+
+@pytest.mark.asyncio
+async def test_engineer_cannot_complete_unassigned_work_order(monkeypatch):
+    from models.requests import CompleteWorkOrderRequest
+    db = FakeMultiTenantDB()
+    db._rows["work_orders"].append({
+        "id": "wo-a-open",
+        "tenant_id": "hotel-a",
+        "title": "Open work order",
+        "status": "open",
+        "priority": "normal",
+        "assigned_to": None,
+    })
+    monkeypatch.setattr(wo_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await wo_router.complete_work_order(
+            "wo-a-open",
+            CompleteWorkOrderRequest(notes="done"),
+            current_user=ENGINEER_A,
+        )
+
+    assert exc.value.status_code == 403
+    assert db.b_row("work_orders", "wo-a-open")["status"] == "open"
+
+
+def test_engineer_cannot_delete_work_order(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(wo_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.delete(
+        "/v1/work-orders/wo-b-1",
+        headers=_auth_header(role="engineer", hotel_id="hotel-a", user_id="engineer-a-1"),
+    )
+
+    assert response.status_code == 403
+    assert db.deletes == []
+
+
 # ===========================================================================
 # Staff
 # ===========================================================================
@@ -518,6 +730,188 @@ async def test_staff_list_hotel_a_sees_no_hotel_b_staff(monkeypatch):
 
     assert result["data"]["staff"] == []
     assert result["data"]["total"] == 0
+
+
+def test_staff_invite_rejects_non_gm_before_insert(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(staff_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/staff/invite",
+        headers=_auth_header(role="housekeeper", hotel_id="hotel-a"),
+        json={
+            "email": "new-gm@example.com",
+            "full_name": "New GM",
+            "role": "gm",
+            "hotel_id": "hotel-b",
+        },
+    )
+
+    assert response.status_code == 403
+    assert db.inserts == []
+
+
+def test_staff_invite_uses_jwt_hotel_not_body_hotel(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(staff_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/staff/invite",
+        headers=_auth_header(role="gm", hotel_id="hotel-a"),
+        json={
+            "email": "housekeeper@example.com",
+            "full_name": "Hotel A Housekeeper",
+            "role": "housekeeper",
+            "hotel_id": "hotel-b",
+        },
+    )
+
+    assert response.status_code == 200
+    assert db.inserts[0][0] == "staff_invitations"
+    assert db.inserts[0][1]["tenant_id"] == "hotel-a"
+
+
+def test_onboarding_invite_requires_active_gm_ownership(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(staff_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/staff/onboarding-invite",
+        headers=_auth_header(role="none", hotel_id=None, user_id="user-a-1"),
+        json={
+            "email": "housekeeper@example.com",
+            "full_name": "Hotel B Housekeeper",
+            "role": "housekeeper",
+            "hotel_id": "hotel-b",
+        },
+    )
+
+    assert response.status_code == 403
+    assert db.inserts == []
+
+
+def test_onboarding_invite_allows_new_hotel_owner(monkeypatch):
+    db = FakeMultiTenantDB()
+    db._rows["user_roles"].append({
+        "id": "ur-a-1",
+        "tenant_id": "hotel-a",
+        "user_id": "user-a-1",
+        "role": "gm",
+        "is_active": True,
+        "custom_role_id": None,
+        "department_id": None,
+        "created_at": "2026-01-01T00:00:00+00:00",
+    })
+    monkeypatch.setattr(staff_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/staff/onboarding-invite",
+        headers=_auth_header(role="none", hotel_id=None, user_id="user-a-1"),
+        json={
+            "email": "housekeeper@example.com",
+            "full_name": "Hotel A Housekeeper",
+            "role": "housekeeper",
+            "hotel_id": "hotel-a",
+        },
+    )
+
+    assert response.status_code == 200
+    assert db.inserts[0][0] == "staff_invitations"
+    assert db.inserts[0][1]["tenant_id"] == "hotel-a"
+
+
+# ===========================================================================
+# Housekeeping Assignments
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_housekeeping_assignment_rejects_cross_tenant_room_and_housekeeper(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await housekeeping_router.create_assignments(
+            CreateAssignmentsRequest(
+                date=date(2026, 5, 14),
+                assignments=[
+                    RoomAssignmentItem(room_id=ROOM_B_UUID, housekeeper_id=STAFF_B_UUID)
+                ],
+            ),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "room_assignments"]
+
+
+# ===========================================================================
+# Scheduling
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_shift_rejects_cross_tenant_department(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(scheduling_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await scheduling_router.create_shift(
+            CreateShiftRequest(
+                name="AM",
+                department_id=DEPT_B_UUID,
+                start_time="07:00:00",
+                end_time="15:00:00",
+            ),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "shifts"]
+
+
+@pytest.mark.asyncio
+async def test_create_shift_assignment_rejects_cross_tenant_user_and_shift(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(scheduling_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await scheduling_router.create_shift_assignment(
+            CreateShiftAssignmentRequest(
+                user_id=STAFF_B_UUID,
+                shift_id=SHIFT_B_UUID,
+                work_date=date(2026, 5, 14),
+            ),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "shift_assignments"]
+
+
+@pytest.mark.asyncio
+async def test_bulk_shift_assignment_rejects_cross_tenant_user_and_shift(monkeypatch):
+    db = FakeMultiTenantDB()
+    monkeypatch.setattr(scheduling_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await scheduling_router.bulk_create_assignments(
+            BulkShiftAssignmentRequest(assignments=[
+                BulkShiftAssignmentItem(
+                    user_id=STAFF_B_UUID,
+                    shift_id=SHIFT_B_UUID,
+                    work_date=date(2026, 5, 14),
+                )
+            ]),
+            current_user=USER_A,
+        )
+
+    assert exc.value.status_code == 404
+    assert not [i for i in db.inserts if i[0] == "shift_assignments"]
 
 
 # ===========================================================================

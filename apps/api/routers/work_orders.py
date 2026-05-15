@@ -12,6 +12,58 @@ router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
 
 
+def _ensure_engineer_can_update_work_order(current_user: CurrentUser, work_order: dict, update_data: dict | None = None) -> None:
+    if current_user.role != "engineer":
+        return
+
+    assigned_to = work_order.get("assigned_to")
+    is_assigned_to_me = assigned_to == current_user.user_id
+    is_claimable = assigned_to is None and work_order.get("status") == "open"
+
+    if not (is_assigned_to_me or is_claimable):
+        raise HTTPException(status_code=403, detail="Engineers can only update assigned or unassigned open work orders")
+
+    if update_data and "assigned_to" in update_data and update_data["assigned_to"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Engineers cannot reassign work orders to another user")
+
+
+def _ensure_engineer_can_complete_work_order(current_user: CurrentUser, work_order: dict) -> None:
+    if current_user.role == "engineer" and work_order.get("assigned_to") != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Engineers can only complete work orders assigned to them")
+
+
+def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
+    result = supabase.table(table)\
+        .select("id")\
+        .eq("id", row_id)\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _ensure_tenant_staff(user_id: str, hotel_id: str, label: str = "Staff member") -> None:
+    result = supabase.table("user_roles")\
+        .select("id")\
+        .eq("user_id", user_id)\
+        .eq("tenant_id", hotel_id)\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _validate_work_order_references(request: CreateWorkOrderRequest, hotel_id: str) -> None:
+    if request.room_id:
+        _ensure_tenant_row("rooms", str(request.room_id), hotel_id, "Room")
+    if request.asset_id:
+        _ensure_tenant_row("assets", str(request.asset_id), hotel_id, "Asset")
+    if request.assigned_to:
+        _ensure_tenant_staff(str(request.assigned_to), hotel_id)
+
+
 @router.post("")
 async def create_work_order(
     request: CreateWorkOrderRequest,
@@ -19,6 +71,7 @@ async def create_work_order(
 ):
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = datetime.now(timezone.utc) + timedelta(minutes=sla)
+    _validate_work_order_references(request, current_user.hotel_id)
 
     wo_data = {
         "tenant_id": current_user.hotel_id,
@@ -176,13 +229,14 @@ async def complete_work_order(
     current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
 ):
     wo_check = supabase.table("work_orders")\
-        .select("id")\
+        .select("id, assigned_to")\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
         .execute()
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
+    _ensure_engineer_can_complete_work_order(current_user, wo_check.data)
 
     result = supabase.table("work_orders")\
         .update({
@@ -202,13 +256,13 @@ async def complete_work_order(
 async def update_work_order(
     wo_id: str,
     request: UpdateWorkOrderRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
 ):
     if request.status == "cancelled" and current_user.role not in ("gm", "chief_engineer"):
         raise HTTPException(status_code=403, detail="Only GM or Chief Engineer can cancel work orders")
 
     wo_check = supabase.table("work_orders")\
-        .select("id")\
+        .select("id, assigned_to, status")\
         .eq("id", wo_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .maybe_single()\
@@ -219,6 +273,14 @@ async def update_work_order(
     update_data = request.model_dump(exclude_none=True)
     if "assigned_to" in update_data:
         update_data["assigned_to"] = str(update_data["assigned_to"])
+        _ensure_tenant_staff(update_data["assigned_to"], current_user.hotel_id)
+    if "room_id" in update_data:
+        update_data["room_id"] = str(update_data["room_id"])
+        _ensure_tenant_row("rooms", update_data["room_id"], current_user.hotel_id, "Room")
+    if "asset_id" in update_data:
+        update_data["asset_id"] = str(update_data["asset_id"])
+        _ensure_tenant_row("assets", update_data["asset_id"], current_user.hotel_id, "Asset")
+    _ensure_engineer_can_update_work_order(current_user, wo_check.data, update_data)
 
     result = supabase.table("work_orders") \
         .update(update_data) \
@@ -231,7 +293,7 @@ async def update_work_order(
 @router.delete("/{wo_id}", status_code=204)
 async def delete_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm"))
 ):
     wo_check = supabase.table("work_orders") \
         .select("id") \

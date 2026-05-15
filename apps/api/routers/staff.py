@@ -162,26 +162,12 @@ async def list_invitations(
     return {"data": {"invitations": invitations, "total": len(invitations)}}
 
 
-@router.post("/invite")
-async def invite_staff(
-    body: InviteStaffRequest,
-    current_user: CurrentUser = Depends(get_current_user_no_hotel)
-):
-    """
-    Invite a new staff member by email.
-    - Inserts a record into staff_invitations (token and expires_at use DB defaults).
-    - Sends the invite email via Supabase Auth admin API.
-    - If the user already exists in auth, the invitation record is still created.
-    """
-    # hotel_id comes from JWT claims (normal flow) or request body (onboarding wizard)
-    hotel_id = current_user.hotel_id or body.hotel_id
-    if not hotel_id:
-        raise HTTPException(status_code=400, detail="hotel_id required")
+def _create_staff_invitation(body: InviteStaffRequest, hotel_id: str, invited_by: str):
     invitation_row = {
         "tenant_id": hotel_id,
         "email": body.email,
         "role": body.role,
-        "invited_by": current_user.user_id,
+        "invited_by": invited_by,
     }
     if body.department_id is not None:
         invitation_row["department_id"] = str(body.department_id)
@@ -193,8 +179,6 @@ async def invite_staff(
 
     invitation = inv_result.data[0]
 
-    # Send the actual invite email via Supabase Auth admin API.
-    # If the user already exists the API raises an exception; we catch it and continue.
     user_metadata: dict = {
         "hotel_id": hotel_id,
         "role": body.role,
@@ -212,6 +196,49 @@ async def invite_staff(
         # User may already exist in Supabase Auth; invitation record is still valid.
         pass
 
+    return invitation
+
+
+@router.post("/invite")
+async def invite_staff(
+    body: InviteStaffRequest,
+    current_user: CurrentUser = Depends(require_role("gm"))
+):
+    """
+    Invite a new staff member by email.
+    - Inserts a record into staff_invitations (token and expires_at use DB defaults).
+    - Sends the invite email via Supabase Auth admin API.
+    - If the user already exists in auth, the invitation record is still created.
+    """
+    invitation = _create_staff_invitation(body, current_user.hotel_id, current_user.user_id)
+    return {"data": invitation}
+
+
+@router.post("/onboarding-invite")
+async def invite_staff_during_onboarding(
+    body: InviteStaffRequest,
+    current_user: CurrentUser = Depends(get_current_user_no_hotel)
+):
+    """
+    Invite staff during first-run onboarding before the user's refreshed JWT has hotel_id.
+    The body hotel_id is accepted only after proving this caller is that hotel's active GM.
+    """
+    if not body.hotel_id:
+        raise HTTPException(status_code=400, detail="hotel_id required")
+
+    owner_role = supabase.table("user_roles")\
+        .select("id")\
+        .eq("tenant_id", body.hotel_id)\
+        .eq("user_id", current_user.user_id)\
+        .eq("role", "gm")\
+        .eq("is_active", True)\
+        .maybe_single()\
+        .execute()
+
+    if not owner_role or not owner_role.data:
+        raise HTTPException(status_code=403, detail="Not authorized to invite staff for this hotel")
+
+    invitation = _create_staff_invitation(body, body.hotel_id, current_user.user_id)
     return {"data": invitation}
 
 

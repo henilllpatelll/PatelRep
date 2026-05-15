@@ -13,6 +13,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/housekeeping", tags=["housekeeping"])
 
 
+def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
+    result = supabase.table(table)\
+        .select("id")\
+        .eq("id", row_id)\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _ensure_housekeeper(user_id: str, hotel_id: str) -> None:
+    result = supabase.table("user_roles")\
+        .select("id")\
+        .eq("user_id", user_id)\
+        .eq("tenant_id", hotel_id)\
+        .eq("role", "housekeeper")\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Housekeeper not found")
+
+
 # ---------------------------------------------------------------------------
 # GET /housekeeping/board
 # ---------------------------------------------------------------------------
@@ -237,6 +261,12 @@ async def create_assignments(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
+    if request.shift_id:
+        _ensure_tenant_row("shifts", str(request.shift_id), current_user.hotel_id, "Shift")
+    for assignment in request.assignments:
+        _ensure_tenant_row("rooms", str(assignment.room_id), current_user.hotel_id, "Room")
+        _ensure_housekeeper(str(assignment.housekeeper_id), current_user.hotel_id)
+
     assignments_data = [
         {
             "tenant_id": current_user.hotel_id,

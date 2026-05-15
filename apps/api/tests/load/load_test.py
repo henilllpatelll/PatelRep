@@ -8,19 +8,24 @@ Usage (from repo root):
     python apps/api/tests/load/load_test.py                        # 30 workers, 30s
     python apps/api/tests/load/load_test.py --workers 50 --duration 60
     python apps/api/tests/load/load_test.py --api http://localhost:8000
+    python apps/api/tests/load/load_test.py --auth-state e2e/.auth/state.json
 
 Needs env vars (or .env in apps/api/):
     SUPABASE_URL  SUPABASE_ANON_KEY  TEST_EMAIL  TEST_PASSWORD
+Or a fresh Playwright storage state with a Supabase access token.
 """
 
 import asyncio
 import os
 import sys
 import argparse
+import base64
+import json
 import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote
 
 import httpx
 
@@ -44,7 +49,7 @@ _load_dotenv(_repo_root / "apps" / "web" / ".env.production")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", ""))
 TEST_EMAIL = os.environ.get("TEST_EMAIL", "hp.patelrep@gmail.com")
-TEST_PASSWORD = os.environ.get("TEST_PASSWORD", "PatelRep2026x")
+TEST_PASSWORD = os.environ.get("TEST_PASSWORD", "")
 
 
 # ---------------------------------------------------------------------------
@@ -119,38 +124,207 @@ ROLE_DISTRIBUTION = [
 # Auth
 # ---------------------------------------------------------------------------
 
-async def get_auth_token(client: httpx.AsyncClient) -> tuple[str, str, str]:
-    """Authenticate with Supabase and return (access_token, hotel_id, user_id)."""
-    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-        print("ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set.", file=sys.stderr)
-        print("  Set them in apps/api/.env or as environment variables.", file=sys.stderr)
-        sys.exit(1)
+def _decode_jwt_claims(token: str) -> dict:
+    payload_b64 = token.split(".")[1]
+    payload_b64 += "=" * (-len(payload_b64) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload_b64))
 
+
+def _find_access_token(value) -> str | None:
+    if isinstance(value, dict):
+        direct = value.get("access_token")
+        if isinstance(direct, str) and direct.count(".") == 2:
+            return direct
+        for child in value.values():
+            token = _find_access_token(child)
+            if token:
+                return token
+    elif isinstance(value, list):
+        for child in value:
+            token = _find_access_token(child)
+            if token:
+                return token
+    elif isinstance(value, str):
+        text = unquote(value)
+        if text.count(".") == 2 and text.startswith("ey"):
+            return text
+        if text.startswith("base64-"):
+            try:
+                text = base64.b64decode(text.removeprefix("base64-")).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                return None
+        if text[:1] in "[{":
+            try:
+                return _find_access_token(json.loads(text))
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def _find_supabase_session(value) -> dict | None:
+    if isinstance(value, dict):
+        access_token = value.get("access_token")
+        refresh_token = value.get("refresh_token")
+        if isinstance(access_token, str) and isinstance(refresh_token, str):
+            return {"access_token": access_token, "refresh_token": refresh_token}
+        for child in value.values():
+            session = _find_supabase_session(child)
+            if session:
+                return session
+    elif isinstance(value, list):
+        for child in value:
+            session = _find_supabase_session(child)
+            if session:
+                return session
+    elif isinstance(value, str):
+        text = unquote(value)
+        if text.startswith("base64-"):
+            try:
+                text = base64.b64decode(text.removeprefix("base64-")).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                return None
+        if text[:1] in "[{":
+            try:
+                return _find_supabase_session(json.loads(text))
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def _session_from_auth_state(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    state = json.loads(path.read_text(encoding="utf-8"))
+
+    for origin in state.get("origins", []):
+        for item in origin.get("localStorage", []):
+            session = _find_supabase_session(item.get("value"))
+            if session:
+                return session
+
+    for cookie in state.get("cookies", []):
+        session = _find_supabase_session(cookie.get("value"))
+        if session:
+            return session
+
+    return None
+
+
+def _merge_session_tokens(value, session: dict) -> bool:
+    if isinstance(value, dict):
+        if isinstance(value.get("access_token"), str) and isinstance(value.get("refresh_token"), str):
+            value["access_token"] = session["access_token"]
+            if session.get("refresh_token"):
+                value["refresh_token"] = session["refresh_token"]
+            return True
+        return any(_merge_session_tokens(child, session) for child in value.values())
+    if isinstance(value, list):
+        return any(_merge_session_tokens(child, session) for child in value)
+    return False
+
+
+def _persist_refreshed_auth_state(path: Path | None, session: dict) -> None:
+    if not path or not path.exists() or not session.get("access_token"):
+        return
+
+    state = json.loads(path.read_text(encoding="utf-8"))
+    changed = False
+    for origin in state.get("origins", []):
+        for item in origin.get("localStorage", []):
+            raw = item.get("value")
+            if not isinstance(raw, str):
+                continue
+            try:
+                parsed = json.loads(unquote(raw))
+            except json.JSONDecodeError:
+                continue
+            if _merge_session_tokens(parsed, session):
+                item["value"] = json.dumps(parsed, separators=(",", ":"))
+                changed = True
+
+    if changed:
+        path.write_text(json.dumps(state, separators=(",", ":")), encoding="utf-8")
+
+
+def _token_from_auth_state(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    state = json.loads(path.read_text(encoding="utf-8"))
+
+    for origin in state.get("origins", []):
+        for item in origin.get("localStorage", []):
+            token = _find_access_token(item.get("value"))
+            if token:
+                return token
+
+    for cookie in state.get("cookies", []):
+        token = _find_access_token(cookie.get("value"))
+        if token:
+            return token
+
+    return None
+
+
+async def _refresh_session(client: httpx.AsyncClient, refresh_token: str) -> dict | None:
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return None
     resp = await client.post(
-        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+        f"{SUPABASE_URL}/auth/v1/token?grant_type=refresh_token",
         headers={
             "apikey": SUPABASE_ANON_KEY,
             "Content-Type": "application/json",
         },
-        json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+        json={"refresh_token": refresh_token},
         timeout=15,
     )
-
     if resp.status_code != 200:
-        print(f"ERROR: Auth failed {resp.status_code}: {resp.text[:300]}", file=sys.stderr)
-        sys.exit(1)
-
+        return None
     data = resp.json()
-    token = data["access_token"]
+    if not data.get("access_token"):
+        return None
+    return data
 
-    # Decode JWT claims without verifying sig (load test only)
-    import base64
-    import json as _json
-    payload_b64 = token.split(".")[1]
-    # Add padding
-    payload_b64 += "=" * (-len(payload_b64) % 4)
-    claims = _json.loads(base64.b64decode(payload_b64))
 
+async def get_auth_token(client: httpx.AsyncClient, auth_state: Path | None = None) -> tuple[str, str, str]:
+    """Authenticate with Supabase and return (access_token, hotel_id, user_id)."""
+    if TEST_PASSWORD:
+        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+            print("ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set.", file=sys.stderr)
+            print("  Set them in apps/api/.env or as environment variables.", file=sys.stderr)
+            sys.exit(1)
+
+        resp = await client.post(
+            f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Content-Type": "application/json",
+            },
+            json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+            timeout=15,
+        )
+
+        if resp.status_code != 200:
+            print(f"ERROR: Auth failed {resp.status_code}: {resp.text[:300]}", file=sys.stderr)
+            sys.exit(1)
+
+        token = resp.json()["access_token"]
+    else:
+        session = _session_from_auth_state(auth_state) if auth_state else None
+        token = None
+        if session and session.get("refresh_token"):
+            refreshed = await _refresh_session(client, session["refresh_token"])
+            if refreshed:
+                _persist_refreshed_auth_state(auth_state, refreshed)
+                token = refreshed["access_token"]
+        if not token:
+            token = session.get("access_token") if session else None
+        if not token:
+            token = _token_from_auth_state(auth_state) if auth_state else None
+        if not token:
+            print("ERROR: TEST_PASSWORD must be set, or pass --auth-state with a fresh Playwright storage state.", file=sys.stderr)
+            sys.exit(1)
+
+    claims = _decode_jwt_claims(token)
     hotel_id = claims.get("hotel_id") or claims.get("user_metadata", {}).get("hotel_id", "")
     user_id = claims.get("sub", "")
 
@@ -314,11 +488,13 @@ async def main():
     parser.add_argument("--duration", type=int, default=30, help="Test duration in seconds (default: 30)")
     parser.add_argument("--api", default="https://api-production-130b.up.railway.app",
                         help="API base URL (default: Railway production)")
+    parser.add_argument("--auth-state", default=str(_repo_root / "e2e" / ".auth" / "state.json"),
+                        help="Playwright storage state to use when TEST_PASSWORD is not set")
     args = parser.parse_args()
 
     print(f"Authenticating against Supabase at {SUPABASE_URL or '(not set)'}...")
     async with httpx.AsyncClient() as client:
-        token, hotel_id, user_id = await get_auth_token(client)
+        token, hotel_id, user_id = await get_auth_token(client, Path(args.auth_state))
 
     print(f"  hotel_id={hotel_id}  user_id={user_id[:8]}...")
     print(f"\nTarget API: {args.api}")

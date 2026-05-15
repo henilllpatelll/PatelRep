@@ -62,7 +62,8 @@ def _decode_token(token: str) -> dict:
             audience="authenticated"
         )
     except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        logger.warning("JWT verification failed: %s", e)
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 async def get_current_user(
@@ -132,4 +133,3 @@ def require_role(*roles: str):
             )
         return current_user
     return check_role
-

@@ -1,9 +1,11 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from pathlib import Path
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=str(Path(__file__).parent.parent / ".env"))
+
     # Supabase
     supabase_url: str
     supabase_service_role_key: str
@@ -31,9 +33,6 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
-
-    class Config:
-        env_file = str(Path(__file__).parent.parent / ".env")
 
 
 @lru_cache()

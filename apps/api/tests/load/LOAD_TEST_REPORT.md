@@ -214,3 +214,26 @@ index and return in well under 1s.
 Tasks, notifications, and reports show monotonic improvement across all three runs â€”
 these are the clean index wins. Board, guest-requests, and work-orders fluctuate with
 pool state; their best-case numbers (Run 2) represent the code-level ceiling.
+
+---
+
+## Run 4 — Auth-State Simulation Smoke (2026-05-14)
+
+**Command:** `python tests/load/load_test.py --workers 20 --duration 30` from `apps/api`.
+
+The simulator used the saved Playwright storage state (`e2e/.auth/state.json`) and refreshed the Supabase session before traffic, so no test password was required.
+
+| Metric | Result |
+|---|---:|
+| Workers | 20 |
+| Duration | 32.3s elapsed |
+| Requests | 297 |
+| RPS | 9.2 |
+| 5xx / connection errors | 0 (0.0%) |
+| 4xx | 53 (17.8%) |
+| Overall p50 | 411ms |
+| Overall p95 | 3527ms |
+| Overall p99 | 5359ms |
+| Overall 2xx | 82% |
+
+All 4xx responses were from `GET /housekeeping/my-rooms` using the GM browser token. This matches the existing harness limitation: the smoke run validates production stability and common list endpoints, but true per-role assignment simulation still needs real housekeeper/engineer/front-desk tokens.

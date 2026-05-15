@@ -1,6 +1,7 @@
 import logging
 import openai
 import anthropic
+import re
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import SOPQueryRequest
@@ -10,6 +11,36 @@ from services.ai.sop_rag import index_sop_document, query_sop
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sop", tags=["sop"])
+
+MAX_SOP_UPLOAD_BYTES = 10 * 1024 * 1024
+READ_CHUNK_BYTES = 1024 * 1024
+SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._ -]")
+
+
+def _sanitize_pdf_filename(filename: str | None) -> str:
+    if not filename:
+        raise HTTPException(status_code=400, detail="A PDF filename is required.")
+    if "/" in filename or "\\" in filename or any(ord(ch) < 32 for ch in filename):
+        raise HTTPException(status_code=400, detail="PDF filename contains unsupported characters.")
+
+    safe_name = SAFE_FILENAME_RE.sub("_", filename).strip(" .")
+    if not safe_name or not safe_name.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only .pdf files are supported.")
+    return safe_name
+
+
+async def _read_limited_upload(file: UploadFile) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_SOP_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="PDF is too large. Maximum size is 10 MB.")
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 # ---------------------------------------------------------------------------
@@ -48,10 +79,12 @@ async def upload_sop_document(
         require_role("gm", "housekeeping_supervisor", "chief_engineer")
     ),
 ):
+    safe_filename = _sanitize_pdf_filename(file.filename)
+
     # Validate PDF
     is_pdf = (
         (file.content_type and "pdf" in file.content_type.lower())
-        or (file.filename and file.filename.lower().endswith(".pdf"))
+        or safe_filename.lower().endswith(".pdf")
     )
     if not is_pdf:
         raise HTTPException(
@@ -59,10 +92,10 @@ async def upload_sop_document(
             detail="Only PDF files are supported. Please upload a .pdf file.",
         )
 
-    content: bytes = await file.read()
+    content: bytes = await _read_limited_upload(file)
 
     # Upload to Supabase Storage
-    storage_path = f"sop-documents/{current_user.hotel_id}/{file.filename}"
+    storage_path = f"sop-documents/{current_user.hotel_id}/{safe_filename}"
     try:
         supabase.storage.from_("sop-documents").upload(
             storage_path,
@@ -71,7 +104,7 @@ async def upload_sop_document(
         )
     except Exception as e:
         logger.error("SOP storage upload failed for hotel=%s file=%s: %s",
-                     current_user.hotel_id, file.filename, e)
+                     current_user.hotel_id, safe_filename, e)
         raise HTTPException(status_code=500, detail="Failed to upload PDF. Please try again.")
 
     # Create the document record with pending status

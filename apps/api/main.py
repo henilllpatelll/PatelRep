@@ -80,7 +80,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.get("/health")
 async def health():
     db_ok = True
-    db_error = None
     try:
         # Quick ping to check DB connectivity (rooms is confirmed accessible)
         from core.database import supabase
@@ -88,12 +87,12 @@ async def health():
         db_ok = True
     except Exception as e:
         db_ok = False
-        db_error = str(e)[:300]
+        logger.warning("Health database ping failed: %s", e)
 
     return {
         "status": "ok" if db_ok else "degraded",
         "env": settings.app_env,
-        "db": "ok" if db_ok else f"error: {db_error}",
+        "db": "ok" if db_ok else "unavailable",
         "version": "1.0.0",
     }
 

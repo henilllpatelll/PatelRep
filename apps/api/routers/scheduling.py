@@ -15,6 +15,34 @@ router = APIRouter(prefix="/schedules", tags=["scheduling"])
 SUPERVISOR_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")
 
 
+def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
+    result = supabase.table(table)\
+        .select("id")\
+        .eq("id", row_id)\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _ensure_tenant_staff(user_id: str, hotel_id: str) -> None:
+    result = supabase.table("user_roles")\
+        .select("id")\
+        .eq("user_id", user_id)\
+        .eq("tenant_id", hotel_id)\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+
+def _validate_shift_assignment(user_id: str, shift_id: str, hotel_id: str) -> None:
+    _ensure_tenant_staff(user_id, hotel_id)
+    _ensure_tenant_row("shifts", shift_id, hotel_id, "Shift")
+
+
 # ---------------------------------------------------------------------------
 # Shifts
 # ---------------------------------------------------------------------------
@@ -46,6 +74,7 @@ async def create_shift(
     current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES))
 ):
     """Create a new shift definition."""
+    _ensure_tenant_row("departments", str(body.department_id), current_user.hotel_id, "Department")
     shift_data = {
         "tenant_id": current_user.hotel_id,
         "name": body.name,
@@ -153,6 +182,7 @@ async def create_shift_assignment(
     current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES))
 ):
     """Assign a staff member to a shift on a specific date."""
+    _validate_shift_assignment(str(request.user_id), str(request.shift_id), current_user.hotel_id)
     result = supabase.table("shift_assignments").insert({
         "tenant_id": current_user.hotel_id,
         "user_id": str(request.user_id),
@@ -171,6 +201,9 @@ async def bulk_create_assignments(
     Bulk create/upsert shift assignments.
     Conflict resolution: on duplicate (user_id + shift_id + work_date) the existing row is updated.
     """
+    for item in body.assignments:
+        _validate_shift_assignment(str(item.user_id), str(item.shift_id), current_user.hotel_id)
+
     rows = [
         {
             "tenant_id": current_user.hotel_id,

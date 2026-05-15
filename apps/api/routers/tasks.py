@@ -22,6 +22,38 @@ TASK_UPDATE_COLUMNS = {
 }
 
 
+def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
+    result = supabase.table(table)\
+        .select("id")\
+        .eq("id", row_id)\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _ensure_tenant_staff(user_id: str, hotel_id: str, label: str = "Staff member") -> None:
+    result = supabase.table("user_roles")\
+        .select("id")\
+        .eq("user_id", user_id)\
+        .eq("tenant_id", hotel_id)\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found")
+
+
+def _validate_task_references(request: CreateTaskRequest, hotel_id: str) -> None:
+    if request.room_id:
+        _ensure_tenant_row("rooms", str(request.room_id), hotel_id, "Room")
+    if request.department_id:
+        _ensure_tenant_row("departments", str(request.department_id), hotel_id, "Department")
+    if request.assigned_to:
+        _ensure_tenant_staff(str(request.assigned_to), hotel_id)
+
+
 @router.post("")
 async def create_task(
     request: CreateTaskRequest,
@@ -39,6 +71,7 @@ async def create_task(
 
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = request.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla))
+    _validate_task_references(request, current_user.hotel_id)
 
     task_data = {
         "tenant_id": current_user.hotel_id,
@@ -119,6 +152,7 @@ async def update_task(
     update_data = {k: v for k, v in raw_update.items() if k in TASK_UPDATE_COLUMNS}
     if "assigned_to" in update_data:
         update_data["assigned_to"] = str(update_data["assigned_to"])
+        _ensure_tenant_staff(update_data["assigned_to"], current_user.hotel_id)
     if "due_at" in update_data and hasattr(update_data["due_at"], "isoformat"):
         update_data["due_at"] = update_data["due_at"].isoformat()
 
