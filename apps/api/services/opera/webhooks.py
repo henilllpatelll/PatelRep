@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from core.database import supabase
 
 
@@ -28,7 +28,7 @@ def handle_checkout(hotel_id: str, payload: dict) -> None:
         "checkout_time": None,
         "vip_flag": False,
         "dnd_flag": False,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }).eq("room_id", room_id).execute()
 
     supabase.table("room_status_history").insert({
@@ -61,7 +61,7 @@ def handle_checkin(hotel_id: str, payload: dict) -> None:
     supabase.table("room_status").update({
         "guest_name": guest_name or None,
         "vip_flag": vip_flag,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }).eq("room_id", room_id).execute()
 
     reservation_id = reservation.get("reservationId")
@@ -75,7 +75,7 @@ def handle_checkin(hotel_id: str, payload: dict) -> None:
             "guest_email": guest.get("email"),
             "vip_code": guest.get("vipCode"),
             "status": "CHECKED_IN",
-            "synced_at": datetime.utcnow().isoformat(),
+            "synced_at": datetime.now(timezone.utc).isoformat(),
         }, on_conflict="tenant_id,opera_reservation_id").execute()
 
 
@@ -98,7 +98,7 @@ def handle_reservation_modified(hotel_id: str, payload: dict) -> None:
     if reservation.get("departureDateTime"):
         updates["checkout_time"] = reservation["departureDateTime"]
     if updates:
-        updates["updated_at"] = datetime.utcnow().isoformat()
+        updates["updated_at"] = datetime.now(timezone.utc).isoformat()
         supabase.table("room_status").update(updates)\
             .eq("room_id", room.data["id"]).execute()
 
@@ -115,7 +115,7 @@ def handle_dnd(hotel_id: str, payload: dict) -> None:
     if room.data:
         supabase.table("room_status").update({
             "dnd_flag": True,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("room_id", room.data["id"]).execute()
 
 

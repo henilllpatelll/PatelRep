@@ -1,3 +1,4 @@
+import base64
 import httpx
 import logging
 import secrets
@@ -51,10 +52,10 @@ async def opera_connect(
         "response_type": "code",
         "client_id": settings.opera_oauth_client_id,
         "redirect_uri": settings.opera_oauth_redirect_uri,
-        "scope": "openid reservations rooms guest_profile",
+        "scope": "urn:opc:hgbu:ws:__myscopes__",
         "state": state,
     })
-    auth_url = f"{settings.opera_oauth_base_url}/oauth/v1/token/authorize?{query}"
+    auth_url = f"{settings.opera_oauth_base_url}/oauth/v1/authorize?{query}"
     return {"data": {"auth_url": auth_url, "hotel_id": current_user.hotel_id}}
 
 
@@ -98,18 +99,25 @@ async def opera_callback(
 
     hotel_id = state_row["tenant_id"]
 
-    # Exchange code for tokens
+    # Exchange code for tokens.
+    # OHIP spec: client credentials go in Basic auth header, not the body.
+    # Endpoint: /oauth/v1/tokens (plural)
+    _creds_b64 = base64.b64encode(
+        f"{settings.opera_oauth_client_id}:{settings.opera_oauth_client_secret}".encode()
+    ).decode()
     try:
         token_response = httpx.post(
-            f"{settings.opera_oauth_base_url}/oauth/v1/token",
+            f"{settings.opera_oauth_base_url}/oauth/v1/tokens",
             data={
                 "grant_type": "authorization_code",
                 "code": code,
-                "client_id": settings.opera_oauth_client_id,
-                "client_secret": settings.opera_oauth_client_secret,
                 "redirect_uri": settings.opera_oauth_redirect_uri,
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": f"Basic {_creds_b64}",
+                "x-app-key": settings.opera_app_key,
+            },
             timeout=20.0,
         )
         token_response.raise_for_status()

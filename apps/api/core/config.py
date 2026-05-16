@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     opera_oauth_client_secret: str = ""
     opera_oauth_redirect_uri: str = ""
     opera_oauth_base_url: str = "https://api.oracle.com"
+    opera_app_key: str = ""          # x-app-key header (UUID from Developer Portal)
+    opera_enterprise_id: str = ""    # enterpriseId header (OCIM client_credentials only)
 
     # Billing
     base_plan_price_cents: int = 9900  # $99.00/month base fee

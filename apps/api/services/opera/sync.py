@@ -5,10 +5,11 @@ from core.config import settings
 from services.opera.auth import get_valid_access_token, get_opera_credentials
 
 
-def ohip_request(method: str, path: str, hotel_id: str, **kwargs) -> dict:
+def ohip_request(method: str, path: str, hotel_id: str, opera_hotel_code: str = "", **kwargs) -> dict:
     """
-    Make a request to OHIP API. Raises on HTTP errors.
-    Returns empty dict if hotel not connected (graceful degradation).
+    Make a request to the OHIP gateway.
+    Required headers per spec: Authorization, x-app-key, x-hotelid.
+    Returns empty dict if hotel not connected or on recoverable errors.
     """
     creds = get_opera_credentials(hotel_id)
     if not creds:
@@ -21,20 +22,23 @@ def ohip_request(method: str, path: str, hotel_id: str, **kwargs) -> dict:
     ohip_base = creds.get("ohip_base_url") or settings.opera_oauth_base_url
     url = f"{ohip_base}{path}"
 
+    # x-hotelid must be the Opera property code (not our UUID)
+    hotel_code = opera_hotel_code or creds.get("hotel_id_opera", "")
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "x-app-key": settings.opera_app_key,
+        "x-hotelid": hotel_code,
+    }
+
     try:
-        response = httpx.request(
-            method,
-            url,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            timeout=15.0,
-            **kwargs,
-        )
+        response = httpx.request(method, url, headers=headers, timeout=15.0, **kwargs)
         response.raise_for_status()
         return response.json()
     except httpx.TimeoutException:
         return {}
     except httpx.HTTPStatusError as e:
-        # 401 = token expired and refresh failed, 404 = resource not found — treat gracefully
         if e.response.status_code in (401, 404):
             return {}
         raise
@@ -70,7 +74,6 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
     if not reservation_id:
         return
 
-    # Resolve room_id from room_number if provided
     room_id = None
     if mapped.get("room_number_opera"):
         room_result = supabase.table("rooms")\
@@ -79,7 +82,7 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
             .eq("room_number", mapped["room_number_opera"])\
             .maybe_single()\
             .execute()
-        if room_result.data:
+        if room_result and room_result.data:
             room_id = room_result.data["id"]
 
     supabase.table("opera_reservations").upsert({
@@ -99,10 +102,9 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
         "departure_time": opera_res.get("departureTime"),
         "status": opera_res.get("reservationStatus", "RESERVED"),
         "rate_code": mapped.get("rate_code"),
-        "synced_at": datetime.utcnow().isoformat(),
+        "synced_at": datetime.now(timezone.utc).isoformat(),
     }, on_conflict="tenant_id,opera_reservation_id").execute()
 
-    # Update room_status with arriving guest info
     if room_id:
         supabase.table("room_status").update({
             "guest_name": mapped.get("guest_name"),
@@ -115,6 +117,7 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
 def sync_reservations(hotel_id: str) -> dict:
     """
     Fetch today's and tomorrow's arrivals from Opera Cloud.
+    Endpoint: GET /rsv/v1/hotels/{hotelId}/reservations
     Returns {"synced": count, "error": None|str}.
     """
     creds = get_opera_credentials(hotel_id)
@@ -127,8 +130,9 @@ def sync_reservations(hotel_id: str) -> dict:
 
     data = ohip_request(
         "GET",
-        f"/api/rsv/v1/hotels/{opera_hotel_id}/reservations",
+        f"/rsv/v1/hotels/{opera_hotel_id}/reservations",
         hotel_id,
+        opera_hotel_code=opera_hotel_id,
         params={
             "dateRangeStart": today.isoformat(),
             "dateRangeEnd": tomorrow.isoformat(),
@@ -146,9 +150,8 @@ def sync_reservations(hotel_id: str) -> dict:
         except Exception:
             pass
 
-    # Update last_sync_at
     supabase.table("opera_credentials").update({
-        "last_sync_at": datetime.utcnow().isoformat(),
+        "last_sync_at": datetime.now(timezone.utc).isoformat(),
     }).eq("tenant_id", hotel_id).execute()
 
     return {"synced": synced, "error": None}
@@ -172,8 +175,9 @@ def bootstrap_opera_data(hotel_id: str) -> dict:
     while True:
         data = ohip_request(
             "GET",
-            f"/api/rsv/v1/hotels/{opera_hotel_id}/reservations",
+            f"/rsv/v1/hotels/{opera_hotel_id}/reservations",
             hotel_id,
+            opera_hotel_code=opera_hotel_id,
             params={
                 "dateRangeStart": start_date.isoformat(),
                 "dateRangeEnd": end_date.isoformat(),
@@ -200,11 +204,15 @@ def bootstrap_opera_data(hotel_id: str) -> dict:
     return {"synced": total_synced}
 
 
-def push_room_status_to_opera(hotel_id: str, opera_room_id: str, new_status: str) -> None:
-    """Push PatelRep room status change back to Opera Cloud (bidirectional sync)."""
+def push_room_status_to_opera(hotel_id: str, room_number: str, new_status: str) -> None:
+    """
+    Push PatelRep room status back to Opera Cloud (bidirectional sync).
+    Endpoint: PUT /hsk/v1/hotels/{hotelId}/rooms/status
+    Body: housekeepingRoomStatusCriteria with roomList array.
+    """
     creds = get_opera_credentials(hotel_id)
     if not creds or not creds.get("hotel_id_opera"):
-        return  # Not connected — skip silently
+        return
 
     opera_status_map = {
         "DIRTY": "DIRTY",
@@ -215,13 +223,20 @@ def push_room_status_to_opera(hotel_id: str, opera_room_id: str, new_status: str
         "PICKUP": "PICKUP",
     }
     opera_status = opera_status_map.get(new_status, "DIRTY")
+    opera_hotel_id = creds["hotel_id_opera"]
 
     try:
         ohip_request(
             "PUT",
-            f"/api/hskp/v1/hotels/{creds['hotel_id_opera']}/rooms/{opera_room_id}/status",
+            f"/hsk/v1/hotels/{opera_hotel_id}/rooms/status",
             hotel_id,
-            json={"roomStatus": opera_status},
+            opera_hotel_code=opera_hotel_id,
+            json={
+                "housekeepingRoomStatusCriteria": {
+                    "roomList": [{"roomNumber": room_number}],
+                    "housekeepingRoomStatus": opera_status,
+                }
+            },
         )
     except Exception:
-        pass  # Opera push failures never block operations
+        pass  # Opera push failures never block PatelRep operations

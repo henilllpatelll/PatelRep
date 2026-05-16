@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| session 2026-05-15 | Opera/OHIP API compliance fix: corrected token endpoint (/tokens not /token), added Basic auth header for token requests, added x-app-key + x-hotelid to all API calls, fixed RSV base path (/rsv/v1 not /api/rsv/v1), fixed HSK base path (/hsk/v1 not /api/hskp/v1), fixed room status push endpoint and body format, added opera_app_key to config. 120 tests pass. | services/opera/auth.py, services/opera/sync.py, routers/integrations.py, core/config.py | DONE |
 | session 2026-05-12c | work-orders OR-filter fix: split into 2 indexed queries + migration 032 partial index for unclaimed WOs. p95 4184ms→2380ms (-43%). Committed + deployed. | work_orders.py, 032_work_orders_unclaimed_index.sql | DONE |
 | session 2026-05-12b | Load test (40 workers, 60s): 0% 5xx, p95 overall 4212ms→2056ms (-51%) after migration 031 (6 new compound indexes on room_assignments, guest_requests, notifications, work_orders). Committed load_test.py + LOAD_TEST_REPORT.md. Both Railway services deployed (API via --path-as-root). | supabase/migrations/031_load_perf_indexes.sql, apps/api/tests/load/ | DONE — committed + deployed |
 | session 2026-05-12 | AI endpoint full fix session: fixed room_readiness_predictions.id→room_id (bug-032), upgraded Anthropic model to claude-sonnet-4-6 (bug-033), added OPENAI_API_KEY to Railway, added graceful 503 for provider errors, fixed anthropic.AuthenticationStatusError→AuthenticationError (bug-034). GET /ai/insights and insight_query now 200. Task_creation returns clean 503 (OpenAI account has no billing quota). | ai_copilot.py, insights.py, failure_predictions.py, sop_rag.py | DONE — 4 commits deployed |
@@ -859,3 +860,76 @@
 | 12:09 | Created apps/api/railway.toml | — | ~52 |
 | 12:09 | Edited apps/api/railway.toml | "Dockerfile" → "apps/api/Dockerfile" | ~11 |
 | 12:14 | Created apps/api/railway.toml | — | ~52 |
+| 12:15 | Session end: 5 writes across 3 files (.dockerignore, housekeeping.py, railway.toml) | 18 reads | ~8492 tok |
+
+## Session: 2026-05-13 12:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:29 | Edited apps/api/railway.toml | "apps/api/Dockerfile" → "Dockerfile" | ~8 |
+| 12:33 | fix(deploy): api service was using apps/web/Dockerfile; deployed via --path-as-root with correct apps/api/Dockerfile | apps/api/railway.toml | DEPLOYING | ~8000 |
+| 12:34 | Session end: 1 writes across 1 files (railway.toml) | 11 reads | ~7964 tok |
+| 08:03 | Loaded OpenWolf plus TDD/API/web/mobile skills and inspected test entrypoints | .wolf/OPENWOLF.md, .wolf/anatomy.md, package.json, apps/web/package.json, apps/mobile/package.json | ready to run local suites | ~4000 |
+| 08:23 | Ran all discovered local test suites | apps/api/tests, apps/mobile/__tests__, e2e, playwright.mobile.config.ts | API 89/89 pass; mobile Jest 23/23 pass; Playwright 164 pass/3 skipped; mobile Playwright 60/60 pass | ~2500 |
+| 08:44 | Cleaned up API and mobile test warnings | apps/api/core/config.py, apps/api/pytest.ini, apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/lib/offline/sync.test.ts | warning cleanup patch applied; verification pending | ~1500 |
+| 08:48 | Verified warning cleanup | apps/api, apps/mobile | API pytest 89/89 clean; mobile Jest 23/23 clean; mobile type-check passed | ~1000 |
+| 08:50 | Completed warning cleanup verification | apps/api, apps/mobile, .wolf | API pytest clean, mobile Jest clean, mobile type-check passed, buglog/cerebrum updated | ~1200 |
+| 09:02 | Reviewed codebase for security and broken logic with security-review/coding-standards plus PatelRep API/web skills | apps/api, apps/web | ranked findings prepared; no app code changed | ~18000 |
+| 09:05 | Wrote security review findings to standalone handoff file | SECURITY_REVIEW_FINDINGS_2026-05-14.md, .wolf/anatomy.md | new session handoff artifact created | ~1500 |
+| 09:11 | Read OpenWolf/security skills/findings and checked dirty worktree | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .wolf/buglog.json, SECURITY_REVIEW_FINDINGS_2026-05-14.md | Sequenced security-fix work; found existing dirty files | ~6000 |
+| 09:20 | Fixed and verified critical staff invite authorization gap | apps/api/routers/staff.py, apps/web/app/(dashboard)/onboarding/page.tsx, apps/api/tests/smoke/test_tenant_isolation.py | /staff/invite GM-gated; onboarding invite owner-checked; 4 focused tests passed | ~2200 |
+| 09:30 | Fixed and verified Opera OAuth callback state binding | apps/api/routers/integrations.py, supabase/migrations/034_opera_oauth_states.sql, apps/api/tests/smoke/test_integrations_security.py, .wolf/anatomy.md | Nonce state records replace raw hotel_id; focused tests passed after test harness correction | ~2200 |
+| 09:38 | Fixed and verified work-order mutation authorization | apps/api/routers/work_orders.py, apps/api/tests/smoke/test_tenant_isolation.py | Update/complete now restrict engineers; delete is chief/GM only; 10 focused tests passed | ~1800 |
+| 09:57 | Upgraded web production dependencies and cleared Next 16 build warnings | package.json, package-lock.json, apps/web/package.json, apps/web/lib/supabase/server.ts, apps/web/next.config.mjs, apps/web/proxy.ts, apps/web/tsconfig.json, .wolf/anatomy.md | 
+pm audit --omit=dev, type-check, and build all passed | ~2600 |
+| 10:12 | Fixed and verified tenant-scoped UUID reference validation | apps/api/routers/tasks.py, apps/api/routers/work_orders.py, apps/api/routers/housekeeping.py, apps/api/routers/scheduling.py, apps/api/tests/smoke/test_tenant_isolation.py | Cross-tenant room/department/staff/asset/shift references now 404 before inserts; focused tests passed | ~2600 |
+| 10:18 | Fixed and verified SOP upload browser auth | apps/web/lib/api/client.ts, apps/web/lib/api/sop.ts, apps/web/app/(dashboard)/onboarding/page.tsx | Multipart uploads now use session-aware apiClient; grep clean; web type-check passed | ~1400 |
+| 10:25 | Fixed and verified SOP upload file validation | apps/api/routers/sop.py, apps/api/tests/smoke/test_sop_security.py, .wolf/anatomy.md | PDF filename and 10MB size cap enforced before storage; focused tests passed | ~1300 |
+| 10:32 | Fixed and verified client-safe error messages | apps/api/middleware/auth.py, apps/api/main.py, apps/api/routers/ai_copilot.py, apps/api/tests/smoke/test_health.py | Invalid JWT, health DB, and AI generic errors now return safe messages; focused tests passed | ~1400 |
+| 09:45 | Final verification and OpenWolf logs completed | .wolf/memory.md, .wolf/buglog.json, .wolf/cerebrum.md | Full API smoke 110/110, web audit/type-check/build passed; buglog entries bug-074 through bug-081 added | ~1200 |
+| 10:05 | Applied Opera OAuth migration and cleaned generated mobile report artifacts | supabase/migrations/034_opera_oauth_states.sql, mobile-report, mobile-test-screenshots | Remote table exists; migration history shows 034 applied; report/screenshot artifacts restored/removed | ~900 |
+| 10:10 | Logged migration cleanup tooling notes | .wolf/buglog.json, .wolf/cerebrum.md | Recorded Supabase CLI syntax and timeout gotchas after successful migration/table verification | ~500 |
+| 10:14 | Repaired mangled OpenWolf cerebrum notes before validation | .wolf/cerebrum.md | Removed PowerShell escape artifacts from security hardening notes | ~500 |
+| 10:20 | Fixed and verified Next 16 web lint tooling | apps/web/package.json, apps/web/eslint.config.mjs, apps/web/app/(dashboard)/logbook/page.tsx, apps/web/app/(dashboard)/tasks/page.tsx | ESLint 9 flat config added; render Date.now errors fixed; web lint exits 0 with warnings only | ~1200 |
+| 10:35 | Completed post-fix verification sweep | apps/api, apps/web, e2e/16-rbac.spec.ts, .wolf/cerebrum.md | API smoke 110/110, web lint/type/build/audit clean, root audit clean, RBAC E2E 7/7 against local web | ~1800 |
+| 10:48 | Removed remaining web lint warnings and reverified | apps/web, e2e/16-rbac.spec.ts | Web lint now has zero warnings; type-check, build, audit, and local-web RBAC E2E 7/7 pass | ~1200 |
+| 12:15 | Split mobile Jest cleanup out of security worktree | apps/mobile, .wolf/anatomy.md, .wolf/cerebrum.md | Mobile test/config changes preserved in stash `On main: split mobile Jest warning cleanup`; current worktree has no apps/mobile changes; web lint still clean | ~700 |
+| 12:20 | Created separate branch for mobile Jest cleanup | C:/tmp/PatelRep-mobile-jest | Branch `codex/mobile-jest-warning-cleanup` contains only the four mobile Jest cleanup files; main worktree remains free of apps/mobile changes | ~500 |
+| 12:25 | Ran production smoke test with Railway/e2e/API-web checks | Railway production, e2e/00-smoke.spec.ts | API health ok, web login/redirects ok, latest api and @patelrep/web deployments SUCCESS, Playwright smoke 21/21 passed | ~1800 |
+| 12:28 | Clarified Railway service names versus dashboard IDs | AGENTS.md, CLAUDE.md | Agent docs now say CLI service names are `api` and `@patelrep/web` | ~250 |
+| 12:35 | Loaded OpenWolf plus verification/security skill instructions | .wolf/OPENWOLF.md; .wolf/anatomy.md; verification-loop; security-review | verification plan established | ~2000 |
+| 12:35 | Discovered verification scripts and ran npm production audits | package scripts; npm audit | root/web scripts found, mobile verified from apps/mobile, production audits clean | ~500 |
+| 12:40 | Ran full local verification gates | apps/api; apps/web; apps/mobile | API/mobile tests, web/mobile types, web lint, web build passed; Python static tools unavailable; tracked secret scan failed | ~1200 |
+| 12:40 | Logged verification blockers to OpenWolf | .wolf/buglog.json; .wolf/cerebrum.md | recorded missing Python static tools and tracked secret-scan no-go | ~400 |
+| 12:47 | Fixed tracked secret scan blockers and reran affected verification | .gitignore; apps/web/.gitignore; e2e; apps/api/tests/load; deleted env/plugin secret files | tracked/unignored secret scan, web type-check, lint, build, Playwright list, py_compile, npm audit all pass | ~900 |
+| 12:48 | Completed final post-fix verification sweep | apps/api; apps/web; apps/mobile; e2e; secret scan | API tests 110/110, mobile tests 23/23, web type/lint/build, mobile type, audits, Playwright list, and tracked secret scan pass | ~700 |
+| 12:59 | Session end: 1 writes across 1 files (railway.toml) | 20 reads | ~8356 tok |
+| 12:59 | Session end: 1 writes across 1 files (railway.toml) | 21 reads | ~8356 tok |
+| 13:10 | Verified newly installed API static tools | apps/api/.venv; apps/api | pytest still passes 110/110; ruff finds 1 F401; pyright finds 139 baseline errors | ~500 |
+| 13:14 | Fixed API Ruff/Pyright static gate issues | apps/api/pyrightconfig.json; apps/api/tests/smoke/test_health.py | ruff, pyright, and pytest all pass locally | ~600 |
+| 13:18 | Loaded OpenWolf protocol plus TDD/E2E/security/API/web/frontend skills and inventoried existing test surfaces | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, apps/api/tests, e2e | ready to run and extend gates | ~6000 |
+| 13:19 | Ran initial API and web lint gates | apps/api/tests, apps/web | API pytest 110 passed; web ESLint passed; worktree already dirty with prior changes | ~1200 |
+| 13:23 | Added focused smoke regressions for room transitions and webhooks | apps/api/tests/smoke/test_webhooks_and_transitions.py, .wolf/anatomy.md | 6 new tests pass | ~3100 |
+| 13:24 | designqc: captured 6 screenshots (49KB, ~15000 tok) | /dashboard, /settings, /staff | ready for eval | ~0 |
+| 13:24 | designqc: captured 2 screenshots (29KB, ~5000 tok) | /login | ready for eval | ~0 |
+| 13:25 | Ran UX capture workflow and attempted staff load simulation | .wolf/designqc-captures, apps/api/tests/load/load_test.py, .wolf/buglog.json | Authenticated screenshots succeeded; OpenWolf autodetect capture hit wrong localhost; load simulation blocked by missing TEST_PASSWORD | ~2600 |
+| 13:26 | Updated OpenWolf learning memory for simulation and UX capture gotchas | .wolf/cerebrum.md | future sessions know TEST_PASSWORD/load-test and designqc auth-state constraints | ~300 |
+| 13:49 | Fixed mobile UX and passwordless load simulation, then ran production staff-distribution simulation | apps/web/components/ai/AICopilotBubble.tsx, apps/web/app/(dashboard)/settings/page.tsx, apps/api/tests/load/load_test.py, apps/api/tests/smoke/test_load_auth_state.py | 20 workers/30s: 297 req, 0% 5xx, 82% 2xx; 4xx isolated to GM-token /my-rooms | ~4200 |
+| 13:59 | Finalized durable auth-state refresh and reran final backend verification | apps/api/tests/load/load_test.py, apps/api/tests/smoke/test_load_auth_state.py | API pytest 120 passed; ruff and pyright passed; 1-worker auth-state simulation smoke produced 2xx traffic | ~1200 |
+
+## Session: 2026-05-16 22:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:41 | Edited apps/api/core/config.py | 5→7 lines | ~104 |
+| 23:41 | Created apps/api/services/opera/auth.py | — | ~986 |
+| 23:41 | Created apps/api/services/opera/sync.py | — | ~2383 |
+| 23:42 | Edited apps/api/routers/integrations.py | added 1 import(s) | ~131 |
+| 23:42 | Edited apps/api/routers/integrations.py | 8→8 lines | ~93 |
+| 23:42 | Edited apps/api/routers/integrations.py | expanded (+7 lines) | ~293 |
+| 23:45 | Session end: 6 writes across 4 files (config.py, auth.py, sync.py, integrations.py) | 8 reads | ~6044 tok |
+| 01:07 | Session end: 6 writes across 4 files (config.py, auth.py, sync.py, integrations.py) | 8 reads | ~6044 tok |
+| 01:10 | Edited apps/api/services/opera/webhooks.py | 2→2 lines | ~22 |
+| 01:11 | Edited apps/api/services/opera/webhooks.py | inline fix | ~11 |
+| 01:11 | Edited apps/api/services/opera/sync.py | inline fix | ~11 |
+| 01:11 | Session end: 9 writes across 5 files (config.py, auth.py, sync.py, integrations.py, webhooks.py) | 21 reads | ~13449 tok |
