@@ -235,7 +235,7 @@ def _analyze_asset(
     asset_id = asset["id"]
     category_name = (asset.get("asset_categories") or {}).get("name", "General")
 
-    print(f"[failure_predictions] Analyzing asset {asset_id} ({asset.get('name')})")
+    logger.info("Analyzing asset %s (%s)", asset_id, asset.get("name"))
 
     try:
         user_prompt = _build_asset_prompt(asset, category_name, work_orders, pm_schedules)
@@ -281,7 +281,7 @@ def _analyze_asset(
             "Claude returned invalid JSON for asset=%s hotel=%s: %s",
             asset_id, hotel_id, exc,
         )
-        print(f"[failure_predictions] JSON parse error for asset {asset_id}, using fallback")
+        logger.info("JSON parse error for asset %s, using fallback", asset_id)
         fallback = _rule_based_fallback(asset, work_orders)
         return {
             "tenant_id": hotel_id,
@@ -296,7 +296,7 @@ def _analyze_asset(
             "Claude call failed for asset=%s hotel=%s: %s",
             asset_id, hotel_id, exc,
         )
-        print(f"[failure_predictions] Claude error for asset {asset_id}, using fallback: {exc}")
+        logger.info("Claude error for asset %s, using fallback: %s", asset_id, exc)
         fallback = _rule_based_fallback(asset, work_orders)
         return {
             "tenant_id": hotel_id,
@@ -317,7 +317,7 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
 
     Returns dict: { "analyzed": int, "high_risk": int, "updated": int }
     """
-    print(f"[failure_predictions] Starting failure prediction run for hotel {hotel_id}")
+    logger.info("Starting failure prediction run for hotel %s", hotel_id)
 
     analyzed = 0
     high_risk = 0
@@ -335,14 +335,14 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
         assets = assets_result.data or []
     except Exception as exc:
         logger.error("Failed to fetch assets for hotel=%s: %s", hotel_id, exc)
-        print(f"[failure_predictions] ERROR fetching assets for hotel {hotel_id}: {exc}")
+        logger.error("ERROR fetching assets for hotel %s: %s", hotel_id, exc)
         return {"analyzed": 0, "high_risk": 0, "updated": 0}
 
     if not assets:
-        print(f"[failure_predictions] No active assets found for hotel {hotel_id}")
+        logger.info("No active assets found for hotel %s", hotel_id)
         return {"analyzed": 0, "high_risk": 0, "updated": 0}
 
-    print(f"[failure_predictions] Found {len(assets)} active assets for hotel {hotel_id}")
+    logger.info("Found %d active assets for hotel %s", len(assets), hotel_id)
 
     twelve_months_ago = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
 
@@ -404,7 +404,7 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
                 "Failed to upsert failure_prediction for asset=%s hotel=%s: %s",
                 asset_id, hotel_id, exc,
             )
-            print(f"[failure_predictions] DB upsert error for asset {asset_id}: {exc}")
+            logger.error("DB upsert error for asset %s: %s", asset_id, exc)
             continue
 
         # --- 5. Update assets.failure_risk_score ---
@@ -419,14 +419,14 @@ async def run_asset_failure_predictions(hotel_id: str) -> dict:
             )
 
         updated += 1
-        print(
-            f"[failure_predictions] Asset {asset_id} ({asset.get('name')}) — "
-            f"risk_score={risk_score}, window={prediction.get('predicted_failure_window')}"
+        logger.info(
+            "Asset %s (%s) — risk_score=%d, window=%s",
+            asset_id, asset.get("name"), risk_score, prediction.get("predicted_failure_window"),
         )
 
-    print(
-        f"[failure_predictions] Hotel {hotel_id} complete: "
-        f"analyzed={analyzed}, high_risk={high_risk}, updated={updated}"
+    logger.info(
+        "Hotel %s complete: analyzed=%d, high_risk=%d, updated=%d",
+        hotel_id, analyzed, high_risk, updated,
     )
     return {"analyzed": analyzed, "high_risk": high_risk, "updated": updated}
 
@@ -442,17 +442,17 @@ async def run_all_hotels_failure_predictions() -> dict:
 
     Returns dict: { "analyzed": int, "high_risk": int, "updated": int }
     """
-    print("[failure_predictions] Starting all-hotels failure prediction run")
+    logger.info("Starting all-hotels failure prediction run")
 
     try:
         result = supabase.table("assets").select("tenant_id").eq("is_active", True).execute()
         hotel_ids = list({a["tenant_id"] for a in (result.data or []) if a.get("tenant_id")})
     except Exception as exc:
         logger.error("Failed to fetch tenant_ids from assets: %s", exc)
-        print(f"[failure_predictions] ERROR fetching hotel list: {exc}")
+        logger.error("ERROR fetching hotel list: %s", exc)
         return {"analyzed": 0, "high_risk": 0, "updated": 0}
 
-    print(f"[failure_predictions] Found {len(hotel_ids)} hotels with active assets")
+    logger.info("Found %d hotels with active assets", len(hotel_ids))
 
     total: dict = {"analyzed": 0, "high_risk": 0, "updated": 0}
 
@@ -464,11 +464,11 @@ async def run_all_hotels_failure_predictions() -> dict:
             total["updated"] += stats.get("updated", 0)
         except Exception as exc:
             logger.error("Failure prediction run failed for hotel=%s: %s", hotel_id, exc)
-            print(f"[failure_predictions] ERROR for hotel {hotel_id}: {exc}")
+            logger.error("ERROR for hotel %s: %s", hotel_id, exc)
 
-    print(
-        f"[failure_predictions] All-hotels run complete: "
-        f"analyzed={total['analyzed']}, high_risk={total['high_risk']}, updated={total['updated']}"
+    logger.info(
+        "All-hotels run complete: analyzed=%d, high_risk=%d, updated=%d",
+        total["analyzed"], total["high_risk"], total["updated"],
     )
     return total
 
@@ -482,7 +482,7 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
     Run failure prediction analysis for a single asset.
     Returns the prediction record dict, or None if asset not found.
     """
-    print(f"[failure_predictions] Running single-asset prediction for asset {asset_id}")
+    logger.info("Running single-asset prediction for asset %s", asset_id)
 
     # 1. Fetch the asset
     try:
@@ -554,5 +554,5 @@ async def run_single_asset_prediction(hotel_id: str, asset_id: str) -> dict | No
     except Exception as exc:
         logger.warning("Failed to update failure_risk_score for asset %s: %s", asset_id, exc)
 
-    print(f"[failure_predictions] Single-asset prediction complete: risk_score={prediction_data['risk_score']}")
+    logger.info("Single-asset prediction complete: risk_score=%d", prediction_data["risk_score"])
     return inserted

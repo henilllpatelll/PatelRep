@@ -1,11 +1,14 @@
 import hmac
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone as tz, date
 from fastapi import APIRouter, Request, HTTPException
 import stripe
 from core.database import supabase
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 from services.opera.webhooks import (
     handle_checkout,
     handle_checkin,
@@ -82,7 +85,7 @@ async def opera_webhook(request: Request):
             handler(hotel_id, event_payload)
         except Exception as e:
             # Log but never crash — return 200 so Opera doesn't retry
-            print(f"[Opera Webhook] Handler error for {event_type}: {e}")
+            logger.error("Opera webhook handler error for %s: %s", event_type, e)
 
     return {"status": "ok", "event_type": event_type}
 

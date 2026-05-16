@@ -27,10 +27,10 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print(f"PatelRep API starting in {settings.app_env} mode")
+    logger.info("PatelRep API starting in %s mode", settings.app_env)
     yield
     # Shutdown
-    print("PatelRep API shutting down")
+    logger.info("PatelRep API shutting down")
 
 
 app = FastAPI(
