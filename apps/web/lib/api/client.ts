@@ -51,6 +51,7 @@ interface RequestOptions {
 async function request(method: string, path: string, body?: any, options: RequestOptions = {}) {
   const token = await getToken()
   const url = new URL(API_URL + path)
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
   if (options.params) {
     Object.entries(options.params).forEach(([k, v]) => {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
@@ -60,11 +61,11 @@ async function request(method: string, path: string, body?: any, options: Reques
   const res = await fetch(url.toString(), {
     method,
     headers: {
-      'Content-Type': 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
-    ...(body ? { body: JSON.stringify(body) } : {}),
+    ...(body ? { body: isFormData ? body : JSON.stringify(body) } : {}),
   })
 
   if (!res.ok) {

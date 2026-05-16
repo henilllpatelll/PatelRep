@@ -1,18 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import {
   Package,
   Plus,
   Search,
   AlertTriangle,
-  CheckCircle,
   X,
   Loader2,
   ChevronRight,
-  Wrench,
 } from 'lucide-react'
 import { engineeringApi, Asset, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'

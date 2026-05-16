@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Wrench, Zap, Calendar, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Wrench, Zap, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { engineeringApi, type WorkOrder, type PMSchedule, type FailurePrediction } from '@/lib/api/engineering'
 import { reportsApi } from '@/lib/api/reports'

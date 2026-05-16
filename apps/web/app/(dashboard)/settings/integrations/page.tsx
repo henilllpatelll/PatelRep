@@ -158,7 +158,8 @@ function IntegrationsPageInner() {
   const connectMutation = useMutation({
     mutationFn: () => integrationsApi.connectOpera(),
     onSuccess: (res) => {
-      window.location.href = res.data.auth_url
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(res.data.auth_url)
     },
     onError: (err: any) => {
       setErrorBanner(err.message || 'Failed to initiate Opera Cloud connection.')

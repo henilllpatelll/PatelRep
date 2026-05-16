@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'

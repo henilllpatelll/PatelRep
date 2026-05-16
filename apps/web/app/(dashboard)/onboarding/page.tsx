@@ -966,7 +966,7 @@ function Step3InviteStaff({
     for (let i = 0; i < validInvites.length; i++) {
       const invite = validInvites[i]
       try {
-        await apiClient.post('/staff/invite', {
+        await apiClient.post('/staff/onboarding-invite', {
           email: invite.email.trim(),
           full_name: invite.full_name.trim(),
           role: invite.role,
@@ -1265,25 +1265,6 @@ function Step5UploadSOPs({
     setUploading(true)
     setError(null)
 
-    const token =
-      typeof window !== 'undefined'
-        ? (() => {
-            const storage = localStorage.getItem(
-              'sb-' +
-                (process.env.NEXT_PUBLIC_SUPABASE_URL || '')
-                  .replace('https://', '')
-                  .split('.')[0] +
-                '-auth-token'
-            )
-            if (!storage) return null
-            try {
-              return JSON.parse(storage)?.access_token || null
-            } catch {
-              return null
-            }
-          })()
-        : null
-
     const newlyUploaded: UploadedDoc[] = []
     const errors: string[] = []
 
@@ -1291,18 +1272,7 @@ function Step5UploadSOPs({
       const formData = new FormData()
       formData.append('file', file)
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'}/sop/documents`,
-          {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: formData,
-          }
-        )
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: { message: res.statusText } }))
-          throw new Error(err.error?.message || 'Upload failed')
-        }
+        await apiClient.post('/sop/documents', formData)
         newlyUploaded.push({ name: file.name, size: file.size })
       } catch (err: any) {
         errors.push(`${file.name}: ${err.message}`)

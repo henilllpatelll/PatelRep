@@ -9,15 +9,17 @@ import path from 'path'
 const AUTH_FILE = path.join(__dirname, '.auth/state.json')
 
 const EMAIL = process.env.TEST_EMAIL || 'hp.patelrep@gmail.com'
-const PASSWORD = process.env.TEST_PASSWORD || 'PatelRep2026x'
+const PASSWORD = process.env.TEST_PASSWORD
 
 setup('authenticate as GM', async ({ page }) => {
+  setup.skip(!PASSWORD, 'Set TEST_PASSWORD to run authenticated Playwright setup')
+
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: /PatelRep/i })).toBeVisible()
 
   // Fill email + password
   await page.fill('#email-pw', EMAIL)
-  await page.fill('#password-pw', PASSWORD)
+  await page.fill('#password-pw', PASSWORD!)
   await page.click('button[type="submit"]')
 
   // Login uses window.location.href — wait for navigation to dashboard/onboarding

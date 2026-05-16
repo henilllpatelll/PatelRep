@@ -9,7 +9,7 @@ import fs from 'fs'
 
 const BASE_URL = 'https://patelrepweb-production.up.railway.app'
 const EMAIL = 'hp.patelrep@gmail.com'
-const PASSWORD = 'PatelRep2026x'
+const PASSWORD = process.env.TEST_PASSWORD
 
 const VIEWPORTS = [
   { name: 'iPhone-SE', width: 375, height: 667 },
@@ -38,6 +38,10 @@ function slug(s: string) {
 }
 
 async function loginAndSaveState(page: Page) {
+  if (!PASSWORD) {
+    throw new Error('Set TEST_PASSWORD to run authenticated mobile usability checks')
+  }
+
   await page.goto(`${BASE_URL}/login`)
   await page.waitForLoadState('networkidle')
 
@@ -169,6 +173,8 @@ test.describe.serial('Mobile Usability — Login', () => {
 })
 
 test.describe.serial('Mobile Usability — Authenticated Routes', () => {
+  test.skip(!PASSWORD, 'Set TEST_PASSWORD to run authenticated mobile usability checks')
+
   for (const vp of VIEWPORTS) {
     test.describe(`${vp.name} (${vp.width}×${vp.height})`, () => {
       let context: BrowserContext

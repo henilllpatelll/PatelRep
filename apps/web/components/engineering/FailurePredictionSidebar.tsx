@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle, Loader2, Plus } from 'lucide-react'
+import { CheckCircle, Loader2, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'

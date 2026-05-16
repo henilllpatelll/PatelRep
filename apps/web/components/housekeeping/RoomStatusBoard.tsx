@@ -9,9 +9,8 @@ import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
-import { Card } from '@/components/ui/Card'
 import { createClient } from '@/lib/supabase/client'
-import { STATUS_BG, STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
+import { STATUS_BG } from '@/lib/utils/roomStatus'
 
 // ── Status chip config ────────────────────────────────────────────────────────
 
@@ -176,7 +175,6 @@ export function RoomStatusBoard() {
     setRooms,
     setPredictions,
     setLastSyncedAt,
-    lastSyncedAt,
     pendingAssignments,
     assignmentMode,
     activeAssigneeId,

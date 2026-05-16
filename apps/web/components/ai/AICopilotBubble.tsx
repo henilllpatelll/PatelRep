@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bot, X, Send, CheckCircle, AlertCircle, Clock, Wrench, Bed, Users, HelpCircle } from 'lucide-react'
+import { Bot, X, Send, CheckCircle, Clock, Wrench, Bed, Users, HelpCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { aiApi, type ParsedTask, type CopilotResponse, type InsightsResponse, type TaskPreviewResponse } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
@@ -304,11 +304,11 @@ export function AICopilotBubble() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
       {open && (
         <div
-          className="absolute bottom-14 right-0 w-80 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl flex flex-col"
-          style={{ height: '500px' }}
+          className="absolute bottom-14 right-0 w-[calc(100vw-2rem)] max-w-80 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl flex flex-col"
+          style={{ height: 'min(500px, calc(100vh - 8rem))' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/60 shrink-0">

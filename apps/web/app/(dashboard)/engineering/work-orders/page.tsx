@@ -298,7 +298,7 @@ export default function WorkOrdersPage() {
         <CreateWorkOrderModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onCreate={(_wo) => {
+          onCreate={() => {
             setShowCreateModal(false)
             queryClient.invalidateQueries({ queryKey: ['work-orders'] })
           }}

@@ -76,7 +76,6 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   const assignedName: string | null =
     room.user_profiles?.preferred_name ?? room.user_profiles?.full_name ?? null
   const roomNumber: string = room.rooms?.room_number ?? room.room_number ?? '—'
-  const roomTypeName: string = room.rooms?.room_types?.name ?? room.room_type_name ?? ''
   const vipFlag: boolean = !!room.vip_flag
   const openWorkOrder: string | null = room.open_work_order_number ?? null
 

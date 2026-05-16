@@ -106,8 +106,9 @@ function formatDuration(totalMinutes: number): string {
 }
 
 function SlaIndicator({ task }: { task: Task }) {
+  const [now] = useState(() => Date.now())
+
   if (!task.due_at || task.status === 'completed' || task.status === 'cancelled') return null
-  const now = Date.now()
   const due = new Date(task.due_at).getTime()
   const diffMin = Math.round((due - now) / 60000)
 

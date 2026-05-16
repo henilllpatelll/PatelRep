@@ -66,9 +66,6 @@ interface HousekeeperDropRowProps {
 
 function HousekeeperDropRow({
   hk,
-  roomNumberMap,
-  pendingAssignments,
-  removePendingAssignment,
 }: HousekeeperDropRowProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `hk-${hk.housekeeper_id}`,

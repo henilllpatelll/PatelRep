@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/Input'
@@ -36,7 +36,6 @@ function LoginContent() {
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [error, setError] = useState('')
 
-  const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
 
@@ -73,8 +72,9 @@ function LoginContent() {
       (data.user?.app_metadata as Record<string, unknown>)?.hotel_id ??
       (data.user?.user_metadata as Record<string, unknown>)?.hotel_id
 
-    // Hard navigation ensures session cookies are written before the server reads them
-    window.location.href = getRedirectPath(hotelId as string | undefined)
+    // Hard navigation ensures session cookies are written before the server reads them.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(getRedirectPath(hotelId as string | undefined))
   }
 
   const handleMagicLink = async (e: React.FormEvent) => {

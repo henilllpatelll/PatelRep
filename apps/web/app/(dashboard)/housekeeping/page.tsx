@@ -17,7 +17,6 @@ import { staffApi } from '@/lib/api/staff'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/authStore'
 
 // ── Shift options ─────────────────────────────────────────────────────────────

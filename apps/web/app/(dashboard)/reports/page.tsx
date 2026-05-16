@@ -17,7 +17,6 @@ import {
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
-import { Card } from '@/components/ui/Card'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -19,8 +19,6 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { logbookApi, LogbookEntry } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
@@ -511,9 +509,10 @@ interface EditEntryModalProps {
 }
 
 function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
+  const [initialNow] = useState(() => Date.now())
   const currentExpiresHours = (() => {
     if (!entry?.expires_at) return 0
-    const remaining = Math.ceil((new Date(entry.expires_at).getTime() - Date.now()) / 3_600_000)
+    const remaining = Math.ceil((new Date(entry.expires_at).getTime() - initialNow) / 3_600_000)
     // Snap to nearest option or default to 24
     if (remaining <= 8) return 8
     if (remaining <= 24) return 24

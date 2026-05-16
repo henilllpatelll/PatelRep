@@ -137,7 +137,8 @@ export default function SettingsBillingPage() {
   const portalMutation = useMutation({
     mutationFn: () => billingApi.createPortalSession(),
     onSuccess: (res) => {
-      window.location.href = res.data.url
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(res.data.url)
     },
     onError: (err: Error) => {
       setPortalError(err.message || 'Failed to open billing portal.')
@@ -147,7 +148,8 @@ export default function SettingsBillingPage() {
   const checkoutMutation = useMutation({
     mutationFn: () => billingApi.createCheckoutSession(),
     onSuccess: (res) => {
-      window.location.href = res.data.url
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(res.data.url)
     },
     onError: (err: Error) => {
       setCheckoutError(err.message || 'Failed to start checkout.')

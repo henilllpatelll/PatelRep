@@ -11,7 +11,6 @@ import {
   Image as ImageIcon,
   Loader2,
   CheckCircle,
-  AlertTriangle,
   PauseCircle,
   XCircle,
   RotateCcw,

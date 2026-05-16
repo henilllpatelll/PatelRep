@@ -224,7 +224,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                         {section}
                       </h3>
                       <div className="space-y-2">
-                        {sectionItems.map((item, localIdx) => {
+                        {sectionItems.map((item) => {
                           const globalIdx = items.indexOf(item)
                           const key = item.id ?? String(globalIdx)
                           const current = itemResults[key]

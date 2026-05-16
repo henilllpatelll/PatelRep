@@ -64,20 +64,28 @@ const API_URL = (
   'https://api-production-130b.up.railway.app'
 ).replace(/\/+$/, '').replace(/\/v1$/, '')
 
-export const TEST_PASSWORD = 'RbacTest2026!'
+function requireEnvPassword(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Set ${name} to run RBAC Playwright helpers`)
+  }
+  return value
+}
 
-const ROLE_DEFINITIONS: Omit<RbacTestUser, 'userId'>[] = [
-  { role: 'housekeeping_supervisor', email: 'test-hk-supervisor@patelrep-test.com', password: TEST_PASSWORD },
-  { role: 'housekeeper',             email: 'test-housekeeper@patelrep-test.com',   password: TEST_PASSWORD },
-  { role: 'chief_engineer',          email: 'test-chief-eng@patelrep-test.com',     password: TEST_PASSWORD },
-  { role: 'engineer',                email: 'test-engineer@patelrep-test.com',      password: TEST_PASSWORD },
-  { role: 'front_desk',              email: 'test-front-desk@patelrep-test.com',    password: TEST_PASSWORD },
+export const TEST_PASSWORD = process.env.RBAC_TEST_PASSWORD || process.env.TEST_PASSWORD || ''
+
+const ROLE_DEFINITIONS: Omit<RbacTestUser, 'userId' | 'password'>[] = [
+  { role: 'housekeeping_supervisor', email: 'test-hk-supervisor@patelrep-test.com' },
+  { role: 'housekeeper',             email: 'test-housekeeper@patelrep-test.com' },
+  { role: 'chief_engineer',          email: 'test-chief-eng@patelrep-test.com' },
+  { role: 'engineer',                email: 'test-engineer@patelrep-test.com' },
+  { role: 'front_desk',              email: 'test-front-desk@patelrep-test.com' },
 ]
 
 /** Authenticate as GM and return a bearer token. */
 export async function getGmToken(
   email = process.env.TEST_EMAIL || 'hp.patelrep@gmail.com',
-  password = process.env.TEST_PASSWORD || 'PatelRep2026x',
+  password = requireEnvPassword('TEST_PASSWORD'),
 ): Promise<string> {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -111,8 +119,10 @@ export async function getGmToken(
  */
 export async function seedRbacUsers(gmToken: string): Promise<RbacTestUser[]> {
   const created: RbacTestUser[] = []
+  const rbacPassword = TEST_PASSWORD || requireEnvPassword('RBAC_TEST_PASSWORD')
 
   for (const def of ROLE_DEFINITIONS) {
+    const user = { ...def, password: rbacPassword }
     try {
       const res = await fetch(`${API_URL}/v1/staff/add-direct`, {
         method: 'POST',
@@ -121,24 +131,24 @@ export async function seedRbacUsers(gmToken: string): Promise<RbacTestUser[]> {
           Authorization: `Bearer ${gmToken}`,
         },
         body: JSON.stringify({
-          email: def.email,
-          password: def.password,
-          role: def.role,
-          full_name: `Test ${def.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+          email: user.email,
+          password: user.password,
+          role: user.role,
+          full_name: `Test ${user.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
         }),
       })
 
       if (!res.ok) {
         console.warn(`[rbac-seed] Failed to create ${def.role}: ${res.status} ${await res.text()}`)
-        created.push({ ...def })
+        created.push({ ...user })
         continue
       }
 
       const json = await res.json()
-      created.push({ ...def, userId: json.data?.user_id })
+      created.push({ ...user, userId: json.data?.user_id })
     } catch (err) {
       console.warn(`[rbac-seed] Error creating ${def.role}:`, err)
-      created.push({ ...def })
+      created.push({ ...user })
     }
   }
 
@@ -191,5 +201,5 @@ export const ALL_TEST_ROLES: HotelRole[] = [
 export const GM_TEST_USER: RbacTestUser = {
   role: 'gm',
   email: process.env.TEST_EMAIL || 'hp.patelrep@gmail.com',
-  password: process.env.TEST_PASSWORD || 'PatelRep2026x',
+  password: process.env.TEST_PASSWORD || '',
 }
