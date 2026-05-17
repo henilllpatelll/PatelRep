@@ -80,6 +80,13 @@ test-results/
 test-*.png
 login-page.png
 mobile-report/
+mobile-test-screenshots/
+
+# OpenWolf design QC captures
+.wolf/designqc-captures/
+
+# Accidental root-level image drops
+IMG_*.png
 
 # Local Obsidian plugin secrets
 .obsidian/plugins/obsidian-local-rest-api/data.json

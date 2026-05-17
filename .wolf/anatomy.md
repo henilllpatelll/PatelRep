@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-17T01:45:24.801Z
-> Files: 601 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-17T13:39:29.223Z
+> Files: 605 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
@@ -17,7 +17,7 @@
 ## ./
 
 - `.dockerignore` — /__pycache__ (~71 tok)
-- `.gitignore` — Git ignore rules (~257 tok)
+- `.gitignore` — Git ignore rules (~343 tok)
 - `BUGS.md` — Bug Fix List — Playwright Audit (2026-03-28) (~3485 tok)
 - `CLAUDE.md` — OpenWolf (~2110 tok)
 - `DAY_SIMULATION_AUDIT.md` — Day Simulation Audit — PatelRep (~1911 tok)
