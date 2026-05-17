@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS public.idx_work_orders_asset_id;
+DROP INDEX IF EXISTS public.idx_work_orders_assigned_to;
+DROP INDEX IF EXISTS public.idx_work_orders_tenant_created;
+DROP INDEX IF EXISTS public.idx_work_orders_tenant_unclaimed;
+DROP INDEX IF EXISTS public.sop_chunks_embedding_idx;
+DROP INDEX IF EXISTS public.idx_opera_oauth_states_nonce;
+DROP INDEX IF EXISTS public.idx_opera_oauth_states_expiry;
+DROP INDEX IF EXISTS public.idx_room_assignments_tenant_date_assignee;
+DROP INDEX IF EXISTS public.idx_guest_requests_tenant_created;
+DROP INDEX IF EXISTS public.idx_guest_requests_tenant_status;
