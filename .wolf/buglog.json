@@ -2091,6 +2091,18 @@
                                       ],
                      "occurrences":  1,
                      "last_seen":  "2026-05-17T00:16:25.3710250-05:00"
+                 },
+                 {
+                     "id":  "bug-110",
+                     "timestamp":  "2026-05-17T18:45:00.000Z",
+                     "error_message":  "Railway deploy failed: Cannot find module '/app/server.js' (web) + api service using wrong Dockerfile (apps/web/Dockerfile instead of apps/api/Dockerfile)",
+                     "file":  "apps/web/package.json",
+                     "root_cause":  "1) next upgraded from ^14.2.35 to ^16.3.0-canary.19 in May 16 commit — canary changes standalone output structure so server.js not found at /app/server.js. 2) api service rootDirectory was null so git-triggered deploys read root railway.toml (apps/web/Dockerfile) instead of apps/api/railway.toml",
+                     "fix":  "1) Reverted next and eslint-config-next to ^14.2.35 in apps/web/package.json. 2) Set api service rootDirectory to 'apps/api' via Railway GraphQL API (serviceInstanceUpdate mutation) so it reads apps/api/railway.toml on git-triggered deploys",
+                     "tags":  ["railway", "deploy", "next", "canary", "standalone", "dockerfile", "rootDirectory"],
+                     "related_bugs":  [],
+                     "occurrences":  1,
+                     "last_seen":  "2026-05-17T18:45:00.000Z"
                  }
              ]
 }
