@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 1415594,
-    "total_reads": 1181,
-    "total_writes": 833,
-    "total_sessions": 56,
-    "anatomy_hits": 279,
+    "total_tokens_estimated": 1426685,
+    "total_reads": 1193,
+    "total_writes": 836,
+    "total_sessions": 57,
+    "anatomy_hits": 291,
     "anatomy_misses": 888,
     "repeated_reads_blocked": 451,
-    "estimated_savings_vs_bare_cli": 1050745
+    "estimated_savings_vs_bare_cli": 1053145
   },
   "sessions": [
     {
@@ -13138,6 +13138,144 @@
       "id": "session-2026-05-17-0809",
       "started": "2026-05-17T13:09:19.427Z",
       "ended": "2026-05-17T13:50:57.534Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera/auth.py",
+          "tokens_estimated": 1367,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py",
+          "tokens_estimated": 342,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 1670,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 257,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 61,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3636,
+        "output_tokens_estimated": 61,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-17-0809",
+      "started": "2026-05-17T13:09:19.427Z",
+      "ended": "2026-05-17T14:00:22.370Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera/auth.py",
+          "tokens_estimated": 1367,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py",
+          "tokens_estimated": 342,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 1670,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 257,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 61,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3636,
+        "output_tokens_estimated": 61,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-17-0809",
+      "started": "2026-05-17T13:09:19.427Z",
+      "ended": "2026-05-17T14:19:41.785Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera/auth.py",
+          "tokens_estimated": 1367,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py",
+          "tokens_estimated": 342,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 1670,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 257,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.gitignore",
+          "tokens_estimated": 61,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3636,
+        "output_tokens_estimated": 61,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-17-0809",
+      "started": "2026-05-17T13:09:19.427Z",
+      "ended": "2026-05-17T14:23:11.293Z",
       "reads": [
         {
           "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera/auth.py",
