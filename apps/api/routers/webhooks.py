@@ -7,8 +7,6 @@ from fastapi import APIRouter, Request, HTTPException
 import stripe
 from core.database import supabase
 from core.config import settings
-
-logger = logging.getLogger(__name__)
 from services.opera.webhooks import (
     handle_checkout,
     handle_checkin,
@@ -16,6 +14,8 @@ from services.opera.webhooks import (
     handle_dnd,
     handle_make_up_room,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 

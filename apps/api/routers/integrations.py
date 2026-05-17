@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
-from core.config import settings
 from models.requests import OperaConnectRequest
 from services.opera import sync_reservations, bootstrap_opera_data
 from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
+from services.opera.crypto import encrypt_opera_secrets
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ async def opera_connect(
     expires_in = tokens.get("expires_in", 3600)
     now_utc = datetime.now(timezone.utc)
 
-    supabase.table("opera_credentials").upsert({
+    supabase.table("opera_credentials").upsert(encrypt_opera_secrets({
         "tenant_id": current_user.hotel_id,
         "ohip_base_url": ohip_base,
         "hotel_id_opera": body.hotel_id_opera,
@@ -53,7 +53,7 @@ async def opera_connect(
         "token_expires_at": (now_utc + timedelta(seconds=expires_in)).isoformat(),
         "is_connected": True,
         "updated_at": now_utc.isoformat(),
-    }, on_conflict="tenant_id").execute()
+    }), on_conflict="tenant_id").execute()
 
     try:
         bootstrap_opera_data(current_user.hotel_id)
@@ -129,6 +129,7 @@ async def opera_disconnect(
     supabase.table("opera_credentials")\
         .update({
             "is_connected": False,
+            "integration_password": None,
             "access_token": None,
             "refresh_token": None,
             "updated_at": datetime.now(timezone.utc).isoformat(),

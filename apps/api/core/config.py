@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     opera_oauth_base_url: str = "https://api.oracle.com"
     opera_app_key: str = ""          # x-app-key header (UUID from Developer Portal)
     opera_enterprise_id: str = ""    # enterpriseId header (OCIM client_credentials only)
+    opera_credential_encryption_key: str = ""
 
     # Billing
     base_plan_price_cents: int = 9900  # $99.00/month base fee
@@ -35,6 +36,14 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
+    api_rate_limit_enabled: bool = True
+    api_rate_limit_default_per_minute: int = 180
+    api_rate_limit_anonymous_per_minute: int = 60
+    api_rate_limit_authenticated_ip_per_minute: int = 600
+    api_rate_limit_ai_per_minute: int = 20
+    api_rate_limit_auth_per_minute: int = 10
+    api_rate_limit_webhook_per_minute: int = 120
+    api_rate_limit_health_per_minute: int = 60
 
 
 @lru_cache()

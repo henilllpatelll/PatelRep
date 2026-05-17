@@ -30,6 +30,16 @@
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 22:48 | Added OPERA hardening tests | apps/api/tests/smoke/test_integrations_security.py, test_opera_auth_contract.py, test_opera_workflows.py | Tests initially failed for plaintext storage, missing preflight, missing crypto helper, vague sync errors | ~1800 |
+| 22:49 | Implemented encrypted OPERA credential storage and preflight | apps/api/core/config.py, routers/integrations.py, services/opera/{auth,crypto}.py | Secrets now stored with enc:v1 Fernet envelope; production requires OPERA_CREDENTIAL_ENCRYPTION_KEY; /opera/preflight added | ~2300 |
+| 22:50 | Improved OPERA request failure visibility | apps/api/services/opera/sync.py | OHIP timeout/auth/not-found errors now log safe metadata and return actionable sync errors | ~1300 |
+| 22:51 | Updated OpenWolf anatomy for new files | .wolf/anatomy.md | Added crypto.py, OPERA auth contract tests, OPERA workflow tests | ~300 |
+| 22:51 | Final OPERA/API verification | apps/api | OPERA slice 9 passed; full pytest 126 passed; ruff passed; pyright passed | ~1700 |
+| 22:19 | Read OpenWolf/API/security/TDD context and Oracle workflow page | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, Oracle WORKFLOWS.md | Confirmed workflows list and existing OHIP credential-flow learnings | ~5000 |
+| 22:19 | Ran API tests before changes | apps/api/tests | 117 passed, 3 stale OPERA callback tests failed | ~1200 |
+| 22:20 | Updated OPERA integration smoke tests | apps/api/tests/smoke/test_integrations_security.py, test_opera_workflows.py | Covered credential-based connect, controlled auth errors, RSV sync, HSK status push | ~2200 |
+| 22:20 | Fixed API lint findings | apps/api/routers/integrations.py, apps/api/routers/webhooks.py | Removed unused import and fixed import-order issue | ~300 |
+| 22:20 | Reran API verification | apps/api | pytest 121 passed; ruff passed; pyright passed | ~1600 |
 
 ## Session: 2026-04-15 (Audit Fix Sprint)
 
@@ -1011,3 +1021,32 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:45 | Opera integration update & clean | services/opera/{auth,sync,webhooks}/__init__, routers/{integrations,internal}, models/requests, web/lib/api/integrations.ts, settings/integrations/page.tsx | Fixed timezone NameError; replaced broken auth_code OAuth with credential-based connect; added acquire_new_token; fixed None guard in handle_checkout; fixed exports; removed callback endpoint; updated frontend credential form | ~4800 |
 | 20:46 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 14 reads | ~34000 tok |
 | 21:18 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 14 reads | ~34000 tok |
+| 21:19 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 14 reads | ~34000 tok |
+| 21:19 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 16 reads | ~34000 tok |
+
+## Session: 2026-05-17 22:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-17 22:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:23 | Reviewed OpenWolf context, security/API skills, current API rate-limit surface, and dirty worktree | .wolf/OPENWOLF.md; .wolf/cerebrum.md; apps/api/main.py; apps/api/core/config.py | Found SlowAPI present but no effective global/default limiter; worktree already dirty | ~5000 |
+| 23:27 | Added API rate-limit middleware and focused security tests | apps/api/middleware/rate_limit.py; apps/api/main.py; apps/api/core/config.py; apps/api/tests/smoke/test_api_security_rate_limit.py | Focused pytest passed; ruff passed; API pyright passed | ~3000 |
+| 23:32 | Finalized API security/rate-limit hardening and OpenWolf notes | apps/api/middleware/rate_limit.py; apps/api/tests/smoke/test_api_security_rate_limit.py; .wolf/anatomy.md; .wolf/cerebrum.md; .wolf/buglog.json | Full API tests 130/130 passed; ruff and pyright passed | ~2500 |
+| 23:34 | Re-ran final API verification after JWT-shape hardening | apps/api/middleware/rate_limit.py | 130 pytest passed; ruff passed; pyright passed | ~1200 |
+| 00:07 | Cleaned unrelated pre-existing dirty files and repaired restored OPERA smoke contract | apps/api/tests/smoke/test_integrations_security.py; apps/api/routers/integrations.py; apps/api/routers/webhooks.py | API tests, ruff, and pyright pass after cleanup | ~1800 |
+| 00:16 | Pre-credentials security hardening restored OPERA credential encryption and ran API/web gates | apps/api/services/opera/crypto.py, integrations.py, auth.py, tests, requirements | passed API pytest/Pyright/Ruff and web type/lint/build/audit | ~3k |
+| 00:23 | Completed remaining cleanup: migrated Next middleware to proxy and removed generated mobile report from tracked files | apps/web/proxy.ts, apps/web/middleware.ts, .gitignore, mobile-report/index.html, .wolf/anatomy.md | web type-check/lint/build passed; Next middleware warning removed | ~1.5k |
+
+## Session: 2026-05-17 07:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-17 08:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

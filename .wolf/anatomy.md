@@ -1,11 +1,18 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-13T17:14:54.188Z
-> Files: 572 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-17T01:45:24.801Z
+> Files: 601 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `MEMORY.md` — PatelRep Project Memory (~213 tok)
 - `project_status.md` — Declares in (~924 tok)
+- `reference_ohip_api.md` — Oracle OHIP API — Complete Reference (~2624 tok)
+
+## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
+
+- `MEMORY.md` — Memory Index (~264 tok)
+- `reference_ohip_api.md` — Oracle OHIP API — Complete Reference (~2621 tok)
 
 ## ./
 
@@ -918,12 +925,24 @@
 
 ## apps/api/
 
-- `railway.toml` (~52 tok)
+- `main.py` — API: 1 endpoints (~1678 tok)
+- `pyrightconfig.json` — API-local Pyright baseline config excluding virtualenvs and suppressing known Supabase/SDK typing-noise categories (~80 tok)
+- `pytest.ini` — Pytest warning filters for local API smoke tests (~20 tok)
+- `railway.toml` (~50 tok)
+
+## apps/api/core/
+
+- `config.py` — Settings: get_settings (~342 tok)
 
 ## apps/api/middleware/
 
 - `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~1173 tok)
 - `credits.py` — check_and_deduct_credits, log_ai_interaction (~1065 tok)
+- `rate_limit.py` — RateLimitMiddleware with forwarded-IP, verified-user, route-tier buckets and 429 response headers (~1900 tok)
+
+## apps/api/models/
+
+- `requests.py` — --- Staff Role Schedules --- (~2764 tok)
 
 ## apps/api/routers/
 
@@ -931,17 +950,27 @@
 - `assets.py` — API: 12 endpoints (~4333 tok)
 - `hotels.py` — API: 5 endpoints (~2089 tok)
 - `housekeeping.py` — API: 5 endpoints (~7829 tok)
+- `integrations.py` — API: 5 endpoints (~1478 tok)
 - `internal.py` — API: 8 endpoints (~3214 tok)
 - `lost_found.py` — API: 5 endpoints (~1143 tok)
 - `rooms.py` — API: 6 endpoints (~4563 tok)
 - `tasks.py` — API: 7 endpoints (~2244 tok)
-- `webhooks.py` — API: 2 endpoints (~1774 tok)
+- `webhooks.py` — API: 2 endpoints (~1796 tok)
 - `work_orders.py` — API: 8 endpoints (~2889 tok)
 
 ## apps/api/services/ai/
 
+- `failure_predictions.py` — run_asset_failure_predictions (~5975 tok)
 - `insights.py` — generate_gm_insights (~1388 tok)
 - `shift_summary.py` — generate_shift_summary (~1408 tok)
+
+## apps/api/services/opera/
+
+- `__init__.py` (~176 tok)
+- `auth.py` — get_opera_credentials, get_valid_access_token, acquire_new_token (~1367 tok)
+- `crypto.py` — OPERA credential encryption/decryption helpers using Fernet envelope and production key guard (~370 tok)
+- `sync.py` — ohip_request, map_opera_reservation, upsert_opera_reservation, sync_reservations (~2391 tok)
+- `webhooks.py` — handle_checkout, handle_checkin, handle_reservation_modified, handle_dnd (~1554 tok)
 
 ## apps/api/tests/load/
 
@@ -951,12 +980,49 @@
 
 ## apps/api/tests/smoke/
 
+- `test_api_security_rate_limit.py` — Smoke tests for API rate limiting tiers, verified shared-IP user buckets, and forwarded HTTPS security headers (~900 tok)
+- `test_integrations_security.py` — OPERA credential-based connect, encrypted storage, controlled auth errors, and preflight smoke tests (~2200 tok)
 - `test_notes_regressions.py` — Regression tests for task/guest request notes mapping, guest request task_id refresh, and PostgREST schema error responses (~1900 tok)
+- `test_opera_auth_contract.py` — OHIP token request contract and encrypted credential decrypt coverage (~1300 tok)
+- `test_opera_workflows.py` — OPERA RSV reservation sync and HSK room-status workflow contract tests (~1900 tok)
 - `test_tenant_isolation.py` — _FakeAdminAuth: list_users, table, b_row, eq + 23 more (~6720 tok)
+
+## apps/api/tests/smoke/test_load_auth_state.py
+
+
+## apps/api/tests/smoke/test_sop_security.py
+
+
+## apps/api/tests/smoke/test_webhooks_and_transitions.py
+
 
 ## apps/mobile/
 
+- `jest.config.js` — Jest Expo test configuration with workspace module mappings (~350 tok)
 - `package-lock.json` — npm lock file for Expo mobile dependencies, including patched transitive overrides (~260000 tok)
+
+## apps/mobile/__tests__/components/
+
+- `ReportIssueModal.test.tsx` — Mocks issue reporting modal dependencies and online/offline submit behavior (~1600 tok)
+
+## apps/mobile/__tests__/lib/offline/
+
+- `sync.test.ts` — Tests offline queue replay and room refresh API behavior (~1500 tok)
+
+## apps/mobile/components/housekeeping/
+
+- `ReportIssueModal.tsx` — Room issue modal that creates or queues work orders based on online state (~1300 tok)
+
+## apps/mobile/lib/offline/
+
+- `sync.ts` — Replays queued offline actions and refreshes assigned rooms (~700 tok)
+
+## apps/web/
+
+- `eslint.config.mjs` — ESLint v9 flat config using Next 16 core-web-vitals and TypeScript rule sets (~180 tok)
+- `next.config.mjs` — Next.js 16 standalone config with Supabase image host, serverExternalPackages, and Turbopack root (~130 tok)
+- `proxy.ts` — Next.js 16 Proxy route guard for auth, hotel onboarding, and role-based redirects (~1670 tok)
+- `tsconfig.json` — TypeScript config adjusted by Next 16 build for React automatic runtime and dev type includes (~260 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
@@ -1006,6 +1072,10 @@
 
 - `page.tsx` — numberOrDefault (~5323 tok)
 
+## apps/web/app/(dashboard)/settings/integrations/
+
+- `page.tsx` — relativeTime (~5397 tok)
+
 ## apps/web/app/(dashboard)/staff/
 
 - `page.tsx` — ROLE_OPTIONS — renders form (~13084 tok)
@@ -1044,6 +1114,7 @@
 ## apps/web/lib/api/
 
 - `housekeeping.ts` — API routes: GET, POST, PATCH, DELETE (15 endpoints) (~1080 tok)
+- `integrations.ts` — API routes: GET, POST, DELETE (5 endpoints) (~381 tok)
 
 ## apps/web/stores/
 
@@ -1063,3 +1134,4 @@
 - `030_enable_realtime_work_orders.sql` — Enable Supabase Realtime for engineering work orders. (~53 tok)
 - `031_load_perf_indexes.sql` — ============================================================================= (~820 tok)
 - `032_work_orders_unclaimed_index.sql` — ============================================================================= (~171 tok)
+- `034_opera_oauth_states.sql` — Creates one-time Opera OAuth state nonce table with expiry indexes and RLS enabled (~220 tok)

@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from middleware.auth import get_current_user, CurrentUser
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import CopilotChatRequest
@@ -13,7 +11,6 @@ import time
 import logging
 
 router = APIRouter(prefix="/ai", tags=["ai"])
-limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 

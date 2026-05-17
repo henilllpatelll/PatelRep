@@ -5,14 +5,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 from core.config import settings
+from middleware.rate_limit import RateLimitMiddleware, RateLimitRule
 from routers import (
     auth, hotels, rooms, housekeeping, tasks, work_orders,
     assets, ai_copilot, sop, billing, webhooks,
@@ -21,7 +19,6 @@ from routers import (
 )
 
 logger = logging.getLogger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -42,9 +39,6 @@ app = FastAPI(
     redoc_url=None,
     redirect_slashes=False,
 )
-
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(
@@ -69,11 +63,26 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if request.url.scheme == "https":
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        forwarded_proto = request.headers.get("x-forwarded-proto", "")
+        if request.url.scheme == "https" or forwarded_proto.split(",", 1)[0].strip() == "https":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    RateLimitMiddleware,
+    enabled=settings.api_rate_limit_enabled,
+    default_rule=RateLimitRule(settings.api_rate_limit_default_per_minute, 60),
+    anonymous_rule=RateLimitRule(settings.api_rate_limit_anonymous_per_minute, 60),
+    per_ip_authenticated_rule=RateLimitRule(settings.api_rate_limit_authenticated_ip_per_minute, 60),
+    ai_rule=RateLimitRule(settings.api_rate_limit_ai_per_minute, 60),
+    auth_rule=RateLimitRule(settings.api_rate_limit_auth_per_minute, 60),
+    webhook_rule=RateLimitRule(settings.api_rate_limit_webhook_per_minute, 60),
+    health_rule=RateLimitRule(settings.api_rate_limit_health_per_minute, 60),
+)
 
 
 # Health check (no auth required)

@@ -79,6 +79,10 @@ test-results/
 # Playwright test screenshots (root-level)
 test-*.png
 login-page.png
+mobile-report/
+
+# Local Obsidian plugin secrets
+.obsidian/plugins/obsidian-local-rest-api/data.json
 
 # GSD planning archive
 .planning/archive/

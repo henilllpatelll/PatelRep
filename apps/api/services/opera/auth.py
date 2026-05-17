@@ -3,6 +3,7 @@ import httpx
 from datetime import datetime, timedelta, timezone
 from core.database import supabase
 from core.config import settings
+from services.opera.crypto import decrypt_opera_secrets, encrypt_secret
 
 
 def _basic_auth_header() -> str:
@@ -20,7 +21,7 @@ def get_opera_credentials(hotel_id: str) -> dict | None:
         .eq("is_connected", True)\
         .maybe_single()\
         .execute()
-    return result.data if result else None
+    return decrypt_opera_secrets(result.data if result else None)
 
 
 def get_valid_access_token(hotel_id: str) -> str | None:
@@ -87,7 +88,7 @@ def _refresh_token(hotel_id: str, creds: dict) -> str | None:
         now_utc = datetime.now(timezone.utc)
 
         supabase.table("opera_credentials").update({
-            "access_token": new_access,
+            "access_token": encrypt_secret(new_access),
             "token_expires_at": (now_utc + timedelta(seconds=expires_in)).isoformat(),
             "updated_at": now_utc.isoformat(),
         }).eq("tenant_id", hotel_id).execute()
