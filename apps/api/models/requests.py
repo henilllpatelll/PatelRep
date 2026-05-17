@@ -311,3 +311,11 @@ class UpdateCustomRoleRequest(BaseModel):
     description: Optional[str] = None
     base_role: Optional[Literal["housekeeper", "engineer", "housekeeping_supervisor", "chief_engineer", "front_desk", "gm"]] = None
     allowed_modules: Optional[List[str]] = None
+
+
+# --- Opera Cloud Integration ---
+class OperaConnectRequest(BaseModel):
+    ohip_base_url: str
+    hotel_id_opera: str
+    integration_username: Optional[str] = None
+    integration_password: Optional[str] = None

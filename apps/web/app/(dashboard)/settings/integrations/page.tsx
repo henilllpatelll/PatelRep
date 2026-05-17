@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Link2,
@@ -16,8 +15,10 @@ import {
   ArrowRight,
   Loader2,
   Check,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
-import { integrationsApi } from '@/lib/api/integrations'
+import { integrationsApi, type OperaConnectRequest } from '@/lib/api/integrations'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -30,6 +31,24 @@ function relativeTime(isoString: string): string {
   if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`
   if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
   return 'just now'
+}
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="block text-xs font-medium text-gray-600 mb-1">
+      {children}
+      {required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+  )
+}
+
+function CredentialInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300 transition-colors placeholder:text-gray-400"
+    />
+  )
 }
 
 // ─── Disconnect Confirm Dialog ────────────────────────────────────────────────
@@ -45,12 +64,7 @@ function ConfirmDisconnectDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
-        onClick={onCancel}
-      />
-      {/* Dialog */}
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
@@ -61,22 +75,17 @@ function ConfirmDisconnectDialog({
             <p className="text-sm text-gray-500">This will stop all syncing immediately.</p>
           </div>
         </div>
-
         <p className="text-sm text-gray-700">
           Are you sure you want to disconnect Opera Cloud? Automatic checkout detection, VIP flags,
           and real-time room sync will stop until you reconnect.
         </p>
-
         <div className="flex gap-3 pt-1">
           <Button variant="ghost" onClick={onCancel} disabled={loading} className="flex-1 justify-center">
             Cancel
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={loading} className="flex-1 justify-center">
             {loading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Disconnecting…
-              </>
+              <><Loader2 size={14} className="animate-spin" />Disconnecting…</>
             ) : (
               'Disconnect'
             )}
@@ -87,10 +96,9 @@ function ConfirmDisconnectDialog({
   )
 }
 
-// ─── Inner page (uses useSearchParams) ────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-function IntegrationsPageInner() {
-  const searchParams = useSearchParams()
+export default function IntegrationsPage() {
   const queryClient = useQueryClient()
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
@@ -99,50 +107,19 @@ function IntegrationsPageInner() {
   const [syncResult, setSyncResult] = useState<{ count: number; at: string } | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
-  // ── Handle redirect back from Opera OAuth ─────────────────────────────────
+  // ── Connect form state ────────────────────────────────────────────────────
+  const [form, setForm] = useState<OperaConnectRequest>({
+    ohip_base_url: '',
+    hotel_id_opera: '',
+    integration_username: '',
+    integration_password: '',
+  })
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
-  useEffect(() => {
-    const status = searchParams.get('opera')
-    if (status === 'connected') {
-      setSuccessBanner('Opera Cloud connected successfully. Syncing reservations now.')
-      // Clean URL without full reload
-      const url = new URL(window.location.href)
-      url.searchParams.delete('opera')
-      window.history.replaceState({}, '', url.toString())
-    } else if (status === 'error') {
-      const msg = searchParams.get('message') || 'Failed to connect Opera Cloud. Please try again.'
-      setErrorBanner(msg)
-      const url = new URL(window.location.href)
-      url.searchParams.delete('opera')
-      url.searchParams.delete('message')
-      window.history.replaceState({}, '', url.toString())
-    }
-  }, [searchParams])
+  const setField = (key: keyof OperaConnectRequest) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(prev => ({ ...prev, [key]: e.target.value }))
 
-  // ── Auto-dismiss banners after 5 seconds ──────────────────────────────────
-
-  useEffect(() => {
-    if (!successBanner) return
-    const t = setTimeout(() => setSuccessBanner(null), 5000)
-    return () => clearTimeout(t)
-  }, [successBanner])
-
-  useEffect(() => {
-    if (!errorBanner) return
-    const t = setTimeout(() => setErrorBanner(null), 5000)
-    return () => clearTimeout(t)
-  }, [errorBanner])
-
-  // ── Auto-dismiss test result after 5 seconds ──────────────────────────────
-
-  useEffect(() => {
-    if (!testResult) return
-    const t = setTimeout(() => setTestResult(null), 5000)
-    return () => clearTimeout(t)
-  }, [testResult])
-
-  // ── Opera status query ─────────────────────────────────────────────────────
-
+  // ── Opera status query ────────────────────────────────────────────────────
   const statusQuery = useQuery({
     queryKey: ['opera-status'],
     queryFn: () => integrationsApi.getOperaStatus(),
@@ -154,15 +131,21 @@ function IntegrationsPageInner() {
   const operaStatus = statusQuery.data
 
   // ── Mutations ─────────────────────────────────────────────────────────────
-
   const connectMutation = useMutation({
-    mutationFn: () => integrationsApi.connectOpera(),
-    onSuccess: (res) => {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign(res.data.auth_url)
+    mutationFn: () => integrationsApi.connectOpera({
+      ohip_base_url: form.ohip_base_url,
+      hotel_id_opera: form.hotel_id_opera,
+      integration_username: form.integration_username || undefined,
+      integration_password: form.integration_password || undefined,
+    }),
+    onSuccess: () => {
+      setSuccessBanner('Opera Cloud connected successfully. Syncing reservations now.')
+      queryClient.invalidateQueries({ queryKey: ['opera-status'] })
+      setForm({ ohip_base_url: '', hotel_id_opera: '', integration_username: '', integration_password: '' })
+      setShowAdvanced(false)
     },
     onError: (err: any) => {
-      setErrorBanner(err.message || 'Failed to initiate Opera Cloud connection.')
+      setErrorBanner(err.message || 'Failed to connect Opera Cloud. Check your credentials.')
     },
   })
 
@@ -202,8 +185,9 @@ function IntegrationsPageInner() {
     },
   })
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const canConnect = form.ohip_base_url.trim() !== '' && form.hotel_id_opera.trim() !== ''
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Page header */}
@@ -214,10 +198,7 @@ function IntegrationsPageInner() {
 
       {/* Success banner */}
       {successBanner && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium"
-        >
+        <div role="alert" className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
           <CheckCircle2 size={16} className="text-green-600 shrink-0" />
           {successBanner}
         </div>
@@ -225,10 +206,7 @@ function IntegrationsPageInner() {
 
       {/* Error banner */}
       {errorBanner && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium"
-        >
+        <div role="alert" className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium">
           <AlertTriangle size={16} className="text-red-500 shrink-0" />
           {errorBanner}
         </div>
@@ -264,115 +242,52 @@ function IntegrationsPageInner() {
             {statusQuery.isLoading ? (
               <Loader2 size={14} className="animate-spin text-gray-400" />
             ) : operaStatus?.connected ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-green-700 font-medium text-sm">Connected</span>
-              </>
+              <><span className="w-2 h-2 rounded-full bg-green-500" /><span className="text-green-700 font-medium text-sm">Connected</span></>
             ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-gray-300" />
-                <span className="text-gray-400 font-medium text-sm">Disconnected</span>
-              </>
+              <><span className="w-2 h-2 rounded-full bg-gray-300" /><span className="text-gray-400 font-medium text-sm">Disconnected</span></>
             )}
           </div>
         </div>
 
-        {/* Connected state — metadata + actions */}
+        {/* Connected state */}
         {!statusQuery.isLoading && operaStatus?.connected && (
           <>
-            {/* Metadata row */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-amber-50/40 border border-amber-100/50 rounded-lg px-4 py-3">
               {operaStatus.last_sync_at && (
-                <span>
-                  Last synced:{' '}
-                  <span className="text-gray-700 font-medium">
-                    {relativeTime(operaStatus.last_sync_at)}
-                  </span>
-                </span>
+                <span>Last synced: <span className="text-gray-700 font-medium">{relativeTime(operaStatus.last_sync_at)}</span></span>
               )}
               {operaStatus.connected_since && (
-                <span>
-                  Connected since:{' '}
-                  <span className="text-gray-700 font-medium">
-                    {new Date(operaStatus.connected_since).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                </span>
+                <span>Connected since: <span className="text-gray-700 font-medium">{new Date(operaStatus.connected_since).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></span>
               )}
               {operaStatus.ohip_base_url && (
-                <span className="truncate max-w-xs">
-                  Endpoint:{' '}
-                  <span className="text-gray-700 font-medium font-mono text-xs">
-                    {operaStatus.ohip_base_url}
-                  </span>
-                </span>
+                <span className="truncate max-w-xs">Endpoint: <span className="text-gray-700 font-medium font-mono text-xs">{operaStatus.ohip_base_url}</span></span>
               )}
             </div>
 
-            {/* Sync result */}
             {syncResult && (
               <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
                 <CheckCircle2 size={14} className="shrink-0 text-green-600" />
-                Synced {syncResult.count} reservation{syncResult.count !== 1 ? 's' : ''} —{' '}
-                {relativeTime(syncResult.at)}
+                Synced {syncResult.count} reservation{syncResult.count !== 1 ? 's' : ''} — {relativeTime(syncResult.at)}
               </div>
             )}
 
-            {/* Test result */}
             {testResult && (
-              <div
-                className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${
-                  testResult.ok
-                    ? 'text-green-700 bg-green-50 border-green-200'
-                    : 'text-red-700 bg-red-50 border-red-200'
-                }`}
-              >
-                {testResult.ok ? (
-                  <CheckCircle2 size={14} className="shrink-0 text-green-600" />
-                ) : (
-                  <XCircle size={14} className="shrink-0 text-red-500" />
-                )}
+              <div className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
+                {testResult.ok ? <CheckCircle2 size={14} className="shrink-0 text-green-600" /> : <XCircle size={14} className="shrink-0 text-red-500" />}
                 {testResult.message}
               </div>
             )}
 
-            {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button
-                variant="ghost"
-                onClick={() => testMutation.mutate()}
-                disabled={testMutation.isPending || syncMutation.isPending}
-              >
-                {testMutation.isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Zap size={14} />
-                )}
+              <Button variant="ghost" onClick={() => testMutation.mutate()} disabled={testMutation.isPending || syncMutation.isPending}>
+                {testMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                 Test Connection
               </Button>
-
-              <Button
-                variant="ghost"
-                onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending || testMutation.isPending}
-              >
-                {syncMutation.isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={14} />
-                )}
+              <Button variant="ghost" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending || testMutation.isPending}>
+                {syncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 Force Sync
               </Button>
-
-              <Button
-                variant="destructive"
-                onClick={() => setShowDisconnectConfirm(true)}
-                disabled={disconnectMutation.isPending}
-                className="ml-auto"
-              >
+              <Button variant="destructive" onClick={() => setShowDisconnectConfirm(true)} disabled={disconnectMutation.isPending} className="ml-auto">
                 <Trash2 size={14} />
                 Disconnect
               </Button>
@@ -380,7 +295,7 @@ function IntegrationsPageInner() {
           </>
         )}
 
-        {/* Disconnected state — feature list + connect button */}
+        {/* Disconnected state — feature list + credential form */}
         {!statusQuery.isLoading && !operaStatus?.connected && (
           <>
             <div className="space-y-2.5">
@@ -400,24 +315,84 @@ function IntegrationsPageInner() {
               </ul>
             </div>
 
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="primary"
-                onClick={() => connectMutation.mutate()}
-                disabled={connectMutation.isPending}
-              >
-                {connectMutation.isPending ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Redirecting…
-                  </>
-                ) : (
-                  <>
-                    Connect Opera Cloud
-                    <ArrowRight size={14} />
-                  </>
+            <div className="border-t border-gray-100 pt-5 space-y-4">
+              <p className="text-sm font-medium text-gray-700">Enter your OHIP credentials to connect:</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel required>OHIP Base URL</FieldLabel>
+                  <CredentialInput
+                    type="url"
+                    placeholder="https://hospitality.oracle.com"
+                    value={form.ohip_base_url}
+                    onChange={setField('ohip_base_url')}
+                    disabled={connectMutation.isPending}
+                  />
+                </div>
+                <div>
+                  <FieldLabel required>Opera Hotel Code</FieldLabel>
+                  <CredentialInput
+                    type="text"
+                    placeholder="SAND01"
+                    value={form.hotel_id_opera}
+                    onChange={setField('hotel_id_opera')}
+                    disabled={connectMutation.isPending}
+                  />
+                </div>
+              </div>
+
+              {/* Advanced: integration user credentials for password grant */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(v => !v)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  Integration user credentials (optional — for password grant)
+                </button>
+
+                {showAdvanced && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <FieldLabel>Username</FieldLabel>
+                      <CredentialInput
+                        type="text"
+                        placeholder="integration_user"
+                        value={form.integration_username}
+                        onChange={setField('integration_username')}
+                        disabled={connectMutation.isPending}
+                        autoComplete="username"
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel>Password</FieldLabel>
+                      <CredentialInput
+                        type="password"
+                        placeholder="••••••••"
+                        value={form.integration_password}
+                        onChange={setField('integration_password')}
+                        disabled={connectMutation.isPending}
+                        autoComplete="current-password"
+                      />
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <Button
+                  variant="primary"
+                  onClick={() => connectMutation.mutate()}
+                  disabled={!canConnect || connectMutation.isPending}
+                >
+                  {connectMutation.isPending ? (
+                    <><Loader2 size={14} className="animate-spin" />Connecting…</>
+                  ) : (
+                    <>Connect Opera Cloud<ArrowRight size={14} /></>
+                  )}
+                </Button>
+              </div>
             </div>
           </>
         )}
@@ -436,10 +411,7 @@ function IntegrationsPageInner() {
           <div className="flex items-center gap-2 text-sm text-red-600">
             <AlertTriangle size={14} className="shrink-0" />
             Failed to load Opera status.{' '}
-            <button
-              onClick={() => statusQuery.refetch()}
-              className="underline hover:no-underline"
-            >
+            <button onClick={() => statusQuery.refetch()} className="underline hover:no-underline">
               Retry
             </button>
           </div>
@@ -455,9 +427,7 @@ function IntegrationsPageInner() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-gray-900">SOP Library</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Upload PDF documents to power the AI Copilot Q&amp;A
-              </p>
+              <p className="text-sm text-gray-500 mt-0.5">Upload PDF documents to power the AI Copilot Q&amp;A</p>
             </div>
           </div>
           <Link
@@ -479,15 +449,5 @@ function IntegrationsPageInner() {
         />
       )}
     </div>
-  )
-}
-
-// ─── Page export (wraps inner in Suspense for useSearchParams) ────────────────
-
-export default function IntegrationsPage() {
-  return (
-    <Suspense fallback={<div className="text-sm text-gray-400 p-6">Loading…</div>}>
-      <IntegrationsPageInner />
-    </Suspense>
   )
 }

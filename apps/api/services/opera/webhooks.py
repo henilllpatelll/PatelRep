@@ -19,7 +19,7 @@ def handle_checkout(hotel_id: str, payload: dict) -> None:
     # Get current status for history
     current = supabase.table("room_status").select("status")\
         .eq("room_id", room_id).maybe_single().execute()
-    from_status = current.data["status"] if current.data else None
+    from_status = current.data["status"] if (current and current.data) else None
 
     supabase.table("room_status").update({
         "status": "DIRTY",

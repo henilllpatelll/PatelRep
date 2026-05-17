@@ -1,5 +1,5 @@
 import httpx
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from core.database import supabase
 from core.config import settings
 from services.opera.auth import get_valid_access_token, get_opera_credentials

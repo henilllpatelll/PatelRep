@@ -933,3 +933,81 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:11 | Edited apps/api/services/opera/webhooks.py | inline fix | ~11 |
 | 01:11 | Edited apps/api/services/opera/sync.py | inline fix | ~11 |
 | 01:11 | Session end: 9 writes across 5 files (config.py, auth.py, sync.py, integrations.py, webhooks.py) | 21 reads | ~13449 tok |
+| 01:20 | Session end: 9 writes across 5 files (config.py, auth.py, sync.py, integrations.py, webhooks.py) | 21 reads | ~13449 tok |
+
+## Session: 2026-05-16 01:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:33 | Session end: 4 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 4 reads | ~1928 tok |
+| 01:34 | Session end: 4 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 4 reads | ~1928 tok |
+| 01:35 | Session end: 4 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 4 reads | ~1928 tok |
+
+## Session: 2026-05-16 01:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-16 01:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:36 | Edited apps/api/main.py | print() → info() | ~44 |
+| 01:36 | Edited apps/api/routers/webhooks.py | 8→11 lines | ~80 |
+| 01:36 | Edited apps/api/routers/webhooks.py | print() → error() | ~44 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Ana" → "Analyzing asset %s (%s)" | ~21 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] JSO" → "JSON parse error for asse" | ~23 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Cla" → "Claude error for asset %s" | ~24 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Sta" → "Starting failure predicti" | ~21 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] ERR" → "ERROR fetching assets for" | ~22 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] No " → "No active assets found fo" | ~20 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Fou" → "Found %d active assets fo" | ~22 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] DB " → "DB upsert error for asset" | ~22 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | print() → info() | ~53 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | print() → info() | ~40 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Sta" → "Starting all-hotels failu" | ~18 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] ERR" → "ERROR fetching hotel list" | ~17 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Fou" → "Found %d hotels with acti" | ~20 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] ERR" → "ERROR for hotel %s: %s" | ~19 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | print() → info() | ~46 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Run" → "Running single-asset pred" | ~21 |
+| 01:37 | Edited apps/api/services/ai/failure_predictions.py | "[failure_predictions] Sin" → "Single-asset prediction c" | ~28 |
+| 01:38 | Session end: 20 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 3 reads | ~10088 tok |
+| 01:41 | Session end: 20 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 4 reads | ~10088 tok |
+| 01:43 | Session end: 20 writes across 3 files (main.py, webhooks.py, failure_predictions.py) | 6 reads | ~11168 tok |
+| 17:46 | Created apps/web/middleware.ts | — | ~1670 |
+| 17:48 | Session end: 21 writes across 4 files (main.py, webhooks.py, failure_predictions.py, middleware.ts) | 6 reads | ~12838 tok |
+
+## Session: 2026-05-16 18:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-16 18:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:13 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_ohip_api.md | — | ~2785 |
+| 20:13 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~48 |
+| 20:13 | Session end: 2 writes across 2 files (reference_ohip_api.md, MEMORY.md) | 1 reads | ~3035 tok |
+| 20:15 | Session end: 2 writes across 2 files (reference_ohip_api.md, MEMORY.md) | 1 reads | ~3035 tok |
+| 20:19 | Created ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/reference_ohip_api.md | — | ~2796 |
+| 20:19 | Edited ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/MEMORY.md | 1→4 lines | ~50 |
+| 20:19 | Session end: 4 writes across 2 files (reference_ohip_api.md, MEMORY.md) | 2 reads | ~6084 tok |
+
+## Session: 2026-05-17 20:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:43 | Edited apps/api/services/opera/sync.py | inline fix | ~16 |
+| 20:43 | Edited apps/api/services/opera/webhooks.py | added 1 condition(s) | ~57 |
+| 20:43 | Edited apps/api/routers/internal.py | 5→4 lines | ~35 |
+| 20:43 | Edited apps/api/services/opera/auth.py | modified acquire_new_token() | ~399 |
+| 20:43 | Edited apps/api/services/opera/__init__.py | 10→10 lines | ~176 |
+| 20:43 | Edited apps/api/models/requests.py | modified UpdateCustomRoleRequest() | ~145 |
+| 20:44 | Created apps/api/routers/integrations.py | — | ~1478 |
+| 20:44 | Created apps/web/lib/api/integrations.ts | — | ~381 |
+| 20:45 | Created apps/web/app/(dashboard)/settings/integrations/page.tsx | — | ~5397 |
+| 20:45 | Opera integration update & clean | services/opera/{auth,sync,webhooks}/__init__, routers/{integrations,internal}, models/requests, web/lib/api/integrations.ts, settings/integrations/page.tsx | Fixed timezone NameError; replaced broken auth_code OAuth with credential-based connect; added acquire_new_token; fixed None guard in handle_checkout; fixed exports; removed callback endpoint; updated frontend credential form | ~4800 |
+| 20:46 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 14 reads | ~34000 tok |
+| 21:18 | Session end: 9 writes across 9 files (sync.py, webhooks.py, internal.py, auth.py, __init__.py) | 14 reads | ~34000 tok |

@@ -95,3 +95,42 @@ def _refresh_token(hotel_id: str, creds: dict) -> str | None:
         return new_access
     except Exception:
         return creds.get("access_token")
+
+
+def acquire_new_token(
+    ohip_base_url: str,
+    integration_username: str | None,
+    integration_password: str | None,
+) -> dict:
+    """
+    Request a fresh OHIP token without pre-existing stored credentials.
+    Uses password grant when integration user credentials are provided,
+    otherwise falls back to client_credentials (OCIM scope).
+    Raises httpx.HTTPStatusError on 4xx/5xx from Oracle.
+    Raises Exception on network/timeout failures.
+    Returns the raw token JSON on success.
+    """
+    token_url = f"{ohip_base_url.rstrip('/')}/oauth/v1/tokens"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": _basic_auth_header(),
+        "x-app-key": settings.opera_app_key,
+    }
+    if settings.opera_enterprise_id:
+        headers["enterpriseId"] = settings.opera_enterprise_id
+
+    if integration_username and integration_password:
+        data = {
+            "grant_type": "password",
+            "username": integration_username,
+            "password": integration_password,
+        }
+    else:
+        data = {
+            "grant_type": "client_credentials",
+            "scope": "urn:opc:hgbu:ws:__myscopes__",
+        }
+
+    response = httpx.post(token_url, data=data, headers=headers, timeout=15.0)
+    response.raise_for_status()
+    return response.json()

@@ -1,158 +1,66 @@
-import base64
 import httpx
 import logging
-import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, Query, HTTPException
-from fastapi.responses import RedirectResponse
-from urllib.parse import urlencode
+from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
+from models.requests import OperaConnectRequest
 from services.opera import sync_reservations, bootstrap_opera_data
+from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
-OPERA_STATE_TTL_MINUTES = 10
-
-
-def _settings_redirect(query: dict[str, str]) -> RedirectResponse:
-    return RedirectResponse(f"{settings.app_url}/settings/integrations?{urlencode(query)}")
-
-
-def _parse_datetime(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
 
 @router.post("/opera/connect")
 async def opera_connect(
+    body: OperaConnectRequest,
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """
-    Returns the OHIP OAuth2 authorization URL.
-    The GM should be redirected to this URL to authorize PatelRep.
+    Connect Opera Cloud using OHIP credentials.
+    Tests the connection by obtaining an access token, then stores credentials.
+    OHIP supports password grant (integration user) and client_credentials (OCIM).
     """
-    state = secrets.token_urlsafe(32)
-    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=OPERA_STATE_TTL_MINUTES)).isoformat()
-    supabase.table("opera_oauth_states").insert({
-        "tenant_id": current_user.hotel_id,
-        "user_id": current_user.user_id,
-        "nonce": state,
-        "expires_at": expires_at,
-    }).execute()
+    ohip_base = body.ohip_base_url.rstrip("/")
 
-    query = urlencode({
-        "response_type": "code",
-        "client_id": settings.opera_oauth_client_id,
-        "redirect_uri": settings.opera_oauth_redirect_uri,
-        "scope": "urn:opc:hgbu:ws:__myscopes__",
-        "state": state,
-    })
-    auth_url = f"{settings.opera_oauth_base_url}/oauth/v1/authorize?{query}"
-    return {"data": {"auth_url": auth_url, "hotel_id": current_user.hotel_id}}
-
-
-@router.get("/opera/callback")
-async def opera_callback(
-    code: str = Query(...),
-    state: str = Query(...),
-    error: str = Query(None),
-):
-    """
-    OAuth callback from Oracle OHIP.
-    - Exchanges authorization code for access + refresh tokens.
-    - Stores credentials in opera_credentials table.
-    - Triggers initial 90-day reservation bootstrap.
-    - Redirects browser back to the web settings page.
-    """
-    if error:
-        return _settings_redirect({"opera": "error", "reason": error})
-
-    state_result = supabase.table("opera_oauth_states")\
-        .select("id, tenant_id, user_id, expires_at, used_at")\
-        .eq("nonce", state)\
-        .maybe_single()\
-        .execute()
-
-    state_row = state_result.data if state_result else None
-    expires_at = _parse_datetime(state_row.get("expires_at") if state_row else None)
-    now = datetime.now(timezone.utc)
-    if (
-        not state_row
-        or state_row.get("used_at")
-        or not expires_at
-        or expires_at <= now
-    ):
-        return _settings_redirect({"opera": "error", "reason": "invalid_state"})
-
-    supabase.table("opera_oauth_states")\
-        .update({"used_at": now.isoformat()})\
-        .eq("id", state_row["id"])\
-        .execute()
-
-    hotel_id = state_row["tenant_id"]
-
-    # Exchange code for tokens.
-    # OHIP spec: client credentials go in Basic auth header, not the body.
-    # Endpoint: /oauth/v1/tokens (plural)
-    _creds_b64 = base64.b64encode(
-        f"{settings.opera_oauth_client_id}:{settings.opera_oauth_client_secret}".encode()
-    ).decode()
     try:
-        token_response = httpx.post(
-            f"{settings.opera_oauth_base_url}/oauth/v1/tokens",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": settings.opera_oauth_redirect_uri,
-            },
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": f"Basic {_creds_b64}",
-                "x-app-key": settings.opera_app_key,
-            },
-            timeout=20.0,
+        tokens = acquire_new_token(ohip_base, body.integration_username, body.integration_password)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Opera connection failed ({e.response.status_code}). Check your credentials and base URL."
         )
-        token_response.raise_for_status()
-        tokens = token_response.json()
     except Exception:
-        return _settings_redirect({"opera": "error", "reason": "token_exchange_failed"})
+        raise HTTPException(status_code=503, detail="Could not reach the OHIP endpoint. Verify the base URL.")
+
+    if not tokens or not tokens.get("access_token"):
+        raise HTTPException(status_code=400, detail="Opera returned no access token. Check your credentials.")
 
     expires_in = tokens.get("expires_in", 3600)
-    access_token = tokens.get("access_token")
-    refresh_token = tokens.get("refresh_token")
-    opera_hotel_id = tokens.get("hotel_id")  # Some OHIP tenants return this in token response
+    now_utc = datetime.now(timezone.utc)
 
-    # Upsert credentials
     supabase.table("opera_credentials").upsert({
-        "tenant_id": hotel_id,
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_expires_at": (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat(),
-        "hotel_id_opera": opera_hotel_id,
+        "tenant_id": current_user.hotel_id,
+        "ohip_base_url": ohip_base,
+        "hotel_id_opera": body.hotel_id_opera,
+        "integration_username": body.integration_username,
+        "integration_password": body.integration_password,
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens.get("refresh_token"),
+        "token_expires_at": (now_utc + timedelta(seconds=expires_in)).isoformat(),
         "is_connected": True,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": now_utc.isoformat(),
     }, on_conflict="tenant_id").execute()
 
-    # Trigger background bootstrap (fire and forget — errors don't block the redirect)
-    bootstrap_warning = None
     try:
-        bootstrap_opera_data(hotel_id)
+        bootstrap_opera_data(current_user.hotel_id)
     except Exception as exc:
-        logger.error("Opera bootstrap failed for hotel=%s: %s", hotel_id, exc)
-        bootstrap_warning = "opera_sync_failed"
+        logger.error("Opera bootstrap failed for hotel=%s: %s", current_user.hotel_id, exc)
 
-    redirect_url = f"{settings.app_url}/settings/integrations?{urlencode({'opera': 'connected'})}"
-    if bootstrap_warning:
-        redirect_url += f"&{urlencode({'warning': bootstrap_warning})}"
-    return RedirectResponse(redirect_url)
+    return {"data": {"connected": True, "message": "Opera Cloud connected successfully"}}
 
 
 @router.get("/opera/status")
@@ -201,9 +109,7 @@ async def opera_sync(
 async def opera_test(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
-    """Test the Opera Cloud connection by making a lightweight API call."""
-    from services.opera import get_valid_access_token, get_opera_credentials
-
+    """Test the Opera Cloud connection by validating the current access token."""
     creds = get_opera_credentials(current_user.hotel_id)
     if not creds:
         raise HTTPException(status_code=400, detail="Opera Cloud is not connected")

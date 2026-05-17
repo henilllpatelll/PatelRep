@@ -301,7 +301,6 @@ async def sync_opera_reservations(x_cron_secret: str = Header(None)):
     return {"status": "ok", "results": results, "hotels_synced": len(results)}
 
 
-
 @router.post("/logbook/cleanup-expired")
 async def cleanup_expired_logbook_entries(x_cron_secret: str = Header(None)):
     """Cron job: hard-delete logbook entries past their expires_at."""
