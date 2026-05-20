@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
@@ -673,7 +671,11 @@ export default function HousekeepingPage() {
   }
 
   if (role !== 'gm' && role !== 'housekeeping_supervisor' && role !== 'front_desk') {
-    return null
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-sm text-gray-400">You don&apos;t have access to this section.</p>
+      </div>
+    )
   }
 
   return <SupervisorHousekeepingPage />

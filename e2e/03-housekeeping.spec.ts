@@ -41,7 +41,8 @@ test.describe('Housekeeping', () => {
   })
 
   test('navigates to inspections sub-route', async ({ page }) => {
-    const inspLink = page.getByRole('link', { name: /inspections/i })
+    // Sidebar label is "Inspection History" — match on the root word only
+    const inspLink = page.getByRole('link', { name: /inspection/i })
     if (await inspLink.count() > 0) {
       await inspLink.first().click()
       await expect(page).toHaveURL(/inspections/)
@@ -53,7 +54,8 @@ test.describe('Housekeeping', () => {
   })
 
   test('navigates to rooms sub-route', async ({ page }) => {
-    const roomsLink = page.getByRole('link', { name: /^rooms$/i })
+    // Sidebar label is "All Rooms" not bare "Rooms"
+    const roomsLink = page.getByRole('link', { name: /all rooms/i })
     if (await roomsLink.count() > 0) {
       await roomsLink.first().click()
       await expect(page).toHaveURL(/rooms/)

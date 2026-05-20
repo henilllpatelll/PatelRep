@@ -119,7 +119,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       <div className="flex items-center gap-2 md:gap-3">
         {/* Hotel chip — hidden on mobile to avoid overflow */}
         {hotel && (
-          <span className="hidden md:inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A]">
+          <span className="hidden md:inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate" title={hotel.name}>
             {hotel.name}
           </span>
         )}

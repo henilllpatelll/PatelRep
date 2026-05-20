@@ -156,7 +156,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       <div className="flex items-start justify-between gap-1">
         <span className="font-bold text-sm leading-tight text-gray-900">{roomNumber}</span>
         {vipFlag && (
-          <Badge variant="vip" className="text-[10px] px-1.5 py-0">VIP</Badge>
+          <Badge variant="vip" className="text-xs px-1.5 py-0">VIP</Badge>
         )}
       </div>
 
@@ -164,7 +164,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       <div className="flex items-center gap-1">
         <Badge
           variant={(STATUS_TO_BADGE_VARIANT[status] ?? 'default') as any}
-          className="text-[10px] px-1.5 py-0"
+          className="text-xs px-1.5 py-0"
         >
           {STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')}
         </Badge>
@@ -182,12 +182,12 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
         {assignmentMode && pendingAssignee ? (
           <div className="flex items-center gap-0.5 min-w-0">
             <User className="w-3 h-3 text-purple-500 shrink-0" />
-            <span className="text-[10px] text-purple-700 font-medium">&#10003; Assigned</span>
+            <span className="text-xs text-purple-700 font-medium">&#10003; Assigned</span>
           </div>
         ) : !assignmentMode && assignedName ? (
           <div className="flex items-center gap-0.5 min-w-0">
             <User className="w-3 h-3 text-gray-400 shrink-0" />
-            <span className="text-[10px] text-gray-600 truncate">{assignedName}</span>
+            <span className="text-xs text-gray-600 truncate">{assignedName}</span>
           </div>
         ) : (
           <span />
@@ -197,17 +197,17 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
         {(status === 'DIRTY' || status === 'IN_PROGRESS') && etaTime ? (
           <div className="flex items-center gap-0.5 shrink-0">
             <Clock className="w-3 h-3 text-gray-400" />
-            <span className="text-[10px] text-gray-500">{etaTime}</span>
+            <span className="text-xs text-gray-500">{etaTime}</span>
           </div>
         ) : status === 'INSPECTED' && checkinTime ? (
           <div className="flex items-center gap-0.5 shrink-0">
             <Clock className="w-3 h-3 text-gray-400" />
-            <span className="text-[10px] text-gray-500">{checkinTime}</span>
+            <span className="text-xs text-gray-500">{checkinTime}</span>
           </div>
         ) : status === 'OOO' && openWorkOrder ? (
           <div className="flex items-center gap-0.5 shrink-0">
             <Wrench className="w-3 h-3 text-gray-400" />
-            <span className="text-[10px] text-gray-500">WO-{openWorkOrder}</span>
+            <span className="text-xs text-gray-500">WO-{openWorkOrder}</span>
           </div>
         ) : null}
       </div>
@@ -217,7 +217,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
         <div className="mt-1.5 flex flex-wrap gap-1">
           {status === 'DIRTY' && isHousekeeper && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
               onClick={(e) => handleStatusChange('IN_PROGRESS', e)}
             >
               Start
@@ -225,7 +225,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'DIRTY' && canSupervise && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Reassign
@@ -233,7 +233,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
               onClick={(e) => handleStatusChange('CLEAN', e)}
             >
               Done Cleaning
@@ -241,7 +241,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'CLEAN' && canSupervise && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Inspect
@@ -249,7 +249,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'INSPECTED' && (
             <button
-              className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Details
@@ -257,7 +257,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'OOO' && (
             <button
-              className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               <Wrench className="w-2.5 h-2.5" />
@@ -269,16 +269,16 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
 
       {/* Assignment mode hints */}
       {assignmentMode && !isPending && !alreadyAssigned && (
-        <p className="text-[10px] text-purple-400 mt-1">Tap to assign</p>
+        <p className="text-xs text-purple-400 mt-1">Tap to assign</p>
       )}
       {alreadyAssigned && (
-        <p className="text-[10px] text-amber-600 mt-1">
+        <p className="text-xs text-amber-600 mt-1">
           Assigned: {assignedToName} · tap to reassign
         </p>
       )}
       {assignmentMode && isPending && (
         <button
-          className="mt-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium border border-purple-300 hover:bg-purple-200 transition-colors w-full"
+          className="mt-1 text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium border border-purple-300 hover:bg-purple-200 transition-colors w-full"
           onClick={(e) => {
             e.stopPropagation()
             if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')

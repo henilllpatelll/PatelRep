@@ -33,7 +33,17 @@ def _ensure_housekeeper(user_id: str, hotel_id: str) -> None:
         .eq("is_active", True)\
         .limit(1)\
         .execute()
-    if not result.data:
+    if result.data:
+        return
+    # Fallback for staff added before user_roles was fully populated — verify
+    # hotel membership via user_profiles instead of raising 404.
+    profile = supabase.table("user_profiles")\
+        .select("id")\
+        .eq("id", user_id)\
+        .eq("tenant_id", hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not profile or not profile.data:
         raise HTTPException(status_code=404, detail="Housekeeper not found")
 
 
@@ -529,7 +539,8 @@ async def submit_inspection(
         }
         for item in request.items
     ]
-    supabase.table("inspection_results").insert(results_data).execute()
+    if results_data:
+        supabase.table("inspection_results").insert(results_data).execute()
 
     # room_status is updated by the on_inspection_complete DB trigger (migration 017).
     # History must be written explicitly — the status-history trigger was dropped in migration 024.

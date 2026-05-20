@@ -89,7 +89,7 @@ function GuestRequestCard({
   const isPending = isUpdating && updatingId === request.id
 
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
+    <Card className="p-4 hover:shadow-card-hover hover:-translate-y-0.5 transition-all">
       {/* Top row: request number + status badge + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <span className="font-mono text-xs text-gray-400 tracking-wider">
@@ -200,7 +200,7 @@ function GuestRequestCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -208,7 +208,7 @@ function GuestRequestCard({
 
 function SkeletonCard() {
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 animate-pulse">
+    <Card className="p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-3 w-16 bg-gray-200 rounded" />
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
@@ -219,7 +219,7 @@ function SkeletonCard() {
         <div className="h-7 w-16 bg-gray-200 rounded-lg" />
         <div className="h-7 w-20 bg-gray-200 rounded-lg" />
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -607,8 +607,8 @@ function GuestRequestsPageContent() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-            <Bell className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <Bell className="w-5 h-5 text-amber-600" />
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Guest Requests</h1>
@@ -660,20 +660,8 @@ function GuestRequestsPageContent() {
               onClick={() => handleTabChange(tab.value)}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 isActive
-                  ? tab.value === 'open'
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : tab.value === 'in_progress'
-                    ? 'bg-purple-600 text-white border-purple-600'
-                    : tab.value === 'escalated'
-                    ? 'bg-red-600 text-white border-red-600'
-                    : 'bg-green-600 text-white border-green-600'
-                  : tab.value === 'open'
-                  ? 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'
-                  : tab.value === 'in_progress'
-                  ? 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'
-                  : tab.value === 'escalated'
-                  ? 'bg-white text-red-700 border-red-200 hover:bg-red-50'
-                  : 'bg-white text-green-700 border-green-200 hover:bg-green-50'
+                  ? 'bg-stone-800 text-white border-stone-800'
+                  : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-300'
               }`}
             >
               {tab.label}
@@ -681,14 +669,8 @@ function GuestRequestsPageContent() {
                 <span
                   className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                     isActive
-                      ? 'bg-white/25 text-white'
-                      : tab.value === 'open'
-                      ? 'bg-blue-100 text-blue-700'
-                      : tab.value === 'in_progress'
-                      ? 'bg-purple-100 text-purple-700'
-                      : tab.value === 'escalated'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-stone-100 text-stone-600'
                   }`}
                 >
                   {count}

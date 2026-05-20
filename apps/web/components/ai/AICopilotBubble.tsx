@@ -304,7 +304,7 @@ export function AICopilotBubble() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+    <div className="fixed bottom-6 right-6 z-50">
       {open && (
         <div
           className="absolute bottom-14 right-0 w-[calc(100vw-2rem)] max-w-80 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl flex flex-col"
@@ -347,9 +347,9 @@ export function AICopilotBubble() {
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-amber-50/80 border border-amber-100 px-3 py-2 rounded-xl text-sm text-amber-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:300ms]" />
                 </div>
               </div>
             )}

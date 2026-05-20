@@ -2,6 +2,10 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-20 | Visual audit fixes: ring-brand-500→ring-amber-400 (staff), LiveOpsGrid card padding, reports double-padding+blue-icon, RoomCard text-[10px]→text-xs, AICopilotBubble mobile visibility+reduced-motion, guest-requests tabs unified+Card component, RoomStatusBoard inline style removed, Header truncation, Sidebar mobile width 280→260px | 9 files | type-check clean | ~4000 tok |
+| 2026-05-19 | Full verification pass: API 125/125 pytest, web build+type-check pass, fixed lint (Next 16 removed next lint — created eslint.config.mjs flat config, updated script to eslint .), smoke e2e 20/21 pass (1 skip). | apps/web/eslint.config.mjs, apps/web/package.json | ~3000 tok |
+| 2026-05-19 | Comprehensive e2e audit: ran all 17 spec files (00-16) + mobile-usability. 116/119 tests pass. RBAC seed fails due to .env.local API_URL pointing to localhost; workaround: manually seed users first. Found /v1/lost-found/items 404 (correct path is /v1/lost-found), /v1/scheduling/shifts 404 (correct path is /v1/schedules/shifts), AI service 503 (Anthropic quota), housekeeper assignment 404 for real staff (user_roles.is_active check). IN_PROGRESS→CLEAN now works (previously known bug now fixed). | e2e/*.spec.ts, helpers/rbac-users.ts | ~6000 tok |
+| 2026-05-19 | Full manual daily workflow QA: 116/119 pass (97.5%). 6 roles tested. 4 critical bugs (114-117): RBAC env URL mismatch, Anthropic quota, inspection POST empty items crash, assignment 404 for real staff. All room status transitions work. All 21 smoke routes pass. Mobile: 57/57 pass across 4 viewports. Urgent: rotate Anthropic API key, fix inspection/assignment bugs. | e2e/, apps/api/ | ~8000 tok |
 | session 2026-05-15 | Opera/OHIP API compliance fix: corrected token endpoint (/tokens not /token), added Basic auth header for token requests, added x-app-key + x-hotelid to all API calls, fixed RSV base path (/rsv/v1 not /api/rsv/v1), fixed HSK base path (/hsk/v1 not /api/hskp/v1), fixed room status push endpoint and body format, added opera_app_key to config. 120 tests pass. | services/opera/auth.py, services/opera/sync.py, routers/integrations.py, core/config.py | DONE |
 | session 2026-05-12c | work-orders OR-filter fix: split into 2 indexed queries + migration 032 partial index for unclaimed WOs. p95 4184ms→2380ms (-43%). Committed + deployed. | work_orders.py, 032_work_orders_unclaimed_index.sql | DONE |
 | session 2026-05-12b | Load test (40 workers, 60s): 0% 5xx, p95 overall 4212ms→2056ms (-51%) after migration 031 (6 new compound indexes on room_assignments, guest_requests, notifications, work_orders). Committed load_test.py + LOAD_TEST_REPORT.md. Both Railway services deployed (API via --path-as-root). | supabase/migrations/031_load_perf_indexes.sql, apps/api/tests/load/ | DONE — committed + deployed |
@@ -1061,6 +1065,79 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:23 | Session end: 1 writes across 1 files (.gitignore) | 4 reads | ~3697 tok |
 
 ## Session: 2026-05-17 09:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 05:13 | Fix Railway web deploy: ESLint peer conflict + middleware.ts + eslint ignoreDuringBuilds | apps/web/package.json, middleware.ts, next.config.mjs | SUCCESS — deployment 9ff98ee6 | ~4000 |
+
+## Session: 2026-05-19 02:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:46 | Edited apps/api/routers/housekeeping.py | modified _ensure_housekeeper() | ~222 |
+| 03:46 | Edited apps/api/routers/housekeeping.py | 11→12 lines | ~123 |
+| 03:46 | Edited e2e/helpers/rbac-users.ts | modified replace() | ~114 |
+| 03:46 | Edited e2e/03-housekeeping.spec.ts | 23→25 lines | ~279 |
+| 03:47 | Session end: 4 writes across 3 files (housekeeping.py, rbac-users.ts, 03-housekeeping.spec.ts) | 16 reads | ~738 tok |
+| 14:20 | Session end: 4 writes across 3 files (housekeeping.py, rbac-users.ts, 03-housekeeping.spec.ts) | 16 reads | ~738 tok |
+
+## Session: 2026-05-19 14:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:29 | Created apps/web/eslint.config.mjs | — | ~70 |
+| 14:29 | Edited apps/web/package.json | inline fix | ~7 |
+| 14:30 | Edited apps/web/eslint.config.mjs | 8→10 lines | ~65 |
+| 14:31 | Edited apps/web/eslint.config.mjs | 10→12 lines | ~71 |
+| 14:35 | Session end: 4 writes across 2 files (eslint.config.mjs, package.json) | 5 reads | ~8716 tok |
+| 01:46 | Session end: 4 writes across 2 files (eslint.config.mjs, package.json) | 5 reads | ~8716 tok |
+
+## Session: 2026-05-20 03:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-20 03:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:29 | Edited apps/web/app/(dashboard)/staff/page.tsx | 3→3 lines | ~76 |
+| 13:30 | Edited apps/web/app/(dashboard)/staff/page.tsx | 3→3 lines | ~76 |
+| 13:30 | Edited apps/web/app/(dashboard)/staff/page.tsx | "pl-9 pr-4 py-2 text-sm bo" → "pl-9 pr-4 py-2 text-sm bo" | ~54 |
+| 13:30 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | modified CardSkeleton() | ~29 |
+| 13:30 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | 3→3 lines | ~42 |
+| 13:30 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | 2→2 lines | ~50 |
+| 13:30 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | 3→3 lines | ~44 |
+| 13:30 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | 3→3 lines | ~45 |
+| 13:30 | Edited apps/web/app/(dashboard)/reports/page.tsx | 6→6 lines | ~78 |
+| 13:30 | Edited apps/web/app/(dashboard)/reports/page.tsx | 2→2 lines | ~44 |
+| 13:30 | Edited apps/web/app/(dashboard)/reports/page.tsx | "rounded-md border border-" → "rounded-md border border-" | ~37 |
+| 13:30 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~2 |
+| 13:30 | Edited apps/web/components/ai/AICopilotBubble.tsx | 2→2 lines | ~18 |
+| 13:30 | Edited apps/web/components/ai/AICopilotBubble.tsx | inline fix | ~8 |
+| 13:31 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 6→5 lines | ~72 |
+| 13:31 | Edited apps/web/components/shared/Header.tsx | 3→3 lines | ~66 |
+| 13:31 | Edited apps/web/components/shared/Sidebar.tsx | "fixed inset-y-0 left-0 z-" → "fixed inset-y-0 left-0 z-" | ~27 |
+| 13:31 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | reduced (-12 lines) | ~95 |
+| 13:31 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | reduced (-6 lines) | ~76 |
+| 13:31 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "bg-white/[0.65] border bo" → "p-4 hover:shadow-card-hov" | ~26 |
+| 13:31 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | modified SkeletonCard() | ~58 |
+| 13:32 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 9→9 lines | ~86 |
+| 13:32 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 2→2 lines | ~46 |
+| 13:33 | Session end: 23 writes across 7 files (page.tsx, LiveOpsGrid.tsx, RoomCard.tsx, AICopilotBubble.tsx, RoomStatusBoard.tsx) | 10 reads | ~9786 tok |
+| 13:34 | Session end: 23 writes across 7 files (page.tsx, LiveOpsGrid.tsx, RoomCard.tsx, AICopilotBubble.tsx, RoomStatusBoard.tsx) | 10 reads | ~9786 tok |
+
+## Session: 2026-05-20 13:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-20 13:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-20 13:41
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|

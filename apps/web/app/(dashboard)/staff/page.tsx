@@ -806,7 +806,7 @@ export default function StaffPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+            className="appearance-none pl-3 pr-8 py-2 text-sm border border-stone-200 rounded-lg bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
           >
             <option value="all">All Roles</option>
             {ROLE_OPTIONS.map(({ value, label }) => (
@@ -828,7 +828,7 @@ export default function StaffPage() {
             onChange={(e) =>
               setStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
             }
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+            className="appearance-none pl-3 pr-8 py-2 text-sm border border-stone-200 rounded-lg bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -850,7 +850,7 @@ export default function StaffPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name or email…"
-            className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg bg-white w-64 focus:outline-none focus:ring-2 focus:ring-brand-500 hover:border-gray-400 transition-colors"
+            className="pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg bg-white w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 hover:border-amber-300 transition-colors"
           />
         </div>
       </div>

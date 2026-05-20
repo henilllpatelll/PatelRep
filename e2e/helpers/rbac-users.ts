@@ -58,11 +58,12 @@ loadEnvFile('apps/web/.env.production')
 loadEnvFile('apps/web/.env.local')
 loadEnvFile('apps/api/.env')
 
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.API_URL ||
-  'https://api-production-130b.up.railway.app'
-).replace(/\/+$/, '').replace(/\/v1$/, '')
+const _rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || ''
+// Ignore localhost URLs that bleed in from apps/web/.env.local during CI/CD
+const _isLocalhost = _rawApiUrl.includes('localhost') || _rawApiUrl.includes('127.0.0.1')
+const API_URL = (_rawApiUrl && !_isLocalhost)
+  ? _rawApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+  : 'https://api-production-130b.up.railway.app'
 
 function requireEnvPassword(name: string): string {
   const value = process.env[name]

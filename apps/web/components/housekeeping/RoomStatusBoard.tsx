@@ -116,7 +116,6 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
                 ? `${chip.activeBg} ${chip.activeText}`
                 : chip.inactiveBg
             }`}
-            style={isActive && chipBg ? { backgroundColor: chipBg, color: '#fff' } : undefined}
           >
             <span
               className="w-2 h-2 rounded-full"

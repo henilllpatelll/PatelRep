@@ -316,7 +316,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       className={cn(
         'bg-[#17130F] border-r border-[#2D221A] flex flex-col shrink-0',
         // Mobile: fixed overlay drawer
-        'fixed inset-y-0 left-0 z-40 w-[280px] transition-transform duration-300 ease-in-out',
+        'fixed inset-y-0 left-0 z-40 w-[260px] transition-transform duration-300 ease-in-out',
         // Desktop: in-flow, always visible
         'md:relative md:w-[240px] md:translate-x-0',
         // Mobile open/close

@@ -165,7 +165,7 @@ function DailySummaryTab() {
           value={selectedDate}
           max={toLocalDateStr(new Date())}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
       </div>
 
@@ -650,10 +650,10 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
           <BarChart2 className="h-5 w-5" />
         </div>
         <div>
@@ -671,8 +671,8 @@ export default function ReportsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`shrink-0 flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 currentTab === tab.id
-                  ? 'border-amber-200 text-amber-700'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  ? 'border-amber-500 text-amber-700'
+                  : 'border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700'
               }`}
             >
               {tab.icon}

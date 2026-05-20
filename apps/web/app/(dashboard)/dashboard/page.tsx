@@ -71,6 +71,10 @@ export default function DashboardPage() {
     case 'gm':
       return <GMDashboard />
     default:
-      return null
+      return (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm text-gray-400">No dashboard available for your role.</p>
+        </div>
+      )
   }
 }
