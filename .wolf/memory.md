@@ -1141,3 +1141,7 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 02:29 | Created supabase/migrations/039_drop_room_status_history_trigger.sql | — | ~94 |
+| 02:29 | Session end: 1 writes across 1 files (039_drop_room_status_history_trigger.sql) | 10 reads | ~16665 tok |
+| 03:41 | Session end: 1 writes across 1 files (039_drop_room_status_history_trigger.sql) | 10 reads | ~16665 tok |
+| 03:43 | Created supabase/migrations/040_dedup_room_status_history.sql | — | ~164 |

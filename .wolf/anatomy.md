@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-20T18:32:07.162Z
-> Files: 14 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-21T08:43:34.478Z
+> Files: 16 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
@@ -547,3 +547,5 @@
 
 ## supabase/migrations/
 
+- `039_drop_room_status_history_trigger.sql` — Migration 024 failed to apply to this database instance. (~94 tok)
+- `040_dedup_room_status_history.sql` — Remove duplicate room_status_history rows written by the DB trigger. (~164 tok)
