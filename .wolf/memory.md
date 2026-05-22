@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
+| session | Frontend production readiness audit + 6 bug fixes: (1) RoomStatusBoard handleStatusChange now optimistically updates selectedRoom to prevent double-click on stale transition buttons; (2) same fix in HousekeeperMyRoomsView handleAction; (3) RoomDetailDrawer form reset useEffect now includes isOpen dep to clear note/WO fields on same-room reopen; (4) WorkOrderDetailDrawer form reset useEffect includes isOpen dep + completeMutation.onSuccess clears fields before close; (5) tasks/page.tsx Enter key handler now checks submitting guard; (6) guest-requests action buttons have disabled=isUpdating to prevent double-submit | RoomStatusBoard.tsx, housekeeping/page.tsx, RoomDetailDrawer.tsx, WorkOrderDetailDrawer.tsx, tasks/page.tsx, guest-requests/page.tsx | all 6 bugs fixed | ~4000 tok |
 | session | Implement full-page AI Copilot at /ai — replaced placeholder with two-panel layout (chat + risk alerts sidebar). Uses existing aiApi client, all response types (task/WO/guest-request/assignment/insights/ambiguous), role-based quick actions, localStorage shift history | apps/web/app/(dashboard)/ai/page.tsx | type-check passes clean | ~800 tok |
 | 2026-05-21 | Fix Railway web build failure: pinned next→16.3.0-canary.19, eslint→9.39.4, eslint-config-next→16.3.0-canary.19 in apps/web/package.json; Docker build was resolving ^14.2.35→Next14 without lock file | apps/web/package.json | pushed to main | ~500 tok |
 | 2026-05-21 | Set up agent-browser E2E + visual regression: config.json (20 routes), auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1, run-all.ps1; npm scripts ab:auth/baseline/compare/flows/test added | e2e/agent-browser/ | created | ~800 tok |
@@ -1335,3 +1336,40 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 16:23 | Created apps/web/app/(dashboard)/ai/page.tsx | — | ~6870 |
 | 16:24 | Session end: 1 writes across 1 files (page.tsx) | 6 reads | ~30133 tok |
+| 16:26 | Session end: 1 writes across 1 files (page.tsx) | 6 reads | ~30133 tok |
+| 16:34 | Session end: 1 writes across 1 files (page.tsx) | 6 reads | ~30133 tok |
+| 16:40 | Session end: 1 writes across 1 files (page.tsx) | 6 reads | ~30133 tok |
+| 16:53 | Session end: 1 writes across 1 files (page.tsx) | 7 reads | ~31987 tok |
+
+## Session: 2026-05-22 16:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:10 | Created apps/web/lib/ai/clientFastPath.ts | — | ~1274 |
+| 17:10 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 1 import(s) | ~120 |
+| 17:10 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 3 condition(s) | ~384 |
+| 17:10 | Edited apps/web/app/(dashboard)/ai/page.tsx | added 1 import(s) | ~66 |
+| 17:10 | Edited apps/web/app/(dashboard)/ai/page.tsx | added 3 condition(s) | ~268 |
+| 17:11 | Edited apps/api/services/ai/task_parser.py | expanded (+10 lines) | ~392 |
+| 17:11 | Edited apps/api/routers/ai_copilot.py | modified get() | ~192 |
+| 17:11 | Edited apps/api/routers/ai_copilot.py | 2→3 lines | ~64 |
+| 17:13 | Session end: 8 writes across 5 files (clientFastPath.ts, AICopilotBubble.tsx, page.tsx, task_parser.py, ai_copilot.py) | 5 reads | ~23431 tok |
+| 17:30 | Session end: 8 writes across 5 files (clientFastPath.ts, AICopilotBubble.tsx, page.tsx, task_parser.py, ai_copilot.py) | 5 reads | ~23431 tok |
+
+## Session: 2026-05-22 17:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 17:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:05 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added optional chaining | ~235 |
+| 18:05 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | CSS: prev | ~243 |
+| 18:05 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 14→14 lines | ~113 |
+| 18:05 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | modified parseFloat() | ~140 |
+| 18:05 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 27→28 lines | ~202 |
+| 18:05 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 condition(s) | ~61 |
+| 18:05 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 49→54 lines | ~760 |
+| 18:06 | Session end: 7 writes across 4 files (RoomStatusBoard.tsx, page.tsx, RoomDetailDrawer.tsx, WorkOrderDetailDrawer.tsx) | 18 reads | ~35005 tok |

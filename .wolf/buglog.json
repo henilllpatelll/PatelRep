@@ -385,6 +385,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-22T20:58:29.095Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-05-22T23:05:06.814Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-22T23:05:06.814Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-05-22T23:05:56.765Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "hover: bg-green-700 transition-colors flex items-center gap-1\" → bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50\"",
+      "fix": "Changed hover: bg-green-700 transition-colors flex items-center gap-1\" → bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-22T23:05:56.765Z"
     }
   ]
 }

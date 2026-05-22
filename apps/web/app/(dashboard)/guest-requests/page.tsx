@@ -151,14 +151,16 @@ function GuestRequestCard({
               {request.status === 'open' && (
                 <>
                   <button
+                    disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'in_progress')}
-                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors"
+                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
                     Start
                   </button>
                   <button
+                    disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'escalated')}
-                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     <AlertTriangle className="w-3 h-3" />
                     Escalate
@@ -170,15 +172,17 @@ function GuestRequestCard({
               {request.status === 'in_progress' && (
                 <>
                   <button
+                    disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'resolved')}
-                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     <CheckCircle className="w-3 h-3" />
                     Resolve
                   </button>
                   <button
+                    disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'escalated')}
-                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     <AlertTriangle className="w-3 h-3" />
                     Escalate
@@ -189,8 +193,9 @@ function GuestRequestCard({
               {/* Escalated → Resolve only */}
               {request.status === 'escalated' && (
                 <button
+                  disabled={isUpdating}
                   onClick={() => onUpdateStatus(request.id, 'resolved')}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
                 >
                   <CheckCircle className="w-3 h-3" />
                   Resolve

@@ -645,7 +645,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  handleComment()
+                  if (!submitting) handleComment()
                 }
               }}
               placeholder="Add a comment..."

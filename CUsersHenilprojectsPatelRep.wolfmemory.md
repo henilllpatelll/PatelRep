@@ -1,0 +1,1 @@
+| 12:54 | Executed ai-copilot-primary-interface.md + sop-voice-fastpath.md | ai_copilot.py, task_parser.py, work_order_parser.py, guest_request_parser.py, assignment_parser.py, AICopilotBubble.tsx, ai.ts, copilot/index.tsx, mobile package.json, app.json | All 125 API tests pass, web tsc clean, ruff clean | ~8000 |

@@ -167,7 +167,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
   const roomId: string | null = room?.room_id ?? null
   const status: RoomStatus = (room?.status ?? 'DIRTY') as RoomStatus
 
-  // Reset note/WO forms and inspection banner when room changes
+  // Reset note/WO forms when room changes or drawer closes (covers reopening same room)
   useEffect(() => {
     setNoteText('')
     setNoteSuccess(false)
@@ -180,7 +180,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
     setWoSuccess(null)
     setWoError(null)
     setShowNextBanner(false)
-  }, [roomId])
+  }, [roomId, isOpen])
 
   const nextCleanRoom = useMemo(() => {
     if (!cleanQueue?.length || !room) return null

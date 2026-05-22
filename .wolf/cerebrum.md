@@ -63,6 +63,12 @@
 
 ## Do-Not-Repeat
 
+- [2026-05-22] **Drawer selectedRoom must be updated optimistically in handleStatusChange / handleAction** — RoomStatusBoard.handleStatusChange and HousekeeperMyRoomsView.handleAction both update the React Query cache optimistically but NOT the `selectedRoom` state. This left the open drawer showing the old status, keeping the same transition button visible and clickable (double-click bug). Fix: call `setSelectedRoom(prev => prev?.room_id === roomId ? { ...prev, status } : prev)` at the start of both handlers.
+
+- [2026-05-22] **useEffect form-reset deps must include `isOpen` for drawers/modals** — If a useEffect only depends on entity ID (e.g. `[roomId]`, `[wo?.id]`), it won't fire when the same entity's drawer is closed and reopened (same ID, same effect — no re-run). Stale form values (note text, completion notes, WO fields) persist. Always add `isOpen` to the dep array so closing a drawer resets form state even for the same entity.
+
+
+
 - [2026-05-22] **Do NOT override `tar` to v7 in apps/mobile — it breaks expo prebuild** — tar v7 sets `__esModule:true` with `default:undefined`. Expo CLI's `_interopRequireDefault(require('tar'))` treats it as an ES module and returns the raw module, so `_tar().default` is `undefined` and `_tar().default.extract(...)` crashes with "Cannot read properties of undefined". Pin the tar override to `^6.2.1` (CommonJS, no `__esModule` flag).
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->

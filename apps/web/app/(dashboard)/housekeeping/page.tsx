@@ -376,6 +376,8 @@ function HousekeeperMyRoomsView() {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status } : r) }
     })
+    // Also update the open drawer so the old transition button disappears immediately
+    setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     try {
       await housekeepingApi.updateRoomStatus(roomId, status)
     } catch {

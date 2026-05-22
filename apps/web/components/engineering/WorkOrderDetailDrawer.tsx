@@ -166,8 +166,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         parts_used: partsUsed.trim() || undefined,
       }),
     onSuccess: () => {
-      invalidate()
       setShowCompleteForm(false)
+      setCompletionNotes('')
+      setLaborHours('')
+      setPartsUsed('')
+      invalidate()
       onUpdate()
       onClose()
     },
@@ -225,7 +228,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     if (isOpen && drawerRef.current) drawerRef.current.focus()
   }, [isOpen])
 
-  // Reset form state when WO changes
+  // Reset form state when WO changes or drawer closes (covers reopening same WO)
   useEffect(() => {
     setShowCompleteForm(false)
     setCompletionNotes('')
@@ -244,6 +247,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
       notes: wo?.notes ?? '',
     })
   }, [
+    isOpen,
     startInEditMode,
     wo?.category,
     wo?.description,

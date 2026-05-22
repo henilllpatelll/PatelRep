@@ -308,6 +308,9 @@ export function RoomStatusBoard() {
       removePendingAssignment(roomId)
       return
     }
+    // Optimistically reflect the new status in the open drawer immediately
+    // so the old transition button disappears and can't be double-clicked.
+    setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     await housekeepingApi.updateRoomStatus(roomId, status)
     queryClient.invalidateQueries({
       queryKey: ['housekeeping-board', selectedDate, selectedShift],

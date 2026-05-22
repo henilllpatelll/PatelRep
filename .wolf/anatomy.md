@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T21:23:38.131Z
-> Files: 47 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T23:05:56.732Z
+> Files: 52 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -429,7 +429,7 @@
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 1 endpoints (~6692 tok)
+- `ai_copilot.py` — API: 1 endpoints (~6786 tok)
 - `housekeeping.py` — API: 5 endpoints (~8488 tok)
 - `internal.py` — API: 8 endpoints (~5027 tok)
 
@@ -441,7 +441,7 @@
 
 - `assignment_parser.py` — parse_assignments (~571 tok)
 - `guest_request_parser.py` — parse_guest_requests (~539 tok)
-- `task_parser.py` — Pydantic: ParsedTaskOutput (~1854 tok)
+- `task_parser.py` — Pydantic: ParsedTaskOutput (~2070 tok)
 - `work_order_parser.py` — parse_work_orders (~664 tok)
 
 ## apps/api/services/opera/
@@ -498,7 +498,7 @@
 
 ## apps/web/app/(dashboard)/ai/
 
-- `page.tsx` — genId (~6870 tok)
+- `page.tsx` — genId (~7003 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
@@ -511,10 +511,11 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS — renders form (~8632 tok)
+- `page.tsx` — TABS (~8721 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
+- `page.tsx` — SHIFTS (~7728 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -547,10 +548,11 @@
 
 ## apps/web/app/(dashboard)/tasks/
 
+- `page.tsx` — STATUS_TABS — renders form (~10932 tok)
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~6635 tok)
+- `AICopilotBubble.tsx` — generateId (~6814 tok)
 
 ## apps/web/components/dashboard/
 
@@ -558,11 +560,13 @@
 
 ## apps/web/components/engineering/
 
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~9633 tok)
 
 ## apps/web/components/housekeeping/
 
 - `RoomCard.tsx` — STATUS_CARD_STYLES (~3357 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4719 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8297 tok)
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4789 tok)
 
 ## apps/web/components/shared/
 
@@ -571,6 +575,10 @@
 
 ## apps/web/components/ui/
 
+
+## apps/web/lib/ai/
+
+- `clientFastPath.ts` — ── Patterns ───────────────────────────────────────────────────────────────── (~1274 tok)
 
 ## apps/web/lib/api/
 
