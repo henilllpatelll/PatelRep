@@ -5,6 +5,7 @@ from models.requests import CopilotChatRequest
 from core.database import supabase
 from services.ai.task_parser import parse_nl_tasks
 from services.ai.insights import generate_gm_insights
+from services.policy import check_action_permitted
 import openai
 import anthropic
 import time
@@ -259,6 +260,14 @@ async def confirm_tasks(
     """
     from datetime import datetime, timedelta, timezone
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
+
+    # Policy gate: assigning a task to someone else requires supervisor+
+    for task in tasks:
+        assigned_to = task.get("assigned_to")
+        if assigned_to and assigned_to != current_user.user_id:
+            permitted, reason = check_action_permitted("reassign_other_staff_task", current_user.role)
+            if not permitted:
+                raise HTTPException(status_code=403, detail=reason)
 
     created = []
     for task in tasks:

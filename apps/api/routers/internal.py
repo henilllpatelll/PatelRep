@@ -301,6 +301,140 @@ async def sync_opera_reservations(x_cron_secret: str = Header(None)):
     return {"status": "ok", "results": results, "hotels_synced": len(results)}
 
 
+def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, body: str, data: dict) -> None:
+    """Insert an in-app notification for every active user of target_role in the hotel."""
+    users = supabase.table("user_roles")\
+        .select("user_id")\
+        .eq("tenant_id", hotel_id)\
+        .eq("role", target_role)\
+        .eq("is_active", True)\
+        .execute()
+    for row in (users.data or []):
+        supabase.table("notifications").insert({
+            "tenant_id": hotel_id,
+            "user_id": row["user_id"],
+            "type": notif_type,
+            "title": title,
+            "body": body,
+            "data": data,
+        }).execute()
+
+
+@router.post("/escalations/check")
+async def check_escalations(x_cron_secret: str = Header(None)):
+    """
+    Cron: 3-tier escalation ladder for overdue assigned work orders and urgent tasks.
+    Tier 1 (30 min overdue)  → notify supervisor, set escalation_level=1
+    Tier 2 (90 min overdue)  → notify GM/chief_engineer, set escalation_level=2
+    Tier 3 (150 min overdue) → auto-set status=escalated, notify GM, set escalation_level=3
+    Level tracking prevents duplicate notifications across cron runs.
+    """
+    verify_cron(x_cron_secret)
+
+    now = datetime.now(timezone.utc)
+    tier1_cut = (now - timedelta(minutes=30)).isoformat()
+    tier2_cut = (now - timedelta(minutes=90)).isoformat()
+    tier3_cut = (now - timedelta(minutes=150)).isoformat()
+
+    escalated = 0
+    notified = 0
+
+    # --- Work Orders ---
+    overdue_wos = supabase.table("work_orders")\
+        .select("id, tenant_id, title, due_at, escalation_level")\
+        .in_("status", ["open", "in_progress"])\
+        .not_.is_("assigned_to", "null")\
+        .lt("due_at", now.isoformat())\
+        .lt("escalation_level", 3)\
+        .execute()
+
+    for wo in (overdue_wos.data or []):
+        wo_id = wo["id"]
+        hotel_id = wo["tenant_id"]
+        level = wo.get("escalation_level", 0)
+        due = wo["due_at"]
+
+        if due < tier3_cut and level < 3:
+            supabase.table("work_orders")\
+                .update({"status": "escalated", "escalation_level": 3})\
+                .eq("id", wo_id).execute()
+            _notify_role(hotel_id, "gm", "escalation_auto",
+                         f"Auto-escalated: {wo['title']}",
+                         "Work order was not resolved and has been automatically escalated.",
+                         {"work_order_id": wo_id})
+            escalated += 1
+        elif due < tier2_cut and level < 2:
+            supabase.table("work_orders")\
+                .update({"escalation_level": 2})\
+                .eq("id", wo_id).execute()
+            _notify_role(hotel_id, "chief_engineer", "escalation_tier2",
+                         f"Urgent: {wo['title']} still unresolved",
+                         "Work order is 90+ minutes overdue. Immediate attention required.",
+                         {"work_order_id": wo_id})
+            _notify_role(hotel_id, "gm", "escalation_tier2",
+                         f"Urgent: {wo['title']} still unresolved",
+                         "Work order is 90+ minutes overdue.",
+                         {"work_order_id": wo_id})
+            notified += 1
+        elif due < tier1_cut and level < 1:
+            supabase.table("work_orders")\
+                .update({"escalation_level": 1})\
+                .eq("id", wo_id).execute()
+            _notify_role(hotel_id, "chief_engineer", "escalation_tier1",
+                         f"Overdue: {wo['title']}",
+                         "Work order is past SLA and has not been resolved.",
+                         {"work_order_id": wo_id})
+            notified += 1
+
+    # --- Urgent Tasks ---
+    overdue_tasks = supabase.table("tasks")\
+        .select("id, tenant_id, title, due_at, task_type, escalation_level")\
+        .in_("status", ["open", "in_progress"])\
+        .not_.is_("assigned_to", "null")\
+        .eq("priority", "urgent")\
+        .lt("due_at", now.isoformat())\
+        .lt("escalation_level", 3)\
+        .execute()
+
+    for task in (overdue_tasks.data or []):
+        task_id = task["id"]
+        hotel_id = task["tenant_id"]
+        level = task.get("escalation_level", 0)
+        due = task["due_at"]
+        supervisor_role = "housekeeping_supervisor" if task.get("task_type") == "housekeeping" else "chief_engineer"
+
+        if due < tier3_cut and level < 3:
+            supabase.table("tasks")\
+                .update({"status": "escalated", "escalation_level": 3})\
+                .eq("id", task_id).execute()
+            _notify_role(hotel_id, "gm", "escalation_auto",
+                         f"Auto-escalated: {task['title']}",
+                         "Urgent task was not resolved and has been automatically escalated.",
+                         {"task_id": task_id})
+            escalated += 1
+        elif due < tier2_cut and level < 2:
+            supabase.table("tasks")\
+                .update({"escalation_level": 2})\
+                .eq("id", task_id).execute()
+            _notify_role(hotel_id, "gm", "escalation_tier2",
+                         f"Urgent: {task['title']} still open",
+                         "Urgent task is 90+ minutes overdue.",
+                         {"task_id": task_id})
+            notified += 1
+        elif due < tier1_cut and level < 1:
+            supabase.table("tasks")\
+                .update({"escalation_level": 1})\
+                .eq("id", task_id).execute()
+            _notify_role(hotel_id, supervisor_role, "escalation_tier1",
+                         f"Overdue: {task['title']}",
+                         "Urgent task is past SLA and has not been resolved.",
+                         {"task_id": task_id})
+            notified += 1
+
+    logger.info("Escalation check complete: escalated=%d notified=%d", escalated, notified)
+    return {"status": "ok", "escalated": escalated, "notified": notified}
+
+
 @router.post("/logbook/cleanup-expired")
 async def cleanup_expired_logbook_entries(x_cron_secret: str = Header(None)):
     """Cron job: hard-delete logbook entries past their expires_at."""

@@ -63,8 +63,12 @@
 
 ## Do-Not-Repeat
 
+- [2026-05-22] **Do NOT override `tar` to v7 in apps/mobile — it breaks expo prebuild** — tar v7 sets `__esModule:true` with `default:undefined`. Expo CLI's `_interopRequireDefault(require('tar'))` treats it as an ES module and returns the raw module, so `_tar().default` is `undefined` and `_tar().default.extract(...)` crashes with "Cannot read properties of undefined". Pin the tar override to `^6.2.1` (CommonJS, no `__esModule` flag).
+
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
+
+- [2026-05-21] **apps/web/package.json must pin exact Next/ESLint versions — not semver ranges** — The Dockerfile copies only `apps/web/package.json` (no lock file) then runs `npm install`. If package.json says `^14.2.35`, Docker installs Next 14 while the codebase needs Next 16. Always pin exact canary versions: `next: "16.3.0-canary.19"`, `eslint: "9.39.4"`, `eslint-config-next: "16.3.0-canary.19"`. Update these whenever Next is upgraded so Docker and local stay in sync.
 
 - [2026-05-19] **RBAC e2e seed uses wrong API URL when .env.local is present** — `loadEnvFile('apps/web/.env.local')` in rbac-users.ts picks up `NEXT_PUBLIC_API_URL=http://localhost:8000/v1`, making all seed calls go to localhost. Always set `NEXT_PUBLIC_API_URL` in the test runner env or seed users manually before running `e2e/16-rbac.spec.ts`. The correct Supabase anon key is in `apps/web/.env.local` (the one in the test prompt is outdated).
 - [2026-05-19] **Inspection POST crashes with empty items list (23502 NOT NULL)** — `POST /v1/housekeeping/inspections` with `items: []` returns 400/23502 from Supabase. Guard the insert: only call `supabase.table('inspection_results').insert(results_data).execute()` when `results_data` is non-empty.

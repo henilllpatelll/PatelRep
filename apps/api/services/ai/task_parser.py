@@ -1,8 +1,29 @@
+import logging
 from openai import OpenAI
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from typing import Optional, Literal
 from core.config import settings
 from datetime import date
 
 client = OpenAI(api_key=settings.openai_api_key)
+logger = logging.getLogger(__name__)
+
+
+class ParsedTaskOutput(BaseModel):
+    title: str
+    description: Optional[str] = None
+    task_type: Literal["housekeeping", "engineering", "guest_request", "general"]
+    priority: Literal["urgent", "normal", "low"]
+    room_number: Optional[str] = None
+    due_at: Optional[str] = None
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("title cannot be empty")
+        return v.strip()
 
 CREATE_TASKS_SCHEMA = {
     "name": "create_tasks",
@@ -89,11 +110,18 @@ Call the create_tasks function with an array of 1 or more task objects."""
     msg = response.choices[0].message
     usage = response.usage
 
-    tasks = []
+    raw_tasks = []
     if msg.tool_calls:
         import json
         args = json.loads(msg.tool_calls[0].function.arguments)
-        tasks = args.get("tasks", [])
+        raw_tasks = args.get("tasks", [])
+
+    tasks = []
+    for raw in raw_tasks:
+        try:
+            tasks.append(ParsedTaskOutput(**raw).model_dump())
+        except ValidationError as exc:
+            logger.warning("AI task output failed schema validation, skipping: %s", exc)
 
     return {
         "tasks": tasks,

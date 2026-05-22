@@ -13,7 +13,12 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "ab:auth": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/auth-setup.ps1",
+    "ab:baseline": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/visual-baseline.ps1",
+    "ab:compare": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/visual-compare.ps1",
+    "ab:flows": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/e2e-flows.ps1",
+    "ab:test": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/run-all.ps1"
   },
   "dependencies": {
     "patch-package": "^8.0.1"

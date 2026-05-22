@@ -2,6 +2,10 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
+| 2026-05-21 | Fix Railway web build failure: pinned next→16.3.0-canary.19, eslint→9.39.4, eslint-config-next→16.3.0-canary.19 in apps/web/package.json; Docker build was resolving ^14.2.35→Next14 without lock file | apps/web/package.json | pushed to main | ~500 tok |
+| 2026-05-21 | Set up agent-browser E2E + visual regression: config.json (20 routes), auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1, run-all.ps1; npm scripts ab:auth/baseline/compare/flows/test added | e2e/agent-browser/ | created | ~800 tok |
+| 2026-05-21 | Ran ab:auth (patelrep-gm vault profile saved, session established) and ab:baseline (20/20 PNG baselines captured to e2e/agent-browser/baselines/) | e2e/agent-browser/baselines/ | done | ~300 tok |
 | 2026-05-20 | Visual audit fixes: ring-brand-500→ring-amber-400 (staff), LiveOpsGrid card padding, reports double-padding+blue-icon, RoomCard text-[10px]→text-xs, AICopilotBubble mobile visibility+reduced-motion, guest-requests tabs unified+Card component, RoomStatusBoard inline style removed, Header truncation, Sidebar mobile width 280→260px | 9 files | type-check clean | ~4000 tok |
 | 2026-05-19 | Full verification pass: API 125/125 pytest, web build+type-check pass, fixed lint (Next 16 removed next lint — created eslint.config.mjs flat config, updated script to eslint .), smoke e2e 20/21 pass (1 skip). | apps/web/eslint.config.mjs, apps/web/package.json | ~3000 tok |
 | 2026-05-19 | Comprehensive e2e audit: ran all 17 spec files (00-16) + mobile-usability. 116/119 tests pass. RBAC seed fails due to .env.local API_URL pointing to localhost; workaround: manually seed users first. Found /v1/lost-found/items 404 (correct path is /v1/lost-found), /v1/scheduling/shifts 404 (correct path is /v1/schedules/shifts), AI service 503 (Anthropic quota), housekeeper assignment 404 for real staff (user_roles.is_active check). IN_PROGRESS→CLEAN now works (previously known bug now fixed). | e2e/*.spec.ts, helpers/rbac-users.ts | ~6000 tok |
@@ -1145,3 +1149,135 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 02:29 | Session end: 1 writes across 1 files (039_drop_room_status_history_trigger.sql) | 10 reads | ~16665 tok |
 | 03:41 | Session end: 1 writes across 1 files (039_drop_room_status_history_trigger.sql) | 10 reads | ~16665 tok |
 | 03:43 | Created supabase/migrations/040_dedup_room_status_history.sql | — | ~164 |
+| 03:43 | Session end: 2 writes across 2 files (039_drop_room_status_history_trigger.sql, 040_dedup_room_status_history.sql) | 10 reads | ~16840 tok |
+| 03:47 | Session end: 2 writes across 2 files (039_drop_room_status_history_trigger.sql, 040_dedup_room_status_history.sql) | 10 reads | ~16840 tok |
+
+## Session: 2026-05-21 03:49
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-21 03:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:55 | Edited apps/web/package.json | inline fix | ~9 |
+| 03:55 | Edited apps/web/package.json | 2→2 lines | ~20 |
+| 03:57 | Session end: 2 writes across 1 files (package.json) | 5 reads | ~580 tok |
+
+## Session: 2026-05-21 17:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 22:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:51 | Created e2e/agent-browser/config.json | — | ~452 |
+| 22:52 | Created e2e/agent-browser/scripts/auth-setup.ps1 | — | ~472 |
+| 22:52 | Created e2e/agent-browser/scripts/visual-baseline.ps1 | — | ~452 |
+| 22:52 | Created e2e/agent-browser/scripts/visual-compare.ps1 | — | ~710 |
+| 22:53 | Created e2e/agent-browser/scripts/e2e-flows.ps1 | — | ~1649 |
+| 22:53 | Created e2e/agent-browser/scripts/run-all.ps1 | — | ~338 |
+| 22:53 | Edited package.json | 4→9 lines | ~197 |
+| 22:53 | Edited .gitignore | 2→7 lines | ~44 |
+| 22:53 | Edited .gitignore | 4→7 lines | ~75 |
+| 22:54 | Session end: 9 writes across 8 files (config.json, auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1) | 8 reads | ~7325 tok |
+| 23:09 | Edited e2e/agent-browser/scripts/auth-setup.ps1 | 2→2 lines | ~17 |
+| 23:10 | Session end: 10 writes across 8 files (config.json, auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1) | 8 reads | ~7343 tok |
+| 23:13 | Created e2e/agent-browser/scripts/auth-setup.ps1 | — | ~444 |
+| 23:14 | Created e2e/agent-browser/scripts/visual-baseline.ps1 | — | ~421 |
+| 23:15 | Created e2e/agent-browser/scripts/visual-compare.ps1 | — | ~696 |
+| 23:15 | Created e2e/agent-browser/scripts/e2e-flows.ps1 | — | ~1625 |
+| 23:15 | Created e2e/agent-browser/scripts/run-all.ps1 | — | ~306 |
+| 23:18 | Session end: 15 writes across 8 files (config.json, auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1) | 9 reads | ~11558 tok |
+
+## Session: 2026-05-22 02:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:57 | Edited e2e/agent-browser/scripts/e2e-flows.ps1 | 3→3 lines | ~45 |
+| 02:58 | Session end: 1 writes across 1 files (e2e-flows.ps1) | 1 reads | ~1673 tok |
+| 08:21 | Session end: 1 writes across 1 files (e2e-flows.ps1) | 6 reads | ~2024 tok |
+
+## Session: 2026-05-22 08:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 08:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:17 | Edited apps/mobile/eas.json | 27→27 lines | ~434 |
+| 09:17 | Session end: 1 writes across 1 files (eas.json) | 7 reads | ~434 tok |
+
+## Session: 2026-05-22 09:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:36 | Created apps/mobile/credentials.json | — | ~62 |
+| 09:36 | Edited .gitignore | 2→6 lines | ~32 |
+| 09:36 | Session end: 2 writes across 2 files (credentials.json, .gitignore) | 21 reads | ~7098 tok |
+| 09:36 | Created ../../.claude/plans/i-want-to-lean-merry-clock.md | — | ~1966 |
+| 09:37 | Edited apps/mobile/eas.json | 5→6 lines | ~41 |
+| 09:37 | Session end: 4 writes across 4 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json) | 21 reads | ~9245 tok |
+| 09:44 | Created .planning/ai-copilot-primary-interface.md | — | ~2042 |
+| 09:44 | Session end: 5 writes across 5 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 21 reads | ~11433 tok |
+| 09:47 | Session end: 5 writes across 5 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 24 reads | ~13347 tok |
+| 09:47 | Session end: 5 writes across 5 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 24 reads | ~13347 tok |
+| 09:50 | Session end: 5 writes across 5 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 51 reads | ~16017 tok |
+| 10:00 | Created supabase/migrations/041_escalation_level.sql | — | ~443 |
+| 10:00 | Created apps/api/services/policy.py | — | ~396 |
+| 10:00 | Edited apps/api/services/ai/task_parser.py | modified title_not_empty() | ~244 |
+| 10:01 | Edited apps/api/services/ai/task_parser.py | expanded (+7 lines) | ~160 |
+| 10:01 | Edited apps/api/routers/ai_copilot.py | added 1 import(s) | ~45 |
+| 10:01 | Edited apps/api/routers/ai_copilot.py | expanded (+8 lines) | ~128 |
+| 10:01 | Edited apps/api/routers/internal.py | modified _notify_role() | ~1697 |
+| 10:02 | Session end: 12 writes across 10 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 55 reads | ~29712 tok |
+| 10:07 | Session end: 12 writes across 10 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 55 reads | ~29712 tok |
+| 10:08 | Session end: 12 writes across 10 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 55 reads | ~29712 tok |
+| 10:12 | Session end: 12 writes across 10 files (credentials.json, .gitignore, i-want-to-lean-merry-clock.md, eas.json, ai-copilot-primary-interface.md) | 55 reads | ~29712 tok |
+
+## Session: 2026-05-22 10:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 10:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:21 | Edited apps/mobile/package.json | inline fix | ~6 |
+| 10:23 | Session end: 1 writes across 1 files (package.json) | 4 reads | ~922 tok |
+| 10:31 | Session end: 1 writes across 1 files (package.json) | 9 reads | ~922 tok |
+| 10:33 | Session end: 1 writes across 1 files (package.json) | 10 reads | ~1365 tok |
+
+## Session: 2026-05-22 10:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 10:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 10:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 10:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:52 | Created ../../.claude/plans/use-askuserquestiontool-to-discuss-piped-hamster.md | — | ~2491 |
+
+## Session: 2026-05-22 10:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:54 | Created .planning/sop-voice-fastpath.md | — | ~2269 |
+| 10:54 | Session end: 1 writes across 1 files (sop-voice-fastpath.md) | 0 reads | ~2431 tok |

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "203454301685",
+    "project_id": "patelrep-d07bc",
+    "storage_bucket": "patelrep-d07bc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203454301685:android:d31f6450625e0d7aff8cbc",
+        "android_client_info": {
+          "package_name": "com.patelrep.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBA3k9QhfPlvowWKxR8f0Y57ASAKSagJTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

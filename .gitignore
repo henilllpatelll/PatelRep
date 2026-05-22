@@ -1,3 +1,7 @@
+# Mobile build credentials (never commit)
+apps/mobile/*.jks
+apps/mobile/credentials.json
+
 # Dependencies
 node_modules/
 .pnp
@@ -93,3 +97,11 @@ IMG_*.png
 
 # GSD planning archive
 .planning/archive/
+
+# agent-browser generated artefacts (keep dir structure, ignore generated files)
+e2e/agent-browser/baselines/*
+e2e/agent-browser/captures/*
+e2e/agent-browser/reports/*
+!e2e/agent-browser/baselines/.gitkeep
+!e2e/agent-browser/captures/.gitkeep
+!e2e/agent-browser/reports/.gitkeep

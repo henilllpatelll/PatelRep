@@ -1,0 +1,29 @@
+{
+  "baseUrl": "https://patelrepweb-production.up.railway.app",
+  "sessionName": "patelrep-gm",
+  "authProfile": "patelrep-gm",
+  "email": "hp.patelrep@gmail.com",
+  "waitMs": 2500,
+  "routes": [
+    { "name": "dashboard",                "path": "/dashboard" },
+    { "name": "housekeeping",             "path": "/housekeeping" },
+    { "name": "housekeeping-assignments", "path": "/housekeeping/assignments" },
+    { "name": "housekeeping-inspections", "path": "/housekeeping/inspections" },
+    { "name": "housekeeping-rooms",       "path": "/housekeeping/rooms" },
+    { "name": "engineering",              "path": "/engineering" },
+    { "name": "engineering-assets",       "path": "/engineering/assets" },
+    { "name": "engineering-pm-schedules", "path": "/engineering/pm-schedules" },
+    { "name": "engineering-predictions",  "path": "/engineering/predictions" },
+    { "name": "staff",                    "path": "/staff" },
+    { "name": "logbook",                  "path": "/logbook" },
+    { "name": "tasks",                    "path": "/tasks" },
+    { "name": "scheduling",               "path": "/scheduling" },
+    { "name": "sop",                      "path": "/sop" },
+    { "name": "guest-requests",           "path": "/guest-requests" },
+    { "name": "lost-found",               "path": "/lost-found" },
+    { "name": "reports",                  "path": "/reports" },
+    { "name": "ai-copilot",              "path": "/ai" },
+    { "name": "billing",                  "path": "/billing" },
+    { "name": "settings",                 "path": "/settings" }
+  ]
+}

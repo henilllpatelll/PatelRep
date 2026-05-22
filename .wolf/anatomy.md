@@ -1,7 +1,12 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-21T08:43:34.478Z
-> Files: 16 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T15:54:09.317Z
+> Files: 36 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/plans/
+
+- `i-want-to-lean-merry-clock.md` — Plan: AI Copilot as Primary Staff Interface (~1843 tok)
+- `use-askuserquestiontool-to-discuss-piped-hamster.md` — Plan: SOP Q&A Wiring + Mobile Voice Input + Credit Fast Path (~2336 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
@@ -11,6 +16,8 @@
 
 ## ./
 
+- `.gitignore` — Git ignore rules (~445 tok)
+- `package.json` — Node.js package manifest (~351 tok)
 
 ## .claude/
 
@@ -399,6 +406,11 @@
 ## .claude/worktrees/agent-ad340f5a/apps/api/routers/
 
 
+## .planning/
+
+- `ai-copilot-primary-interface.md` — Plan: AI Copilot as Primary Staff Interface (~1914 tok)
+- `sop-voice-fastpath.md` — SOP Q&A Wiring + Mobile Voice Input + Credit Fast Path (~2127 tok)
+
 ## Docker Context Additions
 
 
@@ -416,10 +428,17 @@
 
 ## apps/api/routers/
 
+- `ai_copilot.py` — API: 3 endpoints (~4177 tok)
 - `housekeeping.py` — API: 5 endpoints (~8488 tok)
+- `internal.py` — API: 8 endpoints (~5027 tok)
+
+## apps/api/services/
+
+- `policy.py` — check_action_permitted (~396 tok)
 
 ## apps/api/services/ai/
 
+- `task_parser.py` — Pydantic: ParsedTaskOutput (~1347 tok)
 
 ## apps/api/services/opera/
 
@@ -441,6 +460,9 @@
 
 ## apps/mobile/
 
+- `credentials.json` (~62 tok)
+- `eas.json` (~565 tok)
+- `package.json` — Node.js package manifest (~532 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -457,7 +479,7 @@
 ## apps/web/
 
 - `eslint.config.mjs` — Declares require (~112 tok)
-- `package.json` — Node.js package manifest (~439 tok)
+- `package.json` — Node.js package manifest (~444 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
@@ -541,6 +563,18 @@
 
 - `03-housekeeping.spec.ts` — Housekeeping — room board, assignments, inspections sub-routes. (~1020 tok)
 
+## e2e/agent-browser/
+
+- `config.json` (~452 tok)
+
+## e2e/agent-browser/scripts/
+
+- `auth-setup.ps1` (~444 tok)
+- `e2e-flows.ps1` — Declares Invoke (~1628 tok)
+- `run-all.ps1` (~306 tok)
+- `visual-baseline.ps1` (~421 tok)
+- `visual-compare.ps1` (~696 tok)
+
 ## e2e/helpers/
 
 - `rbac-users.ts` — RBAC test user helpers. (~1925 tok)
@@ -549,3 +583,4 @@
 
 - `039_drop_room_status_history_trigger.sql` — Migration 024 failed to apply to this database instance. (~94 tok)
 - `040_dedup_room_status_history.sql` — Remove duplicate room_status_history rows written by the DB trigger. (~164 tok)
+- `041_escalation_level.sql` — ============================================================================= (~443 tok)

@@ -8,26 +8,27 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "http://localhost:8000/v1",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://oacnwalhcpqdabivweki.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY253YWxoY3BxZGFiaXZ3ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjY4MDksImV4cCI6MjA4ODg0MjgwOX0.O949TGOgV9yzkOXVpzXbEuPXnSDxFmQ-CTsx_7zXAkM"
       }
     },
     "preview": {
       "distribution": "internal",
+      "credentialsSource": "local",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.patelrep.com/v1",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
+        "EXPO_PUBLIC_API_URL": "https://api-production-130b.up.railway.app/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://oacnwalhcpqdabivweki.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY253YWxoY3BxZGFiaXZ3ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjY4MDksImV4cCI6MjA4ODg0MjgwOX0.O949TGOgV9yzkOXVpzXbEuPXnSDxFmQ-CTsx_7zXAkM"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.patelrep.com/v1",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
+        "EXPO_PUBLIC_API_URL": "https://api-production-130b.up.railway.app/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://oacnwalhcpqdabivweki.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY253YWxoY3BxZGFiaXZ3ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjY4MDksImV4cCI6MjA4ODg0MjgwOX0.O949TGOgV9yzkOXVpzXbEuPXnSDxFmQ-CTsx_7zXAkM"
       }
     }
   },
