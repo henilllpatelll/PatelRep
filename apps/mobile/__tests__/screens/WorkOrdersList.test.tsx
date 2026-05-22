@@ -16,6 +16,16 @@ jest.mock("@/stores/appStore", () => ({
 jest.mock("@/lib/offline/db", () => ({
   enqueueAction: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("react-native/Libraries/Lists/FlatList", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  return function MockFlatList({ data, renderItem, ListEmptyComponent, contentContainerStyle }: any) {
+    if (!data || data.length === 0) {
+      return ListEmptyComponent ? React.createElement(View, { style: contentContainerStyle }, ListEmptyComponent) : null;
+    }
+    return React.createElement(View, null, data.map((item: any, index: number) => React.cloneElement(renderItem({ item, index, separators: {} }), { key: item.id ?? index })));
+  };
+});
 
 import { api } from "@/lib/api/client";
 import { enqueueAction } from "@/lib/offline/db";

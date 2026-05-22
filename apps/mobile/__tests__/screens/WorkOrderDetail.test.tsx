@@ -35,6 +35,12 @@ jest.mock("expo-image-manipulator", () => ({
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
+jest.mock("@/stores/appStore", () => ({
+  useAppStore: () => ({ isOnline: true }),
+}));
+jest.mock("@/lib/offline/db", () => ({
+  enqueueAction: jest.fn().mockResolvedValue(undefined),
+}));
 
 import { api } from "@/lib/api/client";
 import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
