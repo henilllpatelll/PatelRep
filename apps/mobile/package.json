@@ -27,6 +27,7 @@
     "expo-notifications": "~0.28.8",
     "expo-router": "~3.5.16",
     "expo-secure-store": "~13.0.2",
+    "expo-speech-recognition": "^0.3.2",
     "expo-splash-screen": "^0.27.7",
     "expo-sqlite": "~14.0.6",
     "expo-status-bar": "~1.12.1",

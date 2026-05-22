@@ -1281,3 +1281,32 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 10:54 | Created .planning/sop-voice-fastpath.md | — | ~2269 |
 | 10:54 | Session end: 1 writes across 1 files (sop-voice-fastpath.md) | 0 reads | ~2431 tok |
+
+## Session: 2026-05-22 12:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:49 | Created apps/api/services/ai/work_order_parser.py | — | ~664 |
+| 12:49 | Created apps/api/services/ai/guest_request_parser.py | — | ~539 |
+| 12:49 | Created apps/api/services/ai/assignment_parser.py | — | ~571 |
+| 12:49 | Edited apps/api/services/ai/task_parser.py | added 1 import(s) | ~63 |
+| 12:50 | Edited apps/api/services/ai/task_parser.py | modified try_fast_path() | ~545 |
+| 12:50 | Edited apps/api/models/requests.py | modified OperaConnectRequest() | ~288 |
+| 12:51 | Created apps/api/routers/ai_copilot.py | — | ~6698 |
+| 12:51 | Edited apps/web/lib/api/ai.ts | expanded (+72 lines) | ~479 |
+| 12:51 | Edited apps/web/lib/api/ai.ts | expanded (+9 lines) | ~199 |
+| 12:53 | Created apps/web/components/ai/AICopilotBubble.tsx | — | ~6635 |
+| 12:53 | Edited apps/mobile/app/(app)/copilot/index.tsx | added 1 import(s) | ~128 |
+| 12:53 | Edited apps/mobile/app/(app)/copilot/index.tsx | added optional chaining | ~182 |
+| 12:53 | Edited apps/mobile/app/(app)/copilot/index.tsx | expanded (+7 lines) | ~265 |
+| 12:53 | Edited apps/mobile/app/(app)/copilot/index.tsx | CSS: micBtn, micBtnActive | ~108 |
+| 12:53 | Edited apps/mobile/package.json | 1→2 lines | ~20 |
+| 12:53 | Edited apps/mobile/app.json | expanded (+7 lines) | ~147 |
+| 12:54 | Edited apps/api/routers/ai_copilot.py | inline fix | ~9 |
+| 12:54 | Session end: 17 writes across 11 files (work_order_parser.py, guest_request_parser.py, assignment_parser.py, task_parser.py, requests.py) | 14 reads | ~32079 tok |
+| 13:50 | Session end: 17 writes across 11 files (work_order_parser.py, guest_request_parser.py, assignment_parser.py, task_parser.py, requests.py) | 14 reads | ~32079 tok |
+
+## Session: 2026-05-22 14:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

@@ -56,6 +56,13 @@
           "photosPermission": "Allow PatelRep to access your photos for work orders.",
           "cameraPermission": "Allow PatelRep to use the camera for work order photos."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow PatelRep to use the microphone for voice input.",
+          "speechRecognitionPermission": "Allow PatelRep to use speech recognition for voice commands."
+        }
       ]
     ],
     "experiments": {

@@ -319,3 +319,33 @@ class OperaConnectRequest(BaseModel):
     hotel_id_opera: str
     integration_username: Optional[str] = None
     integration_password: Optional[str] = None
+
+
+# --- AI Copilot: Preview models ---
+class WorkOrderPreview(BaseModel):
+    title: str
+    category: Literal["plumbing", "electrical", "hvac", "furniture",
+                       "appliance", "structural", "safety", "general"]
+    priority: Literal["urgent", "normal", "low"]
+    room_number: Optional[str] = None
+    location_text: Optional[str] = None
+    description: Optional[str] = None
+
+
+class GuestRequestPreview(BaseModel):
+    title: str
+    room_number: Optional[str] = None
+    guest_name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class AssignmentPreview(BaseModel):
+    staff_name_hint: str
+    staff_id: Optional[str] = None
+    room_numbers: List[str] = []
+    task_ids: List[str] = []
+
+
+class AmbiguousOption(BaseModel):
+    label: str
+    intent_hint: str

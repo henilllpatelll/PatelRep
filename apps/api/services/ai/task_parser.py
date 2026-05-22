@@ -1,3 +1,4 @@
+import re
 import logging
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -128,3 +129,49 @@ Call the create_tasks function with an array of 1 or more task objects."""
         "prompt_tokens": usage.prompt_tokens,
         "completion_tokens": usage.completion_tokens,
     }
+
+
+_FAST_PATTERNS = [
+    # Housekeeping supply / cleaning
+    (r"room\s*#?\s*(\d+)\s+needs?\s+(.+)", "housekeeping", "normal"),
+    (r"(\d+)\s+needs?\s+(.+)", "housekeeping", "normal"),
+    (r"(?:send|bring|deliver)\s+(.+?)\s+to\s+(?:room\s*)?(\d+)", "housekeeping", "normal"),
+    # Engineering
+    (r"room\s*#?\s*(\d+)\s+(.+?)\s+(?:is\s+)?(?:broken|not working|leaking|out|down)", "engineering", "urgent"),
+    (r"(?:fix|repair|check)\s+(.+?)\s+in\s+(?:room\s*)?(\d+)", "engineering", "urgent"),
+    # Guest request
+    (r"room\s*#?\s*(\d+)\s+guest\s+(?:requesting|needs?|wants?)\s+(.+)", "guest_request", "normal"),
+]
+
+
+def try_fast_path(message: str) -> Optional[dict]:
+    """
+    Returns a parse_nl_tasks-shaped dict if message matches a known high-confidence
+    pattern (confidence >= 0.92), otherwise returns None.
+    """
+    text = message.strip()
+    for pattern, task_type, priority in _FAST_PATTERNS:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            groups = m.groups()
+            if len(groups) < 2:
+                continue
+            if groups[0].isdigit():
+                room, description = groups[0], groups[1]
+            else:
+                room, description = groups[1], groups[0]
+            title = f"{description.strip().capitalize()} — Room {room}"
+            return {
+                "tasks": [{
+                    "title": title,
+                    "description": None,
+                    "task_type": task_type,
+                    "priority": priority,
+                    "room_number": room,
+                    "due_at": None,
+                    "confidence": 0.92,
+                }],
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+            }
+    return None

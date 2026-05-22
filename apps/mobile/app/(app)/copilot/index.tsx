@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 
 type Message = {
   id: string;
@@ -47,6 +48,24 @@ export default function CopilotScreen() {
   const [loading, setLoading] = useState(false);
   const [pendingTask, setPendingTask] = useState<Message["task_preview"] | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+  useSpeechRecognitionEvent("result", (event) => {
+    const transcript = event.results[0]?.transcript ?? "";
+    setInput(transcript);
+    setIsRecording(false);
+  });
+
+  useSpeechRecognitionEvent("error", () => setIsRecording(false));
+
+  const handleMicPressIn = () => {
+    setIsRecording(true);
+    ExpoSpeechRecognitionModule.start({ lang: "en-US", continuous: false, interimResults: false });
+  };
+
+  const handleMicPressOut = () => {
+    ExpoSpeechRecognitionModule.stop();
+  };
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
@@ -151,6 +170,13 @@ export default function CopilotScreen() {
       )}
 
       <View style={styles.inputRow}>
+        <TouchableOpacity
+          onPressIn={handleMicPressIn}
+          onPressOut={handleMicPressOut}
+          style={[styles.micBtn, isRecording && styles.micBtnActive]}
+        >
+          <Ionicons name="mic" size={20} color={isRecording ? "#EF4444" : "#6B7280"} />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           placeholder={t("copilot.placeholder")}
@@ -250,5 +276,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center",
+  },
+  micBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  micBtnActive: {
+    backgroundColor: "#FEE2E2",
   },
 });

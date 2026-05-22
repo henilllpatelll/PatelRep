@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T15:54:09.317Z
-> Files: 36 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T17:54:38.557Z
+> Files: 43 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -425,10 +425,11 @@
 
 ## apps/api/models/
 
+- `requests.py` — --- Staff Role Schedules --- (~3091 tok)
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 3 endpoints (~4177 tok)
+- `ai_copilot.py` — API: 1 endpoints (~6692 tok)
 - `housekeeping.py` — API: 5 endpoints (~8488 tok)
 - `internal.py` — API: 8 endpoints (~5027 tok)
 
@@ -438,7 +439,10 @@
 
 ## apps/api/services/ai/
 
-- `task_parser.py` — Pydantic: ParsedTaskOutput (~1347 tok)
+- `assignment_parser.py` — parse_assignments (~571 tok)
+- `guest_request_parser.py` — parse_guest_requests (~539 tok)
+- `task_parser.py` — Pydantic: ParsedTaskOutput (~1854 tok)
+- `work_order_parser.py` — parse_work_orders (~664 tok)
 
 ## apps/api/services/opera/
 
@@ -460,15 +464,20 @@
 
 ## apps/mobile/
 
+- `app.json` (~604 tok)
 - `credentials.json` (~62 tok)
 - `eas.json` (~565 tok)
-- `package.json` — Node.js package manifest (~532 tok)
+- `package.json` — Node.js package manifest (~524 tok)
 
 ## apps/mobile/__tests__/components/
 
 
 ## apps/mobile/__tests__/lib/offline/
 
+
+## apps/mobile/app/(app)/copilot/
+
+- `index.tsx` — QUICK_ACTIONS (~2528 tok)
 
 ## apps/mobile/components/housekeeping/
 
@@ -531,7 +540,7 @@
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~4623 tok)
+- `AICopilotBubble.tsx` — generateId (~6635 tok)
 
 ## apps/web/components/dashboard/
 
@@ -555,6 +564,7 @@
 
 ## apps/web/lib/api/
 
+- `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1304 tok)
 
 ## apps/web/stores/
 
