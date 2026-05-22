@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 1830327,
-    "total_reads": 1817,
-    "total_writes": 1055,
-    "total_sessions": 81,
-    "anatomy_hits": 407,
-    "anatomy_misses": 1383,
-    "repeated_reads_blocked": 631,
-    "estimated_savings_vs_bare_cli": 1339011
+    "total_tokens_estimated": 1896543,
+    "total_reads": 1884,
+    "total_writes": 1080,
+    "total_sessions": 82,
+    "anatomy_hits": 432,
+    "anatomy_misses": 1425,
+    "repeated_reads_blocked": 652,
+    "estimated_savings_vs_bare_cli": 1344011
   },
   "sessions": [
     {
@@ -18843,6 +18843,667 @@
         "writes_count": 0,
         "repeated_reads_blocked": 0,
         "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T19:57:27.166Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 4041,
+        "output_tokens_estimated": 0,
+        "reads_count": 4,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T20:04:29.379Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/[woId].tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 184,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 50,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 4041,
+        "output_tokens_estimated": 308,
+        "reads_count": 8,
+        "writes_count": 3,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T20:22:23.959Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/[woId].tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 184,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 50,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 4041,
+        "output_tokens_estimated": 308,
+        "reads_count": 8,
+        "writes_count": 3,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T20:26:00.271Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/[woId].tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/config.json",
+          "tokens_estimated": 452,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/e2e-flows.ps1",
+          "tokens_estimated": 1628,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/auth-setup.ps1",
+          "tokens_estimated": 444,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 184,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 50,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 6565,
+        "output_tokens_estimated": 308,
+        "reads_count": 12,
+        "writes_count": 3,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 5
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T20:32:33.992Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/[woId].tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/config.json",
+          "tokens_estimated": 452,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/e2e-flows.ps1",
+          "tokens_estimated": 1628,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/auth-setup.ps1",
+          "tokens_estimated": 444,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 184,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 50,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 6565,
+        "output_tokens_estimated": 308,
+        "reads_count": 13,
+        "writes_count": 3,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 5
+      }
+    },
+    {
+      "id": "session-2026-05-22-1403",
+      "started": "2026-05-22T19:03:57.627Z",
+      "ended": "2026-05-22T20:59:21.772Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md",
+          "tokens_estimated": 1914,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md",
+          "tokens_estimated": 2127,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/[woId].tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/config.json",
+          "tokens_estimated": 452,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/e2e-flows.ps1",
+          "tokens_estimated": 1628,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/agent-browser/scripts/auth-setup.ps1",
+          "tokens_estimated": 444,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_api_security_rate_limit.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/rate_limit.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 184,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+          "tokens_estimated": 50,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 296,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 385,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 577,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 137,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 491,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 618,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 149,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 63,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_endpoints.py",
+          "tokens_estimated": 9,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 6565,
+        "output_tokens_estimated": 3033,
+        "reads_count": 15,
+        "writes_count": 12,
+        "repeated_reads_blocked": 5,
+        "anatomy_lookups": 5
+      }
+    },
+    {
+      "id": "session-2026-05-22-1606",
+      "started": "2026-05-22T21:06:58.028Z",
+      "ended": "2026-05-22T21:08:04.177Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/ai/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 1,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-05-22-1606",
+      "started": "2026-05-22T21:06:58.028Z",
+      "ended": "2026-05-22T21:24:16.966Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/ai/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py",
+          "tokens_estimated": 6692,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/ai.ts",
+          "tokens_estimated": 1304,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/ai/AICopilotBubble.tsx",
+          "tokens_estimated": 6635,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/hooks/useRole.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx",
+          "tokens_estimated": 8632,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/ai/page.tsx",
+          "tokens_estimated": 6870,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 23263,
+        "output_tokens_estimated": 6870,
+        "reads_count": 6,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
       }
     }
   ],

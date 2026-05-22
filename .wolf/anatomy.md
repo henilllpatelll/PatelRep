@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T17:54:38.557Z
-> Files: 43 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T21:23:38.131Z
+> Files: 47 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -452,6 +452,7 @@
 
 ## apps/api/tests/smoke/
 
+- `test_endpoints.py` — TestAuthProtection: test_protected_endpoint_no_auth, test_protected_endpoint_invalid_token, test_pro (~1950 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 
@@ -475,6 +476,11 @@
 ## apps/mobile/__tests__/lib/offline/
 
 
+## apps/mobile/__tests__/screens/
+
+- `WorkOrderDetail.test.tsx` — mockApiGet (~713 tok)
+- `WorkOrdersList.test.tsx` — React (~697 tok)
+
 ## apps/mobile/app/(app)/copilot/
 
 - `index.tsx` — QUICK_ACTIONS (~2528 tok)
@@ -489,6 +495,10 @@
 
 - `eslint.config.mjs` — Declares require (~112 tok)
 - `package.json` — Node.js package manifest (~444 tok)
+
+## apps/web/app/(dashboard)/ai/
+
+- `page.tsx` — genId (~6870 tok)
 
 ## apps/web/app/(dashboard)/billing/
 

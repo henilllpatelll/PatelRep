@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
+| session | Implement full-page AI Copilot at /ai — replaced placeholder with two-panel layout (chat + risk alerts sidebar). Uses existing aiApi client, all response types (task/WO/guest-request/assignment/insights/ambiguous), role-based quick actions, localStorage shift history | apps/web/app/(dashboard)/ai/page.tsx | type-check passes clean | ~800 tok |
 | 2026-05-21 | Fix Railway web build failure: pinned next→16.3.0-canary.19, eslint→9.39.4, eslint-config-next→16.3.0-canary.19 in apps/web/package.json; Docker build was resolving ^14.2.35→Next14 without lock file | apps/web/package.json | pushed to main | ~500 tok |
 | 2026-05-21 | Set up agent-browser E2E + visual regression: config.json (20 routes), auth-setup.ps1, visual-baseline.ps1, visual-compare.ps1, e2e-flows.ps1, run-all.ps1; npm scripts ab:auth/baseline/compare/flows/test added | e2e/agent-browser/ | created | ~800 tok |
 | 2026-05-21 | Ran ab:auth (patelrep-gm vault profile saved, session established) and ab:baseline (20/20 PNG baselines captured to e2e/agent-browser/baselines/) | e2e/agent-browser/baselines/ | done | ~300 tok |
@@ -1310,3 +1311,27 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 15:03 | Edited apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx | CSS: useAppStore, isOnline, enqueueAction | ~74 |
+| 15:04 | Edited apps/mobile/__tests__/screens/WorkOrdersList.test.tsx | added 1 condition(s) | ~184 |
+| 15:04 | Edited apps/mobile/__tests__/screens/WorkOrdersList.test.tsx | added nullish coalescing | ~50 |
+| 15:04 | Session end: 3 writes across 2 files (WorkOrderDetail.test.tsx, WorkOrdersList.test.tsx) | 8 reads | ~4349 tok |
+| 15:22 | Session end: 3 writes across 2 files (WorkOrderDetail.test.tsx, WorkOrdersList.test.tsx) | 8 reads | ~4349 tok |
+| 15:26 | Session end: 3 writes across 2 files (WorkOrderDetail.test.tsx, WorkOrdersList.test.tsx) | 12 reads | ~6873 tok |
+| 15:32 | Session end: 3 writes across 2 files (WorkOrderDetail.test.tsx, WorkOrdersList.test.tsx) | 13 reads | ~6873 tok |
+| 15:54 | Edited apps/api/tests/smoke/test_endpoints.py | expanded (+18 lines) | ~296 |
+| 15:54 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_protected_endpoint_no_auth() | ~385 |
+| 15:55 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_docs_available_in_dev() | ~577 |
+| 15:55 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_internal_endpoints_reject_bad_cron_secret() | ~137 |
+| 15:57 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_protected_endpoint_no_auth() | ~491 |
+| 15:57 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_billing_endpoints_registered() | ~618 |
+| 15:57 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_internal_endpoints_reject_bad_cron_secret() | ~149 |
+| 15:57 | Edited apps/api/tests/smoke/test_endpoints.py | modified test_error_format_on_auth_failure() | ~63 |
+| 15:58 | Edited apps/api/tests/smoke/test_endpoints.py | inline fix | ~9 |
+| 15:59 | Session end: 12 writes across 3 files (WorkOrderDetail.test.tsx, WorkOrdersList.test.tsx, test_endpoints.py) | 15 reads | ~9598 tok |
+
+## Session: 2026-05-22 16:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:23 | Created apps/web/app/(dashboard)/ai/page.tsx | — | ~6870 |
+| 16:24 | Session end: 1 writes across 1 files (page.tsx) | 6 reads | ~30133 tok |
