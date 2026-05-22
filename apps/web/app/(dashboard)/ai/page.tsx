@@ -19,6 +19,7 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
+import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -403,6 +404,22 @@ export default function AICopilotPage() {
     if (!userMsg || loading) return
     setInput('')
     setMessages((prev) => [...prev, { id: genId(), role: 'user', content: userMsg }])
+
+    // Off-topic filter — skip API entirely
+    if (!context && isOffTopic(userMsg)) {
+      addAiMsg(OFF_TOPIC_RESPONSE.message, OFF_TOPIC_RESPONSE)
+      return
+    }
+
+    // Client-side fast path — skip API until confirmation
+    if (!context) {
+      const fast = clientFastPath(userMsg)
+      if (fast) {
+        addAiMsg(fast.message, fast)
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const res = await aiApi.chat(userMsg, context)

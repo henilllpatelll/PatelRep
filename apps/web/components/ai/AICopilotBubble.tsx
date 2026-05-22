@@ -12,6 +12,7 @@ import {
   type AssignmentPreview, type AssignmentPreviewResponse,
   type AmbiguousResponse,
 } from '@/lib/api/ai'
+import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -391,6 +392,22 @@ export function AICopilotBubble() {
     setInput('')
     const userChatMsg: ChatMessage = { id: generateId(), role: 'user', content: userMsg }
     setMessages((prev) => [...prev, userChatMsg])
+
+    // Off-topic filter — skip API entirely
+    if (!context && isOffTopic(userMsg)) {
+      setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: OFF_TOPIC_RESPONSE.message, responseData: OFF_TOPIC_RESPONSE }])
+      return
+    }
+
+    // Client-side fast path — skip API until confirmation
+    if (!context) {
+      const fast = clientFastPath(userMsg)
+      if (fast) {
+        setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: fast.message, responseData: fast }])
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const res = await aiApi.chat(userMsg, context)

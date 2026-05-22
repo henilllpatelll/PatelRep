@@ -51,7 +51,8 @@ def detect_intent(message: str, intent_hint: Optional[str] = None) -> str:
     gr_kw = ["guest", "rollaway", "deliver to room", "bring to room",
              "requesting", "wants ", "extra towels", "extra pillow"]
     task_kw = ["towels", "clean", "needs", "need", "turndown", "vip",
-               "habitación", "roto", "necesita", "restock", "supplies"]
+               "habitación", "roto", "necesita", "restock", "supplies",
+               "checkout", "departure", "vacuum", "linen", "trash", "amenities"]
 
     scores = {
         "work_order_creation": _intent_score(msg, wo_kw),
@@ -378,6 +379,9 @@ async def confirm_tasks(
                 raise HTTPException(status_code=403, detail=reason)
     created = []
     for task in tasks:
+        # Resolve room_id from display number when client fast path omits it
+        if not task.get("room_id") and task.get("room_number_display"):
+            task["room_id"] = _resolve_room_id(current_user.hotel_id, task["room_number_display"])
         if task.get("room_id"):
             room_check = supabase.table("rooms").select("id")\
                 .eq("id", task["room_id"])\

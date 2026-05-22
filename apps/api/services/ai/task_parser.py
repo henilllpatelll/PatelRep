@@ -141,6 +141,16 @@ _FAST_PATTERNS = [
     (r"(?:fix|repair|check)\s+(.+?)\s+in\s+(?:room\s*)?(\d+)", "engineering", "urgent"),
     # Guest request
     (r"room\s*#?\s*(\d+)\s+guest\s+(?:requesting|needs?|wants?)\s+(.+)", "guest_request", "normal"),
+    # Shorthand supply (e.g. "101 towels", "305 trash")
+    (r"(\d+)\s+(towels?|linens?|sheets?|soap|shampoo|amenities|supplies|trash|garbage|pillows?|blankets?|tp|toilet\s+paper|coffee|cups?)", "housekeeping", "normal"),
+    # Clean / turndown shorthand (e.g. "clean 210", "turndown 305")
+    (r"(clean|vacuum|mop|sanitize|disinfect|turndown)\s+(?:room\s*)?(\d+)", "housekeeping", "normal"),
+    # Checkout / departure (e.g. "101 checkout")
+    (r"(\d+)\s+(checkout|check\s*out|departure|check-out)", "housekeeping", "normal"),
+    # Restock shorthand (e.g. "restock 210")
+    (r"(restock|resupply|refill)\s+(?:room\s*)?(\d+)", "housekeeping", "normal"),
+    # VIP urgency (e.g. "101 vip arrival")
+    (r"(\d+)\s+(vip\s*.+)", "housekeeping", "urgent"),
 ]
 
 
