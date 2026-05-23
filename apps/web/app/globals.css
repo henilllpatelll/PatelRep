@@ -13,6 +13,22 @@
   html, body {
     background-color: #FEFAF4;
   }
+
+  @media (max-width: 640px), (pointer: coarse) {
+    button,
+    [role="button"],
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+    }
+
+    nav a,
+    a.inline-flex,
+    a.flex {
+      min-height: 44px;
+    }
+  }
 }
 
 @layer utilities {

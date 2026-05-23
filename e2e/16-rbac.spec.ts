@@ -21,6 +21,8 @@ import {
 
 const EMPTY_STORAGE = { cookies: [], origins: [] }
 
+test.skip(!TEST_PASSWORD, 'Set TEST_PASSWORD or RBAC_TEST_PASSWORD to run RBAC Playwright helpers')
+
 // ── Route access matrix (mirrors NAV_BY_ROLE in Sidebar.tsx) ──────────────────
 
 const ROLE_ALLOWED: Record<string, string[]> = {

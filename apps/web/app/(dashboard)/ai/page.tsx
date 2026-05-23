@@ -378,6 +378,8 @@ export default function AICopilotPage() {
     return ''
   }
 
+  const isFirstPrompt = messages.length === 1 && messages[0].role === 'ai'
+
   return (
     <div className="flex gap-6 h-[calc(100vh-3.5rem)] p-6">
       {/* Chat panel */}
@@ -417,6 +419,20 @@ export default function AICopilotPage() {
                 />
               )
             )}
+            {isFirstPrompt && (
+              <div className="ml-11 flex flex-wrap gap-2">
+                {quickActions.map((qa) => (
+                  <button
+                    key={qa}
+                    onClick={() => sendMessage(qa)}
+                    disabled={loading}
+                    className="min-h-[44px] rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    {qa}
+                  </button>
+                ))}
+              </div>
+            )}
             {loading && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shrink-0">
@@ -433,11 +449,11 @@ export default function AICopilotPage() {
           </div>
 
           {/* Quick actions */}
-          <div className="px-5 pt-3 pb-2 border-t border-stone-100 shrink-0">
+          <div className={`px-5 pt-3 pb-2 border-t border-stone-100 shrink-0 ${isFirstPrompt ? 'hidden' : ''}`}>
             <div className="flex gap-2 flex-wrap">
               {quickActions.map((qa) => (
                 <button key={qa} onClick={() => sendMessage(qa)} disabled={loading}
-                  className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-full hover:bg-amber-100 disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap">
+                  className="min-h-[44px] text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full hover:bg-amber-100 disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap">
                   {qa}
                 </button>
               ))}

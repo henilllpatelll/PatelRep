@@ -871,7 +871,7 @@ export default function LogbookPage() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex flex-col items-center justify-center py-14 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
             <BookOpen size={28} className="text-gray-300" />
           </div>
@@ -886,12 +886,20 @@ export default function LogbookPage() {
           {isToday && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors"
+              className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors"
             >
               <Plus size={15} />
               Add first entry
             </button>
           )}
+          <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+            {['Guest handoff', 'Maintenance note', 'Shift concern'].map((item) => (
+              <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+                <p className="text-sm font-semibold text-stone-800">{item}</p>
+                <p className="mt-1 text-xs text-stone-500">Useful log item</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

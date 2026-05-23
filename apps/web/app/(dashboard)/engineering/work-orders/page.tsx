@@ -281,6 +281,16 @@ export default function WorkOrdersPage() {
             <p className="text-sm text-stone-400">
               {search ? 'No work orders match your search.' : `No ${activeTab.replace('_', ' ')} work orders.`}
             </p>
+            {!search && (
+              <div className="mx-auto mt-6 grid max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                {['Room repairs', 'Guest-impacting issues', 'PM follow-ups'].map((item) => (
+                  <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+                    <p className="text-sm font-semibold text-stone-800">{item}</p>
+                    <p className="mt-1 text-xs text-stone-500">Good first work order</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       ) : (

@@ -9,10 +9,13 @@
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
 - **Full audit then fix all at once (2026-05-20):** When the user says "fix all of these" after an audit, implement every item in one pass rather than asking which to prioritize.
+- **Use test credentials via env only (2026-05-23):** The user may provide TEST_PASSWORD for Playwright verification. Use it as a shell/process environment variable, but do not hardcode it into repo files or long-lived docs.
 
 ## Key Learnings
 
 - **Card component has no default padding (2026-05-20):** `<Card>` in `components/ui/Card.tsx` renders with zero padding. Every consumer must pass `className="p-5"`. Missing this makes content flush to card edges.
+- **Frontend audit closure pattern (2026-05-23):** Mobile audit fixes should replace dense operational tables with phone card rows for housekeeping rooms, inspection history, PM schedules, and scheduling rather than relying on horizontal scroll. Use `DashboardShell` bottom safe-area padding plus AI bubble safe-area positioning so the fixed copilot does not cover sticky actions or final rows.
+- **Frontend Playwright audit auth/test gotchas (2026-05-23):** Login Magic Link is intentionally exposed as `role="tab"`, so tests should use `getByRole('tab', { name: 'Magic Link' })`. Authenticated mobile Playwright coverage is skipped without `TEST_PASSWORD`; stale `e2e/.auth/state.json` can surface invalid-token/CORS noise instead of reliable mobile validation.
 - **ring-brand-500 is undefined (2026-05-20):** `brand-500` is not in tailwind.config.ts. Use `ring-amber-400` for focus rings everywhere.
 - **AICopilotBubble was hidden on mobile (2026-05-20):** Was `hidden sm:block`. Removed. AI Copilot must be accessible on mobile — housekeepers and engineers use phones.
 - **Use stone-* not gray-* for neutral content (2026-05-20):** The brand palette is warm. Use `stone-200/500/700` in content pages to match the sidebar. `gray-*` reads cooler and feels off-brand.

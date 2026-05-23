@@ -33,27 +33,28 @@ test.describe('Login page', () => {
   })
 
   test('switches to Magic Link tab', async ({ page }) => {
-    await page.getByRole('button', { name: 'Magic Link' }).click()
+    await page.getByRole('tab', { name: 'Magic Link' }).click()
     await expect(page.locator('#email-ml')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Send Magic Link' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Magic Link' })).toBeFocused()
     // Password field should be gone
     await expect(page.locator('#password-pw')).not.toBeVisible()
   })
 
   test('magic link send button disabled when email is empty', async ({ page }) => {
-    await page.getByRole('button', { name: 'Magic Link' }).click()
+    await page.getByRole('tab', { name: 'Magic Link' }).click()
     await expect(page.getByRole('button', { name: 'Send Magic Link' })).toBeDisabled()
   })
 
   test('magic link send button enables when email is filled', async ({ page }) => {
-    await page.getByRole('button', { name: 'Magic Link' }).click()
+    await page.getByRole('tab', { name: 'Magic Link' }).click()
     await page.fill('#email-ml', 'test@hotel.com')
     await expect(page.getByRole('button', { name: 'Send Magic Link' })).toBeEnabled()
   })
 
   test('switches back from magic link to sign-in tab', async ({ page }) => {
-    await page.getByRole('button', { name: 'Magic Link' }).click()
-    await page.getByRole('button', { name: 'Sign In' }).click()
+    await page.getByRole('tab', { name: 'Magic Link' }).click()
+    await page.getByRole('tab', { name: 'Sign In' }).click()
     await expect(page.locator('#password-pw')).toBeVisible()
   })
 

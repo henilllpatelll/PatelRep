@@ -18,6 +18,7 @@
 
 - `.gitignore` — Git ignore rules (~445 tok)
 - `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
+- `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Playwright frontend audit with automated test results, visual design issues, mobile bugs, and artifact paths (~2280 tok)
 - `package.json` — Node.js package manifest (~351 tok)
 
 ## .claude/
@@ -417,6 +418,7 @@
 
 ## apps/api/
 
+- `main.py` - FastAPI app setup, middleware stack, CORS/security headers, router registry, health endpoint, and global exception handlers (~2700 tok)
 
 ## apps/api/core/
 
@@ -430,6 +432,7 @@
 
 ## apps/api/routers/
 
+- `auth.py` - API: /auth/me profile/hotel/subscription context and hotel-context validation (~700 tok)
 - `ai_copilot.py` — API: 1 endpoints (~6786 tok)
 - `housekeeping.py` — API: 5 endpoints (~8488 tok)
 - `internal.py` — API: 8 endpoints (~5027 tok)
@@ -494,6 +497,7 @@
 
 ## apps/web/
 
+- `app/globals.css` - Tailwind globals, background variables, reduced-motion handling, and mobile/coarse-pointer tap target defaults (~250 tok)
 - `eslint.config.mjs` — Declares require (~112 tok)
 - `package.json` — Node.js package manifest (~444 tok)
 
@@ -611,11 +615,13 @@
 
 ## apps/web/components/shared/
 
+- `DashboardShell.tsx` - Authenticated dashboard frame with Sidebar, Header, page transition, scroll container, and floating AI bubble (~520 tok)
 - `Header.tsx` — PAGE_TITLES (~2046 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~3797 tok)
 
 ## apps/web/components/ui/
 
+- `Input.tsx` - Shared Tailwind input with focus ring, disabled state, and mobile-safe minimum height (~180 tok)
 
 ## apps/web/lib/ai/
 
@@ -624,6 +630,7 @@
 ## apps/web/lib/api/
 
 - `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1304 tok)
+- `client.ts` - Shared browser API client with Supabase token lookup, friendly errors, FormData handling, and session-expired dispatch (~1450 tok)
 - `guest_requests.ts` - Guest request API types/client including optional assignment fields (~760 tok)
 
 ## apps/web/stores/
@@ -631,7 +638,11 @@
 
 ## e2e/
 
+- `01-login.spec.ts` - Unauthenticated Playwright login UI, magic-link tab, invalid credential, and redirect tests (~820 tok)
 - `03-housekeeping.spec.ts` — Housekeeping — room board, assignments, inspections sub-routes. (~1020 tok)
+- `16-rbac.spec.ts` - RBAC route-access Playwright smoke tests seeded through helper users; skips without TEST_PASSWORD/RBAC_TEST_PASSWORD (~2100 tok)
+- `auth.setup.ts` - Playwright setup project that logs in GM and writes e2e/.auth/state.json when TEST_PASSWORD is present (~360 tok)
+- `mobile-usability.spec.ts` - Production mobile viewport audit for login and authenticated layout/tap-target checks, gated by TEST_PASSWORD (~2600 tok)
 
 ## e2e/agent-browser/
 

@@ -27,6 +27,56 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function RoomMobileCard({
+  room,
+  canEdit,
+  onEdit,
+}: {
+  room: RoomStatus
+  canEdit: boolean
+  onEdit: () => void
+}) {
+  const assigneeName =
+    room.user_profiles?.preferred_name ||
+    room.user_profiles?.full_name ||
+    null
+
+  return (
+    <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-gray-900">
+            Room {room.rooms?.room_number ?? '-'}
+          </p>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {room.rooms?.room_types?.name ?? room.rooms?.room_types?.code ?? 'Room type unknown'}
+          </p>
+        </div>
+        <StatusBadge status={room.status} />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Floor</dt>
+          <dd className="mt-1 text-gray-700">{room.rooms?.floor ?? '-'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Assigned</dt>
+          <dd className="mt-1 truncate text-gray-700">{assigneeName ?? 'Unassigned'}</dd>
+        </div>
+      </dl>
+      {canEdit && (
+        <Button
+          variant="secondary"
+          className="mt-4 w-full"
+          onClick={onEdit}
+        >
+          Edit Room
+        </Button>
+      )}
+    </div>
+  )
+}
+
 // ─── Import modal ─────────────────────────────────────────────────────────────
 
 const EMPTY_ROW = (): ImportRoomPayload => ({
@@ -600,7 +650,18 @@ export default function RoomsPage() {
         )}
 
         {!isLoading && !isError && filteredRooms.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+          <div className="sm:hidden divide-y divide-amber-100">
+            {filteredRooms.map((room) => (
+              <RoomMobileCard
+                key={room.room_id}
+                room={room}
+                canEdit={!isHousekeeper}
+                onEdit={() => setSelectedRoom(room)}
+              />
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full">
               <thead>
                 <tr className="bg-amber-50/60 border-b border-white/60">
@@ -668,6 +729,7 @@ export default function RoomsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
 

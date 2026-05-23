@@ -2,10 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
-import { apiClient } from '@/lib/api/client'
+import { ApiClientError, apiClient } from '@/lib/api/client'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MeResponse {
@@ -39,6 +40,7 @@ function AuthListener() {
   const { setUser, setSession, setRole, setLoading, clear } = useAuthStore()
   const { setHotel, setSubscription, clear: clearHotel } = useHotelStore()
   const supabase = createClient()
+  const router = useRouter()
   // Guard against concurrent /auth/me fetches
   const fetchingRef = useRef(false)
 
@@ -54,8 +56,19 @@ function AuthListener() {
         if (data.user?.role) {
           setRole(data.user.role)
         }
-      } catch {
-        // Non-fatal: hotel data simply won't be populated yet (e.g. new user)
+      } catch (err) {
+        const authFailed =
+          err instanceof ApiClientError &&
+          (err.status === 401 || err.status === 403 || err.isNetworkError)
+
+        if (authFailed) {
+          clear()
+          clearHotel()
+          await supabase.auth.signOut().catch(() => undefined)
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            router.replace('/login?reason=session-expired')
+          }
+        }
       } finally {
         fetchingRef.current = false
       }
@@ -113,8 +126,18 @@ function AuthListener() {
       }
     })
 
+    const handleSessionExpired = () => {
+      clear()
+      clearHotel()
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        router.replace('/login?reason=session-expired')
+      }
+    }
+    window.addEventListener('patelrep:session-expired', handleSessionExpired)
+
     return () => {
       subscription.unsubscribe()
+      window.removeEventListener('patelrep:session-expired', handleSessionExpired)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

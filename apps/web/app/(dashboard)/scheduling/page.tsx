@@ -884,7 +884,7 @@ function WeekCalendar({
         <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm">
           <button
             onClick={() => setViewMode('by-staff')}
-            className={`px-3 py-1.5 font-medium transition-colors ${
+            className={`min-h-[44px] px-3 py-2 font-medium transition-colors ${
               viewMode === 'by-staff'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -894,7 +894,7 @@ function WeekCalendar({
           </button>
           <button
             onClick={() => setViewMode('by-shift')}
-            className={`px-3 py-1.5 font-medium transition-colors ${
+            className={`min-h-[44px] px-3 py-2 font-medium transition-colors ${
               viewMode === 'by-shift'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -905,8 +905,99 @@ function WeekCalendar({
         </div>
       </div>
 
+      <div className="sm:hidden">
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {weekDays.map((day) => (
+              <div key={day.toISOString()} className="h-24 animate-pulse rounded-xl bg-gray-100" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="px-5 py-10 text-center">
+            <p className="text-sm font-medium text-red-600">Failed to load schedule.</p>
+            <button onClick={onRefetch} className="mt-2 min-h-[44px] px-3 text-sm text-amber-600">
+              Try again
+            </button>
+          </div>
+        ) : viewMode === 'by-staff' ? (
+          <div className="divide-y divide-amber-100">
+            {weekDays.map((day, i) => {
+              const dateKey = format(day, 'yyyy-MM-dd')
+              const dayAssignments = filteredStaff
+                .map((member) => {
+                  const assignment = assignmentMap[member.user_id]?.[dateKey]
+                  return assignment ? { member, assignment, shift: shiftMap[assignment.shift_id] } : null
+                })
+                .filter(Boolean) as Array<{ member: StaffMember; assignment: ShiftAssignment; shift?: Shift }>
+              return (
+                <section key={dateKey} className="px-4 py-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {DAY_LABELS[i]} {format(day, 'MMM d')}
+                    </h3>
+                    {isSameDay(day, new Date()) && (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  {dayAssignments.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-sm text-gray-400">
+                      No shifts assigned.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayAssignments.map(({ member, assignment, shift }) => (
+                        <button
+                          key={assignment.id}
+                          onClick={() => onCellClick(member, day, assignment)}
+                          className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border border-amber-100 bg-white px-3 py-2 text-left"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-gray-900">{member.full_name}</span>
+                            <span className="block truncate text-xs text-gray-500">{shift ? formatTimeRange(shift.start_time, shift.end_time) : 'Shift details unavailable'}</span>
+                          </span>
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                            {shift?.name ?? 'Shift'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="divide-y divide-amber-100">
+            {byShiftRows.map(({ shift, days }) => (
+              <section key={shift.id} className="px-4 py-4">
+                <h3 className="text-sm font-semibold text-gray-900">{shift.name}</h3>
+                <p className="mt-0.5 text-xs text-gray-500">{formatTimeRange(shift.start_time, shift.end_time)}</p>
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  {weekDays.map((day, i) => {
+                    const dateKey = format(day, 'yyyy-MM-dd')
+                    const names = (days[dateKey] ?? [])
+                      .map((a) => a.user_profiles?.preferred_name || a.user_profiles?.full_name)
+                      .filter(Boolean)
+                    return (
+                      <div key={dateKey} className="rounded-lg border border-amber-100 bg-white px-3 py-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          {DAY_LABELS[i]} {format(day, 'd')}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-700">{names.length > 0 ? names.join(', ') : 'Open'}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto sm:block" aria-label="Scrollable weekly schedule table">
         {isLoading ? (
           <div className="p-5 space-y-3">
             {[1, 2, 3, 4].map((i) => (
@@ -1257,7 +1348,7 @@ export default function SchedulingPage() {
           <button
             key={dept.id}
             onClick={() => setDepartmentFilter(dept.id)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`min-h-[44px] px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
               departmentFilter === dept.id
                 ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
@@ -1273,7 +1364,7 @@ export default function SchedulingPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={prevWeek}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <ChevronLeft size={15} />
           Prev
@@ -1283,7 +1374,7 @@ export default function SchedulingPage() {
         </span>
         <button
           onClick={nextWeek}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Next
           <ChevronRight size={15} />

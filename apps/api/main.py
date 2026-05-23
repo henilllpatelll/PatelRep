@@ -85,6 +85,20 @@ app.add_middleware(
 )
 
 
+class CORSFallbackMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.method == "OPTIONS":
+            return JSONResponse(status_code=200, content={}, headers=_cors_headers_for(request))
+
+        response = await call_next(request)
+        for key, value in _cors_headers_for(request).items():
+            response.headers[key] = value
+        return response
+
+
+app.add_middleware(CORSFallbackMiddleware)
+
+
 # Health check (no auth required)
 @app.get("/health")
 async def health():
@@ -143,6 +157,12 @@ def _cors_headers_for(request: Request) -> dict[str, str]:
         return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": request.headers.get(
+                "access-control-request-headers",
+                "Authorization,Content-Type",
+            ),
+            "Vary": "Origin",
         }
     return {}
 

@@ -1,104 +1,11 @@
 {
-  "session_id": "session-2026-05-23-1953",
-  "started": "2026-05-23T00:53:16.683Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/FRONTEND_AUDIT.md": {
-      "count": 1,
-      "tokens": 9362,
-      "first_read": "2026-05-23T01:02:26.725Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-23T01:05:20.102Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/assets/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-23T01:05:20.708Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-23T01:05:21.632Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/predictions/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-23T01:05:22.046Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx": {
-      "count": 1,
-      "tokens": 9633,
-      "first_read": "2026-05-23T01:05:22.410Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx": {
-      "count": 1,
-      "tokens": 13086,
-      "first_read": "2026-05-23T01:05:40.461Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/scheduling/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-23T01:05:40.680Z"
-    }
-  },
-  "files_written": [
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 39,
-      "at": "2026-05-23T01:05:28.368Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 35,
-      "at": "2026-05-23T01:05:32.572Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 49,
-      "at": "2026-05-23T01:05:36.568Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 25,
-      "at": "2026-05-23T01:05:39.877Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
-      "action": "edit",
-      "tokens": 19,
-      "at": "2026-05-23T01:05:45.853Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 58,
-      "at": "2026-05-23T01:05:46.471Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-      "action": "edit",
-      "tokens": 44,
-      "at": "2026-05-23T01:05:50.422Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
-      "action": "edit",
-      "tokens": 200,
-      "at": "2026-05-23T01:05:54.827Z"
-    }
-  ],
-  "edit_counts": {
-    "apps/web/app/(dashboard)/engineering/work-orders/page.tsx": 6,
-    "apps/web/app/(dashboard)/staff/page.tsx": 2
-  },
-  "anatomy_hits": 3,
-  "anatomy_misses": 5,
+  "session_id": "session-2026-05-23-1635",
+  "started": "2026-05-23T21:35:19.250Z",
+  "files_read": {},
+  "files_written": [],
+  "edit_counts": {},
+  "anatomy_hits": 0,
+  "anatomy_misses": 0,
   "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
   "stop_count": 0

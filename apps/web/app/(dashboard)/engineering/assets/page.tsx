@@ -954,9 +954,30 @@ export default function AssetRegisterPage() {
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-14 text-sm text-gray-400">
-                      {assets.length === 0
-                        ? 'No assets registered yet. Click "Add Asset" to get started.'
-                        : 'No assets match your current filters.'}
+                      {assets.length === 0 ? (
+                        <div className="mx-auto max-w-2xl">
+                          <p className="text-sm font-semibold text-gray-700">No assets registered yet</p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            Start with the equipment engineers touch every shift.
+                          </p>
+                          <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                            {['HVAC units', 'Laundry equipment', 'Elevators'].map((item) => (
+                              <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+                                <p className="text-sm font-semibold text-stone-800">{item}</p>
+                                <p className="mt-1 text-xs text-stone-500">High-value asset</p>
+                              </div>
+                            ))}
+                          </div>
+                          {canEdit && (
+                            <Button variant="primary" onClick={() => setShowCreateModal(true)} className="mt-5">
+                              <Plus size={14} />
+                              Add Asset
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        'No assets match your current filters.'
+                      )}
                     </td>
                   </tr>
                 ) : (

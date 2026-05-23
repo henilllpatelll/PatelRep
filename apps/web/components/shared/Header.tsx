@@ -135,7 +135,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         {/* Hamburger — mobile only */}
         <button
           onClick={onMenuToggle}
-          className="md:hidden p-2 -ml-1 rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
+          className="md:hidden -ml-2 flex h-11 w-11 items-center justify-center rounded-xl hover:bg-stone-100/80 transition-colors text-[#A8937E] hover:text-[#1C1208]"
           aria-label="Open menu"
         >
           <Menu size={18} />
@@ -155,7 +155,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-xl hover:bg-stone-100 transition-colors p-1"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-xl hover:bg-stone-100 transition-colors p-1"
             aria-haspopup="true"
             aria-expanded={dropdownOpen}
             aria-label={`User menu for ${fullName}`}
@@ -196,7 +196,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                     setDropdownOpen(false)
                     router.push('/settings')
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] transition-colors"
+                  className="w-full min-h-[44px] flex items-center gap-2.5 px-4 py-2 text-sm text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] transition-colors"
                 >
                   <Settings size={15} className="text-[#6B5744] shrink-0" />
                   Settings
@@ -207,7 +207,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                 <button
                   data-user-menu-item
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors"
+                  className="w-full min-h-[44px] flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors"
                 >
                   <LogOut size={15} className="shrink-0" />
                   Sign Out

@@ -36,6 +36,34 @@ function resultBadge(result: InspectionResult) {
   )
 }
 
+function InspectionMobileCard({ row }: { row: InspectionRecord }) {
+  return (
+    <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold text-gray-900">Room {row.room_number}</p>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {format(parseISO(row.completed_at), 'MMM d, yyyy h:mm a')}
+          </p>
+        </div>
+        {resultBadge(row.overall_result)}
+      </div>
+      <dl className="mt-3 space-y-3 text-sm">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Inspector</dt>
+          <dd className="mt-1 break-words text-gray-700">{row.inspector_name || 'Unknown'}</dd>
+        </div>
+        {row.notes && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Notes</dt>
+            <dd className="mt-1 text-gray-600">{row.notes}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InspectionsPage() {
@@ -147,7 +175,20 @@ export default function InspectionsPage() {
             ))}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          <div className="sm:hidden">
+            {inspections.length > 0 ? (
+              inspections.map((row) => <InspectionMobileCard key={row.id} row={row} />)
+            ) : (
+              <div className="px-4 py-16 text-center">
+                <p className="text-gray-400 text-sm font-medium">No inspections recorded yet</p>
+                <p className="text-gray-300 text-xs mt-1">
+                  Inspections submitted from the board will appear here.
+                </p>
+              </div>
+            )}
+          </div>
+          <table className="hidden w-full text-sm sm:table">
             <thead>
               <tr className="border-b border-white/60 bg-amber-50/60 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-3">Room</th>
@@ -191,6 +232,7 @@ export default function InspectionsPage() {
               )}
             </tbody>
           </table>
+          </>
         )}
       </Card>
     </div>

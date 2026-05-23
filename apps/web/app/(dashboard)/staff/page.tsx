@@ -697,6 +697,7 @@ export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [confirmDeactivate, setConfirmDeactivate] = useState<StaffMember | null>(null)
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
 
   // Auto-dismiss invite success banner
   useEffect(() => {
@@ -777,7 +778,7 @@ export default function StaffPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Management</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -786,7 +787,49 @@ export default function StaffPage() {
           </p>
         </div>
         {canManageStaff && (
-          <div className="flex gap-2">
+          <>
+          <div className="relative sm:hidden">
+            <Button
+              variant="primary"
+              onClick={() => setAddMenuOpen((open) => !open)}
+              className="w-full"
+              aria-expanded={addMenuOpen}
+              aria-haspopup="menu"
+            >
+              <UserPlus size={16} />
+              Add Staff
+              <ChevronDown size={14} className={`ml-auto transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
+            </Button>
+            {addMenuOpen && (
+              <div className="absolute right-0 z-20 mt-2 w-full rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddMenuOpen(false)
+                    setShowInviteModal(true)
+                  }}
+                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-stone-700 hover:bg-amber-50"
+                  role="menuitem"
+                >
+                  <Mail size={16} />
+                  Invite by Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddMenuOpen(false)
+                    setShowAddDirectModal(true)
+                  }}
+                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                  role="menuitem"
+                >
+                  <UserPlus size={16} />
+                  Add Manually
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="hidden gap-2 sm:flex">
             <Button
               variant="ghost"
               onClick={() => setShowAddDirectModal(true)}
@@ -802,6 +845,7 @@ export default function StaffPage() {
               Invite by Email
             </Button>
           </div>
+          </>
         )}
       </div>
 

@@ -602,6 +602,7 @@ async def list_inspections(
             supabase.table("user_profiles")
             .select("id, preferred_name, full_name")
             .in_("id", inspector_ids)
+            .eq("tenant_id", current_user.hotel_id)
             .execute()
         )
         for p in (profiles.data or []):
@@ -612,10 +613,11 @@ async def list_inspections(
     for row in rows:
         room = row.get("rooms") or {}
         inspector_id = row.get("inspected_by", "")
+        inspector_fallback = inspector_id[:8] if inspector_id else "Unknown"
         output.append({
             "id": row.get("id"),
             "room_number": room.get("room_number", ""),
-            "inspector_name": name_map.get(inspector_id, inspector_id),
+            "inspector_name": name_map.get(inspector_id, inspector_fallback),
             "overall_result": row.get("overall_result"),
             "notes": row.get("notes"),
             "completed_at": row.get("completed_at"),

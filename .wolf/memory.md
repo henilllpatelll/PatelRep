@@ -1514,3 +1514,23 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:57 | Checked FRONTEND_AUDIT.md completion status against frontend source and ran web lint/type-check | FRONTEND_AUDIT.md, apps/web | Not fully complete; checks passed | ~6k |
 | 23:21 | Completed remaining FRONTEND_AUDIT.md frontend fixes and final web verification | apps/web, .wolf/anatomy.md | type-check, lint, and build passed | ~12k |
 | 23:55 | Fixed AI Copilot cancel preview cleanup | apps/web/app/(dashboard)/ai/page.tsx, apps/web/components/ai/AICopilotBubble.tsx, e2e/13-ai-copilot.spec.ts | Cancel now clears pending responseData; type-check/lint/build and AI Playwright spec pass | ~2500 |
+| 00:59 | Session end: 8 writes across 1 files (page.tsx) | 8 reads | ~32550 tok |
+| 00:00 | Loaded OpenWolf protocol, anatomy, cerebrum, e2e-testing skill, and test scripts | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, e2e/agent-browser/scripts/run-all.ps1 | Ready to run frontend Playwright/design audit | ~1200 |
+| 00:00 | Ran root Playwright frontend suite against production | playwright.config.ts, e2e/*.spec.ts | 98 passed, 6 failed, 58 skipped, 5 not run; failures in login magic-link tests, SOP empty-state assertion, RBAC TEST_PASSWORD gate | ~900 |
+| 01:19 | designqc: captured 2 screenshots (29KB, ~5000 tok) | /login | ready for eval | ~0 |
+| 00:00 | Ran OpenWolf login designqc plus authenticated Playwright desktop/mobile route crawls | .wolf/designqc-captures, test-results/frontend-*-audit-* | Captured login design screenshots, 21 mobile route screenshots, 21 desktop screenshots, and desktop/mobile metrics | ~900 |
+| 00:00 | Ran dedicated mobile Playwright config | playwright.mobile.config.ts, e2e/mobile-usability.spec.ts | 4 login mobile tests passed; 56 authenticated mobile tests skipped because auth password/setup was unavailable | ~500 |
+| 00:00 | Created frontend Playwright audit report and updated OpenWolf memory/anatomy | FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json | Report written with prioritized product/design and test-harness issues | ~900 |
+| 01:59 | Started FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23 fixes: auth/session handling, login/RBAC test stability, mobile card layouts, tap targets, AI floater spacing | apps/web, apps/api, e2e | type-check and lint passed after first pass with two lint warnings to clean up | ~3000 |
+| 02:10 | Completed frontend Playwright audit fixes and verification | apps/web, apps/api, e2e, .wolf | web lint/type-check/build, API smoke, login Playwright local/prod, diff check, and browser mobile login verification passed; local dev server restarted on :3000 | ~2800 |
+| 16:39 | Reran login Playwright with TEST_PASSWORD set from the shell environment | e2e/01-login.spec.ts, e2e/auth.setup.ts | local dev server restarted; setup auth plus all 10 login tests passed, 11/11 total | ~300 |
+
+## Session: 2026-05-23 16:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-23 16:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

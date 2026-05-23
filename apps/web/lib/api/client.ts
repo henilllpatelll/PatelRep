@@ -3,6 +3,20 @@ import { useAuthStore } from '@/stores/authStore'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
 
+export class ApiClientError extends Error {
+  status: number | null
+  path: string
+  isNetworkError: boolean
+
+  constructor(message: string, options: { status?: number | null; path: string; isNetworkError?: boolean }) {
+    super(message)
+    this.name = 'ApiClientError'
+    this.status = options.status ?? null
+    this.path = options.path
+    this.isNetworkError = options.isNetworkError ?? false
+  }
+}
+
 // ── Friendly error translator ─────────────────────────────────────────────────
 // Converts raw database/network errors into plain English messages.
 
@@ -58,15 +72,23 @@ async function request(method: string, path: string, body?: any, options: Reques
     })
   }
 
-  const res = await fetch(url.toString(), {
-    method,
-    headers: {
-      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-    ...(body ? { body: isFormData ? body : JSON.stringify(body) } : {}),
-  })
+  let res: Response
+  try {
+    res = await fetch(url.toString(), {
+      method,
+      headers: {
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+      ...(body ? { body: isFormData ? body : JSON.stringify(body) } : {}),
+    })
+  } catch {
+    throw new ApiClientError('Network error - check your connection and try again.', {
+      path,
+      isNetworkError: true,
+    })
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -79,7 +101,15 @@ async function request(method: string, path: string, body?: any, options: Reques
         }).join(', ')
       : err.detail
     const detail = toFriendlyError(err.error?.message || rawDetail)
-    throw new Error(detail || 'Something went wrong. Please try again.')
+    if (res.status === 401 && typeof window !== 'undefined') {
+      useAuthStore.getState().clear()
+      createClient().auth.signOut().catch(() => undefined)
+      window.dispatchEvent(new CustomEvent('patelrep:session-expired'))
+    }
+    throw new ApiClientError(detail || 'Something went wrong. Please try again.', {
+      status: res.status,
+      path,
+    })
   }
 
   if (res.status === 204) return null

@@ -537,7 +537,7 @@ export default function PredictionsPage() {
           <SkeletonCard />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="flex flex-col items-center justify-center py-14 text-center">
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
             <ShieldCheck size={24} className="text-green-600" />
           </div>
@@ -560,6 +560,16 @@ export default function PredictionsPage() {
             <p className="text-sm text-gray-500 mt-1 max-w-xs">
               Predictions run nightly. You can trigger an analysis from the Asset Register.
             </p>
+          )}
+          {!filtersActive && (
+            <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+              {['Filter replacements', 'Noisy PTACs', 'Repeat outages'].map((item) => (
+                <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+                  <p className="text-sm font-semibold text-stone-800">{item}</p>
+                  <p className="mt-1 text-xs text-stone-500">Risk signal to watch</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       ) : (

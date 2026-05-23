@@ -105,6 +105,113 @@ function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps
 
 // ─── Skeleton row ─────────────────────────────────────────────────────────────
 
+function PMScheduleMobileCard({
+  schedule,
+  canEdit,
+  isOverdue,
+  status,
+  onComplete,
+  onCreateWO,
+  onAskDeactivate,
+  onConfirmDeactivate,
+  onCancelDeactivate,
+  confirmingDeactivate,
+}: {
+  schedule: PMSchedule
+  canEdit: boolean
+  isOverdue: boolean
+  status: ReturnType<typeof getScheduleStatus>
+  onComplete: () => void
+  onCreateWO: () => void
+  onAskDeactivate: () => void
+  onConfirmDeactivate: () => void
+  onCancelDeactivate: () => void
+  confirmingDeactivate: boolean
+}) {
+  return (
+    <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-gray-900">
+            {schedule.assets?.name ?? 'Unknown asset'}
+          </p>
+          <p className="mt-0.5 text-sm text-gray-600">{schedule.name}</p>
+        </div>
+        <span className={`inline-flex min-h-[32px] items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${status.badgeCls}`}>
+          {status.label}
+        </span>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Next Due</dt>
+          <dd className={isOverdue ? 'mt-1 font-medium text-red-600' : 'mt-1 text-gray-700'}>
+            {format(new Date(schedule.next_due_at), 'MMM d, yyyy')}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Time</dt>
+          <dd className="mt-1 text-gray-700">{schedule.estimated_minutes ?? '-'} min</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Interval</dt>
+          <dd className="mt-1 text-gray-700">
+            {formatIntervalLabel(schedule.interval_type, schedule.interval_days)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Last Done</dt>
+          <dd className="mt-1 text-gray-700">
+            {schedule.last_completed_at ? format(new Date(schedule.last_completed_at), 'MMM d, yyyy') : 'Never'}
+          </dd>
+        </div>
+      </dl>
+      <div className="mt-4 grid grid-cols-1 gap-2">
+        {schedule.is_active && (
+          <button
+            onClick={onComplete}
+            className="min-h-[44px] rounded-lg border border-green-300 px-3 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-green-50"
+          >
+            Complete
+          </button>
+        )}
+        {canEdit && schedule.is_active && (
+          confirmingDeactivate ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onConfirmDeactivate}
+                className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={onCancelDeactivate}
+                className="min-h-[44px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onAskDeactivate}
+              className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+            >
+              Deactivate
+            </button>
+          )
+        )}
+        {canEdit && isOverdue && (
+          <button
+            onClick={onCreateWO}
+            className="min-h-[44px] rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+          >
+            Create Work Order
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b border-amber-200">
@@ -685,7 +792,56 @@ export default function PMSchedulesPage() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100" />
+                ))}
+              </div>
+            ) : schedules.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-14 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                  <Calendar size={22} className="text-gray-300" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">No PM schedules yet</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Add a schedule to start tracking preventive maintenance.
+                  </p>
+                </div>
+                {canEdit && (
+                  <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                    <Plus size={14} />
+                    Add Schedule
+                  </Button>
+                )}
+              </div>
+            ) : (
+              schedules.map((schedule) => {
+                const status = getScheduleStatus(schedule.next_due_at)
+                const dueDate = new Date(schedule.next_due_at)
+                const isOverdue = dueDate < now
+                return (
+                  <PMScheduleMobileCard
+                    key={schedule.id}
+                    schedule={schedule}
+                    canEdit={canEdit}
+                    isOverdue={isOverdue}
+                    status={status}
+                    onComplete={() => setCompletingSchedule(schedule)}
+                    onCreateWO={() => handleCreateWOFromPM(schedule)}
+                    onAskDeactivate={() => setConfirmDeactivateId(schedule.id)}
+                    onConfirmDeactivate={() => handleDeactivate(schedule.id)}
+                    onCancelDeactivate={() => setConfirmDeactivateId(null)}
+                    confirmingDeactivate={confirmDeactivateId === schedule.id}
+                  />
+                )
+              })
+            )}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-amber-100 bg-amber-50/60">
@@ -730,6 +886,14 @@ export default function PMSchedulesPage() {
                           <p className="text-xs text-gray-400 mt-0.5">
                             Add a schedule to start tracking preventive maintenance.
                           </p>
+                        </div>
+                        <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                          {['HVAC filters', 'Pool checks', 'Elevator service'].map((item) => (
+                            <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+                              <p className="text-sm font-semibold text-stone-800">{item}</p>
+                              <p className="mt-1 text-xs text-stone-500">Common PM schedule</p>
+                            </div>
+                          ))}
                         </div>
                         {canEdit && (
                           <Button
@@ -865,6 +1029,7 @@ export default function PMSchedulesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Footer count */}

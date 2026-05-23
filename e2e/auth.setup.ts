@@ -5,6 +5,7 @@
  */
 import { test as setup, expect } from '@playwright/test'
 import path from 'path'
+import fs from 'fs'
 
 const AUTH_FILE = path.join(__dirname, '.auth/state.json')
 
@@ -12,6 +13,7 @@ const EMAIL = process.env.TEST_EMAIL || 'hp.patelrep@gmail.com'
 const PASSWORD = process.env.TEST_PASSWORD
 
 setup('authenticate as GM', async ({ page }) => {
+  fs.rmSync(AUTH_FILE, { force: true })
   setup.skip(!PASSWORD, 'Set TEST_PASSWORD to run authenticated Playwright setup')
 
   await page.goto('/login')

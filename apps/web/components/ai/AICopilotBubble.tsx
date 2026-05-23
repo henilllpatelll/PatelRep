@@ -193,7 +193,7 @@ function AiMessageBubble({
             {(d as AmbiguousResponse).options.map((opt) => (
               <button key={opt.intent_hint}
                 onClick={() => onResendWithHint(originalUserMessage, opt.intent_hint)}
-                className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors font-medium">
+                className="min-h-[44px] text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full hover:bg-amber-100 transition-colors font-medium">
                 {opt.label}
               </button>
             ))}
@@ -338,7 +338,7 @@ export function AICopilotBubble() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-50 md:bottom-6 md:right-6">
       {open && (
         <div
           role="dialog"
@@ -399,7 +399,7 @@ export function AICopilotBubble() {
             <div className="flex gap-1.5 flex-wrap">
               {quickActions.map((qa) => (
                 <button key={qa} onClick={() => sendMessage(qa)} disabled={loading}
-                  className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-full hover:bg-amber-100 disabled:opacity-50 transition-colors">
+                  className="min-h-[44px] text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full hover:bg-amber-100 disabled:opacity-50 transition-colors">
                   {qa}
                 </button>
               ))}

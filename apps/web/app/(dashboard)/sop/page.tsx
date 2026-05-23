@@ -95,7 +95,7 @@ function SkeletonCard() {
 
 function EmptyState({ onUpload }: { onUpload: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="flex flex-col items-center justify-center py-14 text-center">
       <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
         <FileText size={28} className="text-gray-300" />
       </div>
@@ -105,11 +105,19 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       </p>
       <button
         onClick={onUpload}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+        className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
       >
         <Upload size={15} />
         Upload your first SOP
       </button>
+      <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+        {['Room turns', 'Emergency calls', 'PM checklists'].map((item) => (
+          <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+            <p className="text-sm font-semibold text-stone-800">{item}</p>
+            <p className="mt-1 text-xs text-stone-500">Good first upload</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
