@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T23:39:11.068Z
-> Files: 76 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T23:48:55.746Z
+> Files: 77 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -17,6 +17,7 @@
 ## ./
 
 - `.gitignore` — Git ignore rules (~445 tok)
+- `CLAUDE.md` — OpenWolf (~2432 tok)
 - `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
 - `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Playwright frontend audit with automated test results, visual design issues, mobile bugs, and artifact paths (~2280 tok)
 - `package.json` — Node.js package manifest (~351 tok)

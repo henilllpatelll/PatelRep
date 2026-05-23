@@ -264,10 +264,47 @@
       "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
       "root_cause": "fullName.split(' ')[0] returns the whole email when fullName is an email (no spaces), which is truthy so the fallback split('@')[0] never ran",
       "fix": "Check if fullName contains '@' first; if so use split('@')[0], otherwise split on space",
-      "tags": ["greeting", "dashboard", "user-name", "email-fallback"],
+      "tags": [
+        "greeting",
+        "dashboard",
+        "user-name",
+        "email-fallback"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-23T00:00:00.000Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-05-23T23:48:34.722Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 25→36 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:48:34.722Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-05-23T23:48:45.200Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `020`",
+      "fix": "Changed to `020_fix_credits_decimal.sql`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:48:45.200Z"
     }
   ]
 }

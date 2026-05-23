@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 3237976,
-    "total_reads": 2290,
-    "total_writes": 1482,
+    "total_tokens_estimated": 3248106,
+    "total_reads": 2303,
+    "total_writes": 1489,
     "total_sessions": 100,
-    "anatomy_hits": 605,
-    "anatomy_misses": 1654,
-    "repeated_reads_blocked": 798,
-    "estimated_savings_vs_bare_cli": 2434261
+    "anatomy_hits": 611,
+    "anatomy_misses": 1661,
+    "repeated_reads_blocked": 799,
+    "estimated_savings_vs_bare_cli": 2435461
   },
   "sessions": [
     {
@@ -24518,6 +24518,170 @@
         "reads_count": 4,
         "writes_count": 1,
         "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-23-1838",
+      "started": "2026-05-23T23:38:38.405Z",
+      "ended": "2026-05-23T23:44:40.929Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Header.tsx",
+          "tokens_estimated": 2046,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 973,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 32,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3019,
+        "output_tokens_estimated": 32,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-23-1838",
+      "started": "2026-05-23T23:38:38.405Z",
+      "ended": "2026-05-23T23:46:11.879Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Header.tsx",
+          "tokens_estimated": 2046,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 973,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 32,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3019,
+        "output_tokens_estimated": 32,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-23-1838",
+      "started": "2026-05-23T23:38:38.405Z",
+      "ended": "2026-05-23T23:49:10.964Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Header.tsx",
+          "tokens_estimated": 2046,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 973,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
+          "tokens_estimated": 32,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 636,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 194,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 75,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 72,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3019,
+        "output_tokens_estimated": 1009,
+        "reads_count": 5,
+        "writes_count": 5,
+        "repeated_reads_blocked": 1,
         "anatomy_lookups": 2
       }
     }
