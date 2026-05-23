@@ -68,7 +68,7 @@ function StatusBadge({ status }: { status: SOPDocument['indexing_status'] }) {
 function CategoryBadge({ category }: { category: string | null }) {
   if (!category) return null
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 border border-brand-100">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
       {category}
     </span>
   )
@@ -118,26 +118,30 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
 
 interface DocumentCardProps {
   doc: SOPDocument
-  onDelete: (id: string) => void
+  onDeleteRequest: (doc: SOPDocument) => void
+  onOpen: (doc: SOPDocument) => void
   deleting: boolean
 }
 
-function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
+function DocumentCard({ doc, onDeleteRequest, onOpen, deleting }: DocumentCardProps) {
   function handleDelete(e: React.MouseEvent) {
     e.stopPropagation()
-    if (
-      window.confirm(`Delete "${doc.title}"? This cannot be undone.`)
-    ) {
-      onDelete(doc.id)
-    }
-  }
-
-  function handleCardClick() {
-    alert(`"${doc.title}" — full document viewer coming soon.`)
+    onDeleteRequest(doc)
   }
 
   return (
-    <div onClick={handleCardClick} className="cursor-pointer group">
+    <div
+      onClick={() => onOpen(doc)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen(doc)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="cursor-pointer group focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-2xl"
+    >
     <Card
       className="hover:shadow-md transition-shadow h-full"
     >
@@ -179,6 +183,7 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
           <button
             onClick={handleDelete}
             disabled={deleting}
+            aria-label={`Delete ${doc.title}`}
             title="Delete document"
             className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
           >
@@ -191,6 +196,80 @@ function DocumentCard({ doc, onDelete, deleting }: DocumentCardProps) {
         </div>
       </div>
     </Card>
+    </div>
+  )
+}
+
+function ConfirmDeleteDialog({
+  doc,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  doc: SOPDocument
+  loading: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) onCancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [loading, onCancel])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={!loading ? onCancel : undefined} />
+      <div role="dialog" aria-modal="true" aria-labelledby="delete-sop-title" className="relative w-full max-w-md rounded-2xl border border-white/[0.95] bg-white/[0.9] p-6 shadow-xl backdrop-blur-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="delete-sop-title" className="text-base font-semibold text-stone-900">Delete SOP?</h2>
+            <p className="mt-2 text-sm text-stone-600">
+              Delete "{doc.title}" from the library. This cannot be undone.
+            </p>
+          </div>
+          <button type="button" onClick={onCancel} disabled={loading} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 disabled:opacity-50">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onConfirm} disabled={loading} className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100">
+            {loading && <Loader2 size={13} className="animate-spin" />}
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NoticeDialog({ title, message, onClose }: { title: string; message: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-labelledby="sop-notice-title" className="relative w-full max-w-sm rounded-2xl border border-white/[0.95] bg-white/[0.9] p-6 shadow-xl backdrop-blur-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="sop-notice-title" className="text-base font-semibold text-stone-900">{title}</h2>
+            <p className="mt-2 text-sm text-stone-600">{message}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600">
+            <X size={18} />
+          </button>
+        </div>
+        <Button type="button" variant="primary" onClick={onClose} className="mt-6 w-full justify-center">OK</Button>
+      </div>
     </div>
   )
 }
@@ -449,6 +528,8 @@ export default function SOPLibraryPage() {
   const [showQueryModal, setShowQueryModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SOPDocument | null>(null)
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Data fetching ──────────────────────────────────────────────────────────
@@ -511,9 +592,10 @@ export default function SOPLibraryPage() {
       setDocuments((prev) => prev.filter((d) => d.id !== id))
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete document.'
-      alert(msg)
+      setNotice({ title: 'Delete failed', message: msg })
     } finally {
       setDeletingId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -571,6 +653,7 @@ export default function SOPLibraryPage() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
+              aria-pressed={isActive}
               className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 isActive
                   ? 'border-amber-200 text-amber-700'
@@ -629,7 +712,13 @@ export default function SOPLibraryPage() {
             <DocumentCard
               key={doc.id}
               doc={doc}
-              onDelete={handleDelete}
+              onDeleteRequest={setDeleteTarget}
+              onOpen={(target) =>
+                setNotice({
+                  title: target.title,
+                  message: 'Full document viewer coming soon.',
+                })
+              }
               deleting={deletingId === doc.id}
             />
           ))}
@@ -638,6 +727,21 @@ export default function SOPLibraryPage() {
 
       {/* Modals */}
       <SOPQueryModal isOpen={showQueryModal} onClose={() => setShowQueryModal(false)} />
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          doc={deleteTarget}
+          loading={deletingId === deleteTarget.id}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget.id)}
+        />
+      )}
+      {notice && (
+        <NoticeDialog
+          title={notice.title}
+          message={notice.message}
+          onClose={() => setNotice(null)}
+        />
+      )}
       <UploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}

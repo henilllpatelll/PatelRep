@@ -215,6 +215,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             href={href}
             prefetch={false}
             onClick={onMobileClose}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
@@ -284,6 +285,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             href={href}
             prefetch={false}
             onClick={onMobileClose}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'group flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative',
               active
@@ -313,6 +315,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   return (
     <aside
+      aria-label="Main navigation"
       className={cn(
         'bg-[#17130F] border-r border-[#2D221A] flex flex-col shrink-0',
         // Mobile: fixed overlay drawer
@@ -334,7 +337,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {/* Operations section */}
         {operationsItems.length > 0 && (
           <>
-            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pt-3 pb-1">
+            <p className="text-[11px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pt-3 pb-1">
               Operations
             </p>
             <div className="space-y-0.5">
@@ -347,7 +350,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {peopleItems.length > 0 && (
           <>
             <div className="mx-2 my-2 border-t border-[#2D221A]" />
-            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
+            <p className="text-[11px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
               People
             </p>
             <div className="space-y-0.5">
@@ -360,7 +363,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {knowledgeItems.length > 0 && (
           <>
             <div className="mx-2 my-2 border-t border-[#2D221A]" />
-            <p className="text-[10px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
+            <p className="text-[11px] font-semibold text-[#4A3728] uppercase tracking-[0.18em] px-2 pb-1">
               Knowledge
             </p>
             <div className="space-y-0.5">

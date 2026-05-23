@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
 import {
-  Bot, Send, CheckCircle, Clock, Wrench, Bed, Users,
-  HelpCircle, AlertTriangle, Activity, Zap,
+  Bot, Send, CheckCircle, Wrench, Bed,
+  AlertTriangle, Activity, Zap,
 } from 'lucide-react'
 import {
   aiApi,
@@ -20,99 +20,19 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
+import {
+  AssignmentCard,
+  GuestRequestCard,
+  InsightsView,
+  TaskPreviewCard,
+  WorkOrderCard,
+} from '@/components/ai/cards'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function genId() { return Math.random().toString(36).slice(2) }
 
-function priorityBadge(p: string) {
-  if (p === 'urgent') return 'text-red-600 bg-red-50 border-red-200'
-  if (p === 'normal') return 'text-amber-600 bg-amber-50 border-amber-200'
-  return 'text-stone-500 bg-stone-50 border-stone-200'
-}
-
-function TypeIcon({ t }: { t: string }) {
-  if (t === 'housekeeping') return <Bed size={12} className="shrink-0" />
-  if (t === 'engineering') return <Wrench size={12} className="shrink-0" />
-  if (t === 'guest_request') return <Users size={12} className="shrink-0" />
-  return <HelpCircle size={12} className="shrink-0" />
-}
-
 // ── Preview Cards ─────────────────────────────────────────────────────────────
-
-function TaskCard({ task }: { task: ParsedTask }) {
-  return (
-    <div className="border border-stone-200 rounded-lg p-3 bg-white space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-          <TypeIcon t={task.task_type} />
-          <span className="capitalize">{task.task_type.replace('_', ' ')}</span>
-        </div>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded border capitalize ${priorityBadge(task.priority)}`}>
-          {task.priority}
-        </span>
-      </div>
-      <p className="text-sm font-medium text-stone-900">{task.title}</p>
-      <div className="flex items-center justify-between text-xs text-stone-400">
-        {task.room_number_display && <span>Room {task.room_number_display}</span>}
-        {task.due_at && (
-          <span className="flex items-center gap-1">
-            <Clock size={10} />
-            {new Date(task.due_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
-        {task.confidence < 0.7 && <span className="text-red-400">low confidence</span>}
-        {task.confidence >= 0.7 && task.confidence < 0.9 && <span className="text-amber-400">needs review</span>}
-      </div>
-    </div>
-  )
-}
-
-function WorkOrderCard({ wo }: { wo: WorkOrderPreview }) {
-  return (
-    <div className="border border-stone-200 rounded-lg p-3 bg-white space-y-1">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-          <Wrench size={12} className="shrink-0" />
-          <span className="capitalize">{wo.category}</span>
-        </div>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded border capitalize ${priorityBadge(wo.priority)}`}>
-          {wo.priority}
-        </span>
-      </div>
-      <p className="text-sm font-medium text-stone-900">{wo.title}</p>
-      {wo.room_number && <p className="text-xs text-stone-400">Room {wo.room_number}</p>}
-    </div>
-  )
-}
-
-function GuestRequestCard({ req }: { req: GuestRequestPreview }) {
-  return (
-    <div className="border border-stone-200 rounded-lg p-3 bg-white space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-        <Users size={12} className="shrink-0" />
-        <span>Guest Request</span>
-      </div>
-      <p className="text-sm font-medium text-stone-900">{req.title}</p>
-      {req.room_number && <p className="text-xs text-stone-400">Room {req.room_number}</p>}
-      {req.guest_name && <p className="text-xs text-stone-400">{req.guest_name}</p>}
-    </div>
-  )
-}
-
-function AssignmentCard({ a }: { a: AssignmentPreview }) {
-  return (
-    <div className="border border-stone-200 rounded-lg p-3 bg-white space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-        <Users size={12} className="shrink-0" />
-        <span>{a.staff_name_hint}</span>
-        {!a.staff_id && <span className="text-amber-500 ml-1">not found</span>}
-      </div>
-      {a.room_numbers.length > 0 && <p className="text-xs text-stone-600">Rooms: {a.room_numbers.join(', ')}</p>}
-      {a.task_ids.length > 0 && <p className="text-xs text-stone-600">{a.task_ids.length} task{a.task_ids.length !== 1 ? 's' : ''}</p>}
-    </div>
-  )
-}
 
 // ── Confirm View ──────────────────────────────────────────────────────────────
 
@@ -138,7 +58,7 @@ function ConfirmView<T>({
       <div className="space-y-2 max-h-60 overflow-y-auto">{items.map((item, i) => renderItem(item, i))}</div>
       <div className="flex gap-2">
         <button onClick={submit} disabled={saving || items.length === 0}
-          className="flex-1 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+          className="flex-1 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
           {saving ? 'Creating…' : 'Confirm & Create'}
         </button>
         <button onClick={onCancel}
@@ -171,11 +91,11 @@ function TaskConfirmView({ data, onConfirm, onCancel }: { data: TaskPreviewRespo
   return (
     <div className="mt-2 space-y-2">
       <div className="space-y-2 max-h-60 overflow-y-auto">
-        {tasks.map((task, i) => <TaskCard key={i} task={task} />)}
+        {tasks.map((task, i) => <TaskPreviewCard key={i} task={task} />)}
       </div>
       <div className="flex gap-2">
         <button onClick={submit} disabled={saving || tasks.length === 0}
-          className="flex-1 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+          className="flex-1 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
           {saving ? 'Creating…' : 'Confirm & Create'}
         </button>
         <button onClick={onCancel}
@@ -235,7 +155,7 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
             items={(d as AssignmentPreviewResponse).assignments}
             onConfirm={() => onConfirmAssignments((d as AssignmentPreviewResponse).assignments)}
             onCancel={onCancel}
-            renderItem={(a, i) => <AssignmentCard key={i} a={a} />}
+            renderItem={(a, i) => <AssignmentCard key={i} assignment={a} />}
             label="Assignments saved."
           />
         )}
@@ -250,17 +170,7 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
             ))}
           </div>
         )}
-        {d?.response_type === 'insights' && (
-          <div className="space-y-2 mt-3">
-            {(d as InsightsResponse).insights.map((ins, i) => (
-              <div key={i} className={`rounded-lg px-3 py-2.5 ${ins.severity === 'critical' ? 'border-l-4 border-red-500 bg-red-50' : ins.severity === 'warning' ? 'border-l-4 border-amber-400 bg-amber-50' : 'border-l-4 border-blue-400 bg-blue-50'}`}>
-                <p className="text-xs font-semibold text-stone-900">{ins.title}</p>
-                <p className="text-xs text-stone-600 mt-0.5">{ins.detail}</p>
-                <p className="text-xs text-amber-600 mt-1 font-medium">→ {ins.action}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        {d?.response_type === 'insights' && <InsightsView data={d as InsightsResponse} />}
         {d?.response_type === 'answer' && (d as any).actions?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {(d as any).actions.map((a: any, i: number) => (
@@ -381,7 +291,6 @@ export default function AICopilotPage() {
     if (!historyKey) return
     const saved = localStorage.getItem(historyKey)
     if (saved) { try { setMessages(JSON.parse(saved)) } catch { /* ignore */ } }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyKey])
 
   useEffect(() => {
@@ -465,7 +374,7 @@ export default function AICopilotPage() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-4rem)] p-6">
+    <div className="flex gap-6 h-[calc(100vh-3.5rem)] p-6">
       {/* Chat panel */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center gap-3 mb-4 shrink-0">
@@ -482,7 +391,7 @@ export default function AICopilotPage() {
 
         <Card className="flex-1 flex flex-col overflow-hidden p-0">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4" aria-live="polite" aria-label="AI Copilot conversation">
             {messages.map((msg, idx) =>
               msg.role === 'user' ? (
                 <div key={msg.id} className="flex justify-end">
@@ -537,10 +446,11 @@ export default function AICopilotPage() {
                 value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 placeholder="Room 412 needs towels… AC broken in 210… Assign Maria to floor 3…"
+                aria-label="Message the AI Copilot"
                 className="flex-1 text-sm px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 bg-white"
                 disabled={loading}
               />
-              <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} aria-label="Send message"
                 className="px-4 py-2.5 bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity shadow-sm shadow-amber-200">
                 <Send size={16} />
               </button>
@@ -551,7 +461,7 @@ export default function AICopilotPage() {
 
       {/* Risk alerts sidebar — supervisors and GMs only */}
       {isSupervisor && (
-        <div className="hidden lg:block">
+        <div className="hidden md:block">
           <RiskAlertsPanel />
         </div>
       )}

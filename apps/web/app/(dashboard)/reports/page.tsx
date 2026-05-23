@@ -50,19 +50,19 @@ function formatType(type: string): string {
 
 function slaColor(pct: number): string {
   if (pct >= 95) return 'text-green-600'
-  if (pct >= 80) return 'text-yellow-600'
+  if (pct >= 80) return 'text-amber-700'
   return 'text-red-600'
 }
 
 function completionRateColor(pct: number): string {
   if (pct >= 80) return 'text-green-600'
-  if (pct >= 60) return 'text-yellow-600'
+  if (pct >= 60) return 'text-amber-700'
   return 'text-red-600'
 }
 
 function maintenanceSlaColor(pct: number): string {
   if (pct >= 90) return 'text-green-600'
-  if (pct >= 70) return 'text-yellow-600'
+  if (pct >= 70) return 'text-amber-700'
   return 'text-red-600'
 }
 

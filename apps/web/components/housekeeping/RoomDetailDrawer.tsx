@@ -328,7 +328,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
               {vipFlag && (
                 <div className="flex items-center gap-0.5">
                   <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
-                  <span className="text-xs font-semibold text-yellow-600">VIP</span>
+                  <span className="text-xs font-semibold text-amber-700">VIP</span>
                 </div>
               )}
               {guestName && (
@@ -418,6 +418,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
             </h3>
             <div className="space-y-2">
               <textarea
+                aria-label="Add room note"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Leave a note for your supervisor or team…"
@@ -454,6 +455,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
           <div className="p-4 border-b border-white/60">
             <button
               onClick={() => setWoOpen((v) => !v)}
+              aria-expanded={woOpen}
+              aria-controls="room-report-issue-form"
               className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide"
             >
               <span className="flex items-center gap-1.5">
@@ -468,10 +471,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
             </button>
 
             {woOpen && (
-              <div className="mt-3 space-y-2.5">
+              <div id="room-report-issue-form" className="mt-3 space-y-2.5">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Issue title <span className="text-red-500">*</span></label>
+                  <label htmlFor="room-wo-title" className="block text-xs text-gray-500 mb-1">Issue title <span className="text-red-500">*</span></label>
                   <input
+                    id="room-wo-title"
                     type="text"
                     value={woTitle}
                     onChange={(e) => setWoTitle(e.target.value)}
@@ -482,8 +486,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
 
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Category</label>
+                    <label htmlFor="room-wo-category" className="block text-xs text-gray-500 mb-1">Category</label>
                     <select
+                      id="room-wo-category"
                       value={woCategory}
                       onChange={(e) => setWoCategory(e.target.value)}
                       className="w-full rounded-lg border border-gray-200 bg-white/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -494,8 +499,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                     </select>
                   </div>
                   <div className="w-28">
-                    <label className="block text-xs text-gray-500 mb-1">Priority</label>
+                    <label htmlFor="room-wo-priority" className="block text-xs text-gray-500 mb-1">Priority</label>
                     <select
+                      id="room-wo-priority"
                       value={woPriority}
                       onChange={(e) => setWoPriority(e.target.value as 'urgent' | 'normal' | 'low')}
                       className="w-full rounded-lg border border-gray-200 bg-white/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"

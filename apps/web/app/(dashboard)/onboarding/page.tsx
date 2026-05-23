@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, forwardRef, useEffect, Suspense } from 'react'
+import { useState, useCallback, useRef, forwardRef, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
@@ -26,7 +26,6 @@ import {
   Plus,
   Trash2,
   Loader2,
-  ExternalLink,
   SkipForward,
   AlertCircle,
   Bot,
@@ -207,7 +206,7 @@ function Button({
     'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed'
   const variants = {
     primary:
-      'bg-amber-500 text-white hover:bg-amber-100 focus:ring-amber-400 shadow-sm',
+      'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-400 shadow-sm',
     secondary:
       'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-amber-400 shadow-sm',
     ghost: 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:ring-gray-400',
@@ -315,7 +314,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
       </div>
 
       {/* Message thread */}
-      <div className="flex-1 overflow-y-auto space-y-3 min-h-0 mb-3">
+      <div className="flex-1 overflow-y-auto space-y-3 min-h-0 mb-3" aria-live="polite">
         {/* Initial greeting bubble */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
           <p className="text-sm text-gray-700 leading-relaxed">
@@ -372,6 +371,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          aria-label="Ask a question"
           placeholder="Ask a question..."
           disabled={isLoading}
           className={cn(
@@ -385,7 +385,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           disabled={isLoading || !input.trim()}
           className={cn(
             'shrink-0 w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center',
-            'hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            'hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           aria-label="Send"
         >
@@ -1117,21 +1117,36 @@ function Step4OperaCloud({
   const [connecting, setConnecting] = useState(false)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState({
+    ohip_base_url: '',
+    hotel_id_opera: '',
+    integration_username: '',
+    integration_password: '',
+  })
+
+  const setField =
+    (key: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+    }
+
+  const canConnect =
+    form.ohip_base_url.trim() !== '' && form.hotel_id_opera.trim() !== ''
 
   const handleConnect = async () => {
     setConnecting(true)
     setError(null)
     try {
-      const res = await apiClient.post('/integrations/opera/connect')
-      const url: string = res.data?.authorization_url
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer')
-        setConnected(true)
-      } else {
-        throw new Error('No authorization URL returned.')
-      }
+      const res = await apiClient.post('/integrations/opera/connect', {
+        ohip_base_url: form.ohip_base_url.trim(),
+        hotel_id_opera: form.hotel_id_opera.trim(),
+        integration_username: form.integration_username.trim() || undefined,
+        integration_password: form.integration_password || undefined,
+      })
+      if (!res.data?.connected) throw new Error(res.data?.message || 'Connection could not be verified.')
+      setConnected(true)
     } catch (err: any) {
-      setError(err.message || 'Failed to initiate connection.')
+      setError(err.message || 'Failed to connect Opera Cloud.')
     } finally {
       setConnecting(false)
     }
@@ -1142,7 +1157,7 @@ function Step4OperaCloud({
       <div>
         <h2 className="text-xl font-bold text-gray-900">Connect Opera Cloud</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Optional — sync your PMS directly with PatelRep.
+          Optional — sync your PMS directly with PatelRep using your OHIP credentials.
         </p>
       </div>
 
@@ -1172,15 +1187,76 @@ function Step4OperaCloud({
         </ul>
       </div>
 
+      {!connected && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="onboarding-ohip-base-url" className="block text-sm font-medium text-gray-700 mb-1.5">
+                OHIP Base URL <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="onboarding-ohip-base-url"
+                type="url"
+                value={form.ohip_base_url}
+                onChange={setField('ohip_base_url')}
+                placeholder="https://hospitality.oracle.com"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+            <div>
+              <label htmlFor="onboarding-opera-hotel-code" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Opera Hotel Code <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="onboarding-opera-hotel-code"
+                type="text"
+                value={form.hotel_id_opera}
+                onChange={setField('hotel_id_opera')}
+                placeholder="SAND01"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+            <div>
+              <label htmlFor="onboarding-opera-username" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Integration Username
+              </label>
+              <input
+                id="onboarding-opera-username"
+                type="text"
+                value={form.integration_username}
+                onChange={setField('integration_username')}
+                placeholder="integration_user"
+                autoComplete="username"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+            <div>
+              <label htmlFor="onboarding-opera-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Integration Password
+              </label>
+              <input
+                id="onboarding-opera-password"
+                type="password"
+                value={form.integration_password}
+                onChange={setField('integration_password')}
+                placeholder="Password"
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {connected && (
         <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
           <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-green-800">
-              Authorization window opened!
+              Opera Cloud connected!
             </p>
             <p className="text-xs text-green-600">
-              Complete the OAuth flow in the popup, then continue.
+              PatelRep can now sync eligible room and reservation data.
             </p>
           </div>
         </div>
@@ -1195,10 +1271,9 @@ function Step4OperaCloud({
 
       <div className="flex flex-col gap-3">
         {!connected ? (
-          <Button onClick={handleConnect} loading={connecting} size="lg">
+          <Button onClick={handleConnect} loading={connecting} disabled={!canConnect || connecting} size="lg">
             <Plug className="w-4 h-4" />
             Connect Opera Cloud
-            <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </Button>
         ) : (
           <Button onClick={onComplete} size="lg">
@@ -1571,7 +1646,7 @@ const AI_TIPS: Record<number, string> = {
 function OnboardingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { setHotel, setSubscription } = useHotelStore()
 
   const [currentStep, setCurrentStep] = useState(() => {
@@ -1622,7 +1697,7 @@ function OnboardingPageInner() {
         user?.app_metadata?.hotel_id ?? user?.user_metadata?.hotel_id
       if (id) setHotelId(id)
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentStep, supabase])
 
   // Refresh session when reaching the Done step so the JWT hook injects hotel_id.
   // Without this the middleware sees no hotel_id in the token and redirects back here.
@@ -1630,7 +1705,7 @@ function OnboardingPageInner() {
     if (currentStep === 6) {
       supabase.auth.refreshSession()
     }
-  }, [currentStep]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentStep, supabase])
 
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length))
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1))

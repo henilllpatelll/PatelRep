@@ -97,6 +97,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   // ── Event handlers ─────────────────────────────────────────────────────────
   function handleCardClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return
+    if (isDragging) return
     if (assignmentMode && onAssign) {
       onAssign(room.room_id)
       return

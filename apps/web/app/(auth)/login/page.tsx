@@ -191,9 +191,13 @@ function LoginContent() {
         </div>
 
         {/* Tab toggle */}
-        <div className="flex bg-stone-100 rounded-xl p-1">
+        <div className="flex bg-stone-100 rounded-xl p-1" role="tablist" aria-label="Login method">
           <button
             type="button"
+            role="tab"
+            id="password-login-tab"
+            aria-selected={activeTab === 'password'}
+            aria-controls="password-login-panel"
             disabled={!isHydrated || loading}
             onClick={() => handleTabChange('password')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
@@ -206,6 +210,10 @@ function LoginContent() {
           </button>
           <button
             type="button"
+            role="tab"
+            id="magic-login-tab"
+            aria-selected={activeTab === 'magic'}
+            aria-controls="magic-login-panel"
             disabled={!isHydrated || loading}
             onClick={() => handleTabChange('magic')}
             className={`flex-1 py-2 text-sm transition-all rounded-lg ${
@@ -227,7 +235,7 @@ function LoginContent() {
 
         {/* ── Password tab ── */}
         {activeTab === 'password' && (
-          <form onSubmit={handlePasswordLogin} className="space-y-4" noValidate>
+          <form id="password-login-panel" role="tabpanel" aria-labelledby="password-login-tab" onSubmit={handlePasswordLogin} className="space-y-4" noValidate>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="email-pw">
                 Email
@@ -287,7 +295,7 @@ function LoginContent() {
 
         {/* ── Magic link tab ── */}
         {activeTab === 'magic' && (
-          <form onSubmit={handleMagicLink} className="space-y-4" noValidate>
+          <form id="magic-login-panel" role="tabpanel" aria-labelledby="magic-login-tab" onSubmit={handleMagicLink} className="space-y-4" noValidate>
             <p className="text-sm text-slate-400">
               Enter your email and we&apos;ll send you a one-click sign-in link. No password
               required.

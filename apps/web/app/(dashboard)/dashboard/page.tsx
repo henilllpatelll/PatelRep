@@ -73,7 +73,7 @@ export default function DashboardPage() {
     default:
       return (
         <div className="flex items-center justify-center h-64">
-          <p className="text-sm text-gray-400">No dashboard available for your role.</p>
+          <p className="text-sm text-stone-400">No dashboard available for your role.</p>
         </div>
       )
   }

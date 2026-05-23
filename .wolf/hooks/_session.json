@@ -1,153 +1,105 @@
 {
-  "session_id": "session-2026-05-22-1758",
-  "started": "2026-05-22T22:58:18.342Z",
+  "session_id": "session-2026-05-23-1953",
+  "started": "2026-05-23T00:53:16.683Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/DeleteConfirmDialog.tsx": {
+    "C:/Users/Henil/projects/PatelRep/FRONTEND_AUDIT.md": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:13.542Z"
+      "tokens": 9362,
+      "first_read": "2026-05-23T01:02:26.725Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/CreateWorkOrderModal.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-22T23:00:13.592Z"
+      "first_read": "2026-05-23T01:05:20.102Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/InspectionModal.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/assets/page.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-22T23:00:13.873Z"
+      "first_read": "2026-05-23T01:05:20.708Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-23T01:05:21.632Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/predictions/page.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-23T01:05:22.046Z"
     },
     "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:16.463Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:16.612Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/AssignmentSidebar.tsx": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:16.906Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/AssignmentSidebar.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:21.742Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/ai/SOPQueryModal.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:00:22.584Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/ai/AICopilotBubble.tsx": {
-      "count": 1,
-      "tokens": 6814,
-      "first_read": "2026-05-22T23:00:29.580Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:01:23.501Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx": {
-      "count": 1,
-      "tokens": 8632,
-      "first_read": "2026-05-22T23:01:23.704Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx": {
-      "count": 5,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:02:10.613Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:02:12.117Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/logbook/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:02:12.138Z"
+      "tokens": 9633,
+      "first_read": "2026-05-23T01:05:22.410Z"
     },
     "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx": {
       "count": 1,
       "tokens": 13086,
-      "first_read": "2026-05-22T23:02:58.720Z"
+      "first_read": "2026-05-23T01:05:40.461Z"
     },
     "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/scheduling/page.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-22T23:02:59.902Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/sop/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-22T23:03:00.347Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx": {
-      "count": 3,
-      "tokens": 4719,
-      "first_read": "2026-05-22T23:03:54.392Z"
+      "first_read": "2026-05-23T01:05:40.680Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 235,
-      "at": "2026-05-22T23:05:06.810Z"
+      "tokens": 39,
+      "at": "2026-05-23T01:05:28.368Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 243,
-      "at": "2026-05-22T23:05:15.263Z"
+      "tokens": 35,
+      "at": "2026-05-23T01:05:32.572Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 113,
-      "at": "2026-05-22T23:05:21.807Z"
+      "tokens": 49,
+      "at": "2026-05-23T01:05:36.568Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 140,
-      "at": "2026-05-22T23:05:28.486Z"
+      "tokens": 25,
+      "at": "2026-05-23T01:05:39.877Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
       "action": "edit",
-      "tokens": 202,
-      "at": "2026-05-22T23:05:35.844Z"
+      "tokens": 19,
+      "at": "2026-05-23T01:05:45.853Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/tasks/page.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 61,
-      "at": "2026-05-22T23:05:40.783Z"
+      "tokens": 58,
+      "at": "2026-05-23T01:05:46.471Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
       "action": "edit",
-      "tokens": 760,
-      "at": "2026-05-22T23:05:56.759Z"
+      "tokens": 44,
+      "at": "2026-05-23T01:05:50.422Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/staff/page.tsx",
+      "action": "edit",
+      "tokens": 200,
+      "at": "2026-05-23T01:05:54.827Z"
     }
   ],
   "edit_counts": {
-    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 1,
-    "apps/web/app/(dashboard)/housekeeping/page.tsx": 1,
-    "apps/web/components/housekeeping/RoomDetailDrawer.tsx": 1,
-    "apps/web/components/engineering/WorkOrderDetailDrawer.tsx": 2,
-    "apps/web/app/(dashboard)/tasks/page.tsx": 1,
-    "apps/web/app/(dashboard)/guest-requests/page.tsx": 1
+    "apps/web/app/(dashboard)/engineering/work-orders/page.tsx": 6,
+    "apps/web/app/(dashboard)/staff/page.tsx": 2
   },
-  "anatomy_hits": 4,
-  "anatomy_misses": 13,
-  "repeated_reads_warned": 8,
+  "anatomy_hits": 3,
+  "anatomy_misses": 5,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 0
 }

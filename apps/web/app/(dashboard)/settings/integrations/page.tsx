@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -21,6 +21,7 @@ import {
 import { integrationsApi, type OperaConnectRequest } from '@/lib/api/integrations'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,9 +34,9 @@ function relativeTime(isoString: string): string {
   return 'just now'
 }
 
-function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+function FieldLabel({ children, htmlFor, required }: { children: React.ReactNode; htmlFor?: string; required?: boolean }) {
   return (
-    <label className="block text-xs font-medium text-gray-600 mb-1">
+    <label htmlFor={htmlFor} className="block text-xs font-medium text-gray-600 mb-1">
       {children}
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
@@ -62,16 +63,19 @@ function ConfirmDisconnectDialog({
   onCancel: () => void
   loading: boolean
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, true, loading ? undefined : onCancel)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={!loading ? onCancel : undefined} />
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="disconnect-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Disconnect Opera Cloud</h3>
+            <h3 id="disconnect-title" className="text-base font-semibold text-gray-900">Disconnect Opera Cloud</h3>
             <p className="text-sm text-gray-500">This will stop all syncing immediately.</p>
           </div>
         </div>
@@ -320,8 +324,9 @@ export default function IntegrationsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <FieldLabel required>OHIP Base URL</FieldLabel>
+                  <FieldLabel htmlFor="opera-ohip-base-url" required>OHIP Base URL</FieldLabel>
                   <CredentialInput
+                    id="opera-ohip-base-url"
                     type="url"
                     placeholder="https://hospitality.oracle.com"
                     value={form.ohip_base_url}
@@ -330,8 +335,9 @@ export default function IntegrationsPage() {
                   />
                 </div>
                 <div>
-                  <FieldLabel required>Opera Hotel Code</FieldLabel>
+                  <FieldLabel htmlFor="opera-hotel-code" required>Opera Hotel Code</FieldLabel>
                   <CredentialInput
+                    id="opera-hotel-code"
                     type="text"
                     placeholder="SAND01"
                     value={form.hotel_id_opera}
@@ -346,6 +352,8 @@ export default function IntegrationsPage() {
                 <button
                   type="button"
                   onClick={() => setShowAdvanced(v => !v)}
+                  aria-expanded={showAdvanced}
+                  aria-controls="opera-advanced-credentials"
                   className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -353,10 +361,11 @@ export default function IntegrationsPage() {
                 </button>
 
                 {showAdvanced && (
-                  <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div id="opera-advanced-credentials" className="grid grid-cols-2 gap-3 mt-3">
                     <div>
-                      <FieldLabel>Username</FieldLabel>
+                      <FieldLabel htmlFor="opera-integration-username">Username</FieldLabel>
                       <CredentialInput
+                        id="opera-integration-username"
                         type="text"
                         placeholder="integration_user"
                         value={form.integration_username}
@@ -366,8 +375,9 @@ export default function IntegrationsPage() {
                       />
                     </div>
                     <div>
-                      <FieldLabel>Password</FieldLabel>
+                      <FieldLabel htmlFor="opera-integration-password">Password</FieldLabel>
                       <CredentialInput
+                        id="opera-integration-password"
                         type="password"
                         placeholder="••••••••"
                         value={form.integration_password}

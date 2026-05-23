@@ -3,6 +3,10 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
+| 10:30 | Pass 2 frontend audit — 13 page/component areas (Dashboard, Engineering×5, Staff, Scheduling, SOP, Logbook, Lost&Found, Settings×3, Onboarding, RoomCard, RoomDetailDrawer, Login) | FRONTEND_AUDIT.md | appended 53 findings (#41–#93) + 21-item priority order; 2 critical DO-NOT-REPEAT violations confirmed (logbook UTC bug, Opera auth_code flow) | ~48000 tok |
+| 19:13 | Fix #30: added commentSuccess state + 2s auto-clear + "Comment added ✓" message to TaskDetailDrawer | tasks/page.tsx | done | ~200 tok |
+| 19:13 | Fix #40: extracted WorkOrderCard/GuestRequestCard/AssignmentCard to components/ai/cards.tsx (stone-*); removed duplicates from AICopilotBubble.tsx and ai/page.tsx | components/ai/cards.tsx, AICopilotBubble.tsx, ai/page.tsx | done | ~400 tok |
+| 23:10 | Full frontend audit: 40 findings across AICopilotBubble, ai/page, housekeeping, guest-requests, tasks, Sidebar, Header, RoomStatusBoard — visual bugs, UX friction, a11y gaps | FRONTEND_AUDIT.md | audit doc created | ~8000 tok |
 | session | Frontend production readiness audit + 6 bug fixes: (1) RoomStatusBoard handleStatusChange now optimistically updates selectedRoom to prevent double-click on stale transition buttons; (2) same fix in HousekeeperMyRoomsView handleAction; (3) RoomDetailDrawer form reset useEffect now includes isOpen dep to clear note/WO fields on same-room reopen; (4) WorkOrderDetailDrawer form reset useEffect includes isOpen dep + completeMutation.onSuccess clears fields before close; (5) tasks/page.tsx Enter key handler now checks submitting guard; (6) guest-requests action buttons have disabled=isUpdating to prevent double-submit | RoomStatusBoard.tsx, housekeeping/page.tsx, RoomDetailDrawer.tsx, WorkOrderDetailDrawer.tsx, tasks/page.tsx, guest-requests/page.tsx | all 6 bugs fixed | ~4000 tok |
 | session | Implement full-page AI Copilot at /ai — replaced placeholder with two-panel layout (chat + risk alerts sidebar). Uses existing aiApi client, all response types (task/WO/guest-request/assignment/insights/ambiguous), role-based quick actions, localStorage shift history | apps/web/app/(dashboard)/ai/page.tsx | type-check passes clean | ~800 tok |
 | 2026-05-21 | Fix Railway web build failure: pinned next→16.3.0-canary.19, eslint→9.39.4, eslint-config-next→16.3.0-canary.19 in apps/web/package.json; Docker build was resolving ^14.2.35→Next14 without lock file | apps/web/package.json | pushed to main | ~500 tok |
@@ -1373,3 +1377,139 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 18:05 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 condition(s) | ~61 |
 | 18:05 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 49→54 lines | ~760 |
 | 18:06 | Session end: 7 writes across 4 files (RoomStatusBoard.tsx, page.tsx, RoomDetailDrawer.tsx, WorkOrderDetailDrawer.tsx) | 18 reads | ~35005 tok |
+
+## Session: 2026-05-22 18:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:37 | Created FRONTEND_AUDIT.md | — | ~4130 |
+| 18:38 | Session end: 1 writes across 1 files (FRONTEND_AUDIT.md) | 9 reads | ~63470 tok |
+
+## Session: 2026-05-22 18:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-22 18:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:43 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | expanded (+9 lines) | ~66 |
+| 18:43 | Edited apps/web/app/(dashboard)/reports/page.tsx | modified slaColor() | ~135 |
+| 18:44 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 21→21 lines | ~249 |
+| 18:44 | Session end: 3 writes across 2 files (RoomStatusBoard.tsx, page.tsx) | 10 reads | ~63367 tok |
+| 18:50 | Created apps/web/components/housekeeping/RoomStatusBoard.tsx | — | ~45 |
+| 18:51 | Created apps/web/components/housekeeping/RoomStatusBoard.tsx | — | ~4579 |
+
+## Session: 2026-05-22 18:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:58 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~20 |
+| 18:58 | Edited apps/web/components/shared/Header.tsx | "h-14 flex items-center ju" → "h-14 flex items-center ju" | ~47 |
+| 18:58 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | "rounded-xl bg-white/80 ba" → "rounded-xl bg-white borde" | ~26 |
+| 18:58 | Edited apps/web/components/shared/Sidebar.tsx | 2→3 lines | ~19 |
+| 18:58 | Edited apps/web/components/shared/Header.tsx | 6→7 lines | ~91 |
+| 18:59 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 7→4 lines | ~64 |
+| 18:59 | Edited apps/web/components/shared/Sidebar.tsx | 5→6 lines | ~86 |
+| 18:59 | Edited apps/web/components/shared/Header.tsx | added 1 condition(s) | ~205 |
+| 18:59 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | "px-2.5 py-1 rounded-lg bg" → "px-3 py-2 rounded-lg bg-w" | ~44 |
+| 18:59 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 2 condition(s) | ~94 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | 4→7 lines | ~101 |
+| 18:59 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | inline fix | ~27 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→3 lines | ~68 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | inline fix | ~24 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | modified if() | ~157 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | 2→2 lines | ~94 |
+| 18:59 | Edited apps/web/components/ai/AICopilotBubble.tsx | "Open AI Copilot" → "Close AI Copilot" | ~31 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | "max-w-[90%] bg-gray-100 t" → "max-w-[90%] bg-stone-100 " | ~27 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | removed 3 lines | ~6 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→2 lines | ~18 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→2 lines | ~20 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→2 lines | ~21 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→2 lines | ~20 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | "flex-1 py-1.5 bg-gradient" → "flex-1 py-3 bg-gradient-t" | ~51 |
+| 19:00 | Edited apps/web/components/ai/AICopilotBubble.tsx | "px-3 py-1.5 border border" → "px-3 py-3 border border-g" | ~39 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~18 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added optional chaining | ~14 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 11→9 lines | ~97 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "w-full border border-gray" → "w-full border border-gray" | ~36 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "w-full border border-gray" → "w-full border border-gray" | ~40 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added optional chaining | ~252 |
+| 19:01 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 5→5 lines | ~162 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 11→11 lines | ~387 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 5→6 lines | ~88 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 3→3 lines | ~62 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added optional chaining | ~279 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 12→12 lines | ~190 |
+| 19:02 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 40→43 lines | ~568 |
+| 19:02 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~18 |
+| 19:02 | Edited apps/web/app/(dashboard)/tasks/page.tsx | modified SlaIndicator() | ~63 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 condition(s) | ~100 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~25 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 5→6 lines | ~92 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 5→6 lines | ~95 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 2→3 lines | ~76 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added optional chaining | ~252 |
+| 19:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 4→4 lines | ~146 |
+| 19:03 | Fixed 35 frontend audit issues (a11y, UX, logic bugs) | AICopilotBubble, guest-requests, tasks, housekeeping, Sidebar, Header, reports | All fixes applied | ~8000 |
+| 19:04 | Session end: 47 writes across 4 files (Sidebar.tsx, Header.tsx, page.tsx, AICopilotBubble.tsx) | 6 reads | ~44369 tok |
+
+## Session: 2026-05-23 19:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:08 | Edited apps/web/app/(dashboard)/ai/page.tsx | "flex gap-6 h-[calc(100vh-" → "flex gap-6 h-[calc(100vh-" | ~17 |
+| 19:08 | Edited apps/web/app/(dashboard)/ai/page.tsx | inline fix | ~24 |
+| 19:08 | Edited apps/web/app/(dashboard)/ai/page.tsx | 2→3 lines | ~93 |
+
+## Session: 2026-05-23 19:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:08 | Edited apps/web/app/(dashboard)/ai/page.tsx | CSS: md | ~19 |
+| 19:08 | Edited apps/web/app/(dashboard)/ai/page.tsx | "flex-1 py-2 bg-gradient-t" → "flex-1 py-3 bg-gradient-t" | ~51 |
+| 19:08 | Session end: 2 writes across 1 files (page.tsx) | 1 reads | ~3942 tok |
+| 19:09 | Session end: 2 writes across 1 files (page.tsx) | 11 reads | ~28600 tok |
+
+## Session: 2026-05-23 19:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:11 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 2→3 lines | ~46 |
+| 19:11 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 10→12 lines | ~89 |
+| 19:11 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 3→6 lines | ~73 |
+| 19:11 | Created apps/web/components/ai/cards.tsx | — | ~744 |
+| 19:11 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 1 import(s) | ~53 |
+| 19:11 | Edited apps/web/components/ai/AICopilotBubble.tsx | removed 57 lines | ~24 |
+| 19:11 | Edited apps/web/app/(dashboard)/ai/page.tsx | added 1 import(s) | ~51 |
+| 19:12 | Edited apps/web/app/(dashboard)/ai/page.tsx | removed 47 lines | ~24 |
+| 19:12 | Edited apps/web/app/(dashboard)/ai/page.tsx | inline fix | ~22 |
+
+## Session: 2026-05-23 19:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:21 | Edited FRONTEND_AUDIT.md | added 2 condition(s) | ~5876 |
+| 19:22 | Session end: 1 writes across 1 files (FRONTEND_AUDIT.md) | 1 reads | ~10168 tok |
+
+## Session: 2026-05-23 19:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | "flex items-start gap-3 p-" → "flex items-start gap-3 p-" | ~39 |
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 3→3 lines | ~35 |
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 2→2 lines | ~49 |
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | "text-xs text-gray-500 mt-" → "text-xs text-stone-500 mt" | ~25 |
+| 20:05 | Edited apps/web/app/(dashboard)/staff/page.tsx | 3→3 lines | ~19 |
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | "shrink-0 px-3 py-1.5 text" → "shrink-0 px-3 py-1.5 text" | ~58 |
+| 20:05 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 3→3 lines | ~44 |
+| 20:05 | Edited apps/web/app/(dashboard)/staff/page.tsx | 12→13 lines | ~200 |
+| 20:12 | read OpenWolf instructions, skills, cerebrum, buglog, pass 2 audit summary, and git status | .wolf/OPENWOLF.md; .wolf/anatomy.md; .wolf/cerebrum.md; .wolf/buglog.json; FRONTEND_AUDIT.md | pass 2 scope identified; worktree already dirty | ~25000 |
+| 20:15 | discovered and mapped pass 2 target files; scanned current issue patterns | .wolf/anatomy.md; apps/web/** | several pass 2 issues still present; anatomy updated for missing target files | ~12000 |
+| 20:38 | implemented pass 2 frontend audit fixes across web dashboard surfaces | apps/web/app; apps/web/components | patched accessibility semantics, token usage, UTC date bug, SOP dialogs, and Opera onboarding flow | ~35000 |
+| 20:47 | ran final frontend verification and recorded fixes | apps/web; .wolf/buglog.json; .wolf/cerebrum.md | type-check, lint, build, login Playwright smoke passed; bug/cerebrum updated | ~8000 |
+| 20:48 | started requested cleanup pass and scanned code smells | apps/web/** | found unused eslint-disable plus native SOPQueryModal alert and suppressions to review | ~6000 |
+| 20:55 | completed cleanup pass after pass 2 fixes | apps/web/app; apps/web/components/ai/SOPQueryModal.tsx; .wolf/buglog.json; .wolf/cerebrum.md | removed stale suppressions, native alert, undefined brand tokens; checks passed; dev server stopped | ~9000 |
+| 22:57 | Checked FRONTEND_AUDIT.md completion status against frontend source and ran web lint/type-check | FRONTEND_AUDIT.md, apps/web | Not fully complete; checks passed | ~6k |
+| 23:21 | Completed remaining FRONTEND_AUDIT.md frontend fixes and final web verification | apps/web, .wolf/anatomy.md | type-check, lint, and build passed | ~12k |

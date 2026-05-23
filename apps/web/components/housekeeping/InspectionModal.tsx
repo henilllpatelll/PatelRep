@@ -340,7 +340,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
                     placeholder="Any notes about this inspection…"
-                    className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none bg-white/50 backdrop-blur-sm"
+                    className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white/50 backdrop-blur-sm"
                   />
                 </div>
 

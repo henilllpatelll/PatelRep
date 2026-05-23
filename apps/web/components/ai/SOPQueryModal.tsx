@@ -16,9 +16,9 @@ interface SOPQueryModalProps {
 function LoadingDots() {
   return (
     <div className="flex items-center gap-1.5 py-2">
-      <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce [animation-delay:0ms]" />
-      <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce [animation-delay:150ms]" />
-      <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce [animation-delay:300ms]" />
+      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:0ms]" />
+      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:150ms]" />
+      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:300ms]" />
     </div>
   )
 }
@@ -86,7 +86,7 @@ function AnswerBlock({ answer }: { answer: string }) {
           if (stepMatch) {
             return (
               <div key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center">
+                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold flex items-center justify-center">
                   {stepMatch[1].replace(/[.)]/g, '')}
                 </span>
                 <p className="text-sm text-gray-800 leading-relaxed">{stepMatch[2]}</p>
@@ -115,6 +115,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SOPQueryResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [taskMessage, setTaskMessage] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Focus textarea when modal opens
@@ -130,6 +131,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
       setQuestion('')
       setResult(null)
       setError(null)
+      setTaskMessage(null)
       setLoading(false)
     }
   }, [isOpen])
@@ -151,6 +153,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
     setLoading(true)
     setResult(null)
     setError(null)
+    setTaskMessage(null)
     try {
       const res = await sopApi.query(q)
       setResult(res.data)
@@ -173,8 +176,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
   }
 
   function handleCreateTasks() {
-    alert('Tasks created!')
-    onClose()
+    setTaskMessage('Suggested tasks are ready to review. Create them from the Tasks page.')
   }
 
   const hasSuggestedTasks = (result?.suggested_tasks?.length ?? 0) > 0
@@ -201,7 +203,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
                 <BookOpen size={16} className="text-white" />
               </div>
               <div>
@@ -229,7 +231,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
               placeholder="e.g. What is the checkout cleaning procedure for suites? (Press Enter to ask)"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-gray-400">
@@ -238,7 +240,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               <button
                 onClick={handleAsk}
                 disabled={loading || !question.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <>
@@ -280,7 +282,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Answer
                 </h3>
-                <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-4">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-4">
                   <AnswerBlock answer={result.answer} />
                 </div>
               </div>
@@ -334,11 +336,16 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                   <div className="mt-3 flex justify-end">
                     <button
                       onClick={handleCreateTasks}
-                      className="px-4 py-2 text-sm font-medium text-brand-700 border border-brand-300 rounded-lg hover:bg-brand-50 transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
                     >
                       Create Tasks
                     </button>
                   </div>
+                  {taskMessage && (
+                    <p className="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2" role="status">
+                      {taskMessage}
+                    </p>
+                  )}
                 </div>
               )}
 

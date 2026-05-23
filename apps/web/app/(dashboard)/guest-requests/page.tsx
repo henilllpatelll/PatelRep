@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Bell,
@@ -237,6 +237,23 @@ interface EditRequestModalProps {
 }
 
 function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = modalRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href]')
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last?.focus() } }
+      else { if (document.activeElement === last) { e.preventDefault(); first?.focus() } }
+    }
+    document.addEventListener('keydown', onKey)
+    first?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
   const { role } = useRole()
   const canAssign = role === 'gm' || role === 'housekeeping_supervisor' || role === 'front_desk'
 
@@ -261,7 +278,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
     description: request?.description ?? '',
     room_number: request?.rooms?.room_number ?? '',
     status: request?.status ?? 'open',
-    assigned_to: '',
+    assigned_to: request?.assigned_to ?? '',
   })
   const [error, setError] = useState<string | null>(null)
 
@@ -300,11 +317,11 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
   if (!request) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div role="dialog" aria-modal="true" aria-labelledby="edit-request-title" className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={modalRef} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Guest Request</h2>
+          <h2 id="edit-request-title" className="text-lg font-semibold text-gray-900">Edit Guest Request</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -312,16 +329,16 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-red-500">*</span></label>
-            <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
+            <label htmlFor="edit-req-title" className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-red-500">*</span></label>
+            <input id="edit-req-title" type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
-            <input type="text" value={form.room_number} onChange={(e) => setForm((f) => ({ ...f, room_number: e.target.value }))} placeholder="e.g. 302" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
+            <label htmlFor="edit-req-room" className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
+            <input id="edit-req-room" type="text" value={form.room_number} onChange={(e) => setForm((f) => ({ ...f, room_number: e.target.value }))} placeholder="e.g. 302" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+            <label htmlFor="edit-req-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="edit-req-status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="escalated">Escalated</option>
@@ -330,8 +347,9 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
           </div>
           {canAssign && housekeepers.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assign to housekeeper</label>
+              <label htmlFor="edit-req-assignee" className="block text-sm font-medium text-gray-700 mb-1">Assign to housekeeper</label>
               <select
+                id="edit-req-assignee"
                 value={form.assigned_to}
                 onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -344,8 +362,8 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
-            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />
+            <label htmlFor="edit-req-details" className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
+            <textarea id="edit-req-details" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
@@ -370,6 +388,24 @@ interface CreateRequestModalProps {
 }
 
 function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!isOpen) return
+    const el = modalRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href]')
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { handleClose(); return }
+      if (e.key !== 'Tab') return
+      if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last?.focus() } }
+      else { if (document.activeElement === last) { e.preventDefault(); first?.focus() } }
+    }
+    document.addEventListener('keydown', onKey)
+    first?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
   const [title, setTitle] = useState('')
   const [roomNumber, setRoomNumber] = useState('')
   const [description, setDescription] = useState('')
@@ -435,7 +471,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-request-title" className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm"
@@ -443,10 +479,10 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
       />
 
       {/* Modal */}
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={modalRef} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">New Guest Request</h2>
+          <h2 id="create-request-title" className="text-lg font-semibold text-gray-900">New Guest Request</h2>
           <button
             onClick={handleClose}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
@@ -458,44 +494,47 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="create-req-title" className="block text-sm font-medium text-gray-700 mb-1">
               Issue or request description <span className="text-red-500">*</span>
             </label>
             <input
+              id="create-req-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Extra towels needed, AC not cooling..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               autoFocus
             />
           </div>
 
           {/* Room number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="create-req-room" className="block text-sm font-medium text-gray-700 mb-1">
               Room number <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
+              id="create-req-room"
               type="text"
               value={roomNumber}
               onChange={(e) => setRoomNumber(e.target.value)}
               placeholder="e.g. 302"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="create-req-desc" className="block text-sm font-medium text-gray-700 mb-1">
               Additional details <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <textarea
+              id="create-req-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Room number, urgency, or any other context..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 bg-white/70 border-amber-200/40 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
             />
           </div>
 
@@ -670,17 +709,15 @@ function GuestRequestsPageContent() {
               }`}
             >
               {tab.label}
-              {count > 0 && (
-                <span
-                  className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                    isActive
-                      ? 'bg-white/20 text-white'
-                      : 'bg-stone-100 text-stone-600'
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
+              <span
+                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
+                  isActive
+                    ? 'bg-white/20 text-white'
+                    : 'bg-stone-100 text-stone-600'
+                }`}
+              >
+                {count}
+              </span>
             </button>
           )
         })}

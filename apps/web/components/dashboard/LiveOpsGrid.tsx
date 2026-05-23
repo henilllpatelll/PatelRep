@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { hotelsApi } from '@/lib/api/hotels'
+import { engineeringApi } from '@/lib/api/engineering'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import Link from 'next/link'
@@ -50,9 +51,10 @@ export function LiveOpsGrid() {
   const hotelId = getHotelIdFromSession(session?.access_token)
 
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
-    queryKey: ['daily-summary'],
+    queryKey: ['daily-summary', hotelId],
     queryFn: () => reportsApi.getDailySummary(),
     refetchInterval: 60_000,
+    enabled: !!hotelId,
   })
 
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -62,9 +64,21 @@ export function LiveOpsGrid() {
     enabled: !!hotelId,
   })
 
+  const { data: urgentWorkOrdersData, isLoading: urgentWorkOrdersLoading } = useQuery({
+    queryKey: ['urgent-open-work-orders', hotelId],
+    queryFn: () =>
+      engineeringApi.listWorkOrders({
+        status: 'open',
+        priority: 'urgent',
+        per_page: 100,
+      }),
+    refetchInterval: 60_000,
+    enabled: !!hotelId,
+  })
+
   const summary = summaryData?.data
   const stats = statsData?.data
-  const isLoading = summaryLoading || statsLoading
+  const isLoading = summaryLoading || statsLoading || urgentWorkOrdersLoading
 
   if (isLoading) {
     return (
@@ -80,9 +94,7 @@ export function LiveOpsGrid() {
   const breakdown = summary?.room_status_breakdown ?? {}
   const openWorkOrders = summary?.open_work_orders ?? 0
 
-  // Derive urgent vs normal from by_priority if available via maintenance report,
-  // but since we only have daily-summary here, split heuristically
-  const urgentWOs = stats ? Math.min(openWorkOrders, Math.ceil(openWorkOrders * 0.25)) : 0
+  const urgentWOs = Math.min(openWorkOrders, urgentWorkOrdersData?.data?.length ?? 0)
   const normalWOs = openWorkOrders - urgentWOs
 
   const activeStaff = stats?.active_staff ?? 0

@@ -89,7 +89,7 @@ function creditBarColor(pct: number): string {
 
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-6 animate-pulse">
+    <div className="bg-white border border-stone-200 rounded-2xl p-6 animate-pulse">
       <div className="h-5 bg-amber-100/60 rounded w-1/3 mb-4" />
       <div className="border-t border-white/60 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
@@ -340,7 +340,10 @@ export default function SettingsBillingPage() {
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
+          <div
+            className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4"
+            aria-label={`Credit usage: ${creditPct}%`}
+          >
             <div
               className={`h-full rounded-full transition-all duration-500 ${creditBarColor(creditPct)}`}
               style={{ width: `${Math.min(creditPct, 100)}%` }}

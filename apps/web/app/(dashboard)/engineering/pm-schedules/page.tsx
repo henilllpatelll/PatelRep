@@ -389,11 +389,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
           <div className="space-y-4">
             {/* Asset ID */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="pm-create-asset-id" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Asset ID{' '}
                 <span className="text-gray-400 font-normal">(UUID)</span>
               </label>
               <Input
+                id="pm-create-asset-id"
                 type="text"
                 value={fields.asset_id}
                 onChange={(e) => set('asset_id', e.target.value)}
@@ -407,10 +408,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
             {/* Schedule name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="pm-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Schedule Name <span className="text-red-500">*</span>
               </label>
               <Input
+                id="pm-create-name"
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
@@ -420,11 +422,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="pm-create-description" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Description{' '}
                 <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <textarea
+                id="pm-create-description"
                 rows={2}
                 value={fields.description}
                 onChange={(e) => set('description', e.target.value)}
@@ -436,10 +439,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             {/* Interval type + days */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="pm-create-interval-type" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Interval Type
                 </label>
                 <select
+                  id="pm-create-interval-type"
                   value={fields.interval_type}
                   onChange={(e) =>
                     set('interval_type', e.target.value as PMSchedule['interval_type'])
@@ -455,10 +459,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               </div>
               {fields.interval_type === 'custom' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="pm-create-interval-days" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Interval (days)
                   </label>
                   <Input
+                    id="pm-create-interval-days"
                     type="number"
                     min={1}
                     value={fields.interval_days}
@@ -472,10 +477,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             {/* Estimated minutes + next due */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="pm-create-estimated-minutes" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Est. Time (minutes)
                 </label>
                 <Input
+                  id="pm-create-estimated-minutes"
                   type="number"
                   min={1}
                   value={fields.estimated_minutes}
@@ -484,10 +490,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="pm-create-next-due" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Next Due Date <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  id="pm-create-next-due"
                   type="date"
                   value={fields.next_due_at}
                   onChange={(e) => set('next_due_at', e.target.value)}
@@ -807,7 +814,7 @@ export default function PMSchedulesPage() {
                             {schedule.is_active && (
                               <button
                                 onClick={() => setCompletingSchedule(schedule)}
-                                className="text-xs px-2 py-1 rounded border border-green-300 text-green-700 hover:bg-green-50 transition-colors"
+                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-green-300 text-green-700 hover:bg-green-50 transition-colors"
                               >
                                 Complete
                               </button>
@@ -819,13 +826,13 @@ export default function PMSchedulesPage() {
                                 <span className="flex items-center gap-1 text-xs">
                                   <button
                                     onClick={() => handleDeactivate(schedule.id)}
-                                    className="text-red-600 font-medium hover:underline"
+                                    className="min-h-[44px] px-3 py-2 text-red-600 font-medium hover:underline"
                                   >
                                     Confirm
                                   </button>
                                   <button
                                     onClick={() => setConfirmDeactivateId(null)}
-                                    className="text-gray-500 hover:underline"
+                                    className="min-h-[44px] px-3 py-2 text-gray-500 hover:underline"
                                   >
                                     Cancel
                                   </button>
@@ -833,7 +840,7 @@ export default function PMSchedulesPage() {
                               ) : (
                                 <button
                                   onClick={() => setConfirmDeactivateId(schedule.id)}
-                                  className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                                  className="text-xs px-3 py-2 min-h-[44px] rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                   Deactivate
                                 </button>
@@ -844,7 +851,7 @@ export default function PMSchedulesPage() {
                             {canEdit && isOverdue && (
                               <button
                                 onClick={() => handleCreateWOFromPM(schedule)}
-                                className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
                               >
                                 Create WO
                               </button>

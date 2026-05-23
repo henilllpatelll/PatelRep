@@ -370,12 +370,14 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
               <p className="text-xs font-semibold text-amber-800 mb-3">Edit Work Order</p>
               <div className="space-y-3">
                 <input
+                  aria-label="Work order title"
                   value={editForm.title}
                   onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="Title"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 />
                 <textarea
+                  aria-label="Work order description"
                   value={editForm.description}
                   onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
                   rows={2}
@@ -384,6 +386,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <select
+                    aria-label="Work order category"
                     value={editForm.category}
                     onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value as WorkOrder['category'] }))}
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -393,6 +396,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ))}
                   </select>
                   <select
+                    aria-label="Work order priority"
                     value={editForm.priority}
                     onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as WorkOrder['priority'] }))}
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -403,6 +407,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   </select>
                 </div>
                 <textarea
+                  aria-label="Work order notes"
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
@@ -677,6 +682,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     </span>.
                   </p>
                   <textarea
+                    aria-label="Message to housekeeping team"
                     value={hkTaskNote}
                     onChange={(e) => setHkTaskNote(e.target.value)}
                     rows={2}
@@ -684,7 +690,9 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-white/70 backdrop-blur-sm resize-none transition-colors"
                   />
                   <div className="flex items-center gap-2">
+                    <label htmlFor="hk-push-priority" className="sr-only">Priority</label>
                     <select
+                      id="hk-push-priority"
                       value={hkTaskPriority}
                       onChange={(e) => setHkTaskPriority(e.target.value as 'urgent' | 'normal' | 'low')}
                       className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -782,6 +790,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             {/* Add comment form */}
             <div className="space-y-2">
               <textarea
+                aria-label="Add comment"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 rows={2}

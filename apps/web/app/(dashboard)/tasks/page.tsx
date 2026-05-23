@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -106,9 +106,15 @@ function formatDuration(totalMinutes: number): string {
 }
 
 function SlaIndicator({ task }: { task: Task }) {
-  const [now] = useState(() => Date.now())
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   if (!task.due_at || task.status === 'completed' || task.status === 'cancelled') return null
+  if (now === null) return null
   const due = new Date(task.due_at).getTime()
   const diffMin = Math.round((due - now) / 60000)
 
@@ -148,8 +154,11 @@ interface TaskCardProps {
 function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: TaskCardProps) {
   return (
     <div
-      className={`bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl ${priorityStripe(task.priority)} cursor-pointer hover:shadow-md transition-shadow`}
+      role="button"
+      tabIndex={0}
+      className={`bg-white border border-gray-200 shadow-sm rounded-2xl ${priorityStripe(task.priority)} cursor-pointer hover:shadow-md transition-shadow`}
       onClick={() => onOpen(task)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(task) } }}
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -219,6 +228,23 @@ interface CreateTaskModalProps {
 }
 
 function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = modalRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href]')
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last?.focus() } }
+      else { if (document.activeElement === last) { e.preventDefault(); first?.focus() } }
+    }
+    document.addEventListener('keydown', onKey)
+    first?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
   const { role } = useRole()
   const canAssign = role === 'gm' || role === 'housekeeping_supervisor' || role === 'front_desk'
 
@@ -260,10 +286,10 @@ function CreateTaskModal({ onClose, onCreate, creating }: CreateTaskModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
-      <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-task-title" className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
+      <div ref={modalRef} className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-gray-900">New Task</h2>
+          <h2 id="create-task-title" className="text-lg font-semibold text-gray-900">New Task</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
             <X size={18} />
           </button>
@@ -385,6 +411,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
   const queryClient = useQueryClient()
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [commentSuccess, setCommentSuccess] = useState(false)
   const [isEditing, setIsEditing] = useState(startInEditMode ?? false)
   const [editForm, setEditForm] = useState({ title: task.title, description: task.description ?? '', priority: task.priority, task_type: task.task_type, location_text: task.location_text ?? '' })
   const [showCompleteForm, setShowCompleteForm] = useState(false)
@@ -406,6 +433,8 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
     try {
       await onComment(task.id, comment.trim())
       setComment('')
+      setCommentSuccess(true)
+      setTimeout(() => setCommentSuccess(false), 2000)
     } finally {
       setSubmitting(false)
     }
@@ -414,7 +443,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
   return (
     <>
       <div className="fixed inset-0 z-40 bg-stone-900/10 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-96 bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full md:w-96 bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
@@ -638,6 +667,9 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
 
         {/* Comment input */}
         <div className="p-4 border-t border-gray-100 shrink-0">
+          {commentSuccess && (
+            <p className="text-xs text-green-600 mb-1.5">Comment added ✓</p>
+          )}
           <div className="flex gap-2">
             <input
               value={comment}
@@ -649,6 +681,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                 }
               }}
               placeholder="Add a comment..."
+              aria-label="Add a comment"
               className="flex-1 text-sm px-3 py-2 bg-white/70 border border-amber-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200"
             />
             <button
@@ -784,6 +817,7 @@ function TasksPageContent() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
+          aria-label="Filter by type"
           className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
         >
           <option value="">All Types</option>
@@ -794,6 +828,7 @@ function TasksPageContent() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
+          aria-label="Filter by priority"
           className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
         >
           <option value="">All Priorities</option>

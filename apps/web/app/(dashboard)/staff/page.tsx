@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +25,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,9 @@ function ConfirmDeactivateDialog({
   onCancel: () => void
   loading: boolean
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, true, onCancel)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -148,13 +152,13 @@ function ConfirmDeactivateDialog({
         onClick={onCancel}
       />
       {/* Dialog */}
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="deactivate-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} className="text-red-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Deactivate Staff Member</h3>
+            <h3 id="deactivate-staff-title" className="text-base font-semibold text-gray-900">Deactivate Staff Member</h3>
             <p className="text-sm text-gray-500">This will revoke their access immediately.</p>
           </div>
         </div>
@@ -191,6 +195,8 @@ function ConfirmDeactivateDialog({
 
 function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const queryClient = useQueryClient()
+  const successDialogRef = useRef<HTMLDivElement>(null)
+  const addDialogRef = useRef<HTMLDivElement>(null)
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; name: string } | null>(null)
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<DirectFormValues>({
     resolver: zodResolver(directSchema),
@@ -206,15 +212,17 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
     },
     onError: (err: any) => setError('root', { message: err.message || 'Failed to add staff member.' }),
   })
+  useModalFocusTrap(successDialogRef, !!createdCredentials, onClose)
+  useModalFocusTrap(addDialogRef, !createdCredentials, onClose)
 
   if (createdCredentials) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+        <div ref={successDialogRef} role="dialog" aria-modal="true" aria-labelledby="staff-added-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-            <h2 className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
-            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
+            <h2 id="staff-added-title" className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
+            <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
           </div>
           <div className="px-6 py-5 space-y-4">
             <p className="text-sm text-gray-600"><span className="font-medium">{createdCredentials.name}</span> has been added. Share these login credentials with them:</p>
@@ -233,10 +241,10 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+      <div ref={addDialogRef} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-gray-900">Add Staff Manually</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
+          <h2 id="add-staff-title" className="text-lg font-semibold text-gray-900">Add Staff Manually</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
           <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
@@ -288,6 +296,7 @@ function InviteModal({
   onSuccess: () => void
 }) {
   const queryClient = useQueryClient()
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -320,6 +329,7 @@ function InviteModal({
   })
 
   const onSubmit = (data: InviteFormValues) => inviteMutation.mutate(data)
+  useModalFocusTrap(dialogRef, true, onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -327,12 +337,13 @@ function InviteModal({
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
+          <h2 id="modal-title" className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
           >
             <X size={18} />
@@ -457,6 +468,7 @@ function EditStaffModal({
   onSuccess: () => void
 }) {
   const queryClient = useQueryClient()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [role, setRole] = useState<UserRole>(staff.role)
   const [customRoleId, setCustomRoleId] = useState<string | null>(staff.custom_role_id ?? null)
   const [error, setError] = useState<string | null>(null)
@@ -509,16 +521,17 @@ function EditStaffModal({
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     )
+  useModalFocusTrap(dialogRef, true, onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
 
         {/* Sticky header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-white/80 backdrop-blur-xl z-10">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors">
+          <h2 id="edit-staff-title" className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -624,7 +637,7 @@ function EditStaffModal({
                       key={idx}
                       type="button"
                       onClick={() => toggleDay(idx)}
-                      className={`w-8 h-8 rounded-full text-xs font-semibold transition-colors ${
+                      className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs font-semibold transition-colors ${
                         selectedDays.includes(idx)
                           ? 'bg-amber-400 text-white shadow-sm'
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -686,7 +699,7 @@ export default function StaffPage() {
   const [editStaff, setEditStaff] = useState<StaffMember | null>(null)
 
   // Auto-dismiss invite success banner
-  useMemo(() => {
+  useEffect(() => {
     if (!inviteSuccess) return
     const t = setTimeout(() => setInviteSuccess(false), 4000)
     return () => clearTimeout(t)
@@ -939,7 +952,7 @@ export default function StaffPage() {
                   </td>
                   {canManageStaff && (
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
                         <button
                           onClick={() => setEditStaff(member)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -1018,7 +1031,7 @@ export default function StaffPage() {
                       </td>
                       {canManageStaff && (
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2 transition-opacity">
                             <button
                               onClick={() => resendMutation.mutate(inv.id)}
                               disabled={resendMutation.isPending}

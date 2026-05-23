@@ -12,6 +12,17 @@ import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { STATUS_BG } from '@/lib/utils/roomStatus'
 
+// Fix #16 — STATUS_BG values are Tailwind class strings, not CSS color values.
+// Use this hex map for inline backgroundColor style props.
+const STATUS_DOT_HEX: Record<string, string> = {
+  DIRTY: '#fca5a5',
+  IN_PROGRESS: '#93c5fd',
+  CLEAN: '#fcd34d',
+  INSPECTED: '#6ee7b7',
+  OOO: '#d1d5db',
+  PICKUP: '#d8b4fe',
+}
+
 // ── Status chip config ────────────────────────────────────────────────────────
 
 interface StatusChip {
@@ -106,11 +117,11 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
       {STATUS_CHIPS.map((chip) => {
         const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
         const isActive = statusFilter === chip.key
-        const chipBg = chip.key ? (STATUS_BG[chip.key] ?? undefined) : undefined
         return (
           <button
             key={chip.key ?? 'all'}
             onClick={() => onFilter(chip.key)}
+            aria-pressed={isActive}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               isActive
                 ? `${chip.activeBg} ${chip.activeText}`
@@ -121,7 +132,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
               className="w-2 h-2 rounded-full"
               style={
                 chip.key && !isActive
-                  ? { backgroundColor: STATUS_BG[chip.key] ?? '#9CA3AF' }
+                  ? { backgroundColor: STATUS_DOT_HEX[chip.key] ?? '#9CA3AF' }
                   : { backgroundColor: isActive ? 'rgba(255,255,255,0.8)' : '#9CA3AF' }
               }
             />
@@ -135,6 +146,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
       {onToggleRisk && (
         <button
           onClick={onToggleRisk}
+          aria-pressed={showRiskOnly}
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
             showRiskOnly
               ? 'bg-orange-500 text-white'
@@ -150,8 +162,8 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
         </button>
       )}
       </div>
-      {/* Fade hint — signals horizontal scroll when chips overflow */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white to-transparent" />
+      {/* Fix #17 — match the warm stone background instead of pure white */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-[#F8F5F0] to-transparent" />
     </div>
   )
 }
@@ -257,8 +269,6 @@ export function RoomStatusBoard() {
       .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
     if (preds.length > 0) setPredictions(preds)
     setLastSyncedAt(new Date())
-    // Sync the detail drawer with the freshest room data so status updates
-    // are reflected immediately without needing a hard reload.
     setSelectedRoom((prev: any) => {
       if (!prev) return prev
       return rooms.find((r: any) => r.room_id === prev.room_id) ?? prev
@@ -266,8 +276,6 @@ export function RoomStatusBoard() {
   }, [boardData, setLastSyncedAt, setPredictions, setRooms])
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
-  // Listens to both room_status (status changes) and room_assignments (new
-  // assignments) so every device auto-refreshes when either changes.
   useEffect(() => {
     const invalidateBoard = () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
@@ -299,7 +307,6 @@ export function RoomStatusBoard() {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       supabase.removeChannel(channel)
     }
-    // Re-subscribe when date/shift/tenant change
   }, [applyRoomStatusPayload, hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
   // ── Status change handler ─────────────────────────────────────────────────
@@ -308,14 +315,11 @@ export function RoomStatusBoard() {
       removePendingAssignment(roomId)
       return
     }
-    // Optimistically reflect the new status in the open drawer immediately
-    // so the old transition button disappears and can't be double-clicked.
     setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     await housekeepingApi.updateRoomStatus(roomId, status)
     queryClient.invalidateQueries({
       queryKey: ['housekeeping-board', selectedDate, selectedShift],
     })
-    // Refresh history panel in the detail drawer if it's open for this room
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
@@ -323,7 +327,6 @@ export function RoomStatusBoard() {
   const handleTapAssign = useCallback((roomId: string) => {
     if (!activeAssigneeId) return
 
-    // Already pending for this housekeeper
     if (pendingAssignments[roomId] === activeAssigneeId) {
       setAssignError('Room already added to this housekeeper')
       setTimeout(() => setAssignError(null), 3000)
@@ -332,22 +335,17 @@ export function RoomStatusBoard() {
 
     const roomData = allRooms.find((r: any) => r.room_id === roomId)
 
-    // Already assigned in DB to this housekeeper
     if (roomData?.assigned_to === activeAssigneeId) {
       setAssignError('Room is already assigned to this housekeeper')
       setTimeout(() => setAssignError(null), 3000)
       return
     }
 
-    // Reassigning from a different housekeeper — add to pending directly;
-    // the sidebar's strikethrough display lets the supervisor review before saving.
     setAssignError(null)
     setPendingAssignment(roomId, activeAssigneeId)
   }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
 
   // ── Derived data ──────────────────────────────────────────────────────────
-  // Maps roomId → housekeeper name for rooms already assigned to someone OTHER
-  // than the active assignee, so RoomCard can show the dimmed "already assigned" state.
   const roomAssignedNames = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
       if (r.room_id && r.assigned_to && r.assigned_to !== activeAssigneeId) {
@@ -375,10 +373,17 @@ export function RoomStatusBoard() {
   // ── Render ────────────────────────────────────────────────────────────────
   if (isLoading) return <SkeletonGrid />
 
+  // Fix #19 — add retry button instead of asking user to hard-refresh
   if (isError) {
     return (
-      <div className="flex items-center justify-center h-40 text-gray-500 text-sm">
-        Failed to load rooms. Please try refreshing.
+      <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm">
+        <p className="text-gray-500">Failed to load rooms.</p>
+        <button
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })}
+          className="px-4 py-2 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     )
   }

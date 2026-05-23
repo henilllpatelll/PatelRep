@@ -10,6 +10,7 @@ export interface GuestRequest {
   room_id?: string
   guest_name?: string
   task_id?: string
+  assigned_to?: string
   status: GuestRequestStatus
   resolved_at?: string
   satisfaction_score?: number

@@ -56,7 +56,7 @@ function WorkOrderRow({
   const transition = STATUS_TRANSITIONS[wo.status as StatusTab]
 
   return (
-    <div className="flex items-start gap-3 p-4 bg-white/70 rounded-xl border border-white/90 hover:shadow-sm transition-shadow">
+    <div className="flex items-start gap-3 p-4 bg-white border border-stone-200 shadow-sm rounded-xl hover:shadow-md transition-shadow">
       {/* Priority indicator */}
       <div
         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
@@ -73,15 +73,15 @@ function WorkOrderRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-0.5">
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="text-sm font-semibold text-stone-900">
             WO-{wo.work_order_number}
           </span>
           <Badge variant={PRIORITY_VARIANT[wo.priority] ?? 'default'}>
             {wo.priority}
           </Badge>
         </div>
-        <p className="text-sm text-gray-800 leading-snug truncate">{wo.title}</p>
-        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+        <p className="text-sm text-stone-800 leading-snug truncate">{wo.title}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-400">
           {wo.rooms?.room_number && <span>Room {wo.rooms.room_number}</span>}
           {wo.location_text && !wo.rooms?.room_number && (
             <span className="truncate max-w-[200px]">{wo.location_text}</span>
@@ -94,7 +94,7 @@ function WorkOrderRow({
           )}
         </div>
         {wo.description && (
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{wo.description}</p>
+          <p className="text-xs text-stone-500 mt-1 line-clamp-2">{wo.description}</p>
         )}
       </div>
 
@@ -102,7 +102,7 @@ function WorkOrderRow({
       {canAdvance && transition && (
         <button
           onClick={() => onStatusChange(wo.id, transition.next)}
-          className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors bg-white border-gray-200 text-gray-700 hover:border-amber-400 hover:text-amber-700 hover:bg-amber-50"
+          className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors bg-white border-stone-200 text-stone-700 hover:border-amber-400 hover:text-amber-700 hover:bg-amber-50"
         >
           {transition.label}
         </button>
@@ -123,7 +123,6 @@ export default function WorkOrdersPage() {
   const session = useAuthStore((s) => s.session)
   const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
-  const supabase = createClient()
 
   const [activeTab, setActiveTab] = useState<StatusTab>('open')
   const [search, setSearch] = useState('')
@@ -134,6 +133,7 @@ export default function WorkOrdersPage() {
 
   useEffect(() => {
     if (!hotelId) return
+    const supabase = createClient()
     const channel = supabase
       .channel('wo_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` }, () => {
@@ -141,7 +141,7 @@ export default function WorkOrdersPage() {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [hotelId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hotelId, queryClient])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['work-orders', activeTab, isEngineer ? user?.id : null],
@@ -203,7 +203,7 @@ export default function WorkOrdersPage() {
             <Wrench className="w-5 h-5 text-amber-600 shrink-0" />
             Work Orders
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-stone-500 mt-0.5">
             {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
           </p>
         </div>
@@ -229,15 +229,16 @@ export default function WorkOrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Tabs */}
         <div className="overflow-x-auto shrink-0">
-        <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm text-xs">
+        <div className="inline-flex rounded-lg border border-stone-200 overflow-hidden bg-white shadow-sm text-xs">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
+              aria-pressed={activeTab === tab.value}
               className={`px-3.5 py-2 font-medium transition-colors ${
                 activeTab === tab.value
                   ? 'bg-amber-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-stone-600 hover:bg-stone-50'
               }`}
             >
               {tab.label}
@@ -248,13 +249,14 @@ export default function WorkOrdersPage() {
 
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search work orders"
             placeholder="Search by room, title, or WO number…"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white/80 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-stone-200 rounded-lg bg-white/80 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           />
         </div>
       </div>
@@ -263,7 +265,7 @@ export default function WorkOrdersPage() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-white/60 rounded-xl animate-pulse border border-white/90" />
+            <div key={i} className="h-20 bg-white rounded-xl animate-pulse border border-stone-200 shadow-sm" />
           ))}
         </div>
       ) : isError ? (
@@ -276,7 +278,7 @@ export default function WorkOrdersPage() {
         <Card>
           <div className="py-12 text-center">
             <CheckCircle2 className="w-8 h-8 text-green-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-stone-400">
               {search ? 'No work orders match your search.' : `No ${activeTab.replace('_', ' ')} work orders.`}
             </p>
           </div>

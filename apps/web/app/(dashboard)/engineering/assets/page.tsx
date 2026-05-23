@@ -245,40 +245,45 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                      <label htmlFor={`asset-edit-name-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Name</label>
                       <Input
+                        id={`asset-edit-name-${assetId}`}
                         type="text"
                         value={editFields.name ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                      <label htmlFor={`asset-edit-location-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Location</label>
                       <Input
+                        id={`asset-edit-location-${assetId}`}
                         type="text"
                         value={editFields.location_text ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, location_text: e.target.value }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Manufacturer</label>
+                      <label htmlFor={`asset-edit-manufacturer-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Manufacturer</label>
                       <Input
+                        id={`asset-edit-manufacturer-${assetId}`}
                         type="text"
                         value={editFields.manufacturer ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, manufacturer: e.target.value }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
+                      <label htmlFor={`asset-edit-model-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Model</label>
                       <Input
+                        id={`asset-edit-model-${assetId}`}
                         type="text"
                         value={editFields.model ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, model: e.target.value }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
+                      <label htmlFor={`asset-edit-serial-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
                       <Input
+                        id={`asset-edit-serial-${assetId}`}
                         type="text"
                         value={editFields.serial_number ?? ''}
                         onChange={(e) => setEditFields((f) => ({ ...f, serial_number: e.target.value }))}
@@ -286,8 +291,9 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Replacement Cost ($)</label>
+                      <label htmlFor={`asset-edit-replacement-cost-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Replacement Cost ($)</label>
                       <Input
+                        id={`asset-edit-replacement-cost-${assetId}`}
                         type="number"
                         min={0}
                         value={editFields.replacement_cost ?? ''}
@@ -300,8 +306,9 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Expected Lifespan (years)</label>
+                      <label htmlFor={`asset-edit-lifespan-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Expected Lifespan (years)</label>
                       <Input
+                        id={`asset-edit-lifespan-${assetId}`}
                         type="number"
                         min={0}
                         value={editFields.expected_lifespan_years ?? ''}
@@ -315,8 +322,9 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <label htmlFor={`asset-edit-notes-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                     <textarea
+                      id={`asset-edit-notes-${assetId}`}
                       rows={3}
                       value={editFields.notes ?? ''}
                       onChange={(e) => setEditFields((f) => ({ ...f, notes: e.target.value }))}
@@ -595,10 +603,11 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="asset-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Asset Name <span className="text-red-500">*</span>
               </label>
               <Input
+                id="asset-create-name"
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
@@ -608,11 +617,12 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
             {/* Category ID */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="asset-create-category-id" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Category ID{' '}
                 <span className="text-gray-400 font-normal">(UUID from system)</span>
               </label>
               <Input
+                id="asset-create-category-id"
                 type="text"
                 value={fields.category_id}
                 onChange={(e) => set('category_id', e.target.value)}
@@ -626,11 +636,12 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="asset-create-location" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Location / Description{' '}
                 <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <Input
+                id="asset-create-location"
                 type="text"
                 value={fields.location_text}
                 onChange={(e) => set('location_text', e.target.value)}
@@ -641,8 +652,9 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Manufacturer + Model */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Manufacturer</label>
+                <label htmlFor="asset-create-manufacturer" className="block text-sm font-medium text-gray-700 mb-1.5">Manufacturer</label>
                 <Input
+                  id="asset-create-manufacturer"
                   type="text"
                   value={fields.manufacturer}
                   onChange={(e) => set('manufacturer', e.target.value)}
@@ -650,8 +662,9 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Model</label>
+                <label htmlFor="asset-create-model" className="block text-sm font-medium text-gray-700 mb-1.5">Model</label>
                 <Input
+                  id="asset-create-model"
                   type="text"
                   value={fields.model}
                   onChange={(e) => set('model', e.target.value)}
@@ -662,8 +675,9 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
             {/* Serial */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Serial Number</label>
+              <label htmlFor="asset-create-serial" className="block text-sm font-medium text-gray-700 mb-1.5">Serial Number</label>
               <Input
+                id="asset-create-serial"
                 type="text"
                 value={fields.serial_number}
                 onChange={(e) => set('serial_number', e.target.value)}
@@ -675,16 +689,18 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Purchase Date</label>
+                <label htmlFor="asset-create-purchase-date" className="block text-sm font-medium text-gray-700 mb-1.5">Purchase Date</label>
                 <Input
+                  id="asset-create-purchase-date"
                   type="date"
                   value={fields.purchase_date}
                   onChange={(e) => set('purchase_date', e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Warranty Expires</label>
+                <label htmlFor="asset-create-warranty-expires" className="block text-sm font-medium text-gray-700 mb-1.5">Warranty Expires</label>
                 <Input
+                  id="asset-create-warranty-expires"
                   type="date"
                   value={fields.warranty_expires}
                   onChange={(e) => set('warranty_expires', e.target.value)}
@@ -695,8 +711,9 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Lifespan + Cost */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Expected Lifespan (years)</label>
+                <label htmlFor="asset-create-lifespan" className="block text-sm font-medium text-gray-700 mb-1.5">Expected Lifespan (years)</label>
                 <Input
+                  id="asset-create-lifespan"
                   type="number"
                   min={0}
                   value={fields.expected_lifespan_years}
@@ -705,8 +722,9 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Replacement Cost ($)</label>
+                <label htmlFor="asset-create-replacement-cost" className="block text-sm font-medium text-gray-700 mb-1.5">Replacement Cost ($)</label>
                 <Input
+                  id="asset-create-replacement-cost"
                   type="number"
                   min={0}
                   value={fields.replacement_cost}
@@ -866,6 +884,7 @@ export default function AssetRegisterPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search assets"
             placeholder="Search by name, tag, location…"
             className="pl-9"
           />
@@ -876,6 +895,7 @@ export default function AssetRegisterPage() {
             <button
               key={f}
               onClick={() => setRiskFilter(f)}
+              aria-pressed={riskFilter === f}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 riskFilter === f
                   ? 'bg-amber-500 text-white'
@@ -950,7 +970,16 @@ export default function AssetRegisterPage() {
                     return (
                       <tr
                         key={asset.id}
-                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedAssetId(asset.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSelectedAssetId(asset.id)
+                          }
+                        }}
+                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
                       >
                         {/* Asset name + tag */}
                         <td className="px-4 py-3">
@@ -1009,7 +1038,10 @@ export default function AssetRegisterPage() {
                         <td className="px-4 py-3">
                           <Button
                             variant="secondary"
-                            onClick={() => setSelectedAssetId(asset.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedAssetId(asset.id)
+                            }}
                             className="text-xs px-3 py-1.5"
                           >
                             View

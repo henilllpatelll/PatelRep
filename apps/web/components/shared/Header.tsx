@@ -84,7 +84,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     router.push('/login')
   }
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing Escape
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -94,16 +94,43 @@ export function Header({ onMenuToggle }: HeaderProps) {
         setDropdownOpen(false)
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setDropdownOpen(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      const items = Array.from(
+        dropdownRef.current?.querySelectorAll<HTMLButtonElement>('[data-user-menu-item]') ?? [],
+      )
+      if (items.length === 0) return
+
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
     if (dropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleKeyDown)
+      requestAnimationFrame(() => {
+        dropdownRef.current?.querySelector<HTMLButtonElement>('[data-user-menu-item]')?.focus()
+      })
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [dropdownOpen])
 
   return (
-    <header className="h-14 flex items-center justify-between px-4 md:px-6 bg-[#FEFAF4]/90 backdrop-blur-xl border-b border-[#EDE8DF] sticky top-0 z-10 shrink-0">
+    <header className="h-14 flex items-center justify-between px-4 md:px-6 bg-[#FEFAF4]/90 backdrop-blur-xl border-b border-[#EDE8DF] sticky top-0 z-50 shrink-0">
       <div className="flex items-center gap-3">
         {/* Hamburger — mobile only */}
         <button
@@ -131,6 +158,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             className="flex items-center gap-2 rounded-xl hover:bg-stone-100 transition-colors p-1"
             aria-haspopup="true"
             aria-expanded={dropdownOpen}
+            aria-label={`User menu for ${fullName}`}
           >
             <div
               className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}
@@ -163,6 +191,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               {/* Menu items */}
               <div className="py-1">
                 <button
+                  data-user-menu-item
                   onClick={() => {
                     setDropdownOpen(false)
                     router.push('/settings')
@@ -176,6 +205,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
               <div className="border-t border-[#2D221A] py-1">
                 <button
+                  data-user-menu-item
                   onClick={handleSignOut}
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-colors"
                 >

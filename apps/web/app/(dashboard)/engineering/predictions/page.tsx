@@ -58,14 +58,14 @@ function getAvgScoreColor(score: number): string {
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-2xl border border-white/90 bg-white/[0.65] backdrop-blur-md border-l-4 border-l-gray-200 p-5">
+    <div className="animate-pulse rounded-2xl border border-stone-200 bg-white border-l-4 border-l-stone-200 p-5">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-gray-100 shrink-0" />
+        <div className="w-12 h-12 rounded-full bg-stone-100 shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-100 rounded w-1/3" />
-          <div className="h-3 bg-gray-100 rounded w-1/4" />
-          <div className="h-3 bg-gray-100 rounded w-2/3 mt-3" />
-          <div className="h-3 bg-gray-100 rounded w-1/2" />
+          <div className="h-4 bg-stone-100 rounded w-1/3" />
+          <div className="h-3 bg-stone-100 rounded w-1/4" />
+          <div className="h-3 bg-stone-100 rounded w-2/3 mt-3" />
+          <div className="h-3 bg-stone-100 rounded w-1/2" />
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@ function RiskRing({ score }: { score: number }) {
   const circumference = 125.66
   return (
     <div className="relative shrink-0 w-12 h-12">
-      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48" aria-label={`Risk score: ${score}%`}>
         <circle
           cx="24"
           cy="24"
@@ -480,6 +480,7 @@ export default function PredictionsPage() {
             <button
               key={key}
               onClick={() => setRiskFilter(key)}
+              aria-pressed={riskFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 riskFilter === key
                   ? 'bg-amber-500 text-white shadow-sm'
@@ -503,6 +504,7 @@ export default function PredictionsPage() {
             <button
               key={key}
               onClick={() => setStatusFilter(key)}
+              aria-pressed={statusFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === key
                   ? 'bg-amber-500 text-white shadow-sm'

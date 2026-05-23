@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -38,6 +38,7 @@ import { logbookApi } from '@/lib/api/logbook'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { Card } from '@/components/ui/Card'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Button } from '@/components/ui/Button'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -124,6 +125,8 @@ function TodayRoster() {
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        aria-controls="today-roster-panel"
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-100/10 transition-colors"
       >
         <div className="flex items-center gap-2.5">
@@ -143,7 +146,7 @@ function TodayRoster() {
       </button>
 
       {!collapsed && (
-        <div className="border-t border-amber-200">
+        <div id="today-roster-panel" className="border-t border-amber-200">
           {rosterQuery.isLoading ? (
             <div className="px-5 py-4 space-y-2">
               {[1, 2, 3].map((i) => (
@@ -184,7 +187,7 @@ function TodayRoster() {
                   >
                     {/* Avatar */}
                     <div className="relative shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-semibold">
+                      <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-white text-xs font-semibold">
                         {initials}
                       </div>
                       {/* Online dot */}
@@ -192,7 +195,11 @@ function TodayRoster() {
                         className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
                           entry.clocked_in_at ? 'bg-green-500' : 'bg-gray-300'
                         }`}
-                      />
+                      >
+                        <span className="sr-only">
+                          {entry.clocked_in_at ? 'Clocked in' : 'Not clocked in'}
+                        </span>
+                      </span>
                     </div>
                     {/* Info */}
                     <div className="min-w-0">
@@ -249,6 +256,7 @@ function AssignShiftModal({
   onSuccess,
 }: AssignShiftModalProps) {
   const queryClient = useQueryClient()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [userId, setUserId] = useState(initialUserId ?? '')
   const [shiftId, setShiftId] = useState('')
   const [workDate, setWorkDate] = useState(
@@ -296,11 +304,12 @@ function AssignShiftModal({
     }
     assignMutation.mutate({ user_id: userId, shift_id: shiftId, work_date: workDate })
   }
+  useModalFocusTrap(dialogRef, true, onClose)
 
   const modal = (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-sm sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="assign-shift-title" tabIndex={-1} className="relative bg-white w-full sm:max-w-sm sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
         {/* Drag handle (mobile) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
@@ -308,9 +317,10 @@ function AssignShiftModal({
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Assign Shift</h2>
+          <h2 id="assign-shift-title" className="text-base font-semibold text-gray-900">Assign Shift</h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X size={16} />
@@ -419,6 +429,7 @@ interface CreateShiftModalProps {
 
 function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModalProps) {
   const queryClient = useQueryClient()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const isEdit = !!existingShift
   const hotelId = useHotelStore((s) => s.hotel?.id ?? '')
 
@@ -505,6 +516,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
       })
     }
   }
+  useModalFocusTrap(dialogRef, true, onClose)
 
   const modal = (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -515,7 +527,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
       />
 
       {/* Sheet / Dialog */}
-      <div className="relative bg-white w-full sm:max-w-sm sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="shift-form-title" tabIndex={-1} className="relative bg-white w-full sm:max-w-sm sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
 
         {/* Drag handle (mobile only) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
@@ -524,11 +536,12 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 id="shift-form-title" className="text-base font-semibold text-gray-900">
             {isEdit ? 'Edit Shift' : 'New Shift'}
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X size={16} />
@@ -669,6 +682,8 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        aria-controls="shift-management-panel"
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-50/40 transition-colors"
       >
         <div className="flex items-center gap-2.5">
@@ -683,7 +698,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
       </button>
 
       {!collapsed && (
-        <div className="border-t border-white/40">
+        <div id="shift-management-panel" className="border-t border-white/40">
           {isLoading ? (
             <div className="px-5 py-4 space-y-2">
               {[1, 2, 3].map((i) => (
@@ -734,7 +749,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
                         </div>
                         <button
                           onClick={() => setEditShift(shift)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100"
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                         >
                           <Pencil size={11} />
                           Edit
@@ -871,7 +886,7 @@ function WeekCalendar({
             onClick={() => setViewMode('by-staff')}
             className={`px-3 py-1.5 font-medium transition-colors ${
               viewMode === 'by-staff'
-                ? 'bg-brand-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -881,7 +896,7 @@ function WeekCalendar({
             onClick={() => setViewMode('by-shift')}
             className={`px-3 py-1.5 font-medium transition-colors ${
               viewMode === 'by-shift'
-                ? 'bg-brand-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
@@ -908,7 +923,7 @@ function WeekCalendar({
             <p className="text-sm text-red-600 font-medium">Failed to load schedule.</p>
             <button
               onClick={onRefetch}
-              className="mt-2 text-sm text-brand-600 hover:underline"
+              className="mt-2 text-sm text-amber-600 hover:underline"
             >
               Try again
             </button>
@@ -926,12 +941,12 @@ function WeekCalendar({
                     <th
                       key={day.toISOString()}
                       className={`text-center text-xs font-semibold uppercase tracking-wider px-2 py-3 min-w-[90px] ${
-                        isToday ? 'text-brand-700' : 'text-gray-500'
+                        isToday ? 'text-amber-700' : 'text-gray-500'
                       }`}
                     >
                       <span>{DAY_LABELS[i]}</span>
                       <span
-                        className={`ml-1 ${isToday ? 'text-brand-700 font-bold' : 'text-gray-400'}`}
+                        className={`ml-1 ${isToday ? 'text-amber-700 font-bold' : 'text-gray-400'}`}
                       >
                         {format(day, 'd')}
                       </span>
@@ -958,7 +973,7 @@ function WeekCalendar({
                       {/* Staff name cell */}
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-semibold shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-semibold shrink-0">
                             {getInitials(member.full_name)}
                           </div>
                           <div className="min-w-0">
@@ -1040,7 +1055,7 @@ function WeekCalendar({
                     <th
                       key={day.toISOString()}
                       className={`text-center text-xs font-semibold uppercase tracking-wider px-2 py-3 min-w-[90px] ${
-                        isToday ? 'text-brand-700' : 'text-gray-500'
+                        isToday ? 'text-amber-700' : 'text-gray-500'
                       }`}
                     >
                       {DAY_LABELS[i]}{' '}
@@ -1244,9 +1259,10 @@ export default function SchedulingPage() {
             onClick={() => setDepartmentFilter(dept.id)}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               departmentFilter === dept.id
-                ? 'bg-brand-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
             }`}
+            aria-pressed={departmentFilter === dept.id}
           >
             {dept.label}
           </button>

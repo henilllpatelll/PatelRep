@@ -145,17 +145,19 @@ const EMPTY_ROLE_FORM: RoleFormValues = {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function FormField({
+  id,
   label,
   error,
   children,
 }: {
+  id?: string
   label: string
   error?: string
   children: React.ReactNode
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
       {children}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
@@ -849,6 +851,7 @@ export default function SettingsPage() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
+            aria-current={activeTab === key ? 'page' : undefined}
             className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:px-4 ${
               activeTab === key
                 ? 'border-amber-200 text-amber-700'
@@ -867,16 +870,18 @@ export default function SettingsPage() {
           <Card className="p-6 space-y-5">
             <h2 className="text-base font-semibold text-slate-900">Hotel Profile</h2>
 
-            <FormField label="Hotel Name" error={errors.name?.message}>
+            <FormField id="settings-hotel-name" label="Hotel Name" error={errors.name?.message}>
               <Input
+                id="settings-hotel-name"
                 {...register('name')}
                 placeholder="Sunrise Inn & Suites"
                 error={!!errors.name}
               />
             </FormField>
 
-            <FormField label="Address" error={errors.address?.message}>
+            <FormField id="settings-address" label="Address" error={errors.address?.message}>
               <Input
+                id="settings-address"
                 {...register('address')}
                 placeholder="1234 Main Street"
                 error={!!errors.address}
@@ -885,8 +890,9 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
               <div className="col-span-3">
-                <FormField label="City" error={errors.city?.message}>
+                <FormField id="settings-city" label="City" error={errors.city?.message}>
                   <Input
+                    id="settings-city"
                     {...register('city')}
                     placeholder="San Antonio"
                     error={!!errors.city}
@@ -894,8 +900,9 @@ export default function SettingsPage() {
                 </FormField>
               </div>
               <div className="col-span-1 sm:col-span-1">
-                <FormField label="State" error={errors.state?.message}>
+                <FormField id="settings-state" label="State" error={errors.state?.message}>
                   <Input
+                    id="settings-state"
                     {...register('state')}
                     placeholder="TX"
                     maxLength={2}
@@ -904,8 +911,9 @@ export default function SettingsPage() {
                 </FormField>
               </div>
               <div className="col-span-2">
-                <FormField label="ZIP Code" error={errors.zip?.message}>
+                <FormField id="settings-zip" label="ZIP Code" error={errors.zip?.message}>
                   <Input
+                    id="settings-zip"
                     {...register('zip')}
                     placeholder="78201"
                     error={!!errors.zip}
@@ -915,8 +923,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Phone" error={errors.phone?.message}>
+              <FormField id="settings-phone" label="Phone" error={errors.phone?.message}>
                 <Input
+                  id="settings-phone"
                   {...register('phone')}
                   type="tel"
                   placeholder="+1 (210) 555-0100"
@@ -924,8 +933,9 @@ export default function SettingsPage() {
                 />
               </FormField>
 
-              <FormField label="Room Count" error={errors.room_count?.message}>
+              <FormField id="settings-room-count" label="Room Count" error={errors.room_count?.message}>
                 <Input
+                  id="settings-room-count"
                   {...register('room_count', { valueAsNumber: true })}
                   type="number"
                   min={1}
@@ -936,8 +946,9 @@ export default function SettingsPage() {
               </FormField>
             </div>
 
-            <FormField label="Timezone" error={errors.timezone?.message}>
+            <FormField id="settings-timezone" label="Timezone" error={errors.timezone?.message}>
               <select
+                id="settings-timezone"
                 {...register('timezone')}
                 className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
                   errors.timezone

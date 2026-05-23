@@ -44,7 +44,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
     <div className="flex items-center gap-2">
       <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-brand-600 rounded-full transition-all"
+          className="h-full bg-amber-600 rounded-full transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -82,7 +82,7 @@ function HousekeeperDropRow({
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+        <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
           {getInitials(hk.name)}
         </div>
         <div className="min-w-0">

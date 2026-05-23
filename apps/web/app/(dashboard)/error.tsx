@@ -28,7 +28,7 @@ export default function DashboardError({
         <div className="flex gap-2 justify-center">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Retry

@@ -117,7 +117,7 @@ function HousekeeperBar() {
   }
 
   return (
-    <div className="rounded-xl bg-white/80 backdrop-blur-sm border border-white/90 shadow-sm p-3 space-y-2.5">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 space-y-2.5">
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold text-gray-700">
@@ -221,6 +221,12 @@ function HousekeeperRoomItem({
   onOpenDetail: (room: any) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [showHint] = useState(() => {
+    if (typeof window === 'undefined') return false
+    if (localStorage.getItem('hk-notes-hint-seen')) return false
+    localStorage.setItem('hk-notes-hint-seen', '1')
+    return true
+  })
   const roomNumber = room.rooms?.room_number ?? '—'
   const roomType = room.rooms?.room_types?.name ?? ''
   const status: string = room.status ?? 'DIRTY'
@@ -245,9 +251,6 @@ function HousekeeperRoomItem({
     <div
       className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:bg-gray-50 transition-colors"
       onClick={() => onOpenDetail(room)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail(room) } }}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
@@ -262,7 +265,7 @@ function HousekeeperRoomItem({
         <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
           {cfg.label}
         </span>
-        <p className="text-xs text-gray-400 mt-1">Tap for notes &amp; issues</p>
+        {showHint && <p className="text-xs text-gray-400 mt-1">Tap for notes &amp; issues</p>}
       </div>
 
       <div className="shrink-0 text-right">
@@ -531,7 +534,7 @@ function SupervisorHousekeepingPage() {
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => navigate(-1)}
-              className="px-2.5 py-1 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
+              className="px-3 py-2 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
               aria-label="Previous day"
             >
               &#8592; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
@@ -543,7 +546,7 @@ function SupervisorHousekeepingPage() {
 
             <button
               onClick={() => navigate(1)}
-              className="px-2.5 py-1 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
+              className="px-3 py-2 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
               aria-label="Next day"
             >
               {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &#8594;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   BookOpen,
   Plus,
@@ -21,24 +21,31 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayIso(): string {
   const d = new Date()
+  return formatLocalDate(d)
+}
+
+function formatLocalDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function prevDay(dateStr: string): string {
-  const d = new Date(dateStr)
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const d = new Date(year, month - 1, day)
   d.setDate(d.getDate() - 1)
-  return d.toISOString().split('T')[0]
+  return formatLocalDate(d)
 }
 
 function nextDay(dateStr: string): string {
-  const d = new Date(dateStr)
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const d = new Date(year, month - 1, day)
   d.setDate(d.getDate() + 1)
-  return d.toISOString().split('T')[0]
+  return formatLocalDate(d)
 }
 
 function formatDisplayDate(dateStr: string): string {
@@ -145,7 +152,7 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
   const time = format(new Date(entry.created_at), 'h:mm a')
 
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
@@ -187,7 +194,7 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 animate-pulse">
+    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 animate-pulse">
       <div className="flex items-center gap-2 mb-3">
         <div className="h-3 bg-gray-100 rounded w-16" />
         <div className="h-3 bg-gray-100 rounded w-1 mx-1" />
@@ -334,37 +341,31 @@ interface CreateEntryModalProps {
 }
 
 function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [deptId, setDeptId] = useState('')
   const [content, setContent] = useState('')
   const [expiresHours, setExpiresHours] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const deptEntries = Object.entries(deptMap)
+  const deptEntries = useMemo(() => Object.entries(deptMap), [deptMap])
+  const firstDeptId = deptEntries[0]?.[0] ?? ''
 
   useEffect(() => {
     if (isOpen) {
-      setDeptId(deptEntries.length > 0 ? deptEntries[0][0] : '')
+      setDeptId(firstDeptId)
       setContent('')
       setExpiresHours(0)
       setError(null)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
+  }, [firstDeptId, isOpen])
 
   // When departments load while modal is already open, set the first dept
   useEffect(() => {
-    if (isOpen && !deptId && deptEntries.length > 0) {
-      setDeptId(deptEntries[0][0])
+    if (isOpen && !deptId && firstDeptId) {
+      setDeptId(firstDeptId)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, deptEntries.length])
+  }, [deptId, firstDeptId, isOpen])
 
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
+  useModalFocusTrap(dialogRef, isOpen, onClose)
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -397,9 +398,11 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
       <div className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50" onClick={onClose} aria-hidden="true" />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="Add logbook entry"
+          tabIndex={-1}
           className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6"
           onClick={(e) => e.stopPropagation()}
         >
@@ -509,6 +512,7 @@ interface EditEntryModalProps {
 }
 
 function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [initialNow] = useState(() => Date.now())
   const currentExpiresHours = (() => {
     if (!entry?.expires_at) return 0
@@ -540,15 +544,16 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
     mutate()
   }
 
+  useModalFocusTrap(dialogRef, !!entry, onClose)
   if (!entry) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-entry-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-gray-900">Edit Entry</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <h2 id="edit-entry-title" className="text-base font-bold text-gray-900">Edit Entry</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -797,6 +802,7 @@ export default function LogbookPage() {
         <div className="flex items-center gap-1 border-b border-gray-200 overflow-x-auto -mb-px">
           <button
             onClick={() => setSelectedDeptId(null)}
+            aria-pressed={selectedDeptId === null}
             className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               selectedDeptId === null
                 ? 'border-amber-200 text-amber-700'
@@ -814,6 +820,7 @@ export default function LogbookPage() {
             <button
               key={id}
               onClick={() => setSelectedDeptId(id)}
+              aria-pressed={selectedDeptId === id}
               className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 selectedDeptId === id
                   ? 'border-amber-200 text-amber-700'

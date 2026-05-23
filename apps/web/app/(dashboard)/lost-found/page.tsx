@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   Package,
   Plus,
@@ -23,6 +23,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 animate-pulse">
+    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
         <div className="h-3 w-24 bg-gray-100 rounded" />
@@ -128,7 +129,7 @@ function ItemCard({
     'Unknown'
 
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
       {/* Top row: status badge + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <StatusBadge status={item.status} />
@@ -220,6 +221,7 @@ interface EditItemModalProps {
 }
 
 function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState({
     description: item?.description ?? '',
     location_found: item?.location_found ?? '',
@@ -251,15 +253,16 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
     mutate()
   }
 
+  useModalFocusTrap(dialogRef, !!item, onClose)
   if (!item) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <h2 id="edit-lost-found-title" className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -267,15 +270,15 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
-            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Location Found</label>
-            <input type="text" value={form.location_found} onChange={(e) => setForm((f) => ({ ...f, location_found: e.target.value }))} placeholder="e.g. Room 204, Pool area" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <input type="text" value={form.location_found} onChange={(e) => setForm((f) => ({ ...f, location_found: e.target.value }))} placeholder="e.g. Room 204, Pool area" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
               <option value="unclaimed">Unclaimed</option>
               <option value="claimed">Claimed</option>
               <option value="donated">Donated</option>
@@ -286,17 +289,17 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Claimed By Name</label>
-                <input type="text" value={form.claimed_by_name} onChange={(e) => setForm((f) => ({ ...f, claimed_by_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <input type="text" value={form.claimed_by_name} onChange={(e) => setForm((f) => ({ ...f, claimed_by_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info</label>
-                <input type="text" value={form.claimed_by_contact} onChange={(e) => setForm((f) => ({ ...f, claimed_by_contact: e.target.value }))} placeholder="Phone or email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                <input type="text" value={form.claimed_by_contact} onChange={(e) => setForm((f) => ({ ...f, claimed_by_contact: e.target.value }))} placeholder="Phone or email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
               </div>
             </>
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Any additional details..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Any additional details..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
@@ -321,6 +324,7 @@ interface LogItemModalProps {
 }
 
 function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [description, setDescription] = useState('')
   const [locationFound, setLocationFound] = useState('')
   const [notes, setNotes] = useState('')
@@ -363,16 +367,18 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
     onClose()
   }
 
+  useModalFocusTrap(dialogRef, isOpen, handleClose)
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="log-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Log Found Item</h2>
+          <h2 id="log-lost-found-title" className="text-lg font-semibold text-gray-900">Log Found Item</h2>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -390,7 +396,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Black iPhone 14, gold bracelet, blue umbrella..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
               autoFocus
             />
           </div>
@@ -405,7 +411,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
               value={locationFound}
               onChange={(e) => setLocationFound(e.target.value)}
               placeholder="e.g. Room 204, Pool area, Lobby..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             />
           </div>
 
@@ -419,7 +425,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any additional details..."
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
             />
           </div>
 
@@ -463,6 +469,7 @@ interface ClaimModalProps {
 }
 
 function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [claimedByName, setClaimedByName] = useState('')
   const [claimedByContact, setClaimedByContact] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -502,16 +509,18 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
     onClose()
   }
 
+  useModalFocusTrap(dialogRef, !!item, handleClose)
   if (!item) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="claim-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>
+          <h2 id="claim-lost-found-title" className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -533,7 +542,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
               value={claimedByName}
               onChange={(e) => setClaimedByName(e.target.value)}
               placeholder="e.g. John Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
               autoFocus
             />
           </div>
@@ -548,7 +557,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
               value={claimedByContact}
               onChange={(e) => setClaimedByContact(e.target.value)}
               placeholder="e.g. 555-1234 or guest@email.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
             />
           </div>
 
@@ -724,6 +733,7 @@ export default function LostFoundPage() {
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
+                aria-pressed={isActive}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                   isActive
                     ? TAB_ACTIVE_STYLES[tab.value]
@@ -751,8 +761,9 @@ export default function LostFoundPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search lost and found items"
             placeholder="Search by description…"
-            className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-22T23:05:56.732Z
-> Files: 52 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T01:05:54.803Z
+> Files: 56 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -17,6 +17,7 @@
 ## ./
 
 - `.gitignore` — Git ignore rules (~445 tok)
+- `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
 - `package.json` — Node.js package manifest (~351 tok)
 
 ## .claude/
@@ -498,24 +499,42 @@
 
 ## apps/web/app/(dashboard)/ai/
 
-- `page.tsx` — genId (~7003 tok)
+- `page.tsx` — genId (~6460 tok)
+
+## apps/web/app/(auth)/login/
+
+- `page.tsx` - Login screen with password/magic-link tabs and auth form handling (~9100 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
 
 ## apps/web/app/(dashboard)/dashboard/
 
+- `page.tsx` - Role-based dashboard entry/fallback page (~620 tok)
+
+## apps/web/app/(dashboard)/engineering/assets/
+
+- `page.tsx` - Engineering assets list, filters, edit modal, and asset detail workflows (~15700 tok)
+
+## apps/web/app/(dashboard)/engineering/pm-schedules/
+
+- `page.tsx` - Preventive maintenance schedule list, create/complete modals, and table actions (~17400 tok)
+
+## apps/web/app/(dashboard)/engineering/predictions/
+
+- `page.tsx` - Asset failure prediction dashboard with risk/status filters and skeleton states (~14200 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
+- `page.tsx` — dynamic (~3315 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS (~8721 tok)
+- `page.tsx` — TABS (~9328 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~7728 tok)
+- `page.tsx` — SHIFTS (~7748 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -526,33 +545,55 @@
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
 
+## apps/web/app/(dashboard)/logbook/
+
+- `page.tsx` - Logbook entries page with day navigation, department filters, and edit modal (~16700 tok)
+
+## apps/web/app/(dashboard)/lost-found/
+
+- `page.tsx` - Lost and found item cards, status tabs, search, and log/claim/edit modals (~19300 tok)
+
+## apps/web/app/(dashboard)/onboarding/
+
+- `page.tsx` - Hotel onboarding wizard with Opera connection step and AI sidebar (~21100 tok)
+
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~7344 tok)
+- `page.tsx` — dynamic — renders table (~7343 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
+- `page.tsx` - Scheduling calendar/list views, shift creation/assignment modals, roster panels (~22900 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
+- `page.tsx` - General settings tabs and hotel profile form (~10700 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
+- `page.tsx` - Billing settings and credit usage display with skeleton loading states (~8100 tok)
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
+- `page.tsx` - Integration settings including Opera credential connect/disconnect dialog (~12600 tok)
+
+## apps/web/app/(dashboard)/sop/
+
+- `page.tsx` - SOP library grid, category filters, upload/delete/open flows (~15100 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS — renders form (~13086 tok)
+- `page.tsx` — ROLE_OPTIONS — renders form (~13120 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~10932 tok)
+- `page.tsx` — STATUS_TABS — renders form (~11385 tok)
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~6814 tok)
+- `AICopilotBubble.tsx` — generateId (~6180 tok)
+- `cards.tsx` — Canonical WorkOrderCard, GuestRequestCard, AssignmentCard using stone-* colors; shared by AICopilotBubble and ai/page (~300 tok)
+- `cards.tsx` — priorityBadge (~744 tok)
 
 ## apps/web/components/dashboard/
 
@@ -566,12 +607,12 @@
 
 - `RoomCard.tsx` — STATUS_CARD_STYLES (~3357 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8297 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4789 tok)
+- `RoomStatusBoard.tsx` — STATUS_DOT_HEX (~4579 tok)
 
 ## apps/web/components/shared/
 
-- `Header.tsx` — PAGE_TITLES (~1959 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3755 tok)
+- `Header.tsx` — PAGE_TITLES (~2046 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3797 tok)
 
 ## apps/web/components/ui/
 
@@ -583,6 +624,7 @@
 ## apps/web/lib/api/
 
 - `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1304 tok)
+- `guest_requests.ts` - Guest request API types/client including optional assignment fields (~760 tok)
 
 ## apps/web/stores/
 
@@ -612,3 +654,7 @@
 - `039_drop_room_status_history_trigger.sql` — Migration 024 failed to apply to this database instance. (~94 tok)
 - `040_dedup_room_status_history.sql` — Remove duplicate room_status_history rows written by the DB trigger. (~164 tok)
 - `041_escalation_level.sql` — ============================================================================= (~443 tok)
+
+## apps/web/lib/hooks/
+
+- `useModalFocusTrap.ts` - Shared modal Escape/Tab focus trap hook (~730 tok)
