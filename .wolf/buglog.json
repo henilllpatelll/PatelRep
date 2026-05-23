@@ -1,882 +1,273 @@
-﻿{
-    "version":  1,
-    "bugs":  [
-                 {
-                     "id":  "bug-001",
-                     "timestamp":  "2026-05-19T08:46:40.228Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  "e2e/helpers/rbac-users.ts",
-                     "root_cause":  "5 lines replaced/restructured",
-                     "fix":  "Rewrote 5â†’6 lines (5 removed)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "ts"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-19T08:46:40.228Z"
-                 },
-                 {
-                     "id":  "bug-002",
-                     "timestamp":  "2026-05-19T19:29:42.836Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/package.json",
-                     "root_cause":  "Had \"next lint\"",
-                     "fix":  "Changed to \"eslint .\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "json"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-19T19:29:42.836Z"
-                 },
-                 {
-                     "id":  "bug-003",
-                     "timestamp":  "2026-05-20T18:29:56.004Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/app/(dashboard)/staff/page.tsx",
-                     "root_cause":  "Had \"appearance-none pl-3 pr-8 py-2 text-sm border bor",
-                     "fix":  "Changed to \"appearance-none pl-3 pr-8 py-2 text-sm border bor",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  7,
-                     "last_seen":  "2026-05-20T18:32:07.189Z"
-                 },
-                 {
-                     "id":  "bug-004",
-                     "timestamp":  "2026-05-20T18:30:16.022Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/dashboard/LiveOpsGrid.tsx",
-                     "root_cause":  "Had \"text-sm font-semibold text-stone-700 mb-3\"",
-                     "fix":  "Changed to \"p-5\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  4,
-                     "last_seen":  "2026-05-20T18:30:30.572Z"
-                 },
-                 {
-                     "id":  "bug-005",
-                     "timestamp":  "2026-05-20T18:30:50.136Z",
-                     "error_message":  "Wrong reference: 10px should be xs",
-                     "file":  "apps/web/components/housekeeping/RoomCard.tsx",
-                     "root_cause":  "Used \"10px\" instead of \"xs\"",
-                     "fix":  "Changed 10px â†’ xs",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-reference",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:30:50.136Z"
-                 },
-                 {
-                     "id":  "bug-006",
-                     "timestamp":  "2026-05-20T18:30:54.476Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/ai/AICopilotBubble.tsx",
-                     "root_cause":  "Had \"fixed bottom-6 right-6 z-50 hidden sm:block\"",
-                     "fix":  "Changed to \"fixed bottom-6 right-6 z-50\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:30:54.476Z"
-                 },
-                 {
-                     "id":  "bug-007",
-                     "timestamp":  "2026-05-20T18:31:11.286Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/shared/Header.tsx",
-                     "root_cause":  "Had \"hidden md:inline-flex bg-[#17130F] text-amber-300",
-                     "fix":  "Changed to \"hidden md:inline-flex bg-[#17130F] text-amber-300",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:31:11.286Z"
-                 },
-                 {
-                     "id":  "bug-008",
-                     "timestamp":  "2026-05-20T18:31:16.034Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/shared/Sidebar.tsx",
-                     "root_cause":  "Had \u0027fixed inset-y-0 left-0 z-40 w-[280px] transition-",
-                     "fix":  "Changed to \u0027fixed inset-y-0 left-0 z-40 w-[260px] transition-",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:31:16.034Z"
-                 },
-                 {
-                     "id":  "bug-009",
-                     "timestamp":  "2026-05-20T18:31:25.558Z",
-                     "error_message":  "CSS fix: hover",
-                     "file":  "apps/web/app/(dashboard)/guest-requests/page.tsx",
-                     "root_cause":  "hover: bg-green-50\u0027 â†’ bg-stone-50 hover:border-stone-300\u0027",
-                     "fix":  "Changed hover: bg-green-50\u0027 â†’ bg-stone-50 hover:border-stone-300\u0027",
-                     "tags":  [
-                                  "auto-detected",
-                                  "style-fix",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:31:25.558Z"
-                 },
-                 {
-                     "id":  "bug-010",
-                     "timestamp":  "2026-05-20T18:31:31.482Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  "apps/web/app/(dashboard)/guest-requests/page.tsx",
-                     "root_cause":  "8 lines replaced/restructured",
-                     "fix":  "Rewrote 11â†’5 lines (8 removed)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-20T18:31:31.482Z"
-                 },
-                 {
-                     "id":  "bug-011",
-                     "timestamp":  "2026-05-21T08:55:07.958Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/package.json",
-                     "root_cause":  "Had \"^14.2.35\"",
-                     "fix":  "Changed to \"16.3.0-canary.19\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "json"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  2,
-                     "last_seen":  "2026-05-21T08:55:11.897Z"
-                 },
-                 {
-                     "id":  "bug-012",
-                     "timestamp":  "2026-05-22T03:53:36.929Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  ".gitignore",
-                     "root_cause":  "4 lines replaced/restructured",
-                     "fix":  "Rewrote 4â†’7 lines (4 removed)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "unknown"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T03:53:36.929Z"
-                 },
-                 {
-                     "id":  "bug-013",
-                     "timestamp":  "2026-05-22T04:09:56.676Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "e2e/agent-browser/scripts/auth-setup.ps1",
-                     "root_cause":  "Had \"PatelRep2026x\"",
-                     "fix":  "Changed to \"your-password-here\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "ps1"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T04:09:56.676Z"
-                 },
-                 {
-                     "id":  "bug-014",
-                     "timestamp":  "2026-05-22T07:57:11.804Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "e2e/agent-browser/scripts/e2e-flows.ps1",
-                     "root_cause":  "Had \"Engineering\"",
-                     "fix":  "Changed to \"Maintenance|Engineering\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "ps1"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T07:57:11.804Z"
-                 },
-                 {
-                     "id":  "bug-015",
-                     "timestamp":  "2026-05-22T14:17:24.812Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  "apps/mobile/eas.json",
-                     "root_cause":  "8 lines replaced/restructured",
-                     "fix":  "Rewrote 27â†’27 lines (8 removed)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "json"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T14:17:24.812Z"
-                 },
-                 {
-                     "id":  "bug-016",
-                     "timestamp":  "2026-05-22T15:01:34.458Z",
-                     "error_message":  "Function not marked async",
-                     "file":  "apps/api/routers/internal.py",
-                     "root_cause":  "Function uses await but wasn\u0027t declared async",
-                     "fix":  "Added async modifier",
-                     "tags":  [
-                                  "auto-detected",
-                                  "async-fix",
-                                  "py"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T15:01:34.458Z"
-                 },
-                 {
-                     "id":  "bug-017",
-                     "timestamp":  "2026-05-22T15:21:22.341Z",
-                     "error_message":  "expo prebuild crash: Cannot read properties of undefined (reading \u0027extract\u0027)",
-                     "file":  "apps/mobile/package.json",
-                     "root_cause":  "tar override pinned to ^7.5.15. tar v7 exports __esModule:true with default:undefined. Expo CLI\u0027s _interopRequireDefault(require(\u0027tar\u0027)) sees __esModule:true and returns the module as-is, so _tar().default is undefined. Calling .extract() on undefined crashes. tar v6 is CommonJS (no __esModule), so interop wraps it as {default: tar} and _tar().default.extract() works.",
-                     "fix":  "Changed tar override from ^7.5.15 to ^6.2.1 in apps/mobile/package.json overrides. npm install reinstalls both nested copies (@expo/cli and cacache) at 6.2.1.",
-                     "tags":  [
-                                  "expo-prebuild",
-                                  "tar-esm-interop",
-                                  "eas-build",
-                                  "json"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T15:21:22.341Z"
-                 },
-                 {
-                     "id":  "bug-018",
-                     "timestamp":  "2026-05-22T17:51:44.275Z",
-                     "error_message":  "Type error",
-                     "file":  "apps/web/lib/api/ai.ts",
-                     "root_cause":  "Missing or incorrect type annotation",
-                     "fix":  "Added type assertion/annotation",
-                     "tags":  [
-                                  "auto-detected",
-                                  "type-fix",
-                                  "ts"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T17:51:44.275Z"
-                 },
-                 {
-                     "id":  "bug-019",
-                     "timestamp":  "2026-05-22T17:53:33.262Z",
-                     "error_message":  "Null/undefined access in ",
-                     "file":  "apps/mobile/app/(app)/copilot/index.tsx",
-                     "root_cause":  "Property access on potentially null/undefined value",
-                     "fix":  "Added null safety (optional chaining or null check)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "null-safety",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T17:53:33.262Z"
-                 },
-                 {
-                     "id":  "bug-020",
-                     "timestamp":  "2026-05-22T17:53:45.587Z",
-                     "error_message":  "CSS fix: backgroundColor",
-                     "file":  "apps/mobile/app/(app)/copilot/index.tsx",
-                     "root_cause":  "backgroundColor: \"#1E40AF\", â†’ \"#FEE2E2\",",
-                     "fix":  "Changed backgroundColor: \"#1E40AF\", â†’ \"#FEE2E2\",",
-                     "tags":  [
-                                  "auto-detected",
-                                  "style-fix",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T17:53:45.587Z"
-                 },
-                 {
-                     "id":  "bug-021",
-                     "timestamp":  "2026-05-22T17:53:50.247Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/mobile/package.json",
-                     "root_cause":  "Had \"expo-sqlite\"",
-                     "fix":  "Changed to \"expo-speech-recognition\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "json"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T17:53:50.247Z"
-                 },
-                 {
-                     "id":  "bug-022",
-                     "timestamp":  "2026-05-22T20:04:17.650Z",
-                     "error_message":  "Null/undefined access in ",
-                     "file":  "apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
-                     "root_cause":  "Property access on potentially null/undefined value",
-                     "fix":  "Added null safety (optional chaining or null check)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "null-safety",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T20:04:17.650Z"
-                 },
-                 {
-                     "id":  "bug-023",
-                     "timestamp":  "2026-05-22T20:54:49.915Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  "apps/api/tests/smoke/test_endpoints.py",
-                     "root_cause":  "2 lines replaced/restructured",
-                     "fix":  "Rewrote 16â†’26 lines (2 removed) | Also: \"\"\"In development mode, docs should be available.\"; # Will be 200 in dev or 404 in prod â€” just shouldn | Also: class TestPostEndpointsNeedAuth:; \"\"\"POST endpoints should also require auth.\"\"\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "py"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  3,
-                     "last_seen":  "2026-05-22T20:55:12.178Z"
-                 },
-                 {
-                     "id":  "bug-024",
-                     "timestamp":  "2026-05-22T20:58:29.095Z",
-                     "error_message":  "Wrong reference: credentials should be status",
-                     "file":  "apps/api/tests/smoke/test_endpoints.py",
-                     "root_cause":  "Used \"credentials\" instead of \"status\"",
-                     "fix":  "Changed credentials â†’ status",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-reference",
-                                  "py"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T20:58:29.095Z"
-                 },
-                 {
-                     "id":  "bug-025",
-                     "timestamp":  "2026-05-22T23:05:06.814Z",
-                     "error_message":  "Null/undefined access in ",
-                     "file":  "apps/web/components/housekeeping/RoomStatusBoard.tsx",
-                     "root_cause":  "Property access on potentially null/undefined value",
-                     "fix":  "Added null safety (optional chaining or null check)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "null-safety",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:05:06.814Z"
-                 },
-                 {
-                     "id":  "bug-026",
-                     "timestamp":  "2026-05-22T23:05:56.765Z",
-                     "error_message":  "CSS fix: hover",
-                     "file":  "apps/web/app/(dashboard)/guest-requests/page.tsx",
-                     "root_cause":  "hover: bg-green-700 transition-colors flex items-center gap-1\" â†’ bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50\"",
-                     "fix":  "Changed hover: bg-green-700 transition-colors flex items-center gap-1\" â†’ bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "style-fix",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:05:56.765Z"
-                 },
-                 {
-                     "id":  "bug-027",
-                     "timestamp":  "2026-05-22T23:43:48.856Z",
-                     "error_message":  "Type error",
-                     "file":  "apps/web/components/housekeeping/RoomStatusBoard.tsx",
-                     "root_cause":  "Missing or incorrect type annotation",
-                     "fix":  "Added type assertion/annotation",
-                     "tags":  [
-                                  "auto-detected",
-                                  "type-fix",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:43:48.856Z"
-                 },
-                 {
-                     "id":  "bug-028",
-                     "timestamp":  "2026-05-22T23:58:49.168Z",
-                     "error_message":  "Wrong reference: 10px should be 11px",
-                     "file":  "apps/web/components/shared/Sidebar.tsx",
-                     "root_cause":  "Used \"10px\" instead of \"11px\"",
-                     "fix":  "Changed 10px â†’ 11px",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-reference",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:58:49.168Z"
-                 },
-                 {
-                     "id":  "bug-029",
-                     "timestamp":  "2026-05-22T23:58:51.639Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/shared/Header.tsx",
-                     "root_cause":  "Had \"h-14 flex items-center justify-between px-4 md:px",
-                     "fix":  "Changed to \"h-14 flex items-center justify-between px-4 md:px",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:58:51.639Z"
-                 },
-                 {
-                     "id":  "bug-030",
-                     "timestamp":  "2026-05-22T23:58:53.111Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/app/(dashboard)/housekeeping/page.tsx",
-                     "root_cause":  "Had \"rounded-xl bg-white/80 backdrop-blur-sm border bo",
-                     "fix":  "Changed to \"rounded-xl bg-white border border-gray-200 shadow",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  10,
-                     "last_seen":  "2026-05-23T00:08:20.730Z"
-                 },
-                 {
-                     "id":  "bug-031",
-                     "timestamp":  "2026-05-22T23:59:02.685Z",
-                     "error_message":  "Significant refactor of ",
-                     "file":  "apps/web/app/(dashboard)/housekeeping/page.tsx",
-                     "root_cause":  "3 lines replaced/restructured",
-                     "fix":  "Rewrote 7â†’4 lines (3 removed)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "refactor",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:59:02.685Z"
-                 },
-                 {
-                     "id":  "bug-032",
-                     "timestamp":  "2026-05-22T23:59:12.079Z",
-                     "error_message":  "CSS fix: e",
-                     "file":  "apps/web/components/shared/Header.tsx",
-                     "root_cause":  "e: MouseEvent) { â†’ KeyboardEvent) {",
-                     "fix":  "Changed e: MouseEvent) { â†’ KeyboardEvent) {",
-                     "tags":  [
-                                  "auto-detected",
-                                  "style-fix",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:59:12.079Z"
-                 },
-                 {
-                     "id":  "bug-033",
-                     "timestamp":  "2026-05-22T23:59:28.570Z",
-                     "error_message":  "Missing guard clause",
-                     "file":  "apps/web/app/(dashboard)/housekeeping/page.tsx",
-                     "root_cause":  "No early return/throw for edge case: typeof window === \u0027undefined\u0027",
-                     "fix":  "Added guard clause: if (typeof window === \u0027undefined\u0027)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "guard-clause",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-22T23:59:28.570Z"
-                 },
-                 {
-                     "id":  "bug-034",
-                     "timestamp":  "2026-05-22T23:59:38.306Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/components/ai/AICopilotBubble.tsx",
-                     "root_cause":  "Had \"text-gray-400 hover:text-gray-600 hover:bg-gray-1",
-                     "fix":  "Changed to \"Close AI Copilot\"",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  6,
-                     "last_seen":  "2026-05-23T00:00:34.218Z"
-                 },
-                 {
-                     "id":  "bug-035",
-                     "timestamp":  "2026-05-23T00:00:09.246Z",
-                     "error_message":  "Wrong reference: closeAfterAction should be sendMessage",
-                     "file":  "apps/web/components/ai/AICopilotBubble.tsx",
-                     "root_cause":  "Used \"closeAfterAction\" instead of \"sendMessage\"",
-                     "fix":  "Changed closeAfterAction â†’ sendMessage",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-reference",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T00:00:09.246Z"
-                 },
-                 {
-                     "id":  "bug-036",
-                     "timestamp":  "2026-05-23T00:01:27.815Z",
-                     "error_message":  "Null/undefined access in ",
-                     "file":  "apps/web/app/(dashboard)/guest-requests/page.tsx",
-                     "root_cause":  "Property access on potentially null/undefined value",
-                     "fix":  "Added null safety (optional chaining or null check) | Also: const modalRef = useRef\u003cHTMLDivElement\u003e(null); useEffect(() =\u003e {",
-                     "tags":  [
-                                  "auto-detected",
-                                  "null-safety",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  4,
-                     "last_seen":  "2026-05-23T00:03:31.695Z"
-                 },
-                 {
-                     "id":  "bug-037",
-                     "timestamp":  "2026-05-23T00:21:49.672Z",
-                     "error_message":  "Missing guard clause",
-                     "file":  "FRONTEND_AUDIT.md",
-                     "root_cause":  "No early return/throw for edge case: e.key === \u0027Enter\u0027 \\|\\| e.key === \u0027 \u0027",
-                     "fix":  "Added guard clause: if (e.key === \u0027Enter\u0027 \\|\\| e.key === \u0027 \u0027)",
-                     "tags":  [
-                                  "auto-detected",
-                                  "guard-clause",
-                                  "md"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T00:21:49.672Z"
-                 },
-                 {
-                     "id":  "bug-038",
-                     "timestamp":  "2026-05-23T01:05:28.373Z",
-                     "error_message":  "Incorrect value in code",
-                     "file":  "apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
-                     "root_cause":  "Had \"flex items-start gap-3 p-4 bg-white/70 rounded-xl",
-                     "fix":  "Changed to \"flex items-start gap-3 p-4 bg-white border border",
-                     "tags":  [
-                                  "auto-detected",
-                                  "wrong-value",
-                                  "tsx"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  6,
-                     "last_seen":  "2026-05-23T01:05:50.428Z"
-                 },
-                 {
-                     "id":  "bug-039",
-                     "timestamp":  "2026-05-23T01:34:27.5641600Z",
-                     "error_message":  "TypeScript error: Property \u0027assigned_to\u0027 does not exist on type \u0027GuestRequest\u0027",
-                     "file":  "apps/web/lib/api/guest_requests.ts",
-                     "root_cause":  "GuestRequest API type omitted optional assigned_to even though the guest request edit form and update payload use that field.",
-                     "fix":  "Added optional assigned_to to GuestRequest interface.",
-                     "tags":  [
-                                  "typescript",
-                                  "guest-requests",
-                                  "type-fix"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T01:34:27.5641600Z"
-                 },
-                 {
-                     "id":  "bug-040",
-                     "timestamp":  "2026-05-23T01:34:27.5641600Z",
-                     "error_message":  "ESLint react-hooks/purity: Cannot call impure function Date.now during render",
-                     "file":  "apps/web/app/(dashboard)/tasks/page.tsx",
-                     "root_cause":  "SlaIndicator initialized state with Date.now() during render, which violates React purity lint rules.",
-                     "fix":  "Initialized now as null and set Date.now() inside useEffect before starting the interval.",
-                     "tags":  [
-                                  "eslint",
-                                  "react-hooks",
-                                  "purity",
-                                  "tasks"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T01:34:27.5641600Z"
-                 },
-                 {
-                     "id":  "bug-041",
-                     "timestamp":  "2026-05-23T01:37:07.7415471Z",
-                     "error_message":  "FRONTEND_AUDIT.md pass 2 reported remaining frontend accessibility, token, date, and Opera onboarding defects",
-                     "file":  "FRONTEND_AUDIT.md",
-                     "root_cause":  "Several dashboard pages still used visual-only state, undefined brand tokens, native dialogs, UTC date formatting, and the deprecated Opera auth-code redirect flow.",
-                     "fix":  "Patched pass 2 target pages/components with ARIA semantics, defined amber/stone tokens, in-app SOP dialogs, local date formatting, credential-based Opera onboarding, and focused type/lint fixes needed for verification.",
-                     "tags":  [
-                                  "frontend-audit",
-                                  "accessibility",
-                                  "design-tokens",
-                                  "onboarding",
-                                  "verification"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T01:37:07.7415471Z"
-                 },
-                 {
-                     "id":  "bug-042",
-                     "timestamp":  "2026-05-23T01:52:20.8302575Z",
-                     "error_message":  "Cleanup found SOPQueryModal still using native alert() and undefined brand-* Tailwind tokens",
-                     "file":  "apps/web/components/ai/SOPQueryModal.tsx",
-                     "root_cause":  "The SOP query modal was outside the pass-2 SOP page file but still used alert() for task feedback and brand-* classes that are not defined in Tailwind config.",
-                     "fix":  "Replaced alert() with inline role=status feedback and swapped brand-* classes for amber-* tokens.",
-                     "tags":  [
-                                  "cleanup",
-                                  "sop",
-                                  "accessibility",
-                                  "tailwind"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T01:52:20.8302575Z"
-                 },
-                 {
-                     "id":  "bug-043",
-                     "timestamp":  "2026-05-23T04:21:05.978Z",
-                     "error_message":  "FRONTEND_AUDIT.md remaining items were not fully closed: modal focus traps, AI shared components/ARIA labels, and undefined brand tokens still had gaps",
-                     "file":  "apps/web",
-                     "root_cause":  "Prior pass added many ARIA/token fixes but left inconsistent keyboard behavior in custom modals, duplicated AI insight/task preview rendering, and a few undefined Tailwind brand tokens.",
-                     "fix":  "Added shared useModalFocusTrap hook, wired remaining custom dialogs/dropdown focus behavior, shared AI task/insight components, completed AI live-region/send labels, and replaced leftover brand/yellow tokens with amber/stone tokens.",
-                     "tags":  [
-                                  "frontend-audit",
-                                  "accessibility",
-                                  "focus-trap",
-                                  "tailwind",
-                                  "verification"
-                              ],
-                     "related_bugs":  [
-                                          "bug-041",
-                                          "bug-042"
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T04:21:05.978Z"
-                 },
-                 {
-                     "id":  "bug-044",
-                     "timestamp":  "2026-05-23T04:57:06.572Z",
-                     "error_message":  "AI Copilot cancel left the pending Confirm \u0026 Create preview controls visible",
-                     "file":  "apps/web/app/(dashboard)/ai/page.tsx, apps/web/components/ai/AICopilotBubble.tsx",
-                     "root_cause":  "Cancel only appended a cancelled chat message and did not clear responseData from the preview message, so the preview renderer kept mounting confirmation controls.",
-                     "fix":  "Changed cancel handlers to accept the source message id, clear that message responseData, and append the cancellation acknowledgement in both AI Copilot surfaces.",
-                     "tags":  [
-                                  "ai-copilot",
-                                  "cancel",
-                                  "frontend",
-                                  "playwright"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T04:57:06.572Z"
-                 },
-                 {
-                     "id":  "bug-045",
-                     "timestamp":  "2026-05-23T04:57:06.572Z",
-                     "error_message":  "TypeScript error after first cancel-handler patch: onCancel callback type was applied to the inner ConfirmView button prop",
-                     "file":  "apps/web/components/ai/AICopilotBubble.tsx",
-                     "root_cause":  "The parent AiMessage callback needs a message id, but the child ConfirmView onCancel prop is a zero-argument button handler.",
-                     "fix":  "Restored ConfirmViewProps.onCancel to () =\u003e void and kept AiMessageProps.onCancel as (messageId: string) =\u003e void.",
-                     "tags":  [
-                                  "typescript",
-                                  "ai-copilot",
-                                  "callback-types"
-                              ],
-                     "related_bugs":  [
-                                          "bug-044"
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T04:57:06.572Z"
-                 },
-                 {
-                     "id":  "bug-046",
-                     "timestamp":  "2026-05-23T04:57:06.572Z",
-                     "error_message":  "AI Copilot Playwright heading test failed strict mode because text locator matched both h1 and intro copy",
-                     "file":  "e2e/13-ai-copilot.spec.ts",
-                     "root_cause":  "The test used getByText(\"AI Copilot\") scoped to main, but both the page heading and welcome message contain that phrase.",
-                     "fix":  "Changed the assertion to target getByRole(\"heading\", { name: \"AI Copilot\" }).",
-                     "tags":  [
-                                  "playwright",
-                                  "test-maintenance",
-                                  "ai-copilot"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T04:57:06.572Z"
-                 },
-                 {
-                     "id":  "bug-047",
-                     "timestamp":  "2026-05-23T06:19:05.5697153Z",
-                     "error_message":  "Playwright frontend suite failed: 4 login magic-link tab locator timeouts, SOP content/empty-state assertion returned 0, RBAC helper missing TEST_PASSWORD",
-                     "file":  "e2e/01-login.spec.ts, e2e/09-sop.spec.ts, e2e/16-rbac.spec.ts",
-                     "root_cause":  "Current production/login UI does not expose an accessible Magic Link button matching the tests; SOP route rendered neither expected listitem/card selectors nor expected empty-state text; RBAC helper requires TEST_PASSWORD even when a stored auth state exists.",
-                     "fix":  "Not fixed in this audit task; recorded in frontend report for follow-up.",
-                     "tags":  [
-                                  "playwright",
-                                  "frontend-audit",
-                                  "login",
-                                  "sop",
-                                  "rbac"
-                              ],
-                     "related_bugs":  [
-
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T06:19:05.5783249Z"
-                 },
-                 {
-                     "id":  "bug-048",
-                     "timestamp":  "2026-05-23T07:09:00.0000000Z",
-                     "error_message":  "FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md reported auth CORS noise, mobile table clipping, raw inspection UUIDs, AI floater overlap, small tap targets, stale login tests, disabled RBAC/mobile auth tests, sparse empty states, crowded staff mobile header, and AI first-load balance",
-                     "file":  "apps/web, apps/api, e2e",
-                     "root_cause":  "The frontend still used desktop tables on phone breakpoints, swallowed /auth/me failures, showed raw inspector fallback IDs, floated AI over scroll-heavy mobile content, kept several custom controls below 44px, and the Playwright harness used stale auth assumptions.",
-                     "fix":  "Added CORS fallback headers, session-expired handling, login/RBAC auth test stability fixes, mobile card views for audited tables, global mobile tap target minimums, safe-area AI spacing, inspector name fallback hardening, staff mobile Add Staff menu, improved empty states, and first-load AI quick actions near the greeting.",
-                     "tags":  [
-                                  "frontend-playwright-audit",
-                                  "mobile",
-                                  "auth",
-                                  "accessibility",
-                                  "playwright"
-                              ],
-                     "related_bugs":  [
-                                          "bug-047"
-                                      ],
-                     "occurrences":  1,
-                     "last_seen":  "2026-05-23T07:09:00.0000000Z"
-                 }
-             ]
+{
+  "version": 1,
+  "bugs": [
+    {
+      "id": "bug-001",
+      "timestamp": "2026-05-23T23:27:24.422Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "hover: bg-blue-700 disabled:opacity-50 transition-colors\" → bg-amber-500 disabled:opacity-50 transition-colors\"",
+      "fix": "Changed hover: bg-blue-700 disabled:opacity-50 transition-colors\" → bg-amber-500 disabled:opacity-50 transition-colors\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 9,
+      "last_seen": "2026-05-23T23:29:03.968Z"
+    },
+    {
+      "id": "bug-002",
+      "timestamp": "2026-05-23T23:27:40.943Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/dashboard/ROIMetricsStrip.tsx",
+      "root_cause": "data: statsData, isLoading: statsLoading → statsData, isLoading: statsLoading, isError: statsError",
+      "fix": "Changed data: statsData, isLoading: statsLoading → statsData, isLoading: statsLoading, isError: statsError",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:27:40.943Z"
+    },
+    {
+      "id": "bug-003",
+      "timestamp": "2026-05-23T23:27:47.294Z",
+      "error_message": "Missing error handling in getHotelIdFromSession",
+      "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:27:47.294Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-05-23T23:27:57.598Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:27:57.598Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-05-23T23:28:01.534Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/web/app/(dashboard)/billing/page.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:28:01.534Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-05-23T23:28:17.384Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:28:17.384Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-05-23T23:28:23.029Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: enabled: !!hotel?.id, | Also: // Period display — use period field (e.g. \"2026-05\") format; const raw = (creditData as any)?.period_start ?? creditData? | Also: const user = useAuthStore((state) => state.user); const fullName: string =",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-23T23:31:01.979Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-05-23T23:28:43.127Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:28:43.127Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-05-23T23:28:43.574Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had \"flex gap-2 overflow-x-auto pb-1 scrollbar-none\"",
+      "fix": "Changed to \"flex flex-nowrap gap-2 overflow-x-auto pb-1 scrol",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:28:43.574Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-05-23T23:29:07.355Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "No early return/throw for edge case: pathname === '/ai'",
+      "fix": "Added guard clause: if (pathname === '/ai')",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:29:07.355Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-05-23T23:29:09.479Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 49→80 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:29:09.479Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-05-23T23:29:10.092Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "Had \"grid gap-3 sm:grid-cols-2 xl:grid-cols-3\"",
+      "fix": "Changed to \"grid grid-cols-1 md:grid-cols-2 gap-4\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:29:10.092Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-05-23T23:29:14.002Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/DashboardShell.tsx",
+      "root_cause": "Had \"flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe",
+      "fix": "Changed to \"flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:29:14.002Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-05-23T23:29:30.874Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:29:30.874Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-05-23T23:29:37.364Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "hover: bg-white/90 transition-colors\" → bg-white/90 hover:underline transition-colors\"",
+      "fix": "Changed hover: bg-white/90 transition-colors\" → bg-white/90 hover:underline transition-colors\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-23T23:30:04.957Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-05-23T23:39:11.095Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Had ')[0] || fullName.split('",
+      "fix": "Changed to ')\n    ? fullName.split('",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T23:39:11.095Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-05-23T00:00:00.000Z",
+      "error_message": "Dashboard shows 'Good evening, hp.patelrep@gmail.com!' instead of user's first name",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "fullName.split(' ')[0] returns the whole email when fullName is an email (no spaces), which is truthy so the fallback split('@')[0] never ran",
+      "fix": "Check if fullName contains '@' first; if so use split('@')[0], otherwise split on space",
+      "tags": ["greeting", "dashboard", "user-name", "email-fallback"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T00:00:00.000Z"
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T01:05:54.803Z
-> Files: 56 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T23:39:11.068Z
+> Files: 76 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -20,6 +20,7 @@
 - `FRONTEND_AUDIT.md` — Frontend Audit — PatelRep Dashboard (~9362 tok)
 - `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Playwright frontend audit with automated test results, visual design issues, mobile bugs, and artifact paths (~2280 tok)
 - `package.json` — Node.js package manifest (~351 tok)
+- `UI_UX_FIXES_BACKLOG.md` — UI/UX Fixes Backlog — PatelRep (~5527 tok)
 
 ## .claude/
 
@@ -418,7 +419,6 @@
 
 ## apps/api/
 
-- `main.py` - FastAPI app setup, middleware stack, CORS/security headers, router registry, health endpoint, and global exception handlers (~2700 tok)
 
 ## apps/api/core/
 
@@ -432,10 +432,10 @@
 
 ## apps/api/routers/
 
-- `auth.py` - API: /auth/me profile/hotel/subscription context and hotel-context validation (~700 tok)
 - `ai_copilot.py` — API: 1 endpoints (~6786 tok)
 - `housekeeping.py` — API: 5 endpoints (~8488 tok)
 - `internal.py` — API: 8 endpoints (~5027 tok)
+- `rooms.py` — API: 5 endpoints (~4936 tok)
 
 ## apps/api/services/
 
@@ -497,44 +497,43 @@
 
 ## apps/web/
 
-- `app/globals.css` - Tailwind globals, background variables, reduced-motion handling, and mobile/coarse-pointer tap target defaults (~250 tok)
 - `eslint.config.mjs` — Declares require (~112 tok)
 - `package.json` — Node.js package manifest (~444 tok)
+
+## apps/web/app/(auth)/login/
+
 
 ## apps/web/app/(dashboard)/ai/
 
 - `page.tsx` — genId (~6460 tok)
 
-## apps/web/app/(auth)/login/
-
-- `page.tsx` - Login screen with password/magic-link tabs and auth form handling (~9100 tok)
-
 ## apps/web/app/(dashboard)/billing/
 
+- `page.tsx` — numberOrDefault (~3600 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
 
-- `page.tsx` - Role-based dashboard entry/fallback page (~620 tok)
+- `page.tsx` — GMDashboard (~983 tok)
 
 ## apps/web/app/(dashboard)/engineering/assets/
 
-- `page.tsx` - Engineering assets list, filters, edit modal, and asset detail workflows (~15700 tok)
+- `page.tsx` — RISK_FILTERS (~13078 tok)
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
-- `page.tsx` - Preventive maintenance schedule list, create/complete modals, and table actions (~17400 tok)
+- `page.tsx` — getScheduleStatus (~12023 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
-- `page.tsx` - Asset failure prediction dashboard with risk/status filters and skeleton states (~14200 tok)
+- `page.tsx` — getRiskLabel (~6099 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~3315 tok)
+- `page.tsx` — dynamic (~3514 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS (~9328 tok)
+- `page.tsx` — TABS (~9327 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
@@ -545,45 +544,44 @@
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
+- `page.tsx` — todayISO — renders table (~2568 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — StatusBadge (~9406 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
-- `page.tsx` - Logbook entries page with day navigation, department filters, and edit modal (~16700 tok)
+- `page.tsx` — todayIso (~10414 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` - Lost and found item cards, status tabs, search, and log/claim/edit modals (~19300 tok)
+- `page.tsx` — TABS — renders form (~9778 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
-- `page.tsx` - Hotel onboarding wizard with Opera connection step and AI sidebar (~21100 tok)
 
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~7343 tok)
+- `page.tsx` — dynamic — renders table (~7478 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
-- `page.tsx` - Scheduling calendar/list views, shift creation/assignment modals, roster panels (~22900 tok)
+- `page.tsx` — DEPARTMENTS (~16234 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
-- `page.tsx` - General settings tabs and hotel profile form (~10700 tok)
+- `page.tsx` — hotelProfileSchema (~13627 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
-- `page.tsx` - Billing settings and credit usage display with skeleton loading states (~8100 tok)
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
-- `page.tsx` - Integration settings including Opera credential connect/disconnect dialog (~12600 tok)
 
 ## apps/web/app/(dashboard)/sop/
 
-- `page.tsx` - SOP library grid, category filters, upload/delete/open flows (~15100 tok)
+- `page.tsx` — CATEGORIES (~8349 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
@@ -591,17 +589,19 @@
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~11385 tok)
+- `page.tsx` — STATUS_TABS — renders form (~11427 tok)
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~6180 tok)
+- `AICopilotBubble.tsx` — generateId (~5389 tok)
 - `cards.tsx` — Canonical WorkOrderCard, GuestRequestCard, AssignmentCard using stone-* colors; shared by AICopilotBubble and ai/page (~300 tok)
 - `cards.tsx` — priorityBadge (~744 tok)
 
 ## apps/web/components/dashboard/
 
 - `LiveOpsGrid.tsx` — getHotelIdFromSession (~1939 tok)
+- `ROIMetricsStrip.tsx` — MetricCard (~1302 tok)
+- `TrendChartsRow.tsx` — getHotelIdFromSession (~2454 tok)
 
 ## apps/web/components/engineering/
 
@@ -609,19 +609,18 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_CARD_STYLES (~3357 tok)
+- `RoomCard.tsx` — STATUS_CARD_STYLES (~3468 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8297 tok)
-- `RoomStatusBoard.tsx` — STATUS_DOT_HEX (~4579 tok)
+- `RoomStatusBoard.tsx` — STATUS_DOT_HEX (~4600 tok)
 
 ## apps/web/components/shared/
 
-- `DashboardShell.tsx` - Authenticated dashboard frame with Sidebar, Header, page transition, scroll container, and floating AI bubble (~520 tok)
+- `DashboardShell.tsx` — DashboardShell (~369 tok)
 - `Header.tsx` — PAGE_TITLES (~2046 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3797 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3804 tok)
 
 ## apps/web/components/ui/
 
-- `Input.tsx` - Shared Tailwind input with focus ring, disabled state, and mobile-safe minimum height (~180 tok)
 
 ## apps/web/lib/ai/
 
@@ -630,19 +629,18 @@
 ## apps/web/lib/api/
 
 - `ai.ts` — ── Types ──────────────────────────────────────────────────────────────────── (~1304 tok)
-- `client.ts` - Shared browser API client with Supabase token lookup, friendly errors, FormData handling, and session-expired dispatch (~1450 tok)
-- `guest_requests.ts` - Guest request API types/client including optional assignment fields (~760 tok)
+- `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1283 tok)
+
+## apps/web/lib/hooks/
+
 
 ## apps/web/stores/
 
 
 ## e2e/
 
-- `01-login.spec.ts` - Unauthenticated Playwright login UI, magic-link tab, invalid credential, and redirect tests (~820 tok)
 - `03-housekeeping.spec.ts` — Housekeeping — room board, assignments, inspections sub-routes. (~1020 tok)
-- `16-rbac.spec.ts` - RBAC route-access Playwright smoke tests seeded through helper users; skips without TEST_PASSWORD/RBAC_TEST_PASSWORD (~2100 tok)
-- `auth.setup.ts` - Playwright setup project that logs in GM and writes e2e/.auth/state.json when TEST_PASSWORD is present (~360 tok)
-- `mobile-usability.spec.ts` - Production mobile viewport audit for login and authenticated layout/tap-target checks, gated by TEST_PASSWORD (~2600 tok)
+- `ui-audit.spec.ts` — Comprehensive UI/UX Visual Audit — PatelRep (~2698 tok)
 
 ## e2e/agent-browser/
 
@@ -665,7 +663,3 @@
 - `039_drop_room_status_history_trigger.sql` — Migration 024 failed to apply to this database instance. (~94 tok)
 - `040_dedup_room_status_history.sql` — Remove duplicate room_status_history rows written by the DB trigger. (~164 tok)
 - `041_escalation_level.sql` — ============================================================================= (~443 tok)
-
-## apps/web/lib/hooks/
-
-- `useModalFocusTrap.ts` - Shared modal Escape/Tab focus trap hook (~730 tok)

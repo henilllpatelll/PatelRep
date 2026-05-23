@@ -29,7 +29,9 @@ function GMDashboard() {
     (user?.app_metadata?.full_name as string | undefined) ||
     user?.email ||
     ''
-  const firstName = fullName.split(' ')[0] || fullName.split('@')[0] || 'there'
+  const firstName = fullName.includes('@')
+    ? fullName.split('@')[0]
+    : fullName.split(' ')[0] || 'there'
 
   return (
     <div className="space-y-5">
