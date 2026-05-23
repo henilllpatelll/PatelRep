@@ -557,9 +557,17 @@ export default function PredictionsPage() {
               to see all predictions.
             </p>
           ) : (
-            <p className="text-sm text-gray-500 mt-1 max-w-xs">
-              Predictions run nightly. You can trigger an analysis from the Asset Register.
-            </p>
+            <>
+              <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                AI predictions generate automatically once assets and work orders are added.
+              </p>
+              <a
+                href="/engineering/assets"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 hover:underline transition-colors"
+              >
+                Go to Asset Register
+              </a>
+            </>
           )}
           {!filtersActive && (
             <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">

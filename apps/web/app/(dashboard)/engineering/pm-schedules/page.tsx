@@ -808,13 +808,13 @@ export default function PMSchedulesPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">No PM schedules yet</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Add a schedule to start tracking preventive maintenance.
+                    Create preventive maintenance schedules to keep assets running.
                   </p>
                 </div>
                 {canEdit && (
                   <Button variant="primary" onClick={() => setShowCreateModal(true)}>
                     <Plus size={14} />
-                    Add Schedule
+                    Create Schedule
                   </Button>
                 )}
               </div>
@@ -884,7 +884,7 @@ export default function PMSchedulesPage() {
                         <div>
                           <p className="text-sm font-medium text-gray-600">No PM schedules yet</p>
                           <p className="text-xs text-gray-400 mt-0.5">
-                            Add a schedule to start tracking preventive maintenance.
+                            Create preventive maintenance schedules to keep assets running.
                           </p>
                         </div>
                         <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
@@ -901,7 +901,7 @@ export default function PMSchedulesPage() {
                             onClick={() => setShowCreateModal(true)}
                           >
                             <Plus size={14} />
-                            Add Schedule
+                            Create Schedule
                           </Button>
                         )}
                       </div>

@@ -73,14 +73,14 @@ export function ROIMetricsStrip() {
   const session = useAuthStore(s => s.session)
   const hotelId = getHotelIdFromSession(session?.access_token)
 
-  const { data: summaryData, isLoading: summaryLoading } = useQuery({
-    queryKey: ['daily-summary'],
+  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useQuery({
+    queryKey: ['daily-summary', hotelId],
     queryFn: () => reportsApi.getDailySummary(),
     refetchInterval: 120_000,
-    enabled: !!session,
+    enabled: !!hotelId,
   })
 
-  const { data: statsData, isLoading: statsLoading } = useQuery({
+  const { data: statsData, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['hotel-stats', hotelId],
     queryFn: () => hotelsApi.getStats(hotelId),
     refetchInterval: 120_000,
@@ -88,6 +88,7 @@ export function ROIMetricsStrip() {
   })
 
   const isLoading = summaryLoading || statsLoading
+  const isError = summaryError || statsError
 
   if (isLoading) {
     return (
@@ -95,6 +96,18 @@ export function ROIMetricsStrip() {
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <Card key={i} className="p-4">
+            <p className="text-sm text-stone-400">Unable to load</p>
+          </Card>
+        ))}
       </div>
     )
   }

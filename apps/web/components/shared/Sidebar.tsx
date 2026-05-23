@@ -252,7 +252,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   prefetch={false}
                   onClick={onMobileClose}
                   className={cn(
-                    'block px-2.5 py-2 text-sm rounded-lg transition-colors duration-200',
+                    'flex items-center min-h-[44px] px-2.5 py-2 text-sm rounded-lg transition-colors duration-200',
                     subActive
                       ? 'bg-amber-400/10 text-amber-300 font-semibold'
                       : 'text-[#C4AE98] hover:bg-[#201710] hover:text-[#FEFAF4] cursor-pointer'

@@ -198,7 +198,7 @@ function TaskCard({ task, onOpen, onStatusChange, onEdit, onDelete, updating }: 
               <button
                 onClick={() => onStatusChange(task.id, 'in_progress')}
                 disabled={updating}
-                className="text-xs px-2.5 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="text-xs px-2.5 py-1 bg-amber-400 text-black rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors"
               >
                 Start
               </button>
@@ -584,7 +584,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                   <button
                     onClick={() => onStatusChange(task.id, 'in_progress')}
                     disabled={updating}
-                    className="flex-1 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="flex-1 py-2 text-sm font-medium bg-amber-400 text-black rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors"
                   >
                     Start Task
                   </button>
@@ -796,12 +796,12 @@ function TasksPageContent() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto max-w-full">
+      <div className="flex flex-nowrap gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto max-w-full">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => handleTabChange(tab.value)}
-            className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -818,7 +818,7 @@ function TasksPageContent() {
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
           aria-label="Filter by type"
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+          className="border border-stone-200 rounded-lg px-3 py-2 text-sm bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer"
         >
           <option value="">All Types</option>
           {TASK_TYPES.map((t) => (
@@ -829,7 +829,7 @@ function TasksPageContent() {
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
           aria-label="Filter by priority"
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+          className="border border-stone-200 rounded-lg px-3 py-2 text-sm bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer"
         >
           <option value="">All Priorities</option>
           {PRIORITIES.map((p) => (

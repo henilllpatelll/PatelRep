@@ -152,6 +152,7 @@ export default function WorkOrdersPage() {
         per_page: 50,
       }),
     refetchInterval: 60_000,
+    enabled: !!hotelId,
   })
 
   const workOrders: WorkOrder[] = data?.data ?? []

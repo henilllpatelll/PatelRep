@@ -958,7 +958,7 @@ export default function AssetRegisterPage() {
                         <div className="mx-auto max-w-2xl">
                           <p className="text-sm font-semibold text-gray-700">No assets registered yet</p>
                           <p className="mt-1 text-xs text-gray-400">
-                            Start with the equipment engineers touch every shift.
+                            Add your hotel's equipment to track maintenance history and AI predictions.
                           </p>
                           <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
                             {['HVAC units', 'Laundry equipment', 'Elevators'].map((item) => (

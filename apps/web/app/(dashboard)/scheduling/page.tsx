@@ -876,10 +876,7 @@ function WeekCalendar({
   return (
     <Card className="overflow-hidden p-0">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-4 border-b border-white/60">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-800">Week of {weekLabel}</span>
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end px-5 py-4 border-b border-white/60">
         {/* View toggle */}
         <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm">
           <button
@@ -1245,6 +1242,7 @@ function WeekCalendar({
 export default function SchedulingPage() {
   const { isSupervisor, canManageStaff } = useRole()
   const queryClient = useQueryClient()
+  const { hotel } = useHotelStore()
 
   // ── Local state
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -1271,6 +1269,7 @@ export default function SchedulingPage() {
     queryFn: () => schedulingApi.listShifts({ is_active: undefined }),
     select: (res) => res.data,
     staleTime: 5 * 60_000,
+    enabled: !!hotel?.id,
   })
 
   const staffQuery = useQuery({
@@ -1284,19 +1283,16 @@ export default function SchedulingPage() {
   const assignmentsQuery = useQuery({
     queryKey: ['schedules-assignments', dateFrom, dateTo],
     queryFn: async () => {
-      // Fetch all 7 days — we pass no date filter (the API gets filtered by work_date)
-      // We fetch once per day for the week, or use a range if the API supports it
-      // Since the API takes a single work_date, we request each day or rely on all-assignments
       const res = await schedulingApi.listAssignments({})
       return res
     },
     select: (res) => {
-      // Filter client-side to the visible week
       return res.data.filter(
         (a) => a.work_date >= dateFrom && a.work_date <= dateTo,
       )
     },
     staleTime: 60_000,
+    enabled: !!hotel?.id,
   })
 
   const shifts = shiftsQuery.data ?? []
@@ -1318,7 +1314,7 @@ export default function SchedulingPage() {
   return (
     <div className="space-y-5">
       {/* ── Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Scheduling</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -1332,6 +1328,7 @@ export default function SchedulingPage() {
               setAssignModalDate(undefined)
               setShowAssignModal(true)
             }}
+            className="whitespace-nowrap self-start sm:self-auto"
           >
             <Plus size={15} />
             Assign Staff

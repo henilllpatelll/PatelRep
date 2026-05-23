@@ -200,7 +200,7 @@ function ItemCard({
               </button>
               <button
                 onClick={() => onQuickUpdate(item.id, 'donated')}
-                className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-medium hover:bg-purple-100 transition-colors"
+                className="px-3 py-1.5 border border-stone-300 text-stone-600 rounded-lg text-xs font-medium hover:bg-stone-50 transition-colors"
               >
                 Donate
               </button>

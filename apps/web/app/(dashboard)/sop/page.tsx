@@ -105,7 +105,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       </p>
       <button
         onClick={onUpload}
-        className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+        className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-amber-400 rounded-lg hover:bg-amber-500 transition-colors"
       >
         <Upload size={15} />
         Upload your first SOP

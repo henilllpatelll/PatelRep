@@ -203,6 +203,9 @@ function DailySummaryTab() {
         )}
       </div>
 
+      {/* Housekeeping summary note */}
+      <p className="text-sm text-stone-500 mt-2">Staff performance and maintenance data populate as tasks are completed and work orders are closed.</p>
+
       {/* Task + WO stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {isLoading ? (
@@ -331,7 +334,8 @@ function StaffPerformanceTab() {
         !isLoading && (
           <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
             <Users className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">No staff data for this period.</p>
+            <p className="mt-2 text-sm font-medium text-gray-600">No staff performance data yet</p>
+            <p className="mt-1 text-sm text-gray-400">Assign tasks and mark them complete to generate staff performance data.</p>
           </div>
         )
       )}
@@ -590,7 +594,8 @@ function AIUsageTab() {
         !isLoading && (
           <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
             <Zap className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm text-gray-500">No AI usage data for this period.</p>
+            <p className="mt-2 text-sm font-medium text-gray-600">No AI usage data yet</p>
+            <p className="mt-1 text-sm text-gray-400">Use the AI Copilot to create tasks or query SOPs — usage will appear here.</p>
           </div>
         )
       )}

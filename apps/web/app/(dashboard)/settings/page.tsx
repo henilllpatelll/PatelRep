@@ -950,10 +950,10 @@ export default function SettingsPage() {
               <select
                 id="settings-timezone"
                 {...register('timezone')}
-                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:border-transparent transition-colors appearance-none cursor-pointer ${
                   errors.timezone
                     ? 'border-red-300 focus:ring-red-500'
-                    : 'border-amber-200/40 hover:border-amber-200 focus:ring-amber-400/50 focus:border-amber-200'
+                    : 'border-stone-200 hover:border-amber-200 focus:ring-amber-400'
                 }`}
               >
                 {US_TIMEZONES.map(({ value, label }) => (

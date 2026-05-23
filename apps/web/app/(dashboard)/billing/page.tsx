@@ -55,7 +55,7 @@ function StatusBadge({ status }: { status: Subscription['plan_status'] }) {
 function creditBarColor(pct: number): string {
   if (pct > 95) return 'bg-red-500'
   if (pct > 80) return 'bg-orange-500'
-  return 'bg-blue-500'
+  return 'bg-amber-400'
 }
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────────
@@ -126,10 +126,15 @@ export default function BillingPage() {
       ? Math.round((creditsUsed / creditsIncluded) * 100)
       : 0
 
-  // Period display (e.g. "2026-03" → "March 2026")
-  const periodLabel = creditData?.period
-    ? format(new Date(`${creditData.period}-01`), 'MMMM yyyy')
-    : ''
+  // Period display — use period field (e.g. "2026-05") formatted as "May 2026", fall back to "Current Period"
+  const periodLabel = (() => {
+    const raw = (creditData as any)?.period_start ?? creditData?.period
+    if (!raw) return 'Current Period'
+    try {
+      const d = raw.length === 7 ? new Date(`${raw}-01`) : new Date(raw)
+      return d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+    } catch { return 'Current Period' }
+  })()
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -238,7 +243,7 @@ export default function BillingPage() {
                   ? 'text-red-600'
                   : creditPct > 80
                   ? 'text-orange-600'
-                  : 'text-blue-600'
+                  : 'text-amber-600'
               }`}
             >
               {creditPct}%

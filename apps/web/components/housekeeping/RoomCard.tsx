@@ -161,19 +161,26 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
         )}
       </div>
 
-      {/* Middle row: status badge */}
-      <div className="flex items-center gap-1">
-        <Badge
-          variant={(STATUS_TO_BADGE_VARIANT[status] ?? 'default') as any}
-          className="text-xs px-1.5 py-0"
-        >
-          {STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')}
-        </Badge>
-        {isHighRisk && (
-          <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
-        )}
-        {isMediumRisk && !isHighRisk && (
-          <AlertTriangle className="w-3 h-3 text-orange-400 shrink-0" />
+      {/* Middle row: status badge + room type */}
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-1">
+          <Badge
+            variant={(STATUS_TO_BADGE_VARIANT[status] ?? 'default') as any}
+            className="text-xs px-1.5 py-0"
+          >
+            {STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')}
+          </Badge>
+          {isHighRisk && (
+            <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
+          )}
+          {isMediumRisk && !isHighRisk && (
+            <AlertTriangle className="w-3 h-3 text-orange-400 shrink-0" />
+          )}
+        </div>
+        {room.rooms?.room_types?.name && (
+          <span className="text-xs text-stone-500 leading-tight truncate">
+            {room.rooms.room_types.name}
+          </span>
         )}
       </div>
 
@@ -226,7 +233,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'DIRTY' && canSupervise && (
             <button
-              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-stone-600 font-medium border border-white/90 hover:bg-white/90 hover:underline transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Reassign
@@ -242,7 +249,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'CLEAN' && canSupervise && (
             <button
-              className="text-xs px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 hover:underline transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Inspect
@@ -250,7 +257,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'INSPECTED' && (
             <button
-              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="text-xs px-1.5 py-0.5 rounded bg-white/70 text-stone-600 font-medium border border-white/90 hover:bg-white/90 hover:underline transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Details
@@ -258,7 +265,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           )}
           {status === 'OOO' && (
             <button
-              className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-white/70 text-gray-700 font-medium border border-white/90 hover:bg-white/90 transition-colors"
+              className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-white/70 text-stone-600 font-medium border border-white/90 hover:bg-white/90 hover:underline transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               <Wrench className="w-2.5 h-2.5" />

@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
+  const user = useAuthStore((state) => state.user)
   const [greeting, setGreeting] = useState('Good morning')
   useEffect(() => {
     const h = new Date().getHours()
@@ -22,12 +23,23 @@ function GMDashboard() {
     else if (h < 18) setGreeting('Good afternoon')
     else setGreeting('Good evening')
   }, [])
+
+  const fullName: string =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.app_metadata?.full_name as string | undefined) ||
+    user?.email ||
+    ''
+  const firstName = fullName.split(' ')[0] || fullName.split('@')[0] || 'there'
+
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          {greeting}{hotel ? `, ${hotel.name}` : ''}!
+          {greeting}, {firstName}!
         </h1>
+        {hotel && (
+          <p className="text-sm text-stone-500 mt-0.5">{hotel.name}</p>
+        )}
         <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>

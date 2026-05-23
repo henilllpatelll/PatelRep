@@ -4,6 +4,16 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { reportsApi } from '@/lib/api/reports'
 import { format, subDays } from 'date-fns'
 import { Card } from '@/components/ui/Card'
+import { useAuthStore } from '@/stores/authStore'
+
+function getHotelIdFromSession(accessToken: string | undefined): string {
+  if (!accessToken) return ''
+  try {
+    return JSON.parse(atob(accessToken.split('.')[1]))?.hotel_id ?? ''
+  } catch {
+    return ''
+  }
+}
 
 function today(): string {
   return format(new Date(), 'yyyy-MM-dd')
@@ -56,17 +66,21 @@ function SLAGauge({ pct }: { pct: number }) {
 export function TrendChartsRow() {
   const start = thirtyDaysAgo()
   const end = today()
+  const session = useAuthStore(s => s.session)
+  const hotelId = getHotelIdFromSession(session?.access_token)
 
-  const { data: maintenanceData, isLoading: maintLoading } = useQuery({
-    queryKey: ['maintenance-report', start, end],
+  const { data: maintenanceData, isLoading: maintLoading, isError: maintError } = useQuery({
+    queryKey: ['maintenance-report', start, end, hotelId],
     queryFn: () => reportsApi.getMaintenance({ start_date: start, end_date: end }),
     refetchInterval: 120_000,
+    enabled: !!hotelId,
   })
 
-  const { data: staffData, isLoading: staffLoading } = useQuery({
-    queryKey: ['staff-performance', start, end],
+  const { data: staffData, isLoading: staffLoading, isError: staffError } = useQuery({
+    queryKey: ['staff-performance', start, end, hotelId],
     queryFn: () => reportsApi.getStaffPerformance({ start_date: start, end_date: end }),
     refetchInterval: 120_000,
+    enabled: !!hotelId,
   })
 
   if (maintLoading || staffLoading) {
@@ -74,6 +88,19 @@ export function TrendChartsRow() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SkeletonChart />
         <SkeletonChart />
+      </div>
+    )
+  }
+
+  if (maintError || staffError) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <p className="text-sm text-stone-400">Unable to load</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm text-stone-400">Unable to load</p>
+        </Card>
       </div>
     )
   }

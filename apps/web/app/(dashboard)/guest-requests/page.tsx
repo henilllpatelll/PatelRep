@@ -153,7 +153,7 @@ function GuestRequestCard({
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'in_progress')}
-                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-amber-400 text-black rounded-lg text-xs font-medium hover:bg-amber-500 transition-colors disabled:opacity-50"
                   >
                     Start
                   </button>
@@ -755,7 +755,7 @@ function GuestRequestsPageContent() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((request) => (
             <GuestRequestCard
               key={request.id}

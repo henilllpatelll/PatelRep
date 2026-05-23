@@ -113,7 +113,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
 
   return (
     <div className="relative mb-4">
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
       {STATUS_CHIPS.map((chip) => {
         const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
         const isActive = statusFilter === chip.key
@@ -122,7 +122,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
             key={chip.key ?? 'all'}
             onClick={() => onFilter(chip.key)}
             aria-pressed={isActive}
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               isActive
                 ? `${chip.activeBg} ${chip.activeText}`
                 : chip.inactiveBg
@@ -147,7 +147,7 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
         <button
           onClick={onToggleRisk}
           aria-pressed={showRiskOnly}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
             showRiskOnly
               ? 'bg-orange-500 text-white'
               : 'bg-orange-50 text-orange-700 hover:bg-orange-100'

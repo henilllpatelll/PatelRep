@@ -208,7 +208,7 @@ export default function InspectionsPage() {
                     <td className="px-4 py-3 font-medium text-gray-900">
                       Room {row.room_number}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{row.inspector_name}</td>
+                    <td className="px-4 py-3 text-gray-700">{row.inspector_name || 'Unknown'}</td>
                     <td className="px-4 py-3">{resultBadge(row.overall_result)}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {format(parseISO(row.completed_at), 'MMM d, yyyy h:mm a')}

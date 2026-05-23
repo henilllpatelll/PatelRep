@@ -22,6 +22,7 @@ import {
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { usePathname } from 'next/navigation'
 
 type MessageRole = 'user' | 'ai'
 
@@ -225,6 +226,8 @@ const QUICK_ACTIONS_BY_ROLE: Record<string, string[]> = {
 const DEFAULT_QUICK_ACTIONS = ['At-risk rooms today', 'Open work orders', 'Create task']
 
 export function AICopilotBubble() {
+  const pathname = usePathname()
+
   const INITIAL_MSG: ChatMessage = {
     id: generateId(), role: 'ai',
     content: "Hi! I'm your AI Copilot. Tell me about a task, ask about operations, or request insights.",
@@ -238,6 +241,8 @@ export function AICopilotBubble() {
   const queryClient = useQueryClient()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
+
+  if (pathname === '/ai') return null
 
   // localStorage shift history
   const historyKey = user?.id ? `copilot-shift-${user.id}-${format(new Date(), 'yyyy-MM-dd')}` : null

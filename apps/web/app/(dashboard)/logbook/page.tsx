@@ -177,7 +177,7 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {entry.is_ai_generated && (
-            <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-200 rounded font-medium">
+            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded font-medium">
               AI
             </span>
           )}
@@ -244,31 +244,42 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
   if (!isSupervisor) return null
 
   return (
-    <div className="rounded-xl border border-purple-200 bg-purple-50 overflow-hidden">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-100 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-100 transition-colors"
       >
-        <div className="flex items-center gap-2.5">
-          <Sparkles size={16} className="text-purple-600 shrink-0" />
-          <span className="text-sm font-semibold text-purple-800">Today's AI Shift Summary</span>
-          <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 border border-purple-200 rounded font-medium">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Sparkles size={16} className="text-amber-500 shrink-0" />
+          <span className="text-sm font-semibold text-amber-800">Today's AI Shift Summary</span>
+          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-600 border border-amber-200 rounded font-medium">
             AI
           </span>
+          {!isOpen && (
+            summaryText ? (
+              <span className="text-xs text-stone-500 truncate hidden sm:inline">
+                {summaryText.slice(0, 80)}{summaryText.length > 80 ? '…' : ''}
+              </span>
+            ) : (
+              <span className="text-xs text-stone-400 hidden sm:inline">
+                Generates at shift end (7 AM · 3 PM · 11 PM)
+              </span>
+            )
+          )}
         </div>
         {isOpen ? (
-          <ChevronUp size={16} className="text-purple-500" />
+          <ChevronUp size={16} className="text-amber-500 shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-purple-500" />
+          <ChevronDown size={16} className="text-amber-500 shrink-0" />
         )}
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-4 border-t border-purple-200">
+        <div className="px-4 pb-4 border-t border-amber-200">
           {summaryText ? (
             <div className="mt-3 space-y-3">
               {stats && (
-                <div className="flex items-center gap-4 text-xs text-purple-700">
+                <div className="flex items-center gap-4 text-xs text-amber-700">
                   <span>
                     <span className="font-semibold">{stats.tasks_completed}</span> tasks completed
                   </span>
@@ -277,7 +288,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   </span>
                 </div>
               )}
-              <div className="bg-white rounded-lg border border-purple-200 p-4">
+              <div className="bg-white rounded-lg border border-amber-200 p-4">
                 <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {summaryText}
                 </p>
@@ -289,7 +300,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   generateMutation.mutate()
                 }}
                 disabled={generateMutation.isPending}
-                className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 font-medium disabled:opacity-50 transition-colors"
               >
                 <Sparkles size={12} />
                 Regenerate
@@ -297,7 +308,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
             </div>
           ) : (
             <div className="mt-3 space-y-3">
-              <p className="text-sm text-purple-700">
+              <p className="text-sm text-amber-700">
                 Generate an AI-powered shift handoff summary based on today's logbook entries, completed tasks, and open work orders.
               </p>
               {generateError && (
@@ -309,7 +320,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
               <button
                 onClick={() => generateMutation.mutate()}
                 disabled={generateMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {generateMutation.isPending ? (
                   <>
