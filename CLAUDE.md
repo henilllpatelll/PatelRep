@@ -39,19 +39,30 @@ PatelRep/
 │   │   ├── main.py       App factory + router registry (add new domains here)
 │   │   ├── core/         config.py (Pydantic Settings), database.py (Supabase singleton)
 │   │   ├── routers/      21 domain files — one per domain, most business logic lives here
-│   │   ├── services/     ai/, opera/ only — keep other logic in routers until it clearly needs extraction
+│   │   ├── services/     ai/, opera/, policy.py — keep other logic in routers until shared 2+ domains
 │   │   ├── models/       Pydantic request/response schemas only
 │   │   └── middleware/   auth.py (JWT validation), credits.py (AI credit gate per-route)
 │   ├── web/              Next.js 14 App Router (Railway, Dockerfile)
-│   │   ├── app/(auth)/   Unauthenticated routes (login, magic link)
-│   │   ├── app/(dashboard)/ 15 feature sections (authenticated)
+│   │   ├── app/(auth)/   Unauthenticated routes (login)
+│   │   ├── app/(dashboard)/ 16 feature sections (authenticated)
 │   │   ├── components/   ai/, dashboard/, engineering/, housekeeping/, shared/, ui/
+│   │   │                 dashboard/ has role-specific views: HousekeeperDashboard, SupervisorDashboard,
+│   │   │                 EngineerDashboard, ChiefEngineerDashboard, FrontDeskDashboard
 │   │   ├── lib/api/      Typed API clients per domain (housekeepingApi, staffApi, …)
-│   │   ├── lib/hooks/    React Query hooks
+│   │   ├── lib/hooks/    useAuth, useRole, useCountUp, useModalFocusTrap
+│   │   ├── lib/ai/       clientFastPath.ts — client-side AI fast-path helpers
+│   │   ├── lib/supabase/ Supabase client helpers
+│   │   ├── lib/utils/    Shared utilities (avatar, etc.)
 │   │   ├── stores/       Zustand: authStore, hotelStore, housekeepingStore, engineeringStore
 │   │   └── middleware.ts Route guard → /login (no session) or /onboarding (no hotel_id)
-├── supabase/migrations/  001–025 sequential SQL — schema source of truth
-├── spec/                 14 markdown specs — requirements source of truth
+│   └── mobile/           Expo React Native (EAS build, iOS + Android)
+│       ├── app/(auth)/   Login screen
+│       ├── app/(app)/    Authenticated screens: copilot, my-rooms, profile, tasks, work-orders
+│       ├── components/   housekeeping/, shared/
+│       ├── lib/api/      client.ts, workOrders.ts
+│       ├── stores/       appStore.ts
+│       └── i18n/         Localization
+├── supabase/migrations/  001–041 sequential SQL — schema source of truth
 ├── .planning/            GSD: STATE.md, ROADMAP.md, phases/
 └── railway.toml          Two services: api + web (both Dockerfile)
 ```
@@ -114,7 +125,7 @@ Auth: Zustand `authStore` + `useAuth` hook. Server data: React Query. Real-time:
 Supabase Realtime subscriptions only on three surfaces: Housekeeping Breakout Board, Engineering Work Orders, AI Service Recovery alerts. Standard screens (Tasks, SOP Library) use pull-to-refresh — no WebSocket.
 
 ### Services layer depth (A1)
-Keep business logic in domain routers. Only extract to `services/` when logic is shared across 2+ domains. Current exceptions: `services/ai/`, `services/opera/`. Flat architecture preserves AI context window.
+Keep business logic in domain routers. Only extract to `services/` when logic is shared across 2+ domains. Current exceptions: `services/ai/`, `services/opera/`, `services/policy.py`. Flat architecture preserves AI context window.
 
 ### AI credit accounting (A3)
 Middleware must log **actual token usage** from API responses — never fixed costs. Dynamic routing between GPT-4o-mini and Claude models means fixed estimates will bleed money. Monthly Stripe true-up depends on this log.
@@ -130,8 +141,8 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 - `room_assignments`: `assigned_to` (housekeeper UUID), `assignment_date` (DATE)
 - `room_status` join: `rooms!inner(id, room_number, floor, room_type_id, room_types(name, code, base_clean_minutes))`
 - `housekeeper_profiles`: rolling avg clean time per housekeeper × room_type
-- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime on housekeeping/engineering tables
-- Note: two files share the `020` prefix (`020_fix_credits_decimal.sql`, `020_logbook_expires.sql`) — numbering collision in the sequence
+- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime, 026 = front_desk_modules, 027 = staff_role_schedules, 028/029 = custom_roles, 030 = realtime_work_orders, 033 = realtime_room_status + lost_found_contact, 034 = opera_oauth_states, 035 = enable_rls_missing_tables, 038 = FK indexes, 041 = escalation_level
+- Numbering collisions: `020_fix_credits_decimal.sql` / `0201_logbook_expires.sql` (note: second file uses `0201`, not `020`); two `039` files (`039_drop_room_status_history_trigger.sql` / `039_drop_unused_indexes.sql`)
 
 ---
 
@@ -177,3 +188,4 @@ API service: `3d6e22bc-bc67-4a8e-b88e-5d983573922a` · web service: `8ed9664c-92
 Domain skills inject automatically by file path:
 - `apps/api/**` → `patelrep-api` skill (FastAPI patterns)
 - `apps/web/**` → `patelrep-web` skill (Next.js 14 patterns)
+- `apps/mobile/**` → `patelrep-mobile` skill (Expo React Native patterns)
