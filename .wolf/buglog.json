@@ -698,6 +698,57 @@
             ],
             "occurrences": 1,
             "last_seen": "2026-05-23T04:21:05.978Z"
+        },
+        {
+            "id": "bug-044",
+            "timestamp": "2026-05-23T04:57:06.572Z",
+            "error_message": "AI Copilot cancel left the pending Confirm & Create preview controls visible",
+            "file": "apps/web/app/(dashboard)/ai/page.tsx, apps/web/components/ai/AICopilotBubble.tsx",
+            "root_cause": "Cancel only appended a cancelled chat message and did not clear responseData from the preview message, so the preview renderer kept mounting confirmation controls.",
+            "fix": "Changed cancel handlers to accept the source message id, clear that message responseData, and append the cancellation acknowledgement in both AI Copilot surfaces.",
+            "tags": [
+                "ai-copilot",
+                "cancel",
+                "frontend",
+                "playwright"
+            ],
+            "related_bugs": [],
+            "occurrences": 1,
+            "last_seen": "2026-05-23T04:57:06.572Z"
+        },
+        {
+            "id": "bug-045",
+            "timestamp": "2026-05-23T04:57:06.572Z",
+            "error_message": "TypeScript error after first cancel-handler patch: onCancel callback type was applied to the inner ConfirmView button prop",
+            "file": "apps/web/components/ai/AICopilotBubble.tsx",
+            "root_cause": "The parent AiMessage callback needs a message id, but the child ConfirmView onCancel prop is a zero-argument button handler.",
+            "fix": "Restored ConfirmViewProps.onCancel to () => void and kept AiMessageProps.onCancel as (messageId: string) => void.",
+            "tags": [
+                "typescript",
+                "ai-copilot",
+                "callback-types"
+            ],
+            "related_bugs": [
+                "bug-044"
+            ],
+            "occurrences": 1,
+            "last_seen": "2026-05-23T04:57:06.572Z"
+        },
+        {
+            "id": "bug-046",
+            "timestamp": "2026-05-23T04:57:06.572Z",
+            "error_message": "AI Copilot Playwright heading test failed strict mode because text locator matched both h1 and intro copy",
+            "file": "e2e/13-ai-copilot.spec.ts",
+            "root_cause": "The test used getByText(\"AI Copilot\") scoped to main, but both the page heading and welcome message contain that phrase.",
+            "fix": "Changed the assertion to target getByRole(\"heading\", { name: \"AI Copilot\" }).",
+            "tags": [
+                "playwright",
+                "test-maintenance",
+                "ai-copilot"
+            ],
+            "related_bugs": [],
+            "occurrences": 1,
+            "last_seen": "2026-05-23T04:57:06.572Z"
         }
     ]
 }

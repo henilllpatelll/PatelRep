@@ -117,7 +117,7 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
   onConfirmWorkOrders: (wos: WorkOrderPreview[]) => Promise<void>
   onConfirmGuestRequests: (reqs: GuestRequestPreview[]) => Promise<void>
   onConfirmAssignments: (assignments: AssignmentPreview[]) => Promise<void>
-  onCancel: () => void
+  onCancel: (messageId: string) => void
   onResendWithHint: (msg: string, hint: string) => void
   originalUserMessage: string
 }) {
@@ -130,13 +130,13 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
       <div className="flex-1 bg-stone-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-stone-800 max-w-2xl">
         <p>{msg.content}</p>
         {d?.response_type === 'task_preview' && (
-          <TaskConfirmView data={d as TaskPreviewResponse} onConfirm={onConfirmTasks} onCancel={onCancel} />
+          <TaskConfirmView data={d as TaskPreviewResponse} onConfirm={onConfirmTasks} onCancel={() => onCancel(msg.id)} />
         )}
         {d?.response_type === 'work_order_preview' && (
           <ConfirmView
             items={(d as WorkOrderPreviewResponse).work_orders}
             onConfirm={() => onConfirmWorkOrders((d as WorkOrderPreviewResponse).work_orders)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(wo, i) => <WorkOrderCard key={i} wo={wo} />}
             label={`${(d as WorkOrderPreviewResponse).work_orders.length} work order${(d as WorkOrderPreviewResponse).work_orders.length !== 1 ? 's' : ''} created.`}
           />
@@ -145,7 +145,7 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
           <ConfirmView
             items={(d as GuestRequestPreviewResponse).requests}
             onConfirm={() => onConfirmGuestRequests((d as GuestRequestPreviewResponse).requests)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(req, i) => <GuestRequestCard key={i} req={req} />}
             label={`${(d as GuestRequestPreviewResponse).requests.length} guest request${(d as GuestRequestPreviewResponse).requests.length !== 1 ? 's' : ''} logged.`}
           />
@@ -154,7 +154,7 @@ function AiMessage({ msg, onConfirmTasks, onConfirmWorkOrders, onConfirmGuestReq
           <ConfirmView
             items={(d as AssignmentPreviewResponse).assignments}
             onConfirm={() => onConfirmAssignments((d as AssignmentPreviewResponse).assignments)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(a, i) => <AssignmentCard key={i} assignment={a} />}
             label="Assignments saved."
           />
@@ -361,7 +361,12 @@ export default function AICopilotPage() {
     queryClient.invalidateQueries({ queryKey: ['assignments'] })
   }
 
-  const handleCancel = () => addAiMsg('No problem — cancelled.')
+  const handleCancel = (messageId: string) => {
+    setMessages((prev) => [
+      ...prev.map((msg) => (msg.id === messageId ? { ...msg, responseData: undefined } : msg)),
+      { id: genId(), role: 'ai', content: 'No problem — cancelled.' },
+    ])
+  }
 
   const handleResendWithHint = (original: string, hint: string) =>
     sendMessage(original, { intent_hint: hint })

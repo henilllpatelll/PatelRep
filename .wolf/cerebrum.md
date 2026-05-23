@@ -184,3 +184,5 @@
 - 2026-05-22 Key Learning: FRONTEND_AUDIT.md is not fully closed as of this verification pass; remaining source-level gaps include AICopilotBubble gray palette/partial duplicate AI components, Header dropdown focus trapping, and inconsistent Escape/focus-trap coverage on later modals.
 
 - 2026-05-22 Key Learning: Shared modal keyboard behavior now lives in apps/web/lib/hooks/useModalFocusTrap.ts; use it for custom dialogs so Escape and Tab focus trapping stay consistent.
+
+- **AI Copilot cancel preview cleanup (2026-05-23):** Cancel actions must clear the source AI message `responseData` in both `apps/web/app/(dashboard)/ai/page.tsx` and `apps/web/components/ai/AICopilotBubble.tsx`; only appending a cancellation message leaves stale Confirm & Create controls mounted and persisted in localStorage.

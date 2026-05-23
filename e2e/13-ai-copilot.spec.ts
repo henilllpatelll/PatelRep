@@ -15,11 +15,18 @@ test.describe('AI Copilot', () => {
   })
 
   test('shows AI Copilot heading', async ({ page }) => {
-    // Scope to main content area to avoid sidebar/header duplicates
-    await expect(page.getByRole('main').getByText('AI Copilot')).toBeVisible()
+    await expect(page.getByRole('main').getByRole('heading', { name: 'AI Copilot' })).toBeVisible()
   })
 
-  test('shows coming soon message', async ({ page }) => {
-    await expect(page.getByText(/coming soon/i)).toBeVisible()
+  test('cancel hides pending creation controls', async ({ page }) => {
+    await page.getByLabel('Message the AI Copilot').fill('Room 101 needs towels')
+    await page.getByRole('button', { name: 'Send message' }).click()
+
+    await expect(page.getByRole('button', { name: 'Confirm & Create' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(page.getByRole('button', { name: 'Confirm & Create' })).toHaveCount(0)
+    await expect(page.getByText(/cancelled/i)).toBeVisible()
   })
 })

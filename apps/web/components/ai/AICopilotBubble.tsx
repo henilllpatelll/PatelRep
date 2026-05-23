@@ -144,7 +144,7 @@ interface AiMessageProps {
   onConfirmWorkOrders: (wos: WorkOrderPreview[]) => Promise<void>
   onConfirmGuestRequests: (reqs: GuestRequestPreview[]) => Promise<void>
   onConfirmAssignments: (assignments: AssignmentPreview[]) => Promise<void>
-  onCancel: () => void
+  onCancel: (messageId: string) => void
   onResendWithHint: (originalMsg: string, hint: string) => void
   originalUserMessage: string
 }
@@ -159,13 +159,13 @@ function AiMessageBubble({
       <div className="max-w-[90%] bg-stone-100 text-stone-800 px-3 py-2 rounded-xl text-sm">
         <p>{msg.content}</p>
         {d?.response_type === 'task_preview' && (
-          <TaskConfirmView data={d as TaskPreviewResponse} onConfirm={onConfirmTasks} onCancel={onCancel} />
+          <TaskConfirmView data={d as TaskPreviewResponse} onConfirm={onConfirmTasks} onCancel={() => onCancel(msg.id)} />
         )}
         {d?.response_type === 'work_order_preview' && (
           <ConfirmView
             items={(d as WorkOrderPreviewResponse).work_orders}
             onConfirm={() => onConfirmWorkOrders((d as WorkOrderPreviewResponse).work_orders)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(wo, i) => <WorkOrderCard key={i} wo={wo} />}
             confirmLabel={`${(d as WorkOrderPreviewResponse).work_orders.length} work order${(d as WorkOrderPreviewResponse).work_orders.length !== 1 ? 's' : ''} created.`}
           />
@@ -174,7 +174,7 @@ function AiMessageBubble({
           <ConfirmView
             items={(d as GuestRequestPreviewResponse).requests}
             onConfirm={() => onConfirmGuestRequests((d as GuestRequestPreviewResponse).requests)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(req, i) => <GuestRequestCard key={i} req={req} />}
             confirmLabel={`${(d as GuestRequestPreviewResponse).requests.length} guest request${(d as GuestRequestPreviewResponse).requests.length !== 1 ? 's' : ''} logged.`}
           />
@@ -183,7 +183,7 @@ function AiMessageBubble({
           <ConfirmView
             items={(d as AssignmentPreviewResponse).assignments}
             onConfirm={() => onConfirmAssignments((d as AssignmentPreviewResponse).assignments)}
-            onCancel={onCancel}
+            onCancel={() => onCancel(msg.id)}
             renderItem={(a, i) => <AssignmentCard key={i} assignment={a} />}
             confirmLabel="Assignments saved."
           />
@@ -320,8 +320,11 @@ export function AICopilotBubble() {
     queryClient.invalidateQueries({ queryKey: ['assignments'] })
   }
 
-  const handleCancel = () =>
-    setMessages((prev) => [...prev, { id: generateId(), role: 'ai', content: 'No problem — cancelled.' }])
+  const handleCancel = (messageId: string) =>
+    setMessages((prev) => [
+      ...prev.map((msg) => (msg.id === messageId ? { ...msg, responseData: undefined } : msg)),
+      { id: generateId(), role: 'ai', content: 'No problem — cancelled.' },
+    ])
 
   const handleResendWithHint = (originalMsg: string, intentHint: string) =>
     sendMessage(originalMsg, { intent_hint: intentHint })

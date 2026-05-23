@@ -1513,3 +1513,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:55 | completed cleanup pass after pass 2 fixes | apps/web/app; apps/web/components/ai/SOPQueryModal.tsx; .wolf/buglog.json; .wolf/cerebrum.md | removed stale suppressions, native alert, undefined brand tokens; checks passed; dev server stopped | ~9000 |
 | 22:57 | Checked FRONTEND_AUDIT.md completion status against frontend source and ran web lint/type-check | FRONTEND_AUDIT.md, apps/web | Not fully complete; checks passed | ~6k |
 | 23:21 | Completed remaining FRONTEND_AUDIT.md frontend fixes and final web verification | apps/web, .wolf/anatomy.md | type-check, lint, and build passed | ~12k |
+| 23:55 | Fixed AI Copilot cancel preview cleanup | apps/web/app/(dashboard)/ai/page.tsx, apps/web/components/ai/AICopilotBubble.tsx, e2e/13-ai-copilot.spec.ts | Cancel now clears pending responseData; type-check/lint/build and AI Playwright spec pass | ~2500 |
