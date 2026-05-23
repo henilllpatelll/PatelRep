@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
+import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
@@ -30,11 +30,21 @@ function StatusBadge({ status }: { status: string }) {
 function RoomMobileCard({
   room,
   canEdit,
+  canDelete,
   onEdit,
+  onDelete,
+  confirmingDelete,
+  onConfirmDelete,
+  onCancelDelete,
 }: {
   room: RoomStatus
   canEdit: boolean
+  canDelete: boolean
   onEdit: () => void
+  onDelete: () => void
+  confirmingDelete: boolean
+  onConfirmDelete: () => void
+  onCancelDelete: () => void
 }) {
   const assigneeName =
     room.user_profiles?.preferred_name ||
@@ -64,14 +74,35 @@ function RoomMobileCard({
           <dd className="mt-1 truncate text-gray-700">{assigneeName ?? 'Unassigned'}</dd>
         </div>
       </dl>
-      {canEdit && (
-        <Button
-          variant="secondary"
-          className="mt-4 w-full"
-          onClick={onEdit}
-        >
-          Edit Room
-        </Button>
+      {(canEdit || canDelete) && (
+        <div className="mt-4 flex gap-2">
+          {canEdit && (
+            <Button variant="secondary" className="flex-1" onClick={onEdit}>
+              Edit Room
+            </Button>
+          )}
+          {canDelete && !confirmingDelete && (
+            <Button variant="ghost" className="px-3 text-red-500 hover:bg-red-50" onClick={onDelete}>
+              <Trash2 size={14} />
+            </Button>
+          )}
+          {canDelete && confirmingDelete && (
+            <>
+              <button
+                onClick={onConfirmDelete}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={onCancelDelete}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   )
@@ -488,13 +519,22 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
 export default function RoomsPage() {
   const queryClient = useQueryClient()
-  const { role } = useRole()
+  const { role, canAssignRooms } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const [floorFilter, setFloorFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const deleteMutation = useMutation({
+    mutationFn: (roomId: string) => roomsApi.deleteRoom(roomId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      setConfirmDeleteId(null)
+    },
+  })
 
   async function handleStatusChange(roomId: string, newStatus: string) {
     await housekeepingApi.updateRoomStatus(roomId, newStatus)
@@ -657,7 +697,12 @@ export default function RoomsPage() {
                 key={room.room_id}
                 room={room}
                 canEdit={!isHousekeeper}
+                canDelete={canAssignRooms}
                 onEdit={() => setSelectedRoom(room)}
+                onDelete={() => setConfirmDeleteId(room.room_id)}
+                confirmingDelete={confirmDeleteId === room.room_id}
+                onConfirmDelete={() => deleteMutation.mutate(room.room_id)}
+                onCancelDelete={() => setConfirmDeleteId(null)}
               />
             ))}
           </div>
@@ -680,7 +725,7 @@ export default function RoomsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     Assigned To
                   </th>
-                  {!isHousekeeper && (
+                  {(!isHousekeeper || canAssignRooms) && (
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">
                       Actions
                     </th>
@@ -712,15 +757,45 @@ export default function RoomsPage() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      {!isHousekeeper && (
+                      {(!isHousekeeper || canAssignRooms) && (
                         <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="secondary"
-                            className="px-3 py-1 text-xs"
-                            onClick={() => setSelectedRoom(room)}
-                          >
-                            Edit
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            {!isHousekeeper && (
+                              <Button
+                                variant="secondary"
+                                className="px-3 py-1 text-xs"
+                                onClick={() => setSelectedRoom(room)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {canAssignRooms && confirmDeleteId !== room.room_id && (
+                              <button
+                                onClick={() => setConfirmDeleteId(room.room_id)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
+                                title="Delete room"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                            {canAssignRooms && confirmDeleteId === room.room_id && (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => deleteMutation.mutate(room.room_id)}
+                                  disabled={deleteMutation.isPending}
+                                  className="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="px-2 py-1 rounded text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>

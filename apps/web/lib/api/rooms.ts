@@ -78,6 +78,9 @@ export const roomsApi = {
   getHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
 
+  deleteRoom: (roomId: string) =>
+    apiClient.delete(`/rooms/${roomId}`),
+
   importRooms: (rooms: ImportRoomPayload[]) =>
     apiClient.post('/rooms/import', { source: 'manual', rooms }),
 

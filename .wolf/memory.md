@@ -1534,3 +1534,85 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-05-23 17:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-23 18:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:06 | Created e2e/ui-audit.spec.ts | — | ~2698 |
+| 18:07 | Session end: 1 writes across 1 files (ui-audit.spec.ts) | 3 reads | ~4978 tok |
+| 18:20 | Created UI_UX_FIXES_BACKLOG.md | — | ~5896 |
+
+| 18:20 | UI/UX visual audit — Playwright crawl of 20 authenticated routes, desktop + mobile screenshots, wrote UI_UX_FIXES_BACKLOG.md | test-results/ui-audit/, UI_UX_FIXES_BACKLOG.md | 28 issues found (7 critical, 12 moderate, 9 minor) | ~12000 || 18:20 | Session end: 2 writes across 2 files (ui-audit.spec.ts, UI_UX_FIXES_BACKLOG.md) | 37 reads | ~11295 tok |
+
+## Session: 2026-05-23 18:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:27 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 9→9 lines | ~111 |
+| 18:27 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 9→9 lines | ~126 |
+| 18:27 | Session end: 2 writes across 1 files (page.tsx) | 21 reads | ~44306 tok |
+| 18:27 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 17→17 lines | ~256 |
+| 18:27 | Edited apps/web/components/dashboard/ROIMetricsStrip.tsx | CSS: isError, isError | ~322 |
+| 18:27 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 9→9 lines | ~126 |
+| 18:27 | Edited apps/web/components/dashboard/TrendChartsRow.tsx | added error handling | ~162 |
+| 18:27 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 6→6 lines | ~85 |
+| 18:27 | Edited apps/web/components/dashboard/TrendChartsRow.tsx | added optional chaining | ~383 |
+| 18:28 | Edited apps/web/app/(dashboard)/billing/page.tsx | added error handling | ~142 |
+| 18:28 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | CSS: enabled | ~101 |
+| 18:28 | Edited apps/web/app/(dashboard)/billing/page.tsx | modified creditBarColor() | ~42 |
+| 18:28 | Edited apps/web/app/(dashboard)/billing/page.tsx | 7→7 lines | ~70 |
+| 18:28 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | modified SchedulingPage() | ~49 |
+| 18:28 | Edited apps/web/app/(dashboard)/reports/page.tsx | 2→5 lines | ~82 |
+| 18:28 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | added optional chaining | ~66 |
+| 18:28 | Edited apps/web/app/(dashboard)/reports/page.tsx | 4→5 lines | ~116 |
+| 18:28 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | added optional chaining | ~112 |
+| 18:28 | Edited apps/web/app/(dashboard)/reports/page.tsx | 4→5 lines | ~114 |
+| 18:28 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 21→22 lines | ~218 |
+| 18:28 | Edited apps/api/routers/rooms.py | modified delete_room() | ~281 |
+| 18:28 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | "flex gap-2 overflow-x-aut" → "flex flex-nowrap gap-2 ov" | ~37 |
+| 18:28 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→5 lines | ~74 |
+| 18:28 | Edited apps/web/lib/api/rooms.ts | 1→4 lines | ~36 |
+| 18:28 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 6→3 lines | ~49 |
+| 18:28 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | inline fix | ~27 |
+| 18:28 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→5 lines | ~79 |
+| 18:28 | Edited apps/web/app/(dashboard)/logbook/page.tsx | CSS: sm, sm | ~1160 |
+| 18:28 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 5→5 lines | ~60 |
+| 18:28 | Edited apps/web/app/(dashboard)/settings/page.tsx | 5→5 lines | ~115 |
+| 18:29 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 1 import(s) | ~41 |
+| 18:29 | Edited apps/web/app/(dashboard)/sop/page.tsx | 7→7 lines | ~81 |
+| 18:29 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 1 condition(s) | ~189 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | modified RoomMobileCard() | ~734 |
+| 18:29 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | CSS: md | ~30 |
+| 18:29 | Edited apps/web/components/shared/Sidebar.tsx | 12→12 lines | ~157 |
+| 18:29 | Edited apps/web/components/shared/DashboardShell.tsx | "flex-1 overflow-y-auto p-" → "flex-1 overflow-y-auto p-" | ~33 |
+| 18:29 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 16→16 lines | ~180 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | CSS: mutationFn, onSuccess | ~286 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | inline fix | ~28 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 9→14 lines | ~184 |
+| 18:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | added optional chaining | ~242 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 5→5 lines | ~72 |
+| 18:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | 8→8 lines | ~116 |
+| 18:29 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | expanded (+30 lines) | ~651 |
+| 18:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | 17→17 lines | ~244 |
+| 18:29 | Edited apps/web/app/(dashboard)/billing/page.tsx | added nullish coalescing | ~131 |
+| 18:30 | Edited apps/web/components/housekeeping/RoomCard.tsx | 8→8 lines | ~110 |
+
+| 18:30 | UI/UX fixes M-01/M-02/M-04/M-05/M-06/M-10/M-11 | tasks,guest-requests,lost-found,billing,reports,scheduling,settings pages | all TS errors resolved | ~4200 |
+| 18:30 | Fixed C-01 through C-07 UI/UX bugs: skeleton guards, chip overflow, button wrap, AI bubble pathname hide, pb-20 on main | ROIMetricsStrip.tsx, TrendChartsRow.tsx, LiveOpsGrid.tsx, work-orders/page.tsx, scheduling/page.tsx, RoomStatusBoard.tsx, AICopilotBubble.tsx, DashboardShell.tsx, inspections/page.tsx | All TypeScript clean | ~4000 || 18:30 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | CSS: hover, hover | ~188 |
+| 18:30 | Add delete room feature: DELETE /rooms/{room_id} API endpoint + deleteRoom client method + inline 2-step confirm UI in rooms page | apps/api/routers/rooms.py, apps/web/lib/api/rooms.ts, apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | complete | ~800 tok |
+| 18:30 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | 4→4 lines | ~89 |
+| 18:30 | Session end: 49 writes across 10 files (page.tsx, ROIMetricsStrip.tsx, TrendChartsRow.tsx, rooms.py, RoomStatusBoard.tsx) | 33 reads | ~99299 tok |
+| 18:30 | Session end: 49 writes across 10 files (page.tsx, ROIMetricsStrip.tsx, TrendChartsRow.tsx, rooms.py, RoomStatusBoard.tsx) | 33 reads | ~99299 tok |
+| 18:30 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 12→12 lines | ~155 |
+| 18:30 | Session end: 50 writes across 10 files (page.tsx, ROIMetricsStrip.tsx, TrendChartsRow.tsx, rooms.py, RoomStatusBoard.tsx) | 33 reads | ~99454 tok |
+| 18:30 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 23→23 lines | ~379 |
+| 18:31 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added optional chaining | ~337 |
+
+| 18:31 | UI/UX polish pass (M-07 to P-10): amber colors, tab overflow, sidebar height, greeting name, empty states, contrast | logbook/page.tsx sop/page.tsx Sidebar.tsx tasks/page.tsx RoomCard.tsx dashboard/page.tsx assets/page.tsx pm-schedules/page.tsx predictions/page.tsx | all fixed, 0 TS errors | ~4500 |
+| 18:32 | Fixed 26 UI/UX backlog issues across 3 parallel agents — critical skeleton/empty-states, button color system, mobile overflow, tap targets, amber branding, greeting, AI bubble | 15+ component/page files | TypeScript clean (0 errors) | ~8000 || 18:32 | Session end: 52 writes across 10 files (page.tsx, ROIMetricsStrip.tsx, TrendChartsRow.tsx, rooms.py, RoomStatusBoard.tsx) | 33 reads | ~100170 tok |

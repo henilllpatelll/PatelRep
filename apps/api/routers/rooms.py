@@ -343,6 +343,32 @@ async def add_room_note(
 
 
 # ---------------------------------------------------------------------------
+# DELETE /rooms/{room_id}
+# ---------------------------------------------------------------------------
+
+@router.delete("/{room_id}")
+async def delete_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    existing = (
+        supabase.table("rooms")
+        .select("id")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not existing or not existing.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    supabase.table("rooms").delete().eq("id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+    return {"data": {"ok": True}}
+
+
+# ---------------------------------------------------------------------------
 # POST /rooms/import
 # ---------------------------------------------------------------------------
 
