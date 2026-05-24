@@ -56,18 +56,15 @@ export async function proxy(request: NextRequest) {
     (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim(),
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          request.cookies.set(name, value)
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
-          supabaseResponse.cookies.set(name, value, options as any)
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          request.cookies.set(name, '')
-          supabaseResponse = NextResponse.next({ request })
-          supabaseResponse.cookies.set(name, '', options as any)
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          )
         },
       },
     },
