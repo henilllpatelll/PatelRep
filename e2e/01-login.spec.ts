@@ -14,8 +14,9 @@ test.describe('Login page', () => {
   })
 
   test('renders branding and form', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /PatelRep/i })).toBeVisible()
-    await expect(page.getByText('Hotel Operations AI')).toBeVisible()
+    await expect(page.getByText('PatelRep')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible()
+    await expect(page.getByText('Hotel AI')).toBeVisible()
     await expect(page.locator('#email-pw')).toBeVisible()
     await expect(page.locator('#password-pw')).toBeVisible()
     // The submit button (type="submit") is distinct from the "Sign In" tab button
@@ -72,6 +73,6 @@ test.describe('Login page', () => {
   test('unauthenticated visit to /dashboard redirects to /login', async ({ page }) => {
     await page.goto('/dashboard')
     await page.waitForURL(/\/login/, { timeout: 10_000 })
-    await expect(page.getByRole('heading', { name: /PatelRep/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible()
   })
 })

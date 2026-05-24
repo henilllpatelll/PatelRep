@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { ApiClientError, apiClient } from '@/lib/api/client'
+import { staffApi } from '@/lib/api/staff'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MeResponse {
@@ -37,7 +38,15 @@ function extractRole(appMeta: Record<string, unknown>, userMeta: Record<string, 
 
 // ── Auth listener component (keeps Providers clean) ────────────────────────────
 function AuthListener() {
-  const { setUser, setSession, setRole, setLoading, clear } = useAuthStore()
+  const {
+    setUser,
+    setSession,
+    setRole,
+    setEffectiveRole,
+    setCustomRoleModules,
+    setLoading,
+    clear,
+  } = useAuthStore()
   const { setHotel, setSubscription, clear: clearHotel } = useHotelStore()
   const supabase = createClient()
   const router = useRouter()
@@ -45,6 +54,18 @@ function AuthListener() {
   const fetchingRef = useRef(false)
 
   useEffect(() => {
+    const fetchEffectiveRole = async () => {
+      try {
+        const res = await staffApi.getEffectiveRole()
+        setEffectiveRole((res.data?.effective_role as UserRole) ?? null)
+        setCustomRoleModules(res.data?.custom_role?.allowed_modules ?? null)
+      } catch {
+        // Non-critical context. Base JWT role remains the source of truth.
+        setEffectiveRole(null)
+        setCustomRoleModules(null)
+      }
+    }
+
     const fetchProfile = async () => {
       if (fetchingRef.current) return
       fetchingRef.current = true
@@ -56,17 +77,25 @@ function AuthListener() {
         if (data.user?.role) {
           setRole(data.user.role)
         }
+        await fetchEffectiveRole()
       } catch (err) {
-        const authFailed =
-          err instanceof ApiClientError &&
-          (err.status === 401 || err.status === 403 || err.isNetworkError)
-
-        if (authFailed) {
+        if (err instanceof ApiClientError && err.status === 401) {
           clear()
           clearHotel()
           await supabase.auth.signOut().catch(() => undefined)
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
             router.replace('/login?reason=session-expired')
+          }
+        } else if (err instanceof ApiClientError && err.status === 403) {
+          clearHotel()
+          setEffectiveRole(null)
+          setCustomRoleModules(null)
+          if (
+            typeof window !== 'undefined' &&
+            !window.location.pathname.startsWith('/login') &&
+            !window.location.pathname.startsWith('/onboarding')
+          ) {
+            router.replace('/onboarding')
           }
         }
       } finally {
