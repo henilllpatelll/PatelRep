@@ -127,6 +127,7 @@
 - **subscription.updated must update all fields (2026-05-12):** Original handler only updated `plan_status`. It must also update `stripe_subscription_id`, `current_period_start`, `current_period_end`, and `trial_end` — otherwise `stripe_subscription_id` stays null and `invoice.payment_failed` can never match a row.
 
 - **Full verification baseline (2026-05-23):** Non-mobile/non-Playwright gates are clean after fixing AICopilotBubble hook order, root/web `qs`, API security pins, and tracked secret-looking placeholders. Verified with API pytest/Ruff/Pyright, web lint/type/build, npm audit, pip-audit, and tracked secret scan.
+- **Frontend design handoff source (2026-05-24):** `design_handoff_frontend_rework/README.md` may live on local branch `codex/frontend-design-handoff-rework` even when absent from `main`; the branch includes the prototype bundle plus production web implementation and should be fast-forwarded when asked to apply the handoff.
 
 ## Decision Log
 

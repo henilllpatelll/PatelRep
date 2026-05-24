@@ -1911,3 +1911,5 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 08:36 | Created apps/web/components/engineering/FailurePredictionSidebar.tsx | — | ~2907 |
+| 08:42 | Fast-forwarded main to frontend design handoff branch, verified web lint/type/build, and removed zero-byte scratch artifact | design_handoff_frontend_rework/README.md; apps/web/**; .wolf/tmp_gr.tsx | handoff present; checks passed | ~1200 |
+| 08:45 | designqc: captured 2 screenshots (61KB, ~5000 tok) | /login | ready for eval | ~0 |
