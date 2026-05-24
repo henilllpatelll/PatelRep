@@ -128,6 +128,7 @@
 
 - **Full verification baseline (2026-05-23):** Non-mobile/non-Playwright gates are clean after fixing AICopilotBubble hook order, root/web `qs`, API security pins, and tracked secret-looking placeholders. Verified with API pytest/Ruff/Pyright, web lint/type/build, npm audit, pip-audit, and tracked secret scan.
 - **Frontend design handoff source (2026-05-24):** `design_handoff_frontend_rework/README.md` may live on local branch `codex/frontend-design-handoff-rework` even when absent from `main`; the branch includes the prototype bundle plus production web implementation and should be fast-forwarded when asked to apply the handoff.
+- **Frontend handoff interaction closure (2026-05-24):** After applying the handoff branch, still audit README interaction bullets. The follow-up closure added command palette, copilot open event listener, hotel switcher dropdown, persisted accent swatches, and work-order DnD/AI triage.
 
 ## Decision Log
 

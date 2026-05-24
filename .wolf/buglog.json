@@ -1050,6 +1050,42 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-05-24T13:26:33.545Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-05-24T09:11:15.1293668-05:00",
+      "error_message": "Frontend handoff interaction audit found styled controls without full behavior: copilot:open was not listened for, hotel switcher had no dropdown, tweaks had no accent selection, and work-order kanban lacked drag/drop and AI triage.",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "The first frontend rework pass focused on visual parity and left several README interaction requirements partially wired or visual-only.",
+      "fix": "Wired the copilot open event, added command palette, hotel switcher dropdown, persisted accent swatches, and work-order DnD plus AI triage behavior.",
+      "tags": ["frontend", "handoff", "interaction", "design-rework"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T09:11:15.1293668-05:00"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-05-24T09:11:15.1293668-05:00",
+      "error_message": "PowerShell audit command failed when unquoted path apps/web/app/(dashboard) was parsed as syntax; standalone server smoke showed a blank page because static assets were not copied after next build.",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Verification used a shell path with parentheses without quotes, and the standalone smoke skipped the documented Railway static-copy step.",
+      "fix": "Reran searches with quoted paths and verified the app through a clean Next dev server plus Playwright login smoke instead of the incomplete standalone artifact.",
+      "tags": ["verification", "powershell", "nextjs", "playwright"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T09:11:15.1293668-05:00"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-05-24T09:11:15.1293668-05:00",
+      "error_message": "Next dev logged \"Persisting failed: Unable to commit operations\" with access denied while still serving /login successfully.",
+      "file": "apps/web/.next/dev/logs/next-development.log",
+      "root_cause": "Local Windows filesystem/cache persistence in Next dev hit an access-denied condition after build/dev restarts.",
+      "fix": "Restarted the dev server and verified /login with Playwright and browser smoke; production build remained clean.",
+      "tags": ["nextjs", "dev-server", "windows", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T09:11:15.1293668-05:00"
     }
   ]
 }

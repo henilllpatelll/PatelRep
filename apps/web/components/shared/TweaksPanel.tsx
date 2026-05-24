@@ -6,6 +6,7 @@ import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { cn } from '@/lib/utils'
 
 type Density = 'comfortable' | 'balanced' | 'dense'
+type Accent = 'terracotta' | 'teal' | 'blue' | 'rose'
 
 const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: 'comfortable', label: 'Comfortable' },
@@ -13,9 +14,16 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: 'dense', label: 'Dense' },
 ]
 
+const ACCENT_OPTIONS: { value: Accent; label: string; swatch: string }[] = [
+  { value: 'terracotta', label: 'Terracotta', swatch: '#b8431c' },
+  { value: 'teal', label: 'Teal', swatch: '#0c6e63' },
+  { value: 'blue', label: 'Blue', swatch: '#265d8a' },
+  { value: 'rose', label: 'Rose', swatch: '#a6263c' },
+]
+
 export function TweaksPanel() {
   const [open, setOpen] = useState(false)
-  const { density, theme, setDensity, toggleTheme } = useUIPreferencesStore()
+  const { density, theme, accent, setDensity, setAccent, toggleTheme } = useUIPreferencesStore()
 
   return (
     <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
@@ -57,6 +65,27 @@ export function TweaksPanel() {
                   )}
                 >
                   {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Accent */}
+          <div>
+            <p className="text-[10px] text-ink3 mb-1.5">Accent</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {ACCENT_OPTIONS.map(({ value, label, swatch }) => (
+                <button
+                  key={value}
+                  onClick={() => setAccent(value)}
+                  className={cn(
+                    'h-8 rounded-md border transition-all flex items-center justify-center',
+                    accent === value ? 'border-ink ring-2 ring-[var(--accent-soft)]' : 'border-line hover:border-ink4'
+                  )}
+                  aria-label={`Use ${label} accent`}
+                  title={label}
+                >
+                  <span className="h-4 w-4 rounded-full" style={{ backgroundColor: swatch }} />
                 </button>
               ))}
             </div>

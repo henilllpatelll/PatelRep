@@ -24,6 +24,14 @@ interface MeResponse {
     room_count: number
     logo_url?: string
   }
+  hotels?: Array<{
+    id: string
+    name: string
+    timezone: string
+    room_count: number
+    logo_url?: string
+    front_desk_modules?: string[]
+  }>
   subscription: {
     plan_status: string
     credits_included: number
@@ -47,7 +55,7 @@ function AuthListener() {
     setLoading,
     clear,
   } = useAuthStore()
-  const { setHotel, setSubscription, clear: clearHotel } = useHotelStore()
+  const { setHotel, setHotels, setSubscription, clear: clearHotel } = useHotelStore()
   const supabase = createClient()
   const router = useRouter()
   // Guard against concurrent /auth/me fetches
@@ -72,6 +80,7 @@ function AuthListener() {
       try {
         const data: MeResponse = await apiClient.get('/auth/me')
         setHotel(data.hotel)
+        setHotels(data.hotels?.length ? data.hotels : [data.hotel])
         setSubscription(data.subscription)
         // If the API returns a role, overwrite what we got from the JWT
         if (data.user?.role) {

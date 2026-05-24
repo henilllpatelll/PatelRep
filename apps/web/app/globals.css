@@ -138,6 +138,30 @@
 .density-balanced    { --row-h: 44px; --pad-y: 10px; --gap: 10px; }
 .density-dense       { --row-h: 36px; --pad-y:  6px; --gap:  6px; }
 
+.accent-terracotta {
+  --accent:      #b8431c;
+  --accent-soft: #fbe9df;
+  --accent-line: #f0c8b3;
+}
+
+.accent-teal {
+  --accent:      #0c6e63;
+  --accent-soft: #d6eae5;
+  --accent-line: #a4cfc7;
+}
+
+.accent-blue {
+  --accent:      #265d8a;
+  --accent-soft: #d8e6f0;
+  --accent-line: #a8c2d8;
+}
+
+.accent-rose {
+  --accent:      #a6263c;
+  --accent-soft: #f5d8de;
+  --accent-line: #e8a8b3;
+}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }

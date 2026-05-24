@@ -17,16 +17,26 @@ interface Subscription {
 
 interface HotelStore {
   hotel: Hotel | null
+  hotels: Hotel[]
   subscription: Subscription | null
   setHotel: (hotel: Hotel) => void
+  setHotels: (hotels: Hotel[]) => void
   setSubscription: (sub: Subscription) => void
   clear: () => void
 }
 
 export const useHotelStore = create<HotelStore>((set) => ({
   hotel: null,
+  hotels: [],
   subscription: null,
-  setHotel: (hotel) => set({ hotel }),
+  setHotel: (hotel) => set((state) => ({
+    hotel,
+    hotels: state.hotels.some((item) => item.id === hotel.id) ? state.hotels : [hotel, ...state.hotels],
+  })),
+  setHotels: (hotels) => set((state) => ({
+    hotels,
+    hotel: state.hotel ?? hotels[0] ?? null,
+  })),
   setSubscription: (subscription) => set({ subscription }),
-  clear: () => set({ hotel: null, subscription: null }),
+  clear: () => set({ hotel: null, hotels: [], subscription: null }),
 }))

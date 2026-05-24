@@ -239,6 +239,12 @@ export function AICopilotBubble() {
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
+  useEffect(() => {
+    const handleOpen = () => setOpen(true)
+    document.addEventListener('copilot:open', handleOpen)
+    return () => document.removeEventListener('copilot:open', handleOpen)
+  }, [])
+
   if (isAiPage) return null
 
   const quickActions = (role && QUICK_ACTIONS_BY_ROLE[role]) || DEFAULT_QUICK_ACTIONS
@@ -369,7 +375,7 @@ export function AICopilotBubble() {
             <div className="flex gap-2">
               <input
                 value={input} onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && (!e.shiftKey || e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage() } }}
                 placeholder="Room 412 needs towels…"
                 aria-label="Message the AI Copilot"
                 className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-line rounded-[var(--r-md)] focus:outline-none focus:ring-1 focus:ring-ai-line text-ink placeholder:text-ink4"

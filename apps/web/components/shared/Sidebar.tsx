@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, CreditCard, Bell, ClipboardList,
@@ -72,10 +73,13 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { role, canViewBilling } = useRole()
   const { user } = useAuth()
-  const { hotel } = useHotelStore()
+  const { hotel, hotels, setHotel } = useHotelStore()
   const customRoleModules = useAuthStore((state) => state.customRoleModules)
+  const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
+  const hotelDropdownRef = useRef<HTMLDivElement>(null)
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -104,6 +108,24 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const opsItems   = visibleNavItems.filter(i => OPERATIONS_HREFS.includes(i.href))
   const intelItems = visibleNavItems.filter(i => INTELLIGENCE_HREFS.includes(i.href))
   const peopleItems = visibleNavItems.filter(i => PEOPLE_HREFS.includes(i.href))
+
+  useEffect(() => {
+    if (!hotelDropdownOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (hotelDropdownRef.current && !hotelDropdownRef.current.contains(e.target as Node)) {
+        setHotelDropdownOpen(false)
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setHotelDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [hotelDropdownOpen])
 
   const renderNavItem = ({ href, label, icon: Icon, subNav, tag }: NavItem) => {
     const active     = pathname === href || pathname.startsWith(href + '/')
@@ -189,7 +211,17 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Hotel switcher */}
       {hotel && (
-        <div className="mx-3 mb-3 flex items-center gap-2.5 bg-surface border border-line rounded-[10px] px-2.5 py-2 cursor-pointer hover:bg-surface-2 transition-colors">
+        <div
+          ref={hotelDropdownRef}
+          className="relative mx-3 mb-3"
+        >
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={hotelDropdownOpen}
+            onClick={() => setHotelDropdownOpen((open) => !open)}
+            className="flex w-full items-center gap-2.5 rounded-[10px] border border-line bg-surface px-2.5 py-2 text-left transition-colors hover:bg-surface-2"
+          >
           <div className="w-6 h-6 rounded-md bg-accent flex items-center justify-center text-white text-[10px] font-bold font-display shrink-0">
             {hotel.name[0]?.toUpperCase()}
           </div>
@@ -197,7 +229,52 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <div className="text-xs font-semibold text-ink truncate">{hotel.name}</div>
             <div className="text-[10px] text-ink3 font-mono mt-0.5">{hotel.room_count ?? '—'} rooms</div>
           </div>
-          <ChevronDown className="w-3 h-3 text-ink3 shrink-0" />
+          <ChevronDown className={cn('w-3 h-3 text-ink3 shrink-0 transition-transform', hotelDropdownOpen && 'rotate-180')} />
+          </button>
+          {hotelDropdownOpen && (
+            <div
+              role="menu"
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-xl border border-line bg-surface p-1.5 shadow-pop"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {(hotels.length ? hotels : [hotel]).map((item) => {
+                const active = item.id === hotel.id
+                return (
+                  <button
+                    key={item.id}
+                    role="menuitem"
+                    onClick={() => {
+                      setHotel(item)
+                      setHotelDropdownOpen(false)
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-surface-2',
+                      active && 'bg-accent-soft text-accent'
+                    )}
+                  >
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-white">
+                      {item.name[0]?.toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12px] font-medium">{item.name}</span>
+                      <span className="block font-mono text-[10px] text-ink3">{item.room_count ?? '—'} rooms</span>
+                    </span>
+                  </button>
+                )
+              })}
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setHotelDropdownOpen(false)
+                  router.push('/settings')
+                  onMobileClose?.()
+                }}
+                className="mt-1 flex w-full items-center justify-center rounded-lg border border-line px-2.5 py-2 text-[12px] font-medium text-ink2 hover:bg-surface-2"
+              >
+                Manage hotel profile
+              </button>
+            </div>
+          )}
         </div>
       )}
 

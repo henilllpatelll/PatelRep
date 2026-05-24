@@ -10,10 +10,10 @@ import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { density, theme } = useUIPreferencesStore()
+  const { density, theme, accent } = useUIPreferencesStore()
 
   return (
-    <div className={`flex h-screen bg-paper ${density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced'} ${theme === 'dark' ? 'theme-dark' : ''}`}>
+    <div className={`flex h-screen bg-paper ${density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced'} ${theme === 'dark' ? 'theme-dark' : ''} accent-${accent}`}>
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
