@@ -10,7 +10,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-[#FEFAF4]">
+    <div className="flex h-screen bg-paper">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

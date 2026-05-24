@@ -116,9 +116,11 @@
 - **Load test lives at:** `apps/api/tests/load/load_test.py` — reads `apps/api/.env` + `apps/web/.env.local` automatically; no extra config needed. Run with `python apps/api/tests/load/load_test.py --workers 40 --duration 60`.
 - **Migration 031 (2026-05-12):** Added compound indexes to room_assignments, guest_requests, notifications, and work_orders. Applied via `supabase db push --include-all` (also applied stale 020_fix_credits_decimal that was missing from remote history).
 
-- **Stripe webhook secret signing (2026-05-12):** The HMAC key for Stripe webhook signature verification is the *full* `whsec_xxxxx` string as UTF-8 bytes — NOT base64-decoded, NOT with the prefix stripped. Stripe Python SDK strips `whsec_` internally but uses the remainder as a raw UTF-8 string.
+- **Stripe webhook secret signing (2026-05-12):** The HMAC key for Stripe webhook signature verification is the full webhook secret string as UTF-8 bytes, not base64-decoded or prefix-stripped.
 - **Stripe webhook event gaps (2026-05-12):** The original webhook handler only covered `subscription.updated` and `invoice.payment_failed`. `subscription.created`, `subscription.deleted`, `checkout.session.completed`, and `invoice.paid` were unhandled silent no-ops. All are now handled in `routers/webhooks.py`.
 - **subscription.updated must update all fields (2026-05-12):** Original handler only updated `plan_status`. It must also update `stripe_subscription_id`, `current_period_start`, `current_period_end`, and `trial_end` — otherwise `stripe_subscription_id` stays null and `invoice.payment_failed` can never match a row.
+
+- **Full verification baseline (2026-05-23):** Non-mobile/non-Playwright gates are clean after fixing AICopilotBubble hook order, root/web `qs`, API security pins, and tracked secret-looking placeholders. Verified with API pytest/Ruff/Pyright, web lint/type/build, npm audit, pip-audit, and tracked secret scan.
 
 ## Decision Log
 

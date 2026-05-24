@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test'
 
 const TEST_NAME = `Test Housekeeper ${Date.now()}`
 const TEST_EMAIL = `test.hk.${Date.now()}@patelrep-test.com`
-const TEST_PASSWORD = 'TestPass2026!'
+const TEST_PASSWORD = `TestPass${Date.now()}!`
 
 test.describe('Staff — Add Manually', () => {
   test.beforeEach(async ({ page }) => {

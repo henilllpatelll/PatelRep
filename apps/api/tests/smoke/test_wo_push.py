@@ -10,7 +10,7 @@ os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-minimum-32-charact
 os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_placeholder")
-os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_test_placeholder")
+os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "stripe-webhook-secret-test")
 os.environ.setdefault("CRON_SECRET", "test-cron-secret")
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("APP_URL", "http://localhost:3000")

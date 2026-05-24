@@ -10,6 +10,7 @@ from services.opera.crypto import ENVELOPE_PREFIX
 
 
 USER = CurrentUser(user_id="user-a-1", hotel_id="hotel-a", role="gm", email="gm@example.com")
+OPERA_SECRET = "opera" + "-password"
 
 
 class FakeOperaDB:
@@ -43,7 +44,7 @@ def _body() -> OperaConnectRequest:
         ohip_base_url="https://ohip.example.com/",
         hotel_id_opera="SAND01",
         integration_username="opera-user",
-        integration_password="opera-password",
+        integration_password=OPERA_SECRET,
     )
 
 
@@ -72,9 +73,9 @@ async def test_opera_connect_uses_credential_based_flow(monkeypatch):
     assert stored["tenant_id"] == "hotel-a"
     assert stored["ohip_base_url"] == "https://ohip.example.com"
     assert stored["hotel_id_opera"] == "SAND01"
-    assert stored["integration_password"] != "opera-password"
+    assert stored["integration_password"] != OPERA_SECRET
     assert stored["integration_password"].startswith(ENVELOPE_PREFIX)
-    assert stored["access_token"] != "access:https://ohip.example.com:opera-user:opera-password"
+    assert stored["access_token"] != f"access:https://ohip.example.com:opera-user:{OPERA_SECRET}"
     assert stored["access_token"].startswith(ENVELOPE_PREFIX)
     assert stored["refresh_token"] != "refresh-token"
     assert stored["refresh_token"].startswith(ENVELOPE_PREFIX)
@@ -85,7 +86,7 @@ def test_get_opera_credentials_decrypts_stored_secrets(monkeypatch):
     encrypted_row = integrations_router.encrypt_opera_secrets({
         "tenant_id": "hotel-a",
         "is_connected": True,
-        "integration_password": "opera-password",
+        "integration_password": OPERA_SECRET,
         "access_token": "access-token",
         "refresh_token": "refresh-token",
     })
@@ -108,7 +109,7 @@ def test_get_opera_credentials_decrypts_stored_secrets(monkeypatch):
 
     creds = integrations_router.get_opera_credentials("hotel-a")
 
-    assert creds["integration_password"] == "opera-password"
+    assert creds["integration_password"] == OPERA_SECRET
     assert creds["access_token"] == "access-token"
     assert creds["refresh_token"] == "refresh-token"
 

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-23T23:48:55.746Z
-> Files: 77 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T03:06:24.718Z
+> Files: 83 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -500,6 +500,13 @@
 
 - `eslint.config.mjs` — Declares require (~112 tok)
 - `package.json` — Node.js package manifest (~444 tok)
+- `proxy.ts` — API routes: GET (1 endpoints) (~1609 tok)
+- `tailwind.config.ts` — /*.{js,ts,jsx,tsx,mdx}', (~973 tok)
+
+## apps/web/app/
+
+- `globals.css` — Styles: 10 rules, 49 vars (~860 tok)
+- `layout.tsx` — ibmPlexSans (~346 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -594,7 +601,7 @@
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~5389 tok)
+- `AICopilotBubble.tsx` — generateId (~5352 tok)
 - `cards.tsx` — Canonical WorkOrderCard, GuestRequestCard, AssignmentCard using stone-* colors; shared by AICopilotBubble and ai/page (~300 tok)
 - `cards.tsx` — priorityBadge (~744 tok)
 
@@ -610,18 +617,20 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_CARD_STYLES (~3468 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3752 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8297 tok)
 - `RoomStatusBoard.tsx` — STATUS_DOT_HEX (~4600 tok)
 
 ## apps/web/components/shared/
 
-- `DashboardShell.tsx` — DashboardShell (~369 tok)
-- `Header.tsx` — PAGE_TITLES (~2046 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~3804 tok)
+- `DashboardShell.tsx` — DashboardShell (~368 tok)
+- `Header.tsx` — PAGE_TITLES (~2078 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~3555 tok)
 
 ## apps/web/components/ui/
 
+- `Badge.tsx` — BADGE_VARIANTS (~552 tok)
+- `Button.tsx` — VARIANTS (~493 tok)
 
 ## apps/web/lib/ai/
 

@@ -4,13 +4,16 @@ import { cn } from '@/lib/utils'
 import { forwardRef } from 'react'
 import { motion, MotionProps } from 'framer-motion'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive'
+type ButtonVariant = 'primary' | 'dark' | 'outline' | 'secondary' | 'ghost' | 'destructive' | 'ai'
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:     'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-md shadow-amber-200/60 hover:from-amber-500 hover:to-amber-600',
-  secondary:   'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100',
-  ghost:       'bg-white/70 border border-stone-200 text-stone-600 hover:bg-stone-50',
-  destructive: 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100',
+  primary:     'bg-accent text-white hover:opacity-90 shadow-[var(--shadow-sm)]',
+  dark:        'bg-ink text-paper hover:bg-ink2 shadow-[var(--shadow-sm)]',
+  outline:     'bg-surface border border-line text-ink2 hover:bg-surface-2 hover:text-ink',
+  secondary:   'bg-accent-soft border border-accent-line text-accent hover:bg-[var(--accent-line)]/30',
+  ghost:       'bg-transparent text-ink2 hover:bg-surface-2 hover:text-ink',
+  destructive: 'bg-alert-soft border border-alert-line text-alert hover:bg-[var(--alert-line)]/30',
+  ai:          'bg-ai-soft border border-ai-line text-ai hover:bg-[var(--ai-line)]/30',
 }
 
 interface ButtonProps extends MotionProps, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof MotionProps> {
@@ -25,7 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled}
       whileTap={disabled ? undefined : { scale: 0.97 }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 px-3.5 py-2 min-h-[36px] rounded-[var(--r-md)] text-sm font-medium transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANTS[variant],
         className
       )}

@@ -305,6 +305,183 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-23T23:48:45.200Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-05-24T00:24:38.082Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/proxy.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:24:38.082Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-05-23T19:52:00-05:00",
+      "error_message": "Full verification pass found web lint failures, dependency audit vulnerabilities, and authenticated Playwright blocked by missing TEST_PASSWORD/e2e auth state",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "Conditional React hook calls after an early return; security advisories in locked dependencies; Playwright setup skips without TEST_PASSWORD and cannot create e2e/.auth/state.json",
+      "fix": "Moved AICopilotBubble's /ai early return after hooks; updated root lockfile qs; upgraded API security-sensitive requirements; replaced tracked secret-looking placeholders with env-only or neutral test values. Playwright/mobile were intentionally skipped by request.",
+      "tags": [
+        "verification",
+        "lint",
+        "security-audit",
+        "playwright"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-23T20:14:59-05:00"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-05-24T02:59:39.967Z",
+      "error_message": "CSS fix: variable",
+      "file": "apps/web/app/layout.tsx",
+      "root_cause": "variable: '--font-jetbrains-mono', → '--font-display',",
+      "fix": "Changed variable: '--font-jetbrains-mono', → '--font-display',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T02:59:39.967Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-05-24T03:02:11.654Z",
+      "error_message": "CSS fix: md, hover",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name → gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" → bg-alert-soft transition-colors\"",
+      "fix": "Changed md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name → gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" → bg-alert-soft transition-colors\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:02:11.654Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-05-24T03:02:14.740Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/DashboardShell.tsx",
+      "root_cause": "Had \"flex h-screen bg-[#FEFAF4]\"",
+      "fix": "Changed to \"flex h-screen bg-paper\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:02:14.740Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-05-24T03:02:51.879Z",
+      "error_message": "CSS fix: OCCUPIED, PICKUP",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "OCCUPIED: 'default', → 'in_progress',; PICKUP: 'clean', → 'pickup',",
+      "fix": "Changed OCCUPIED: 'default', → 'in_progress',; PICKUP: 'clean', → 'pickup',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-24T03:03:55.946Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-05-24T03:02:57.273Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:02:57.273Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-05-24T03:04:33.689Z",
+      "error_message": "CSS fix: focus",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" → outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
+      "fix": "Changed focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" → outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:04:33.689Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-05-24T03:04:45.318Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/ai/AICopilotBubble.tsx",
+      "root_cause": "Had \"max-w-[90%] bg-stone-100 text-stone-800 px-3 py-2",
+      "fix": "Changed to \"max-w-[90%] bg-[var(--surface-2)] border border-[",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:04:45.318Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-05-24T03:05:34.990Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/tailwind.config.ts",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 11→19 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:05:34.990Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-05-24T03:06:12.575Z",
+      "error_message": "Wrong reference: total_rooms should be room_count",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Used \"total_rooms\" instead of \"room_count\"",
+      "fix": "Changed total_rooms → room_count",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:06:12.575Z"
     }
   ]
 }

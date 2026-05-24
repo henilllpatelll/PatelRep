@@ -59,7 +59,7 @@ function ConfirmView<T>({ items, onConfirm, onCancel, renderItem, confirmLabel }
 
   if (confirmed) {
     return (
-      <div className="flex items-center gap-2 text-green-600 text-sm font-medium mt-1">
+      <div className="flex items-center gap-2 text-ready text-sm font-medium mt-1">
         <CheckCircle size={14} />{confirmLabel}
       </div>
     )
@@ -72,11 +72,11 @@ function ConfirmView<T>({ items, onConfirm, onCancel, renderItem, confirmLabel }
       </div>
       <div className="flex gap-2 pt-1">
         <button onClick={handleConfirm} disabled={confirming || items.length === 0}
-          className="flex-1 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+          className="flex-1 py-3 bg-accent text-white text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity">
           {confirming ? 'Creating...' : 'Confirm & Create'}
         </button>
         <button onClick={onCancel}
-          className="px-3 py-3 border border-stone-300 text-xs font-medium text-stone-600 rounded-lg hover:bg-stone-50 transition-colors">
+          className="px-3 py-3 border border-[var(--line)] text-xs font-medium text-ink2 rounded-md hover:bg-[var(--surface-2)] transition-colors">
           Cancel
         </button>
       </div>
@@ -106,7 +106,7 @@ function TaskConfirmView({ data, onConfirm, onCancel }: TaskConfirmViewProps) {
   }
 
   if (confirmed) return (
-    <div className="flex items-center gap-2 text-green-600 text-sm font-medium mt-1">
+    <div className="flex items-center gap-2 text-ready text-sm font-medium mt-1">
       <CheckCircle size={14} />{tasks.length} task{tasks.length !== 1 ? 's' : ''} created successfully.
     </div>
   )
@@ -114,8 +114,8 @@ function TaskConfirmView({ data, onConfirm, onCancel }: TaskConfirmViewProps) {
   return (
     <div className="mt-1 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-stone-500">{tasks.length} task{tasks.length !== 1 ? 's' : ''} to create</span>
-        <button onClick={() => setEditMode((e) => !e)} className="text-xs text-amber-600 hover:text-amber-700 font-medium">
+        <span className="text-xs text-ink3">{tasks.length} task{tasks.length !== 1 ? 's' : ''} to create</span>
+        <button onClick={() => setEditMode((e) => !e)} className="text-xs text-accent hover:opacity-80 font-medium">
           {editMode ? 'Done editing' : 'Edit'}
         </button>
       </div>
@@ -126,10 +126,10 @@ function TaskConfirmView({ data, onConfirm, onCancel }: TaskConfirmViewProps) {
       </div>
       <div className="flex gap-2 pt-1">
         <button onClick={handleConfirm} disabled={confirming || tasks.length === 0}
-          className="flex-1 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+          className="flex-1 py-3 bg-accent text-white text-xs font-medium rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity">
           {confirming ? 'Creating...' : 'Confirm & Create'}
         </button>
-        <button onClick={onCancel} className="px-3 py-3 border border-stone-300 text-xs font-medium text-stone-600 rounded-lg hover:bg-stone-50 transition-colors">
+        <button onClick={onCancel} className="px-3 py-3 border border-[var(--line)] text-xs font-medium text-ink2 rounded-md hover:bg-[var(--surface-2)] transition-colors">
           Cancel
         </button>
       </div>
@@ -157,7 +157,7 @@ function AiMessageBubble({
   const d = msg.responseData
   return (
     <div className="flex justify-start">
-      <div className="max-w-[90%] bg-stone-100 text-stone-800 px-3 py-2 rounded-xl text-sm">
+      <div className="max-w-[90%] bg-[var(--surface-2)] border border-[var(--line)] text-ink px-3 py-2 rounded-xl text-sm">
         <p>{msg.content}</p>
         {d?.response_type === 'task_preview' && (
           <TaskConfirmView data={d as TaskPreviewResponse} onConfirm={onConfirmTasks} onCancel={() => onCancel(msg.id)} />
@@ -194,7 +194,7 @@ function AiMessageBubble({
             {(d as AmbiguousResponse).options.map((opt) => (
               <button key={opt.intent_hint}
                 onClick={() => onResendWithHint(originalUserMessage, opt.intent_hint)}
-                className="min-h-[44px] text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full hover:bg-amber-100 transition-colors font-medium">
+                className="min-h-[36px] text-xs bg-[var(--accent-soft)] text-accent border border-[var(--accent-line)] px-3 py-1.5 rounded-full hover:opacity-80 transition-opacity font-medium">
                 {opt.label}
               </button>
             ))}
@@ -204,7 +204,7 @@ function AiMessageBubble({
         {d?.response_type === 'answer' && (d as any).actions?.length > 0 && (
           <div className="mt-2 space-y-1">
             {(d as any).actions.map((a: any, i: number) => (
-              <div key={i} className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-1">{a.label}</div>
+              <div key={i} className="text-xs bg-[var(--accent-soft)] text-accent border border-[var(--accent-line)] rounded px-2 py-1">{a.label}</div>
             ))}
           </div>
         )}
@@ -227,6 +227,7 @@ const DEFAULT_QUICK_ACTIONS = ['At-risk rooms today', 'Open work orders', 'Creat
 
 export function AICopilotBubble() {
   const pathname = usePathname()
+  const isAiPage = pathname === '/ai'
 
   const INITIAL_MSG: ChatMessage = {
     id: generateId(), role: 'ai',
@@ -241,8 +242,6 @@ export function AICopilotBubble() {
   const queryClient = useQueryClient()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
-
-  if (pathname === '/ai') return null
 
   // localStorage shift history
   const historyKey = user?.id ? `copilot-shift-${user.id}-${format(new Date(), 'yyyy-MM-dd')}` : null
@@ -264,6 +263,8 @@ export function AICopilotBubble() {
   useEffect(() => {
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
+
+  if (isAiPage) return null
 
   const quickActions = (role && QUICK_ACTIONS_BY_ROLE[role]) || DEFAULT_QUICK_ACTIONS
 
@@ -349,21 +350,22 @@ export function AICopilotBubble() {
           role="dialog"
           aria-modal="true"
           aria-label="AI Copilot chat"
-          className="absolute bottom-14 right-0 w-[calc(100vw-2rem)] max-w-80 bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl flex flex-col"
+          className="absolute bottom-14 right-0 w-[calc(100vw-2rem)] max-w-80 bg-surface border border-line rounded-[var(--r-xl)] shadow-[var(--shadow-pop)] flex flex-col"
           style={{ height: 'min(500px, calc(100vh - 8rem))' }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/60 shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shadow-sm shadow-amber-200">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-line-2 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-ai flex items-center justify-center shadow-[var(--shadow-sm)]">
                 <Bot size={14} className="text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm leading-tight text-slate-900">PatelRep AI</p>
-                <p className="text-xs text-stone-400 leading-tight">Operations Copilot</p>
+                <p className="font-semibold text-sm leading-tight text-ink">PatelRep AI</p>
+                <p className="text-[10px] text-ink3 font-mono leading-tight">Operations Copilot</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close AI Copilot" className="text-stone-400 hover:text-stone-600 hover:bg-stone-100/60 rounded-lg p-1 transition-colors">
-              <X size={16} />
+            <button onClick={() => setOpen(false)} aria-label="Close AI Copilot"
+              className="text-ink3 hover:text-ink hover:bg-surface-2 rounded-lg p-1 transition-colors">
+              <X size={15} />
             </button>
           </div>
 
@@ -371,7 +373,7 @@ export function AICopilotBubble() {
             {messages.map((msg, idx) =>
               msg.role === 'user' ? (
                 <div key={msg.id} className="flex justify-end">
-                  <div className="max-w-[85%] px-3 py-2 rounded-xl text-sm bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-sm shadow-amber-200">
+                  <div className="max-w-[85%] px-3 py-2 rounded-xl text-sm bg-ink text-paper">
                     {msg.content}
                   </div>
                 </div>
@@ -390,21 +392,21 @@ export function AICopilotBubble() {
             )}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-amber-50/80 border border-amber-100 px-3 py-2 rounded-xl text-sm text-amber-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:0ms]" />
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full motion-safe:animate-bounce [animation-delay:300ms]" />
+                <div className="bg-ai-soft border border-ai-line px-3 py-2 rounded-xl text-sm text-ai flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-ai rounded-full motion-safe:animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 bg-ai rounded-full motion-safe:animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 bg-ai rounded-full motion-safe:animate-bounce [animation-delay:300ms]" />
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="px-3 pt-2 pb-1 border-t border-white/60 shrink-0">
+          <div className="px-3 pt-2 pb-1 border-t border-line-2 shrink-0">
             <div className="flex gap-1.5 flex-wrap">
               {quickActions.map((qa) => (
                 <button key={qa} onClick={() => sendMessage(qa)} disabled={loading}
-                  className="min-h-[44px] text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full hover:bg-amber-100 disabled:opacity-50 transition-colors">
+                  className="min-h-[36px] text-xs bg-ai-soft text-ai border border-ai-line px-3 py-1.5 rounded-full hover:opacity-80 disabled:opacity-50 transition-opacity">
                   {qa}
                 </button>
               ))}
@@ -418,12 +420,12 @@ export function AICopilotBubble() {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 placeholder="Room 412 needs towels…"
                 aria-label="Message the AI Copilot"
-                className="flex-1 text-sm px-3 py-2 bg-white/70 border border-amber-200/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400"
+                className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-line rounded-[var(--r-md)] focus:outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4"
                 disabled={loading}
               />
               <button onClick={() => sendMessage()} disabled={loading || !input.trim()} aria-label="Send message"
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity shadow-sm shadow-amber-200">
-                <Send size={14} />
+                className="min-w-[38px] min-h-[38px] flex items-center justify-center bg-ai text-white rounded-[var(--r-md)] hover:opacity-90 disabled:opacity-40 transition-opacity shadow-[var(--shadow-sm)]">
+                <Send size={13} />
               </button>
             </div>
           </div>
@@ -431,8 +433,8 @@ export function AICopilotBubble() {
       )}
 
       <button onClick={() => setOpen((o) => !o)} aria-label={open ? 'Close AI Copilot' : 'Open AI Copilot'}
-        className="w-11 h-11 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full shadow-lg shadow-amber-200/50 flex items-center justify-center hover:opacity-90 transition-opacity">
-        <Bot size={20} className="text-white" />
+        className="w-11 h-11 bg-ai rounded-full shadow-[var(--shadow-lg)] flex items-center justify-center hover:opacity-90 transition-opacity">
+        <Bot size={19} className="text-white" />
       </button>
     </div>
   )

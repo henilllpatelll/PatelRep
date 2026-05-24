@@ -3,8 +3,7 @@
   One-time auth setup: saves credentials to the agent-browser vault and
   establishes a persistent named session. Run once before visual or E2E scripts.
 .EXAMPLE
-  $env:TEST_PASSWORD = "your-password-here"
-  .\auth-setup.ps1
+  Set TEST_PASSWORD in the current shell, then run .\auth-setup.ps1
 .EXAMPLE
   .\auth-setup.ps1 -Url http://localhost:3000
 #>
