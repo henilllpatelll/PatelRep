@@ -49,7 +49,7 @@ app.add_middleware(
         "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
     ],
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -153,7 +153,7 @@ def _cors_headers_for(request: Request) -> dict[str, str]:
         "https://patelrepweb-production.up.railway.app",
         "https://patelrep-web.vercel.app",
     ]
-    if origin in allowed or re.match(r"http://localhost:\d+$", origin):
+    if origin in allowed or re.match(r"http://(localhost|127\.0\.0\.1):\d+$", origin):
         return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",

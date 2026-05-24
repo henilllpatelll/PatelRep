@@ -104,7 +104,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
 
   // ── dnd-kit draggable ──────────────────────────────────────────────────────
   const { setNodeRef, transform, listeners, attributes, isDragging } = useDraggable({
-    id: room.id,
+    id: room.room_id,
     data: { room },
   })
 

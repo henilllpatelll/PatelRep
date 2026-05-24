@@ -14,6 +14,8 @@
 
 ## Key Learnings
 
+- **Housekeeping assignment save has three separate paths (2026-05-24):** Manual tap/sidebar save uses `POST /housekeeping/assignments`, desktop drag gets its room id from `RoomCard`'s dnd-kit draggable id, and AI confirmation uses `POST /ai/assignments/confirm`. All three must send/write `rooms.id` (`room_id`), not `room_status.id`, and AI confirmation must write `assigned_by`, `is_ai_suggested`, and `on_conflict="room_id,assignment_date"` to match the schema.
+- **Local preview may need API on alternate port (2026-05-24):** If `:8000` is occupied by another FastAPI app, PatelRep web can stay stuck on the dashboard skeleton because `/v1/auth/me` 404s and role hydration never completes. Run PatelRep API on another port such as `8001` and restart web with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/v1`; CORS now allows both `localhost` and `127.0.0.1` loopback origins.
 - **Housekeeping board assignment state is date-scoped (2026-05-24):** `GET /housekeeping/board` must derive `assigned_to` from `room_assignments` for the selected `assignment_date`; `room_status.assigned_to` is only a persistent mirror and can contain yesterday's assignee. Frontend realtime room-status merges should preserve the board's daily assignment fields instead of replacing them from `room_status` payloads.
 - **Room status display contract spans web + mobile (2026-05-24):** Status labels/colors are not fully centralized. Update `lib/utils/roomStatus.ts`, shared primitives/Badge, housekeeping board/detail/report/dashboard local maps, web/mobile i18n, mobile room cards, and room API/status types when changing room-status display semantics.
 - **Live Stripe credentials are now configured (2026-05-24):** User reports live Stripe API credentials have been added. Treat billing/checkout verification as production-sensitive: do not print env values, validate webhook signatures, and prefer focused smoke tests or Stripe Dashboard event delivery checks.
@@ -71,6 +73,8 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-05-24] **Do not use `room_status.id` or `user_roles.hotel_id` in assignment flows** — Room assignment payloads must use `rooms.id` / `room_id`. `user_roles` is tenant-scoped by `tenant_id`, not `hotel_id`; using `hotel_id` makes AI staff-name resolution return no housekeepers.
 
 - [2026-05-24] **Do not use `room_status.assigned_to` as the source of truth for today's room assignments** — it persists across days and caused stale assignments to appear after the daily reset. Overlay `room_assignments` by `assignment_date` in board/my-room surfaces, and do not let room-status realtime payloads overwrite the daily assignment value.
 

@@ -111,7 +111,9 @@ def _resolve_staff_id(hotel_id: str, name_hint: str) -> Optional[str]:
     try:
         roles = supabase.table("user_roles")\
             .select("user_id")\
-            .eq("hotel_id", hotel_id)\
+            .eq("tenant_id", hotel_id)\
+            .eq("is_active", True)\
+            .in_("role", ["housekeeper", "housekeeping_supervisor"])\
             .execute()
         user_ids = [r["user_id"] for r in (roles.data or [])]
         if not user_ids:
@@ -125,6 +127,18 @@ def _resolve_staff_id(hotel_id: str, name_hint: str) -> Optional[str]:
         return match.data[0]["id"] if match and match.data else None
     except Exception:
         return None
+
+
+def _is_assignable_housekeeping_staff(hotel_id: str, staff_id: str) -> bool:
+    result = supabase.table("user_roles")\
+        .select("id")\
+        .eq("tenant_id", hotel_id)\
+        .eq("user_id", staff_id)\
+        .eq("is_active", True)\
+        .in_("role", ["housekeeper", "housekeeping_supervisor"])\
+        .limit(1)\
+        .execute()
+    return bool(result.data)
 
 
 @router.post("/copilot/chat")
@@ -476,7 +490,7 @@ async def confirm_assignments(
         staff_id = assignment.staff_id or _resolve_staff_id(
             current_user.hotel_id, assignment.staff_name_hint
         )
-        if not staff_id:
+        if not staff_id or not _is_assignable_housekeeping_staff(current_user.hotel_id, staff_id):
             continue
 
         for room_number in assignment.room_numbers:
@@ -487,8 +501,15 @@ async def confirm_assignments(
                 "tenant_id": current_user.hotel_id,
                 "room_id": room_id,
                 "assigned_to": staff_id,
+                "assigned_by": current_user.user_id,
                 "assignment_date": today,
-            }, on_conflict="tenant_id,room_id,assignment_date").execute()
+                "is_ai_suggested": True,
+            }, on_conflict="room_id,assignment_date").execute()
+            supabase.table("room_status")\
+                .update({"assigned_to": staff_id})\
+                .eq("tenant_id", current_user.hotel_id)\
+                .eq("room_id", room_id)\
+                .execute()
             assigned_count += 1
 
         if assignment.task_ids:

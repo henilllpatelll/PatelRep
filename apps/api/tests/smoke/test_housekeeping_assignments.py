@@ -87,6 +87,7 @@ class FakeQuery:
             payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
             saved = []
             for payload in payload_rows:
+                assert isinstance(payload, dict)
                 existing = next(
                     (
                         row for row in rows

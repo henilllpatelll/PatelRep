@@ -1134,6 +1134,42 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-24T10:44:51.1536172-05:00"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-05-24T11:01:11.3794956-05:00",
+      "error_message": "User reported local dashboard at http://127.0.0.1:3000/dashboard appeared to load nothing.",
+      "file": "apps/api/main.py",
+      "root_cause": "Port 8000 was occupied by an unrelated FastAPI app whose OpenAPI paths were `/api/analysis`, `/api/scanner`, and similar, so PatelRep web calls to `NEXT_PUBLIC_API_URL=http://localhost:8000/v1` returned 404. The local API CORS regex also allowed `localhost` but not `127.0.0.1`, making the user's 127.0.0.1 browser URL fragile.",
+      "fix": "Started PatelRep API on 127.0.0.1:8001, restarted the web dev server on 127.0.0.1:3000 with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/v1`, and updated API CORS/fallback headers to allow both localhost and 127.0.0.1 loopback origins.",
+      "tags": ["local-dev", "dashboard", "cors", "api-port", "auth-hydration"],
+      "related_bugs": ["bug-072"],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T11:01:11.3794956-05:00"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-05-24T11:40:00-05:00",
+      "error_message": "User reported they were unable to assign housekeepers rooms; focused AI assignment regression tests failed because assignment confirmation omitted required fields.",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "AI assignment confirmation wrote room_assignments without required assigned_by/is_ai_suggested fields, used on_conflict=tenant_id,room_id,assignment_date even though the schema constraint is room_id,assignment_date, and staff name resolution queried user_roles.hotel_id instead of tenant_id. Desktop drag assignment also used room_status.id as the draggable id, so the save payload could send a status-row id instead of rooms.id.",
+      "fix": "AI assignment confirmation now resolves assignable housekeeping staff by tenant_id, validates provided staff IDs against active housekeeping roles, writes assigned_by and is_ai_suggested, uses on_conflict=room_id,assignment_date, mirrors room_status.assigned_to, and RoomCard drag ids now use room.room_id.",
+      "tags": ["housekeeping", "assignments", "ai-copilot", "drag-drop", "tenant-validation"],
+      "related_bugs": ["bug-071"],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T11:40:00-05:00"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-05-24T11:40:00-05:00",
+      "error_message": "`apps/api/.venv/Scripts/python -m pyright .` failed with Expected mapping for dictionary unpack operator in test_housekeeping_assignments.py.",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "The FakeQuery upsert helper stored payload as an untyped value, so Pyright could not prove each payload row was a dict before `**payload`.",
+      "fix": "Added an assert that each upsert payload row is a dict before using it as a mapping.",
+      "tags": ["pyright", "tests", "typing"],
+      "related_bugs": ["bug-074"],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T11:40:00-05:00"
     }
   ]
 }

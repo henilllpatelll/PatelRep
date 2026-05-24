@@ -410,6 +410,7 @@
 
 ## apps/api/
 
+- `main.py` - FastAPI app setup, CORS/security middleware, health endpoint, and `/v1` router registration (~4500 tok)
 
 ## apps/api/core/
 
@@ -647,4 +648,11 @@
 - `apps/mobile/stores/appStore.ts` - mobile Zustand app/session/room store and Room type (~900 tok)
 - `apps/mobile/i18n/locales/en.json` - mobile English UI strings including room status labels (~1200 tok)
 - `apps/mobile/i18n/locales/es.json` - mobile Spanish UI strings including room status labels (~1200 tok)
+
+## Session Additions 2026-05-24 Assignment Fix
+
+- `apps/api/routers/ai_copilot.py` - AI copilot task/work-order/guest-request/assignment confirmation routes and staff/room resolution helpers (~20000 tok)
+- `apps/api/tests/smoke/test_ai_assignment_confirm.py` - focused regression tests for AI room assignment confirmation fields and tenant-scoped staff resolution (~3500 tok)
+- `apps/web/stores/housekeepingStore.ts` - Zustand housekeeping board state including selected date, assignment mode, active assignee, and pending assignments (~1400 tok)
+- `apps/web/lib/api/housekeeping.ts` - typed housekeeping API client for board, assignment, prediction, status, and inspection calls (~1800 tok)
 
