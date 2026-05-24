@@ -71,11 +71,9 @@ export async function proxy(request: NextRequest) {
   )
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const {
     data: { session },
   } = await supabase.auth.getSession()
+  const user = session?.user ?? null
   const jwtClaims = decodeJwtClaims(session?.access_token)
 
   const { pathname } = request.nextUrl
