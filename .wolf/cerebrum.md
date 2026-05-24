@@ -14,6 +14,7 @@
 
 ## Key Learnings
 
+- **Housekeeping board assignment state is date-scoped (2026-05-24):** `GET /housekeeping/board` must derive `assigned_to` from `room_assignments` for the selected `assignment_date`; `room_status.assigned_to` is only a persistent mirror and can contain yesterday's assignee. Frontend realtime room-status merges should preserve the board's daily assignment fields instead of replacing them from `room_status` payloads.
 - **Room status display contract spans web + mobile (2026-05-24):** Status labels/colors are not fully centralized. Update `lib/utils/roomStatus.ts`, shared primitives/Badge, housekeeping board/detail/report/dashboard local maps, web/mobile i18n, mobile room cards, and room API/status types when changing room-status display semantics.
 - **Live Stripe credentials are now configured (2026-05-24):** User reports live Stripe API credentials have been added. Treat billing/checkout verification as production-sensitive: do not print env values, validate webhook signatures, and prefer focused smoke tests or Stripe Dashboard event delivery checks.
 - **Auth profile hydration must not destroy valid Supabase sessions on 403/network failures (2026-05-24):** In the web app, `/auth/me` can return 403 for authenticated users without hotel context, and fetches can fail from transient network/CORS issues. Treat only 401 as session-expired/sign-out. For 403, keep the Supabase session and route to `/onboarding`; for network errors, preserve auth state.
@@ -70,6 +71,8 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-05-24] **Do not use `room_status.assigned_to` as the source of truth for today's room assignments** — it persists across days and caused stale assignments to appear after the daily reset. Overlay `room_assignments` by `assignment_date` in board/my-room surfaces, and do not let room-status realtime payloads overwrite the daily assignment value.
 
 - [2026-05-22] **Drawer selectedRoom must be updated optimistically in handleStatusChange / handleAction** — RoomStatusBoard.handleStatusChange and HousekeeperMyRoomsView.handleAction both update the React Query cache optimistically but NOT the `selectedRoom` state. This left the open drawer showing the old status, keeping the same transition button visible and clickable (double-click bug). Fix: call `setSelectedRoom(prev => prev?.room_id === roomId ? { ...prev, status } : prev)` at the start of both handlers.
 

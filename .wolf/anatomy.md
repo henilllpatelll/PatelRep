@@ -422,6 +422,14 @@
 
 ## apps/api/routers/
 
+- `housekeeping.py` - housekeeping room board, daily room assignments, my-rooms, inspection endpoints, and AI assignment hooks (~20000 tok)
+- `staff.py` - staff listing/invite/update/deactivation endpoints and role/profile joins (~19000 tok)
+- `rooms.py` - room CRUD/status transition endpoints and room status side effects (~14000 tok)
+
+## apps/api/tests/smoke/
+
+- `test_housekeeping_assignments.py` - focused regression tests for daily room assignment behavior (~5200 tok)
+
 
 ## apps/api/services/
 

@@ -318,7 +318,8 @@ function HousekeeperMyRoomsView() {
   const applyRoomStatusPayload = useCallback((payload: any) => {
     const row = payload?.new
     if (!row?.room_id) return
-    const mergeRoom = (room: any) => room.room_id === row.room_id ? { ...room, ...row } : room
+    const { assigned_to: _assignedTo, ...statusRow } = row
+    const mergeRoom = (room: any) => room.room_id === row.room_id ? { ...room, ...statusRow } : room
     queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map(mergeRoom) }

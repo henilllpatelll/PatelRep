@@ -171,10 +171,11 @@ export function RoomStatusBoard() {
   const applyRoomStatusPayload = useCallback((payload: any) => {
     const row = payload?.new
     if (!row?.room_id) return
+    const { assigned_to: _assignedTo, ...statusRow } = row
 
     const mergeRoom = (room: any) =>
       room.room_id === row.room_id
-        ? { ...room, ...row, rooms: room.rooms, prediction: room.prediction }
+        ? { ...room, ...statusRow, rooms: room.rooms, prediction: room.prediction }
         : room
 
     setRooms(useHousekeepingStore.getState().rooms.map(mergeRoom))

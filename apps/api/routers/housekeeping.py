@@ -58,6 +58,8 @@ async def get_housekeeping_board(
     include_predictions: bool = Query(True),
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    target_date = board_date or date.today()
+
     # Fetch room_status rows with joined room/room_type data.
     # supabase-py does not support ordering by joined table columns directly,
     # so we sort in Python after fetching.
@@ -83,6 +85,22 @@ async def get_housekeeping_board(
 
     rows.sort(key=_sort_key)
 
+    assignment_query = (
+        supabase.table("room_assignments")
+        .select("id, room_id, assigned_to, shift_id, assignment_date")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assignment_date", target_date.isoformat())
+    )
+    if shift_id:
+        assignment_query = assignment_query.eq("shift_id", shift_id)
+
+    assignment_result = assignment_query.execute()
+    assignment_map = {
+        assignment["room_id"]: assignment
+        for assignment in (assignment_result.data or [])
+        if assignment.get("room_id")
+    }
+
     # Optionally attach predictions
     predictions = []
     if include_predictions:
@@ -96,10 +114,17 @@ async def get_housekeeping_board(
 
     pred_map = {p["room_id"]: p for p in predictions}
 
-    rooms_with_predictions = [
-        {**room, "prediction": pred_map.get(room.get("room_id"))}
-        for room in rows
-    ]
+    rooms_with_predictions = []
+    for room in rows:
+        assignment = assignment_map.get(room.get("room_id"))
+        rooms_with_predictions.append({
+            **room,
+            "assigned_to": assignment.get("assigned_to") if assignment else None,
+            "assignment_id": assignment.get("id") if assignment else None,
+            "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
+            "assignment_shift_id": assignment.get("shift_id") if assignment else None,
+            "prediction": pred_map.get(room.get("room_id")),
+        })
 
     return {"data": rooms_with_predictions}
 
