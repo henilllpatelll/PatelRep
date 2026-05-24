@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { RoomPrediction } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
+import { AILabel, Mono, Pill } from '@/components/ui/primitives'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,39 +29,21 @@ function prettifyRiskFactor(factor: string): string {
   return RISK_FACTOR_LABELS[factor] ?? factor.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-// ── Risk dot ──────────────────────────────────────────────────────────────────
-
-function RiskDot({ level }: { level: 'LOW' | 'MEDIUM' | 'HIGH' | null }) {
-  if (level === 'HIGH') return <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0 mt-0.5" />
-  if (level === 'MEDIUM') return <span className="w-2.5 h-2.5 rounded-full bg-orange-400 flex-shrink-0 mt-0.5" />
-  return <span className="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0 mt-0.5" />
-}
-
-// ── Risk badge ────────────────────────────────────────────────────────────────
-
-function RiskBadge({ level }: { level: 'LOW' | 'MEDIUM' | 'HIGH' | null }) {
-  if (level === 'HIGH')
-    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">HIGH</span>
-  if (level === 'MEDIUM')
-    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">MEDIUM</span>
-  return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">LOW</span>
-}
-
 // ── Skeleton row ──────────────────────────────────────────────────────────────
 
 function SkeletonRow() {
   return (
-    <div className="flex items-start gap-3 px-4 py-3 border-b border-white/40 last:border-0 animate-pulse">
-      <div className="w-2.5 h-2.5 rounded-full bg-gray-200 mt-1 flex-shrink-0" />
+    <div className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-0 animate-pulse">
+      <div className="w-2.5 h-2.5 rounded-full bg-surface-3 mt-1 flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
         <div className="flex items-center gap-2">
-          <div className="h-4 w-20 bg-gray-200 rounded" />
-          <div className="h-4 w-12 bg-gray-200 rounded-full" />
-          <div className="h-4 w-28 bg-gray-200 rounded ml-auto" />
+          <div className="h-4 w-20 bg-surface-3 rounded" />
+          <div className="h-4 w-12 bg-surface-3 rounded-full" />
+          <div className="h-4 w-28 bg-surface-3 rounded ml-auto" />
         </div>
         <div className="flex gap-1.5">
-          <div className="h-3.5 w-16 bg-gray-100 rounded-full" />
-          <div className="h-3.5 w-20 bg-gray-100 rounded-full" />
+          <div className="h-3.5 w-16 bg-surface-2 rounded-full" />
+          <div className="h-3.5 w-20 bg-surface-2 rounded-full" />
         </div>
       </div>
     </div>
@@ -71,36 +54,39 @@ function SkeletonRow() {
 
 function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
   const roomLabel = prediction.room_number
-    ? `Room ${prediction.room_number}`
-    : `Room ${prediction.room_id.slice(0, 8)}`
+    ? `${prediction.room_number}`
+    : prediction.room_id.slice(0, 8)
+
+  const riskTone =
+    prediction.risk_level === 'HIGH' ? 'alert' :
+    prediction.risk_level === 'MEDIUM' ? 'caution' :
+    'pickup'
 
   return (
-    <div className="flex items-start gap-3 px-4 py-3 border-b border-white/40 last:border-0 hover:bg-white/30 transition-colors">
-      <RiskDot level={prediction.risk_level} />
-
+    <div className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-0 hover:bg-surface-2 transition-colors">
       <div className="flex-1 min-w-0">
-        {/* Top row: room name + badge + ETA */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-gray-900">{roomLabel}</span>
-          <RiskBadge level={prediction.risk_level} />
-          <span className="ml-auto text-xs font-medium text-gray-600 whitespace-nowrap">
+          <Mono className="text-[13px] font-semibold text-ink">Room {roomLabel}</Mono>
+          <Pill tone={riskTone} size="sm">
+            {prediction.risk_level ?? 'LOW'}
+          </Pill>
+          <span className="ml-auto text-[11px] font-mono text-ink-3 whitespace-nowrap">
             {formatETA(prediction.predicted_ready_at)}
           </span>
         </div>
 
-        {/* Bottom row: risk factor chips + confidence */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
           {prediction.risk_factors.map((factor) => (
             <span
               key={factor}
-              className="px-1.5 py-0.5 rounded-full text-xs bg-white/60 text-gray-600 border border-white/80"
+              className="px-1.5 py-px rounded-full text-[10.5px] bg-surface-3 text-ink-2 border border-line"
             >
               {prettifyRiskFactor(factor)}
             </span>
           ))}
           {prediction.confidence_score !== null && (
-            <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">
-              {Math.round(prediction.confidence_score * 100)}% confidence
+            <span className="text-[11px] font-mono text-[var(--ai)] ml-auto whitespace-nowrap font-semibold">
+              {Math.round(prediction.confidence_score * 100)}%
             </span>
           )}
         </div>
@@ -121,7 +107,6 @@ interface PredictionPanelProps {
 export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // Only show HIGH and MEDIUM risk rooms, sorted HIGH first
   const atRiskRooms = predictions
     .filter((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM')
     .sort((a, b) => {
@@ -133,37 +118,31 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
   const mediumCount = atRiskRooms.filter((p) => p.risk_level === 'MEDIUM').length
 
   return (
-    <Card className={`overflow-hidden p-0${highCount > 0 ? ' border-red-200 bg-red-50' : ''}`}>
+    <Card className="overflow-hidden p-0">
       {/* ── Header ── */}
       <button
         type="button"
         onClick={() => setIsExpanded((v) => !v)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer text-left hover:bg-white/20 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3.5 cursor-pointer text-left hover:bg-[var(--ai-soft)] transition-colors bg-[var(--ai-soft)] border-b border-[var(--ai-line)]"
         aria-expanded={isExpanded}
       >
         <div className="flex items-center gap-3">
-          {/* Warning icon */}
-          <span className="text-orange-500 text-lg leading-none">&#9888;</span>
-          <span className="text-sm font-semibold text-gray-900">Room Readiness Alerts</span>
-
-          {/* Count badges */}
+          <AILabel>Predictions</AILabel>
           <div className="flex items-center gap-1.5">
             {highCount > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                {highCount} HIGH
-              </span>
+              <Pill tone="alert" size="sm">{highCount} HIGH</Pill>
             )}
             {mediumCount > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
-                {mediumCount} MEDIUM
-              </span>
+              <Pill tone="caution" size="sm">{mediumCount} MEDIUM</Pill>
+            )}
+            {highCount === 0 && mediumCount === 0 && !isLoading && (
+              <span className="text-[11px] font-mono text-[var(--ai)] opacity-70">all clear</span>
             )}
           </div>
         </div>
 
-        {/* Chevron */}
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${
+          className={`w-4 h-4 text-[var(--ai)] transition-transform duration-200 flex-shrink-0 ${
             isExpanded ? 'rotate-180' : ''
           }`}
           fill="none"
@@ -177,7 +156,7 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
 
       {/* ── Body ── */}
       {isExpanded && (
-        <div className="border-t border-white/40">
+        <div>
           {isLoading ? (
             <>
               <SkeletonRow />
@@ -185,8 +164,13 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
               <SkeletonRow />
             </>
           ) : atRiskRooms.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-gray-400">
-              No at-risk rooms. All rooms on track.
+            <div className="px-4 py-6 text-center space-y-2">
+              <div className="flex justify-center">
+                <AILabel>Predictions</AILabel>
+              </div>
+              <p className="font-display italic text-[14px] text-ink-3 leading-relaxed">
+                No risks flagged right now
+              </p>
             </div>
           ) : (
             atRiskRooms.map((prediction) => (

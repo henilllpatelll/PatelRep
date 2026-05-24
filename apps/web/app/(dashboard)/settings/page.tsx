@@ -823,7 +823,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       {/* Page header */}
       <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your hotel profile and configuration.</p>
       </div>
 
@@ -846,7 +846,7 @@ export default function SettingsPage() {
       )}
 
       {/* Tabs */}
-      <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-gray-200 px-1 pb-1 sm:mx-0 sm:px-0">
+      <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-line px-1 pb-1 sm:mx-0 sm:px-0">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

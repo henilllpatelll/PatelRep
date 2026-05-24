@@ -74,10 +74,10 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
               key={chip.key ?? 'all'}
               onClick={() => onFilter(chip.key)}
               aria-pressed={isActive}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
                 isActive
-                  ? 'bg-ink text-paper border-ink'
-                  : 'bg-surface text-ink2 border-line hover:border-line-2 hover:text-ink'
+                  ? 'bg-ink text-paper border-ink font-medium'
+                  : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
               }`}
             >
               <StatusDot tone={chip.dotTone} size={7} />

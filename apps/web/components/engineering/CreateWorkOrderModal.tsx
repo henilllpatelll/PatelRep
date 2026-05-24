@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -25,7 +25,7 @@ const CATEGORIES = [
 ]
 
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact â€” immediate' },
+  { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact — immediate' },
   { value: 'normal', label: 'Normal', desc: 'Standard maintenance' },
   { value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' },
 ]
@@ -135,11 +135,11 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
               <ClipboardList className="w-5 h-5 text-[var(--caution)] shrink-0" />
-              <h2 className="text-base font-bold text-gray-900">New Work Order</h2>
+              <h2 className="text-base font-bold text-ink">New Work Order</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -150,12 +150,12 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
             {/* AI toggle */}
-            <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-200 rounded-xl">
+            <div className="flex items-center justify-between p-3 bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-xl">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-600 shrink-0" />
+                <Sparkles className="w-4 h-4 text-[var(--ai)] shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-violet-900">Use AI to create</p>
-                  <p className="text-xs text-violet-600">Describe the issue in plain language</p>
+                  <p className="text-sm font-medium text-ink">Use AI to create</p>
+                  <p className="text-xs text-ink2">Describe the issue in plain language</p>
                 </div>
               </div>
               <button
@@ -164,7 +164,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                 aria-checked={useAI}
                 onClick={() => setUseAI((v) => !v)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  useAI ? 'bg-violet-600' : 'bg-gray-300'
+                  useAI ? 'bg-[var(--ai)]' : 'bg-surface-3'
                 }`}
               >
                 <span
@@ -175,9 +175,9 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               </button>
             </div>
 
-            {/* Location â€” required, shown first */}
+            {/* Location — required, shown first */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink2 mb-1">
                 Location <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
@@ -191,7 +191,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {/* Title (only when AI is off) */}
             {!useAI && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink2 mb-1">
                   Title <span className="text-[var(--alert)]">*</span>
                 </label>
                 <Input
@@ -206,7 +206,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {/* NL Input (only when AI is on) */}
             {useAI && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink2 mb-1">
                   Describe the issue <span className="text-[var(--alert)]">*</span>
                 </label>
                 <textarea
@@ -214,9 +214,9 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   onChange={(e) => setNlInput(e.target.value)}
                   rows={3}
                   placeholder="e.g. The toilet in room 214 is leaking from the base and the guest is complaining..."
-                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
+                  className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors resize-none"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-ink4 mt-1">
                   AI will generate the title and categorize automatically.
                 </p>
               </div>
@@ -224,11 +224,11 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+              <label className="block text-sm font-medium text-ink2 mb-1">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
+                className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -240,7 +240,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+              <label className="block text-sm font-medium text-ink2 mb-2">Priority</label>
               <div className="space-y-2">
                 {PRIORITIES.map((p) => (
                   <label
@@ -248,11 +248,11 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                     className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
                       priority === p.value
                         ? p.value === 'urgent'
-                          ? 'border-red-300 bg-[var(--alert-soft)]'
+                          ? 'border-[var(--alert-line)] bg-[var(--alert-soft)]'
                           : p.value === 'normal'
-                          ? 'border-blue-300 bg-[var(--info-soft)]'
+                          ? 'border-[var(--info-line)] bg-[var(--info-soft)]'
                           : 'border-slate-300 bg-slate-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-line hover:border-line-2'
                     }`}
                   >
                     <input
@@ -264,8 +264,8 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                       className="mt-0.5 accent-amber-500"
                     />
                     <div>
-                      <p className="text-sm font-medium text-gray-900 capitalize">{p.label}</p>
-                      <p className="text-xs text-gray-500">{p.desc}</p>
+                      <p className="text-sm font-medium text-ink capitalize">{p.label}</p>
+                      <p className="text-xs text-ink3">{p.desc}</p>
                     </div>
                   </label>
                 ))}
@@ -275,15 +275,15 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {/* Description */}
             {!useAI && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Description <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="block text-sm font-medium text-ink2 mb-1">
+                  Description <span className="text-ink4 font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  placeholder="Additional details about the issueâ€¦"
-                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
+                  placeholder="Additional details about the issue…"
+                  className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors resize-none"
                 />
               </div>
             )}
@@ -314,7 +314,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               {mutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {useAI ? 'Processingâ€¦' : 'Creatingâ€¦'}
+                  {useAI ? 'Processing…' : 'Creating…'}
                 </>
               ) : (
                 useAI ? 'Create with AI' : 'Create Work Order'

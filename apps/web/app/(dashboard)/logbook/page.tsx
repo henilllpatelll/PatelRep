@@ -22,6 +22,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -156,11 +157,11 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
-            <span className="font-medium text-gray-700">{time}</span>
+            <Mono className="text-[11px] text-ink3">{time}</Mono>
             <span aria-hidden="true">Â·</span>
             <span>{authorName}</span>
             <span aria-hidden="true">Â·</span>
-            <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600">{deptName}</span>
+            <Pill tone="neutral">{deptName}</Pill>
             {entry.expires_at && (
               <>
                 <span aria-hidden="true">Â·</span>
@@ -171,15 +172,13 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
               </>
             )}
           </div>
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+          <p className={`text-sm leading-relaxed whitespace-pre-wrap ${entry.is_ai_generated ? "font-display italic text-[15px] leading-[1.4] text-gray-800" : "text-sm text-gray-800 leading-relaxed whitespace-pre-wrap"}`}>
             {entry.content}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {entry.is_ai_generated && (
-            <span className="text-xs px-2 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)] rounded font-medium">
-              AI
-            </span>
+            <AILabel />
           )}
           {canEdit && (
             <KebabMenu onEdit={() => onEdit(entry)} onDelete={() => onDelete(entry)} />
@@ -252,9 +251,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
         <div className="flex items-center gap-2.5 min-w-0">
           <Sparkles size={16} className="text-[var(--caution)] shrink-0" />
           <span className="text-sm font-semibold text-amber-800">Today's AI Shift Summary</span>
-          <span className="text-xs px-2 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)] rounded font-medium">
-            AI
-          </span>
+          <AILabel />
           {!isOpen && (
             summaryText ? (
               <span className="text-xs text-ink3 truncate hidden sm:inline">

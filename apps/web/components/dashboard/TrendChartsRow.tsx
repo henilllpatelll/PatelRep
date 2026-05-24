@@ -137,7 +137,7 @@ export function TrendChartsRow() {
                 <div className="mt-1 flex items-center gap-2">
                   <div className="flex-1 h-2 bg-surface-3 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-amber-400 transition-all"
+                      className="h-full rounded-full bg-[var(--caution)] transition-all"
                       style={{ width: `${Math.min(completionPct, 100)}%` }}
                     />
                   </div>

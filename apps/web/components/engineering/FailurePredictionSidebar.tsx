@@ -9,15 +9,15 @@ import { Card } from '@/components/ui/Card'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRiskRingColor(score: number): string {
-  if (score >= 70) return 'text-red-500'
-  if (score >= 40) return 'text-orange-400'
-  return 'text-green-500'
+  if (score >= 70) return 'text-[var(--alert)]'
+  if (score >= 40) return 'text-[var(--caution)]'
+  return 'text-[var(--ready)]'
 }
 
 function getRiskBgColor(score: number): string {
-  if (score >= 70) return 'bg-red-50 border-red-100'
-  if (score >= 40) return 'bg-orange-50 border-orange-100'
-  return 'bg-green-50 border-green-100'
+  if (score >= 70) return 'bg-[var(--alert-soft)] border-[var(--alert-line)]'
+  if (score >= 40) return 'bg-[var(--caution-soft)] border-[var(--caution-line)]'
+  return 'bg-[var(--ready-soft)] border-[var(--ready-line)]'
 }
 
 function getRiskLabel(score: number): string {
@@ -27,28 +27,28 @@ function getRiskLabel(score: number): string {
 }
 
 function getRiskBadgeCls(score: number): string {
-  if (score >= 70) return 'bg-red-100 text-red-700'
-  if (score >= 40) return 'bg-orange-100 text-orange-700'
-  return 'bg-green-100 text-green-700'
+  if (score >= 70) return 'bg-[var(--alert-soft)] text-[var(--alert)]'
+  if (score >= 40) return 'bg-[var(--caution-soft)] text-[var(--caution)]'
+  return 'bg-[var(--ready-soft)] text-[var(--ready)]'
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function SkeletonItem() {
   return (
-    <div className="p-3 rounded-lg border border-gray-100 animate-pulse space-y-2">
+    <div className="p-3 rounded-lg border border-line-2 animate-pulse space-y-2">
       <div className="flex items-start gap-2.5">
-        <div className="w-9 h-9 rounded-full bg-gray-100 shrink-0" />
+        <div className="w-9 h-9 rounded-full bg-surface-2 shrink-0" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-3.5 bg-gray-100 rounded w-3/4" />
-          <div className="h-3 bg-gray-100 rounded w-1/2" />
+          <div className="h-3.5 bg-surface-2 rounded w-3/4" />
+          <div className="h-3 bg-surface-2 rounded w-1/2" />
         </div>
       </div>
-      <div className="h-3 bg-gray-100 rounded w-full" />
-      <div className="h-3 bg-gray-100 rounded w-2/3" />
+      <div className="h-3 bg-surface-2 rounded w-full" />
+      <div className="h-3 bg-surface-2 rounded w-2/3" />
       <div className="flex gap-1.5">
-        <div className="h-5 w-16 bg-gray-100 rounded-full" />
-        <div className="h-5 w-20 bg-gray-100 rounded-full" />
+        <div className="h-5 w-16 bg-surface-2 rounded-full" />
+        <div className="h-5 w-20 bg-surface-2 rounded-full" />
       </div>
     </div>
   )
@@ -96,7 +96,7 @@ function PredictionCard({
               fill="none"
               stroke="currentColor"
               strokeWidth="3"
-              className="text-gray-200"
+              className="text-surface-3"
             />
             <circle
               cx="18"
@@ -110,34 +110,34 @@ function PredictionCard({
               className={ringColor}
             />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700">
+          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-ink2">
             {prediction.risk_score}
           </span>
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1">
-            <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{assetName}</p>
+            <p className="text-sm font-semibold text-ink leading-tight truncate">{assetName}</p>
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${badgeCls}`}>
               {riskLabel}
             </span>
           </div>
           {categoryName && (
-            <p className="text-xs text-gray-500 mt-0.5">{categoryName}</p>
+            <p className="text-xs text-ink3 mt-0.5">{categoryName}</p>
           )}
         </div>
       </div>
 
       {/* Predicted failure window */}
       {prediction.predicted_failure_window && (
-        <p className="text-xs text-gray-600 mb-1.5">
+        <p className="text-xs text-ink2 mb-1.5">
           <span className="font-medium">Failure window:</span>{' '}
           {prediction.predicted_failure_window}
         </p>
       )}
 
       {/* Recommendation */}
-      <p className="text-xs text-gray-700 line-clamp-2 mb-2">{prediction.recommendation}</p>
+      <p className="text-xs text-ink2 line-clamp-2 mb-2">{prediction.recommendation}</p>
 
       {/* Failure indicator chips */}
       {indicators.length > 0 && (
@@ -145,7 +145,7 @@ function PredictionCard({
           {indicators.map((indicator, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/80 border border-gray-200 text-gray-600 truncate max-w-[140px]"
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface border border-line text-ink2 truncate max-w-[140px]"
             >
               {indicator}
             </span>
@@ -159,7 +159,7 @@ function PredictionCard({
           <button
             onClick={() => onCreateWO(prediction.id)}
             disabled={isCreatingWO}
-            className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:opacity-80 transition-colors disabled:opacity-50"
           >
             {isCreatingWO ? (
               <Loader2 size={12} className="animate-spin" />
@@ -171,7 +171,7 @@ function PredictionCard({
           <button
             onClick={() => onAcknowledge(prediction.id)}
             disabled={isAcknowledging}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs font-medium text-ink2 hover:text-ink transition-colors disabled:opacity-50"
           >
             {isAcknowledging ? (
               <Loader2 size={12} className="animate-spin" />
@@ -184,7 +184,7 @@ function PredictionCard({
       )}
 
       {prediction.is_acknowledged && (
-        <p className="flex items-center gap-1 text-xs text-green-600 font-medium">
+        <p className="flex items-center gap-1 text-xs text-[var(--ready)] font-medium">
           <CheckCircle size={12} />
           Acknowledged
         </p>
@@ -227,13 +227,13 @@ export function FailurePredictionSidebar() {
 
   return (
     <Card
-      className={`w-72 h-fit shrink-0 p-4${hasHighRisk ? ' border-red-200 bg-red-50' : ''}`}
+      className={`w-72 h-fit shrink-0 p-4${hasHighRisk ? ' border-[var(--alert-line)] bg-[var(--alert-soft)]' : ''}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">Asset Failure Risks</h3>
+        <h3 className="text-sm font-semibold text-ink">Asset Failure Risks</h3>
         {items.length > 0 && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] font-medium">
             {items.filter((p) => !p.is_acknowledged).length} active
           </span>
         )}
@@ -248,11 +248,11 @@ export function FailurePredictionSidebar() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2.5">
-            <CheckCircle size={18} className="text-green-600" />
+          <div className="w-10 h-10 rounded-full bg-[var(--ready-soft)] flex items-center justify-center mb-2.5">
+            <CheckCircle size={18} className="text-[var(--ready)]" />
           </div>
-          <p className="text-sm font-medium text-gray-700">No high-risk assets</p>
-          <p className="text-xs text-gray-400 mt-1">All assets are within normal risk levels.</p>
+          <p className="text-sm font-medium text-ink2">No high-risk assets</p>
+          <p className="text-xs text-ink4 mt-1">All assets are within normal risk levels.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -278,7 +278,7 @@ export function FailurePredictionSidebar() {
 
       {/* Footer note */}
       <div className="mt-4 pt-3 border-t border-white/60">
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-ink4 text-center">
           Predictions updated nightly by AI
         </p>
       </div>

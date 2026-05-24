@@ -73,7 +73,7 @@ const STATUS_BG: Record<string, string> = {
   IN_PROGRESS: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]',
   CLEAN: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
   INSPECTED: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
-  OOO: 'bg-gray-100 text-gray-600 border border-gray-200',
+  OOO: 'bg-gray-100 text-gray-600 border border-line',
   PICKUP: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
 }
 
@@ -92,7 +92,7 @@ function DateRangeSelector({
     { label: 'Last 90 days', value: '90d' },
   ]
   return (
-    <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+    <div className="flex gap-1 rounded-lg border border-line bg-gray-50 p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -124,7 +124,7 @@ function KpiCard({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500">{label}</p>
         {icon && <span className="text-gray-400">{icon}</span>}
@@ -191,7 +191,7 @@ function DailySummaryTab() {
             {Object.entries(summary.room_status_breakdown).map(([status, count]) => (
               <div
                 key={status}
-                className={`rounded-lg px-4 py-3 text-center ${STATUS_BG[status] || 'bg-gray-50 text-gray-700 border border-gray-200'}`}
+                className={`rounded-lg px-4 py-3 text-center ${STATUS_BG[status] || 'bg-gray-50 text-gray-700 border border-line'}`}
               >
                 <p className="text-2xl font-bold">{count}</p>
                 <p className="text-xs font-medium mt-0.5">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
@@ -215,16 +215,16 @@ function DailySummaryTab() {
           </>
         ) : summary ? (
           <>
-            <div className="flex flex-col items-center justify-center bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-6">
+            <div className="flex flex-col items-center justify-center bg-surface border border-line rounded-[var(--r-lg)] p-6">
               <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
               <p className="text-4xl font-bold text-gray-900">{summary.tasks_completed_today}</p>
               <p className="mt-1 text-sm text-gray-500">tasks completed today</p>
             </div>
             <div
-              className={`flex flex-col items-center justify-center backdrop-blur-md rounded-[var(--r-lg)] border p-6 ${
+              className={`flex flex-col items-center justify-center rounded-[var(--r-lg)] border p-6 ${
                 summary.open_work_orders > 0
                   ? 'border-orange-200/60 bg-orange-50/70'
-                  : 'border-white/90 bg-surface/[0.65]'
+                  : 'border-line bg-surface'
               }`}
             >
               <Wrench
@@ -294,7 +294,7 @@ function StaffPerformanceTab() {
           ))}
         </div>
       ) : report && report.metrics.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <div className="overflow-x-auto rounded-xl border border-line">
           <table className="min-w-full divide-y divide-gray-100 text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -433,7 +433,7 @@ function MaintenanceTab() {
       {report && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* By Category */}
-          <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
+          <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Category</h4>
             {Object.keys(report.by_category).length === 0 ? (
               <p className="text-sm text-gray-400">No data.</p>
@@ -460,7 +460,7 @@ function MaintenanceTab() {
           </div>
 
           {/* By Priority */}
-          <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
+          <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Priority</h4>
             <div className="space-y-3">
               {[
@@ -562,7 +562,7 @@ function AIUsageTab() {
           ))}
         </div>
       ) : report && sortedBreakdown.length > 0 ? (
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden">
           <table className="min-w-full divide-y divide-gray-100 text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -662,7 +662,7 @@ export default function ReportsPage() {
           <BarChart2 className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Reports</h1>
+          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Reports</h1>
           <p className="text-sm text-gray-500">Operational analytics and performance metrics</p>
         </div>
       </div>

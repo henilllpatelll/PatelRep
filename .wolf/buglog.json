@@ -755,6 +755,301 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-24T00:34:00-05:00"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-05-24T01:21:00-05:00",
+      "error_message": "Vercel Preview build failed prerendering /_not-found: @supabase/ssr requires project URL and API key",
+      "file": "Vercel project patelrep-web",
+      "root_cause": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and NEXT_PUBLIC_API_URL existed only for Production, while branch codex/frontend-design-handoff-rework deployed as Preview.",
+      "fix": "Added branch-scoped Preview environment variables in Vercel and redeployed the failed deployment successfully.",
+      "tags": [
+        "vercel",
+        "preview-env",
+        "supabase",
+        "build"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T01:21:00-05:00"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-05-24T01:21:00-05:00",
+      "error_message": "Vercel CLI env add and redeploy commands failed with non-interactive option mismatches",
+      "file": "n/a",
+      "root_cause": "This Vercel CLI required a git branch argument for Preview env additions and the redeploy command does not support --yes.",
+      "fix": "Used `vercel env add <name> preview codex/frontend-design-handoff-rework --value <value> --yes --force` and `vercel redeploy <url> --target preview`.",
+      "tags": [
+        "vercel-cli",
+        "tooling",
+        "preview-env"
+      ],
+      "related_bugs": [
+        "bug-048"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T01:21:00-05:00"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-05-24T01:24:00-05:00",
+      "error_message": "Plain web request to Vercel Preview returned deployment protection auth page; first vercel curl attempt used a full URL and failed",
+      "file": "n/a",
+      "root_cause": "The Preview deployment is protected, and `vercel curl` expects a relative path plus `--deployment` when targeting a specific deployment.",
+      "fix": "Verified with `vercel curl /login --deployment patelrep-1lhjrssvc-henilllpatellls-projects.vercel.app`.",
+      "tags": [
+        "vercel-cli",
+        "deployment-protection",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-048"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T01:24:00-05:00"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-05-24T06:38:11.896Z",
+      "error_message": "User reported: after clicking Sign In, clicking anything signs them out",
+      "file": "apps/web/components/shared/Providers.tsx",
+      "root_cause": "Auth profile hydration treated /auth/me 403 responses and network/CORS failures as fatal auth failures, then cleared the auth store and called Supabase signOut. Header and Sidebar also mounted duplicate useAuth listeners that could trigger extra auth-context calls.",
+      "fix": "Centralized auth/session hydration in Providers, only signs out on true /auth/me 401 invalid-session responses, redirects authenticated no-hotel 403 users to onboarding without destroying the session, ignores transient network failures for sign-out purposes, and simplified useAuth to read the central store only.",
+      "tags": [
+        "auth",
+        "login",
+        "session",
+        "supabase",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T06:38:11.896Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-05-24T06:38:11.896Z",
+      "error_message": "Focused Playwright login suite failed because login page branding assertions expected old heading/text",
+      "file": "e2e/01-login.spec.ts",
+      "root_cause": "The login redesign moved PatelRep from a heading to logo text and changed the small product label from Hotel Operations AI to Hotel AI, while tests still asserted the old accessible structure.",
+      "fix": "Updated the login e2e assertions to check logo text, the current Welcome back heading, and the current Hotel AI label.",
+      "tags": [
+        "playwright",
+        "login",
+        "test-maintenance"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T06:38:11.896Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-05-24T12:37:53.013Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "hover: border-line-2 hover:text-ink' → bg-surface-2'",
+      "fix": "Changed hover: border-line-2 hover:text-ink' → bg-surface-2'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T12:37:53.013Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-05-24T12:38:27.562Z",
+      "error_message": "CSS fix: STATUS_TONES, open, in_progress",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { → Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', → 'alert',; in_progress: 'ai', → 'caution',",
+      "fix": "Changed STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { → Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', → 'alert',; in_progress: 'ai', → 'caution',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-24T12:39:01.451Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-05-24T12:39:12.639Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→17 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T12:39:12.639Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-05-24T13:04:04.416Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (5 removed) | Also: <Card className=\"p-4\">; <p className=\"text-2xl font-bold text-[var(--info) | Also: const ROLE_BADGE_COLORS: Record<UserRole, string> ; gm: 'bg-[var(--caution-soft)] text-[var(--caution) | Also: return (; <span | Also: <span className=\"inline-flex items-center px-2 py-; {member.custom_role_name}",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-05-24T13:08:17.633Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-05-24T13:05:40.267Z",
+      "error_message": "Wrong reference: isLoading should be SectionLabel",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Used \"isLoading\" instead of \"SectionLabel\"",
+      "fix": "Changed isLoading → SectionLabel",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-24T13:09:05.921Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-05-24T13:08:23.879Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T13:08:23.879Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-05-24T13:08:38.491Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/reports/page.tsx",
+      "root_cause": "Had \"flex flex-col items-center justify-center bg-surf",
+      "fix": "Changed to \"flex flex-col items-center justify-center bg-surf",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-05-24T13:09:55.419Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-05-24T13:22:59.337Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "Had 'bg-[var(--caution-soft)] border-2 border-amber-40",
+      "fix": "Changed to 'bg-[var(--caution-soft)] border-2 border-[var(--c",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-24T13:23:56.084Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-05-24T13:24:06.523Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/shared/DeleteConfirmDialog.tsx",
+      "root_cause": "hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" → opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
+      "fix": "Changed hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" → opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T13:24:06.523Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-05-24T13:24:11.372Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/AIRiskAlertsPanel.tsx",
+      "root_cause": "Had \"border-l-4 border-red-400 bg-surface/60 rounded-x",
+      "fix": "Changed to \"border-l-4 border-[var(--alert)] bg-surface/60 ro",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-24T13:24:29.581Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-05-24T13:24:34.002Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
+      "root_cause": "Had \"h-full rounded-full bg-amber-400 transition-all\"",
+      "fix": "Changed to \"h-full rounded-full bg-[var(--caution)] transitio",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T13:24:34.002Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-05-24T13:25:56.881Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" → opacity-90 transition-opacity disabled:opacity-50\"",
+      "fix": "Changed hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" → opacity-90 transition-opacity disabled:opacity-50\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-24T13:26:50.373Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-05-24T13:26:02.477Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
+      "root_cause": "Had \"px-3 py-1.5 bg-green-600 text-white rounded-lg te",
+      "fix": "Changed to \"px-3 py-1.5 bg-[var(--ready)] text-white rounded-",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-24T13:26:33.545Z"
     }
   ]
 }

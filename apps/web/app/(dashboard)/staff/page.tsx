@@ -25,6 +25,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -47,13 +48,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
   front_desk: 'Front Desk',
 }
 
-const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  gm: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
-  housekeeping_supervisor: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
-  housekeeper: 'bg-surface-2 text-ink-2 border border-line',
-  chief_engineer: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
-  engineer: 'bg-surface-2 text-ink-3 border border-line',
-  front_desk: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
+const ROLE_TONE: Record<UserRole, 'caution' | 'ready' | 'neutral' | 'ai'> = {
+  gm: 'caution',
+  housekeeping_supervisor: 'ready',
+  housekeeper: 'neutral',
+  chief_engineer: 'ai',
+  engineer: 'neutral',
+  front_desk: 'ai',
 }
 
 const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
@@ -109,13 +110,7 @@ function relativeTime(dateStr: string): string {
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RoleBadge({ role }: { role: UserRole }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE_COLORS[role]}`}
-    >
-      {ROLE_LABELS[role]}
-    </span>
-  )
+  return <Pill tone={ROLE_TONE[role]}>{ROLE_LABELS[role]}</Pill>
 }
 
 function Avatar({ name, role }: { name: string; role: UserRole }) {
@@ -901,6 +896,7 @@ export default function StaffPage() {
       </div>
 
       {/* Staff table */}
+      <SectionLabel hint={filteredStaff.length > 0 ? String(filteredStaff.length) : undefined}>Team Members</SectionLabel>
       <Card className="overflow-hidden p-0">
         {staffQuery.isLoading ? (
           <div className="px-6 py-12 text-center text-[13px] text-ink-3">Loading staff&hellip;</div>
@@ -943,9 +939,7 @@ export default function StaffPage() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <RoleBadge role={member.role} />
                       {member.custom_role_name && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]">
-                          {member.custom_role_name}
-                        </span>
+                        <Pill tone="ai">{member.custom_role_name}</Pill>
                       )}
                     </div>
                   </td>

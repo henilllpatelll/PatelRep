@@ -21,6 +21,7 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Pill, SectionLabel, Stat } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
@@ -37,11 +38,11 @@ const TABS: { value: ActiveTab; label: string }[] = [
   { value: 'discarded', label: 'Discarded' },
 ]
 
-const STATUS_STYLES: Record<LostFoundStatus, string> = {
-  unclaimed: 'bg-[var(--info-soft)] text-[var(--info)]',
-  claimed: 'bg-[var(--ready-soft)] text-[var(--ready)]',
-  donated: 'bg-[var(--ai-soft)] text-[var(--ai)]',
-  discarded: 'bg-gray-100 text-gray-600',
+const STATUS_TONE: Record<LostFoundStatus, 'info' | 'ready' | 'ai' | 'neutral'> = {
+  unclaimed: 'info',
+  claimed: 'ready',
+  donated: 'ai',
+  discarded: 'neutral',
 }
 
 const STATUS_LABELS: Record<LostFoundStatus, string> = {
@@ -69,15 +70,6 @@ const TAB_INACTIVE_STYLES: Record<ActiveTab, string> = {
 
 // â”€â”€â”€ Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function StatusBadge({ status }: { status: LostFoundStatus }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[status]}`}
-    >
-      {STATUS_LABELS[status]}
-    </span>
-  )
-}
 
 // â”€â”€â”€ Skeleton Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -132,7 +124,7 @@ function ItemCard({
     <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
       {/* Top row: status badge + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
-        <StatusBadge status={item.status} />
+        <Pill tone={STATUS_TONE[item.status]}>{STATUS_LABELS[item.status]}</Pill>
         <div className="flex items-center gap-1">
           <span className="text-xs text-gray-400 flex items-center gap-1">
             <Clock className="w-3 h-3" />
@@ -701,22 +693,10 @@ export default function LostFoundPage() {
 
       {/* â”€â”€ Stats row â”€â”€ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--info)]">{counts.unclaimed}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Unclaimed</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--ready)]">{counts.claimed}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Claimed</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--ai)]">{counts.donated}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Donated</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-2xl font-bold text-gray-500">{counts.discarded}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Discarded</p>
-        </Card>
+        <Stat label="Unclaimed" value={<span className="text-[var(--info)]">{counts.unclaimed}</span>} />
+        <Stat label="Claimed" value={<span className="text-[var(--ready)]">{counts.claimed}</span>} />
+        <Stat label="Donated" value={<span className="text-[var(--ai)]">{counts.donated}</span>} />
+        <Stat label="Discarded" value={<span className="text-gray-500">{counts.discarded}</span>} />
       </div>
 
       {/* â”€â”€ Filter bar â”€â”€ */}
@@ -768,7 +748,8 @@ export default function LostFoundPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Items grid â”€â”€ */}
+      {/* ── Items grid ── */}
+      <SectionLabel>Items</SectionLabel>
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <SkeletonCard />

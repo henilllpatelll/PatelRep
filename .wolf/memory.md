@@ -1788,3 +1788,126 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:24 | Ran Playwright visual smoke on local login desktop/mobile | http://127.0.0.1:3000/login | Warm paper/accent tokens render, no console/page errors, no horizontal overflow | ~1000 |
 | 00:24 | Session summary: implemented/finished frontend design handoff cleanup, verified gates, and recorded OpenWolf learnings | apps/web, .wolf/cerebrum.md, .wolf/buglog.json | Ready to hand back with remaining authenticated visual risk noted | ~1000 |
 | 00:34 | Created publish branch and staged frontend rework scope | apps/web, .wolf/anatomy.md, .wolf/buglog.json, .wolf/cerebrum.md, .wolf/memory.md | Runtime OpenWolf files and untracked handoff prototype kept out of commit | ~900 |
+| 01:21 | Fixed failed Vercel Preview build by adding branch-scoped env vars and redeploying | Vercel patelrep-web, .wolf/buglog.json, .wolf/cerebrum.md | Preview deployment is Ready at patelrep-1lhjrssvc and branch alias updated | ~2000 |
+| 01:22 | Updated OpenWolf anatomy for web files inspected during Vercel triage | .wolf/anatomy.md | Providers, Supabase helpers, API client, useAuth, and Next config are mapped | ~500 |
+| 01:24 | Smoke-checked protected Vercel Preview with authenticated CLI curl | Vercel patelrep-web | /login returns the built PatelRep document through deployment protection bypass | ~600 |
+| 01:31 | Loaded OpenWolf and relevant skill instructions | .wolf/OPENWOLF.md, skills | ready to inspect auth bug | ~6k |
+| 01:32 | Inspected web auth entry points and PatelRep web skill | apps/web login/providers/proxy/useAuth | found likely auth-state handling area | ~8k |
+| 01:32 | Indexed missing auth store anatomy entries and read Next auth/proxy docs | .wolf/anatomy.md, Next docs | local docs checked before code changes | ~4k |
+| 01:35 | Implemented auth hydration fix | Providers.tsx, useAuth.ts | waiting on type-check and lint | ~2k |
+| 01:35 | Web type-check and lint passed after auth fix | apps/web | narrow verification green | ~1k |
+| 01:37 | Updated stale login Playwright assertions | e2e/01-login.spec.ts | focused suite rerun started | ~500 |
+| 01:37 | Corrected login e2e product label assertion | e2e/01-login.spec.ts | focused suite rerun started | ~300 |
+| 01:38 | Logged auth bug and learned auth-listener pattern | .wolf/buglog.json, .wolf/cerebrum.md | session records updated | ~1k |
+| 01:39 | Final web type-check and lint passed | apps/web | verification green; build skipped due active dev server | ~800 |
+| 01:44 | Committed and pushed login auth fix | apps/web/components/shared/Providers.tsx, apps/web/lib/hooks/useAuth.ts, e2e/01-login.spec.ts | commit e3a52a9 pushed to origin/codex/frontend-design-handoff-rework | ~400 |
+
+## Session: 2026-05-24 07:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:37 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | added 1 import(s) | ~230 |
+| 07:37 | Session end: 1 writes across 1 files (page.tsx) | 32 reads | ~127316 tok |
+| 07:37 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | CSS: STATUS_TONES | ~168 |
+| 07:37 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 10→10 lines | ~137 |
+| 07:38 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 6→6 lines | ~72 |
+| 07:38 | Session end: 4 writes across 2 files (page.tsx, RoomStatusBoard.tsx) | 37 reads | ~135308 tok |
+| 07:38 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 6→6 lines | ~49 |
+| 07:38 | Created apps/web/components/housekeeping/PredictionPanel.tsx | — | ~1896 |
+| 07:38 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~235 |
+| 07:38 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: STATUS_PILL_TONE | ~96 |
+| 07:38 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | added 1 import(s) | ~42 |
+| 07:39 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | reduced (-12 lines) | ~241 |
+| 07:39 | Session end: 10 writes across 4 files (page.tsx, RoomStatusBoard.tsx, PredictionPanel.tsx, AssignmentSidebar.tsx) | 37 reads | ~137867 tok |
+| 07:39 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | modified AISuggestionsOverlay() | ~480 |
+| 07:39 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | expanded (+12 lines) | ~222 |
+| 07:39 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | reduced (-10 lines) | ~24 |
+| 07:39 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 82→84 lines | ~1000 |
+| 07:39 | Session end: 14 writes across 4 files (page.tsx, RoomStatusBoard.tsx, PredictionPanel.tsx, AssignmentSidebar.tsx) | 37 reads | ~135149 tok |
+| 07:40 | Session end: 14 writes across 4 files (page.tsx, RoomStatusBoard.tsx, PredictionPanel.tsx, AssignmentSidebar.tsx) | 37 reads | ~135149 tok |
+| 07:48 | Applied design system primitives to guest-requests and logbook pages | apps/web/app/(dashboard)/guest-requests/page.tsx, apps/web/app/(dashboard)/logbook/page.tsx | Pill/Mono/AILabel/SectionLabel integrated, StatusBadge removed, font-display KPIs, bg-surface cards | ~800 |
+| 07:48 | Session end: 14 writes across 4 files (page.tsx, RoomStatusBoard.tsx, PredictionPanel.tsx, AssignmentSidebar.tsx) | 37 reads | ~135149 tok |
+
+## Session: 2026-05-24 07:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:55 | Noted live Stripe credential update and ran focused Stripe webhook smoke tests | .wolf/cerebrum.md, apps/api/tests/smoke/test_webhooks_and_transitions.py | 6 Stripe/webhook transition tests passed; no secret values inspected or printed | ~1200 |
+| 07:59 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~146 |
+| 07:59 | Session end: 1 writes across 1 files (page.tsx) | 10 reads | ~146 tok |
+| 08:01 | Session end: 1 writes across 1 files (page.tsx) | 10 reads | ~146 tok |
+
+## Session: 2026-05-24 08:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:04 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: STATUS_TONE | ~48 |
+| 08:04 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | — | ~0 |
+| 08:04 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~24 |
+| 08:05 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | reduced (-12 lines) | ~117 |
+| 08:05 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 2→3 lines | ~27 |
+| 08:05 | Edited apps/web/app/(dashboard)/staff/page.tsx | added 1 import(s) | ~64 |
+| 08:06 | Session end: 6 writes across 1 files (page.tsx) | 6 reads | ~10214 tok |
+| 08:07 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: ROLE_TONE | ~65 |
+| 08:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | modified RoleBadge() | ~34 |
+| 08:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | 5→3 lines | ~43 |
+| 08:08 | Edited apps/web/app/(dashboard)/staff/page.tsx | modified String() | ~56 |
+| 08:08 | Edited apps/web/app/(dashboard)/reports/page.tsx | 7→7 lines | ~105 |
+| 08:08 | Edited apps/web/app/(dashboard)/reports/page.tsx | "flex flex-col items-cente" → "flex flex-col items-cente" | ~37 |
+| 08:08 | Edited apps/web/app/(dashboard)/reports/page.tsx | "border-white/90 bg-surfac" → "border-line bg-surface" | ~13 |
+| 08:08 | Edited apps/web/app/(dashboard)/reports/page.tsx | inline fix | ~30 |
+| 08:09 | Edited apps/web/app/(dashboard)/reports/page.tsx | "bg-surface/[0.65] border " → "bg-surface border border-" | ~24 |
+| 08:09 | Edited apps/web/app/(dashboard)/reports/page.tsx | inline fix | ~6 |
+| 08:09 | Edited apps/web/app/(dashboard)/reports/page.tsx | "text-xl font-extrabold te" → "text-2xl font-display fon" | ~28 |
+| 08:09 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | "text-xl font-extrabold te" → "text-2xl font-display fon" | ~30 |
+| 08:09 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 2→2 lines | ~35 |
+| 08:09 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | inline fix | ~22 |
+| 08:09 | Edited apps/web/app/(dashboard)/settings/page.tsx | "text-xl font-extrabold te" → "text-2xl font-display fon" | ~28 |
+| 08:09 | Edited apps/web/app/(dashboard)/settings/page.tsx | inline fix | ~9 |
+| 08:10 | Session end: 22 writes across 1 files (page.tsx) | 6 reads | ~18353 tok |
+
+## Session: 2026-05-24 08:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:22 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | modified ProgressBar() | ~154 |
+| 08:22 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 2→2 lines | ~30 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 15→15 lines | ~188 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 7→7 lines | ~105 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 3→3 lines | ~35 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 44→44 lines | ~668 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | 7→7 lines | ~66 |
+| 08:23 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | "divide-y divide-white/60" → "divide-y divide-line" | ~14 |
+| 08:24 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | 20→20 lines | ~288 |
+| 08:24 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | 2→2 lines | ~55 |
+| 08:24 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | 2→2 lines | ~53 |
+| 08:24 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | 3→3 lines | ~53 |
+| 08:24 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | 2→2 lines | ~55 |
+| 08:24 | Edited apps/web/components/dashboard/TrendChartsRow.tsx | "h-full rounded-full bg-am" → "h-full rounded-full bg-[v" | ~26 |
+| 08:24 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 8→8 lines | ~77 |
+| 08:25 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 6→6 lines | ~82 |
+| 08:25 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 18→18 lines | ~231 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "px-3 py-1.5 bg-green-600 " → "px-3 py-1.5 bg-[var(--rea" | ~47 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | 8→8 lines | ~126 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "text-lg font-semibold tex" → "text-lg font-semibold tex" | ~12 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "p-1.5 rounded-lg hover:bg" → "p-1.5 rounded-lg hover:bg" | ~22 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | "block text-sm font-medium" → "block text-sm font-medium" | ~15 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~37 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~37 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~6 |
+| 08:26 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~18 |
+| 08:27 | Edited apps/web/app/(dashboard)/guest-requests/page.tsx | inline fix | ~7 |
+| 08:27 | Created apps/web/components/shared/TweaksPanel.tsx | — | ~856 |
+| 08:27 | Edited apps/web/components/shared/DashboardShell.tsx | added 1 import(s) | ~65 |
+| 08:27 | Edited apps/web/components/shared/DashboardShell.tsx | 3→2 lines | ~14 |
+| 08:28 | Session end: 30 writes across 7 files (AssignmentSidebar.tsx, DeleteConfirmDialog.tsx, AIRiskAlertsPanel.tsx, TrendChartsRow.tsx, page.tsx) | 23 reads | ~26956 tok |
+| 08:31 | Session end: 30 writes across 7 files (AssignmentSidebar.tsx, DeleteConfirmDialog.tsx, AIRiskAlertsPanel.tsx, TrendChartsRow.tsx, page.tsx) | 23 reads | ~26956 tok |
+| 08:34 | Session end: 30 writes across 7 files (AssignmentSidebar.tsx, DeleteConfirmDialog.tsx, AIRiskAlertsPanel.tsx, TrendChartsRow.tsx, page.tsx) | 25 reads | ~26956 tok |
+| 08:35 | Created apps/web/components/ai/SOPQueryModal.tsx | — | ~3959 |
+| 08:36 | Created apps/web/components/engineering/CreateWorkOrderModal.tsx | — | ~3438 |
+
+## Session: 2026-05-24 08:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:36 | Created apps/web/components/engineering/FailurePredictionSidebar.tsx | — | ~2907 |

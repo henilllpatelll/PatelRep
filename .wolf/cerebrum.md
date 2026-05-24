@@ -13,6 +13,9 @@
 
 ## Key Learnings
 
+- **Live Stripe credentials are now configured (2026-05-24):** User reports live Stripe API credentials have been added. Treat billing/checkout verification as production-sensitive: do not print env values, validate webhook signatures, and prefer focused smoke tests or Stripe Dashboard event delivery checks.
+- **Auth profile hydration must not destroy valid Supabase sessions on 403/network failures (2026-05-24):** In the web app, `/auth/me` can return 403 for authenticated users without hotel context, and fetches can fail from transient network/CORS issues. Treat only 401 as session-expired/sign-out. For 403, keep the Supabase session and route to `/onboarding`; for network errors, preserve auth state.
+- **Web auth listeners are centralized in Providers (2026-05-24):** `components/shared/Providers.tsx` owns Supabase auth state, `/auth/me`, and effective-role hydration. `lib/hooks/useAuth.ts` should remain a lightweight store/signOut wrapper so Header/Sidebar do not install duplicate auth listeners or trigger extra context fetches.
 - **Card component has no default padding (2026-05-20):** `<Card>` in `components/ui/Card.tsx` renders with zero padding. Every consumer must pass `className="p-5"`. Missing this makes content flush to card edges.
 - **Frontend audit closure pattern (2026-05-23):** Mobile audit fixes should replace dense operational tables with phone card rows for housekeeping rooms, inspection history, PM schedules, and scheduling rather than relying on horizontal scroll. Use `DashboardShell` bottom safe-area padding plus AI bubble safe-area positioning so the fixed copilot does not cover sticky actions or final rows.
 - **Frontend Playwright audit auth/test gotchas (2026-05-23):** Login Magic Link is intentionally exposed as `role="tab"`, so tests should use `getByRole('tab', { name: 'Magic Link' })`. Authenticated mobile Playwright coverage is skipped without `TEST_PASSWORD`; stale `e2e/.auth/state.json` can surface invalid-token/CORS noise instead of reliable mobile validation.
@@ -73,6 +76,9 @@
 
 
 - [2026-05-22] **Do NOT override `tar` to v7 in apps/mobile — it breaks expo prebuild** — tar v7 sets `__esModule:true` with `default:undefined`. Expo CLI's `_interopRequireDefault(require('tar'))` treats it as an ES module and returns the raw module, so `_tar().default` is `undefined` and `_tar().default.extract(...)` crashes with "Cannot read properties of undefined". Pin the tar override to `^6.2.1` (CommonJS, no `__esModule` flag).
+
+- [2026-05-24] **Vercel CLI Preview env add may require a branch argument** — For `patelrep-web`, `vercel env add NAME preview --value ... --yes --force` returned `git_branch_required`. Use `vercel env add NAME preview codex/frontend-design-handoff-rework --value ... --yes --force`. Also, `vercel redeploy` does not accept `--yes`; use `vercel redeploy <url> --target preview`.
+- [2026-05-24] **Protected Vercel Preview smoke must use relative `vercel curl`** — Plain `Invoke-WebRequest` hits the deployment protection page. Use `vercel curl /path --deployment <deployment-url>`; passing the full URL as the path fails.
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
@@ -193,3 +199,4 @@
 - **AI Copilot cancel preview cleanup (2026-05-23):** Cancel actions must clear the source AI message `responseData` in both `apps/web/app/(dashboard)/ai/page.tsx` and `apps/web/components/ai/AICopilotBubble.tsx`; only appending a cancellation message leaves stale Confirm & Create controls mounted and persisted in localStorage.
 - **PowerShell rewrites must force UTF-8 (2026-05-24):** When mechanically editing TS/TSX/CSS files from PowerShell, use `[System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))`. Plain `Set-Content` can leave invalid UTF-8 bytes that pass lint/type-check but fail `next build` under Turbopack.
 - **Frontend handoff token cleanup (2026-05-24):** Invalid classes like `bg-[var(--caution-soft)]0` and legacy undefined `brand-*` classes can survive broad design-token migrations. Scan for `\]0`, `brand-`, and old amber gradients before final build; map action CTAs to `bg-accent`.
+- **Vercel Preview env gotcha (2026-05-24):** Branch deployments use Preview environment variables. If `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, or `NEXT_PUBLIC_API_URL` exist only in Production, `next build` can fail during prerender with `@supabase/ssr: Your project's URL and API key are required`. Add Preview vars, branch-scoped if Vercel CLI requires it, then redeploy.

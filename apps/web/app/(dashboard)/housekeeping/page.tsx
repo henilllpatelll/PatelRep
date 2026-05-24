@@ -49,7 +49,7 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
 
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ready)]">
-      <span className={`w-[6px] h-[6px] rounded-full ${lastSyncedAt ? 'bg-[var(--ready)]' : 'bg-ink4'}`} />
+      <span className={`w-2 h-2 rounded-full bg-ready shrink-0 ${lastSyncedAt ? 'animate-pulse' : ''}`} />
       Live &middot; {label}
     </span>
   )

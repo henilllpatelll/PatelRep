@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { AICopilotBubble } from '@/components/ai/AICopilotBubble'
 import { PageTransition } from './PageTransition'
+import { TweaksPanel } from './TweaksPanel'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -30,9 +31,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* AICopilotBubble is position:fixed — must stay OUTSIDE PageTransition
-          to avoid stacking context issues from the motion.div transform */}
       <AICopilotBubble />
+      <TweaksPanel />
     </div>
   )
 }

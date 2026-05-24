@@ -73,7 +73,7 @@ export function AIRiskAlertsPanel() {
             <div>
               {/* Housekeeping risks */}
               {alerts?.housekeeping_risks?.map((r, i) => (
-                <div key={i} className="border-l-4 border-red-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                <div key={i} className="border-l-4 border-[var(--alert)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
                   <AlertTriangle size={16} className="text-[var(--alert)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -96,14 +96,14 @@ export function AIRiskAlertsPanel() {
 
               {/* SLA breaches */}
               {alerts?.sla_breaches?.map((b, i) => (
-                <div key={i} className="border-l-4 border-red-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                <div key={i} className="border-l-4 border-[var(--alert)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
                   <Clock size={16} className="text-[var(--alert)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-ink2">
                         WO-{b.work_order_number} — {b.title}
                       </p>
-                      <span className="px-1.5 py-0.5 bg-red-600 text-white text-xs font-semibold rounded uppercase">
+                      <span className="px-1.5 py-0.5 bg-[var(--alert)] text-white text-xs font-semibold rounded uppercase">
                         OVERDUE
                       </span>
                     </div>
@@ -124,7 +124,7 @@ export function AIRiskAlertsPanel() {
 
               {/* Maintenance risks */}
               {alerts?.maintenance_risks?.map((r, i) => (
-                <div key={i} className="border-l-4 border-amber-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                <div key={i} className="border-l-4 border-[var(--caution)] bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
                   <Zap size={16} className="text-[var(--caution)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

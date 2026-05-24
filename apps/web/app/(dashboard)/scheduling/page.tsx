@@ -1316,7 +1316,7 @@ export default function SchedulingPage() {
       {/* â”€â”€ Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Scheduling</h1>
+          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Staff Scheduling</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage shift assignments and view weekly coverage
           </p>
@@ -1347,8 +1347,8 @@ export default function SchedulingPage() {
             onClick={() => setDepartmentFilter(dept.id)}
             className={`min-h-[44px] px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
               departmentFilter === dept.id
-                ? 'bg-amber-600 text-white'
-                : 'bg-surface text-gray-600 border border-gray-300 hover:bg-gray-50'
+                ? 'bg-accent text-white'
+                : 'bg-surface text-gray-600 border border-line hover:bg-gray-50'
             }`}
             aria-pressed={departmentFilter === dept.id}
           >
@@ -1361,7 +1361,7 @@ export default function SchedulingPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={prevWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
         >
           <ChevronLeft size={15} />
           Prev
@@ -1371,7 +1371,7 @@ export default function SchedulingPage() {
         </span>
         <button
           onClick={nextWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
         >
           Next
           <ChevronRight size={15} />

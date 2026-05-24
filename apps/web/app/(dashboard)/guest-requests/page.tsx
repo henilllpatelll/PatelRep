@@ -23,6 +23,7 @@ import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
@@ -39,11 +40,11 @@ const TABS: { value: ActiveTab; label: string }[] = [
   { value: 'resolved', label: 'Resolved' },
 ]
 
-const STATUS_STYLES: Record<GuestRequestStatus, string> = {
-  open: 'bg-[var(--info-soft)] text-[var(--info)]',
-  in_progress: 'bg-[var(--ai-soft)] text-[var(--ai)]',
-  escalated: 'bg-[var(--alert-soft)] text-[var(--alert)]',
-  resolved: 'bg-[var(--ready-soft)] text-[var(--ready)]',
+const STATUS_TONES: Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {
+  open: 'alert',
+  in_progress: 'caution',
+  escalated: 'alert',
+  resolved: 'ready',
 }
 
 const STATUS_LABELS: Record<GuestRequestStatus, string> = {
@@ -51,18 +52,6 @@ const STATUS_LABELS: Record<GuestRequestStatus, string> = {
   in_progress: 'In Progress',
   escalated: 'Escalated',
   resolved: 'Resolved',
-}
-
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: GuestRequestStatus }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${STATUS_STYLES[status]}`}
-    >
-      {STATUS_LABELS[status]}
-    </span>
-  )
 }
 
 // ─── Guest Request Card ───────────────────────────────────────────────────────
@@ -89,33 +78,35 @@ function GuestRequestCard({
   const isPending = isUpdating && updatingId === request.id
 
   return (
-    <Card className="p-4 hover:shadow-card-hover hover:-translate-y-0.5 transition-all">
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
       {/* Top row: request number + status badge + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
-        <span className="font-mono text-xs text-gray-400 tracking-wider">
+        <Mono className="text-[11px] text-ink3">
           GR-{String(request.request_number).padStart(3, '0')}
-        </span>
+        </Mono>
         <div className="flex items-center gap-1">
-          <StatusBadge status={request.status} />
+          <Pill tone={STATUS_TONES[request.status]} size="sm">
+            {STATUS_LABELS[request.status]}
+          </Pill>
           <KebabMenu onEdit={() => onEdit(request)} onDelete={() => onDelete(request)} />
         </div>
       </div>
 
       {/* Title */}
-      <p className="font-semibold text-gray-900 text-sm leading-snug mb-2">
+      <p className="font-semibold text-ink text-sm leading-snug mb-2">
         {request.title}
       </p>
 
       {/* Description (if any) */}
       {request.description && (
-        <p className="text-xs text-gray-500 mb-2 line-clamp-2">{request.description}</p>
+        <p className="text-xs text-ink3 mb-2 line-clamp-2">{request.description}</p>
       )}
 
       {/* Meta row: guest name, room, time */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink3 mb-3">
         {request.guest_name && (
           <span className="flex items-center gap-1">
-            <span className="font-medium text-gray-700">{request.guest_name}</span>
+            <span className="font-medium text-ink2">{request.guest_name}</span>
           </span>
         )}
         {request.rooms?.room_number && (
@@ -125,7 +116,9 @@ function GuestRequestCard({
         )}
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+          <Mono className="text-[11px] text-ink3">
+            {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+          </Mono>
         </span>
       </div>
 
@@ -139,9 +132,9 @@ function GuestRequestCard({
 
       {/* Action buttons */}
       {canAct && request.status !== 'resolved' && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-line-2">
           {isPending ? (
-            <span className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5 text-xs text-ink3">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Updating…
             </span>
@@ -153,7 +146,7 @@ function GuestRequestCard({
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'in_progress')}
-                    className="px-3 py-1.5 bg-amber-400 text-black rounded-lg text-xs font-medium hover:bg-[var(--caution)] transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[var(--caution)] text-white rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     Start
                   </button>
@@ -174,7 +167,7 @@ function GuestRequestCard({
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'resolved')}
-                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[var(--ready)] text-white rounded-lg text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1 disabled:opacity-50"
                   >
                     <CheckCircle className="w-3 h-3" />
                     Resolve
@@ -195,7 +188,7 @@ function GuestRequestCard({
                 <button
                   disabled={isUpdating}
                   onClick={() => onUpdateStatus(request.id, 'resolved')}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  className="px-3 py-1.5 bg-[var(--ready)] text-white rounded-lg text-xs font-medium hover:opacity-90 transition-opacity flex items-center gap-1 disabled:opacity-50"
                 >
                   <CheckCircle className="w-3 h-3" />
                   Resolve
@@ -205,7 +198,7 @@ function GuestRequestCard({
           )}
         </div>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -213,18 +206,18 @@ function GuestRequestCard({
 
 function SkeletonCard() {
   return (
-    <Card className="p-4 animate-pulse">
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] shadow-sm p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
-        <div className="h-3 w-16 bg-gray-200 rounded" />
-        <div className="h-5 w-20 bg-gray-200 rounded-full" />
+        <div className="h-3 w-16 bg-surface-3 rounded" />
+        <div className="h-5 w-20 bg-surface-3 rounded-full" />
       </div>
-      <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
-      <div className="h-3 w-1/2 bg-gray-100 rounded mb-3" />
-      <div className="flex gap-2 pt-2 border-t border-gray-100">
-        <div className="h-7 w-16 bg-gray-200 rounded-lg" />
-        <div className="h-7 w-20 bg-gray-200 rounded-lg" />
+      <div className="h-4 w-3/4 bg-surface-3 rounded mb-2" />
+      <div className="h-3 w-1/2 bg-surface-2 rounded mb-3" />
+      <div className="flex gap-2 pt-2 border-t border-line-2">
+        <div className="h-7 w-16 bg-surface-3 rounded-lg" />
+        <div className="h-7 w-20 bg-surface-3 rounded-lg" />
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -321,24 +314,24 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
       <div ref={modalRef} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 id="edit-request-title" className="text-lg font-semibold text-gray-900">Edit Guest Request</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <h2 id="edit-request-title" className="text-lg font-semibold text-ink">Edit Guest Request</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="edit-req-title" className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-[var(--alert)]">*</span></label>
-            <input id="edit-req-title" type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
+            <label htmlFor="edit-req-title" className="block text-sm font-medium text-ink2 mb-1">Issue / Request <span className="text-[var(--alert)]">*</span></label>
+            <input id="edit-req-title" type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink" autoFocus />
           </div>
           <div>
-            <label htmlFor="edit-req-room" className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
-            <input id="edit-req-room" type="text" value={form.room_number} onChange={(e) => setForm((f) => ({ ...f, room_number: e.target.value }))} placeholder="e.g. 302" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
+            <label htmlFor="edit-req-room" className="block text-sm font-medium text-ink2 mb-1">Room Number</label>
+            <input id="edit-req-room" type="text" value={form.room_number} onChange={(e) => setForm((f) => ({ ...f, room_number: e.target.value }))} placeholder="e.g. 302" className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink" />
           </div>
           <div>
-            <label htmlFor="edit-req-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select id="edit-req-status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+            <label htmlFor="edit-req-status" className="block text-sm font-medium text-ink2 mb-1">Status</label>
+            <select id="edit-req-status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="escalated">Escalated</option>
@@ -347,12 +340,12 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
           </div>
           {canAssign && housekeepers.length > 0 && (
             <div>
-              <label htmlFor="edit-req-assignee" className="block text-sm font-medium text-gray-700 mb-1">Assign to housekeeper</label>
+              <label htmlFor="edit-req-assignee" className="block text-sm font-medium text-ink2 mb-1">Assign to housekeeper</label>
               <select
                 id="edit-req-assignee"
                 value={form.assigned_to}
                 onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
               >
                 <option value="">Unassigned</option>
                 {housekeepers.map(h => (
@@ -362,8 +355,8 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
             </div>
           )}
           <div>
-            <label htmlFor="edit-req-details" className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
-            <textarea id="edit-req-details" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />
+            <label htmlFor="edit-req-details" className="block text-sm font-medium text-ink2 mb-1">Additional Details</label>
+            <textarea id="edit-req-details" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink resize-none" />
           </div>
           {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
@@ -482,10 +475,10 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
       <div ref={modalRef} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 id="create-request-title" className="text-lg font-semibold text-gray-900">New Guest Request</h2>
+          <h2 id="create-request-title" className="text-lg font-semibold text-ink">New Guest Request</h2>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -494,7 +487,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label htmlFor="create-req-title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="create-req-title" className="block text-sm font-medium text-ink2 mb-1">
               Issue or request description <span className="text-[var(--alert)]">*</span>
             </label>
             <input
@@ -503,15 +496,15 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Extra towels needed, AC not cooling..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink"
               autoFocus
             />
           </div>
 
           {/* Room number */}
           <div>
-            <label htmlFor="create-req-room" className="block text-sm font-medium text-gray-700 mb-1">
-              Room number <span className="text-gray-400 font-normal">(optional)</span>
+            <label htmlFor="create-req-room" className="block text-sm font-medium text-ink2 mb-1">
+              Room number <span className="text-ink4 font-normal">(optional)</span>
             </label>
             <input
               id="create-req-room"
@@ -519,14 +512,14 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               value={roomNumber}
               onChange={(e) => setRoomNumber(e.target.value)}
               placeholder="e.g. 302"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="create-req-desc" className="block text-sm font-medium text-gray-700 mb-1">
-              Additional details <span className="text-gray-400 font-normal">(optional)</span>
+            <label htmlFor="create-req-desc" className="block text-sm font-medium text-ink2 mb-1">
+              Additional details <span className="text-ink4 font-normal">(optional)</span>
             </label>
             <textarea
               id="create-req-desc"
@@ -534,7 +527,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Room number, urgency, or any other context..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 bg-surface text-ink resize-none"
             />
           </div>
 
@@ -656,7 +649,7 @@ function GuestRequestsPageContent() {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Guest Requests</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-ink3 mt-0.5">
               Track and resolve guest service requests
             </p>
           </div>
@@ -673,23 +666,23 @@ function GuestRequestsPageContent() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Open */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--info)]">{counts.open}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Open</p>
+          <span className="font-display text-[28px] leading-none text-ink">{counts.open}</span>
+          <p className="text-xs text-ink3 mt-0.5 font-medium uppercase tracking-wide">Open</p>
         </Card>
         {/* In Progress */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--ai)]">{counts.in_progress}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
+          <span className="font-display text-[28px] leading-none text-ink">{counts.in_progress}</span>
+          <p className="text-xs text-ink3 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
         </Card>
         {/* Escalated */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--alert)]">{counts.escalated}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
+          <span className="font-display text-[28px] leading-none text-ink">{counts.escalated}</span>
+          <p className="text-xs text-ink3 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
         </Card>
         {/* Resolved */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-[var(--ready)]">{counts.resolved}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
+          <span className="font-display text-[28px] leading-none text-ink">{counts.resolved}</span>
+          <p className="text-xs text-ink3 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
         </Card>
       </div>
 
@@ -732,19 +725,19 @@ function GuestRequestsPageContent() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <div className="w-12 h-12 rounded-full bg-surface-3 flex items-center justify-center mb-3">
             {activeTab === 'resolved' ? (
-              <CheckCircle className="w-6 h-6 text-gray-400" />
+              <CheckCircle className="w-6 h-6 text-ink3" />
             ) : activeTab === 'escalated' ? (
-              <AlertTriangle className="w-6 h-6 text-gray-400" />
+              <AlertTriangle className="w-6 h-6 text-ink3" />
             ) : (
-              <Bell className="w-6 h-6 text-gray-400" />
+              <Bell className="w-6 h-6 text-ink3" />
             )}
           </div>
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-medium text-ink2">
             No {STATUS_LABELS[activeTab].toLowerCase()} requests
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-ink4 mt-1">
             {activeTab === 'open'
               ? 'All caught up! No open guest requests right now.'
               : activeTab === 'in_progress'

@@ -1,39 +1,39 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { X, BookOpen, Loader2, AlertCircle, Lightbulb, FileText } from 'lucide-react'
 import { sopApi, SOPQueryResult, SOPSource, SuggestedTask } from '@/lib/api/sop'
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SOPQueryModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function LoadingDots() {
   return (
     <div className="flex items-center gap-1.5 py-2">
-      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:0ms]" />
-      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:150ms]" />
-      <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce [animation-delay:300ms]" />
+      <span className="w-2 h-2 bg-[var(--caution)] rounded-full animate-bounce [animation-delay:0ms]" />
+      <span className="w-2 h-2 bg-[var(--caution)] rounded-full animate-bounce [animation-delay:150ms]" />
+      <span className="w-2 h-2 bg-[var(--caution)] rounded-full animate-bounce [animation-delay:300ms]" />
     </div>
   )
 }
 
 function priorityBadgeClass(priority: SuggestedTask['priority']): string {
-  if (priority === 'urgent') return 'bg-red-100 text-red-700 border border-red-200'
-  if (priority === 'normal') return 'bg-blue-100 text-blue-700 border border-blue-200'
-  return 'bg-gray-100 text-gray-500 border border-gray-200'
+  if (priority === 'urgent') return 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]'
+  if (priority === 'normal') return 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]'
+  return 'bg-surface-2 text-ink3 border border-line'
 }
 
 function taskTypeBadgeClass(taskType: SuggestedTask['task_type']): string {
   if (taskType === 'housekeeping') return 'bg-purple-100 text-purple-700'
-  if (taskType === 'engineering') return 'bg-amber-100 text-[var(--caution)]'
+  if (taskType === 'engineering') return 'bg-[var(--caution-soft)] text-[var(--caution)]'
   if (taskType === 'guest_request') return 'bg-teal-100 text-teal-700'
-  return 'bg-gray-100 text-gray-600'
+  return 'bg-surface-2 text-ink2'
 }
 
 function taskTypeLabel(taskType: SuggestedTask['task_type']): string {
@@ -47,24 +47,24 @@ function SourceCard({ source, index }: { source: SOPSource; index: number }) {
   const simPct = Math.round(source.similarity * 100)
   const simColor =
     simPct >= 85
-      ? 'bg-green-100 text-green-700'
+      ? 'bg-[var(--ready-soft)] text-[var(--ready)]'
       : simPct >= 70
       ? 'bg-yellow-100 text-yellow-700'
-      : 'bg-gray-100 text-gray-500'
+      : 'bg-surface-2 text-ink3'
 
   return (
-    <div className="flex gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50">
+    <div className="flex gap-3 p-3 rounded-lg border border-line-2 bg-surface-2">
       <div className="shrink-0 mt-0.5">
-        <FileText size={14} className="text-gray-400" />
+        <FileText size={14} className="text-ink4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-medium text-gray-500">Source {index + 1}</span>
+          <span className="text-xs font-medium text-ink3">Source {index + 1}</span>
           <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${simColor}`}>
             {simPct}% match
           </span>
         </div>
-        <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+        <p className="text-xs text-ink2 leading-relaxed line-clamp-3">
           {source.content}
         </p>
       </div>
@@ -86,15 +86,15 @@ function AnswerBlock({ answer }: { answer: string }) {
           if (stepMatch) {
             return (
               <div key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-[var(--caution)] text-xs font-semibold flex items-center justify-center">
+                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[var(--caution-soft)] text-[var(--caution)] text-xs font-semibold flex items-center justify-center">
                   {stepMatch[1].replace(/[.)]/g, '')}
                 </span>
-                <p className="text-sm text-gray-800 leading-relaxed">{stepMatch[2]}</p>
+                <p className="text-sm text-ink leading-relaxed">{stepMatch[2]}</p>
               </div>
             )
           }
           return (
-            <p key={i} className="text-sm text-gray-800 leading-relaxed">
+            <p key={i} className="text-sm text-ink leading-relaxed">
               {line}
             </p>
           )
@@ -104,11 +104,11 @@ function AnswerBlock({ answer }: { answer: string }) {
   }
 
   return (
-    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{answer}</p>
+    <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{answer}</p>
   )
 }
 
-// â”€â”€ Main Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Modal ────────────────────────────────────────────────────────────────
 
 export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
   const [question, setQuestion] = useState('')
@@ -203,19 +203,19 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <BookOpen size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900">Ask AI about SOPs</h2>
-                <p className="text-xs text-gray-400 leading-tight mt-0.5">
+                <h2 className="text-base font-bold text-ink">Ask AI about SOPs</h2>
+                <p className="text-xs text-ink4 leading-tight mt-0.5">
                   Ask any question about your hotel's procedures
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
               aria-label="Close modal"
             >
               <X size={18} />
@@ -231,21 +231,21 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleTextareaKeyDown}
               placeholder="e.g. What is the checkout cleaning procedure for suites? (Press Enter to ask)"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+              className="w-full border border-line rounded-[var(--r-md)] px-4 py-3 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-transparent resize-none"
             />
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-gray-400">
-                Shift+Enter for new line Â· Enter to ask
+              <p className="text-xs text-ink4">
+                Shift+Enter for new line · Enter to ask
               </p>
               <button
                 onClick={handleAsk}
                 disabled={loading || !question.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[var(--caution)] rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Searchingâ€¦
+                    Searching…
                   </>
                 ) : (
                   'Ask AI'
@@ -256,33 +256,33 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
 
           {/* Loading state */}
           {loading && (
-            <div className="mt-5 border-t border-gray-100 pt-5">
+            <div className="mt-5 border-t border-line-2 pt-5">
               <LoadingDots />
-              <p className="text-xs text-gray-400 mt-1">
-                Searching your SOP libraryâ€¦
+              <p className="text-xs text-ink4 mt-1">
+                Searching your SOP library…
               </p>
             </div>
           )}
 
           {/* Error state */}
           {error && !loading && (
-            <div className="mt-5 border-t border-gray-100 pt-5">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200">
+            <div className="mt-5 border-t border-line-2 pt-5">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)]">
                 <AlertCircle size={16} className="text-[var(--alert)] shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-sm text-[var(--alert)]">{error}</p>
               </div>
             </div>
           )}
 
           {/* Result */}
           {result && !loading && (
-            <div className="mt-5 border-t border-gray-100 pt-5 space-y-5">
+            <div className="mt-5 border-t border-line-2 pt-5 space-y-5">
               {/* Answer */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <h3 className="text-xs font-semibold text-ink3 uppercase tracking-wide mb-2">
                   Answer
                 </h3>
-                <div className="bg-[var(--caution-soft)] border border-amber-100 rounded-xl px-4 py-4">
+                <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-xl px-4 py-4">
                   <AnswerBlock answer={result.answer} />
                 </div>
               </div>
@@ -290,7 +290,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               {/* Sources */}
               {displaySources.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  <h3 className="text-xs font-semibold text-ink3 uppercase tracking-wide mb-2">
                     Sources
                   </h3>
                   <div className="space-y-2">
@@ -305,16 +305,16 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               {hasSuggestedTasks && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <h3 className="text-xs font-semibold text-ink3 uppercase tracking-wide">
                       Suggested Tasks
                     </h3>
                     <Lightbulb size={12} className="text-[var(--caution)]" />
                   </div>
-                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+                  <div className="border border-line rounded-xl overflow-hidden divide-y divide-line-2">
                     {result.suggested_tasks.map((task, i) => (
                       <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 bg-surface">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-ink truncate">
                             {task.title}
                           </p>
                           <div className="flex items-center gap-1.5 mt-1">
@@ -336,13 +336,13 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                   <div className="mt-3 flex justify-end">
                     <button
                       onClick={handleCreateTasks}
-                      className="px-4 py-2 text-sm font-medium text-[var(--caution)] border border-amber-300 rounded-lg hover:bg-[var(--caution-soft)] transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-[var(--caution)] border border-[var(--caution-line)] rounded-lg hover:bg-[var(--caution-soft)] transition-colors"
                     >
                       Create Tasks
                     </button>
                   </div>
                   {taskMessage && (
-                    <p className="mt-2 text-sm text-green-700 bg-[var(--ready-soft)] border border-green-200 rounded-lg px-3 py-2" role="status">
+                    <p className="mt-2 text-sm text-[var(--ready)] bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2" role="status">
                       {taskMessage}
                     </p>
                   )}
@@ -350,7 +350,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               )}
 
               {/* Token usage footer */}
-              <p className="text-xs text-gray-300 text-right">
+              <p className="text-xs text-ink4 text-right">
                 {result.prompt_tokens + result.completion_tokens} tokens used
               </p>
             </div>

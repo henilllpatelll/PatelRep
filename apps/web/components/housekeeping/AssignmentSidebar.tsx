@@ -8,6 +8,7 @@ import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { AILabel } from '@/components/ui/primitives'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,13 +43,13 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-surface-3 rounded-full overflow-hidden">
         <div
-          className="h-full bg-amber-600 rounded-full transition-all"
+          className="h-full bg-[var(--caution)] rounded-full transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-xs text-gray-500 whitespace-nowrap">
+      <span className="text-xs text-ink3 whitespace-nowrap">
         {done}/{total}
       </span>
     </div>
@@ -77,24 +78,24 @@ function HousekeeperDropRow({
       ref={setNodeRef}
       className={`px-4 py-3 transition-colors rounded-lg mx-1 my-0.5 ${
         isOver
-          ? 'bg-[var(--caution-soft)] border-2 border-amber-400 border-dashed'
+          ? 'bg-[var(--caution-soft)] border-2 border-[var(--caution-line)] border-dashed'
           : 'border-2 border-transparent'
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[var(--caution)] flex items-center justify-center text-white text-xs font-bold shrink-0">
           {getInitials(hk.name)}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{hk.name}</p>
+          <p className="text-sm font-medium text-ink truncate">{hk.name}</p>
           {hk.current_room && (
-            <p className="text-xs text-gray-400 truncate">
+            <p className="text-xs text-ink3 truncate">
               {hk.current_room_status === 'IN_PROGRESS' ? 'Cleaning' : 'In'} Room{' '}
               {hk.current_room}
             </p>
           )}
         </div>
-        <span className="ml-auto text-xs text-gray-400 shrink-0">
+        <span className="ml-auto text-xs text-ink3 shrink-0">
           {hk.rooms_done} done
         </span>
       </div>
@@ -122,19 +123,23 @@ function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestions
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
       <Card className="w-full max-w-sm p-5">
-        <h3 className="font-semibold text-gray-900 text-base mb-1">AI Assignment Suggestions</h3>
-        <p className="text-xs text-gray-500 mb-4">
-          Based on workload, skill level, and current occupancy.
-        </p>
+        <div className="bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3 mb-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <AILabel confidence={87} />
+          </div>
+          <p className="font-display italic text-[14px] leading-[1.4] text-ink">
+            Based on workload, skill level, and current occupancy.
+          </p>
+        </div>
 
         <div className="space-y-3 mb-5">
           {suggestions.map((s) => (
             <Card key={s.housekeeper_id} className="p-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-900">{s.housekeeper_name}</span>
-                <span className="text-xs text-gray-400">Est. {s.estimated_finish}</span>
+                <span className="text-[13px] font-medium text-ink">{s.housekeeper_name}</span>
+                <span className="text-[11px] font-mono text-ink-3">Est. {s.estimated_finish}</span>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-[11.5px] text-ink-2">
                 Rooms: {s.rooms.join(', ')}
               </p>
             </Card>
@@ -307,10 +312,22 @@ export function AssignmentSidebar() {
 
       <Card className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-white/60">
-          <h3 className="font-semibold text-gray-900 text-sm">Housekeepers</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Drag a room card onto a name to assign</p>
+        <div className="px-4 py-3 border-b border-line">
+          <h3 className="font-semibold text-ink text-sm">Housekeepers</h3>
+          <p className="text-xs text-ink-3 mt-0.5">Drag a room card onto a name to assign</p>
         </div>
+
+        {/* AI insight callout */}
+        {mergedHousekeepers.length > 0 && (
+          <div className="mx-3 mt-3 bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <AILabel confidence={87} />
+            </div>
+            <p className="font-display italic text-[13px] leading-[1.4] text-ink">
+              Assign by floor proximity to cut average clean time.
+            </p>
+          </div>
+        )}
 
         {/* Housekeeper list */}
         <div className="flex-1 overflow-y-auto py-1">
@@ -319,19 +336,19 @@ export function AssignmentSidebar() {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="space-y-2 animate-pulse">
                   <div className="flex gap-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full" />
-                    <div className="flex-1 h-4 bg-gray-200 rounded" />
+                    <div className="w-8 h-8 bg-surface-3 rounded-full" />
+                    <div className="flex-1 h-4 bg-surface-3 rounded" />
                   </div>
-                  <div className="h-2 bg-gray-200 rounded" />
+                  <div className="h-2 bg-surface-3 rounded" />
                 </div>
               ))}
             </div>
           ) : mergedHousekeepers.length === 0 ? (
-            <p className="p-4 text-xs text-gray-400 text-center">
+            <p className="p-4 text-xs text-ink3 text-center">
               No housekeeping staff found.
             </p>
           ) : (
-            <div className="divide-y divide-white/60">
+            <div className="divide-y divide-line">
               {mergedHousekeepers.map((hk) => (
                 <HousekeeperDropRow
                   key={hk.housekeeper_id}
@@ -347,10 +364,10 @@ export function AssignmentSidebar() {
 
         {/* Pending assignments */}
         {hasPending && (
-          <div className="border-t border-white/60 px-4 py-3">
+          <div className="border-t border-line px-4 py-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-700">Pending Changes</span>
-              <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-500 text-white text-xs font-bold rounded-full">
+              <span className="text-xs font-semibold text-ink2">Pending Changes</span>
+              <span className="inline-flex items-center justify-center w-5 h-5 bg-[var(--caution)] text-white text-xs font-bold rounded-full">
                 {Object.keys(pendingAssignments).length}
               </span>
             </div>
@@ -364,24 +381,24 @@ export function AssignmentSidebar() {
                   : null
                 return (
                   <div key={roomId} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">
+                    <span className="text-ink2">
                       Room {roomNumber}{' '}
                       {fromHk ? (
                         <>
-                          <span className="line-through text-gray-400">{fromHk.name.split(' ')[0]}</span>
+                          <span className="line-through text-ink3">{fromHk.name.split(' ')[0]}</span>
                           {' '}&rarr;{' '}
                           <span className="font-medium text-[var(--caution)]">{toHk?.name ?? housekeeperId}</span>
                         </>
                       ) : (
                         <>
                           &rarr;{' '}
-                          <span className="font-medium text-gray-800">{toHk?.name ?? housekeeperId}</span>
+                          <span className="font-medium text-ink">{toHk?.name ?? housekeeperId}</span>
                         </>
                       )}
                     </span>
                     <button
                       onClick={() => removePendingAssignment(roomId)}
-                      className="text-gray-400 hover:text-[var(--alert)] transition-colors ml-2"
+                      className="text-ink3 hover:text-[var(--alert)] transition-colors ml-2"
                       aria-label="Remove pending assignment"
                     >
                       &times;
@@ -406,12 +423,12 @@ export function AssignmentSidebar() {
         )}
 
         {/* Action buttons */}
-        <div className="px-4 py-3 border-t border-white/60 space-y-2">
+        <div className="px-4 py-3 border-t border-line space-y-2">
           <Button
-            variant="primary"
+            variant="ai"
             onClick={handleAiSuggest}
             disabled={aiLoading}
-            className="w-full py-2 bg-purple-600 hover:bg-purple-700"
+            className="w-full py-2"
           >
             {aiLoading ? (
               <>
