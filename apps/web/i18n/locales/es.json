@@ -12,11 +12,14 @@
   },
   "rooms": {
     "status": {
-      "dirty": "Sucia",
-      "in_progress": "En Proceso",
-      "clean": "Limpia",
-      "inspected": "Inspeccionada",
-      "ooo": "Fuera de Servicio",
+      "dirty": "Vacante Sucia",
+      "in_progress": "Ocupada",
+      "clean": "Limpia, lista para inspeccion",
+      "inspected": "Inspeccionada / Lista",
+      "ooo": "Fuera de Orden / Fuera de Servicio",
+      "out_of_order": "Fuera de Orden / Fuera de Servicio",
+      "out_of_service": "Fuera de Orden / Fuera de Servicio",
+      "occupied": "Ocupada",
       "pickup": "Servicio Rapido"
     },
     "start_cleaning": "Comenzar Limpieza",

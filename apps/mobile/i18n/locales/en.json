@@ -27,12 +27,15 @@
   "rooms": {
     "title": "My Rooms",
     "status": {
-      "DIRTY": "Dirty",
-      "IN_PROGRESS": "In Progress",
-      "CLEAN": "Clean",
-      "INSPECTED": "Inspected",
-      "OOO": "Out of Order",
-      "PICKUP": "Pick Up"
+      "DIRTY": "Vacant Dirty",
+      "IN_PROGRESS": "Occupied",
+      "CLEAN": "Clean ready for inspection",
+      "INSPECTED": "Inspected / Ready",
+      "OOO": "Out of Order / Out of Service",
+      "OUT_OF_ORDER": "Out of Order / Out of Service",
+      "OUT_OF_SERVICE": "Out of Order / Out of Service",
+      "OCCUPIED": "Occupied",
+      "PICKUP": "Pickup"
     },
     "risk": {
       "HIGH": "High Risk",

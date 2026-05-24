@@ -22,12 +22,12 @@ interface StatusChip {
 
 const STATUS_CHIPS: StatusChip[] = [
   { key: null,          label: 'All',          dotTone: 'neutral' },
-  { key: 'DIRTY',       label: 'Vacant dirty', dotTone: 'dirty' },
+  { key: 'DIRTY',       label: 'Vacant Dirty', dotTone: 'dirty' },
   { key: 'IN_PROGRESS', label: 'Occupied',     dotTone: 'progress' },
-  { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
+  { key: 'CLEAN',       label: 'Clean ready for inspection', dotTone: 'clean' },
   { key: 'INSPECTED',   label: 'Ready',        dotTone: 'ready' },
   { key: 'PICKUP',      label: 'Pickup',       dotTone: 'pickup' },
-  { key: 'OOO',         label: 'OOO',          dotTone: 'ooo' },
+  { key: 'OOO',         label: 'OOO/OOS',      dotTone: 'ooo' },
 ]
 
 // -- Skeleton loader -----------------------------------------------------------

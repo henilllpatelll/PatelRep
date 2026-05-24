@@ -15,12 +15,14 @@ import { useAppStore, type Room } from "@/stores/appStore";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 
 const STATUS_COLORS: Record<string, string> = {
-  DIRTY: "#EF4444",
-  IN_PROGRESS: "#F59E0B",
-  CLEAN: "#10B981",
-  INSPECTED: "#6366F1",
-  OOO: "#6B7280",
-  PICKUP: "#8B5CF6",
+  DIRTY: "#DC2626",
+  IN_PROGRESS: "#DC2626",
+  CLEAN: "#2563EB",
+  INSPECTED: "#16A34A",
+  OOO: "#F97316",
+  OUT_OF_ORDER: "#F97316",
+  OUT_OF_SERVICE: "#F97316",
+  PICKUP: "#EAB308",
 };
 
 function formatETA(isoString: string): string {
@@ -30,10 +32,15 @@ function formatETA(isoString: string): string {
 function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
   const { t } = useTranslation();
   const statusColor = STATUS_COLORS[room.status] ?? "#6B7280";
+  const isOccupied = room.status === "IN_PROGRESS" || room.status === "OCCUPIED";
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
-      <View style={[styles.statusBar, { backgroundColor: statusColor }]} />
+      <View style={[styles.statusBar, { backgroundColor: statusColor }]}>
+        {isOccupied && Array.from({ length: 8 }).map((_, i) => (
+          <View key={i} style={[styles.statusStripe, { top: i * 18 }]} />
+        ))}
+      </View>
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <Text style={styles.roomNumber}>{room.room_number}</Text>
@@ -178,6 +185,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   statusBar: { width: 6, alignSelf: "stretch" },
+  statusStripe: {
+    position: "absolute",
+    left: -5,
+    width: 16,
+    height: 4,
+    backgroundColor: "#FEE2E2",
+    transform: [{ rotate: "-35deg" }],
+  },
   cardContent: { flex: 1, padding: 14 },
   cardHeader: {
     flexDirection: "row",

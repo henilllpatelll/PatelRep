@@ -26,8 +26,8 @@ const STATUS_TONE: Record<string, string> = {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  DIRTY: 'Vacant dirty', IN_PROGRESS: 'In progress',
-  CLEAN: 'Clean', INSPECTED: 'Ready', OOO: 'Out of order', PICKUP: 'Pickup',
+  DIRTY: 'Vacant Dirty', IN_PROGRESS: 'Occupied',
+  CLEAN: 'Clean ready for inspection', INSPECTED: 'Ready', OOO: 'OOO/OOS', PICKUP: 'Pickup',
 }
 
 type PillTone = 'dirty' | 'progress' | 'clean' | 'inspected' | 'ooo' | 'pickup' | 'accent' | 'alert' | 'caution' | 'info' | 'ready' | 'ai' | 'neutral'

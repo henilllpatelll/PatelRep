@@ -43,7 +43,7 @@ interface Props {
   onNextRoom?: (room: any) => void
 }
 
-type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
+type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
 // Valid status transitions
@@ -54,6 +54,9 @@ const STATUS_TRANSITIONS: Record<RoomStatus, RoomStatus[]> = {
   INSPECTED: ['DIRTY'],
   OOO: ['DIRTY'],
   PICKUP: ['DIRTY', 'CLEAN'],
+  OCCUPIED: ['DIRTY'],
+  OUT_OF_ORDER: ['DIRTY'],
+  OUT_OF_SERVICE: ['DIRTY'],
 }
 
 function formatHistoryTimestamp(isoString: string): string {
@@ -80,11 +83,14 @@ function formatCheckinTime(isoString: string | null | undefined): string | null 
 function getStatusDotClass(status: string): string {
   switch (status) {
     case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-blue-500'
-    case 'CLEAN': return 'text-yellow-500'
-    case 'INSPECTED': return 'text-green-500'
-    case 'OOO': return 'text-gray-400'
-    case 'PICKUP': return 'text-purple-500'
+    case 'IN_PROGRESS': return 'text-[var(--alert)]'
+    case 'OCCUPIED': return 'text-[var(--alert)]'
+    case 'CLEAN': return 'text-[var(--info)]'
+    case 'INSPECTED': return 'text-[var(--ready)]'
+    case 'OOO': return 'text-[var(--accent)]'
+    case 'OUT_OF_ORDER': return 'text-[var(--accent)]'
+    case 'OUT_OF_SERVICE': return 'text-[var(--accent)]'
+    case 'PICKUP': return 'text-[var(--caution)]'
     default: return 'text-gray-400'
   }
 }
@@ -92,11 +98,14 @@ function getStatusDotClass(status: string): string {
 function getStatusTextClass(status: string): string {
   switch (status) {
     case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-[var(--info)]'
-    case 'CLEAN': return 'text-yellow-700'
+    case 'IN_PROGRESS': return 'text-[var(--alert)]'
+    case 'OCCUPIED': return 'text-[var(--alert)]'
+    case 'CLEAN': return 'text-[var(--info)]'
     case 'INSPECTED': return 'text-[var(--ready)]'
-    case 'OOO': return 'text-gray-600'
-    case 'PICKUP': return 'text-[var(--ai)]'
+    case 'OOO': return 'text-[var(--accent)]'
+    case 'OUT_OF_ORDER': return 'text-[var(--accent)]'
+    case 'OUT_OF_SERVICE': return 'text-[var(--accent)]'
+    case 'PICKUP': return 'text-[var(--caution)]'
     default: return 'text-gray-600'
   }
 }
@@ -111,12 +120,15 @@ function TransitionButton({
   roomId: string
 }) {
   const labels: Record<RoomStatus, string> = {
-    DIRTY: 'Mark Dirty',
-    IN_PROGRESS: 'Mark In Progress',
-    CLEAN: 'Mark Ready for Inspection',
-    INSPECTED: 'Mark Clean',
-    OOO: 'Mark Out of Order',
+    DIRTY: 'Mark Vacant Dirty',
+    IN_PROGRESS: 'Mark Occupied',
+    CLEAN: 'Mark Clean ready for inspection',
+    INSPECTED: 'Mark Inspected / Ready',
+    OOO: 'Mark Out of Order / Out of Service',
     PICKUP: 'Mark Pickup',
+    OCCUPIED: 'Mark Occupied',
+    OUT_OF_ORDER: 'Mark Out of Order / Out of Service',
+    OUT_OF_SERVICE: 'Mark Out of Order / Out of Service',
   }
 
   const variants: Record<RoomStatus, 'primary' | 'secondary' | 'destructive' | 'ghost'> = {
@@ -126,6 +138,9 @@ function TransitionButton({
     INSPECTED: 'primary',
     OOO: 'ghost',
     PICKUP: 'secondary',
+    OCCUPIED: 'secondary',
+    OUT_OF_ORDER: 'ghost',
+    OUT_OF_SERVICE: 'ghost',
   }
 
   return (

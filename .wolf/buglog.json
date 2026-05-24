@@ -1086,6 +1086,18 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-24T09:11:15.1293668-05:00"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-05-24T10:08:00-05:00",
+      "error_message": "PowerShell commands failed while searching/diffing because paths with parentheses and bracketed route params were not quoted or passed with -LiteralPath.",
+      "file": "n/a",
+      "root_cause": "PowerShell interpreted app route path segments like `(app)` and `[roomId]` instead of treating them as literal file paths.",
+      "fix": "Reran commands with quoted paths or `Get-Content -LiteralPath`; kept subsequent verification commands quote-safe.",
+      "tags": ["powershell", "tooling", "path-quoting"],
+      "related_bugs": ["bug-043", "bug-067"],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T10:08:00-05:00"
     }
   ]
 }

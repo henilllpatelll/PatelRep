@@ -16,12 +16,12 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
 type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'ai'
 
 const TILES = [
-  { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant dirty', barTone: 'alert'   },
+  { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant Dirty', barTone: 'alert'   },
   { code: 'IN_PROGRESS',tone: 'progress',  label: 'Occupied',     barTone: 'alert'   },
-  { code: 'CLEAN',      tone: 'clean',     label: 'Clean',        barTone: 'info'    },
+  { code: 'CLEAN',      tone: 'clean',     label: 'Clean Inspect', barTone: 'info'   },
   { code: 'INSPECTED',  tone: 'inspected', label: 'Ready',        barTone: 'ready'   },
   { code: 'PICKUP',     tone: 'pickup',    label: 'Pickup',       barTone: 'caution' },
-  { code: 'OOO',        tone: 'ooo',       label: 'OOO',          barTone: 'caution' },
+  { code: 'OOO',        tone: 'ooo',       label: 'OOO/OOS',      barTone: 'accent'  },
 ] as const
 
 export function LiveOpsGrid() {

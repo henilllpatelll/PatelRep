@@ -220,11 +220,12 @@ function HousekeeperRoomItem({
   const vip = !!room.vip_flag
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
-    DIRTY:      { label: 'To Clean',            pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    DIRTY:      { label: 'Vacant Dirty',        pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
     PICKUP:     { label: 'Pickup',              pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
-    IN_PROGRESS:{ label: 'In Progress',         pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
-    CLEAN:      { label: 'Awaiting Inspection', pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
-    INSPECTED:  { label: 'Approved',            pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
+    IN_PROGRESS:{ label: 'Occupied',            pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    CLEAN:      { label: 'Clean ready for inspection', pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
+    INSPECTED:  { label: 'Inspected / Ready',   pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
+    OOO:        { label: 'Out of Order / Out of Service', pillClass: 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)]' },
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
@@ -381,7 +382,7 @@ function HousekeeperMyRoomsView() {
       {myRooms.length > 0 && (
         <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">
           <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">to do</span></span>
-          <span><strong className="font-display text-[var(--info)]">{inProgressCount}</strong> <span className="text-ink3">in progress</span></span>
+          <span><strong className="font-display text-[var(--alert)]">{inProgressCount}</strong> <span className="text-ink3">occupied</span></span>
           <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">done</span></span>
         </div>
       )}

@@ -23,9 +23,9 @@ function formatETA(isoString: string): string {
 function getTransitions(status: string) {
   switch (status) {
     case "DIRTY":
-      return [{ label: "rooms.markInProgress", status: "IN_PROGRESS", color: "#F59E0B" }];
+      return [{ label: "rooms.markInProgress", status: "IN_PROGRESS", color: "#DC2626" }];
     case "IN_PROGRESS":
-      return [{ label: "rooms.markClean", status: "CLEAN", color: "#10B981" }];
+      return [{ label: "rooms.markClean", status: "CLEAN", color: "#2563EB" }];
     default:
       return [];
   }

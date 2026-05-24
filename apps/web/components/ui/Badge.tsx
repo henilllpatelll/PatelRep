@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 type BadgeVariant =
   | 'dirty' | 'in_progress' | 'clean' | 'inspected'
-  | 'do_not_disturb' | 'out_of_order' | 'pickup'
+  | 'do_not_disturb' | 'out_of_order' | 'out_of_service' | 'occupied' | 'pickup'
   | 'high' | 'medium' | 'low' | 'vip' | 'ai' | 'default'
 
 const BADGE_VARIANTS: Record<BadgeVariant, string> = {
@@ -13,7 +13,9 @@ const BADGE_VARIANTS: Record<BadgeVariant, string> = {
   inspected:      'bg-[var(--ready-soft)]   text-[var(--ready)]   border-[var(--ready-line)]',
   pickup:         'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]',
   do_not_disturb: 'bg-[var(--surface-3)]   text-[var(--ink-3)]   border-[var(--line)]',
-  out_of_order:   'bg-[var(--surface-3)]   text-[var(--ink-3)]   border-[var(--line)]',
+  out_of_order:   'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
+  out_of_service: 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
+  occupied:       'bg-[var(--alert-soft)]   text-[var(--alert)]   border-[var(--alert-line)]',
   high:           'bg-[var(--alert-soft)]   text-[var(--alert)]   border-[var(--alert-line)]',
   medium:         'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]',
   low:            'bg-[var(--ready-soft)]   text-[var(--ready)]   border-[var(--ready-line)]',

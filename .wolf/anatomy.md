@@ -614,3 +614,29 @@
 
 ## supabase/migrations/
 
+## Session Additions 2026-05-24 Room Status Contract
+
+- `apps/web/lib/utils/roomStatus.ts` - canonical room status labels, colors, text colors, transitions, date helpers (~3300 tok)
+- `apps/web/components/ui/primitives.tsx` - shared Pill, StatusDot, Bar, Stat primitives and semantic tones (~2600 tok)
+- `apps/web/components/ui/Badge.tsx` - shared badge variants for status/priority chips (~450 tok)
+- `apps/web/components/housekeeping/RoomCard.tsx` - room card status border/strip/pill mappings and actions (~3700 tok)
+- `apps/web/components/housekeeping/RoomDetailDrawer.tsx` - room status history, transitions, inspection/WO drawer (~9300 tok)
+- `apps/web/components/housekeeping/RoomStatusBoard.tsx` - housekeeping board filters, realtime room status cards (~7100 tok)
+- `apps/web/components/dashboard/LiveOpsGrid.tsx` - dashboard room status tiles (~1400 tok)
+- `apps/web/components/dashboard/FrontDeskDashboard.tsx` - front desk status breakdown panel (~4500 tok)
+- `apps/web/components/dashboard/HousekeeperDashboard.tsx` - housekeeper dashboard queue/status chips (~4300 tok)
+- `apps/web/components/dashboard/SupervisorDashboard.tsx` - supervisor mini room map and status legend (~11200 tok)
+- `apps/web/app/(dashboard)/housekeeping/page.tsx` - housekeeping role page, my rooms, supervisor board shell (~12800 tok)
+- `apps/web/app/(dashboard)/housekeeping/assignments/page.tsx` - room assignment table and status badges (~4200 tok)
+- `apps/web/app/(dashboard)/housekeeping/rooms/page.tsx` - all rooms management page and status badges (~13400 tok)
+- `apps/web/app/(dashboard)/reports/page.tsx` - reports page status breakdown and analytics tabs (~9300 tok)
+- `apps/web/app/(dashboard)/settings/integrations/page.tsx` - Opera integration settings copy (~5200 tok)
+- `apps/web/lib/api/rooms.ts` - typed rooms API client and RoomStatus interface (~2200 tok)
+- `apps/web/i18n/locales/en.json` - web English strings including room status labels (~600 tok)
+- `apps/web/i18n/locales/es.json` - web Spanish strings including room status labels (~600 tok)
+- `apps/mobile/app/(app)/my-rooms/index.tsx` - mobile housekeeper room list card colors and offline loading (~3500 tok)
+- `apps/mobile/app/(app)/my-rooms/[roomId].tsx` - mobile room detail transitions and report issue entry (~3100 tok)
+- `apps/mobile/stores/appStore.ts` - mobile Zustand app/session/room store and Room type (~900 tok)
+- `apps/mobile/i18n/locales/en.json` - mobile English UI strings including room status labels (~1200 tok)
+- `apps/mobile/i18n/locales/es.json` - mobile Spanish UI strings including room status labels (~1200 tok)
+

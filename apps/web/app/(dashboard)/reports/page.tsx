@@ -17,6 +17,7 @@ import {
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,11 +71,11 @@ function maintenanceSlaColor(pct: number): string {
 
 const STATUS_BG: Record<string, string> = {
   DIRTY: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]',
-  IN_PROGRESS: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]',
-  CLEAN: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+  IN_PROGRESS: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]',
+  CLEAN: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]',
   INSPECTED: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
-  OOO: 'bg-gray-100 text-gray-600 border border-line',
-  PICKUP: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
+  OOO: 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)]',
+  PICKUP: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
 }
 
 // ── DateRangeSelector ─────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ function DailySummaryTab() {
                 className={`rounded-lg px-4 py-3 text-center ${STATUS_BG[status] || 'bg-gray-50 text-gray-700 border border-line'}`}
               >
                 <p className="text-2xl font-bold">{count}</p>
-                <p className="text-xs font-medium mt-0.5">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
+                <p className="text-xs font-medium mt-0.5">{STATUS_LABELS[status] ?? status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
               </div>
             ))}
           </div>

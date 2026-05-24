@@ -15,8 +15,9 @@ const STATUS_BORDER: Record<string, string> = {
   CLEAN:          'border-[var(--info-line)]',
   INSPECTED:      'border-[var(--ready-line)]',
   DO_NOT_DISTURB: 'border-line',
-  OUT_OF_ORDER:   'border-line',
-  OOO:            'border-line',
+  OUT_OF_ORDER:   'border-[var(--accent-line)]',
+  OUT_OF_SERVICE: 'border-[var(--accent-line)]',
+  OOO:            'border-[var(--accent-line)]',
   VACANT:         'border-line',
   BLOCKED:        'border-line',
   OCCUPIED:       'border-[var(--alert-line)]',
@@ -30,8 +31,9 @@ const STATUS_STRIP_COLOR: Record<string, string> = {
   CLEAN:          'var(--info)',
   INSPECTED:      'var(--ready)',
   DO_NOT_DISTURB: 'var(--ink-4)',
-  OUT_OF_ORDER:   'var(--ink-4)',
-  OOO:            'var(--ink-4)',
+  OUT_OF_ORDER:   'var(--accent)',
+  OUT_OF_SERVICE: 'var(--accent)',
+  OOO:            'var(--accent)',
   VACANT:         'var(--line)',
   BLOCKED:        'var(--line)',
   OCCUPIED:       'var(--alert)',
@@ -46,8 +48,9 @@ const STATUS_PILL_TONE: Record<string, 'dirty' | 'progress' | 'clean' | 'inspect
   INSPECTED:      'inspected',
   PICKUP:         'pickup',
   OOO:            'ooo',
-  DO_NOT_DISTURB: 'ooo',
+  DO_NOT_DISTURB: 'neutral',
   OUT_OF_ORDER:   'ooo',
+  OUT_OF_SERVICE: 'ooo',
   OCCUPIED:       'progress',
   VACANT:         'neutral',
   BLOCKED:        'neutral',
@@ -65,7 +68,7 @@ interface Props {
   assignedToName?: string | null   // name of housekeeper already assigned (different from active assignee)
 }
 
-type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'DO_NOT_DISTURB' | 'OUT_OF_ORDER'
+type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'DO_NOT_DISTURB' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
 function formatTime(isoString: string | null | undefined): string | null {

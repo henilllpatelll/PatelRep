@@ -14,7 +14,7 @@ const PILL_CLASSES: Record<PillTone, string> = {
   inspected: 'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
   ready:     'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
   pickup:    'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]',
-  ooo:       'bg-surface-3 text-ink-3 border-line',
+  ooo:       'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
   accent:    'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
   ai:        'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)]',
   alert:     'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]',
@@ -64,7 +64,7 @@ const DOT_COLORS: Record<string, string> = {
   inspected: 'var(--ready)',
   ready:     'var(--ready)',
   pickup:    'var(--caution)',
-  ooo:       'var(--ink-4)',
+  ooo:       'var(--accent)',
   accent:    'var(--accent)',
   ai:        'var(--ai)',
 }

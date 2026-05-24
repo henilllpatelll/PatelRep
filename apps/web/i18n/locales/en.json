@@ -12,11 +12,14 @@
   },
   "rooms": {
     "status": {
-      "dirty": "Dirty",
-      "in_progress": "In Progress",
-      "clean": "Clean",
-      "inspected": "Inspected",
-      "ooo": "Out of Order",
+      "dirty": "Vacant Dirty",
+      "in_progress": "Occupied",
+      "clean": "Clean ready for inspection",
+      "inspected": "Inspected / Ready",
+      "ooo": "Out of Order / Out of Service",
+      "out_of_order": "Out of Order / Out of Service",
+      "out_of_service": "Out of Order / Out of Service",
+      "occupied": "Occupied",
       "pickup": "Pickup"
     },
     "start_cleaning": "Start Cleaning",

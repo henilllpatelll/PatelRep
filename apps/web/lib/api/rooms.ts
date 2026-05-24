@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/api/client'
 export interface RoomStatus {
   room_id: string
   tenant_id: string
-  status: 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
+  status: 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
   assigned_to: string | null
   guest_name: string | null
   vip_flag: boolean

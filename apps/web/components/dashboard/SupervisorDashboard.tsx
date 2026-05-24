@@ -164,17 +164,17 @@ function PredictionsWidget({ risks }: { risks: any[] }) {
 // ── RoomGridMini ──────────────────────────────────────────────────────────────
 
 const CELL_MAP: Record<string, { bg: string; border: string; striped?: boolean; glyph?: string }> = {
-  INSPECTED:   { bg: 'var(--surface-2)',    border: 'var(--line-2)' },
+  INSPECTED:   { bg: 'var(--ready-soft)',   border: 'var(--ready-line)' },
   CLEAN:       { bg: 'var(--info-soft)',    border: 'var(--info-line)' },
   DIRTY:       { bg: 'var(--alert-soft)',   border: 'var(--alert-line)' },
   IN_PROGRESS: { bg: 'var(--alert-soft)',   border: 'var(--alert-line)', striped: true },
   PICKUP:      { bg: 'var(--caution-soft)', border: 'var(--caution-line)' },
-  OOO:         { bg: 'var(--surface-3)',    border: 'var(--line)', glyph: '×' },
+  OOO:         { bg: 'var(--accent-soft)',  border: 'var(--accent-line)', glyph: '×' },
 }
 
 const STATUS_LABEL_MAP: Record<string, string> = {
-  INSPECTED: 'Ready', CLEAN: 'Clean', DIRTY: 'Vacant dirty',
-  IN_PROGRESS: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order',
+  INSPECTED: 'Ready', CLEAN: 'Clean ready for inspection', DIRTY: 'Vacant Dirty',
+  IN_PROGRESS: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order / out of service',
 }
 
 function RoomGridMini({ boardData }: { boardData: unknown }) {
@@ -248,12 +248,12 @@ function RoomGridMini({ boardData }: { boardData: unknown }) {
       </div>
       <div className="px-4 py-2.5 border-t border-line-2 flex flex-wrap gap-3 text-[11px] text-ink3">
         {[
-          { l: 'Ready',        bg: 'var(--surface-2)',    bd: 'var(--line-2)' },
-          { l: 'Clean',        bg: 'var(--info-soft)',    bd: 'var(--info-line)' },
-          { l: 'Vacant dirty', bg: 'var(--alert-soft)',   bd: 'var(--alert-line)' },
+          { l: 'Ready',        bg: 'var(--ready-soft)',   bd: 'var(--ready-line)' },
+          { l: 'Clean inspect', bg: 'var(--info-soft)',   bd: 'var(--info-line)' },
+          { l: 'Vacant Dirty', bg: 'var(--alert-soft)',   bd: 'var(--alert-line)' },
           { l: 'Occupied',     striped: true,              bd: 'var(--alert-line)' },
           { l: 'Pickup',       bg: 'var(--caution-soft)', bd: 'var(--caution-line)' },
-          { l: 'OOO',          bg: 'var(--surface-3)',    bd: 'var(--line)', glyph: '×' },
+          { l: 'OOO/OOS',      bg: 'var(--accent-soft)',  bd: 'var(--accent-line)', glyph: '×' },
         ].map((it, i) => (
           <span key={i} className="inline-flex items-center gap-1.5">
             <span

@@ -10,9 +10,11 @@
 
 - **Full audit then fix all at once (2026-05-20):** When the user says "fix all of these" after an audit, implement every item in one pass rather than asking which to prioritize.
 - **Use test credentials via env only (2026-05-23):** The user may provide TEST_PASSWORD for Playwright verification. Use it as a shell/process environment variable, but do not hardcode it into repo files or long-lived docs.
+- **Universal room status color contract (2026-05-24):** User wants room statuses shown consistently everywhere: green = Inspected / Ready, blue = Clean ready for inspection, red = Vacant Dirty, striped red = Occupied, yellow = Pickup, orange = Out of Order / Out of Service.
 
 ## Key Learnings
 
+- **Room status display contract spans web + mobile (2026-05-24):** Status labels/colors are not fully centralized. Update `lib/utils/roomStatus.ts`, shared primitives/Badge, housekeeping board/detail/report/dashboard local maps, web/mobile i18n, mobile room cards, and room API/status types when changing room-status display semantics.
 - **Live Stripe credentials are now configured (2026-05-24):** User reports live Stripe API credentials have been added. Treat billing/checkout verification as production-sensitive: do not print env values, validate webhook signatures, and prefer focused smoke tests or Stripe Dashboard event delivery checks.
 - **Auth profile hydration must not destroy valid Supabase sessions on 403/network failures (2026-05-24):** In the web app, `/auth/me` can return 403 for authenticated users without hotel context, and fetches can fail from transient network/CORS issues. Treat only 401 as session-expired/sign-out. For 403, keep the Supabase session and route to `/onboarding`; for network errors, preserve auth state.
 - **Web auth listeners are centralized in Providers (2026-05-24):** `components/shared/Providers.tsx` owns Supabase auth state, `/auth/me`, and effective-role hydration. `lib/hooks/useAuth.ts` should remain a lightweight store/signOut wrapper so Header/Sidebar do not install duplicate auth listeners or trigger extra context fetches.

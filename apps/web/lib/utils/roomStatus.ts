@@ -3,21 +3,27 @@ import { format, formatDistanceToNow } from 'date-fns'
 // ─── Status labels ────────────────────────────────────────────────────────────
 
 export const STATUS_LABELS: Record<string, string> = {
-  DIRTY: 'Dirty',
-  IN_PROGRESS: 'In Progress',
+  DIRTY: 'Vacant Dirty',
+  IN_PROGRESS: 'Occupied',
   CLEAN: 'Ready for Inspection',
-  INSPECTED: 'Clean',
-  OOO: 'Out of Order',
+  INSPECTED: 'Inspected / Ready',
+  OOO: 'Out of Order / Out of Service',
+  OUT_OF_ORDER: 'Out of Order / Out of Service',
+  OUT_OF_SERVICE: 'Out of Order / Out of Service',
+  OCCUPIED: 'Occupied',
   PICKUP: 'Pickup',
 }
 
 // Short labels for compact badges and filter chips
 export const STATUS_SHORT_LABELS: Record<string, string> = {
-  DIRTY: 'Dirty',
-  IN_PROGRESS: 'In Progress',
-  CLEAN: 'Ready',
-  INSPECTED: 'Clean',
-  OOO: 'OOO',
+  DIRTY: 'Vacant Dirty',
+  IN_PROGRESS: 'Occupied',
+  CLEAN: 'Clean',
+  INSPECTED: 'Ready',
+  OOO: 'OOO/OOS',
+  OUT_OF_ORDER: 'OOO/OOS',
+  OUT_OF_SERVICE: 'OOO/OOS',
+  OCCUPIED: 'Occupied',
   PICKUP: 'Pickup',
 }
 
@@ -33,56 +39,73 @@ export const STATUS_COLORS: Record<
     badge: 'bg-red-100 text-red-700',
   },
   IN_PROGRESS: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-400',
-    badge: 'bg-blue-100 text-blue-700',
+    bg: 'bg-red-50',
+    border: 'border-red-300',
+    badge: 'bg-red-100 text-red-700',
   },
   CLEAN: {
-    bg: 'bg-green-50',
-    border: 'border-green-400',
-    badge: 'bg-green-100 text-green-700',
+    bg: 'bg-blue-50',
+    border: 'border-blue-300',
+    badge: 'bg-blue-100 text-blue-700',
   },
   INSPECTED: {
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-400',
-    badge: 'bg-emerald-100 text-emerald-800',
+    bg: 'bg-green-50',
+    border: 'border-green-300',
+    badge: 'bg-green-100 text-green-700',
   },
   OOO: {
-    bg: 'bg-gray-100',
-    border: 'border-gray-400',
-    badge: 'bg-gray-200 text-gray-600',
+    bg: 'bg-orange-50',
+    border: 'border-orange-300',
+    badge: 'bg-orange-100 text-orange-700',
   },
   PICKUP: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-400',
-    badge: 'bg-purple-100 text-purple-700',
+    bg: 'bg-yellow-50',
+    border: 'border-yellow-300',
+    badge: 'bg-yellow-100 text-yellow-700',
+  },
+  OUT_OF_ORDER: {
+    bg: 'bg-orange-50',
+    border: 'border-orange-300',
+    badge: 'bg-orange-100 text-orange-700',
+  },
+  OUT_OF_SERVICE: {
+    bg: 'bg-orange-50',
+    border: 'border-orange-300',
+    badge: 'bg-orange-100 text-orange-700',
+  },
+  OCCUPIED: {
+    bg: 'bg-red-50',
+    border: 'border-red-300',
+    badge: 'bg-red-100 text-red-700',
   },
 }
 
 export const STATUS_BG: Record<string, string> = {
-  INSPECTED:     '#10B981',
-  CLEAN:         '#22C55E',
-  IN_PROGRESS:   '#7DD3FC',
-  PICK_UP:       '#DDD6FE',
-  PICKUP:        '#DDD6FE',   // API value alias
-  OCCUPIED:      '#FC8D8D',
-  DIRTY:         '#FF4D4D',
-  CHECK_OUT:     '#FF4D4D',
-  OUT_OF_SERVICE:'#70767D',
-  OOO:           '#70767D',   // API value alias
+  INSPECTED:     '#16A34A',
+  CLEAN:         '#2563EB',
+  IN_PROGRESS:   '#DC2626',
+  PICK_UP:       '#EAB308',
+  PICKUP:        '#EAB308',   // API value alias
+  OCCUPIED:      '#DC2626',
+  DIRTY:         '#DC2626',
+  CHECK_OUT:     '#DC2626',
+  OUT_OF_SERVICE:'#F97316',
+  OUT_OF_ORDER:  '#F97316',
+  OOO:           '#F97316',   // API value alias
   VIP:           '#FCD34D',
 }
 
 export const STATUS_TEXT: Record<string, string> = {
   INSPECTED:     '#FFFFFF',
   CLEAN:         '#FFFFFF',
-  IN_PROGRESS:   '#0C4A6E',
-  PICK_UP:       '#5B21B6',
-  PICKUP:        '#5B21B6',   // API value alias
-  OCCUPIED:      '#7F1D1D',
+  IN_PROGRESS:   '#FFFFFF',
+  PICK_UP:       '#713F12',
+  PICKUP:        '#713F12',   // API value alias
+  OCCUPIED:      '#FFFFFF',
   DIRTY:         '#FFFFFF',
   CHECK_OUT:     '#FFFFFF',
   OUT_OF_SERVICE:'#FFFFFF',
+  OUT_OF_ORDER:  '#FFFFFF',
   OOO:           '#FFFFFF',   // API value alias
   VIP:           '#78350F',
 }

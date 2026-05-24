@@ -306,7 +306,7 @@ export default function IntegrationsPage() {
               <p className="text-sm font-medium text-gray-700">What you get when connected:</p>
               <ul className="space-y-2">
                 {[
-                  'Automatic checkout → room marked Dirty',
+                  'Automatic checkout → room marked Vacant Dirty',
                   'Guest VIP flags + check-in times synced',
                   'Bidirectional room status sync',
                   'Real-time Business Events webhooks',

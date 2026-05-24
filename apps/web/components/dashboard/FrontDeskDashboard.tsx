@@ -21,12 +21,12 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
 
 type StatusKey = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
 
-const ROOM_STATUS_CONFIG: Record<StatusKey, { label: string; tone: 'alert' | 'caution' | 'ready' | 'inspected' | 'ooo' | 'pickup' }> = {
-  DIRTY:       { label: 'Dirty',        tone: 'alert' },
-  IN_PROGRESS: { label: 'In Progress',  tone: 'caution' },
-  CLEAN:       { label: 'Clean',        tone: 'ready' },
-  INSPECTED:   { label: 'Inspected',    tone: 'inspected' },
-  OOO:         { label: 'Out of Order', tone: 'ooo' },
+const ROOM_STATUS_CONFIG: Record<StatusKey, { label: string; tone: 'dirty' | 'progress' | 'clean' | 'ready' | 'ooo' | 'pickup' }> = {
+  DIRTY:       { label: 'Vacant Dirty', tone: 'dirty' },
+  IN_PROGRESS: { label: 'Occupied',     tone: 'progress' },
+  CLEAN:       { label: 'Clean ready for inspection', tone: 'clean' },
+  INSPECTED:   { label: 'Inspected / Ready', tone: 'ready' },
+  OOO:         { label: 'Out of Order / Out of Service', tone: 'ooo' },
   PICKUP:      { label: 'Pickup',       tone: 'pickup' },
 }
 

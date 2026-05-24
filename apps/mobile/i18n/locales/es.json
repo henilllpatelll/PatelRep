@@ -27,11 +27,14 @@
   "rooms": {
     "title": "Mis Cuartos",
     "status": {
-      "DIRTY": "Sucio",
-      "IN_PROGRESS": "En Progreso",
-      "CLEAN": "Limpio",
-      "INSPECTED": "Inspeccionado",
-      "OOO": "Fuera de Servicio",
+      "DIRTY": "Vacante Sucio",
+      "IN_PROGRESS": "Ocupado",
+      "CLEAN": "Limpio, listo para inspeccion",
+      "INSPECTED": "Inspeccionado / Listo",
+      "OOO": "Fuera de Orden / Fuera de Servicio",
+      "OUT_OF_ORDER": "Fuera de Orden / Fuera de Servicio",
+      "OUT_OF_SERVICE": "Fuera de Orden / Fuera de Servicio",
+      "OCCUPIED": "Ocupado",
       "PICKUP": "Recogida"
     },
     "risk": {

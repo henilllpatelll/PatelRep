@@ -26,7 +26,7 @@ export interface Room {
   id: string;
   room_number: string;
   floor: number;
-  status: "DIRTY" | "IN_PROGRESS" | "CLEAN" | "INSPECTED" | "OOO" | "PICKUP";
+  status: "DIRTY" | "IN_PROGRESS" | "CLEAN" | "INSPECTED" | "OOO" | "PICKUP" | "OCCUPIED" | "OUT_OF_ORDER" | "OUT_OF_SERVICE";
   risk_level: "LOW" | "MEDIUM" | "HIGH" | null;
   dnd_flag: boolean;
   guest_name: string | null;
