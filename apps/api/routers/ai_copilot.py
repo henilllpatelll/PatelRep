@@ -503,6 +503,7 @@ async def confirm_assignments(
                 "assigned_to": staff_id,
                 "assigned_by": current_user.user_id,
                 "assignment_date": today,
+                "clean_type": assignment.clean_type or "DEP",
                 "is_ai_suggested": True,
             }, on_conflict="room_id,assignment_date").execute()
             supabase.table("room_status")\

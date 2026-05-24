@@ -94,27 +94,30 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1E40AF" },
+  container: { flex: 1, backgroundColor: "#1a1815" },
   inner: { flex: 1, justifyContent: "center", padding: 32 },
-  logo: { fontSize: 36, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 8 },
-  subtitle: { fontSize: 16, color: "#BFDBFE", textAlign: "center", marginBottom: 48 },
+  logo: { fontSize: 36, fontWeight: "bold", color: "#f7f4ee", textAlign: "center", marginBottom: 8 },
+  subtitle: { fontSize: 16, color: "#807a70", textAlign: "center", marginBottom: 48 },
   input: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: "#221f1b",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#322d26",
     padding: 16,
     fontSize: 16,
+    color: "#f1ede4",
     marginBottom: 16,
   },
   button: {
-    backgroundColor: "#F59E0B",
-    borderRadius: 12,
+    backgroundColor: "#b8431c",
+    borderRadius: 10,
     padding: 16,
     alignItems: "center",
     marginBottom: 16,
   },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   toggleText: {
-    color: "#BFDBFE",
+    color: "#807a70",
     textAlign: "center",
     fontSize: 14,
     textDecorationLine: "underline",

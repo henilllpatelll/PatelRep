@@ -61,7 +61,7 @@ export default function ProfileScreen() {
           <Switch
             value={isSpanish}
             onValueChange={toggleLanguage}
-            trackColor={{ true: "#1E40AF" }}
+            trackColor={{ true: "#b8431c" }}
           />
         </View>
       </View>
@@ -74,13 +74,13 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB", padding: 16 },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 12 },
-  name: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  role: { fontSize: 13, color: "#6B7280", marginTop: 4 },
-  hotel: { fontSize: 13, color: "#9CA3AF", marginTop: 2 },
+  container: { flex: 1, backgroundColor: "#f7f4ee", padding: 16 },
+  card: { backgroundColor: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#e6dfd1" },
+  name: { fontSize: 20, fontWeight: "700", color: "#1a1815" },
+  role: { fontSize: 13, color: "#807a70", marginTop: 4 },
+  hotel: { fontSize: 13, color: "#a8a195", marginTop: 2 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  label: { fontSize: 15, color: "#374151" },
-  signOutBtn: { backgroundColor: "#FEE2E2", borderRadius: 12, padding: 14, alignItems: "center" },
-  signOutText: { color: "#EF4444", fontWeight: "600" },
+  label: { fontSize: 15, color: "#1a1815" },
+  signOutBtn: { backgroundColor: "#f5d8de", borderRadius: 12, padding: 14, alignItems: "center" },
+  signOutText: { color: "#a6263c", fontWeight: "600" },
 });

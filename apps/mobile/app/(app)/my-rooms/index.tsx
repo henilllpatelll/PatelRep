@@ -15,14 +15,14 @@ import { useAppStore, type Room } from "@/stores/appStore";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 
 const STATUS_COLORS: Record<string, string> = {
-  DIRTY: "#DC2626",
-  IN_PROGRESS: "#7C3AED",
-  CLEAN: "#2563EB",
-  INSPECTED: "#16A34A",
-  OOO: "#F97316",
-  OUT_OF_ORDER: "#F97316",
-  OUT_OF_SERVICE: "#F97316",
-  PICKUP: "#EAB308",
+  DIRTY: "#a6263c",
+  IN_PROGRESS: "#7c3aed",
+  CLEAN: "#265d8a",
+  INSPECTED: "#0c6e63",
+  OOO: "#807a70",
+  OUT_OF_ORDER: "#807a70",
+  OUT_OF_SERVICE: "#807a70",
+  PICKUP: "#a16207",
 };
 
 function formatETA(isoString: string): string {
@@ -158,7 +158,7 @@ export default function MyRoomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: "#f7f4ee" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyContainer: { flex: 1 },
   offlineBanner: {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     left: -5,
     width: 16,
     height: 4,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#f5d8de",
     transform: [{ rotate: "-35deg" }],
   },
   cardContent: { flex: 1, padding: 14 },
@@ -200,37 +200,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  roomNumber: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  roomNumber: { fontSize: 18, fontWeight: "700", color: "#1a1815" },
   statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   statusText: { fontSize: 12, fontWeight: "600" },
-  floorText: { fontSize: 12, color: "#9CA3AF", marginBottom: 2 },
+  floorText: { fontSize: 12, color: "#807a70", marginBottom: 2 },
   vipBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     marginTop: 4,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#f5e9cf",
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
     alignSelf: "flex-start",
   },
-  vipBadgeText: { fontSize: 11, color: "#92400E", fontWeight: "600" },
-  guestName: { fontSize: 13, color: "#6B7280", marginTop: 2 },
+  vipBadgeText: { fontSize: 11, color: "#a16207", fontWeight: "600" },
+  guestName: { fontSize: 13, color: "#4a4640", marginTop: 2 },
   flag: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  flagText: { fontSize: 12, color: "#6B7280" },
+  flagText: { fontSize: 12, color: "#807a70" },
   riskBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     marginTop: 6,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#f5d8de",
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
     alignSelf: "flex-start",
   },
-  riskText: { fontSize: 11, color: "#EF4444", fontWeight: "600" },
-  etaText: { fontSize: 12, color: "#3B82F6", marginTop: 4 },
-  emptyText: { color: "#9CA3AF", fontSize: 16 },
+  riskText: { fontSize: 11, color: "#a6263c", fontWeight: "600" },
+  etaText: { fontSize: 12, color: "#265d8a", marginTop: 4 },
+  emptyText: { color: "#a8a195", fontSize: 16 },
 });

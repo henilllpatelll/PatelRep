@@ -1927,3 +1927,91 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 11:01 | Debugged blank local dashboard in in-app browser | apps/api/main.py, local dev servers | found wrong app on :8000, ran PatelRep API on :8001, restarted web on :3000 with matching API URL, dashboard loads | ~9000 |
 | 10:58 | Investigated reported housekeeping room assignment failure; loaded OpenWolf context, skills, bug history, and searched assignment code paths | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md, .wolf/buglog.json, assignment files | in progress | ~9000 |
 | 11:06 | Fixed housekeeper room assignment failures in drag and AI confirmation paths | apps/web/components/housekeeping/RoomCard.tsx, apps/api/routers/ai_copilot.py, apps/api/tests/smoke/test_ai_assignment_confirm.py, apps/api/tests/smoke/test_housekeeping_assignments.py | focused tests, full API tests, Ruff, Pyright, web type-check, lint, and build passed | ~6500 |
+| 11:48 | Extracted Opera housekeeping PDF and shaped it into web app workflow context | C:\Users\Henil\Downloads\task_sheet_report_195991631.PDF, .wolf/cerebrum.md, .wolf/buglog.json | found 41 dirty rooms across 3 task sheets and recorded PDF fixture learning | ~900 |
+| 12:09 | Implemented Opera clean type support for housekeeping assignments | apps/api, apps/web, supabase/migrations/042_room_assignment_clean_type.sql | DEP/FULL/LIGHT now persist through assignment APIs, UI assignment controls, AI previews, and pickup clean flow; checks passed | ~4300 |
+
+## Session: 2026-05-24 12:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-24 12:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:43 | Edited apps/mobile/app/(app)/_layout.tsx | 5→7 lines | ~106 |
+| 12:43 | Edited apps/mobile/app/(auth)/login.tsx | CSS: borderWidth, borderColor | ~236 |
+| 12:43 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 10→10 lines | ~68 |
+| 12:43 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | "#F9FAFB" → "#f7f4ee" | ~16 |
+| 12:43 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 8→8 lines | ~47 |
+| 12:43 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~20 |
+| 12:44 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 30→30 lines | ~277 |
+| 12:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified getTransitions() | ~89 |
+| 12:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: letterSpacing | ~487 |
+| 12:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~16 |
+| 12:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~18 |
+| 12:45 | Edited apps/mobile/app/(app)/copilot/index.tsx | expanded (+6 lines) | ~740 |
+| 12:45 | Edited apps/mobile/app/(app)/copilot/index.tsx | "#1E40AF" → "#c8b8e3" | ~20 |
+| 12:45 | Edited apps/mobile/app/(app)/copilot/index.tsx | inline fix | ~25 |
+| 12:45 | Edited apps/mobile/app/(app)/tasks/index.tsx | 6→6 lines | ~41 |
+| 12:45 | Edited apps/mobile/app/(app)/tasks/index.tsx | "#F9FAFB" → "#f7f4ee" | ~16 |
+| 12:45 | Session end: 16 writes across 4 files (_layout.tsx, login.tsx, index.tsx, [roomId].tsx) | 13 reads | ~2222 tok |
+| 12:47 | Session end: 16 writes across 4 files (_layout.tsx, login.tsx, index.tsx, [roomId].tsx) | 13 reads | ~2222 tok |
+
+## Session: 2026-05-24 12:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-24 12:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:51 | Edited apps/mobile/app/(app)/tasks/index.tsx | "#1E40AF" → "#b8431c" | ~13 |
+| 12:51 | Edited apps/mobile/app/(app)/work-orders/index.tsx | 12→12 lines | ~74 |
+| 12:51 | Edited apps/mobile/app/(app)/profile/index.tsx | "#1E40AF" → "#b8431c" | ~12 |
+| 12:52 | Edited apps/mobile/app/(app)/tasks/index.tsx | CSS: borderWidth, borderColor | ~144 |
+| 12:52 | Edited apps/mobile/app/(app)/work-orders/index.tsx | CSS: borderWidth | ~480 |
+| 12:52 | Edited apps/mobile/app/(app)/profile/index.tsx | CSS: borderWidth, borderColor | ~201 |
+| 12:52 | Edited apps/mobile/app/(app)/work-orders/index.tsx | "#1E40AF" → "#b8431c" | ~14 |
+| 12:52 | Edited apps/mobile/app/(app)/work-orders/index.tsx | "#9CA3AF" → "#807a70" | ~3 |
+| 12:52 | Edited apps/mobile/app/(app)/tasks/index.tsx | "#9CA3AF" → "#a8a195" | ~29 |
+| 17:00 | Design token handoff — fixed mobile tasks/work-orders/profile screens: terracotta accent #b8431c, paper bg #f7f4ee, ink colors #1a1815/#807a70/#a8a195, line border #e6dfd1 | apps/mobile/app/(app)/tasks/index.tsx, apps/mobile/app/(app)/work-orders/index.tsx, apps/mobile/app/(app)/profile/index.tsx | type-check passes | ~600 tok |
+| 12:53 | Session end: 9 writes across 1 files (index.tsx) | 3 reads | ~1664 tok |
+| 12:55 | Session end: 9 writes across 1 files (index.tsx) | 3 reads | ~1664 tok |
+| 12:56 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | inline fix | ~2 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | 60→62 lines | ~444 |
+| 17:10 | Fixed missed work-orders detail screen [woId].tsx — all old blue/gray tokens replaced with design tokens | apps/mobile/app/(app)/work-orders/[woId].tsx | type-check passes | ~300 tok |
+| 12:57 | Session end: 11 writes across 2 files (index.tsx, [woId].tsx) | 4 reads | ~4404 tok |
+| 13:01 | Session end: 11 writes across 2 files (index.tsx, [woId].tsx) | 5 reads | ~4404 tok |
+| 13:05 | Session end: 11 writes across 2 files (index.tsx, [woId].tsx) | 5 reads | ~4404 tok |
+| 13:10 | Created apps/mobile/package.json | — | ~522 |
+| 13:12 | Created apps/mobile/package.json | — | ~497 |
+| 13:18 | Edited apps/mobile/package.json | inline fix | ~9 |
+| 13:18 | Edited apps/mobile/package.json | inline fix | ~8 |
+| 13:19 | Edited apps/mobile/lib/notifications.ts | 5→7 lines | ~51 |
+| 17:30 | Upgraded mobile to Expo SDK 54 — expo ~54.0.0, react 19.1.0, react-native 0.81.5, expo-router ~6.0.23; fixed NotificationBehavior type (added shouldShowBanner/shouldShowList) | apps/mobile/package.json, apps/mobile/lib/notifications.ts | type-check passes | ~800 tok |
+| 13:19 | Session end: 16 writes across 4 files (index.tsx, [woId].tsx, package.json, notifications.ts) | 7 reads | ~5988 tok |
+| 13:26 | Session end: 16 writes across 4 files (index.tsx, [woId].tsx, package.json, notifications.ts) | 9 reads | ~5988 tok |
+| 13:27 | Session end: 16 writes across 4 files (index.tsx, [woId].tsx, package.json, notifications.ts) | 10 reads | ~5988 tok |
+| 13:35 | Edited apps/mobile/i18n/index.ts | 11→12 lines | ~64 |
+| 13:35 | Edited apps/mobile/app/(app)/copilot/index.tsx | added error handling | ~230 |
+| 13:35 | Edited apps/mobile/app/(app)/copilot/index.tsx | added optional chaining | ~72 |
+| 13:35 | Edited apps/mobile/app/(app)/copilot/index.tsx | 8→10 lines | ~112 |
+| 13:35 | Edited apps/mobile/app/(auth)/_layout.tsx | "/(app)" → "/(app)/my-rooms" | ~12 |
+| 13:35 | Edited apps/mobile/app/_layout.tsx | inline fix | ~13 |
+| 13:36 | Session end: 22 writes across 6 files (index.tsx, [woId].tsx, package.json, notifications.ts, index.ts) | 14 reads | ~9084 tok |
+| 13:43 | Edited apps/mobile/app/_layout.tsx | added error handling | ~175 |
+| 13:44 | Edited apps/mobile/app/_layout.tsx | 5000 → 2000 | ~19 |
+| 13:44 | Session end: 24 writes across 6 files (index.tsx, [woId].tsx, package.json, notifications.ts, index.ts) | 15 reads | ~9278 tok |
+
+## Session: 2026-05-24 13:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:15 | Created apps/mobile/app/index.tsx | — | ~35 |
+| 14:15 | Session end: 1 writes across 1 files (index.tsx) | 11 reads | ~2467 tok |
+| 14:21 | Session end: 1 writes across 1 files (index.tsx) | 13 reads | ~3491 tok |
+| 14:28 | Session end: 1 writes across 1 files (index.tsx) | 13 reads | ~3491 tok |
+| 14:31 | Session end: 1 writes across 1 files (index.tsx) | 13 reads | ~3491 tok |
+| 12:24 | Applied clean_type migration to linked Supabase database | supabase/migrations/042_room_assignment_clean_type.sql | remote column and constraint verified, migration history repaired as applied, focused API tests passed | ~1200 |

@@ -14,6 +14,7 @@
 
 ## Key Learnings
 
+- **Opera task sheet PDFs are useful acceptance-test fixtures (2026-05-24):** User provided a same-day Opera housekeeping task sheet PDF as the real-world workflow source. For manual web app validation, translate these into room-board counts, task sheet assignments, status transitions, and exception handling while avoiding unnecessary guest-name repetition.
 - **Housekeeping assignment save has three separate paths (2026-05-24):** Manual tap/sidebar save uses `POST /housekeeping/assignments`, desktop drag gets its room id from `RoomCard`'s dnd-kit draggable id, and AI confirmation uses `POST /ai/assignments/confirm`. All three must send/write `rooms.id` (`room_id`), not `room_status.id`, and AI confirmation must write `assigned_by`, `is_ai_suggested`, and `on_conflict="room_id,assignment_date"` to match the schema.
 - **Local preview may need API on alternate port (2026-05-24):** If `:8000` is occupied by another FastAPI app, PatelRep web can stay stuck on the dashboard skeleton because `/v1/auth/me` 404s and role hydration never completes. Run PatelRep API on another port such as `8001` and restart web with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/v1`; CORS now allows both `localhost` and `127.0.0.1` loopback origins.
 - **Housekeeping board assignment state is date-scoped (2026-05-24):** `GET /housekeeping/board` must derive `assigned_to` from `room_assignments` for the selected `assignment_date`; `room_status.assigned_to` is only a persistent mirror and can contain yesterday's assignee. Frontend realtime room-status merges should preserve the board's daily assignment fields instead of replacing them from `room_status` payloads.
@@ -73,6 +74,8 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-05-24] **Check existing Supabase migration numbers before creating a new migration** — `041_escalation_level.sql` already existed, so the room assignment clean-type migration had to be renumbered to `042_room_assignment_clean_type.sql`.
 
 - [2026-05-24] **Do not use `room_status.id` or `user_roles.hotel_id` in assignment flows** — Room assignment payloads must use `rooms.id` / `room_id`. `user_roles` is tenant-scoped by `tenant_id`, not `hotel_id`; using `hotel_id` makes AI staff-name resolution return no housekeepers.
 

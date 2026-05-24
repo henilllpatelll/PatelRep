@@ -159,6 +159,31 @@ async def test_room_transition_rejects_housekeeper_inspection(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_pickup_room_can_start_normal_clean_flow(monkeypatch):
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "PICKUP",
+            "assigned_to": "hk-1",
+        }],
+        "room_status_history": [],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.update_room_status(
+        "room-1",
+        UpdateRoomStatusRequest(status="IN_PROGRESS", notes="Started stayover service"),
+        current_user=HOUSEKEEPER,
+    )
+
+    assert response["data"]["status"] == "IN_PROGRESS"
+    assert db.inserts[0][1]["from_status"] == "PICKUP"
+    assert db.inserts[0][1]["to_status"] == "IN_PROGRESS"
+
+
+@pytest.mark.asyncio
 async def test_room_transition_allows_supervisor_inspection(monkeypatch):
     db = FakeDB({
         "room_status": [{

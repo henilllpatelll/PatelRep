@@ -54,11 +54,13 @@ export default function AppLayout() {
       <OfflineBanner />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#1E40AF",
-          tabBarInactiveTintColor: "#9CA3AF",
-          headerStyle: { backgroundColor: "#1E40AF" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "600" },
+          tabBarActiveTintColor: "#b8431c",
+          tabBarInactiveTintColor: "#a8a195",
+          tabBarStyle: { backgroundColor: "#f7f4ee", borderTopColor: "#e6dfd1" },
+          headerStyle: { backgroundColor: "#f7f4ee" },
+          headerTintColor: "#1a1815",
+          headerTitleStyle: { fontWeight: "600", color: "#1a1815" },
+          headerShadowVisible: false,
         }}
       >
         {getTabsForRole(user.role).map((tab) => (

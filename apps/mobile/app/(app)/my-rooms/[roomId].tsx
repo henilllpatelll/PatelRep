@@ -23,9 +23,9 @@ function formatETA(isoString: string): string {
 function getTransitions(status: string) {
   switch (status) {
     case "DIRTY":
-      return [{ label: "rooms.markInProgress", status: "IN_PROGRESS", color: "#7C3AED" }];
+      return [{ label: "rooms.markInProgress", status: "IN_PROGRESS", color: "#7c3aed" }];
     case "IN_PROGRESS":
-      return [{ label: "rooms.markClean", status: "CLEAN", color: "#2563EB" }];
+      return [{ label: "rooms.markClean", status: "CLEAN", color: "#265d8a" }];
     default:
       return [];
   }
@@ -71,7 +71,7 @@ export default function RoomDetailScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1E40AF" />
+        <ActivityIndicator size="large" color="#b8431c" />
       </View>
     );
   }
@@ -90,7 +90,7 @@ export default function RoomDetailScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1E40AF" />
+          <Ionicons name="arrow-back" size={24} color="#1a1815" />
         </TouchableOpacity>
         <Text style={styles.roomNumber}>Room {room.room_number}</Text>
       </View>
@@ -169,44 +169,46 @@ export default function RoomDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: "#f7f4ee" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#e6dfd1",
   },
   backBtn: { marginRight: 12 },
-  roomNumber: { fontSize: 20, fontWeight: "700", color: "#111827" },
+  roomNumber: { fontSize: 20, fontWeight: "700", color: "#1a1815" },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: 16,
     marginTop: 8,
     marginHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e6dfd1",
   },
-  label: { fontSize: 12, color: "#6B7280", marginBottom: 4, textTransform: "uppercase" },
-  value: { fontSize: 16, color: "#111827", fontWeight: "500" },
-  alertBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF3C7" },
-  alertText: { color: "#92400E", fontWeight: "500" },
-  vipBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF3C7" },
-  vipText: { color: "#92400E", fontWeight: "500" },
-  riskBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEE2E2" },
-  riskText: { color: "#991B1B", fontWeight: "500" },
+  label: { fontSize: 11, color: "#807a70", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8 },
+  value: { fontSize: 16, color: "#1a1815", fontWeight: "500" },
+  alertBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f5e9cf", borderColor: "#e0c890" },
+  alertText: { color: "#a16207", fontWeight: "500" },
+  vipBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f5e9cf", borderColor: "#e0c890" },
+  vipText: { color: "#a16207", fontWeight: "500" },
+  riskBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f5d8de", borderColor: "#e8a8b3" },
+  riskText: { color: "#a6263c", fontWeight: "500" },
   actions: { padding: 16, gap: 12 },
-  actionBtn: { padding: 16, borderRadius: 12, alignItems: "center" },
+  actionBtn: { padding: 16, borderRadius: 10, alignItems: "center" },
   actionText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   reportBtn: {
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#f5d8de",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#FCA5A5",
+    borderColor: "#e8a8b3",
   },
-  reportText: { color: "#DC2626", fontSize: 16, fontWeight: "600" },
+  reportText: { color: "#a6263c", fontSize: 16, fontWeight: "600" },
 });

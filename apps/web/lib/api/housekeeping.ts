@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client'
+import type { CleanType } from '@/lib/utils/cleanType'
 
 export interface InspectionTemplateItem {
   id: string | null
@@ -41,7 +42,7 @@ export interface InspectionRecord {
 export interface AssignmentPayload {
   date: string
   shift_id: string | null
-  assignments: { room_id: string; housekeeper_id: string }[]
+  assignments: { room_id: string; housekeeper_id: string; clean_type?: CleanType }[]
   is_ai_suggested: boolean
 }
 

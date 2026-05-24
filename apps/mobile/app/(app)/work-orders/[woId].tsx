@@ -124,7 +124,7 @@ export default function WorkOrderDetailScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1E40AF" />
+        <ActivityIndicator size="large" color="#b8431c" />
       </View>
     );
   }
@@ -141,7 +141,7 @@ export default function WorkOrderDetailScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1E40AF" />
+          <Ionicons name="arrow-back" size={24} color="#b8431c" />
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={2}>
           {workOrder.title}
@@ -173,9 +173,9 @@ export default function WorkOrderDetailScreen() {
           ))}
           <TouchableOpacity style={styles.addPhotoBtn} onPress={pickAndUploadPhoto}>
             {uploading ? (
-              <ActivityIndicator color="#1E40AF" />
+              <ActivityIndicator color="#b8431c" />
             ) : (
-              <Ionicons name="camera" size={28} color="#1E40AF" />
+              <Ionicons name="camera" size={28} color="#b8431c" />
             )}
           </TouchableOpacity>
         </View>
@@ -211,34 +211,36 @@ export default function WorkOrderDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: "#f7f4ee" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#e6dfd1",
     gap: 8,
   },
   backBtn: { marginTop: 2 },
-  title: { fontSize: 18, fontWeight: "700", color: "#111827", flex: 1 },
+  title: { fontSize: 18, fontWeight: "700", color: "#1a1815", flex: 1 },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: 16,
     marginTop: 8,
     marginHorizontal: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e6dfd1",
   },
   label: {
     fontSize: 12,
-    color: "#6B7280",
+    color: "#807a70",
     marginBottom: 8,
     textTransform: "uppercase",
     fontWeight: "600",
   },
-  body: { fontSize: 15, color: "#374151", lineHeight: 22 },
+  body: { fontSize: 15, color: "#4a4640", lineHeight: 22 },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   photo: { width: 80, height: 80, borderRadius: 8 },
   addPhotoBtn: {
@@ -246,23 +248,23 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#1E40AF",
+    borderColor: "#b8431c",
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
   },
   notesInput: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#e6dfd1",
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: "#374151",
+    color: "#4a4640",
     minHeight: 100,
     textAlignVertical: "top",
   },
   completeBtn: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#0c6e63",
     borderRadius: 10,
     padding: 14,
     alignItems: "center",

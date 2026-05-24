@@ -6,6 +6,7 @@ import type {
   ParsedTask,
   WorkOrderPreview,
 } from '@/lib/api/ai'
+import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 
 function priorityBadge(p: string) {
   if (p === 'urgent') return 'text-[var(--alert)] bg-[var(--alert-soft)] border-[var(--alert-line)]'
@@ -126,6 +127,7 @@ export function GuestRequestCard({ req }: { req: GuestRequestPreview }) {
 }
 
 export function AssignmentCard({ assignment }: { assignment: AssignmentPreview }) {
+  const cleanTypeLabel = getCleanTypeShortLabel(assignment.clean_type)
   return (
     <div className="border border-line rounded-lg p-3 bg-surface space-y-1">
       <div className="flex items-center gap-1.5 text-xs text-ink3 font-medium">
@@ -135,6 +137,9 @@ export function AssignmentCard({ assignment }: { assignment: AssignmentPreview }
       </div>
       {assignment.room_numbers.length > 0 && (
         <p className="text-xs text-ink2">Rooms: {assignment.room_numbers.join(', ')}</p>
+      )}
+      {cleanTypeLabel && (
+        <p className="text-xs text-ink2">Service: {cleanTypeLabel}</p>
       )}
       {assignment.task_ids.length > 0 && (
         <p className="text-xs text-ink2">

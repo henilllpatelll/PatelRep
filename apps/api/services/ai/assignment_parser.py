@@ -20,6 +20,11 @@ _ASSIGN_SCHEMA = {
                         "staff_name_hint": {"type": "string"},
                         "room_numbers": {"type": "array", "items": {"type": "string"}},
                         "task_ids": {"type": "array", "items": {"type": "string"}},
+                        "clean_type": {
+                            "type": "string",
+                            "enum": ["DEP", "FULL", "LIGHT"],
+                            "description": "Housekeeping clean type: DEP for checkout/departure, FULL for stayover linen change, LIGHT for stayover pickup/light service.",
+                        },
                     },
                     "required": ["staff_name_hint"],
                 },
@@ -32,7 +37,8 @@ _ASSIGN_SCHEMA = {
 _SYSTEM = (
     "Parse hotel staff assignment instructions. "
     "Extract staff name, room numbers (expand ranges like 200-210 into individual rooms), "
-    "and any specific task references."
+    "any specific task references, and clean type when the user says departure, checkout, "
+    "full linen, linen change, stayover full, light, pickup, or stayover light."
 )
 
 

@@ -125,9 +125,13 @@ class CopilotChatRequest(BaseModel):
 
 
 # --- Housekeeping ---
+CleanType = Literal["DEP", "FULL", "LIGHT"]
+
+
 class RoomAssignmentItem(BaseModel):
     room_id: UUID4
     housekeeper_id: UUID4
+    clean_type: Optional[CleanType] = None
 
 
 class CreateAssignmentsRequest(BaseModel):
@@ -344,6 +348,7 @@ class AssignmentPreview(BaseModel):
     staff_id: Optional[str] = None
     room_numbers: List[str] = []
     task_ids: List[str] = []
+    clean_type: Optional[CleanType] = None
 
 
 class AmbiguousOption(BaseModel):

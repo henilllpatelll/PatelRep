@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T13:36:52.880Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T19:15:22.561Z
 > Files: 15 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
@@ -408,9 +408,14 @@
 ## Docker Context Additions
 
 
+## Session Additions 2026-05-24 Assignment Fix
+
+
+## Session Additions 2026-05-24 Room Status Contract
+
+
 ## apps/api/
 
-- `main.py` - FastAPI app setup, CORS/security middleware, health endpoint, and `/v1` router registration (~4500 tok)
 
 ## apps/api/core/
 
@@ -422,14 +427,6 @@
 
 
 ## apps/api/routers/
-
-- `housekeeping.py` - housekeeping room board, daily room assignments, my-rooms, inspection endpoints, and AI assignment hooks (~20000 tok)
-- `staff.py` - staff listing/invite/update/deactivation endpoints and role/profile joins (~19000 tok)
-- `rooms.py` - room CRUD/status transition endpoints and room status side effects (~14000 tok)
-
-## apps/api/tests/smoke/
-
-- `test_housekeeping_assignments.py` - focused regression tests for daily room assignment behavior (~5200 tok)
 
 
 ## apps/api/services/
@@ -458,6 +455,7 @@
 
 ## apps/mobile/
 
+- `package.json` — Node.js package manifest (~526 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -468,11 +466,52 @@
 ## apps/mobile/__tests__/screens/
 
 
+## apps/mobile/app/
+
+- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~990 tok)
+- `index.tsx` — Index (~35 tok)
+
+## apps/mobile/app/(app)/
+
+- `_layout.tsx` — getTabsForRole (~765 tok)
+
 ## apps/mobile/app/(app)/copilot/
 
+- `index.tsx` — mod (~2773 tok)
+
+## apps/mobile/app/(app)/my-rooms/
+
+- `[roomId].tsx` — formatETA (~2092 tok)
+- `index.tsx` — STATUS_COLORS (~2142 tok)
+
+## apps/mobile/app/(app)/profile/
+
+- `index.tsx` — ProfileScreen (~862 tok)
+
+## apps/mobile/app/(app)/tasks/
+
+- `index.tsx` — STATUS_COLORS (~709 tok)
+
+## apps/mobile/app/(app)/work-orders/
+
+- `[woId].tsx` — WorkOrderDetailScreen (~2310 tok)
+- `index.tsx` — PRIORITY_COLORS (~1980 tok)
+
+## apps/mobile/app/(auth)/
+
+- `_layout.tsx` — AuthLayout (~151 tok)
+- `login.tsx` — LoginScreen (~1024 tok)
 
 ## apps/mobile/components/housekeeping/
 
+
+## apps/mobile/i18n/
+
+- `index.ts` (~114 tok)
+
+## apps/mobile/lib/
+
+- `notifications.ts` — API routes: PATCH (1 endpoints) (~522 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -509,7 +548,6 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — TABS (~9164 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
@@ -528,22 +566,18 @@
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — TABS — renders form (~9944 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
 
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~7549 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
-- `page.tsx` — DEPARTMENTS (~16689 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
-- `page.tsx` — hotelProfileSchema (~13741 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
@@ -556,7 +590,6 @@
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS (~14372 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
@@ -566,27 +599,18 @@
 
 ## apps/web/components/ai/
 
-- `SOPQueryModal.tsx` — LoadingDots (~3959 tok)
 
 ## apps/web/components/dashboard/
 
-- `AIRiskAlertsPanel.tsx` — AIRiskAlertsPanel (~1739 tok)
-- `TrendChartsRow.tsx` — getHotelIdFromSession (~2432 tok)
 
 ## apps/web/components/engineering/
 
-- `CreateWorkOrderModal.tsx` — CATEGORIES (~3438 tok)
-- `FailurePredictionSidebar.tsx` — getRiskRingColor (~2907 tok)
 
 ## apps/web/components/housekeeping/
 
-- `AssignmentSidebar.tsx` — getInitials (~4907 tok)
 
 ## apps/web/components/shared/
 
-- `DashboardShell.tsx` — DashboardShell (~422 tok)
-- `DeleteConfirmDialog.tsx` — DeleteConfirmDialog (~509 tok)
-- `TweaksPanel.tsx` — DENSITY_OPTIONS (~856 tok)
 
 ## apps/web/components/ui/
 
@@ -622,37 +646,4 @@
 
 
 ## supabase/migrations/
-
-## Session Additions 2026-05-24 Room Status Contract
-
-- `apps/web/lib/utils/roomStatus.ts` - canonical room status labels, colors, text colors, transitions, date helpers (~3300 tok)
-- `apps/web/components/ui/primitives.tsx` - shared Pill, StatusDot, Bar, Stat primitives and semantic tones (~2600 tok)
-- `apps/web/components/ui/Badge.tsx` - shared badge variants for status/priority chips (~450 tok)
-- `apps/web/components/housekeeping/RoomCard.tsx` - room card status border/strip/pill mappings and actions (~3700 tok)
-- `apps/web/components/housekeeping/RoomDetailDrawer.tsx` - room status history, transitions, inspection/WO drawer (~9300 tok)
-- `apps/web/components/housekeeping/RoomStatusBoard.tsx` - housekeeping board filters, realtime room status cards (~7100 tok)
-- `apps/web/components/dashboard/LiveOpsGrid.tsx` - dashboard room status tiles (~1400 tok)
-- `apps/web/components/dashboard/FrontDeskDashboard.tsx` - front desk status breakdown panel (~4500 tok)
-- `apps/web/components/dashboard/HousekeeperDashboard.tsx` - housekeeper dashboard queue/status chips (~4300 tok)
-- `apps/web/components/dashboard/SupervisorDashboard.tsx` - supervisor mini room map and status legend (~11200 tok)
-- `apps/web/app/(dashboard)/housekeeping/page.tsx` - housekeeping role page, my rooms, supervisor board shell (~12800 tok)
-- `apps/web/app/(dashboard)/housekeeping/assignments/page.tsx` - room assignment table and status badges (~4200 tok)
-- `apps/web/app/(dashboard)/housekeeping/rooms/page.tsx` - all rooms management page and status badges (~13400 tok)
-- `apps/web/app/(dashboard)/reports/page.tsx` - reports page status breakdown and analytics tabs (~9300 tok)
-- `apps/web/app/(dashboard)/settings/integrations/page.tsx` - Opera integration settings copy (~5200 tok)
-- `apps/web/lib/api/rooms.ts` - typed rooms API client and RoomStatus interface (~2200 tok)
-- `apps/web/i18n/locales/en.json` - web English strings including room status labels (~600 tok)
-- `apps/web/i18n/locales/es.json` - web Spanish strings including room status labels (~600 tok)
-- `apps/mobile/app/(app)/my-rooms/index.tsx` - mobile housekeeper room list card colors and offline loading (~3500 tok)
-- `apps/mobile/app/(app)/my-rooms/[roomId].tsx` - mobile room detail transitions and report issue entry (~3100 tok)
-- `apps/mobile/stores/appStore.ts` - mobile Zustand app/session/room store and Room type (~900 tok)
-- `apps/mobile/i18n/locales/en.json` - mobile English UI strings including room status labels (~1200 tok)
-- `apps/mobile/i18n/locales/es.json` - mobile Spanish UI strings including room status labels (~1200 tok)
-
-## Session Additions 2026-05-24 Assignment Fix
-
-- `apps/api/routers/ai_copilot.py` - AI copilot task/work-order/guest-request/assignment confirmation routes and staff/room resolution helpers (~20000 tok)
-- `apps/api/tests/smoke/test_ai_assignment_confirm.py` - focused regression tests for AI room assignment confirmation fields and tenant-scoped staff resolution (~3500 tok)
-- `apps/web/stores/housekeepingStore.ts` - Zustand housekeeping board state including selected date, assignment mode, active assignee, and pending assignments (~1400 tok)
-- `apps/web/lib/api/housekeeping.ts` - typed housekeeping API client for board, assignment, prediction, status, and inspection calls (~1800 tok)
 

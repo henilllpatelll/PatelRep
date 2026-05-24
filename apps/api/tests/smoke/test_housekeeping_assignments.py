@@ -148,6 +148,7 @@ async def test_board_uses_selected_date_assignments_not_stale_room_status(monkey
                 "assigned_to": hk_today,
                 "shift_id": None,
                 "assignment_date": "2026-05-24",
+                "clean_type": "LIGHT",
             },
             {
                 "id": "assign-yesterday",
@@ -172,8 +173,10 @@ async def test_board_uses_selected_date_assignments_not_stale_room_status(monkey
     by_room = {row["room_id"]: row for row in response["data"]}
     assert by_room[room_today]["assigned_to"] == hk_today
     assert by_room[room_today]["assignment_id"] == "assign-today"
+    assert by_room[room_today]["clean_type"] == "LIGHT"
     assert by_room[room_unassigned_today]["assigned_to"] is None
     assert by_room[room_unassigned_today]["assignment_id"] is None
+    assert by_room[room_unassigned_today]["clean_type"] is None
 
 
 @pytest.mark.asyncio
@@ -215,7 +218,7 @@ async def test_create_assignments_reassigns_existing_room_for_same_day(monkeypat
     request = CreateAssignmentsRequest(
         date=date(2026, 5, 24),
         shift_id=None,
-        assignments=[{"room_id": room_id, "housekeeper_id": new_hk}],
+        assignments=[{"room_id": room_id, "housekeeper_id": new_hk, "clean_type": "FULL"}],
         is_ai_suggested=False,
     )
 
@@ -223,7 +226,9 @@ async def test_create_assignments_reassigns_existing_room_for_same_day(monkeypat
 
     assert response["data"][0]["id"] == "assign-existing"
     assert response["data"][0]["assigned_to"] == new_hk
+    assert response["data"][0]["clean_type"] == "FULL"
     assert db.rows["room_assignments"][0]["assigned_to"] == new_hk
+    assert db.rows["room_assignments"][0]["clean_type"] == "FULL"
     assert db.rows["room_assignments"][0]["assigned_by"] == SUPERVISOR.user_id
     assert db.rows["room_status"][0]["assigned_to"] == new_hk
     assert db.upserts[0][2] == ("room_id", "assignment_date")

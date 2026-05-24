@@ -5,6 +5,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
+import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 import { Pill, StatusDot, AILabel } from '@/components/ui/primitives'
 
@@ -98,6 +99,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   const vipFlag: boolean = !!room.vip_flag
   const openWorkOrder: string | null = room.open_work_order_number ?? null
   const roomTypeName: string | null = room.rooms?.room_types?.name ?? null
+  const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
 
   const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
   const etaTime = formatTime(prediction?.predicted_ready_at)
@@ -200,6 +202,9 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       {roomTypeName && (
         <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
       )}
+      {cleanTypeLabel && (
+        <Pill tone="neutral" size="sm">{cleanTypeLabel}</Pill>
+      )}
 
       {/* Status pill + eta */}
       <div className="mt-auto flex items-center justify-between gap-1 flex-wrap">
@@ -242,7 +247,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       {/* Action buttons (view mode only) */}
       {!assignmentMode && (
         <div className="flex flex-wrap gap-1 mt-0.5">
-          {status === 'DIRTY' && isHousekeeper && (
+          {(status === 'DIRTY' || status === 'PICKUP') && isHousekeeper && (
             <button
               className="text-xs px-2 py-0.5 rounded-md bg-accent text-white font-medium hover:opacity-90 transition-opacity"
               onClick={(e) => handleStatusChange('IN_PROGRESS', e)}
@@ -250,7 +255,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
               Start
             </button>
           )}
-          {status === 'DIRTY' && canSupervise && (
+          {(status === 'DIRTY' || status === 'PICKUP') && canSupervise && (
             <button
               className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}

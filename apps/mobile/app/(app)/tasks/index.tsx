@@ -19,10 +19,10 @@ type Task = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  open: "#EF4444",
-  in_progress: "#F59E0B",
-  completed: "#10B981",
-  cancelled: "#9CA3AF",
+  open: "#a6263c",
+  in_progress: "#a16207",
+  completed: "#0c6e63",
+  cancelled: "#807a70",
 };
 
 export default function TasksScreen() {
@@ -41,7 +41,7 @@ export default function TasksScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#1E40AF" />
+        <ActivityIndicator color="#b8431c" />
       </View>
     );
   }
@@ -53,7 +53,7 @@ export default function TasksScreen() {
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          <View style={[styles.dot, { backgroundColor: STATUS_COLORS[item.status] ?? "#9CA3AF" }]} />
+          <View style={[styles.dot, { backgroundColor: STATUS_COLORS[item.status] ?? "#a8a195" }]} />
           <View style={styles.content}>
             <Text style={styles.title}>{item.title}</Text>
             {item.room_number && (
@@ -73,23 +73,25 @@ export default function TasksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: "#f7f4ee" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyFlex: { flex: 1 },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     margin: 8,
     marginHorizontal: 16,
     borderRadius: 10,
     padding: 14,
     gap: 10,
     elevation: 1,
+    borderWidth: 1,
+    borderColor: "#e6dfd1",
   },
   dot: { width: 10, height: 10, borderRadius: 5 },
   content: { flex: 1 },
-  title: { fontSize: 14, fontWeight: "500", color: "#111827" },
-  meta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  emptyText: { color: "#9CA3AF", fontSize: 15 },
+  title: { fontSize: 14, fontWeight: "500", color: "#1a1815" },
+  meta: { fontSize: 12, color: "#807a70", marginTop: 2 },
+  emptyText: { color: "#a8a195", fontSize: 15 },
 });

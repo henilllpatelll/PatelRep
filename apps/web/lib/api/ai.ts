@@ -64,6 +64,7 @@ export interface AssignmentPreview {
   staff_id?: string | null
   room_numbers: string[]
   task_ids: string[]
+  clean_type?: 'DEP' | 'FULL' | 'LIGHT' | null
 }
 
 export interface AmbiguousOption {

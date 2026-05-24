@@ -14,7 +14,19 @@ import {
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
+
+// expo-speech-recognition is a native module — unavailable in Expo Go.
+// Provide no-op stubs so the screen loads without crashing.
+type SpeechEventHandler = (e: { results: Array<{ transcript: string }> }) => void;
+let _speechModule: { start: (opts: Record<string, unknown>) => void; stop: () => void } | null = null;
+let useSpeechRecognitionEvent: (event: string, handler: SpeechEventHandler | (() => void)) => void = () => {};
+try {
+  const mod = require("expo-speech-recognition");
+  _speechModule = mod.ExpoSpeechRecognitionModule;
+  useSpeechRecognitionEvent = mod.useSpeechRecognitionEvent;
+} catch {
+  // Not available in Expo Go — mic button will be hidden
+}
 
 type Message = {
   id: string;
@@ -59,12 +71,13 @@ export default function CopilotScreen() {
   useSpeechRecognitionEvent("error", () => setIsRecording(false));
 
   const handleMicPressIn = () => {
+    if (!_speechModule) return;
     setIsRecording(true);
-    ExpoSpeechRecognitionModule.start({ lang: "en-US", continuous: false, interimResults: false });
+    _speechModule.start({ lang: "en-US", continuous: false, interimResults: false });
   };
 
   const handleMicPressOut = () => {
-    ExpoSpeechRecognitionModule.stop();
+    _speechModule?.stop();
   };
 
   async function sendMessage(text: string) {
@@ -141,7 +154,7 @@ export default function CopilotScreen() {
                   style={styles.quickAction}
                   onPress={() => sendMessage(t(`copilot.quickActions.${action.key}`))}
                 >
-                  <Ionicons name={action.icon} size={20} color="#1E40AF" />
+                  <Ionicons name={action.icon} size={20} color="#c8b8e3" />
                   <Text style={styles.quickActionText}>
                     {t(`copilot.quickActions.${action.key}`)}
                   </Text>
@@ -170,13 +183,15 @@ export default function CopilotScreen() {
       )}
 
       <View style={styles.inputRow}>
-        <TouchableOpacity
-          onPressIn={handleMicPressIn}
-          onPressOut={handleMicPressOut}
-          style={[styles.micBtn, isRecording && styles.micBtnActive]}
-        >
-          <Ionicons name="mic" size={20} color={isRecording ? "#EF4444" : "#6B7280"} />
-        </TouchableOpacity>
+        {_speechModule && (
+          <TouchableOpacity
+            onPressIn={handleMicPressIn}
+            onPressOut={handleMicPressOut}
+            style={[styles.micBtn, isRecording && styles.micBtnActive]}
+          >
+            <Ionicons name="mic" size={20} color={isRecording ? "#a6263c" : "#807a70"} />
+          </TouchableOpacity>
+        )}
         <TextInput
           style={styles.input}
           placeholder={t("copilot.placeholder")}
@@ -202,41 +217,43 @@ export default function CopilotScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: "#0f0e0c" },
   messages: { padding: 12, gap: 8 },
   emptyFlex: { flex: 1 },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  emptyTitle: { fontSize: 22, fontWeight: "700", color: "#1E40AF", marginBottom: 24 },
+  emptyTitle: { fontSize: 22, fontWeight: "700", color: "#ece4f8", marginBottom: 24 },
   quickActions: { gap: 10, width: "100%" },
   quickAction: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#221f1b",
     borderRadius: 10,
     padding: 14,
+    borderWidth: 1,
+    borderColor: "#322d26",
   },
-  quickActionText: { color: "#1E40AF", fontSize: 14, fontWeight: "500" },
+  quickActionText: { color: "#c8b8e3", fontSize: 14, fontWeight: "500" },
   bubble: { maxWidth: "80%", borderRadius: 14, padding: 12, marginVertical: 4 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: "#1E40AF" },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: "#fff", elevation: 1 },
+  userBubble: { alignSelf: "flex-end", backgroundColor: "#1a1815", borderWidth: 1, borderColor: "#322d26" },
+  aiBubble: { alignSelf: "flex-start", backgroundColor: "#221f1b", borderWidth: 1, borderColor: "#322d26" },
   bubbleText: { fontSize: 14, lineHeight: 20 },
-  userText: { color: "#fff" },
-  aiText: { color: "#111827" },
+  userText: { color: "#f1ede4" },
+  aiText: { color: "#c5beaf" },
   taskPreview: {
-    backgroundColor: "#fff",
+    backgroundColor: "#221f1b",
     margin: 12,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#1E40AF",
+    borderColor: "#c8b8e3",
   },
-  taskPreviewTitle: { fontSize: 12, color: "#6B7280", marginBottom: 4 },
-  taskPreviewName: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  taskPreviewTitle: { fontSize: 12, color: "#918a7e", marginBottom: 4 },
+  taskPreviewName: { fontSize: 15, fontWeight: "600", color: "#f1ede4" },
   taskPreviewActions: { flexDirection: "row", gap: 10, marginTop: 10 },
   confirmBtn: {
     flex: 1,
-    backgroundColor: "#1E40AF",
+    backgroundColor: "#b8431c",
     borderRadius: 8,
     padding: 10,
     alignItems: "center",
@@ -245,35 +262,37 @@ const styles = StyleSheet.create({
   editBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#322d26",
     borderRadius: 8,
     padding: 10,
     alignItems: "center",
   },
-  editText: { color: "#374151" },
+  editText: { color: "#c5beaf" },
   inputRow: {
     flexDirection: "row",
     padding: 10,
     gap: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#1a1815",
     borderTopWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#322d26",
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#322d26",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 100,
+    color: "#f1ede4",
+    backgroundColor: "#221f1b",
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E40AF",
+    backgroundColor: "#b8431c",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -281,11 +300,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#221f1b",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#322d26",
   },
   micBtnActive: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#2e1e16",
   },
 });

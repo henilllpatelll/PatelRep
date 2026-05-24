@@ -26,6 +26,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], set[str] | None] = {
     ("CLEAN",     "INSPECTED"):   {"gm", "housekeeping_supervisor"},
     ("CLEAN",     "DIRTY"):       {"gm", "housekeeping_supervisor"},
     ("DIRTY",     "PICKUP"):      None,
+    ("PICKUP",    "IN_PROGRESS"): None,
     ("PICKUP",    "CLEAN"):       None,
     ("INSPECTED", "DIRTY"):       {"gm", "housekeeping_supervisor"},
 }

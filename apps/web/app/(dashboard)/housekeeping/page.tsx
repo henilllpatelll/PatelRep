@@ -16,6 +16,10 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
+import {
+  CLEAN_TYPE_OPTIONS,
+  getCleanTypeShortLabel,
+} from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Pill, StatusDot } from '@/components/ui/primitives'
@@ -65,6 +69,9 @@ function HousekeeperBar() {
     activeAssigneeId,
     setActiveAssignee,
     pendingAssignments,
+    pendingAssignmentCleanTypes,
+    activeCleanType,
+    setActiveCleanType,
     clearPendingAssignments,
   } = useHousekeepingStore()
 
@@ -91,7 +98,11 @@ function HousekeeperBar() {
         shift_id: null,
         assignments: Object.entries(pendingAssignments)
           .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
-          .map(([roomId, housekeeperId]) => ({ room_id: roomId, housekeeper_id: housekeeperId })),
+          .map(([roomId, housekeeperId]) => ({
+            room_id: roomId,
+            housekeeper_id: housekeeperId,
+            clean_type: pendingAssignmentCleanTypes[roomId] ?? activeCleanType,
+          })),
         is_ai_suggested: false,
       })
       clearPendingAssignments()
@@ -192,6 +203,27 @@ function HousekeeperBar() {
           })}
         </div>
       )}
+      <div className="grid grid-cols-3 gap-1 rounded-[var(--r-md)] bg-surface-2 p-1">
+        {CLEAN_TYPE_OPTIONS.map((option) => {
+          const selected = activeCleanType === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              title={option.hint}
+              aria-pressed={selected}
+              onClick={() => setActiveCleanType(option.value)}
+              className={`min-h-[36px] rounded-[var(--r-sm)] px-2 text-[11px] font-semibold transition-colors ${
+                selected
+                  ? 'bg-surface text-ink shadow-sm border border-line'
+                  : 'text-ink3 hover:text-ink'
+              }`}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -218,6 +250,7 @@ function HousekeeperRoomItem({
   const roomType = room.rooms?.room_types?.name ?? ''
   const status: string = room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
+  const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',        pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
@@ -248,9 +281,16 @@ function HousekeeperRoomItem({
           )}
         </div>
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
-        <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
-          {cfg.label}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
+            {cfg.label}
+          </span>
+          {cleanTypeLabel && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-ink2 border border-line">
+              {cleanTypeLabel}
+            </span>
+          )}
+        </div>
         {showHint && <p className="text-xs text-ink3 mt-1">Tap for notes &amp; issues</p>}
       </div>
 
@@ -431,6 +471,7 @@ function SupervisorHousekeepingPage() {
     selectedShift,
     assignmentMode,
     lastSyncedAt,
+    activeCleanType,
     rooms,
     setSelectedDate,
     setSelectedShift,
@@ -458,7 +499,7 @@ function SupervisorHousekeepingPage() {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
         shift_id: null,
-        assignments: [{ room_id: roomId, housekeeper_id: housekeeperId }],
+        assignments: [{ room_id: roomId, housekeeper_id: housekeeperId, clean_type: activeCleanType }],
         is_ai_suggested: false,
       })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })

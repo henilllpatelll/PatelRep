@@ -124,6 +124,7 @@ async def test_confirm_assignments_writes_required_assignment_fields(monkeypatch
                 staff_id=housekeeper_id,
                 room_numbers=["101"],
                 task_ids=[],
+                clean_type="LIGHT",
             )
         ],
         current_user=SUPERVISOR,
@@ -135,6 +136,7 @@ async def test_confirm_assignments_writes_required_assignment_fields(monkeypatch
     assert payload["room_id"] == room_id
     assert payload["assigned_to"] == housekeeper_id
     assert payload["assigned_by"] == SUPERVISOR.user_id
+    assert payload["clean_type"] == "LIGHT"
     assert payload["is_ai_suggested"] is True
     assert conflict_columns == ("room_id", "assignment_date")
 

@@ -19,6 +19,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { engineeringApi } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { InspectionModal } from '@/components/housekeeping/InspectionModal'
 import { Button } from '@/components/ui/Button'
@@ -53,7 +54,7 @@ const STATUS_TRANSITIONS: Record<RoomStatus, RoomStatus[]> = {
   CLEAN: ['INSPECTED', 'DIRTY'],
   INSPECTED: ['DIRTY'],
   OOO: ['DIRTY'],
-  PICKUP: ['DIRTY', 'CLEAN'],
+  PICKUP: ['IN_PROGRESS', 'DIRTY', 'CLEAN'],
   OCCUPIED: ['DIRTY'],
   OUT_OF_ORDER: ['DIRTY'],
   OUT_OF_SERVICE: ['DIRTY'],
@@ -284,6 +285,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
       // Housekeepers can only move DIRTYâ†’IN_PROGRESS and IN_PROGRESSâ†’CLEAN
       return (
         (status === 'DIRTY' && t === 'IN_PROGRESS') ||
+        (status === 'PICKUP' && (t === 'IN_PROGRESS' || t === 'CLEAN')) ||
         (status === 'IN_PROGRESS' && t === 'CLEAN')
       )
     }
@@ -296,6 +298,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
   const roomTypeName = room?.rooms?.room_types?.name ?? room?.room_type_name ?? ''
   const vipFlag = !!room?.vip_flag
   const guestName: string | null = room?.guest_name ?? null
+  const cleanTypeLabel = getCleanTypeLabel(room?.clean_type)
   const assignedName: string | null =
     room?.user_profiles?.preferred_name ?? room?.user_profiles?.full_name ?? null
   const openWorkOrder: string | null = room?.open_work_order_number ?? null
@@ -352,6 +355,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
               {checkinTime && (
                 <span className="text-xs text-gray-500">
                   Check-in: {checkinTime} Today
+                </span>
+              )}
+              {cleanTypeLabel && (
+                <span className="text-xs text-gray-500">
+                  Service: {cleanTypeLabel}
                 </span>
               )}
             </div>

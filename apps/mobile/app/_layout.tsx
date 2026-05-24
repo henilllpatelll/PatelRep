@@ -22,22 +22,24 @@ export default function RootLayout() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
+      try {
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("user_profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
 
-        if (profile) {
-          setUser(profile as UserProfile);
-          await setupPushNotifications();
+          if (profile) {
+            setUser(profile as UserProfile);
+            try { await setupPushNotifications(); } catch { /* unavailable in Expo Go */ }
+          }
+        } else {
+          setUser(null);
         }
-      } else {
-        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      // Fires on every auth state change, including the initial hydration event.
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -52,7 +54,7 @@ export default function RootLayout() {
 
   // Safety timeout: prevent permanent splash lock on slow devices or network errors.
   useEffect(() => {
-    const timeout = setTimeout(() => setIsLoading(false), 5000);
+    const timeout = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -78,7 +80,7 @@ export default function RootLayout() {
         const url = lastResponse.notification.request.content.data?.url as
           | string
           | undefined;
-        if (url) router.push(url as `/${string}`);
+        if (url) router.push(url as never);
       }
     });
 
@@ -88,7 +90,7 @@ export default function RootLayout() {
         const url = response.notification.request.content.data?.url as
           | string
           | undefined;
-        if (url) router.push(url as `/${string}`);
+        if (url) router.push(url as never);
       }
     );
 

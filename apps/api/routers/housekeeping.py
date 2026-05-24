@@ -12,6 +12,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/housekeeping", tags=["housekeeping"])
 
+CLEAN_TYPE_LABELS = {
+    "DEP": "Departure Clean",
+    "FULL": "Full Linen Change",
+    "LIGHT": "Light Service",
+}
+
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
     result = supabase.table(table)\
@@ -45,6 +51,15 @@ def _ensure_housekeeper(user_id: str, hotel_id: str) -> None:
         .execute()
     if not profile or not profile.data:
         raise HTTPException(status_code=404, detail="Housekeeper not found")
+
+
+def _clean_type_payload(clean_type: str | None) -> dict:
+    if not clean_type:
+        return {"clean_type": None, "clean_type_label": None}
+    return {
+        "clean_type": clean_type,
+        "clean_type_label": CLEAN_TYPE_LABELS.get(clean_type, clean_type),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +102,7 @@ async def get_housekeeping_board(
 
     assignment_query = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to, shift_id, assignment_date")
+        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assignment_date", target_date.isoformat())
     )
@@ -123,6 +138,7 @@ async def get_housekeeping_board(
             "assignment_id": assignment.get("id") if assignment else None,
             "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
             "assignment_shift_id": assignment.get("shift_id") if assignment else None,
+            **_clean_type_payload(assignment.get("clean_type") if assignment else None),
             "prediction": pred_map.get(room.get("room_id")),
         })
 
@@ -142,13 +158,19 @@ async def get_my_rooms(
     today = date.today()
     assignments = (
         supabase.table("room_assignments")
-        .select("room_id")
+        .select("id, room_id, assignment_date, clean_type")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assigned_to", current_user.user_id)
         .eq("assignment_date", today.isoformat())
         .execute()
     )
-    room_ids = [a["room_id"] for a in (assignments.data or [])]
+    assignment_rows = assignments.data or []
+    assignment_map = {
+        a["room_id"]: a
+        for a in assignment_rows
+        if a.get("room_id")
+    }
+    room_ids = list(assignment_map.keys())
     if not room_ids:
         return {"data": []}
 
@@ -164,7 +186,16 @@ async def get_my_rooms(
         .in_("room_id", room_ids)
         .execute()
     )
-    return {"data": result.data or []}
+    rows = []
+    for room in (result.data or []):
+        assignment = assignment_map.get(room.get("room_id")) or {}
+        rows.append({
+            **room,
+            "assignment_id": assignment.get("id"),
+            "assignment_date": assignment.get("assignment_date"),
+            **_clean_type_payload(assignment.get("clean_type")),
+        })
+    return {"data": rows}
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +217,7 @@ async def get_assignments(
     # Fetch assignments for the date (and optionally shift)
     assign_query = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to, shift_id, assignment_date, rooms(room_number, room_types(name))")
+        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type, rooms(room_number, room_types(name))")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assignment_date", target_date.isoformat())
     )
@@ -234,6 +265,7 @@ async def get_assignments(
             "room_number": room_info.get("room_number", ""),
             "status": status,
             "room_type": rt_info.get("name", ""),
+            **_clean_type_payload(a.get("clean_type")),
         })
 
         grouped[hk_id]["rooms_assigned"] += 1
@@ -310,6 +342,7 @@ async def create_assignments(
             "assigned_by": current_user.user_id,
             "shift_id": str(request.shift_id) if request.shift_id else None,
             "assignment_date": request.date.isoformat(),
+            "clean_type": a.clean_type or "DEP",
             "is_ai_suggested": request.is_ai_suggested,
         }
         for a in request.assignments

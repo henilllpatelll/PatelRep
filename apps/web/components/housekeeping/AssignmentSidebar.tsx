@@ -6,6 +6,11 @@ import { useDroppable } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
+import {
+  CLEAN_TYPE_OPTIONS,
+  CLEAN_TYPE_SHORT_LABELS,
+  type CleanType,
+} from '@/lib/utils/cleanType'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AILabel } from '@/components/ui/primitives'
@@ -176,9 +181,12 @@ export function AssignmentSidebar() {
     selectedDate,
     selectedShift,
     pendingAssignments,
+    pendingAssignmentCleanTypes,
+    activeCleanType,
     setPendingAssignment,
     removePendingAssignment,
     clearPendingAssignments,
+    setActiveCleanType,
     rooms,
   } = useHousekeepingStore()
 
@@ -277,6 +285,7 @@ export function AssignmentSidebar() {
           .map(([roomId, housekeeperId]) => ({
             room_id: roomId,
             housekeeper_id: housekeeperId,
+            clean_type: pendingAssignmentCleanTypes[roomId] ?? activeCleanType,
           })),
         is_ai_suggested: false,
       })
@@ -315,6 +324,30 @@ export function AssignmentSidebar() {
         <div className="px-4 py-3 border-b border-line">
           <h3 className="font-semibold text-ink text-sm">Housekeepers</h3>
           <p className="text-xs text-ink-3 mt-0.5">Drag a room card onto a name to assign</p>
+        </div>
+
+        <div className="px-3 py-3 border-b border-line">
+          <div className="grid grid-cols-3 gap-1 rounded-[var(--r-md)] bg-surface-2 p-1">
+            {CLEAN_TYPE_OPTIONS.map((option) => {
+              const selected = activeCleanType === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  title={option.hint}
+                  aria-pressed={selected}
+                  onClick={() => setActiveCleanType(option.value)}
+                  className={`min-h-[38px] rounded-[var(--r-sm)] px-2 text-[11px] font-semibold transition-colors ${
+                    selected
+                      ? 'bg-surface text-ink shadow-sm border border-line'
+                      : 'text-ink3 hover:text-ink'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* AI insight callout */}
@@ -374,6 +407,7 @@ export function AssignmentSidebar() {
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => {
                 const roomNumber = roomNumberMap[roomId] ?? roomId
+                const cleanType = pendingAssignmentCleanTypes[roomId] as CleanType | undefined
                 const toHk = mergedHousekeepers.find((h) => h.housekeeper_id === housekeeperId)
                 const currentAssignedTo = rooms.find((r: any) => r.room_id === roomId)?.assigned_to
                 const fromHk = currentAssignedTo && currentAssignedTo !== housekeeperId
@@ -383,6 +417,9 @@ export function AssignmentSidebar() {
                   <div key={roomId} className="flex items-center justify-between text-xs">
                     <span className="text-ink2">
                       Room {roomNumber}{' '}
+                      {cleanType && (
+                        <span className="text-ink3">({CLEAN_TYPE_SHORT_LABELS[cleanType]}) </span>
+                      )}
                       {fromHk ? (
                         <>
                           <span className="line-through text-ink3">{fromHk.name.split(' ')[0]}</span>
