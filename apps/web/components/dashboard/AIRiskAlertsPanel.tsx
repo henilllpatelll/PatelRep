@@ -28,14 +28,14 @@ export function AIRiskAlertsPanel() {
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4">
+      <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-[var(--r-lg)] p-4">
         <div className="animate-pulse h-16" />
       </div>
     )
   }
 
   return (
-    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 overflow-hidden">
+    <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-[var(--r-lg)] p-4 overflow-hidden">
       {/* Header */}
       <button
         className="w-full flex items-center justify-between"
@@ -44,19 +44,19 @@ export function AIRiskAlertsPanel() {
       >
         <div className="flex items-center gap-2">
           {hasAlerts ? (
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-[var(--alert)] rounded-full animate-pulse" />
           ) : (
-            <span className="w-2 h-2 bg-green-500 rounded-full" />
+            <span className="w-2 h-2 bg-[var(--ready)] rounded-full" />
           )}
-          <h2 className="text-sm font-bold text-stone-700">AI Risk Alerts</h2>
-          <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-md">AI</span>
+          <h2 className="text-sm font-bold text-ink2">AI Risk Alerts</h2>
+          <span className="bg-[var(--caution-soft)] text-[var(--caution)] text-xs font-semibold px-2 py-0.5 rounded-md">AI</span>
           {hasAlerts && (
-            <span className="ml-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+            <span className="ml-1 px-2 py-0.5 bg-[var(--alert-soft)] text-[var(--alert)] text-xs font-semibold rounded-full">
               {totalCount}
             </span>
           )}
         </div>
-        <span className="text-stone-400">
+        <span className="text-ink3">
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
@@ -65,7 +65,7 @@ export function AIRiskAlertsPanel() {
       {expanded && (
         <div className="mt-3">
           {!hasAlerts ? (
-            <div className="flex items-center gap-3 py-3 text-green-700">
+            <div className="flex items-center gap-3 py-3 text-[var(--ready)]">
               <CheckCircle size={18} className="shrink-0" />
               <p className="text-sm font-medium">No active alerts — operations running smoothly</p>
             </div>
@@ -73,21 +73,21 @@ export function AIRiskAlertsPanel() {
             <div>
               {/* Housekeeping risks */}
               {alerts?.housekeeping_risks?.map((r, i) => (
-                <div key={i} className="border-l-4 border-red-400 bg-white/60 rounded-xl mb-2 p-3 flex items-start gap-3">
-                  <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                <div key={i} className="border-l-4 border-red-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-[var(--alert)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-stone-700">
+                      <p className="text-sm text-ink2">
                         Room {r.rooms?.room_number ?? '—'} — {r.risk_level} risk
                       </p>
-                      <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded uppercase">
+                      <span className="px-1.5 py-0.5 bg-[var(--alert-soft)] text-[var(--alert)] text-xs font-semibold rounded uppercase">
                         HK
                       </span>
                     </div>
                   </div>
                   <a
                     href="/housekeeping"
-                    className="text-xs text-amber-600 hover:underline shrink-0"
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     Reassign
                   </a>
@@ -96,11 +96,11 @@ export function AIRiskAlertsPanel() {
 
               {/* SLA breaches */}
               {alerts?.sla_breaches?.map((b, i) => (
-                <div key={i} className="border-l-4 border-red-400 bg-white/60 rounded-xl mb-2 p-3 flex items-start gap-3">
-                  <Clock size={16} className="text-red-500 mt-0.5 shrink-0" />
+                <div key={i} className="border-l-4 border-red-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <Clock size={16} className="text-[var(--alert)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-stone-700">
+                      <p className="text-sm text-ink2">
                         WO-{b.work_order_number} — {b.title}
                       </p>
                       <span className="px-1.5 py-0.5 bg-red-600 text-white text-xs font-semibold rounded uppercase">
@@ -108,14 +108,14 @@ export function AIRiskAlertsPanel() {
                       </span>
                     </div>
                     {b.due_at && (
-                      <p className="text-xs text-stone-400 mt-0.5">
+                      <p className="text-xs text-ink3 mt-0.5">
                         Due: {new Date(b.due_at).toLocaleString()}
                       </p>
                     )}
                   </div>
                   <a
                     href="/engineering"
-                    className="text-xs text-amber-600 hover:underline shrink-0"
+                    className="text-xs text-[var(--caution)] hover:underline shrink-0"
                   >
                     View
                   </a>
@@ -124,14 +124,14 @@ export function AIRiskAlertsPanel() {
 
               {/* Maintenance risks */}
               {alerts?.maintenance_risks?.map((r, i) => (
-                <div key={i} className="border-l-4 border-amber-400 bg-white/60 rounded-xl mb-2 p-3 flex items-start gap-3">
-                  <Zap size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                <div key={i} className="border-l-4 border-amber-400 bg-surface/60 rounded-xl mb-2 p-3 flex items-start gap-3">
+                  <Zap size={16} className="text-[var(--caution)] mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-stone-700">
+                      <p className="text-sm text-ink2">
                         {r.name} — {r.failure_risk_score}% failure risk
                       </p>
-                      <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded uppercase">
+                      <span className="px-1.5 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] text-xs font-semibold rounded uppercase">
                         MAINT
                       </span>
                     </div>

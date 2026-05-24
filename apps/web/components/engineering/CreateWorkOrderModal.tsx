@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -25,7 +25,7 @@ const CATEGORIES = [
 ]
 
 const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact — immediate' },
+  { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact â€” immediate' },
   { value: 'normal', label: 'Normal', desc: 'Standard maintenance' },
   { value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' },
 ]
@@ -128,13 +128,13 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           role="dialog"
           aria-modal="true"
           aria-label="Create Work Order"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
-              <ClipboardList className="w-5 h-5 text-amber-600 shrink-0" />
+              <ClipboardList className="w-5 h-5 text-[var(--caution)] shrink-0" />
               <h2 className="text-base font-bold text-gray-900">New Work Order</h2>
             </div>
             <button
@@ -168,17 +168,17 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-surface shadow transition-transform ${
                     useAI ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>
             </div>
 
-            {/* Location — required, shown first */}
+            {/* Location â€” required, shown first */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Location <span className="text-red-500">*</span>
+                Location <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
                 type="text"
@@ -192,7 +192,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {!useAI && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Title <span className="text-red-500">*</span>
+                  Title <span className="text-[var(--alert)]">*</span>
                 </label>
                 <Input
                   type="text"
@@ -207,14 +207,14 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {useAI && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Describe the issue <span className="text-red-500">*</span>
+                  Describe the issue <span className="text-[var(--alert)]">*</span>
                 </label>
                 <textarea
                   value={nlInput}
                   onChange={(e) => setNlInput(e.target.value)}
                   rows={3}
                   placeholder="e.g. The toilet in room 214 is leaking from the base and the guest is complaining..."
-                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
+                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   AI will generate the title and categorize automatically.
@@ -228,7 +228,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+                className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -248,9 +248,9 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                     className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
                       priority === p.value
                         ? p.value === 'urgent'
-                          ? 'border-red-300 bg-red-50'
+                          ? 'border-red-300 bg-[var(--alert-soft)]'
                           : p.value === 'normal'
-                          ? 'border-blue-300 bg-blue-50'
+                          ? 'border-blue-300 bg-[var(--info-soft)]'
                           : 'border-slate-300 bg-slate-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
@@ -282,15 +282,15 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  placeholder="Additional details about the issue…"
-                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
+                  placeholder="Additional details about the issueâ€¦"
+                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
                 />
               </div>
             )}
 
             {/* Validation / API error */}
             {validationError && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
                 {validationError}
               </p>
             )}
@@ -314,7 +314,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               {mutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {useAI ? 'Processing…' : 'Creating…'}
+                  {useAI ? 'Processingâ€¦' : 'Creatingâ€¦'}
                 </>
               ) : (
                 useAI ? 'Create with AI' : 'Create Work Order'

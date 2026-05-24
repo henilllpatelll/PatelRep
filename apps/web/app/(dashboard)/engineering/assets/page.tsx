@@ -26,22 +26,22 @@ type RiskFilter = (typeof RISK_FILTERS)[number]
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRiskBadge(score: number): { label: string; cls: string } {
-  if (score >= 70) return { label: 'HIGH', cls: 'bg-red-50 text-red-700 border border-red-200' }
-  if (score >= 40) return { label: 'MEDIUM', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
+  if (score >= 70) return { label: 'HIGH', cls: 'bg-[var(--alert-soft)] text-red-700 border border-red-200' }
+  if (score >= 40) return { label: 'MEDIUM', cls: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' }
   return { label: 'LOW', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
 }
 
 function getRiskBarColor(score: number): string {
-  if (score >= 70) return 'bg-red-500'
+  if (score >= 70) return 'bg-[var(--alert)]'
   if (score >= 40) return 'bg-orange-400'
-  return 'bg-green-500'
+  return 'bg-[var(--ready)]'
 }
 
 function getWarrantyLabel(warrantyExpires?: string): { text: string; cls: string } {
   if (!warrantyExpires) return { text: 'No warranty', cls: 'text-gray-400' }
   const expiry = new Date(warrantyExpires)
   const now = new Date()
-  if (expiry < now) return { text: 'Expired', cls: 'text-red-600 font-medium' }
+  if (expiry < now) return { text: 'Expired', cls: 'text-[var(--alert)] font-medium' }
   return {
     text: `Expires ${format(expiry, 'MM/yyyy')}`,
     cls: 'text-green-700',
@@ -57,7 +57,7 @@ function formatCurrency(value?: number): string {
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-amber-200">
+    <tr className="animate-pulse border-b border-[var(--caution-line)]">
       <td className="px-4 py-3">
         <div className="h-4 bg-gray-100 rounded w-3/4 mb-1.5" />
         <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -84,12 +84,12 @@ interface StatCardProps {
 function StatCard({ label, value, sub, accent = 'default' }: StatCardProps) {
   const valueColor =
     accent === 'red'
-      ? 'text-red-600'
+      ? 'text-[var(--alert)]'
       : accent === 'green'
-        ? 'text-green-600'
+        ? 'text-[var(--ready)]'
         : 'text-gray-900'
   return (
-    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-red-50' : ''}`}>
+    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-[var(--alert-soft)]' : ''}`}>
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
@@ -174,14 +174,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
         <div
           role="dialog"
           aria-modal="true"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white/[0.88] backdrop-blur-2xl border-b border-white/60 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <div className="sticky top-0 bg-surface/[0.88] backdrop-blur-2xl border-b border-white/60 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                <Package size={16} className="text-amber-600" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
+                <Package size={16} className="text-[var(--caution)]" />
               </div>
               <h2 className="text-base font-bold text-gray-900">
                 {isLoading ? 'Loading…' : (data?.name ?? 'Asset Detail')}
@@ -227,7 +227,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 <span
                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                     data.is_active
-                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      ? 'bg-[var(--ready-soft)] text-green-700 border border-green-200'
                       : 'bg-gray-100 text-gray-500'
                   }`}
                 >
@@ -328,11 +328,11 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       rows={3}
                       value={editFields.notes ?? ''}
                       onChange={(e) => setEditFields((f) => ({ ...f, notes: e.target.value }))}
-                      className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
+                      className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
                     />
                   </div>
                   {saveError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
                       <AlertTriangle size={14} className="shrink-0" />
                       {saveError}
                     </div>
@@ -396,7 +396,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   {data.notes && (
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Notes</p>
-                      <p className="text-sm text-gray-700 bg-amber-50/40 rounded-lg px-4 py-3">{data.notes}</p>
+                      <p className="text-sm text-gray-700 bg-[var(--caution-soft)]/40 rounded-lg px-4 py-3">{data.notes}</p>
                     </div>
                   )}
                 </>
@@ -417,7 +417,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                         return (
                           <div
                             key={pm.id}
-                            className="flex items-center justify-between px-4 py-3 bg-amber-50/40 rounded-lg border border-amber-100/60"
+                            className="flex items-center justify-between px-4 py-3 bg-[var(--caution-soft)]/40 rounded-lg border border-amber-100/60"
                           >
                             <div>
                               <p className="text-sm font-medium text-gray-900">{pm.name}</p>
@@ -430,7 +430,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                             <div className="text-right shrink-0 ml-4">
                               <p
                                 className={`text-xs font-medium ${
-                                  isOverdue ? 'text-red-600' : 'text-gray-600'
+                                  isOverdue ? 'text-[var(--alert)]' : 'text-gray-600'
                                 }`}
                               >
                                 {isOverdue ? 'Overdue' : 'Due'}{' '}
@@ -578,13 +578,13 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
           role="dialog"
           aria-modal="true"
           aria-label="Add asset"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <Plus size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Asset</h2>
@@ -604,7 +604,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Name */}
             <div>
               <label htmlFor="asset-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Asset Name <span className="text-red-500">*</span>
+                Asset Name <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
                 id="asset-create-name"
@@ -736,7 +736,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
             {/* Error */}
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
                 <AlertTriangle size={14} className="shrink-0" />
                 {error}
               </div>
@@ -835,7 +835,7 @@ export default function AssetRegisterPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Package size={22} className="text-amber-600 shrink-0" />
+            <Package size={22} className="text-[var(--caution)] shrink-0" />
             Asset Register
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -898,8 +898,8 @@ export default function AssetRegisterPage() {
               aria-pressed={riskFilter === f}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 riskFilter === f
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-white/70 border border-amber-200/40 backdrop-blur-sm text-gray-700 hover:bg-amber-50'
+                  ? 'bg-[var(--caution)] text-white'
+                  : 'bg-surface/70 border border-[var(--caution-line)]/40 backdrop-blur-sm text-gray-700 hover:bg-[var(--caution-soft)]'
               }`}
             >
               {f}
@@ -926,7 +926,7 @@ export default function AssetRegisterPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-amber-100 bg-amber-50/60">
+                <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -962,9 +962,9 @@ export default function AssetRegisterPage() {
                           </p>
                           <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
                             {['HVAC units', 'Laundry equipment', 'Elevators'].map((item) => (
-                              <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-                                <p className="text-sm font-semibold text-stone-800">{item}</p>
-                                <p className="mt-1 text-xs text-stone-500">High-value asset</p>
+                              <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
+                                <p className="text-sm font-semibold text-ink">{item}</p>
+                                <p className="mt-1 text-xs text-ink3">High-value asset</p>
                               </div>
                             ))}
                           </div>
@@ -1000,7 +1000,7 @@ export default function AssetRegisterPage() {
                             setSelectedAssetId(asset.id)
                           }
                         }}
-                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        className="border-b border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/40 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
                       >
                         {/* Asset name + tag */}
                         <td className="px-4 py-3">
@@ -1047,7 +1047,7 @@ export default function AssetRegisterPage() {
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               asset.is_active
-                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                ? 'bg-[var(--ready-soft)] text-green-700 border border-green-200'
                                 : 'bg-gray-100 text-gray-500'
                             }`}
                           >
@@ -1080,7 +1080,7 @@ export default function AssetRegisterPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-amber-200 bg-amber-50/40">
+          <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40">
             <p className="text-xs text-gray-400">
               Showing {filtered.length} of {assets.length} assets
             </p>

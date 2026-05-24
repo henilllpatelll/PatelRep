@@ -49,32 +49,32 @@ function formatType(type: string): string {
 }
 
 function slaColor(pct: number): string {
-  if (pct >= 95) return 'text-green-600'
-  if (pct >= 80) return 'text-amber-700'
-  return 'text-red-600'
+  if (pct >= 95) return 'text-[var(--ready)]'
+  if (pct >= 80) return 'text-[var(--caution)]'
+  return 'text-[var(--alert)]'
 }
 
 function completionRateColor(pct: number): string {
-  if (pct >= 80) return 'text-green-600'
-  if (pct >= 60) return 'text-amber-700'
-  return 'text-red-600'
+  if (pct >= 80) return 'text-[var(--ready)]'
+  if (pct >= 60) return 'text-[var(--caution)]'
+  return 'text-[var(--alert)]'
 }
 
 function maintenanceSlaColor(pct: number): string {
-  if (pct >= 90) return 'text-green-600'
-  if (pct >= 70) return 'text-amber-700'
-  return 'text-red-600'
+  if (pct >= 90) return 'text-[var(--ready)]'
+  if (pct >= 70) return 'text-[var(--caution)]'
+  return 'text-[var(--alert)]'
 }
 
 // ── Status color map ──────────────────────────────────────────────────────────
 
 const STATUS_BG: Record<string, string> = {
-  DIRTY: 'bg-red-50 text-red-700 border border-red-200',
-  IN_PROGRESS: 'bg-blue-50 text-blue-700 border border-blue-200',
+  DIRTY: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]',
+  IN_PROGRESS: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]',
   CLEAN: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-  INSPECTED: 'bg-green-50 text-green-700 border border-green-200',
+  INSPECTED: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
   OOO: 'bg-gray-100 text-gray-600 border border-gray-200',
-  PICKUP: 'bg-purple-50 text-purple-700 border border-purple-200',
+  PICKUP: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
 }
 
 // ── DateRangeSelector ─────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ function DateRangeSelector({
           onClick={() => onChange(opt.value)}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             value === opt.value
-              ? 'bg-white text-gray-900 shadow-sm'
+              ? 'bg-surface text-gray-900 shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -124,7 +124,7 @@ function KpiCard({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
+    <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500">{label}</p>
         {icon && <span className="text-gray-400">{icon}</span>}
@@ -165,12 +165,12 @@ function DailySummaryTab() {
           value={selectedDate}
           max={toLocalDateStr(new Date())}
           onChange={(e) => setSelectedDate(e.target.value)}
-          className="rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="rounded-md border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
           Failed to load daily summary. Please try again.
         </div>
       )}
@@ -204,7 +204,7 @@ function DailySummaryTab() {
       </div>
 
       {/* Housekeeping summary note */}
-      <p className="text-sm text-stone-500 mt-2">Staff performance and maintenance data populate as tasks are completed and work orders are closed.</p>
+      <p className="text-sm text-ink3 mt-2">Staff performance and maintenance data populate as tasks are completed and work orders are closed.</p>
 
       {/* Task + WO stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -215,16 +215,16 @@ function DailySummaryTab() {
           </>
         ) : summary ? (
           <>
-            <div className="flex flex-col items-center justify-center bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-6">
+            <div className="flex flex-col items-center justify-center bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-6">
               <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
               <p className="text-4xl font-bold text-gray-900">{summary.tasks_completed_today}</p>
               <p className="mt-1 text-sm text-gray-500">tasks completed today</p>
             </div>
             <div
-              className={`flex flex-col items-center justify-center backdrop-blur-md rounded-2xl border p-6 ${
+              className={`flex flex-col items-center justify-center backdrop-blur-md rounded-[var(--r-lg)] border p-6 ${
                 summary.open_work_orders > 0
                   ? 'border-orange-200/60 bg-orange-50/70'
-                  : 'border-white/90 bg-white/[0.65]'
+                  : 'border-white/90 bg-surface/[0.65]'
               }`}
             >
               <Wrench
@@ -282,7 +282,7 @@ function StaffPerformanceTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
           Failed to load staff performance data.
         </div>
       )}
@@ -306,7 +306,7 @@ function StaffPerformanceTab() {
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Labor Hours</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
+            <tbody className="divide-y divide-gray-100 bg-surface">
               {report.metrics.map((m) => (
                 <tr key={m.user_id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-900">{m.name}</td>
@@ -375,7 +375,7 @@ function MaintenanceTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
           Failed to load maintenance data.
         </div>
       )}
@@ -392,13 +392,13 @@ function MaintenanceTab() {
           <KpiCard
             label="Total Work Orders"
             value={report.total_work_orders}
-            colorClass="text-blue-600"
+            colorClass="text-[var(--info)]"
             icon={<Wrench className="h-5 w-5" />}
           />
           <KpiCard
             label="Completed"
             value={report.completed}
-            colorClass="text-green-600"
+            colorClass="text-[var(--ready)]"
             icon={<CheckCircle className="h-5 w-5" />}
           />
           <KpiCard
@@ -419,10 +419,10 @@ function MaintenanceTab() {
           <KpiCard
             label="Active SLA Breaches"
             value={report.active_sla_breaches}
-            colorClass={report.active_sla_breaches > 0 ? 'text-red-600' : 'text-gray-900'}
+            colorClass={report.active_sla_breaches > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
             icon={
               report.active_sla_breaches > 0 ? (
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <AlertTriangle className="h-5 w-5 text-[var(--alert)]" />
               ) : undefined
             }
           />
@@ -433,7 +433,7 @@ function MaintenanceTab() {
       {report && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* By Category */}
-          <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
+          <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Category</h4>
             {Object.keys(report.by_category).length === 0 ? (
               <p className="text-sm text-gray-400">No data.</p>
@@ -449,7 +449,7 @@ function MaintenanceTab() {
                       </div>
                       <div className="h-2 w-full rounded-full bg-gray-100">
                         <div
-                          className="h-2 rounded-full bg-blue-500"
+                          className="h-2 rounded-full bg-[var(--info)]"
                           style={{ width: `${(count / maxCatCount) * 100}%` }}
                         />
                       </div>
@@ -460,12 +460,12 @@ function MaintenanceTab() {
           </div>
 
           {/* By Priority */}
-          <div className="bg-white/[0.65] border border-white/90 backdrop-blur-md rounded-2xl p-5">
+          <div className="bg-surface/[0.65] border border-white/90 backdrop-blur-md rounded-[var(--r-lg)] p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Priority</h4>
             <div className="space-y-3">
               {[
-                { key: 'urgent', label: 'Urgent', badge: 'bg-red-100 text-red-700' },
-                { key: 'normal', label: 'Normal', badge: 'bg-blue-100 text-blue-700' },
+                { key: 'urgent', label: 'Urgent', badge: 'bg-[var(--alert-soft)] text-[var(--alert)]' },
+                { key: 'normal', label: 'Normal', badge: 'bg-blue-100 text-[var(--info)]' },
                 { key: 'low', label: 'Low', badge: 'bg-gray-100 text-gray-600' },
               ].map(({ key, label, badge }) => (
                 <div key={key} className="flex items-center justify-between">
@@ -519,7 +519,7 @@ function AIUsageTab() {
       </div>
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">
           Failed to load AI usage data.
         </div>
       )}
@@ -573,7 +573,7 @@ function AIUsageTab() {
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">% of Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
+            <tbody className="divide-y divide-gray-100 bg-surface">
               {sortedBreakdown.map(([type, credits]) => {
                 const pct =
                   totalCredits > 0 ? ((credits / totalCredits) * 100).toFixed(1) : '0.0'
@@ -658,7 +658,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--caution-soft)] text-[var(--caution)]">
           <BarChart2 className="h-5 w-5" />
         </div>
         <div>
@@ -676,8 +676,8 @@ export default function ReportsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`shrink-0 flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 currentTab === tab.id
-                  ? 'border-amber-500 text-amber-700'
-                  : 'border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-700'
+                  ? 'border-amber-500 text-[var(--caution)]'
+                  : 'border-transparent text-ink3 hover:border-line hover:text-ink2'
               }`}
             >
               {tab.icon}

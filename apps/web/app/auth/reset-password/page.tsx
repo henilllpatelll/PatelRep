@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -27,7 +27,7 @@ function Spinner() {
   )
 }
 
-// ── Request mode: ask for email, send reset link ──────────────────────────────
+// â”€â”€ Request mode: ask for email, send reset link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function RequestForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -58,7 +58,7 @@ function RequestForm() {
         <div className="flex justify-center">
           <div className="bg-green-100 rounded-full p-3">
             <svg
-              className="w-6 h-6 text-green-600"
+              className="w-6 h-6 text-[var(--ready)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -74,7 +74,7 @@ function RequestForm() {
         </p>
         <a
           href="/login"
-          className="inline-block mt-2 text-sm text-amber-600 hover:text-amber-800 font-medium"
+          className="inline-block mt-2 text-sm text-[var(--caution)] hover:text-amber-800 font-medium"
         >
           &larr; Back to Login
         </a>
@@ -92,7 +92,7 @@ function RequestForm() {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
+        <div className="p-3 bg-[var(--alert-soft)] text-[var(--alert)] rounded-lg text-sm">{error}</div>
       )}
 
       <div>
@@ -127,7 +127,7 @@ function RequestForm() {
       </Button>
 
       <div className="text-center">
-        <a href="/login" className="text-sm text-amber-600 hover:text-amber-800 font-medium">
+        <a href="/login" className="text-sm text-[var(--caution)] hover:text-amber-800 font-medium">
           &larr; Back to Login
         </a>
       </div>
@@ -135,7 +135,7 @@ function RequestForm() {
   )
 }
 
-// ── Confirm mode: set new password ────────────────────────────────────────────
+// â”€â”€ Confirm mode: set new password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ConfirmForm({ code }: { code: string }) {
   const router = useRouter()
   const [password, setPassword] = useState('')
@@ -185,7 +185,7 @@ function ConfirmForm({ code }: { code: string }) {
       <div className="text-center space-y-3">
         <div className="flex justify-center">
           <svg
-            className="w-8 h-8 text-amber-500 animate-spin"
+            className="w-8 h-8 text-[var(--caution)] animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -211,12 +211,12 @@ function ConfirmForm({ code }: { code: string }) {
   }
 
   if (error && exchanging === false && !password) {
-    // Exchange failed — link invalid or expired
+    // Exchange failed â€” link invalid or expired
     return (
       <div className="text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-full bg-[var(--alert-soft)] flex items-center justify-center mx-auto">
           <svg
-            className="w-6 h-6 text-red-600"
+            className="w-6 h-6 text-[var(--alert)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -226,10 +226,10 @@ function ConfirmForm({ code }: { code: string }) {
           </svg>
         </div>
         <h2 className="text-xl font-bold text-slate-900">Link expired or invalid</h2>
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-[var(--alert)]">{error}</p>
         <a
           href="/auth/reset-password"
-          className="inline-block mt-2 text-sm text-amber-600 hover:text-amber-800 font-medium"
+          className="inline-block mt-2 text-sm text-[var(--caution)] hover:text-amber-800 font-medium"
         >
           Request a new link
         </a>
@@ -245,7 +245,7 @@ function ConfirmForm({ code }: { code: string }) {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
+        <div className="p-3 bg-[var(--alert-soft)] text-[var(--alert)] rounded-lg text-sm">{error}</div>
       )}
 
       <div>
@@ -299,7 +299,7 @@ function ConfirmForm({ code }: { code: string }) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const code = searchParams.get('code')
@@ -314,10 +314,10 @@ function ResetPasswordContent() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-md bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-amber-100/60 p-8"
+        className="w-full max-w-md bg-surface/80 backdrop-blur-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-amber-100/60 p-8"
       >
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-extrabold text-amber-600">✦ PatelRep</h1>
+          <h1 className="text-3xl font-extrabold text-[var(--caution)]">âœ¦ PatelRep</h1>
           <p className="text-sm text-slate-400 mt-1">Hotel Operations AI</p>
         </div>
 

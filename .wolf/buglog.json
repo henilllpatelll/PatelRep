@@ -482,6 +482,279 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-24T03:06:12.575Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-05-24T03:43:49.049Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/ui/Card.tsx",
+      "root_cause": "hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', → shadow-card-hover transition-shadow duration-150',",
+      "fix": "Changed hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', → shadow-card-hover transition-shadow duration-150',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:43:49.049Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-05-24T03:43:54.200Z",
+      "error_message": "CSS fix: placeholder, focus, disabled",
+      "file": "apps/web/components/ui/Input.tsx",
+      "root_cause": "placeholder: text-stone-300', → text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', → border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', → opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
+      "fix": "Changed placeholder: text-stone-300', → text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', → border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', → opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T03:43:54.200Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-05-24T03:46:13.549Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/ui/Skeleton.tsx",
+      "root_cause": "Had 'bg-stone-100 animate-pulse relative overflow-hidd",
+      "fix": "Changed to 'bg-surface-3 animate-pulse relative overflow-hidd",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-24T03:46:17.451Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-05-24T04:46:22.939Z",
+      "error_message": "CSS fix: activeBg, inactiveBg",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "activeBg: 'bg-gray-600', → 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', → 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
+      "fix": "Changed activeBg: 'bg-gray-600', → 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', → 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-24T04:47:24.550Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-05-24T04:46:29.143Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had 'bg-orange-500 text-white'",
+      "fix": "Changed to 'bg-[var(--caution)] text-white'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-24T04:47:30.293Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-05-24T04:47:08.576Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Had \"text-xs text-purple-400 mt-1\"",
+      "fix": "Changed to \"text-xs text-[var(--ai)] mt-1\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T04:47:08.576Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-05-24T04:47:52.142Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T04:47:52.143Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-05-24T04:48:24.042Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Had \"text-[10px] font-semibold text-ink3 mt-2 uppercas",
+      "fix": "Changed to '}</p>\n          <p className=\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T04:48:24.042Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-05-24T04:59:31.977Z",
+      "error_message": "CSS fix: background, row",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, → stripColor; row: housekeeper name + eta */ → room number + AI risk dot + VIP */",
+      "fix": "Changed background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, → stripColor; row: housekeeper name + eta */ → room number + AI risk dot + VIP */",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T04:59:31.977Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-05-24T05:01:16.386Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "hover: bg-[var(--alert-soft)] transition-colors\" → opacity-80 transition-opacity\">",
+      "fix": "Changed hover: bg-[var(--alert-soft)] transition-colors\" → opacity-80 transition-opacity\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-05-24T05:05:33.251Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-05-24T00:15:47.7924471-05:00",
+      "error_message": "Web type-check failed: SOPDocument.updated_at missing and task user_profiles.full_name missing from TypeScript API types",
+      "file": "apps/web/lib/api/sop.ts",
+      "root_cause": "The reworked UI consumed optional fields returned by joined API payloads, but the typed client interfaces still only modeled the narrower old shape.",
+      "fix": "Added optional updated_at to SOPDocument and optional preferred_name/full_name fields to Task.user_profiles.",
+      "tags": [
+        "type-check",
+        "frontend-rework",
+        "api-types"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:15:47.7924471-05:00"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-05-24T00:15:47.7924471-05:00",
+      "error_message": "Web lint failed: React purity rule rejected Date.now() during render in SOP page and SupervisorDashboard activity feed",
+      "file": "apps/web/app/(dashboard)/sop/page.tsx",
+      "root_cause": "The UI computed current-time-dependent display state directly during render, which violates React's idempotent render rules.",
+      "fix": "Moved SOP stale-reference time into an effect-backed state value and removed Date.now() fallback from the supervisor activity feed render path.",
+      "tags": [
+        "lint",
+        "react-purity",
+        "frontend-rework"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:15:47.7924471-05:00"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-05-24T00:15:47.7924471-05:00",
+      "error_message": "PowerShell rg commands failed because unquoted app route paths containing parentheses were parsed as expressions",
+      "file": "n/a",
+      "root_cause": "The app route path apps/web/app/(dashboard)/... was passed to PowerShell without quotes.",
+      "fix": "Re-ran the rg commands with quoted path arguments.",
+      "tags": [
+        "powershell",
+        "tooling",
+        "path-quoting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:15:47.7924471-05:00"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-05-24T00:24:24.9486172-05:00",
+      "error_message": "Production web build failed: Turbopack could not parse apps/web/app/(dashboard)/scheduling/page.tsx due to invalid UTF-8",
+      "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
+      "root_cause": "A mechanical PowerShell rewrite used the shell default encoding, leaving the file with bytes that were not valid UTF-8.",
+      "fix": "Detected invalid UTF-8 files with a strict UTF8 decoder and rewrote scheduling/page.tsx using UTF8Encoding(false).",
+      "tags": [
+        "build",
+        "encoding",
+        "powershell",
+        "frontend-rework"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:24:24.9486172-05:00"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-05-24T00:24:24.9486172-05:00",
+      "error_message": "Malformed Tailwind token classes remained after the frontend rework, e.g. bg-[var(--caution-soft)]0",
+      "file": "apps/web/app/(dashboard)/onboarding/page.tsx",
+      "root_cause": "An earlier token replacement left invalid arbitrary-value class names with a trailing 0, so Tailwind ignored the intended colors.",
+      "fix": "Mechanically replaced malformed soft-token classes with solid semantic token classes for caution, ready, alert, and info.",
+      "tags": [
+        "tailwind",
+        "design-tokens",
+        "frontend-rework"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:24:24.9486172-05:00"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-05-24T00:24:24.9486172-05:00",
+      "error_message": "Undefined brand-* Tailwind classes remained after the token migration",
+      "file": "apps/web/app/not-found.tsx",
+      "root_cause": "The handoff migrated to accent tokens, but fallback/auth/housekeeping screens still referenced the old brand color scale that is not defined in tailwind.config.ts.",
+      "fix": "Mapped remaining brand background, text, border, hover, and accent classes to the new accent token classes.",
+      "tags": [
+        "tailwind",
+        "design-tokens",
+        "frontend-rework"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:24:24.9486172-05:00"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-05-24T00:34:00-05:00",
+      "error_message": "PowerShell rejected git staging command that used && as a command separator",
+      "file": "n/a",
+      "root_cause": "This PowerShell version does not support && as a statement separator in the invoked context.",
+      "fix": "Split staging and status into separate shell commands.",
+      "tags": [
+        "powershell",
+        "git",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T00:34:00-05:00"
     }
   ]
 }

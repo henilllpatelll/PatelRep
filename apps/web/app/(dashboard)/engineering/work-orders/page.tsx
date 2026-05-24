@@ -4,118 +4,210 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Wrench, Search, AlertCircle, CheckCircle2, Plus } from 'lucide-react'
+import { Wrench, AlertCircle, Plus } from 'lucide-react'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { createClient } from '@/lib/supabase/client'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Pill } from '@/components/ui/primitives'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
+import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
+import { formatDistanceToNowStrict } from 'date-fns'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-type StatusTab = 'open' | 'in_progress' | 'on_hold' | 'completed'
-type BadgeVariant = 'high' | 'medium' | 'low' | 'default'
+type KanbanStatus = 'open' | 'in_progress' | 'on_hold' | 'completed'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
-const STATUS_TABS: { value: StatusTab; label: string }[] = [
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'on_hold', label: 'On Hold' },
-  { value: 'completed', label: 'Completed' },
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const COLUMNS: { status: KanbanStatus; label: string; tone: PillTone }[] = [
+  { status: 'open',        label: 'Open',        tone: 'info'    },
+  { status: 'in_progress', label: 'In Progress', tone: 'caution' },
+  { status: 'on_hold',     label: 'On Hold',     tone: 'alert'   },
+  { status: 'completed',   label: 'Completed',   tone: 'ready'   },
 ]
 
-const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
-  urgent: 'high',
-  normal: 'medium',
-  low: 'low',
+const PRIORITY_BORDER: Record<string, string> = {
+  urgent: 'border-l-[var(--alert)]',
+  normal: 'border-l-[var(--caution)]',
+  low:    'border-l-[var(--ready)]',
 }
 
-const STATUS_TRANSITIONS: Record<StatusTab, { label: string; next: string } | null> = {
-  open: { label: 'Start', next: 'in_progress' },
-  in_progress: { label: 'Complete', next: 'completed' },
-  on_hold: { label: 'Resume', next: 'in_progress' },
-  completed: null,
+const AVATAR_COLORS = [
+  'bg-[var(--accent-soft)] text-[var(--accent)]',
+  'bg-[var(--info-soft)] text-[var(--info)]',
+  'bg-[var(--ready-soft)] text-[var(--ready)]',
+  'bg-[var(--caution-soft)] text-[var(--caution)]',
+  'bg-[var(--ai-soft)] text-[var(--ai)]',
+]
+
+function avatarColor(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────────
+function initials(id: string): string {
+  return id.slice(0, 2).toUpperCase()
+}
 
-function WorkOrderRow({
+function timeAgo(iso: string): string {
+  try {
+    return formatDistanceToNowStrict(new Date(iso), { addSuffix: true })
+  } catch {
+    return ''
+  }
+}
+
+// ── WO Card ──────────────────────────────────────────────────────────────────
+
+function WorkOrderCard({
   wo,
-  canAdvance,
-  onStatusChange,
+  onClick,
 }: {
   wo: WorkOrder
-  canAdvance: boolean
-  onStatusChange: (id: string, status: string) => void
+  onClick: () => void
 }) {
-  const transition = STATUS_TRANSITIONS[wo.status as StatusTab]
+  const location = wo.rooms?.room_number
+    ? `Room ${wo.rooms.room_number}`
+    : wo.location_text ?? null
+
+  const borderColor = PRIORITY_BORDER[wo.priority] ?? PRIORITY_BORDER.normal
 
   return (
-    <div className="flex items-start gap-3 p-4 bg-white border border-stone-200 shadow-sm rounded-xl hover:shadow-md transition-shadow">
-      {/* Priority indicator */}
-      <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-          wo.priority === 'urgent' ? 'bg-red-50' : 'bg-amber-50'
-        }`}
-      >
-        <Wrench
-          className={`w-3.5 h-3.5 ${
-            wo.priority === 'urgent' ? 'text-red-500' : 'text-amber-600'
-          }`}
-        />
-      </div>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick() }}
+      className={`bg-surface border border-line rounded-[var(--r-lg)] p-3.5 cursor-pointer hover:shadow-md transition-shadow border-l-[3px] ${borderColor} outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50`}
+    >
+      {/* WO number */}
+      <p className="font-mono text-[10px] text-ink3 mb-0.5">
+        WO-{wo.work_order_number}
+      </p>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-0.5">
-          <span className="text-sm font-semibold text-stone-900">
-            WO-{wo.work_order_number}
-          </span>
-          <Badge variant={PRIORITY_VARIANT[wo.priority] ?? 'default'}>
-            {wo.priority}
-          </Badge>
-        </div>
-        <p className="text-sm text-stone-800 leading-snug truncate">{wo.title}</p>
-        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-400">
-          {wo.rooms?.room_number && <span>Room {wo.rooms.room_number}</span>}
-          {wo.location_text && !wo.rooms?.room_number && (
-            <span className="truncate max-w-[200px]">{wo.location_text}</span>
-          )}
-          <span className="capitalize">{wo.category.replace(/_/g, ' ')}</span>
-          {wo.due_at && (
-            <span className="text-amber-600">
-              Due {new Date(wo.due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          )}
-        </div>
-        {wo.description && (
-          <p className="text-xs text-stone-500 mt-1 line-clamp-2">{wo.description}</p>
-        )}
-      </div>
+      {/* Title */}
+      <p className="text-[13px] font-medium text-ink leading-snug line-clamp-2 mb-2">
+        {wo.title}
+      </p>
 
-      {/* Action */}
-      {canAdvance && transition && (
-        <button
-          onClick={() => onStatusChange(wo.id, transition.next)}
-          className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors bg-white border-stone-200 text-stone-700 hover:border-amber-400 hover:text-amber-700 hover:bg-amber-50"
-        >
-          {transition.label}
-        </button>
+      {/* Location chip */}
+      {location && (
+        <span className="inline-block font-mono text-[11px] bg-surface-2 border border-line-2 rounded px-1.5 py-px text-ink3 mb-2">
+          {location}
+        </span>
       )}
+
+      {/* Footer: assignee + time */}
+      <div className="flex items-center justify-between gap-2">
+        {wo.assigned_to ? (
+          <span
+            className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-semibold shrink-0 ${avatarColor(wo.assigned_to)}`}
+          >
+            {initials(wo.assigned_to)}
+          </span>
+        ) : (
+          <span className="w-5 h-5 rounded-full bg-surface-3 border border-line shrink-0" />
+        )}
+        <span className="font-mono text-[11px] text-ink3 truncate text-right">
+          {timeAgo(wo.created_at)}
+        </span>
+      </div>
     </div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Column ───────────────────────────────────────────────────────────────────
+
+function KanbanColumn({
+  label,
+  tone,
+  status,
+  workOrders,
+  canAdd,
+  onAdd,
+  onCardClick,
+  isLoading,
+}: {
+  label: string
+  tone: PillTone
+  status: KanbanStatus
+  workOrders: WorkOrder[]
+  canAdd: boolean
+  onAdd: () => void
+  onCardClick: (wo: WorkOrder) => void
+  isLoading: boolean
+}) {
+  return (
+    <div className="flex flex-col bg-surface border border-line rounded-[var(--r-lg)] shadow-card overflow-hidden min-h-[400px]">
+      {/* Column header */}
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-line bg-surface-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-semibold text-ink">{label}</span>
+          <Pill tone={tone} size="sm">{workOrders.length}</Pill>
+        </div>
+        {canAdd && status === 'open' && (
+          <button
+            onClick={onAdd}
+            aria-label="New work order"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-ink3 hover:bg-surface-3 hover:text-ink transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Column body */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+        {isLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-[88px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse border border-line"
+              />
+            ))}
+          </>
+        ) : workOrders.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-[12px] text-ink3">No {label.toLowerCase()} orders</p>
+          </div>
+        ) : (
+          workOrders.map((wo) => (
+            <WorkOrderCard
+              key={wo.id}
+              wo={wo}
+              onClick={() => onCardClick(wo)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getHotelIdFromToken(token: string | undefined): string {
   try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
 }
+
+function sortWOs(wos: WorkOrder[]): WorkOrder[] {
+  const priorityOrder = { urgent: 0, normal: 1, low: 2 }
+  return [...wos].sort((a, b) => {
+    const pa = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1
+    const pb = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1
+    if (pa !== pb) return pa - pb
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WorkOrdersPage() {
   const { role } = useRole()
@@ -124,30 +216,34 @@ export default function WorkOrdersPage() {
   const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
 
-  const [activeTab, setActiveTab] = useState<StatusTab>('open')
-  const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const isEngineer = role === 'engineer'
   const canManage = role === 'chief_engineer' || role === 'gm'
 
+  // Realtime subscription
   useEffect(() => {
     if (!hotelId) return
     const supabase = createClient()
     const channel = supabase
       .channel('wo_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'work_orders', filter: `tenant_id=eq.${hotelId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ['work-orders'] }) },
+      )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [hotelId, queryClient])
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['work-orders', activeTab, isEngineer ? user?.id : null],
+  // Fetch all 4 columns in parallel
+  const queryOpts = (status: KanbanStatus) => ({
+    queryKey: ['work-orders', status, isEngineer ? user?.id : null] as const,
     queryFn: () =>
       engineeringApi.listWorkOrders({
-        status: activeTab,
+        status,
         assigned_to: isEngineer ? user?.id : undefined,
         per_page: 50,
       }),
@@ -155,27 +251,26 @@ export default function WorkOrdersPage() {
     enabled: !!hotelId,
   })
 
-  const workOrders: WorkOrder[] = data?.data ?? []
+  const openQ      = useQuery(queryOpts('open'))
+  const progressQ  = useQuery(queryOpts('in_progress'))
+  const holdQ      = useQuery(queryOpts('on_hold'))
+  const completedQ = useQuery(queryOpts('completed'))
 
-  const filtered = workOrders.filter((wo) => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (
-      wo.title.toLowerCase().includes(q) ||
-      wo.rooms?.room_number?.includes(q) ||
-      String(wo.work_order_number).includes(q) ||
-      wo.category.includes(q)
-    )
-  })
+  const columnData: Record<KanbanStatus, WorkOrder[]> = {
+    open:        sortWOs(openQ.data?.data ?? []),
+    in_progress: sortWOs(progressQ.data?.data ?? []),
+    on_hold:     sortWOs(holdQ.data?.data ?? []),
+    completed:   sortWOs(completedQ.data?.data ?? []),
+  }
 
-  // Sort: urgent first, then by created_at desc
-  const sorted = [...filtered].sort((a, b) => {
-    const priorityOrder = { urgent: 0, normal: 1, low: 2 }
-    const pa = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1
-    const pb = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1
-    if (pa !== pb) return pa - pb
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  })
+  const columnLoading: Record<KanbanStatus, boolean> = {
+    open:        openQ.isLoading,
+    in_progress: progressQ.isLoading,
+    on_hold:     holdQ.isLoading,
+    completed:   completedQ.isLoading,
+  }
+
+  const urgentCount = columnData.open.filter((wo) => wo.priority === 'urgent').length
 
   const { mutate: updateStatus } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -185,140 +280,90 @@ export default function WorkOrdersPage() {
     },
   })
 
-  const handleStatusChange = (id: string, status: string) => {
-    updateStatus({ id, status })
+  const handleCardClick = (wo: WorkOrder) => {
+    setSelectedWO(wo)
+    setDrawerOpen(true)
   }
 
-  // Tab counts from current data (approximate — only counts loaded tab)
-  const urgentCount = workOrders.filter(
-    (wo) => wo.priority === 'urgent' && activeTab === 'open',
-  ).length
+  const handleDrawerClose = () => {
+    setDrawerOpen(false)
+  }
+
+  const handleDrawerUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+  }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 max-w-5xl">
-    <div className="flex-1 min-w-0 space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Wrench className="w-5 h-5 text-amber-600 shrink-0" />
-            Work Orders
-          </h1>
-          <p className="text-sm text-stone-500 mt-0.5">
-            {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
-          </p>
-        </div>
-        {canManage && (
-          <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
-            <Plus className="w-4 h-4" />
-            New Work Order
-          </Button>
-        )}
-      </div>
-
-      {/* Urgent alert */}
-      {urgentCount > 0 && (
-        <div className="flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-          <span className="font-medium">
-            {urgentCount} urgent {urgentCount === 1 ? 'work order' : 'work orders'} require immediate attention
-          </span>
-        </div>
-      )}
-
-      {/* Status tabs + search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        {/* Tabs */}
-        <div className="overflow-x-auto shrink-0">
-        <div className="inline-flex rounded-lg border border-stone-200 overflow-hidden bg-white shadow-sm text-xs">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              aria-pressed={activeTab === tab.value}
-              className={`px-3.5 py-2 font-medium transition-colors ${
-                activeTab === tab.value
-                  ? 'bg-amber-500 text-white'
-                  : 'text-stone-600 hover:bg-stone-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search work orders"
-            placeholder="Search by room, title, or WO number…"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-stone-200 rounded-lg bg-white/80 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-          />
-        </div>
-      </div>
-
-      {/* List */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-white rounded-xl animate-pulse border border-stone-200 shadow-sm" />
-          ))}
-        </div>
-      ) : isError ? (
-        <Card>
-          <div className="py-8 text-center text-sm text-red-600">
-            Failed to load work orders. Please refresh.
-          </div>
-        </Card>
-      ) : sorted.length === 0 ? (
-        <Card>
-          <div className="py-12 text-center">
-            <CheckCircle2 className="w-8 h-8 text-green-300 mx-auto mb-2" />
-            <p className="text-sm text-stone-400">
-              {search ? 'No work orders match your search.' : `No ${activeTab.replace('_', ' ')} work orders.`}
+    <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex-1 min-w-0 space-y-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2.5">
+              <Wrench className="w-5 h-5 text-[var(--caution)] shrink-0" />
+              Work Orders
+            </h1>
+            <p className="text-sm text-ink3 mt-0.5">
+              {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
             </p>
-            {!search && (
-              <div className="mx-auto mt-6 grid max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                {['Room repairs', 'Guest-impacting issues', 'PM follow-ups'].map((item) => (
-                  <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-                    <p className="text-sm font-semibold text-stone-800">{item}</p>
-                    <p className="mt-1 text-xs text-stone-500">Good first work order</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {sorted.map((wo) => (
-            <WorkOrderRow
-              key={wo.id}
-              wo={wo}
-              canAdvance={isEngineer || canManage}
-              onStatusChange={handleStatusChange}
+          {canManage && (
+            <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
+              <Plus className="w-4 h-4" />
+              New Work Order
+            </Button>
+          )}
+        </div>
+
+        {/* Urgent alert */}
+        {urgentCount > 0 && (
+          <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="font-medium">
+              {urgentCount} urgent {urgentCount === 1 ? 'work order' : 'work orders'} require immediate attention
+            </span>
+          </div>
+        )}
+
+        {/* Kanban board */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {COLUMNS.map(({ status, label, tone }) => (
+            <KanbanColumn
+              key={status}
+              label={label}
+              tone={tone}
+              status={status}
+              workOrders={columnData[status]}
+              canAdd={canManage}
+              onAdd={() => setShowCreateModal(true)}
+              onCardClick={handleCardClick}
+              isLoading={columnLoading[status]}
             />
           ))}
         </div>
-      )}
 
-      {showCreateModal && (
-        <CreateWorkOrderModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onCreate={() => {
-            setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-          }}
-        />
-      )}
+        {/* Modals */}
+        {showCreateModal && (
+          <CreateWorkOrderModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreate={() => {
+              setShowCreateModal(false)
+              queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+            }}
+          />
+        )}
+      </div>
+
+      <FailurePredictionSidebar />
+
+      {/* Detail drawer */}
+      <WorkOrderDetailDrawer
+        wo={selectedWO}
+        isOpen={drawerOpen}
+        onClose={handleDrawerClose}
+        onUpdate={handleDrawerUpdate}
+      />
     </div>
-    <FailurePredictionSidebar />
-  </div>
   )
 }

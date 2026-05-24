@@ -3,26 +3,354 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
-import { ClipboardCheck, Users, AlertTriangle, ArrowRight, CheckCircle2, Bell, ClipboardList } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { tasksApi, type Task } from '@/lib/api/tasks'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { useAuthStore } from '@/stores/authStore'
+import { LiveOpsGrid } from './LiveOpsGrid'
+import {
+  Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
+} from '@/components/ui/primitives'
 
-type StatusKey = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
+// ── helpers ──────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<StatusKey, string> = {
-  DIRTY: 'Dirty',
-  IN_PROGRESS: 'In Progress',
-  CLEAN: 'Clean – Pending Inspect',
-  INSPECTED: 'Inspected',
-  OOO: 'Out of Order',
-  PICKUP: 'Pickup',
+function avatarColor(name: string): string {
+  const colors = [
+    'bg-[var(--accent-soft)] text-[var(--accent)]',
+    'bg-[var(--ready-soft)] text-[var(--ready)]',
+    'bg-[var(--ai-soft)] text-[var(--ai)]',
+    'bg-[var(--caution-soft)] text-[var(--caution)]',
+    'bg-[var(--info-soft)] text-[var(--info)]',
+  ]
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+  return colors[h % colors.length]
 }
+
+function Avatar({ name, size = 30 }: { name: string; size?: number }) {
+  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-full font-semibold shrink-0 ${avatarColor(name)}`}
+      style={{ width: size, height: size, fontSize: size * 0.34 }}
+    >
+      {initials}
+    </span>
+  )
+}
+
+// ── StaffProgress ─────────────────────────────────────────────────────────────
+
+interface HKRow {
+  housekeeper_name?: string
+  user_name?: string
+  rooms_assigned?: number
+  rooms_completed?: number
+  avg_clean_minutes?: number
+  risk?: boolean
+}
+
+function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
+  const rows: HKRow[] = (assignmentsData as any)?.data ?? []
+
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+      <div className="px-4 pt-3.5">
+        <SectionLabel
+          hint={`${rows.length} on shift`}
+          action={
+            <Link href="/staff" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+              All staff
+            </Link>
+          }
+        >
+          Floor team
+        </SectionLabel>
+      </div>
+      <div className="pb-2">
+        {rows.length === 0 ? (
+          <p className="text-[12px] text-ink3 px-4 py-3">No assignments today</p>
+        ) : (
+          rows.map((hk, i) => {
+            const name = hk.housekeeper_name ?? hk.user_name ?? 'Staff'
+            const done = hk.rooms_completed ?? 0
+            const total = hk.rooms_assigned ?? 0
+            const mins = hk.avg_clean_minutes
+            const pace = total > 0 ? done / total : 0
+            const isRisk = hk.risk || (pace < 0.4 && total > 0)
+            return (
+              <div
+                key={i}
+                className={`flex items-center gap-3 px-2.5 mx-1.5 rounded-lg py-2.5 ${i % 2 === 1 ? 'bg-surface-2' : ''}`}
+              >
+                <Avatar name={name} size={30} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-ink truncate">{name}</span>
+                    {isRisk && <Pill tone="caution" size="sm">running over</Pill>}
+                  </div>
+                  {mins != null && (
+                    <div className="text-[11px] text-ink3 mt-0.5">
+                      <Mono>{mins}m avg</Mono>
+                    </div>
+                  )}
+                </div>
+                <div className="w-[110px] shrink-0">
+                  <div className="flex justify-between text-[11px] text-ink3 mb-1">
+                    <Mono>{done}/{total}</Mono>
+                    <span>{total > 0 ? Math.round(pace * 100) : 0}%</span>
+                  </div>
+                  <Bar value={done} max={total || 1} tone={isRisk ? 'caution' : 'ready'} height={3} />
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── PredictionsWidget ─────────────────────────────────────────────────────────
+
+type PillTone = 'caution' | 'alert' | 'pickup' | 'info' | 'ready' | 'accent' | 'ai' | 'neutral' | 'dirty' | 'progress' | 'clean' | 'inspected' | 'ooo'
+
+function PredictionsWidget({ risks }: { risks: any[] }) {
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+      <div className="px-4 pt-3.5">
+        <SectionLabel
+          hint="Next 24h"
+          action={<AILabel>Predictions</AILabel>}
+        >
+          What needs attention
+        </SectionLabel>
+      </div>
+      {risks.length === 0 ? (
+        <p className="text-[12px] text-ink3 px-4 pb-4">No risk flags right now</p>
+      ) : (
+        risks.slice(0, 5).map((r: any, i: number) => {
+          const room = r.rooms?.room_number ?? r.room_number ?? '—'
+          const level = r.risk_level ?? r.risk_type ?? 'risk'
+          const score = r.risk_score ?? r.confidence
+          const tone: PillTone = level === 'high' || level === 'urgent' ? 'alert' : level === 'medium' ? 'caution' : 'pickup'
+          return (
+            <div
+              key={i}
+              className="flex gap-3 items-center px-4 py-3 border-t border-line-2"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-surface-2 border border-line-2 flex flex-col items-center justify-center shrink-0">
+                <Mono className="text-[14px] font-semibold text-ink">{room}</Mono>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-ink capitalize">{level} risk</span>
+                  {score != null && <Pill tone={tone} size="sm">{score}%</Pill>}
+                </div>
+                {r.detail && (
+                  <div className="text-[12px] text-ink3 mt-0.5 truncate">{r.detail}</div>
+                )}
+              </div>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+}
+
+// ── RoomGridMini ──────────────────────────────────────────────────────────────
+
+const CELL_MAP: Record<string, { bg: string; border: string; striped?: boolean; glyph?: string }> = {
+  INSPECTED:   { bg: 'var(--surface-2)',    border: 'var(--line-2)' },
+  CLEAN:       { bg: 'var(--info-soft)',    border: 'var(--info-line)' },
+  DIRTY:       { bg: 'var(--alert-soft)',   border: 'var(--alert-line)' },
+  IN_PROGRESS: { bg: 'var(--alert-soft)',   border: 'var(--alert-line)', striped: true },
+  PICKUP:      { bg: 'var(--caution-soft)', border: 'var(--caution-line)' },
+  OOO:         { bg: 'var(--surface-3)',    border: 'var(--line)', glyph: '×' },
+}
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  INSPECTED: 'Ready', CLEAN: 'Clean', DIRTY: 'Vacant dirty',
+  IN_PROGRESS: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order',
+}
+
+function RoomGridMini({ boardData }: { boardData: unknown }) {
+  const rooms: any[] = (boardData as any)?.data ?? []
+
+  const floors = Array.from(new Set(rooms.map((r: any) => r.floor ?? r.rooms?.floor ?? 1))).sort()
+
+  if (rooms.length === 0) {
+    return (
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4 shadow-card">
+        <SectionLabel hint="—">Room map</SectionLabel>
+        <p className="text-[12px] text-ink3 py-2">No room data loaded</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+      <div className="px-4 pt-3.5">
+        <SectionLabel
+          hint={`${rooms.length} rooms`}
+          action={
+            <Link href="/housekeeping" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+              Open board
+            </Link>
+          }
+        >
+          Room map
+        </SectionLabel>
+      </div>
+      <div className="px-4 pb-4 flex flex-col gap-3.5">
+        {floors.map(f => {
+          const floorRooms = rooms.filter((r: any) => (r.floor ?? r.rooms?.floor ?? 1) === f)
+          return (
+            <div key={f}>
+              <div className="flex items-center gap-2 text-[10.5px] text-ink3 font-semibold uppercase tracking-[0.08em] mb-1.5">
+                <span>Floor {f}</span>
+                <span className="flex-1 border-t border-dashed border-line-2" />
+                <Mono>{floorRooms.length} rooms</Mono>
+              </div>
+              <div
+                className="grid gap-1"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(28px, 1fr))' }}
+              >
+                {floorRooms.map((r: any) => {
+                  const status: string = r.status ?? 'INSPECTED'
+                  const cell = CELL_MAP[status] ?? CELL_MAP.INSPECTED
+                  const roomNum = r.room_number ?? r.rooms?.room_number ?? '?'
+                  const shortNum = String(roomNum).replace(/^\d{1,2}0*/, '')
+                  return (
+                    <div
+                      key={r.room_id ?? r.id ?? roomNum}
+                      title={`${roomNum} · ${STATUS_LABEL_MAP[status] ?? status}`}
+                      className="h-[22px] rounded-[4px] flex items-center justify-center text-[9px] font-mono leading-none"
+                      style={{
+                        background: cell.striped
+                          ? 'repeating-linear-gradient(135deg, var(--alert-soft) 0 4px, color-mix(in srgb, var(--alert) 25%, var(--surface)) 4px 8px)'
+                          : cell.bg,
+                        border: `1px solid ${cell.border}`,
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      {cell.glyph ?? shortNum}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="px-4 py-2.5 border-t border-line-2 flex flex-wrap gap-3 text-[11px] text-ink3">
+        {[
+          { l: 'Ready',        bg: 'var(--surface-2)',    bd: 'var(--line-2)' },
+          { l: 'Clean',        bg: 'var(--info-soft)',    bd: 'var(--info-line)' },
+          { l: 'Vacant dirty', bg: 'var(--alert-soft)',   bd: 'var(--alert-line)' },
+          { l: 'Occupied',     striped: true,              bd: 'var(--alert-line)' },
+          { l: 'Pickup',       bg: 'var(--caution-soft)', bd: 'var(--caution-line)' },
+          { l: 'OOO',          bg: 'var(--surface-3)',    bd: 'var(--line)', glyph: '×' },
+        ].map((it, i) => (
+          <span key={i} className="inline-flex items-center gap-1.5">
+            <span
+              className="w-3.5 h-3.5 rounded-[3px] inline-flex items-center justify-center text-[8px] font-mono shrink-0"
+              style={{
+                background: (it as any).striped
+                  ? 'repeating-linear-gradient(135deg, var(--alert-soft) 0 3px, color-mix(in srgb, var(--alert) 25%, var(--surface)) 3px 6px)'
+                  : (it as any).bg,
+                border: `1px solid ${it.bd}`,
+                color: 'var(--ink-4)',
+              }}
+            >
+              {(it as any).glyph}
+            </span>
+            {it.l}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── ActivityFeed ──────────────────────────────────────────────────────────────
+
+function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; tasks: Task[]; risks: any[] }) {
+  type FeedTone = 'ready' | 'ai' | 'accent' | 'alert' | 'neutral'
+  interface FeedItem { t: string; who: string; what: string; tgt: string; tone: FeedTone }
+
+  const items: FeedItem[] = []
+
+  for (const r of requests.slice(0, 3)) {
+    const time = format(new Date(r.created_at), 'HH:mm')
+    const room = (r as any).rooms?.room_number ? ` · ${(r as any).rooms.room_number}` : ''
+    items.push({ t: time, who: 'Front desk', what: 'requested', tgt: `${r.title}${room}`, tone: 'accent' })
+  }
+  for (const t of tasks.slice(0, 2)) {
+    const time = t.created_at ? format(new Date(t.created_at), 'HH:mm') : '--:--'
+    items.push({ t: time, who: t.title, what: 'task open', tgt: t.priority, tone: t.priority === 'urgent' ? 'alert' : 'neutral' })
+  }
+  for (const r of risks.slice(0, 2)) {
+    const room = r.rooms?.room_number ?? '—'
+    items.push({ t: '—', who: 'AI', what: 'flagged', tgt: `Room ${room} — ${r.risk_level ?? 'risk'}`, tone: 'ai' })
+  }
+
+  const sorted = items.sort((a, b) => (b.t > a.t ? 1 : -1)).slice(0, 6)
+
+  const toneClasses: Record<FeedTone, { bg: string; fg: string }> = {
+    ready:   { bg: 'bg-[var(--ready-soft)]',   fg: 'text-[var(--ready)]' },
+    ai:      { bg: 'bg-[var(--ai-soft)]',       fg: 'text-[var(--ai)]' },
+    accent:  { bg: 'bg-[var(--accent-soft)]',   fg: 'text-[var(--accent)]' },
+    alert:   { bg: 'bg-[var(--alert-soft)]',    fg: 'text-[var(--alert)]' },
+    neutral: { bg: 'bg-surface-3',              fg: 'text-ink3' },
+  }
+
+  return (
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+      <div className="px-4 pt-3.5 pb-3">
+        <SectionLabel
+          hint="Last hour"
+          action={
+            <Link href="/logbook" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+              View all
+            </Link>
+          }
+        >
+          Activity
+        </SectionLabel>
+      </div>
+      <div className="px-4 pb-3.5">
+        {sorted.length === 0 ? (
+          <p className="text-[12px] text-ink3 py-2">No recent activity</p>
+        ) : (
+          sorted.map((e, i) => {
+            const tc = toneClasses[e.tone]
+            return (
+              <div
+                key={i}
+                className={`flex gap-2.5 items-start py-3 ${i < sorted.length - 1 ? 'border-b border-dashed border-line-2' : ''}`}
+              >
+                <Mono className="text-[10.5px] text-ink3 min-w-[38px] mt-0.5">{e.t}</Mono>
+                <span className={`w-[22px] h-[22px] rounded-[6px] shrink-0 flex items-center justify-center text-[10px] ${tc.bg} ${tc.fg}`}>
+                  {e.tone === 'ai' ? '✦' : e.tone === 'accent' ? '○' : e.tone === 'alert' ? '!' : '✓'}
+                </span>
+                <p className="text-[12.5px] text-ink2 leading-[1.4] flex-1">
+                  <strong className="text-ink">{e.who}</strong>{' '}{e.what}{' '}
+                  <span className="text-ink">{e.tgt}</span>
+                </p>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── SupervisorDashboard ───────────────────────────────────────────────────────
 
 export function SupervisorDashboard() {
   const user = useAuthStore(s => s.user)
@@ -33,18 +361,20 @@ export function SupervisorDashboard() {
     else if (h < 18) setGreeting('Good afternoon')
     else setGreeting('Good evening')
   }, [])
+
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'Supervisor'
+  const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
 
-  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+  const { data: summaryData } = useQuery({
     queryKey: ['daily-summary'],
     queryFn: () => reportsApi.getDailySummary(),
     refetchInterval: 60_000,
   })
 
-  const { data: alertsData, isLoading: alertsLoading } = useQuery({
+  const { data: alertsData } = useQuery({
     queryKey: ['ai-risk-alerts'],
     queryFn: () => aiApi.getRiskAlerts(),
     refetchInterval: 120_000,
@@ -63,14 +393,18 @@ export function SupervisorDashboard() {
   })
 
   const todayISO = format(new Date(), 'yyyy-MM-dd')
+
   const { data: assignmentsData } = useQuery({
     queryKey: ['hk-assignments-today', todayISO],
     queryFn: () => housekeepingApi.getAssignments(todayISO),
     refetchInterval: 60_000,
   })
-  const assignedTotal: number = ((assignmentsData as any)?.data ?? []).reduce(
-    (sum: number, hk: any) => sum + (hk.rooms_assigned ?? 0), 0
-  )
+
+  const { data: boardData } = useQuery({
+    queryKey: ['housekeeping-board-supervisor', todayISO],
+    queryFn: () => housekeepingApi.getBoard(todayISO, undefined, false),
+    refetchInterval: 60_000,
+  })
 
   const summary = summaryData?.data
   const breakdown = summary?.room_status_breakdown ?? {}
@@ -82,239 +416,117 @@ export function SupervisorDashboard() {
   const totalRooms = Object.values(breakdown).reduce((a, b) => a + b, 0)
   const inspected = breakdown['INSPECTED'] ?? 0
   const cleanPending = breakdown['CLEAN'] ?? 0
+  const assignedTotal: number = ((assignmentsData as any)?.data ?? []).reduce(
+    (sum: number, hk: any) => sum + (hk.rooms_assigned ?? 0), 0
+  )
   const inspectedPct = assignedTotal > 0 ? Math.round((inspected / assignedTotal) * 100) : 0
 
-  const priorityStatuses: StatusKey[] = ['DIRTY', 'IN_PROGRESS', 'CLEAN', 'INSPECTED', 'OOO', 'PICKUP']
-
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       {/* Greeting */}
-      <div>
-        <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          {greeting}, {fullName}!
-        </h1>
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
+      <div className="flex items-end justify-between gap-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {' · '}
+            {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </p>
+          <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.05] text-ink mt-2">
+            {greeting}, <em className="italic">{firstName}</em>.
+          </h1>
+          <p className="mt-2.5 text-[14px] text-ink2 max-w-[580px] leading-relaxed">
+            {hkRisks.length > 0
+              ? `${hkRisks.length} room${hkRisks.length > 1 ? 's' : ''} flagged. ${cleanPending > 0 ? `${cleanPending} ready for inspection.` : 'Inspections up to date.'}`
+              : cleanPending > 0
+              ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
+              : 'All rooms accounted for. Good start to the shift.'
+            }
+          </p>
+        </div>
+        <div className="flex gap-2 pb-1 shrink-0">
+          <Link
+            href="/tasks"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-ink text-paper text-[12px] font-semibold rounded-[var(--r-md)] hover:opacity-90 transition-opacity"
+          >
+            New task
+          </Link>
+        </div>
       </div>
 
-      {/* Progress strip */}
-      <div className="grid grid-cols-4 gap-3">
-        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-stone-900">{totalRooms}</p>
-          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Rooms</p>
-        </Card>
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${assignedTotal > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${assignedTotal > 0 ? 'text-amber-700' : 'text-stone-900'}`}>
-            {assignedTotal}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${assignedTotal > 0 ? 'text-amber-600' : 'text-stone-500'}`}>Assigned</p>
-        </Card>
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${cleanPending > 0 ? 'bg-green-50/50 border-green-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${cleanPending > 0 ? 'text-green-600' : 'text-stone-900'}`}>
-            {cleanPending}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${cleanPending > 0 ? 'text-green-600' : 'text-stone-500'}`}>To Inspect</p>
-        </Card>
-        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center bg-emerald-50/50 border-emerald-100">
-          <p className="text-2xl sm:text-3xl font-bold text-emerald-700">{inspectedPct}%</p>
-          <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-wider">Ready</p>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Room status breakdown */}
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700">Room Status Breakdown</h2>
-            <Link href="/housekeeping" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              Board <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {summaryLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-7 bg-stone-100 rounded" />)}
+      {/* Morning briefing */}
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] overflow-hidden bg-surface border border-line rounded-[var(--r-xl)] min-h-[200px] shadow-card">
+          <div className="p-6 flex flex-col gap-3.5">
+            <div className="flex items-center gap-2.5">
+              <AILabel confidence={91}>Morning briefing</AILabel>
+              <span className="text-[11px] font-mono text-ink3">
+                Generated {format(new Date(), 'h:mm a')} · Sonnet 3.5
+              </span>
             </div>
-          ) : (
-            <div className="space-y-1.5">
-              {priorityStatuses.map(s => {
-                const count = breakdown[s] ?? 0
-                if (count === 0 && !['DIRTY', 'CLEAN', 'INSPECTED'].includes(s)) return null
-                return (
-                  <div key={s} className="flex justify-between items-center hover:bg-amber-50/40 rounded-lg px-2 -mx-2 py-1">
-                    <span className="text-sm text-stone-500">{STATUS_LABELS[s]}</span>
-                    <span className="text-sm font-semibold text-stone-800">{count}</span>
-                  </div>
-                )
-              })}
-              {Object.keys(breakdown).length === 0 && (
-                <p className="text-xs text-stone-400 py-2">No room data yet today</p>
-              )}
-            </div>
-          )}
-        </Card>
-
-        {/* Inspection queue */}
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <ClipboardCheck className="w-4 h-4 text-amber-500" />
-              Inspection Queue
-            </h2>
-            <Link href="/housekeeping" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              Go to Board <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {cleanPending === 0 ? (
-            <div className="py-4 text-center">
-              <CheckCircle2 className="w-7 h-7 text-green-300 mx-auto mb-1.5" />
-              <p className="text-sm text-stone-400">No rooms waiting for inspection</p>
-            </div>
-          ) : (
-            <div className="py-2 flex flex-col items-center">
-              <p className="text-3xl font-bold text-green-600">{cleanPending}</p>
-              <p className="text-sm text-stone-500 mt-1">
-                {cleanPending === 1 ? 'room is' : 'rooms are'} clean and ready for inspection
-              </p>
+            <p className="font-display italic text-[20px] leading-[1.35] text-ink tracking-[-0.2px] flex-1">
+              {hkRisks.length > 0
+                ? <>
+                    <span className="not-italic font-sans font-medium bg-[var(--caution-soft)] px-1.5 py-px rounded">{hkRisks.length} rooms flagged</span>
+                    {' '}at risk. {cleanPending > 0 ? `${cleanPending} rooms clean and waiting for inspection.` : 'Inspections up to date.'}
+                  </>
+                : cleanPending > 0
+                ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
+                : 'All rooms accounted for. Good start to the shift.'
+              }
+            </p>
+            <div className="flex items-center gap-2 mt-auto">
               <Link
                 href="/housekeeping"
-                prefetch={false}
-                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm shadow-green-200"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent text-white text-[12px] font-semibold rounded-[var(--r-md)] hover:opacity-90 transition-opacity"
               >
-                Start Inspecting <ArrowRight className="w-3 h-3" />
+                View board
               </Link>
             </div>
-          )}
-        </Card>
-      </div>
-
-      {/* AI Housekeeping Risks */}
-      {(alertsLoading || hkRisks.length > 0) && (
-        <Card className={hkRisks.length > 0 ? 'border-red-200 bg-red-50' : undefined}>
-          <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-            AI Risk Flags
-            {hkRisks.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                {hkRisks.length}
-              </span>
-            )}
-          </h2>
-          {alertsLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[...Array(2)].map((_, i) => <div key={i} className="h-10 bg-red-100 rounded-lg" />)}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {hkRisks.map((r, i) => (
-                <div key={i} className="flex items-center justify-between bg-white/60 rounded-xl px-3 py-2.5 border border-red-100">
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">Room {r.rooms?.room_number ?? '—'}</p>
-                    <p className="text-xs text-stone-500 capitalize">{r.risk_level} risk</p>
-                  </div>
-                  <Link href="/housekeeping/assignments" prefetch={false} className="text-xs text-amber-600 hover:underline">
-                    View
-                  </Link>
+          </div>
+          <div className="bg-ink text-paper p-6 flex flex-col gap-2.5 relative overflow-hidden">
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(circle at 80% 20%, var(--accent) 0%, transparent 50%)', opacity: 0.25 }}
+            />
+            <p className="text-[10px] uppercase tracking-[1.4px] opacity-60 relative">Right now</p>
+            <div className="flex flex-col gap-2.5 relative">
+              {[
+                { label: 'Total rooms', value: totalRooms },
+                { label: 'Assigned',    value: assignedTotal },
+                { label: 'To inspect',  value: cleanPending },
+                { label: 'Ready',       value: `${inspectedPct}%` },
+              ].map(({ label, value }, i) => (
+                <div key={label} className={`flex items-baseline gap-2.5 ${i < 3 ? 'border-b border-white/10 pb-2.5' : ''}`}>
+                  <span className="text-[11px] opacity-60 flex-1 uppercase tracking-[0.5px]">{label}</span>
+                  <span className="font-mono text-[17px] font-medium">{value}</span>
                 </div>
               ))}
             </div>
-          )}
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Guest Requests + Tasks row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-amber-500" />
-              Open Guest Requests
-              {openRequests.length > 0 && (
-                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
-                  {openRequests.length}
-                </span>
-              )}
-            </h2>
-            <Link href="/guest-requests" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {openRequests.length === 0 ? (
-            <div className="py-4 text-center">
-              <CheckCircle2 className="w-7 h-7 text-green-300 mx-auto mb-1.5" />
-              <p className="text-sm text-stone-400">No open guest requests</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {openRequests.map(r => (
-                <Link key={r.id} href="/guest-requests" className="flex items-center gap-3 py-2.5 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
-                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
-                    <Bell className="w-3.5 h-3.5 text-amber-500 group-hover:text-amber-600 transition-colors" />
-                  </div>
-                  <p className="text-sm font-medium text-stone-700 group-hover:text-amber-700 truncate flex-1 transition-colors">{r.title}</p>
-                  {r.rooms?.room_number && (
-                    <Badge variant="default" className="shrink-0">Rm {r.rooms.room_number}</Badge>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-amber-500" />
-              Open Tasks
-              {openTasks.length > 0 && (
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                  {openTasks.length}
-                </span>
-              )}
-            </h2>
-            <Link href="/tasks" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              All <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {openTasks.length === 0 ? (
-            <div className="py-4 text-center">
-              <CheckCircle2 className="w-7 h-7 text-green-300 mx-auto mb-1.5" />
-              <p className="text-sm text-stone-400">No open tasks</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {openTasks.map(t => (
-                <Link key={t.id} href="/tasks" className="flex items-center gap-3 py-2.5 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${t.priority === 'urgent' ? 'bg-red-50 group-hover:bg-red-100' : t.priority === 'normal' ? 'bg-amber-50 group-hover:bg-amber-100' : 'bg-stone-100 group-hover:bg-stone-200'}`}>
-                     <span className={`w-2 h-2 rounded-full ${t.priority === 'urgent' ? 'bg-red-500' : t.priority === 'normal' ? 'bg-amber-500' : 'bg-stone-400'}`} />
-                  </div>
-                  <p className="text-sm font-medium text-stone-700 group-hover:text-blue-700 truncate flex-1 transition-colors">{t.title}</p>
-                  {t.user_profiles && (
-                    <span className="text-xs font-medium text-stone-500 shrink-0">{t.user_profiles.preferred_name}</span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat label="Total Rooms" value={totalRooms} />
+        <Stat label="Assigned" value={assignedTotal} deltaTone={assignedTotal > 0 ? 'caution' : 'ready'} />
+        <Stat label="To Inspect" value={cleanPending} deltaTone={cleanPending > 0 ? 'info' : 'ready'} />
+        <Stat label="Ready" value={`${inspectedPct}%`} deltaTone="ready" />
       </div>
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/housekeeping/assignments" prefetch={false}>
-          <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer">
-            <Users className="w-5 h-5 text-amber-500 mb-2" />
-            <p className="text-sm font-semibold text-stone-700">Manage Assignments</p>
-            <p className="text-xs text-stone-400 mt-0.5">Assign rooms to housekeepers</p>
-          </Card>
-        </Link>
-        <Link href="/housekeeping" prefetch={false}>
-          <Card className="p-4 hover:border-amber-300 transition-colors cursor-pointer">
-            <ClipboardCheck className="w-5 h-5 text-amber-500 mb-2" />
-            <p className="text-sm font-semibold text-stone-700">Run Inspections</p>
-            <p className="text-xs text-stone-400 mt-0.5">Inspect and approve rooms</p>
-          </Card>
-        </Link>
+      {/* Live ops strip */}
+      <LiveOpsGrid />
+
+      {/* Staff progress + Predictions */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-5">
+        <StaffProgress assignmentsData={assignmentsData} />
+        <PredictionsWidget risks={hkRisks} />
+      </div>
+
+      {/* Room grid + Activity feed */}
+      <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-5">
+        <RoomGridMini boardData={boardData} />
+        <ActivityFeed requests={openRequests} tasks={openTasks} risks={hkRisks} />
       </div>
     </div>
   )

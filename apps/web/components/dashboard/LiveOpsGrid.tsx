@@ -2,11 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
-import { hotelsApi } from '@/lib/api/hotels'
-import { engineeringApi } from '@/lib/api/engineering'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import Link from 'next/link'
+import { StatusDot, Bar, SectionLabel, Mono } from '@/components/ui/primitives'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
   if (!accessToken) return ''
@@ -17,160 +13,72 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
   }
 }
 
-function CardSkeleton() {
-  return (
-    <Card className="p-5">
-      <div className="animate-pulse">
-        <div className="h-3 bg-stone-200 rounded w-1/2 mb-4" />
-        <div className="space-y-2">
-          <div className="h-3 bg-stone-200 rounded w-full" />
-          <div className="h-3 bg-stone-200 rounded w-5/6" />
-          <div className="h-3 bg-stone-200 rounded w-4/6" />
-        </div>
-      </div>
-    </Card>
-  )
-}
+type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'ai'
 
-type StatusKey = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
-type BadgeVariant = 'dirty' | 'in_progress' | 'clean' | 'inspected' | 'do_not_disturb' | 'out_of_order' | 'high' | 'medium' | 'low' | 'vip' | 'default'
-
-const STATUS_CONFIG: Record<StatusKey, { label: string; variant: BadgeVariant }> = {
-  DIRTY:       { label: 'Dirty',       variant: 'dirty' },
-  IN_PROGRESS: { label: 'In Progress', variant: 'in_progress' },
-  CLEAN:       { label: 'Clean',       variant: 'clean' },
-  INSPECTED:   { label: 'Inspected',   variant: 'inspected' },
-  OOO:         { label: 'OOO',         variant: 'out_of_order' },
-  PICKUP:      { label: 'Pickup',      variant: 'default' },
-}
-
-const STATUS_ORDER: StatusKey[] = ['DIRTY', 'IN_PROGRESS', 'CLEAN', 'INSPECTED', 'OOO', 'PICKUP']
+const TILES = [
+  { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant dirty', barTone: 'alert'   },
+  { code: 'IN_PROGRESS',tone: 'progress',  label: 'Occupied',     barTone: 'alert'   },
+  { code: 'CLEAN',      tone: 'clean',     label: 'Clean',        barTone: 'info'    },
+  { code: 'INSPECTED',  tone: 'inspected', label: 'Ready',        barTone: 'ready'   },
+  { code: 'PICKUP',     tone: 'pickup',    label: 'Pickup',       barTone: 'caution' },
+  { code: 'OOO',        tone: 'ooo',       label: 'OOO',          barTone: 'caution' },
+] as const
 
 export function LiveOpsGrid() {
   const session = useAuthStore(s => s.session)
   const hotelId = getHotelIdFromSession(session?.access_token)
 
-  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+  const { data: summaryData, isLoading } = useQuery({
     queryKey: ['daily-summary', hotelId],
     queryFn: () => reportsApi.getDailySummary(),
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
     enabled: !!hotelId,
   })
 
-  const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['hotel-stats', hotelId],
-    queryFn: () => hotelsApi.getStats(hotelId),
-    refetchInterval: 60_000,
-    enabled: !!hotelId,
-  })
-
-  const { data: urgentWorkOrdersData, isLoading: urgentWorkOrdersLoading } = useQuery({
-    queryKey: ['urgent-open-work-orders', hotelId],
-    queryFn: () =>
-      engineeringApi.listWorkOrders({
-        status: 'open',
-        priority: 'urgent',
-        per_page: 100,
-      }),
-    refetchInterval: 60_000,
-    enabled: !!hotelId,
-  })
-
-  const summary = summaryData?.data
-  const stats = statsData?.data
-  const isLoading = summaryLoading || statsLoading || urgentWorkOrdersLoading
+  const breakdown: Record<string, number> = summaryData?.data?.room_status_breakdown ?? {}
+  const total = Object.values(breakdown).reduce((a, b) => a + b, 0) || 1
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <CardSkeleton />
-        <CardSkeleton />
-        <CardSkeleton />
-        <CardSkeleton />
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4">
+        <div className="h-4 w-32 bg-surface-3 rounded animate-pulse mb-3" />
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-[88px] bg-surface-2 rounded-[10px] animate-pulse" />
+          ))}
+        </div>
       </div>
     )
   }
 
-  const breakdown = summary?.room_status_breakdown ?? {}
-  const openWorkOrders = summary?.open_work_orders ?? 0
-
-  const urgentWOs = Math.min(openWorkOrders, urgentWorkOrdersData?.data?.length ?? 0)
-  const normalWOs = openWorkOrders - urgentWOs
-
-  const activeStaff = stats?.active_staff ?? 0
-
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Card 1: Room Status */}
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-stone-700 mb-3">Room Status</h3>
-        <div className="space-y-1.5 text-sm">
-          {STATUS_ORDER.map((status) => {
-            const count = breakdown[status] ?? 0
-            if (count === 0 && !['DIRTY', 'CLEAN', 'INSPECTED'].includes(status)) return null
-            const cfg = STATUS_CONFIG[status]
-            return (
-              <Link href={`/housekeeping?status=${status}`} key={status} className="flex justify-between items-center hover:bg-amber-50 rounded-lg px-2 -mx-2 py-1.5 transition-colors group cursor-pointer">
-                <span className="text-stone-500 group-hover:text-amber-700 transition-colors">{cfg.label}</span>
-                <Badge variant={cfg.variant}>{count}</Badge>
-              </Link>
-            )
-          })}
-          {Object.keys(breakdown).length === 0 && (
-            <p className="text-stone-400 text-xs">No data yet</p>
-          )}
-        </div>
-      </Card>
-
-      {/* Card 2: Open Work Orders */}
-      <Card className={openWorkOrders > 5 ? 'border-red-200 bg-red-50 p-5' : 'p-5'}>
-        <h3 className="text-sm font-semibold text-stone-700 mb-3">Open Work Orders</h3>
-        {openWorkOrders === 0 ? (
-          <p className="text-sm text-green-600 font-medium">All clear</p>
-        ) : (
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between items-center hover:bg-amber-50/50 rounded-lg px-1 -mx-1 py-0.5">
-              <span className="text-red-500">Urgent</span>
-              <Badge variant="high">{urgentWOs}</Badge>
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-4">
+      <SectionLabel hint="Real-time">Room status</SectionLabel>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        {TILES.map(({ code, tone, label, barTone }) => {
+          const n = breakdown[code] ?? 0
+          return (
+            <div
+              key={code}
+              className="bg-surface-2 border border-line-2 rounded-[10px] p-3 flex flex-col gap-1.5"
+            >
+              <div className="flex items-center gap-1.5">
+                <StatusDot tone={tone} size={7} />
+                <span className="text-[11px] text-ink3 font-medium leading-none truncate">{label}</span>
+              </div>
+              <div className="font-display text-[28px] leading-none text-ink">{n}</div>
+              <Bar value={n} max={total} tone={barTone as BarTone} height={3} />
             </div>
-            <div className="flex justify-between items-center hover:bg-amber-50/50 rounded-lg px-1 -mx-1 py-0.5">
-              <span className="text-stone-500">Normal</span>
-              <Badge variant="medium">{normalWOs}</Badge>
-            </div>
-            <div className="flex justify-between items-center border-t border-stone-100 pt-1.5 mt-1">
-              <span className="text-stone-500 font-medium">Total</span>
-              <span className="font-semibold text-stone-800">{openWorkOrders}</span>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Card 3: Staff on Shift */}
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-stone-700 mb-3">Staff On Shift</h3>
-        {activeStaff > 0 ? (
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between items-center hover:bg-amber-50/50 rounded-lg px-1 -mx-1 py-0.5">
-              <span className="text-stone-500">Active today</span>
-              <span className="font-semibold text-stone-900">{activeStaff}</span>
-            </div>
-            <p className="text-xs text-stone-400 mt-2">Schedule detail on Scheduling page</p>
-          </div>
-        ) : (
-          <p className="text-sm text-stone-400">No shift data</p>
-        )}
-      </Card>
-
-      {/* Card 4: Today's Arrivals */}
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-stone-700 mb-3">Today's Arrivals</h3>
-        <p className="text-3xl font-bold text-stone-900">—</p>
-        <div className="mt-2">
-          <Link href="/settings" className="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
-            Connect PMS for live arrivals &rarr;
-          </Link>
-        </div>
-      </Card>
+          )
+        })}
+      </div>
+      <div className="flex items-center gap-2 mt-3.5 text-[12px] text-ink3">
+        <Mono>{total} rooms total</Mono>
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[var(--ready)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--ready)] inline-block" />
+          Live
+        </span>
+      </div>
     </div>
   )
 }

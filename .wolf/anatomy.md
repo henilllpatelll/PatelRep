@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T03:06:24.718Z
-> Files: 83 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T05:06:53.797Z
+> Files: 96 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -418,6 +418,26 @@
 ## Docker Context Additions
 
 
+## design_handoff_frontend_rework/
+
+- `README.md` — Design handoff implementation brief for the frontend rework (~2000 tok)
+- `app.jsx` — Static design handoff React entry component (~800 tok)
+- `dashboards.jsx` — Static dashboard mockups for the design handoff (~1600 tok)
+- `design-canvas.jsx` — Static design handoff canvas wrapper (~900 tok)
+- `index.html` — Static Vite/React handoff preview shell (~200 tok)
+- `primitives.jsx` — Static handoff UI primitives (~2200 tok)
+- `screen-ai.jsx` — Static AI screen mockup (~1800 tok)
+- `screen-auth.jsx` — Static auth screen mockup (~1500 tok)
+- `screen-engineering.jsx` — Static engineering screen mockup (~1800 tok)
+- `screen-housekeeping.jsx` — Static housekeeping screen mockup (~1800 tok)
+- `screen-mobile.jsx` — Static mobile screen mockup (~1400 tok)
+- `screen-ops.jsx` — Static operations screen mockup (~1700 tok)
+- `screen-org.jsx` — Static organization screen mockup (~1700 tok)
+- `shell.jsx` — Static application shell mockup (~1600 tok)
+- `tokens.css` — Design handoff CSS token definitions (~1200 tok)
+- `tweaks-panel.jsx` — Static handoff tweak controls (~1200 tok)
+
+
 ## apps/api/
 
 
@@ -505,15 +525,22 @@
 
 ## apps/web/app/
 
-- `globals.css` — Styles: 10 rules, 49 vars (~860 tok)
+- `globals.css` — Styles: 10 rules, 78 vars (~1116 tok)
 - `layout.tsx` — ibmPlexSans (~346 tok)
+- `error.tsx` — Root error fallback with retry and home actions (~500 tok)
+- `not-found.tsx` — Root 404 fallback screen (~350 tok)
 
 ## apps/web/app/(auth)/login/
 
+- `page.tsx` — Spinner — renders form (~3410 tok)
+
+## apps/web/app/auth/callback/
+
+- `page.tsx` — Supabase auth callback handling and redirect states (~1500 tok)
 
 ## apps/web/app/(dashboard)/ai/
 
-- `page.tsx` — genId (~6460 tok)
+- `page.tsx` — genId (~6186 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
@@ -521,7 +548,7 @@
 
 ## apps/web/app/(dashboard)/dashboard/
 
-- `page.tsx` — GMDashboard (~983 tok)
+- `page.tsx` — GMDashboard (~988 tok)
 
 ## apps/web/app/(dashboard)/engineering/assets/
 
@@ -537,7 +564,7 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~3514 tok)
+- `page.tsx` — dynamic (~3526 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
@@ -545,14 +572,14 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~7748 tok)
+- `page.tsx` — SHIFTS (~7042 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
-- `page.tsx` — todayISO — renders table (~2568 tok)
+- `page.tsx` — todayISO — renders table (~3150 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
@@ -575,7 +602,7 @@
 
 ## apps/web/app/(dashboard)/scheduling/
 
-- `page.tsx` — DEPARTMENTS (~16234 tok)
+- `page.tsx` — DEPARTMENTS (~16698 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
@@ -589,48 +616,59 @@
 
 ## apps/web/app/(dashboard)/sop/
 
-- `page.tsx` — CATEGORIES (~8349 tok)
+- `page.tsx` — CATEGORIES (~7733 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS — renders form (~13120 tok)
+- `page.tsx` — ROLE_OPTIONS (~14502 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — STATUS_TABS — renders form (~11427 tok)
+- `page.tsx` — TASK_TYPES — renders form (~11507 tok)
 
 ## apps/web/components/ai/
 
-- `AICopilotBubble.tsx` — generateId (~5352 tok)
+- `AICopilotBubble.tsx` — generateId (~5296 tok)
 - `cards.tsx` — Canonical WorkOrderCard, GuestRequestCard, AssignmentCard using stone-* colors; shared by AICopilotBubble and ai/page (~300 tok)
 - `cards.tsx` — priorityBadge (~744 tok)
 
 ## apps/web/components/dashboard/
 
-- `LiveOpsGrid.tsx` — getHotelIdFromSession (~1939 tok)
-- `ROIMetricsStrip.tsx` — MetricCard (~1302 tok)
+- `AIRiskAlertsPanel.tsx` — AIRiskAlertsPanel (~1701 tok)
+- `ChiefEngineerDashboard.tsx` — SkeletonRow (~3956 tok)
+- `EngineerDashboard.tsx` — PRIORITY_TONE (~1906 tok)
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~3076 tok)
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~2772 tok)
+- `LiveOpsGrid.tsx` — getHotelIdFromSession (~954 tok)
+- `ROIMetricsStrip.tsx` — getHotelIdFromSession (~684 tok)
+- `SupervisorDashboard.tsx` — avatarColor (~6508 tok)
 - `TrendChartsRow.tsx` — getHotelIdFromSession (~2454 tok)
 
 ## apps/web/components/engineering/
 
-- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~9633 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~10188 tok)
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_BORDER (~3752 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3578 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8297 tok)
-- `RoomStatusBoard.tsx` — STATUS_DOT_HEX (~4600 tok)
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~4275 tok)
 
 ## apps/web/components/shared/
 
-- `DashboardShell.tsx` — DashboardShell (~368 tok)
-- `Header.tsx` — PAGE_TITLES (~2078 tok)
+- `DashboardShell.tsx` — DashboardShell (~448 tok)
+- `Header.tsx` — ROLE_LABELS (~2482 tok)
+- `PageHeader.tsx` — PageHeader (~654 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~3555 tok)
 
 ## apps/web/components/ui/
 
 - `Badge.tsx` — BADGE_VARIANTS (~552 tok)
 - `Button.tsx` — VARIANTS (~493 tok)
+- `Card.tsx` — Card (~183 tok)
+- `Input.tsx` — Input (~217 tok)
+- `primitives.tsx` — ── Pill ───────────────────────────────────────────────────────────────────── (~2009 tok)
+- `Skeleton.tsx` — Skeleton (~190 tok)
 
 ## apps/web/lib/ai/
 
@@ -646,6 +684,7 @@
 
 ## apps/web/stores/
 
+- `uiPreferencesStore.ts` — Exports useUIPreferencesStore (~202 tok)
 
 ## e2e/
 

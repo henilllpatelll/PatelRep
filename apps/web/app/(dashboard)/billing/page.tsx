@@ -32,9 +32,9 @@ const STATUS_CONFIG: Record<
   Subscription['plan_status'],
   { label: string; className: string }
 > = {
-  trialing:  { label: 'Trial',     className: 'bg-blue-100 text-blue-700' },
-  active:    { label: 'Active',    className: 'bg-green-100 text-green-700' },
-  past_due:  { label: 'Past Due',  className: 'bg-red-100 text-red-700' },
+  trialing:  { label: 'Trial',     className: 'bg-blue-100 text-[var(--info)]' },
+  active:    { label: 'Active',    className: 'bg-green-100 text-[var(--ready)]' },
+  past_due:  { label: 'Past Due',  className: 'bg-[var(--alert-soft)] text-[var(--alert)]' },
   cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-500' },
   paused:    { label: 'Paused',    className: 'bg-orange-100 text-orange-700' },
 }
@@ -53,7 +53,7 @@ function StatusBadge({ status }: { status: Subscription['plan_status'] }) {
 // ─── Credit bar color ──────────────────────────────────────────────────────────
 
 function creditBarColor(pct: number): string {
-  if (pct > 95) return 'bg-red-500'
+  if (pct > 95) return 'bg-[var(--alert)]'
   if (pct > 80) return 'bg-orange-500'
   return 'bg-amber-400'
 }
@@ -62,7 +62,7 @@ function creditBarColor(pct: number): string {
 
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+    <div className="bg-surface rounded-xl border border-gray-200 p-6 animate-pulse">
       <div className="h-5 bg-gray-200 rounded w-1/3 mb-4" />
       <div className="border-t border-gray-100 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
@@ -150,7 +150,7 @@ export default function BillingPage() {
       {subLoading ? (
         <SkeletonCard rows={5} />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-surface rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-1">
             <CreditCard className="h-5 w-5 text-gray-400" />
             <h2 className="text-base font-semibold text-gray-900">Current Plan</h2>
@@ -189,7 +189,7 @@ export default function BillingPage() {
             {subData?.plan_status === 'trialing' && subData.trial_end && (
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Trial ends</span>
-                <span className="font-medium text-blue-700">
+                <span className="font-medium text-[var(--info)]">
                   {formatDate(subData.trial_end)}
                 </span>
               </div>
@@ -215,7 +215,7 @@ export default function BillingPage() {
       {creditLoading ? (
         <SkeletonCard rows={5} />
       ) : creditData ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-surface rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="h-5 w-5 text-gray-400" />
             <h2 className="text-base font-semibold text-gray-900">
@@ -240,10 +240,10 @@ export default function BillingPage() {
             <span
               className={`text-sm font-semibold ${
                 creditPct > 95
-                  ? 'text-red-600'
+                  ? 'text-[var(--alert)]'
                   : creditPct > 80
                   ? 'text-orange-600'
-                  : 'text-amber-600'
+                  : 'text-[var(--caution)]'
               }`}
             >
               {creditPct}%
@@ -294,7 +294,7 @@ export default function BillingPage() {
       ) : null}
 
       {/* ── Section 3: Pricing Details (static) ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-surface rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-1">
           <CheckCircle className="h-5 w-5 text-gray-400" />
           <h2 className="text-base font-semibold text-gray-900">Pricing Details</h2>

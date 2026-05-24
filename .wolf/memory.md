@@ -2,6 +2,8 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| design-rework | Implemented frontend rework from design_handoff_frontend_rework/README.md: fixed Card/Input tokens, created primitives.tsx (Pill/Stat/AILabel/SectionLabel/Mono/Bar), upgraded Header to TopBar (search+AI+bell), rewrote GMDashboard/SupervisorDashboard/HousekeeperDashboard with Instrument Serif greeting + Stat tiles, replaced stone/amber colors with CSS var tokens across 35+ files, added PageHeader component, created ROIMetricsStrip using Stat primitive | apps/web/** | build passes, tsc clean | ~8000 tok |
+| design-rework-2 | Redesigned ChiefEngineerDashboard and FrontDeskDashboard: font-mono eyebrow greeting, font-display italic h1, Stat strip (4 stats), SectionLabel card headers, Pill tone badges, AI insight callout with AILabel + font-display italic text, work order rows with priority left-border, Mono room chips, consistent bg-surface/border-line/shadow-card cards | ChiefEngineerDashboard.tsx, FrontDeskDashboard.tsx | tsc clean (pre-existing sop/page.tsx error unrelated) | ~2500 tok |
 | 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
 | 10:30 | Pass 2 frontend audit — 13 page/component areas (Dashboard, Engineering×5, Staff, Scheduling, SOP, Logbook, Lost&Found, Settings×3, Onboarding, RoomCard, RoomDetailDrawer, Login) | FRONTEND_AUDIT.md | appended 53 findings (#41–#93) + 21-item priority order; 2 critical DO-NOT-REPEAT violations confirmed (logbook UTC bug, Opera auth_code flow) | ~48000 tok |
 | 19:13 | Fix #30: added commentSuccess state + 2s auto-clear + "Comment added ✓" message to TaskDetailDrawer | tasks/page.tsx | done | ~200 tok |
@@ -1676,3 +1678,113 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:06 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~38 |
 | $(date +%H:%M) | Implemented design rework from Claude Design handoff (sqdiA16RxUB8hJ9ZRBoh0Q) | layout.tsx, globals.css, tailwind.config.ts, Sidebar.tsx, Header.tsx, DashboardShell.tsx, RoomCard.tsx, Badge.tsx, Button.tsx, AICopilotBubble.tsx | Full warm hospitality design system applied; TypeScript clean | ~8000 |
 | 22:06 | Session end: 18 writes across 10 files (layout.tsx, globals.css, tailwind.config.ts, Sidebar.tsx, Header.tsx) | 7 reads | ~28648 tok |
+
+## Session: 2026-05-24 22:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:43 | Edited apps/web/components/ui/Card.tsx | CSS: borderLeftColor | ~176 |
+| 22:43 | Edited apps/web/components/ui/Input.tsx | 9→9 lines | ~122 |
+| 22:44 | Created apps/web/components/ui/primitives.tsx | — | ~2009 |
+| 22:45 | Created apps/web/components/shared/Header.tsx | — | ~2482 |
+| 22:45 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | modified GMDashboard() | ~382 |
+| 22:45 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 10→10 lines | ~104 |
+| 22:46 | Created apps/web/components/dashboard/ROIMetricsStrip.tsx | — | ~684 |
+| 22:46 | Edited apps/web/components/ui/Skeleton.tsx | "bg-stone-100 animate-puls" → "bg-surface-3 animate-puls" | ~20 |
+| 22:46 | Edited apps/web/components/ui/Skeleton.tsx | 2→2 lines | ~33 |
+| 22:47 | Created apps/web/components/shared/PageHeader.tsx | — | ~654 |
+| 23:11 | Created apps/web/components/dashboard/SupervisorDashboard.tsx | — | ~4163 |
+| 23:11 | Created apps/web/components/dashboard/HousekeeperDashboard.tsx | — | ~2257 |
+| 23:13 | Edited apps/web/components/dashboard/AIRiskAlertsPanel.tsx | modified if() | ~100 |
+| 23:15 | Session end: 13 writes across 11 files (Card.tsx, Input.tsx, primitives.tsx, Header.tsx, page.tsx) | 25 reads | ~33805 tok |
+
+## Session: 2026-05-24 23:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:44 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | 9→9 lines | ~126 |
+| 23:44 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | 42→42 lines | ~705 |
+| 23:44 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | 35→35 lines | ~698 |
+| 23:44 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | 11→11 lines | ~194 |
+| 23:44 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | inline fix | ~7 |
+| 23:45 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | inline fix | ~10 |
+| 23:45 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 16→16 lines | ~254 |
+| 23:45 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 10→10 lines | ~236 |
+| 23:45 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | inline fix | ~7 |
+| 23:45 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | inline fix | ~10 |
+| 23:46 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | inline fix | ~10 |
+| 23:46 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 44→44 lines | ~326 |
+| 23:46 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→3 lines | ~44 |
+| 23:46 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~28 |
+| 23:46 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→3 lines | ~42 |
+| 23:47 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 6→6 lines | ~94 |
+| 23:47 | Edited apps/web/components/housekeeping/RoomCard.tsx | "text-xs text-purple-400 m" → "text-xs text-[var(--ai)] " | ~20 |
+| 23:47 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | modified SkeletonGrid() | ~122 |
+| 23:47 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→5 lines | ~100 |
+| 23:47 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | "pointer-events-none absol" → "pointer-events-none absol" | ~36 |
+| 23:47 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | expanded (+45 lines) | ~880 |
+| 23:48 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 2→2 lines | ~54 |
+| 23:50 | Design rework: fixed dashboard greetings, token colors, status chips | EngineerDashboard, ChiefEngineerDashboard, FrontDeskDashboard, RoomStatusBoard, RoomCard | Pass | ~2400 |
+| 23:50 | Session end: 22 writes across 6 files (EngineerDashboard.tsx, ChiefEngineerDashboard.tsx, FrontDeskDashboard.tsx, RoomStatusBoard.tsx, RoomCard.tsx) | 21 reads | ~35074 tok |
+| 23:52 | Session end: 22 writes across 6 files (EngineerDashboard.tsx, ChiefEngineerDashboard.tsx, FrontDeskDashboard.tsx, RoomStatusBoard.tsx, RoomCard.tsx) | 21 reads | ~35074 tok |
+
+## Session: 2026-05-24 23:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:57 | Created apps/web/components/dashboard/LiveOpsGrid.tsx | — | ~954 |
+| 23:58 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: STATUS_STRIP_COLOR, STATUS_PILL_TONE | ~563 |
+| 23:59 | Created apps/web/components/dashboard/SupervisorDashboard.tsx | — | ~6508 |
+| 23:59 | Created apps/web/stores/uiPreferencesStore.ts | — | ~202 |
+| 23:59 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: roomTypeName, AI | ~2674 |
+| 23:59 | Edited apps/web/components/shared/DashboardShell.tsx | added 1 import(s) | ~201 |
+| 23:59 | Created apps/web/app/(auth)/login/page.tsx | — | ~3410 |
+| 23:59 | Edited apps/web/app/(dashboard)/staff/page.tsx | 17→17 lines | ~226 |
+| 23:59 | Created apps/web/app/(dashboard)/ai/page.tsx | — | ~6186 |
+| 23:59 | Created apps/web/components/dashboard/HousekeeperDashboard.tsx | — | ~2772 |
+| 00:00 | Edited apps/web/app/(dashboard)/staff/page.tsx | reduced (-12 lines) | ~749 |
+| 00:00 | Edited apps/web/app/globals.css | expanded (+39 lines) | ~297 |
+| 00:00 | Created apps/web/components/dashboard/EngineerDashboard.tsx | — | ~1906 |
+| 00:00 | Created apps/web/components/housekeeping/RoomStatusBoard.tsx | — | ~4275 |
+| 00:01 | Created apps/web/components/ai/AICopilotBubble.tsx | — | ~5296 |
+| 00:01 | Edited apps/web/app/(dashboard)/staff/page.tsx | reduced (-35 lines) | ~1290 |
+| 00:02 | Created apps/web/components/dashboard/ChiefEngineerDashboard.tsx | — | ~3956 |
+| 00:02 | Created apps/web/app/(dashboard)/housekeeping/page.tsx | — | ~7042 |
+| 00:02 | Session end: 18 writes across 12 files (LiveOpsGrid.tsx, RoomCard.tsx, SupervisorDashboard.tsx, uiPreferencesStore.ts, DashboardShell.tsx) | 52 reads | ~229122 tok |
+
+## Session: 2026-05-24 00:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:02 | Created apps/web/app/(dashboard)/sop/page.tsx | — | ~7733 |
+| 00:02 | Created apps/web/components/dashboard/FrontDeskDashboard.tsx | — | ~3076 |
+| 00:03 | Created apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | — | ~3150 |
+| 00:03 | Edited apps/web/app/(dashboard)/staff/page.tsx | 63→63 lines | ~956 |
+| 00:04 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 7→7 lines | ~97 |
+| 00:04 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 16→16 lines | ~207 |
+
+## Session: 2026-05-24 00:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:04 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 11→11 lines | ~172 |
+| 00:04 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 56→56 lines | ~800 |
+| 00:04 | Created apps/web/app/(dashboard)/engineering/work-orders/page.tsx | — | ~3526 |
+| 00:05 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 79→79 lines | ~1022 |
+| 00:05 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | CSS: placeholder | ~1406 |
+
+## Session: 2026-05-24 00:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:06 | Created apps/web/components/engineering/WorkOrderDetailDrawer.tsx | — | ~10188 |
+| 00:06 | Created apps/web/app/(dashboard)/tasks/page.tsx | — | ~11507 |
+| 00:12 | Loaded frontend/design/TDD skills and OpenWolf project instructions | .wolf/OPENWOLF.md, .wolf/anatomy.md, .wolf/cerebrum.md | Ready to inspect handoff and app structure | ~16000 |
+| 00:12 | Located untracked design handoff directory and updated OpenWolf anatomy | .wolf/anatomy.md, design_handoff_frontend_rework/* | Handoff files are now mapped for inspection | ~1200 |
+| 00:12 | Read frontend handoff README and workspace scripts | design_handoff_frontend_rework/README.md, package.json, apps/web/package.json | Confirmed rework is UI-layer only with Tailwind tokens, primitives, shell, dashboards, and responsive screens | ~9000 |
+| 00:15 | Ran web lint/type-check and fixed reported failures | apps/web/lib/api/sop.ts, apps/web/lib/api/tasks.ts, apps/web/app/(dashboard)/sop/page.tsx, apps/web/components/dashboard/SupervisorDashboard.tsx | Web lint and type-check now pass | ~4500 |
+| 00:21 | Cleaned invalid token classes, undefined brand classes, and old amber CTA gradients | apps/web/**/*.tsx | Tailwind token scan clean except intentional room-board scroll fade | ~2500 |
+| 00:23 | Fixed PowerShell encoding fallout and reran production web build | apps/web/app/(dashboard)/scheduling/page.tsx | `npm run build --workspace=@patelrep/web` passes | ~1800 |
+| 00:24 | Ran Playwright visual smoke on local login desktop/mobile | http://127.0.0.1:3000/login | Warm paper/accent tokens render, no console/page errors, no horizontal overflow | ~1000 |
+| 00:24 | Session summary: implemented/finished frontend design handoff cleanup, verified gates, and recorded OpenWolf learnings | apps/web, .wolf/cerebrum.md, .wolf/buglog.json | Ready to hand back with remaining authenticated visual risk noted | ~1000 |
+| 00:34 | Created publish branch and staged frontend rework scope | apps/web, .wolf/anatomy.md, .wolf/buglog.json, .wolf/cerebrum.md, .wolf/memory.md | Runtime OpenWolf files and untracked handoff prototype kept out of commit | ~900 |

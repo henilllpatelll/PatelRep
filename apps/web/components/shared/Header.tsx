@@ -1,39 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
-import { LogOut, Settings, ChevronDown, Menu } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { useHotelStore } from '@/stores/hotelStore'
-import type { UserRole } from '@/stores/authStore'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
-
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/housekeeping': 'Housekeeping',
-  '/housekeeping/assignments': 'Assignments',
-  '/housekeeping/inspections': 'Inspections',
-  '/housekeeping/rooms': 'All Rooms',
-  '/engineering': 'Engineering',
-  '/engineering/work-orders': 'Work Orders',
-  '/engineering/assets': 'Assets',
-  '/engineering/pm-schedules': 'PM Schedules',
-  '/engineering/predictions': 'Predictions',
-  '/staff': 'Staff',
-  '/scheduling': 'Schedule',
-  '/logbook': 'Logbook',
-  '/sop': 'SOP Library',
-  '/reports': 'Reports',
-  '/billing': 'Billing',
-  '/settings': 'Settings',
-  '/settings/billing': 'Billing',
-  '/settings/integrations': 'Integrations',
-  '/guest-requests': 'Guest Requests',
-  '/lost-found': 'Lost & Found',
-  '/tasks': 'Tasks',
-  '/onboarding': 'Setup',
-  '/ai': 'AI Copilot',
-}
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+import type { UserRole } from '@/stores/authStore'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm: 'General Manager',
@@ -49,19 +23,11 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle }: HeaderProps) {
-  const pathname = usePathname()
   const router = useRouter()
   const { user, signOut } = useAuth()
-  const { hotel } = useHotelStore()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [searchFocused, setSearchFocused] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  const title =
-    PAGE_TITLES[pathname] ??
-    Object.entries(PAGE_TITLES)
-      .sort((a, b) => b[0].length - a[0].length)
-      .find(([key]) => pathname.startsWith(key + '/'))?.[1] ??
-    'PatelRep'
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -84,37 +50,41 @@ export function Header({ onMenuToggle }: HeaderProps) {
     router.push('/login')
   }
 
-  // Close dropdown when clicking outside or pressing Escape
+  const handleCopilotOpen = useCallback(() => {
+    document.dispatchEvent(new CustomEvent('copilot:open'))
+  }, [])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault()
+        handleCopilotOpen()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        document.getElementById('topbar-search')?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleCopilotOpen])
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false)
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setDropdownOpen(false)
-        return
-      }
+      if (e.key === 'Escape') { setDropdownOpen(false); return }
       if (e.key !== 'Tab') return
-
       const items = Array.from(
         dropdownRef.current?.querySelectorAll<HTMLButtonElement>('[data-user-menu-item]') ?? [],
       )
-      if (items.length === 0) return
-
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
+      if (!items.length) return
+      const first = items[0]; const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
     }
     if (dropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
@@ -129,68 +99,119 @@ export function Header({ onMenuToggle }: HeaderProps) {
     }
   }, [dropdownOpen])
 
+  const today = format(new Date(), 'EEE, MMM d')
+  const hour = new Date().getHours()
+  const shift = hour < 15 ? 'Day shift' : hour < 23 ? 'Evening shift' : 'Night shift'
+
   return (
-    <header className="h-12 flex items-center justify-between px-4 md:px-6 bg-paper/90 backdrop-blur-xl border-b border-line sticky top-0 z-50 shrink-0">
-      <div className="flex items-center gap-3">
-        {/* Hamburger — mobile only */}
-        <button
-          onClick={onMenuToggle}
-          className="md:hidden -ml-2 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-surface-2 transition-colors text-ink3 hover:text-ink"
-          aria-label="Open menu"
-        >
-          <Menu size={17} />
-        </button>
-        <span className="text-sm font-medium text-ink tracking-tight">{title}</span>
+    <header className="h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 z-50 shrink-0 gap-3">
+      {/* Hamburger — mobile only */}
+      <button
+        onClick={onMenuToggle}
+        className="md:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-2 transition-colors text-ink3 hover:text-ink shrink-0"
+        aria-label="Open menu"
+      >
+        <Menu size={16} />
+      </button>
+
+      {/* Search */}
+      <div className={cn(
+        'hidden md:flex items-center gap-2 bg-surface border border-line rounded-[9px] px-3 py-2 transition-all duration-150 flex-1 max-w-[480px]',
+        searchFocused ? 'border-accent ring-2 ring-[var(--accent-soft)]' : 'hover:border-ink4'
+      )}>
+        <Search size={13} className="text-ink3 shrink-0" />
+        <input
+          id="topbar-search"
+          type="text"
+          placeholder="Search rooms, work orders, guests…"
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          className="text-[13px] text-ink placeholder:text-ink3 bg-transparent outline-none flex-1 min-w-0"
+        />
+        <kbd className="hidden lg:inline-flex font-mono text-[10px] text-ink3 bg-surface-3 border border-line px-[5px] py-px rounded shrink-0">
+          ⌘K
+        </kbd>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* User dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex min-h-[36px] min-w-[36px] items-center justify-center gap-2 rounded-lg hover:bg-surface-2 transition-colors px-1.5"
-            aria-haspopup="true"
-            aria-expanded={dropdownOpen}
-            aria-label={`User menu for ${fullName}`}
-          >
-            <div className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
-              {initials}
-            </div>
-            <ChevronDown
-              size={12}
-              className={`text-ink3 transition-transform duration-150 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
+      {/* Spacer */}
+      <div className="flex-1" />
 
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-[var(--shadow-pop)] py-1 z-50">
-              <div className="px-4 py-2.5 border-b border-line-2">
-                <p className="text-sm font-medium text-ink truncate">{fullName}</p>
-                {roleLabel && <p className="text-xs text-ink3 mt-0.5 truncate">{roleLabel}</p>}
-              </div>
-              <div className="py-1">
-                <button
-                  data-user-menu-item
-                  onClick={() => { setDropdownOpen(false); router.push('/settings') }}
-                  className="w-full min-h-[40px] flex items-center gap-2.5 px-4 py-2 text-sm text-ink2 hover:bg-surface-2 hover:text-ink transition-colors"
-                >
-                  <Settings size={14} className="text-ink3 shrink-0" />
-                  Settings
-                </button>
-              </div>
-              <div className="border-t border-line-2 py-1">
-                <button
-                  data-user-menu-item
-                  onClick={handleSignOut}
-                  className="w-full min-h-[40px] flex items-center gap-2.5 px-4 py-2 text-sm text-alert hover:bg-alert-soft transition-colors"
-                >
-                  <LogOut size={14} className="shrink-0" />
-                  Sign Out
-                </button>
-              </div>
+      {/* Date + shift */}
+      <div className="hidden lg:flex items-center gap-1.5 text-[12px] text-ink2 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-ready shrink-0" />
+        <span className="font-mono">{today} · {shift}</span>
+      </div>
+
+      <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
+
+      {/* Ask copilot */}
+      <button
+        onClick={handleCopilotOpen}
+        className="hidden md:inline-flex items-center gap-1.5 bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)] px-2.5 h-8 rounded-lg text-[12px] font-medium hover:opacity-90 transition-opacity shrink-0"
+        aria-label="Open AI Copilot (⌘J)"
+      >
+        <Sparkles size={13} />
+        <span>Ask copilot</span>
+        <span className="font-mono text-[10px] opacity-60 ml-1">⌘J</span>
+      </button>
+
+      {/* Notification bell */}
+      <button
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0"
+        aria-label="Notifications"
+      >
+        <Bell size={14} />
+        <span className="absolute -top-[3px] -right-[3px] w-[14px] h-[14px] rounded-full bg-accent text-white text-[9px] font-bold font-mono flex items-center justify-center border-2 border-paper">
+          3
+        </span>
+      </button>
+
+      {/* User dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setDropdownOpen((prev) => !prev)}
+          className="flex min-h-[32px] min-w-[32px] items-center justify-center gap-1.5 rounded-lg hover:bg-surface-2 transition-colors px-1"
+          aria-haspopup="true"
+          aria-expanded={dropdownOpen}
+          aria-label={`User menu for ${fullName}`}
+        >
+          <div className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
+            {initials}
+          </div>
+          <ChevronDown
+            size={11}
+            className={cn('text-ink3 transition-transform duration-150 shrink-0 hidden md:block', dropdownOpen && 'rotate-180')}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-pop py-1 z-50">
+            <div className="px-4 py-2.5 border-b border-line-2">
+              <p className="text-[13px] font-medium text-ink truncate">{fullName}</p>
+              {roleLabel && <p className="text-[11px] text-ink3 mt-0.5 truncate">{roleLabel}</p>}
             </div>
-          )}
-        </div>
+            <div className="py-1">
+              <button
+                data-user-menu-item
+                onClick={() => { setDropdownOpen(false); router.push('/settings') }}
+                className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-ink2 hover:bg-surface-2 hover:text-ink transition-colors"
+              >
+                <Settings size={13} className="text-ink3 shrink-0" />
+                Settings
+              </button>
+            </div>
+            <div className="border-t border-line-2 py-1">
+              <button
+                data-user-menu-item
+                onClick={handleSignOut}
+                className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-alert hover:bg-[var(--alert-soft)] transition-colors"
+              >
+                <LogOut size={13} className="shrink-0" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   )

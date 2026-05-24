@@ -1,17 +1,17 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { X, BookOpen, Loader2, AlertCircle, Lightbulb, FileText } from 'lucide-react'
 import { sopApi, SOPQueryResult, SOPSource, SuggestedTask } from '@/lib/api/sop'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface SOPQueryModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function LoadingDots() {
   return (
@@ -31,7 +31,7 @@ function priorityBadgeClass(priority: SuggestedTask['priority']): string {
 
 function taskTypeBadgeClass(taskType: SuggestedTask['task_type']): string {
   if (taskType === 'housekeeping') return 'bg-purple-100 text-purple-700'
-  if (taskType === 'engineering') return 'bg-amber-100 text-amber-700'
+  if (taskType === 'engineering') return 'bg-amber-100 text-[var(--caution)]'
   if (taskType === 'guest_request') return 'bg-teal-100 text-teal-700'
   return 'bg-gray-100 text-gray-600'
 }
@@ -86,7 +86,7 @@ function AnswerBlock({ answer }: { answer: string }) {
           if (stepMatch) {
             return (
               <div key={i} className="flex gap-2.5 items-start">
-                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold flex items-center justify-center">
+                <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-[var(--caution)] text-xs font-semibold flex items-center justify-center">
                   {stepMatch[1].replace(/[.)]/g, '')}
                 </span>
                 <p className="text-sm text-gray-800 leading-relaxed">{stepMatch[2]}</p>
@@ -108,7 +108,7 @@ function AnswerBlock({ answer }: { answer: string }) {
   )
 }
 
-// ── Main Modal ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
   const [question, setQuestion] = useState('')
@@ -197,7 +197,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Ask AI about SOPs"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-2xl p-6 relative"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-2xl p-6 relative"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -235,7 +235,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-gray-400">
-                Shift+Enter for new line · Enter to ask
+                Shift+Enter for new line Â· Enter to ask
               </p>
               <button
                 onClick={handleAsk}
@@ -245,7 +245,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                 {loading ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Searching…
+                    Searchingâ€¦
                   </>
                 ) : (
                   'Ask AI'
@@ -259,7 +259,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
             <div className="mt-5 border-t border-gray-100 pt-5">
               <LoadingDots />
               <p className="text-xs text-gray-400 mt-1">
-                Searching your SOP library…
+                Searching your SOP libraryâ€¦
               </p>
             </div>
           )}
@@ -267,8 +267,8 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
           {/* Error state */}
           {error && !loading && (
             <div className="mt-5 border-t border-gray-100 pt-5">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
-                <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200">
+                <AlertCircle size={16} className="text-[var(--alert)] shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             </div>
@@ -282,7 +282,7 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Answer
                 </h3>
-                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-4">
+                <div className="bg-[var(--caution-soft)] border border-amber-100 rounded-xl px-4 py-4">
                   <AnswerBlock answer={result.answer} />
                 </div>
               </div>
@@ -308,11 +308,11 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       Suggested Tasks
                     </h3>
-                    <Lightbulb size={12} className="text-amber-500" />
+                    <Lightbulb size={12} className="text-[var(--caution)]" />
                   </div>
                   <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
                     {result.suggested_tasks.map((task, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 bg-white">
+                      <div key={i} className="flex items-center justify-between gap-3 px-4 py-3 bg-surface">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {task.title}
@@ -336,13 +336,13 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                   <div className="mt-3 flex justify-end">
                     <button
                       onClick={handleCreateTasks}
-                      className="px-4 py-2 text-sm font-medium text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-[var(--caution)] border border-amber-300 rounded-lg hover:bg-[var(--caution-soft)] transition-colors"
                     >
                       Create Tasks
                     </button>
                   </div>
                   {taskMessage && (
-                    <p className="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2" role="status">
+                    <p className="mt-2 text-sm text-green-700 bg-[var(--ready-soft)] border border-green-200 rounded-lg px-3 py-2" role="status">
                       {taskMessage}
                     </p>
                   )}

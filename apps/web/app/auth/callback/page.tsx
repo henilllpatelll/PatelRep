@@ -75,7 +75,7 @@ function AuthCallbackContent() {
           </p>
           <a
             href="/login"
-            className="inline-block mt-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+            className="inline-block mt-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:opacity-90 transition-colors"
           >
             Back to Login
           </a>
@@ -89,7 +89,7 @@ function AuthCallbackContent() {
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg text-center space-y-4">
         <div className="flex justify-center">
           <svg
-            className="w-10 h-10 text-brand-600 animate-spin"
+            className="w-10 h-10 text-accent animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -121,7 +121,7 @@ export default function AuthCallbackPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg text-center space-y-4">
           <div className="flex justify-center">
-            <svg className="w-10 h-10 text-brand-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="w-10 h-10 text-accent animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>

@@ -59,7 +59,7 @@ const US_TIMEZONES = [
 const DEPARTMENTS = [
   { name: 'Housekeeping', color: 'bg-teal-500', description: 'Room cleaning and laundry' },
   { name: 'Engineering', color: 'bg-sky-500', description: 'Maintenance and repairs' },
-  { name: 'Front Desk', color: 'bg-amber-500', description: 'Guest services and check-in' },
+  { name: 'Front Desk', color: 'bg-[var(--caution)]', description: 'Guest services and check-in' },
   { name: 'Management', color: 'bg-violet-500', description: 'Hotel operations and oversight' },
 ]
 
@@ -120,7 +120,7 @@ const BASE_ROLE_COLORS: Record<string, string> = {
   engineer:                'bg-sky-100 text-sky-700',
   housekeeping_supervisor: 'bg-teal-100 text-teal-800',
   chief_engineer:          'bg-sky-100 text-sky-800',
-  front_desk:              'bg-amber-100 text-amber-700',
+  front_desk:              'bg-[var(--caution-soft)] text-[var(--caution)]',
   gm:                      'bg-violet-100 text-violet-700',
 }
 
@@ -159,7 +159,7 @@ function FormField({
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
       {children}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-[var(--alert)]">{error}</p>}
     </div>
   )
 }
@@ -171,10 +171,10 @@ function Input({
   return (
     <input
       {...props}
-      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
+      className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
         error
           ? 'border-red-300 focus:ring-red-500'
-          : 'border-amber-200/40 hover:border-amber-200 focus:ring-amber-400/50 focus:border-amber-200'
+          : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)] focus:ring-amber-400/50 focus:border-[var(--caution-line)]'
       }`}
     />
   )
@@ -204,7 +204,7 @@ function RoleCard({
           )}
           <div className="flex flex-wrap gap-1 mt-1.5">
             {role.allowed_modules.map(mod => (
-              <span key={mod} className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+              <span key={mod} className="text-xs bg-surface-3 text-ink2 px-2 py-0.5 rounded">
                 {MODULE_LABELS[mod] ?? mod}
               </span>
             ))}
@@ -217,7 +217,7 @@ function RoleCard({
           <button
             type="button"
             onClick={onEdit}
-            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)] rounded-lg transition-colors"
             aria-label="Edit role"
           >
             <Pencil size={14} />
@@ -225,7 +225,7 @@ function RoleCard({
           <button
             type="button"
             onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-[var(--alert)] hover:bg-[var(--alert-soft)] rounded-lg transition-colors"
             aria-label="Delete role"
           >
             <Trash2 size={14} />
@@ -261,7 +261,7 @@ function RoleFormCard({
   }
 
   return (
-    <Card className="p-5 space-y-4 border-amber-200/60 bg-amber-50/20">
+    <Card className="p-5 space-y-4 border-[var(--caution-line)]/60 bg-[var(--caution-soft)]/20">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">
           {isNew ? 'New Role' : 'Edit Role'}
@@ -283,7 +283,7 @@ function RoleFormCard({
             value={values.name}
             onChange={e => onChange({ ...values, name: e.target.value })}
             placeholder="e.g. Night Auditor"
-            className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+            className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
           />
         </div>
         <div className="space-y-1.5">
@@ -291,7 +291,7 @@ function RoleFormCard({
           <select
             value={values.base_role}
             onChange={e => onChange({ ...values, base_role: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+            className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
           >
             {BASE_ROLES.map(r => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -308,7 +308,7 @@ function RoleFormCard({
           value={values.description}
           onChange={e => onChange({ ...values, description: e.target.value })}
           placeholder="Briefly describe this role's responsibilities"
-          className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+          className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
         />
       </div>
 
@@ -324,11 +324,11 @@ function RoleFormCard({
                 onClick={() => toggleModule(key)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
                   enabled
-                    ? 'bg-amber-50 border-amber-200 text-amber-800 font-medium'
-                    : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
+                    ? 'bg-[var(--caution-soft)] border-[var(--caution-line)] text-amber-800 font-medium'
+                    : 'bg-surface border-line text-ink3 hover:border-line hover:text-ink2'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${enabled ? 'bg-amber-500' : 'bg-stone-300'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${enabled ? 'bg-[var(--caution)]' : 'bg-stone-300'}`} />
                 {label}
               </button>
             )
@@ -429,7 +429,7 @@ function TemplateCard({
           <button
             type="button"
             onClick={onEdit}
-            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)] rounded-lg transition-colors"
             aria-label="Edit template"
           >
             <Pencil size={14} />
@@ -437,7 +437,7 @@ function TemplateCard({
           <button
             type="button"
             onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-[var(--alert)] hover:bg-[var(--alert-soft)] rounded-lg transition-colors"
             aria-label="Delete template"
           >
             <Trash2 size={14} />
@@ -494,7 +494,7 @@ function TemplateFormCard({
           value={values.name}
           onChange={(e) => onChange({ ...values, name: e.target.value })}
           placeholder="e.g. Standard Room Inspection"
-          className="w-full px-3 py-2 text-sm border border-teal-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-200 transition-colors"
+          className="w-full px-3 py-2 text-sm border border-teal-200/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-teal-200 transition-colors"
         />
       </div>
 
@@ -505,11 +505,11 @@ function TemplateFormCard({
           aria-checked={values.is_default}
           onClick={() => onChange({ ...values, is_default: !values.is_default })}
           className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
-            values.is_default ? 'bg-teal-400' : 'bg-stone-200'
+            values.is_default ? 'bg-teal-400' : 'bg-line'
           }`}
         >
           <span
-            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform ${
               values.is_default ? 'translate-x-[18px]' : 'translate-x-0.5'
             }`}
           />
@@ -535,7 +535,7 @@ function TemplateFormCard({
               <select
                 value={item.section}
                 onChange={(e) => updateItem(idx, 'section', e.target.value)}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-teal-400/50 w-28 shrink-0"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:ring-1 focus:ring-teal-400/50 w-28 shrink-0"
               >
                 {INSPECTION_SECTIONS.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -545,7 +545,7 @@ function TemplateFormCard({
                 value={item.description}
                 onChange={(e) => updateItem(idx, 'description', e.target.value)}
                 placeholder="Item description"
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400/50 bg-white min-w-0"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-400/50 bg-surface min-w-0"
               />
               <button
                 type="button"
@@ -554,7 +554,7 @@ function TemplateFormCard({
                 className={`text-xs px-2 py-1.5 rounded-lg border transition-colors shrink-0 ${
                   item.is_required
                     ? 'bg-teal-50 border-teal-200 text-teal-700 font-medium'
-                    : 'bg-white border-gray-200 text-gray-400'
+                    : 'bg-surface border-gray-200 text-gray-400'
                 }`}
               >
                 Req
@@ -562,7 +562,7 @@ function TemplateFormCard({
               <button
                 type="button"
                 onClick={() => removeItem(idx)}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                className="p-1.5 text-gray-400 hover:text-[var(--alert)] hover:bg-[var(--alert-soft)] rounded-lg transition-colors shrink-0"
                 aria-label="Remove item"
               >
                 <Trash2 size={13} />
@@ -832,14 +832,14 @@ export default function SettingsPage() {
         <div
           className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
             toast.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
+              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
+              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
           }`}
           role="alert"
         >
           <CheckCircle2
             size={16}
-            className={toast.type === 'success' ? 'text-green-600' : 'text-red-600'}
+            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
           />
           {toast.message}
         </div>
@@ -854,7 +854,7 @@ export default function SettingsPage() {
             aria-current={activeTab === key ? 'page' : undefined}
             className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors sm:px-4 ${
               activeTab === key
-                ? 'border-amber-200 text-amber-700'
+                ? 'border-[var(--caution-line)] text-[var(--caution)]'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -950,10 +950,10 @@ export default function SettingsPage() {
               <select
                 id="settings-timezone"
                 {...register('timezone')}
-                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:border-transparent transition-colors appearance-none cursor-pointer ${
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface text-ink2 focus:outline-none focus:ring-2 focus:border-transparent transition-colors appearance-none cursor-pointer ${
                   errors.timezone
                     ? 'border-red-300 focus:ring-red-500'
-                    : 'border-stone-200 hover:border-amber-200 focus:ring-amber-400'
+                    : 'border-line hover:border-[var(--caution-line)] focus:ring-amber-400'
                 }`}
               >
                 {US_TIMEZONES.map(({ value, label }) => (
@@ -1002,7 +1002,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <Card className="overflow-hidden p-0 divide-y divide-white/40">
             {DEPARTMENTS.map((dept) => (
-              <div key={dept.name} className="flex items-center gap-4 px-6 py-4 hover:bg-amber-50/30 transition-colors">
+              <div key={dept.name} className="flex items-center gap-4 px-6 py-4 hover:bg-[var(--caution-soft)]/30 transition-colors">
                 <div className={`w-3 h-3 rounded-full ${dept.color} shrink-0`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{dept.name}</p>
@@ -1033,9 +1033,9 @@ export default function SettingsPage() {
               return (
                 <div
                   key={key}
-                  className="flex items-center gap-4 px-6 py-4 hover:bg-amber-50/30 transition-colors"
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-[var(--caution-soft)]/30 transition-colors"
                 >
-                  <Icon className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Icon className="w-4 h-4 text-[var(--caution)] shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{description}</p>
@@ -1050,11 +1050,11 @@ export default function SettingsPage() {
                       )
                     }
                     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
-                      enabled ? 'bg-amber-400' : 'bg-stone-200'
+                      enabled ? 'bg-amber-400' : 'bg-line'
                     }`}
                   >
                     <span
-                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform ${
                         enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
                       }`}
                     />

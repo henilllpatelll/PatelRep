@@ -68,6 +68,45 @@
     --color-surface-2: var(--surface-2);
   }
 
+  .theme-dark {
+    --paper:     #0f0e0c;
+    --surface:   #1a1815;
+    --surface-2: #221f1b;
+    --surface-3: #2a2620;
+    --line:      #322d26;
+    --line-2:    #2a2620;
+
+    --ink:   #f1ede4;
+    --ink-2: #c5beaf;
+    --ink-3: #918a7e;
+    --ink-4: #5e584f;
+
+    --accent:      #d97757;
+    --accent-soft: #2e1e16;
+    --accent-line: #5e3c2a;
+
+    --ready:      #4ab8a8;
+    --ready-soft: #14302d;
+    --ready-line: #2d5550;
+
+    --caution:      #d4a64a;
+    --caution-soft: #322811;
+    --caution-line: #5a4920;
+
+    --alert:      #d96479;
+    --alert-soft: #2e1620;
+    --alert-line: #5a2a38;
+
+    --ai:      #b39ce0;
+    --ai-soft: #1f1830;
+    --ai-line: #3d3056;
+
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    --shadow-md:  0 2px 6px rgba(0,0,0,0.5);
+    --shadow-lg:  0 10px 30px rgba(0,0,0,0.6);
+    --shadow-pop: 0 18px 40px rgba(0,0,0,0.7);
+  }
+
   html, body {
     background-color: var(--paper);
   }

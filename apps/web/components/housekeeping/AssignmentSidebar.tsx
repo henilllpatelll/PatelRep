@@ -77,7 +77,7 @@ function HousekeeperDropRow({
       ref={setNodeRef}
       className={`px-4 py-3 transition-colors rounded-lg mx-1 my-0.5 ${
         isOver
-          ? 'bg-amber-50 border-2 border-amber-400 border-dashed'
+          ? 'bg-[var(--caution-soft)] border-2 border-amber-400 border-dashed'
           : 'border-2 border-transparent'
       }`}
     >
@@ -102,7 +102,7 @@ function HousekeeperDropRow({
 
       {/* Drop hint */}
       {isOver && (
-        <p className="text-xs text-amber-600 font-medium mt-1.5 text-center">
+        <p className="text-xs text-[var(--caution)] font-medium mt-1.5 text-center">
           Drop to assign
         </p>
       )}
@@ -370,7 +370,7 @@ export function AssignmentSidebar() {
                         <>
                           <span className="line-through text-gray-400">{fromHk.name.split(' ')[0]}</span>
                           {' '}&rarr;{' '}
-                          <span className="font-medium text-amber-700">{toHk?.name ?? housekeeperId}</span>
+                          <span className="font-medium text-[var(--caution)]">{toHk?.name ?? housekeeperId}</span>
                         </>
                       ) : (
                         <>
@@ -381,7 +381,7 @@ export function AssignmentSidebar() {
                     </span>
                     <button
                       onClick={() => removePendingAssignment(roomId)}
-                      className="text-gray-400 hover:text-red-500 transition-colors ml-2"
+                      className="text-gray-400 hover:text-[var(--alert)] transition-colors ml-2"
                       aria-label="Remove pending assignment"
                     >
                       &times;
@@ -395,12 +395,12 @@ export function AssignmentSidebar() {
 
         {/* Success / error feedback */}
         {saveSuccessMsg && (
-          <div className="mx-4 mb-2 px-3 py-2 bg-green-50 text-green-700 text-xs rounded-lg">
+          <div className="mx-4 mb-2 px-3 py-2 bg-[var(--ready-soft)] text-[var(--ready)] text-xs rounded-lg">
             {saveSuccessMsg}
           </div>
         )}
         {saveError && (
-          <div className="mx-4 mb-2 px-3 py-2 bg-red-50 text-red-700 text-xs rounded-lg">
+          <div className="mx-4 mb-2 px-3 py-2 bg-[var(--alert-soft)] text-[var(--alert)] text-xs rounded-lg">
             {saveError}
           </div>
         )}
@@ -437,7 +437,7 @@ export function AssignmentSidebar() {
               <>
                 Save Assignments
                 {hasPending && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 bg-white text-brand-600 text-xs font-bold rounded-full">
+                  <span className="inline-flex items-center justify-center w-5 h-5 bg-surface text-accent text-xs font-bold rounded-full">
                     {Object.keys(pendingAssignments).length}
                   </span>
                 )}

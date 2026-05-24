@@ -5,12 +5,14 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { AICopilotBubble } from '@/components/ai/AICopilotBubble'
 import { PageTransition } from './PageTransition'
+import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { density, theme } = useUIPreferencesStore()
 
   return (
-    <div className="flex h-screen bg-paper">
+    <div className={`flex h-screen bg-paper ${density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced'} ${theme === 'dark' ? 'theme-dark' : ''}`}>
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

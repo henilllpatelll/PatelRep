@@ -25,7 +25,7 @@ import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type ActiveTab = 'all' | LostFoundStatus
 
@@ -38,9 +38,9 @@ const TABS: { value: ActiveTab; label: string }[] = [
 ]
 
 const STATUS_STYLES: Record<LostFoundStatus, string> = {
-  unclaimed: 'bg-blue-50 text-blue-700',
-  claimed: 'bg-green-50 text-green-700',
-  donated: 'bg-purple-50 text-purple-700',
+  unclaimed: 'bg-[var(--info-soft)] text-[var(--info)]',
+  claimed: 'bg-[var(--ready-soft)] text-[var(--ready)]',
+  donated: 'bg-[var(--ai-soft)] text-[var(--ai)]',
   discarded: 'bg-gray-100 text-gray-600',
 }
 
@@ -60,14 +60,14 @@ const TAB_ACTIVE_STYLES: Record<ActiveTab, string> = {
 }
 
 const TAB_INACTIVE_STYLES: Record<ActiveTab, string> = {
-  all: 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50',
-  unclaimed: 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50',
-  claimed: 'bg-white text-green-700 border-green-200 hover:bg-green-50',
-  donated: 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50',
-  discarded: 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+  all: 'bg-surface text-gray-700 border-gray-200 hover:bg-gray-50',
+  unclaimed: 'bg-surface text-[var(--info)] border-[var(--info-line)] hover:bg-[var(--info-soft)]',
+  claimed: 'bg-surface text-[var(--ready)] border-[var(--ready-line)] hover:bg-[var(--ready-soft)]',
+  donated: 'bg-surface text-[var(--ai)] border-[var(--ai-line)] hover:bg-[var(--ai-soft)]',
+  discarded: 'bg-surface text-gray-600 border-gray-200 hover:bg-gray-50',
 }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatusBadge({ status }: { status: LostFoundStatus }) {
   return (
@@ -79,11 +79,11 @@ function StatusBadge({ status }: { status: LostFoundStatus }) {
   )
 }
 
-// ─── Skeleton Card ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Skeleton Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 animate-pulse">
+    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
         <div className="h-3 w-24 bg-gray-100 rounded" />
@@ -99,7 +99,7 @@ function SkeletonCard() {
   )
 }
 
-// ─── Item Card ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Item Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ItemCardProps {
   item: LostFoundItem
@@ -129,7 +129,7 @@ function ItemCard({
     'Unknown'
 
   return (
-    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
+    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
       {/* Top row: status badge + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <StatusBadge status={item.status} />
@@ -176,18 +176,18 @@ function ItemCard({
         <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
           <CheckCircle className="w-3 h-3 text-green-500" />
           {item.status === 'claimed'
-            ? `Claimed by ${item.claimed_by_name || 'guest'} — ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`
-            : `${STATUS_LABELS[item.status]} — ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`}
+            ? `Claimed by ${item.claimed_by_name || 'guest'} â€” ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`
+            : `${STATUS_LABELS[item.status]} â€” ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`}
         </p>
       )}
 
-      {/* Action buttons — only for "unclaimed" status */}
+      {/* Action buttons â€” only for "unclaimed" status */}
       {canAct && item.status === 'unclaimed' && (
         <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
           {isPending ? (
             <span className="flex items-center gap-1.5 text-xs text-gray-500">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Updating…
+              Updatingâ€¦
             </span>
           ) : (
             <>
@@ -200,7 +200,7 @@ function ItemCard({
               </button>
               <button
                 onClick={() => onQuickUpdate(item.id, 'donated')}
-                className="px-3 py-1.5 border border-stone-300 text-stone-600 rounded-lg text-xs font-medium hover:bg-stone-50 transition-colors"
+                className="px-3 py-1.5 border border-line text-ink2 rounded-lg text-xs font-medium hover:bg-surface-3 transition-colors"
               >
                 Donate
               </button>
@@ -212,7 +212,7 @@ function ItemCard({
   )
 }
 
-// ─── Edit Item Modal ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Edit Item Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface EditItemModalProps {
   item: LostFoundItem | null
@@ -259,7 +259,7 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-lost-found-title" className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
@@ -269,7 +269,7 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-[var(--alert)]">*</span></label>
             <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
           </div>
           <div>
@@ -278,7 +278,7 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400">
               <option value="unclaimed">Unclaimed</option>
               <option value="claimed">Claimed</option>
               <option value="donated">Donated</option>
@@ -301,12 +301,12 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
             <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Any additional details..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
-            <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
+            <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Saving…' : 'Save Changes'}
+              {isPending ? 'Savingâ€¦' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -315,7 +315,7 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
   )
 }
 
-// ─── Log Found Item Modal ─────────────────────────────────────────────────────
+// â”€â”€â”€ Log Found Item Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface LogItemModalProps {
   isOpen: boolean
@@ -373,7 +373,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="log-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="log-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="log-lost-found-title" className="text-lg font-semibold text-gray-900">Log Found Item</h2>
           <button
@@ -389,7 +389,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description <span className="text-red-500">*</span>
+              Description <span className="text-[var(--alert)]">*</span>
             </label>
             <textarea
               value={description}
@@ -431,7 +431,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -448,10 +448,10 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
             <button
               type="submit"
               disabled={isPending || !description.trim()}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Logging…' : 'Log Item'}
+              {isPending ? 'Loggingâ€¦' : 'Log Item'}
             </button>
           </div>
         </form>
@@ -460,7 +460,7 @@ function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
   )
 }
 
-// ─── Mark Claimed Modal ───────────────────────────────────────────────────────
+// â”€â”€â”€ Mark Claimed Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ClaimModalProps {
   item: LostFoundItem | null
@@ -515,7 +515,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="claim-lost-found-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="claim-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="claim-lost-found-title" className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>
           <button
@@ -535,7 +535,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
           {/* Claimant name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Claimant Name <span className="text-red-500">*</span>
+              Claimant Name <span className="text-[var(--alert)]">*</span>
             </label>
             <input
               type="text"
@@ -563,7 +563,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -583,7 +583,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Saving…' : 'Confirm Claim'}
+              {isPending ? 'Savingâ€¦' : 'Confirm Claim'}
             </button>
           </div>
         </form>
@@ -592,7 +592,7 @@ function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function LostFoundPage() {
   const { isGM, role } = useRole()
@@ -611,7 +611,7 @@ export default function LostFoundPage() {
   const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  // ── Fetch all items ──
+  // â”€â”€ Fetch all items â”€â”€
   const { data: items, isLoading } = useQuery({
     queryKey: ['lost-found'],
     queryFn: () => lostFoundApi.listItems({ per_page: 100 }),
@@ -619,7 +619,7 @@ export default function LostFoundPage() {
     refetchInterval: 60_000,
   })
 
-  // ── Counts ──
+  // â”€â”€ Counts â”€â”€
   const counts = {
     unclaimed: items?.filter((i) => i.status === 'unclaimed').length ?? 0,
     claimed: items?.filter((i) => i.status === 'claimed').length ?? 0,
@@ -627,7 +627,7 @@ export default function LostFoundPage() {
     discarded: items?.filter((i) => i.status === 'discarded').length ?? 0,
   }
 
-  // ── Client-side filter ──
+  // â”€â”€ Client-side filter â”€â”€
   const filtered = useMemo(() => {
     let list = items ?? []
     if (activeTab !== 'all') {
@@ -640,7 +640,7 @@ export default function LostFoundPage() {
     return list
   }, [items, activeTab, search])
 
-  // ── Quick status update mutation ──
+  // â”€â”€ Quick status update mutation â”€â”€
   const { mutate: quickUpdate, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LostFoundStatus }) =>
       lostFoundApi.updateItem(id, { status }),
@@ -651,7 +651,7 @@ export default function LostFoundPage() {
     },
   })
 
-  // ── Delete mutation ──
+  // â”€â”€ Delete mutation â”€â”€
   const { mutate: deleteItem, isPending: deleting } = useMutation({
     mutationFn: (id: string) => lostFoundApi.deleteItem(id),
     onMutate: async (id) => {
@@ -678,11 +678,11 @@ export default function LostFoundPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-            <Package className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-[var(--caution)]" />
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Lost &amp; Found</h1>
@@ -699,18 +699,18 @@ export default function LostFoundPage() {
         )}
       </div>
 
-      {/* ── Stats row ── */}
+      {/* â”€â”€ Stats row â”€â”€ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-4">
-          <p className="text-2xl font-bold text-blue-600">{counts.unclaimed}</p>
+          <p className="text-2xl font-bold text-[var(--info)]">{counts.unclaimed}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Unclaimed</p>
         </Card>
         <Card className="p-4">
-          <p className="text-2xl font-bold text-green-600">{counts.claimed}</p>
+          <p className="text-2xl font-bold text-[var(--ready)]">{counts.claimed}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Claimed</p>
         </Card>
         <Card className="p-4">
-          <p className="text-2xl font-bold text-purple-600">{counts.donated}</p>
+          <p className="text-2xl font-bold text-[var(--ai)]">{counts.donated}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Donated</p>
         </Card>
         <Card className="p-4">
@@ -719,7 +719,7 @@ export default function LostFoundPage() {
         </Card>
       </div>
 
-      {/* ── Filter bar ── */}
+      {/* â”€â”€ Filter bar â”€â”€ */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Status tabs */}
         <div className="flex gap-1.5 flex-wrap">
@@ -744,7 +744,7 @@ export default function LostFoundPage() {
                 {count > 0 && (
                   <span
                     className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                      isActive ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
+                      isActive ? 'bg-surface/25 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {count}
@@ -762,13 +762,13 @@ export default function LostFoundPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search lost and found items"
-            placeholder="Search by description…"
+            placeholder="Search by descriptionâ€¦"
             className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           />
         </div>
       </div>
 
-      {/* ── Items grid ── */}
+      {/* â”€â”€ Items grid â”€â”€ */}
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <SkeletonCard />
@@ -807,7 +807,7 @@ export default function LostFoundPage() {
         </div>
       )}
 
-      {/* ── Log Item Modal ── */}
+      {/* â”€â”€ Log Item Modal â”€â”€ */}
       <LogItemModal
         isOpen={showLogModal}
         onClose={() => setShowLogModal(false)}
@@ -817,7 +817,7 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* ── Claim Modal ── */}
+      {/* â”€â”€ Claim Modal â”€â”€ */}
       <ClaimModal
         item={claimTarget}
         onClose={() => setClaimTarget(null)}
@@ -827,7 +827,7 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* ── Edit Modal ── */}
+      {/* â”€â”€ Edit Modal â”€â”€ */}
       <EditItemModal
         key={editTarget?.id ?? ''}
         item={editTarget}
@@ -838,7 +838,7 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* ── Delete Confirm ── */}
+      {/* â”€â”€ Delete Confirm â”€â”€ */}
       <DeleteConfirmDialog
         open={!!deleteTarget}
         title={`Delete "${deleteTarget?.description ?? 'item'}"`}

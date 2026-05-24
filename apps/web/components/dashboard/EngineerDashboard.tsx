@@ -2,62 +2,36 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Wrench, AlertCircle, CheckCircle2, ArrowRight, Clock } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
 
-type BadgeVariant = 'high' | 'medium' | 'low' | 'default'
+type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
-const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
-  urgent: 'high',
-  normal: 'medium',
-  low: 'low',
+const PRIORITY_TONE: Record<string, PillTone> = {
+  urgent: 'alert',
+  normal: 'caution',
+  low: 'neutral',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   open: 'Open',
-  in_progress: 'In Progress',
-  on_hold: 'On Hold',
+  in_progress: 'In progress',
+  on_hold: 'On hold',
   completed: 'Completed',
   cancelled: 'Cancelled',
 }
 
-function WORow({ wo }: { wo: WorkOrder }) {
-  return (
-    <Link href="/engineering" className="flex items-start gap-3 py-3 px-2 border-b border-stone-100 last:border-0 hover:bg-stone-50 rounded-xl -mx-2 transition-colors group">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${
-        wo.priority === 'urgent' ? 'bg-red-50 border-red-100 group-hover:bg-red-100' : 'bg-stone-50 border-stone-100 group-hover:bg-amber-50'
-      }`}>
-        <Wrench className={`w-4 h-4 transition-colors ${wo.priority === 'urgent' ? 'text-red-500 group-hover:text-red-600' : 'text-stone-500 group-hover:text-amber-600'}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-bold truncate transition-colors ${wo.priority === 'urgent' ? 'text-red-700 group-hover:text-red-800' : 'text-stone-900 group-hover:text-amber-700'}`}>WO-{wo.work_order_number} · {wo.title}</p>
-        <div className="flex items-center gap-2 mt-1">
-          {wo.rooms?.room_number && (
-            <span className="text-xs font-medium text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded-md">Room {wo.rooms.room_number}</span>
-          )}
-          {wo.location_text && !wo.rooms?.room_number && (
-            <span className="text-xs font-medium text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded-md truncate max-w-[120px]">{wo.location_text}</span>
-          )}
-          <span className="text-xs font-medium text-stone-400 capitalize">{STATUS_LABEL[wo.status] ?? wo.status}</span>
-        </div>
-      </div>
-      <Badge variant={PRIORITY_VARIANT[wo.priority] ?? 'default'}>{wo.priority}</Badge>
-    </Link>
-  )
-}
-
 function SkeletonRow() {
   return (
-    <div className="animate-pulse flex items-center gap-3 py-2.5 border-b border-stone-100">
-      <div className="w-8 h-8 rounded-lg bg-stone-100 shrink-0" />
+    <div className="animate-pulse flex items-center gap-3 px-4 py-3 border-t border-line-2">
+      <div className="w-10 h-10 rounded-[10px] bg-surface-3 shrink-0" />
       <div className="flex-1">
-        <div className="h-3 bg-stone-200 rounded w-3/4 mb-1.5" />
-        <div className="h-2 bg-stone-100 rounded w-1/2" />
+        <div className="h-3 bg-surface-3 rounded w-3/4 mb-1.5" />
+        <div className="h-2 bg-surface-3 rounded w-1/2" />
       </div>
-      <div className="h-5 bg-stone-100 rounded w-14" />
+      <div className="h-5 bg-surface-3 rounded w-14" />
     </div>
   )
 }
@@ -71,10 +45,12 @@ export function EngineerDashboard() {
     else if (h < 18) setGreeting('Good afternoon')
     else setGreeting('Good evening')
   }, [])
+
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'Engineer'
+  const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
 
   const { data, isLoading } = useQuery({
     queryKey: ['my-work-orders', user?.id],
@@ -86,92 +62,95 @@ export function EngineerDashboard() {
   const allWOs: WorkOrder[] = (data as { data?: WorkOrder[] })?.data ?? []
   const activeWOs = allWOs.filter(wo => wo.status === 'open' || wo.status === 'in_progress')
   const urgentWOs = activeWOs.filter(wo => wo.priority === 'urgent')
-  const inProgressWOs = activeWOs.filter(wo => wo.status === 'in_progress')
-  const openWOs = activeWOs.filter(wo => wo.status === 'open')
+  const completedToday = allWOs.filter(wo => wo.status === 'completed').length
 
-  // Show urgent first, then in-progress, then open
   const sortedWOs = [
     ...urgentWOs.filter(wo => wo.status === 'in_progress'),
     ...urgentWOs.filter(wo => wo.status === 'open'),
-    ...inProgressWOs.filter(wo => wo.priority !== 'urgent'),
-    ...openWOs.filter(wo => wo.priority !== 'urgent'),
+    ...activeWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'in_progress'),
+    ...activeWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'open'),
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       {/* Greeting */}
       <div>
-        <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          {greeting}, {fullName}!
-        </h1>
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </p>
+        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.05] text-ink mt-2">
+          {greeting}, <em className="italic">{firstName}</em>.
+        </h1>
+        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
+          {urgentWOs.length > 0
+            ? `${activeWOs.length} open work orders, ${urgentWOs.length} high priority.`
+            : activeWOs.length > 0
+            ? `${activeWOs.length} open work orders. All clear on urgent items.`
+            : 'No open work orders. Good shift.'}
         </p>
       </div>
 
-      {/* Status strip */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${urgentWOs.length > 0 ? 'bg-red-50/50 border-red-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${urgentWOs.length > 0 ? 'text-red-600' : 'text-stone-900'}`}>
-            {urgentWOs.length}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${urgentWOs.length > 0 ? 'text-red-500' : 'text-stone-500'}`}>Urgent</p>
-        </Card>
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${inProgressWOs.length > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${inProgressWOs.length > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
-            {inProgressWOs.length}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${inProgressWOs.length > 0 ? 'text-amber-600' : 'text-stone-500'}`}>In Progress</p>
-        </Card>
-        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-stone-900">{openWOs.length}</p>
-          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Queued</p>
-        </Card>
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat label="Open WOs" value={activeWOs.length} delta={urgentWOs.length > 0 ? `${urgentWOs.length} urgent` : undefined} deltaTone={urgentWOs.length > 0 ? 'alert' : 'ready'} />
+        <Stat label="Urgent" value={urgentWOs.length} deltaTone={urgentWOs.length > 0 ? 'alert' : 'ready'} />
+        <Stat label="Completed today" value={completedToday} deltaTone="ready" />
+        <Stat label="PM due" value="—" deltaTone="caution" />
       </div>
 
-      {/* Work orders list */}
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-amber-500" />
-            My Work Orders
-          </h2>
-          <Link href="/engineering" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-            Full list <ArrowRight className="w-3 h-3" />
-          </Link>
+      {/* Work order list */}
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+        <div className="px-4 pt-3.5">
+          <SectionLabel
+            hint="Open"
+            action={
+              <Link href="/engineering" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+                View board
+              </Link>
+            }
+          >
+            Work orders
+          </SectionLabel>
         </div>
         {isLoading ? (
-          <div>{[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}</div>
+          [...Array(4)].map((_, i) => <SkeletonRow key={i} />)
         ) : sortedWOs.length === 0 ? (
-          <div className="py-6 text-center">
-            <CheckCircle2 className="w-8 h-8 text-green-300 mx-auto mb-2" />
-            <p className="text-sm text-stone-400">No open work orders assigned to you</p>
+          <div className="py-8 flex flex-col items-center gap-2">
+            <CheckCircle2 className="w-8 h-8 text-[var(--ready-line)]" />
+            <p className="text-[13px] text-ink3">No open work orders</p>
           </div>
         ) : (
-          <div>{sortedWOs.map(wo => <WORow key={wo.id} wo={wo} />)}</div>
+          sortedWOs.map(wo => {
+            const tone = PRIORITY_TONE[wo.priority] ?? 'neutral'
+            const loc = wo.rooms?.room_number ? `R-${wo.rooms.room_number}` : wo.location_text ?? '—'
+            return (
+              <Link
+                key={wo.id}
+                href="/engineering"
+                className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors"
+              >
+                <Mono className="text-[11px] text-ink3 shrink-0">WO-{wo.work_order_number}</Mono>
+                <Pill tone={tone} size="sm">{wo.priority}</Pill>
+                <span className="text-[13px] text-ink flex-1 min-w-0 truncate">{wo.title}</span>
+                <Mono className="text-[11px] text-ink3 shrink-0">{loc}</Mono>
+                <span className="text-[11px] text-ink3 w-9 text-right shrink-0 capitalize">
+                  {STATUS_LABEL[wo.status] ?? wo.status}
+                </span>
+              </Link>
+            )
+          })
         )}
-      </Card>
+      </div>
 
-      {/* Overdue warning */}
       {urgentWOs.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <div className="bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-lg)] px-4 py-3.5 flex items-start gap-3">
+          <span className="w-4 h-4 rounded-full bg-[var(--alert)] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5">!</span>
           <div>
-            <p className="text-sm font-semibold text-red-700">
-              {urgentWOs.length} urgent {urgentWOs.length === 1 ? 'job' : 'jobs'} need your attention
+            <p className="text-[13px] font-semibold text-[var(--alert)]">
+              {urgentWOs.length} urgent {urgentWOs.length === 1 ? 'job needs' : 'jobs need'} your attention
             </p>
-            <p className="text-xs text-red-500 mt-0.5">Urgent work orders may have SLA timers running</p>
+            <p className="text-[11.5px] text-[var(--alert)] mt-0.5 opacity-80">SLA timers may be running on urgent work orders.</p>
           </div>
-        </div>
-      )}
-
-      {/* Shift tip */}
-      {!isLoading && sortedWOs.length > 0 && (
-        <div className="flex items-start gap-2 px-1">
-          <Clock className="w-3.5 h-3.5 text-stone-300 mt-0.5 shrink-0" />
-          <p className="text-xs text-stone-400">
-            Claim a work order on the engineering page to mark it in-progress and start the SLA timer.
-          </p>
         </div>
       )}
     </div>

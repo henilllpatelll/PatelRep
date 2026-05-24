@@ -30,8 +30,8 @@ function getScheduleStatus(nextDueAt: string): {
   if (due < now) {
     return {
       label: 'Overdue',
-      cls: 'text-red-600',
-      badgeCls: 'bg-red-50 text-red-700 border border-red-200',
+      cls: 'text-[var(--alert)]',
+      badgeCls: 'bg-[var(--alert-soft)] text-red-700 border border-red-200',
     }
   }
   const daysUntil = differenceInDays(due, now)
@@ -39,13 +39,13 @@ function getScheduleStatus(nextDueAt: string): {
     return {
       label: 'Due Soon',
       cls: 'text-orange-600',
-      badgeCls: 'bg-amber-50 text-amber-700 border border-amber-200',
+      badgeCls: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
     }
   }
   return {
     label: 'Upcoming',
     cls: 'text-green-700',
-    badgeCls: 'bg-green-50 text-green-700 border border-green-200',
+    badgeCls: 'bg-[var(--ready-soft)] text-green-700 border border-green-200',
   }
 }
 
@@ -87,12 +87,12 @@ interface StatCardProps {
 function StatCard({ label, value, sub, accent = 'default', icon }: StatCardProps) {
   const valueColor =
     accent === 'red'
-      ? 'text-red-600'
+      ? 'text-[var(--alert)]'
       : accent === 'orange'
         ? 'text-orange-600'
         : 'text-gray-900'
   return (
-    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-red-50' : ''}`}>
+    <Card className={`px-5 py-4${accent === 'red' ? ' border-red-200 bg-[var(--alert-soft)]' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
         <div className="text-gray-400">{icon}</div>
@@ -144,7 +144,7 @@ function PMScheduleMobileCard({
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Next Due</dt>
-          <dd className={isOverdue ? 'mt-1 font-medium text-red-600' : 'mt-1 text-gray-700'}>
+          <dd className={isOverdue ? 'mt-1 font-medium text-[var(--alert)]' : 'mt-1 text-gray-700'}>
             {format(new Date(schedule.next_due_at), 'MMM d, yyyy')}
           </dd>
         </div>
@@ -169,7 +169,7 @@ function PMScheduleMobileCard({
         {schedule.is_active && (
           <button
             onClick={onComplete}
-            className="min-h-[44px] rounded-lg border border-green-300 px-3 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-green-50"
+            className="min-h-[44px] rounded-lg border border-green-300 px-3 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-[var(--ready-soft)]"
           >
             Complete
           </button>
@@ -179,7 +179,7 @@ function PMScheduleMobileCard({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={onConfirmDeactivate}
-                className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600"
+                className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)]"
               >
                 Confirm
               </button>
@@ -193,7 +193,7 @@ function PMScheduleMobileCard({
           ) : (
             <button
               onClick={onAskDeactivate}
-              className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+              className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)] transition-colors hover:bg-[var(--alert-soft)]"
             >
               Deactivate
             </button>
@@ -214,7 +214,7 @@ function PMScheduleMobileCard({
 
 function SkeletonRow() {
   return (
-    <tr className="animate-pulse border-b border-amber-200">
+    <tr className="animate-pulse border-b border-[var(--caution-line)]">
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-3/4" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-1/2" /></td>
       <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-20" /></td>
@@ -283,7 +283,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
           role="dialog"
           aria-modal="true"
           aria-label="Complete PM Schedule"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md p-6"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md p-6"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -315,18 +315,18 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
             <p className="text-sm text-gray-700">
               Mark this PM as complete? The next due date will be automatically set to:
             </p>
-            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200">
-              <Calendar size={15} className="text-green-600 shrink-0" />
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--ready-soft)] border border-green-200">
+              <Calendar size={15} className="text-[var(--ready)] shrink-0" />
               <span className="text-sm font-semibold text-green-800">
                 {format(nextDue, 'MMMM d, yyyy')}
               </span>
-              <span className="text-xs text-green-600 ml-1">
+              <span className="text-xs text-[var(--ready)] ml-1">
                 ({formatIntervalLabel(schedule.interval_type, schedule.interval_days)} from today)
               </span>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
                 <AlertTriangle size={14} className="shrink-0" />
                 {error}
               </div>
@@ -346,7 +346,7 @@ function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMMod
               variant="secondary"
               onClick={handleConfirm}
               disabled={saving}
-              className="border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+              className="border-green-200 text-green-700 bg-[var(--ready-soft)] hover:bg-green-100"
             >
               {saving ? (
                 <>
@@ -471,13 +471,13 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
           role="dialog"
           aria-modal="true"
           aria-label="Add PM Schedule"
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <Calendar size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add PM Schedule</h2>
@@ -516,7 +516,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             {/* Schedule name */}
             <div>
               <label htmlFor="pm-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Schedule Name <span className="text-red-500">*</span>
+                Schedule Name <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
                 id="pm-create-name"
@@ -539,7 +539,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 value={fields.description}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Describe what maintenance tasks need to be performed…"
-                className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors resize-none"
+                className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
               />
             </div>
 
@@ -555,7 +555,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   onChange={(e) =>
                     set('interval_type', e.target.value as PMSchedule['interval_type'])
                   }
-                  className="w-full border border-amber-200/40 rounded-lg px-3 py-2 text-sm bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors"
+                  className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors"
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -598,7 +598,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               </div>
               <div>
                 <label htmlFor="pm-create-next-due" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Next Due Date <span className="text-red-500">*</span>
+                  Next Due Date <span className="text-[var(--alert)]">*</span>
                 </label>
                 <Input
                   id="pm-create-next-due"
@@ -611,7 +611,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
             {/* Error */}
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
                 <AlertTriangle size={14} className="shrink-0" />
                 {error}
               </div>
@@ -726,7 +726,7 @@ export default function PMSchedulesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Calendar size={22} className="text-amber-600 shrink-0" />
+            <Calendar size={22} className="text-[var(--caution)] shrink-0" />
             PM Schedules
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -747,7 +747,7 @@ export default function PMSchedulesPage() {
 
       {/* ── Success banner ─────────────────────────────────────────────────── */}
       {successMessage && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--ready-soft)] border border-green-200 text-green-700 text-sm">
           <CheckCircle size={15} />
           {successMessage}
         </div>
@@ -802,7 +802,7 @@ export default function PMSchedulesPage() {
               </div>
             ) : schedules.length === 0 ? (
               <div className="flex flex-col items-center gap-3 px-4 py-14 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
                   <Calendar size={22} className="text-gray-300" />
                 </div>
                 <div>
@@ -844,7 +844,7 @@ export default function PMSchedulesPage() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-amber-100 bg-amber-50/60">
+                <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Asset
                   </th>
@@ -878,7 +878,7 @@ export default function PMSchedulesPage() {
                   <tr>
                     <td colSpan={8} className="text-center py-14">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center">
                           <Calendar size={22} className="text-gray-300" />
                         </div>
                         <div>
@@ -889,9 +889,9 @@ export default function PMSchedulesPage() {
                         </div>
                         <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
                           {['HVAC filters', 'Pool checks', 'Elevator service'].map((item) => (
-                            <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-                              <p className="text-sm font-semibold text-stone-800">{item}</p>
-                              <p className="mt-1 text-xs text-stone-500">Common PM schedule</p>
+                            <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
+                              <p className="text-sm font-semibold text-ink">{item}</p>
+                              <p className="mt-1 text-xs text-ink3">Common PM schedule</p>
                             </div>
                           ))}
                         </div>
@@ -915,7 +915,7 @@ export default function PMSchedulesPage() {
                     return (
                       <tr
                         key={schedule.id}
-                        className="border-b border-amber-200 hover:bg-amber-50/40 transition-colors"
+                        className="border-b border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/40 transition-colors"
                       >
                         {/* Asset */}
                         <td className="px-4 py-3">
@@ -939,7 +939,7 @@ export default function PMSchedulesPage() {
                         {/* Next due */}
                         <td
                           className={`px-4 py-3 text-sm font-medium ${
-                            isOverdue ? 'text-red-600' : 'text-gray-700'
+                            isOverdue ? 'text-[var(--alert)]' : 'text-gray-700'
                           }`}
                         >
                           {format(dueDate, 'MMM d, yyyy')}
@@ -978,7 +978,7 @@ export default function PMSchedulesPage() {
                             {schedule.is_active && (
                               <button
                                 onClick={() => setCompletingSchedule(schedule)}
-                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-green-300 text-green-700 hover:bg-green-50 transition-colors"
+                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-green-300 text-green-700 hover:bg-[var(--ready-soft)] transition-colors"
                               >
                                 Complete
                               </button>
@@ -990,7 +990,7 @@ export default function PMSchedulesPage() {
                                 <span className="flex items-center gap-1 text-xs">
                                   <button
                                     onClick={() => handleDeactivate(schedule.id)}
-                                    className="min-h-[44px] px-3 py-2 text-red-600 font-medium hover:underline"
+                                    className="min-h-[44px] px-3 py-2 text-[var(--alert)] font-medium hover:underline"
                                   >
                                     Confirm
                                   </button>
@@ -1004,7 +1004,7 @@ export default function PMSchedulesPage() {
                               ) : (
                                 <button
                                   onClick={() => setConfirmDeactivateId(schedule.id)}
-                                  className="text-xs px-3 py-2 min-h-[44px] rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                                  className="text-xs px-3 py-2 min-h-[44px] rounded border border-red-200 text-[var(--alert)] hover:bg-[var(--alert-soft)] transition-colors"
                                 >
                                   Deactivate
                                 </button>
@@ -1034,12 +1034,12 @@ export default function PMSchedulesPage() {
 
         {/* Footer count */}
         {!isLoading && !isError && schedules.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-amber-200 bg-amber-50/40 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40 flex items-center justify-between">
             <p className="text-xs text-gray-400">
               {schedules.length} schedule{schedules.length !== 1 ? 's' : ''}
             </p>
             {overdueCount > 0 && (
-              <p className="text-xs font-medium text-red-600">
+              <p className="text-xs font-medium text-[var(--alert)]">
                 {overdueCount} overdue
               </p>
             )}

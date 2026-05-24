@@ -23,7 +23,7 @@ import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function todayIso(): string {
   const d = new Date()
@@ -54,7 +54,7 @@ function formatDisplayDate(dateStr: string): string {
   return format(d, 'MMM d, yyyy')
 }
 
-// ── Expiry Picker ─────────────────────────────────────────────────────────────
+// â”€â”€ Expiry Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ExpiryPickerProps {
   value: number  // total hours; 0 = no expiry
@@ -94,7 +94,7 @@ function ExpiryPicker({ value, onChange }: ExpiryPickerProps) {
           className={`flex-1 py-1.5 text-sm rounded-lg border font-medium transition-colors ${
             !isCustom
               ? 'bg-gray-800 text-white border-gray-800'
-              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              : 'bg-surface text-gray-600 border-gray-200 hover:bg-gray-50'
           }`}
         >
           No expiry
@@ -104,8 +104,8 @@ function ExpiryPicker({ value, onChange }: ExpiryPickerProps) {
           onClick={() => handleModeChange(true)}
           className={`flex-1 py-1.5 text-sm rounded-lg border font-medium transition-colors ${
             isCustom
-              ? 'bg-amber-500 text-white border-amber-500'
-              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              ? 'bg-[var(--caution)] text-white border-amber-500'
+              : 'bg-surface text-gray-600 border-gray-200 hover:bg-gray-50'
           }`}
         >
           Custom
@@ -123,7 +123,7 @@ function ExpiryPicker({ value, onChange }: ExpiryPickerProps) {
           <select
             value={unit}
             onChange={(e) => handleUnitChange(e.target.value as 'hours' | 'days')}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
             <option value="hours">hours</option>
             <option value="days">days</option>
@@ -134,7 +134,7 @@ function ExpiryPicker({ value, onChange }: ExpiryPickerProps) {
   )
 }
 
-// ── Entry card ────────────────────────────────────────────────────────────────
+// â”€â”€ Entry card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface EntryCardProps {
   entry: LogbookEntry
@@ -152,19 +152,19 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
   const time = format(new Date(entry.created_at), 'h:mm a')
 
   return (
-    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
+    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
             <span className="font-medium text-gray-700">{time}</span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">Â·</span>
             <span>{authorName}</span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">Â·</span>
             <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600">{deptName}</span>
             {entry.expires_at && (
               <>
-                <span aria-hidden="true">·</span>
-                <span className="flex items-center gap-1 text-amber-600">
+                <span aria-hidden="true">Â·</span>
+                <span className="flex items-center gap-1 text-[var(--caution)]">
                   <Clock className="w-3 h-3" />
                   expires {formatDistanceToNow(new Date(entry.expires_at), { addSuffix: true })}
                 </span>
@@ -177,7 +177,7 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {entry.is_ai_generated && (
-            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded font-medium">
+            <span className="text-xs px-2 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)] rounded font-medium">
               AI
             </span>
           )}
@@ -190,11 +190,11 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
   )
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-stone-200 shadow-sm rounded-2xl p-4 animate-pulse">
+    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 animate-pulse">
       <div className="flex items-center gap-2 mb-3">
         <div className="h-3 bg-gray-100 rounded w-16" />
         <div className="h-3 bg-gray-100 rounded w-1 mx-1" />
@@ -211,7 +211,7 @@ function SkeletonCard() {
   )
 }
 
-// ── AI Summary Panel ──────────────────────────────────────────────────────────
+// â”€â”€ AI Summary Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AISummaryPanelProps {
   shiftDate: string
@@ -244,42 +244,42 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
   if (!isSupervisor) return null
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+    <div className="rounded-xl border border-[var(--caution-line)] bg-[var(--caution-soft)] overflow-hidden">
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-100 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--caution-soft)] transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <Sparkles size={16} className="text-amber-500 shrink-0" />
+          <Sparkles size={16} className="text-[var(--caution)] shrink-0" />
           <span className="text-sm font-semibold text-amber-800">Today's AI Shift Summary</span>
-          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-600 border border-amber-200 rounded font-medium">
+          <span className="text-xs px-2 py-0.5 bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)] rounded font-medium">
             AI
           </span>
           {!isOpen && (
             summaryText ? (
-              <span className="text-xs text-stone-500 truncate hidden sm:inline">
-                {summaryText.slice(0, 80)}{summaryText.length > 80 ? '…' : ''}
+              <span className="text-xs text-ink3 truncate hidden sm:inline">
+                {summaryText.slice(0, 80)}{summaryText.length > 80 ? 'â€¦' : ''}
               </span>
             ) : (
-              <span className="text-xs text-stone-400 hidden sm:inline">
-                Generates at shift end (7 AM · 3 PM · 11 PM)
+              <span className="text-xs text-ink3 hidden sm:inline">
+                Generates at shift end (7 AM Â· 3 PM Â· 11 PM)
               </span>
             )
           )}
         </div>
         {isOpen ? (
-          <ChevronUp size={16} className="text-amber-500 shrink-0" />
+          <ChevronUp size={16} className="text-[var(--caution)] shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-amber-500 shrink-0" />
+          <ChevronDown size={16} className="text-[var(--caution)] shrink-0" />
         )}
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-4 border-t border-amber-200">
+        <div className="px-4 pb-4 border-t border-[var(--caution-line)]">
           {summaryText ? (
             <div className="mt-3 space-y-3">
               {stats && (
-                <div className="flex items-center gap-4 text-xs text-amber-700">
+                <div className="flex items-center gap-4 text-xs text-[var(--caution)]">
                   <span>
                     <span className="font-semibold">{stats.tasks_completed}</span> tasks completed
                   </span>
@@ -288,7 +288,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   </span>
                 </div>
               )}
-              <div className="bg-white rounded-lg border border-amber-200 p-4">
+              <div className="bg-surface rounded-lg border border-[var(--caution-line)] p-4">
                 <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {summaryText}
                 </p>
@@ -300,7 +300,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   generateMutation.mutate()
                 }}
                 disabled={generateMutation.isPending}
-                className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 font-medium disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--caution)] hover:text-amber-800 font-medium disabled:opacity-50 transition-colors"
               >
                 <Sparkles size={12} />
                 Regenerate
@@ -308,24 +308,24 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
             </div>
           ) : (
             <div className="mt-3 space-y-3">
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-[var(--caution)]">
                 Generate an AI-powered shift handoff summary based on today's logbook entries, completed tasks, and open work orders.
               </p>
               {generateError && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                  <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-red-700">{generateError}</p>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)]">
+                  <AlertCircle size={14} className="text-[var(--alert)] mt-0.5 shrink-0" />
+                  <p className="text-xs text-[var(--alert)]">{generateError}</p>
                 </div>
               )}
               <button
                 onClick={() => generateMutation.mutate()}
                 disabled={generateMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[var(--caution)] rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {generateMutation.isPending ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Generating…
+                    Generatingâ€¦
                   </>
                 ) : (
                   <>
@@ -342,7 +342,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
   )
 }
 
-// ── Create Entry Modal ────────────────────────────────────────────────────────
+// â”€â”€ Create Entry Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CreateEntryModalProps {
   isOpen: boolean
@@ -414,12 +414,12 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
           aria-modal="true"
           aria-label="Add logbook entry"
           tabIndex={-1}
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg p-6"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <BookOpen size={16} className="text-white" />
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Logbook Entry</h2>
@@ -432,13 +432,13 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Department <span className="text-red-500">*</span>
+                Department <span className="text-[var(--alert)]">*</span>
               </label>
               {deptEntries.length > 0 ? (
                 <select
                   value={deptId}
                   onChange={(e) => setDeptId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   required
                 >
                   {deptEntries.map(([id, name]) => (
@@ -459,13 +459,13 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Entry <span className="text-red-500">*</span>
+                Entry <span className="text-[var(--alert)]">*</span>
               </label>
               <textarea
                 rows={5}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Describe what happened during your shift…"
+                placeholder="Describe what happened during your shiftâ€¦"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
                 required
               />
@@ -480,9 +480,9 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)]">
+                <AlertCircle size={15} className="text-[var(--alert)] mt-0.5 shrink-0" />
+                <p className="text-sm text-[var(--alert)]">{error}</p>
               </div>
             )}
 
@@ -491,17 +491,17 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 type="button"
                 onClick={onClose}
                 disabled={mutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-surface border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={mutation.isPending || !content.trim() || !deptId.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? (
-                  <><Loader2 size={14} className="animate-spin" />Saving…</>
+                  <><Loader2 size={14} className="animate-spin" />Savingâ€¦</>
                 ) : (
                   <><Plus size={14} />Add Entry</>
                 )}
@@ -514,7 +514,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
   )
 }
 
-// ── Edit Entry Modal ──────────────────────────────────────────────────────────
+// â”€â”€ Edit Entry Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface EditEntryModalProps {
   entry: LogbookEntry | null
@@ -561,7 +561,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-entry-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-entry-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-entry-title" className="text-base font-bold text-gray-900">Edit Entry</h2>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
@@ -572,7 +572,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Entry <span className="text-red-500">*</span>
+              Entry <span className="text-[var(--alert)]">*</span>
             </label>
             <textarea
               rows={5}
@@ -590,7 +590,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
             <ExpiryPicker value={expiresHours} onChange={setExpiresHours} />
           </div>
 
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex gap-3 pt-1 border-t border-gray-100">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
@@ -599,10 +599,10 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
             <button
               type="submit"
               disabled={isPending || !content.trim()}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Saving…' : 'Save Changes'}
+              {isPending ? 'Savingâ€¦' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -611,7 +611,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function LogbookPage() {
   const [today, setToday] = useState('')
@@ -682,7 +682,7 @@ export default function LogbookPage() {
     Object.keys(deptMapFromApi).length > 0 ? deptMapFromApi : deptMapFromEntries
   const deptTabsFromEntries = Object.entries(deptMapFromEntries)
 
-  // ── Delete mutation (optimistic) ───────────────────────────────────────────
+  // â”€â”€ Delete mutation (optimistic) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const { mutate: deleteEntry, isPending: deleting } = useMutation({
     mutationFn: (id: string) => logbookApi.deleteEntry(id),
     onMutate: async (id) => {
@@ -755,7 +755,7 @@ export default function LogbookPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen size={22} className="text-amber-600 shrink-0" />
+            <BookOpen size={22} className="text-[var(--caution)] shrink-0" />
             Shift Logbook
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -764,7 +764,7 @@ export default function LogbookPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors shrink-0"
         >
           <Plus size={15} />
           Add Entry
@@ -789,13 +789,13 @@ export default function LogbookPage() {
           onClick={handleToday}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
             isToday
-              ? 'bg-amber-50 text-amber-700 border-amber-200'
+              ? 'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]'
               : 'text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
           }`}
         >
           Today
         </button>
-        <span className="px-3 py-1.5 text-sm font-semibold text-gray-900 bg-white border border-gray-200 rounded-lg min-w-[130px] text-center">
+        <span className="px-3 py-1.5 text-sm font-semibold text-gray-900 bg-surface border border-gray-200 rounded-lg min-w-[130px] text-center">
           {formatDisplayDate(selectedDate)}
         </span>
         <button
@@ -816,13 +816,13 @@ export default function LogbookPage() {
             aria-pressed={selectedDeptId === null}
             className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               selectedDeptId === null
-                ? 'border-amber-200 text-amber-700'
+                ? 'border-[var(--caution-line)] text-[var(--caution)]'
                 : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
             }`}
           >
             All
             {entries && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${selectedDeptId === null ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${selectedDeptId === null ? 'bg-[var(--caution-soft)] text-[var(--caution)]' : 'bg-gray-100 text-gray-500'}`}>
                 {entries.length}
               </span>
             )}
@@ -834,7 +834,7 @@ export default function LogbookPage() {
               aria-pressed={selectedDeptId === id}
               className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 selectedDeptId === id
-                  ? 'border-amber-200 text-amber-700'
+                  ? 'border-[var(--caution-line)] text-[var(--caution)]'
                   : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
               }`}
             >
@@ -883,7 +883,7 @@ export default function LogbookPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-14 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-[var(--r-lg)] bg-gray-100 flex items-center justify-center mb-4">
             <BookOpen size={28} className="text-gray-300" />
           </div>
           <p className="text-base font-semibold text-gray-700 mb-1">
@@ -897,7 +897,7 @@ export default function LogbookPage() {
           {isToday && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg hover:opacity-90 transition-colors"
+              className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors"
             >
               <Plus size={15} />
               Add first entry
@@ -905,9 +905,9 @@ export default function LogbookPage() {
           )}
           <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
             {['Guest handoff', 'Maintenance note', 'Shift concern'].map((item) => (
-              <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-                <p className="text-sm font-semibold text-stone-800">{item}</p>
-                <p className="mt-1 text-xs text-stone-500">Useful log item</p>
+              <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)] px-4 py-3">
+                <p className="text-sm font-semibold text-ink">{item}</p>
+                <p className="mt-1 text-xs text-ink3">Useful log item</p>
               </div>
             ))}
           </div>

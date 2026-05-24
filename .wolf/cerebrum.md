@@ -191,3 +191,5 @@
 - 2026-05-22 Key Learning: Shared modal keyboard behavior now lives in apps/web/lib/hooks/useModalFocusTrap.ts; use it for custom dialogs so Escape and Tab focus trapping stay consistent.
 
 - **AI Copilot cancel preview cleanup (2026-05-23):** Cancel actions must clear the source AI message `responseData` in both `apps/web/app/(dashboard)/ai/page.tsx` and `apps/web/components/ai/AICopilotBubble.tsx`; only appending a cancellation message leaves stale Confirm & Create controls mounted and persisted in localStorage.
+- **PowerShell rewrites must force UTF-8 (2026-05-24):** When mechanically editing TS/TSX/CSS files from PowerShell, use `[System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))`. Plain `Set-Content` can leave invalid UTF-8 bytes that pass lint/type-check but fail `next build` under Turbopack.
+- **Frontend handoff token cleanup (2026-05-24):** Invalid classes like `bg-[var(--caution-soft)]0` and legacy undefined `brand-*` classes can survive broad design-token migrations. Scan for `\]0`, `brand-`, and old amber gradients before final build; map action CTAs to `bg-accent`.

@@ -36,15 +36,15 @@ function GMDashboard() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          {greeting}, {firstName}!
-        </h1>
-        {hotel && (
-          <p className="text-sm text-stone-500 mt-0.5">{hotel.name}</p>
-        )}
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]" suppressHydrationWarning>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
+        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink mt-1 italic">
+          {greeting}, {firstName}.
+        </h1>
+        {hotel && (
+          <p className="text-[13px] text-ink3 mt-1">{hotel.name}</p>
+        )}
       </div>
       <ROIMetricsStrip />
       <AIRiskAlertsPanel />
@@ -61,10 +61,10 @@ export default function DashboardPage() {
   if (isAuthLoading || !role) {
     return (
       <div className="space-y-4">
-        <div className="h-9 w-64 rounded-lg bg-stone-100 animate-pulse" />
+        <div className="h-9 w-64 rounded-lg bg-surface-3 animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-stone-100 animate-pulse" />
+            <div key={i} className="h-28 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
           ))}
         </div>
       </div>

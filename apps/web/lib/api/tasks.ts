@@ -28,7 +28,7 @@ export interface Task {
   updated_at: string
   // Joined relations
   rooms?: { room_number: string; floor?: number }
-  user_profiles?: { preferred_name: string }
+  user_profiles?: { preferred_name?: string | null; full_name?: string | null }
   task_comments?: TaskComment[]
 }
 

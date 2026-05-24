@@ -10,90 +10,42 @@ import { staffApi } from '@/lib/api/staff'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
-import { STATUS_BG } from '@/lib/utils/roomStatus'
+import { StatusDot } from '@/components/ui/primitives'
 
-// Fix #16 — STATUS_BG values are Tailwind class strings, not CSS color values.
-// Use this hex map for inline backgroundColor style props.
-const STATUS_DOT_HEX: Record<string, string> = {
-  DIRTY: '#fca5a5',
-  IN_PROGRESS: '#93c5fd',
-  CLEAN: '#fcd34d',
-  INSPECTED: '#6ee7b7',
-  OOO: '#d1d5db',
-  PICKUP: '#d8b4fe',
-}
-
-// ── Status chip config ────────────────────────────────────────────────────────
+// -- Status chip config --------------------------------------------------------
 
 interface StatusChip {
   key: string | null
   label: string
-  activeBg: string
-  activeText: string
-  inactiveBg: string
+  dotTone: string
 }
 
 const STATUS_CHIPS: StatusChip[] = [
-  {
-    key: null,
-    label: 'All',
-    activeBg: 'bg-gray-800',
-    activeText: 'text-white',
-    inactiveBg: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-  },
-  {
-    key: 'DIRTY',
-    label: 'Dirty',
-    activeBg: 'bg-red-600',
-    activeText: 'text-white',
-    inactiveBg: 'bg-red-50 text-red-700 hover:bg-red-100',
-  },
-  {
-    key: 'IN_PROGRESS',
-    label: 'In Progress',
-    activeBg: 'bg-blue-600',
-    activeText: 'text-white',
-    inactiveBg: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
-  },
-  {
-    key: 'CLEAN',
-    label: 'To Inspect',
-    activeBg: 'bg-green-600',
-    activeText: 'text-white',
-    inactiveBg: 'bg-green-50 text-green-700 hover:bg-green-100',
-  },
-  {
-    key: 'INSPECTED',
-    label: 'Ready',
-    activeBg: 'bg-emerald-600',
-    activeText: 'text-white',
-    inactiveBg: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
-  },
-  {
-    key: 'OOO',
-    label: 'OOO',
-    activeBg: 'bg-gray-600',
-    activeText: 'text-white',
-    inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-  },
+  { key: null,          label: 'All',          dotTone: 'neutral' },
+  { key: 'DIRTY',       label: 'Vacant dirty', dotTone: 'dirty' },
+  { key: 'IN_PROGRESS', label: 'Occupied',     dotTone: 'progress' },
+  { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
+  { key: 'INSPECTED',   label: 'Ready',        dotTone: 'ready' },
+  { key: 'PICKUP',      label: 'Pickup',       dotTone: 'pickup' },
+  { key: 'OOO',         label: 'OOO',          dotTone: 'ooo' },
 ]
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
+// -- Skeleton loader -----------------------------------------------------------
 
 function SkeletonGrid() {
   return (
     <div className="space-y-6">
-      <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="aspect-[4/3] bg-gray-200 rounded-2xl animate-pulse" />
+      <div className="h-5 w-40 bg-surface-3 rounded animate-pulse" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i} className="h-[116px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
         ))}
       </div>
     </div>
   )
 }
 
-// ── Status summary bar ────────────────────────────────────────────────────────
+// -- Status filter chips -------------------------------------------------------
 
 interface SummaryBarProps {
   rooms: any[]
@@ -113,62 +65,53 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
 
   return (
     <div className="relative mb-4">
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
-      {STATUS_CHIPS.map((chip) => {
-        const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
-        const isActive = statusFilter === chip.key
-        return (
+      <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {STATUS_CHIPS.map((chip) => {
+          const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
+          const isActive = statusFilter === chip.key
+          return (
+            <button
+              key={chip.key ?? 'all'}
+              onClick={() => onFilter(chip.key)}
+              aria-pressed={isActive}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
+                isActive
+                  ? 'bg-ink text-paper border-ink'
+                  : 'bg-surface text-ink2 border-line hover:border-line-2 hover:text-ink'
+              }`}
+            >
+              <StatusDot tone={chip.dotTone} size={7} />
+              {chip.label}
+              <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
+            </button>
+          )
+        })}
+
+        {/* At Risk toggle chip */}
+        {onToggleRisk && (
           <button
-            key={chip.key ?? 'all'}
-            onClick={() => onFilter(chip.key)}
-            aria-pressed={isActive}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              isActive
-                ? `${chip.activeBg} ${chip.activeText}`
-                : chip.inactiveBg
+            onClick={onToggleRisk}
+            aria-pressed={showRiskOnly}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
+              showRiskOnly
+                ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
+                : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
             }`}
           >
-            <span
-              className="w-2 h-2 rounded-full"
-              style={
-                chip.key && !isActive
-                  ? { backgroundColor: STATUS_DOT_HEX[chip.key] ?? '#9CA3AF' }
-                  : { backgroundColor: isActive ? 'rgba(255,255,255,0.8)' : '#9CA3AF' }
-              }
-            />
-            {chip.label}
-            <span className={`font-bold ${isActive ? 'opacity-90' : ''}`}>{count}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
+            </svg>
+            At risk
+            <span className="font-mono font-bold text-[11px]">{riskCount ?? 0}</span>
           </button>
-        )
-      })}
-
-      {/* At Risk toggle chip */}
-      {onToggleRisk && (
-        <button
-          onClick={onToggleRisk}
-          aria-pressed={showRiskOnly}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            showRiskOnly
-              ? 'bg-orange-500 text-white'
-              : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
-          }`}
-        >
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: showRiskOnly ? 'rgba(255,255,255,0.8)' : '#f97316' }}
-          />
-          At Risk
-          <span className={`font-bold ${showRiskOnly ? 'opacity-90' : ''}`}>{riskCount ?? 0}</span>
-        </button>
-      )}
+        )}
       </div>
-      {/* Fix #17 — match the warm stone background instead of pure white */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-[#F8F5F0] to-transparent" />
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-paper to-transparent" />
     </div>
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// -- Main component -----------------------------------------------------------
 
 function getHotelIdFromToken(token: string | undefined): string {
   try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
@@ -208,7 +151,7 @@ export function RoomStatusBoard() {
     [allRooms, predictions],
   )
 
-  // ── Staff name lookup (cache hit — same key as AssignmentSidebar) ─────────
+  // -- Staff name lookup -------------------------------------------------------
   const { data: staffData } = useQuery({
     queryKey: ['staff-list'],
     queryFn: () => staffApi.list(),
@@ -224,7 +167,6 @@ export function RoomStatusBoard() {
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
 
-  // Debounce ref for realtime invalidation
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const applyRoomStatusPayload = useCallback((payload: any) => {
     const row = payload?.new
@@ -232,12 +174,7 @@ export function RoomStatusBoard() {
 
     const mergeRoom = (room: any) =>
       room.room_id === row.room_id
-        ? {
-            ...room,
-            ...row,
-            rooms: room.rooms,
-            prediction: room.prediction,
-          }
+        ? { ...room, ...row, rooms: room.rooms, prediction: room.prediction }
         : room
 
     setRooms(useHousekeepingStore.getState().rooms.map(mergeRoom))
@@ -249,14 +186,10 @@ export function RoomStatusBoard() {
     setLastSyncedAt(new Date())
   }, [queryClient, selectedDate, selectedShift, setLastSyncedAt, setRooms])
 
-  // ── React Query fetch ─────────────────────────────────────────────────────
+  // -- React Query fetch -------------------------------------------------------
   const { isLoading, isError, data: boardData } = useQuery({
     queryKey: ['housekeeping-board', selectedDate, selectedShift],
-    queryFn: () => housekeepingApi.getBoard(
-      selectedDate,
-      selectedShift ?? undefined,
-      true,
-    ),
+    queryFn: () => housekeepingApi.getBoard(selectedDate, selectedShift ?? undefined, true),
     refetchInterval: 10_000,
   })
 
@@ -275,24 +208,18 @@ export function RoomStatusBoard() {
     })
   }, [boardData, setLastSyncedAt, setPredictions, setRooms])
 
-  // ── Supabase Realtime subscription ────────────────────────────────────────
+  // -- Supabase Realtime subscription ------------------------------------------
   useEffect(() => {
     const invalidateBoard = () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
       realtimeDebounce.current = setTimeout(() => {
-        queryClient.invalidateQueries({
-          queryKey: ['housekeeping-board', selectedDate, selectedShift],
-        })
-        queryClient.invalidateQueries({
-          queryKey: ['housekeeping-assignments', selectedDate],
-        })
+        queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+        queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
       }, 500)
     }
 
     if (!hotelId) return
-    if (session?.access_token) {
-      supabase.realtime.setAuth(session.access_token)
-    }
+    if (session?.access_token) supabase.realtime.setAuth(session.access_token)
 
     const channel = supabase
       .channel('room_status_board_realtime')
@@ -309,7 +236,7 @@ export function RoomStatusBoard() {
     }
   }, [applyRoomStatusPayload, hotelId, queryClient, selectedDate, selectedShift, session?.access_token, supabase])
 
-  // ── Status change handler ─────────────────────────────────────────────────
+  // -- Status change handler ---------------------------------------------------
   const handleStatusChange = async (roomId: string, status: string) => {
     if (status === '__remove_assignment') {
       removePendingAssignment(roomId)
@@ -317,35 +244,29 @@ export function RoomStatusBoard() {
     }
     setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     await housekeepingApi.updateRoomStatus(roomId, status)
-    queryClient.invalidateQueries({
-      queryKey: ['housekeeping-board', selectedDate, selectedShift],
-    })
+    queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
-  // ── Tap-to-assign (mobile assign mode) ───────────────────────────────────
+  // -- Tap-to-assign -----------------------------------------------------------
   const handleTapAssign = useCallback((roomId: string) => {
     if (!activeAssigneeId) return
-
     if (pendingAssignments[roomId] === activeAssigneeId) {
       setAssignError('Room already added to this housekeeper')
       setTimeout(() => setAssignError(null), 3000)
       return
     }
-
     const roomData = allRooms.find((r: any) => r.room_id === roomId)
-
     if (roomData?.assigned_to === activeAssigneeId) {
       setAssignError('Room is already assigned to this housekeeper')
       setTimeout(() => setAssignError(null), 3000)
       return
     }
-
     setAssignError(null)
     setPendingAssignment(roomId, activeAssigneeId)
   }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
 
-  // ── Derived data ──────────────────────────────────────────────────────────
+  // -- Derived data ------------------------------------------------------------
   const roomAssignedNames = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
       if (r.room_id && r.assigned_to && r.assigned_to !== activeAssigneeId) {
@@ -357,30 +278,24 @@ export function RoomStatusBoard() {
   )
 
   const rooms = filteredRooms()
-
-  // Group by floor
   const byFloor = rooms.reduce<Record<number, any[]>>((acc, room) => {
     const floor: number = room.rooms?.floor ?? 0
     if (!acc[floor]) acc[floor] = []
     acc[floor].push(room)
     return acc
   }, {})
+  const sortedFloors = Object.keys(byFloor).map(Number).sort((a, b) => a - b)
 
-  const sortedFloors = Object.keys(byFloor)
-    .map(Number)
-    .sort((a, b) => a - b)
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  // -- Render ------------------------------------------------------------------
   if (isLoading) return <SkeletonGrid />
 
-  // Fix #19 — add retry button instead of asking user to hard-refresh
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm">
-        <p className="text-gray-500">Failed to load rooms.</p>
+        <p className="text-[13px] text-ink3">Failed to load rooms.</p>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })}
-          className="px-4 py-2 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition-colors"
+          className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
         >
           Retry
         </button>
@@ -390,7 +305,7 @@ export function RoomStatusBoard() {
 
   return (
     <div className="space-y-4">
-      {/* Status summary bar */}
+      {/* Status filter chips */}
       <StatusSummaryBar
         rooms={allRooms}
         statusFilter={statusFilter}
@@ -402,36 +317,39 @@ export function RoomStatusBoard() {
 
       {/* Assign error banner */}
       {assignError && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] text-sm text-[var(--alert)]">
           <span>{assignError}</span>
           <button
             onClick={() => setAssignError(null)}
-            className="shrink-0 text-red-500 hover:text-red-700 font-medium"
+            className="shrink-0 font-medium"
             aria-label="Dismiss"
           >
-            ✕
+            &times;
           </button>
         </div>
       )}
 
       {/* Floor-grouped grid */}
       {sortedFloors.length === 0 ? (
-        <div className="flex items-center justify-center h-40 text-sm text-gray-400">
+        <div className="flex items-center justify-center h-40 text-[13px] text-ink3">
           No rooms match the current filters
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {sortedFloors.map((floor) => {
             const floorRooms = byFloor[floor]
             return (
               <div key={floor}>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  Floor {floor}{' '}
-                  <span className="font-normal text-gray-400">
-                    · {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
+                {/* Floor divider header */}
+                <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
+                  <h3 className="font-display text-[20px] font-normal text-ink tracking-[-0.2px]">
+                    {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                  </h3>
+                  <span className="font-mono text-[11px] text-ink3">
+                    {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
                   </span>
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
                   {floorRooms.map((room) => (
                     <RoomCard
                       key={room.room_id}

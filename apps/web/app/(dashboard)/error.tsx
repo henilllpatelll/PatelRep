@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -18,8 +18,8 @@ export default function DashboardError({
   return (
     <div className="flex items-center justify-center h-full min-h-64 p-6">
       <div className="text-center max-w-sm">
-        <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
+        <div className="w-12 h-12 rounded-xl bg-[var(--alert-soft)] flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-6 h-6 text-[var(--alert)]" />
         </div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Page Error</h2>
         <p className="text-sm text-gray-500 mb-5">

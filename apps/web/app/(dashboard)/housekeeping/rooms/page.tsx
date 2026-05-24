@@ -82,7 +82,7 @@ function RoomMobileCard({
             </Button>
           )}
           {canDelete && !confirmingDelete && (
-            <Button variant="ghost" className="px-3 text-red-500 hover:bg-red-50" onClick={onDelete}>
+            <Button variant="ghost" className="px-3 text-[var(--alert)] hover:bg-[var(--alert-soft)]" onClick={onDelete}>
               <Trash2 size={14} />
             </Button>
           )}
@@ -90,7 +90,7 @@ function RoomMobileCard({
             <>
               <button
                 onClick={onConfirmDelete}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600"
               >
                 Confirm
               </button>
@@ -220,7 +220,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
-      <div className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-gray-900">Import Rooms</h2>
@@ -246,7 +246,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               }}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 tab === t
-                  ? 'border-brand-600 text-brand-700'
+                  ? 'border-accent text-accent'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -259,8 +259,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {/* Result banner */}
           {importResult && (
-            <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle2 size={18} className="text-green-600 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-3 p-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg">
+              <CheckCircle2 size={18} className="text-[var(--ready)] mt-0.5 shrink-0" />
               <p className="text-sm text-green-800">
                 Imported <span className="font-semibold">{importResult.imported}</span> {importResult.imported === 1 ? 'room' : 'rooms'}
                 {importResult.skipped > 0 && (
@@ -273,8 +273,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
           {/* Error banner */}
           {importError && (
-            <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={18} className="text-red-600 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-3 p-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg">
+              <AlertCircle size={18} className="text-[var(--alert)] mt-0.5 shrink-0" />
               <p className="text-sm text-red-800">{importError}</p>
             </div>
           )}
@@ -299,7 +299,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   type="file"
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-white/90 file:text-sm file:font-medium file:bg-white/70 file:text-gray-700 hover:file:bg-white/90"
+                  className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-white/90 file:text-sm file:font-medium file:bg-surface/70 file:text-gray-700 hover:file:bg-surface/90"
                 />
               </div>
 
@@ -308,7 +308,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   <div className="w-full border-t border-white/60" />
                 </div>
                 <div className="relative flex justify-center text-xs text-gray-400">
-                  <span className="bg-white/60 px-2">or paste CSV</span>
+                  <span className="bg-surface/60 px-2">or paste CSV</span>
                 </div>
               </div>
 
@@ -320,7 +320,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 }}
                 placeholder="room_number,floor,room_type_code,room_type_name&#10;101,1,SD,Standard Double&#10;102,1,KS,King Suite"
                 rows={6}
-                className="w-full px-3 py-2 border border-amber-200/40 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-y bg-white/50 backdrop-blur-sm"
+                className="w-full px-3 py-2 border border-[var(--caution-line)]/40 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-y bg-surface/50 backdrop-blur-sm"
               />
 
               {/* Preview table */}
@@ -331,7 +331,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   </p>
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-white/60">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-amber-50/60 sticky top-0">
+                      <thead className="bg-[var(--caution-soft)]/60 sticky top-0">
                         <tr>
                           {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building'].map(
                             (h) => (
@@ -347,7 +347,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                       </thead>
                       <tbody className="divide-y divide-white/40">
                         {csvPreview.map((row, i) => (
-                          <tr key={i} className="hover:bg-amber-50/30">
+                          <tr key={i} className="hover:bg-[var(--caution-soft)]/30">
                             <td className="px-3 py-1.5 font-mono text-gray-900">{row.room_number}</td>
                             <td className="px-3 py-1.5 text-gray-600">{row.floor}</td>
                             <td className="px-3 py-1.5 font-mono text-gray-600">{row.room_type_code}</td>
@@ -371,7 +371,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               </p>
               <div className="overflow-x-auto rounded-lg border border-white/60">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-amber-50/60">
+                  <thead className="bg-[var(--caution-soft)]/60">
                     <tr>
                       {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building', ''].map(
                         (h) => (
@@ -387,7 +387,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   </thead>
                   <tbody className="divide-y divide-white/40">
                     {manualRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-amber-50/30">
+                      <tr key={idx} className="hover:bg-[var(--caution-soft)]/30">
                         <td className="px-2 py-1">
                           <Input
                             type="text"
@@ -446,7 +446,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                         <td className="px-2 py-1">
                           <button
                             onClick={() => handleRemoveRow(idx)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            className="text-gray-400 hover:text-[var(--alert)] transition-colors"
                           >
                             <X size={14} />
                           </button>
@@ -458,7 +458,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               </div>
               <button
                 onClick={handleAddRow}
-                className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium"
+                className="flex items-center gap-1.5 text-sm text-accent hover:text-accent font-medium"
               >
                 <Plus size={15} />
                 Add Row
@@ -608,7 +608,7 @@ export default function RoomsPage() {
             onChange={(e) =>
               setFloorFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))
             }
-            className="appearance-none pl-3 pr-8 py-2 border border-amber-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-[var(--caution-line)]/40 rounded-lg text-sm text-gray-700 bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
             <option value="all">All Floors</option>
             {floors.map((f) => (
@@ -628,7 +628,7 @@ export default function RoomsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 border border-amber-200/40 rounded-lg text-sm text-gray-700 bg-white/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-[var(--caution-line)]/40 rounded-lg text-sm text-gray-700 bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
             <option value="all">All Statuses</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -669,7 +669,7 @@ export default function RoomsPage() {
         )}
 
         {isError && (
-          <div className="flex items-center justify-center gap-2 py-16 text-red-600 text-sm">
+          <div className="flex items-center justify-center gap-2 py-16 text-[var(--alert)] text-sm">
             <AlertCircle size={16} />
             {(error as Error)?.message ?? 'Failed to load rooms'}
           </div>
@@ -681,7 +681,7 @@ export default function RoomsPage() {
             {rooms.length === 0 && (
               <button
                 onClick={() => setShowImportModal(true)}
-                className="text-brand-600 hover:text-brand-700 font-medium text-sm"
+                className="text-accent hover:text-accent font-medium text-sm"
               >
                 Import rooms to get started
               </button>
@@ -709,7 +709,7 @@ export default function RoomsPage() {
           <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full">
               <thead>
-                <tr className="bg-amber-50/60 border-b border-white/60">
+                <tr className="bg-[var(--caution-soft)]/60 border-b border-white/60">
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     Room
                   </th>
@@ -739,7 +739,7 @@ export default function RoomsPage() {
                     room.user_profiles?.full_name ||
                     null
                   return (
-                    <tr key={room.room_id} className="hover:bg-amber-50/40 transition-colors">
+                    <tr key={room.room_id} className="hover:bg-[var(--caution-soft)]/40 transition-colors">
                       <td className="px-4 py-3 font-semibold text-gray-900">
                         {room.rooms?.room_number ?? '—'}
                       </td>
@@ -772,7 +772,7 @@ export default function RoomsPage() {
                             {canAssignRooms && confirmDeleteId !== room.room_id && (
                               <button
                                 onClick={() => setConfirmDeleteId(room.room_id)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
+                                className="p-1.5 text-gray-400 hover:text-[var(--alert)] transition-colors rounded"
                                 title="Delete room"
                               >
                                 <Trash2 size={14} />
@@ -783,7 +783,7 @@ export default function RoomsPage() {
                                 <button
                                   onClick={() => deleteMutation.mutate(room.room_id)}
                                   disabled={deleteMutation.isPending}
-                                  className="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+                                  className="px-2 py-1 rounded text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600 disabled:opacity-50"
                                 >
                                   Confirm
                                 </button>

@@ -143,11 +143,11 @@ function FormField({
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700">
         {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span className="text-[var(--alert)] ml-0.5">*</span>}
       </label>
       {children}
       {error && (
-        <p className="text-xs text-red-600 flex items-center gap-1">
+        <p className="text-xs text-[var(--alert)] flex items-center gap-1">
           <AlertCircle className="w-3 h-3 shrink-0" />
           {error}
         </p>
@@ -178,7 +178,7 @@ const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSele
       {...props}
       ref={ref}
       className={cn(
-        'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-white',
+        'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-surface',
         'focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent',
         'disabled:bg-gray-50 disabled:text-gray-400',
         className
@@ -206,9 +206,9 @@ function Button({
     'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed'
   const variants = {
     primary:
-      'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-400 shadow-sm',
+      'bg-[var(--caution)] text-white hover:bg-amber-600 focus:ring-amber-400 shadow-sm',
     secondary:
-      'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-amber-400 shadow-sm',
+      'bg-surface text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-amber-400 shadow-sm',
     ghost: 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:ring-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm',
   }
@@ -305,9 +305,9 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
   }
 
   return (
-    <aside className="w-full h-full flex flex-col bg-amber-50 border-l border-amber-100 rounded-r-2xl p-6">
+    <aside className="w-full h-full flex flex-col bg-[var(--caution-soft)] border-l border-amber-100 rounded-r-2xl p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[var(--caution)] flex items-center justify-center shrink-0">
           <Bot className="w-4 h-4 text-white" />
         </div>
         <span className="font-semibold text-amber-900 text-sm">AI Assistant</span>
@@ -316,7 +316,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
       {/* Message thread */}
       <div className="flex-1 overflow-y-auto space-y-3 min-h-0 mb-3" aria-live="polite">
         {/* Initial greeting bubble */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+        <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
           <p className="text-sm text-gray-700 leading-relaxed">
             Hi! I'm here to help you get set up quickly. Ask me anything about this step.
           </p>
@@ -324,7 +324,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
 
         {/* Static tip from AI_TIPS while no conversation */}
         {messages.length === 0 && (
-          <div className="bg-amber-500 rounded-xl p-4 text-white">
+          <div className="bg-[var(--caution)] rounded-xl p-4 text-white">
             <p className="text-xs font-semibold uppercase tracking-wide opacity-75 mb-1">
               Tip
             </p>
@@ -337,15 +337,15 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           <div key={idx}>
             {msg.role === 'user' ? (
               <div className="flex justify-end">
-                <div className="bg-amber-500 text-white rounded-xl px-4 py-2.5 text-sm max-w-[90%]">
+                <div className="bg-[var(--caution)] text-white rounded-xl px-4 py-2.5 text-sm max-w-[90%]">
                   {msg.content}
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+              <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
                 <p className="text-sm text-gray-700 leading-relaxed">{msg.content}</p>
                 {msg.tip && (
-                  <p className="text-xs text-amber-600 mt-2 italic">{msg.tip}</p>
+                  <p className="text-xs text-[var(--caution)] mt-2 italic">{msg.tip}</p>
                 )}
               </div>
             )}
@@ -353,7 +353,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
         ))}
 
         {isLoading && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+          <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
             <div className="flex items-center gap-2 text-amber-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span className="text-xs">Thinking...</span>
@@ -375,7 +375,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           placeholder="Ask a question..."
           disabled={isLoading}
           className={cn(
-            'flex-1 min-w-0 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-stone-400',
+            'flex-1 min-w-0 rounded-lg border border-[var(--caution-line)] bg-surface px-3 py-2 text-sm text-gray-900 placeholder-stone-400',
             'focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent',
             'disabled:opacity-60'
           )}
@@ -384,7 +384,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
           className={cn(
-            'shrink-0 w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center',
+            'shrink-0 w-8 h-8 rounded-lg bg-[var(--caution)] text-white flex items-center justify-center',
             'hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           )}
           aria-label="Send"
@@ -418,10 +418,10 @@ function ProgressHeader({
   stepStatuses: Record<number, StepStatus>
 }) {
   return (
-    <div className="border-b border-amber-100/50 bg-white/60 backdrop-blur-sm px-8 py-5">
+    <div className="border-b border-amber-100/50 bg-surface/60 backdrop-blur-sm px-8 py-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-[var(--caution)] flex items-center justify-center">
             <Building2 className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-gray-900">PatelRep Setup Wizard</span>
@@ -453,7 +453,7 @@ function ProgressHeader({
                     isActive &&
                       'bg-amber-400 text-white shadow-md',
                     !isCompleted && !isActive &&
-                      'bg-white/60 text-slate-400 border border-amber-200/[0.40]'
+                      'bg-surface/60 text-slate-400 border border-[var(--caution-line)]/[0.40]'
                   )}
                 >
                   {isCompleted && !isSkipped ? (
@@ -465,7 +465,7 @@ function ProgressHeader({
                 <span
                   className={cn(
                     'text-xs font-medium whitespace-nowrap',
-                    isActive ? 'text-amber-600' : isCompleted ? 'text-gray-600' : 'text-gray-400'
+                    isActive ? 'text-[var(--caution)]' : isCompleted ? 'text-gray-600' : 'text-gray-400'
                   )}
                 >
                   {step.label}
@@ -543,8 +543,8 @@ function Step1HotelProfile({
       </div>
 
       {errors.root && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-3">
-          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-lg bg-[var(--alert-soft)] border border-red-200 p-3">
+          <AlertCircle className="w-4 h-4 text-[var(--alert)] shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">{errors.root.message}</p>
         </div>
       )}
@@ -742,7 +742,7 @@ function Step2ImportRooms({
             className={cn(
               'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
               tab === t.id
-                ? 'bg-white text-amber-700 shadow-sm border border-gray-200'
+                ? 'bg-surface text-[var(--caution)] shadow-sm border border-gray-200'
                 : 'text-gray-500 hover:text-gray-700'
             )}
           >
@@ -762,10 +762,10 @@ function Step2ImportRooms({
             className={cn(
               'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
               isDragging
-                ? 'border-amber-200 bg-amber-50'
+                ? 'border-[var(--caution-line)] bg-[var(--caution-soft)]'
                 : csvFile
-                ? 'border-green-400 bg-green-50'
-                : 'border-gray-300 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/30'
+                ? 'border-green-400 bg-[var(--ready-soft)]'
+                : 'border-gray-300 bg-gray-50 hover:border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/30'
             )}
           >
             <input
@@ -812,14 +812,14 @@ function Step2ImportRooms({
               className={cn(
                 'flex items-start gap-2 rounded-lg border p-3',
                 uploadResult.error
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-green-50 border-green-200'
+                  ? 'bg-[var(--alert-soft)] border-red-200'
+                  : 'bg-[var(--ready-soft)] border-green-200'
               )}
             >
               {uploadResult.error ? (
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-[var(--alert)] shrink-0 mt-0.5" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--ready)] shrink-0 mt-0.5" />
               )}
               <p className={cn('text-sm', uploadResult.error ? 'text-red-700' : 'text-green-700')}>
                 {uploadResult.error ||
@@ -887,7 +887,7 @@ function Step2ImportRooms({
                 { id: uid(), room_number: '', floor: '' },
               ])
             }
-            className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-medium mt-1"
+            className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:text-amber-800 font-medium mt-1"
           >
             <Plus className="w-4 h-4" />
             Add row
@@ -1041,7 +1041,7 @@ function Step3InviteStaff({
 
       <button
         onClick={addRow}
-        className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 font-medium"
+        className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:text-amber-800 font-medium"
       >
         <Plus className="w-4 h-4" />
         Add another invite
@@ -1055,7 +1055,7 @@ function Step3InviteStaff({
               Sending invites… {progress.done}/{progress.total}
             </span>
             {progress.done === progress.total && (
-              <span className="text-green-600 font-medium flex items-center gap-1">
+              <span className="text-[var(--ready)] font-medium flex items-center gap-1">
                 <Check className="w-4 h-4" /> Done
               </span>
             )}
@@ -1071,7 +1071,7 @@ function Step3InviteStaff({
           {progress.errors.length > 0 && (
             <ul className="space-y-1">
               {progress.errors.map((e, i) => (
-                <li key={i} className="text-xs text-red-600 flex items-center gap-1">
+                <li key={i} className="text-xs text-[var(--alert)] flex items-center gap-1">
                   <AlertCircle className="w-3 h-3 shrink-0" />
                   {e}
                 </li>
@@ -1188,11 +1188,11 @@ function Step4OperaCloud({
       </div>
 
       {!connected && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        <div className="rounded-xl border border-gray-200 bg-surface p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="onboarding-ohip-base-url" className="block text-sm font-medium text-gray-700 mb-1.5">
-                OHIP Base URL <span className="text-red-500">*</span>
+                OHIP Base URL <span className="text-[var(--alert)]">*</span>
               </label>
               <input
                 id="onboarding-ohip-base-url"
@@ -1200,12 +1200,12 @@ function Step4OperaCloud({
                 value={form.ohip_base_url}
                 onChange={setField('ohip_base_url')}
                 placeholder="https://hospitality.oracle.com"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
               <label htmlFor="onboarding-opera-hotel-code" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Opera Hotel Code <span className="text-red-500">*</span>
+                Opera Hotel Code <span className="text-[var(--alert)]">*</span>
               </label>
               <input
                 id="onboarding-opera-hotel-code"
@@ -1213,7 +1213,7 @@ function Step4OperaCloud({
                 value={form.hotel_id_opera}
                 onChange={setField('hotel_id_opera')}
                 placeholder="SAND01"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
@@ -1227,7 +1227,7 @@ function Step4OperaCloud({
                 onChange={setField('integration_username')}
                 placeholder="integration_user"
                 autoComplete="username"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
             <div>
@@ -1241,7 +1241,7 @@ function Step4OperaCloud({
                 onChange={setField('integration_password')}
                 placeholder="Password"
                 autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
             </div>
           </div>
@@ -1249,13 +1249,13 @@ function Step4OperaCloud({
       )}
 
       {connected && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
-          <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-lg bg-[var(--ready-soft)] border border-green-200 p-3">
+          <CheckCircle2 className="w-5 h-5 text-[var(--ready)] shrink-0" />
           <div>
             <p className="text-sm font-semibold text-green-800">
               Opera Cloud connected!
             </p>
-            <p className="text-xs text-green-600">
+            <p className="text-xs text-[var(--ready)]">
               PatelRep can now sync eligible room and reservation data.
             </p>
           </div>
@@ -1263,8 +1263,8 @@ function Step4OperaCloud({
       )}
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-3">
-          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-lg bg-[var(--alert-soft)] border border-red-200 p-3">
+          <AlertCircle className="w-4 h-4 text-[var(--alert)] shrink-0 mt-0.5" />
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
@@ -1381,8 +1381,8 @@ function Step5UploadSOPs({
         className={cn(
           'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
           isDragging
-            ? 'border-amber-200 bg-amber-50'
-            : 'border-gray-300 bg-gray-50 hover:border-amber-200 hover:bg-amber-50/30'
+            ? 'border-[var(--caution-line)] bg-[var(--caution-soft)]'
+            : 'border-gray-300 bg-gray-50 hover:border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/30'
         )}
       >
         <input
@@ -1411,7 +1411,7 @@ function Step5UploadSOPs({
           {queue.map((f) => (
             <div
               key={f.name}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5"
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-surface p-2.5"
             >
               <FileText className="w-4 h-4 text-amber-400 shrink-0" />
               <span className="flex-1 text-sm text-gray-700 truncate">{f.name}</span>
@@ -1442,7 +1442,7 @@ function Step5UploadSOPs({
           {uploaded.map((doc) => (
             <div
               key={doc.name}
-              className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-2.5"
+              className="flex items-center gap-3 rounded-lg border border-green-200 bg-[var(--ready-soft)] p-2.5"
             >
               <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
               <span className="flex-1 text-sm text-gray-700 truncate">{doc.name}</span>
@@ -1455,8 +1455,8 @@ function Step5UploadSOPs({
       )}
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-          <p className="text-xs text-red-600 whitespace-pre-line">{error}</p>
+        <div className="rounded-lg bg-[var(--alert-soft)] border border-red-200 p-3">
+          <p className="text-xs text-[var(--alert)] whitespace-pre-line">{error}</p>
         </div>
       )}
 
@@ -1545,7 +1545,7 @@ function Step6Done({
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center gap-3 py-4">
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-          <PartyPopper className="w-8 h-8 text-amber-600" />
+          <PartyPopper className="w-8 h-8 text-[var(--caution)]" />
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">You're all set!</h2>
@@ -1563,20 +1563,20 @@ function Step6Done({
             className={cn(
               'flex items-center gap-3 rounded-lg border p-3 transition-all',
               item.done
-                ? 'border-green-200 bg-green-50'
+                ? 'border-green-200 bg-[var(--ready-soft)]'
                 : item.optional
                 ? 'border-gray-200 bg-gray-50'
-                : 'border-amber-200 bg-amber-50'
+                : 'border-[var(--caution-line)] bg-[var(--caution-soft)]'
             )}
           >
             <div
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
                 item.done
-                  ? 'bg-green-100 text-green-600'
+                  ? 'bg-green-100 text-[var(--ready)]'
                   : item.optional
                   ? 'bg-gray-100 text-gray-400'
-                  : 'bg-amber-100 text-amber-600'
+                  : 'bg-amber-100 text-[var(--caution)]'
               )}
             >
               {item.icon}
@@ -1598,7 +1598,7 @@ function Step6Done({
 
       {/* Remaining todos */}
       {todoLinks.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-lg border border-[var(--caution-line)] bg-[var(--caution-soft)] p-4">
           <p className="text-sm font-semibold text-amber-800 mb-2">
             Complete these when you're ready:
           </p>
@@ -1607,7 +1607,7 @@ function Step6Done({
               <li key={link.href}>
                 <a
                   href={link.href}
-                  className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 font-medium"
+                  className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:text-amber-900 font-medium"
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
                   {link.label}
@@ -1779,7 +1779,7 @@ function OnboardingPageInner() {
     return (
       <div className="min-h-full">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white/[0.88] backdrop-blur-2xl rounded-2xl shadow-xl border border-white/[0.95] overflow-hidden">
+          <div className="bg-surface/[0.88] backdrop-blur-2xl rounded-[var(--r-lg)] shadow-xl border border-white/[0.95] overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-amber-100/50">
               <UIButton variant="ghost" onClick={() => router.push('/housekeeping')} className="h-8 px-2 text-sm">
                 <ChevronLeft className="w-4 h-4" />
@@ -1806,7 +1806,7 @@ function OnboardingPageInner() {
     <div className="min-h-full">
       {/* Glass wizard card */}
       <div className="max-w-5xl mx-auto">
-        <div className="bg-white/[0.88] backdrop-blur-2xl rounded-2xl shadow-xl border border-white/[0.95] overflow-hidden">
+        <div className="bg-surface/[0.88] backdrop-blur-2xl rounded-[var(--r-lg)] shadow-xl border border-white/[0.95] overflow-hidden">
           {/* Progress header */}
           <ProgressHeader currentStep={currentStep} stepStatuses={stepStatuses} />
 
@@ -1874,7 +1874,7 @@ function OnboardingPageInner() {
 
           {/* Bottom navigation (steps 2–5 that don't have their own nav) */}
           {currentStep > 1 && currentStep < 6 && (
-            <div className="flex items-center justify-between border-t border-amber-100/50 px-8 py-4 bg-white/40 backdrop-blur-sm rounded-b-2xl">
+            <div className="flex items-center justify-between border-t border-amber-100/50 px-8 py-4 bg-surface/40 backdrop-blur-sm rounded-b-2xl">
               <UIButton variant="ghost" onClick={goBack}>
                 <ChevronLeft className="w-4 h-4" />
                 Back

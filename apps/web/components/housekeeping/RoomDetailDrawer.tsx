@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -79,7 +79,7 @@ function formatCheckinTime(isoString: string | null | undefined): string | null 
 
 function getStatusDotClass(status: string): string {
   switch (status) {
-    case 'DIRTY': return 'text-red-500'
+    case 'DIRTY': return 'text-[var(--alert)]'
     case 'IN_PROGRESS': return 'text-blue-500'
     case 'CLEAN': return 'text-yellow-500'
     case 'INSPECTED': return 'text-green-500'
@@ -91,12 +91,12 @@ function getStatusDotClass(status: string): string {
 
 function getStatusTextClass(status: string): string {
   switch (status) {
-    case 'DIRTY': return 'text-red-700'
-    case 'IN_PROGRESS': return 'text-blue-700'
+    case 'DIRTY': return 'text-[var(--alert)]'
+    case 'IN_PROGRESS': return 'text-[var(--info)]'
     case 'CLEAN': return 'text-yellow-700'
-    case 'INSPECTED': return 'text-green-700'
+    case 'INSPECTED': return 'text-[var(--ready)]'
     case 'OOO': return 'text-gray-600'
-    case 'PICKUP': return 'text-purple-700'
+    case 'PICKUP': return 'text-[var(--ai)]'
     default: return 'text-gray-600'
   }
 }
@@ -148,13 +148,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
   const [showInspectionModal, setShowInspectionModal] = useState(false)
   const [showNextBanner, setShowNextBanner] = useState(false)
 
-  // ── Note state ─────────────────────────────────────────────────────────────
+  // â”€â”€ Note state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [noteText, setNoteText] = useState('')
   const [noteLoading, setNoteLoading] = useState(false)
   const [noteSuccess, setNoteSuccess] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
 
-  // ── Work order state ───────────────────────────────────────────────────────
+  // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
   const [woTitle, setWoTitle] = useState('')
   const [woCategory, setWoCategory] = useState('general')
@@ -228,7 +228,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
       setWoPriority('normal')
       setWoOpen(false)
       const roomLabel = room?.rooms?.room_number ?? room?.room_number ?? roomId
-      setWoSuccess(`Work order submitted — engineering team notified for Room ${roomLabel}`)
+      setWoSuccess(`Work order submitted â€” engineering team notified for Room ${roomLabel}`)
       setTimeout(() => setWoSuccess(null), 6000)
     } catch {
       setWoError('Failed to submit work order. Please try again.')
@@ -266,7 +266,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
   const allTransitions = STATUS_TRANSITIONS[status] ?? []
   const availableTransitions = allTransitions.filter((t) => {
     if (isHousekeeper) {
-      // Housekeepers can only move DIRTY→IN_PROGRESS and IN_PROGRESS→CLEAN
+      // Housekeepers can only move DIRTYâ†’IN_PROGRESS and IN_PROGRESSâ†’CLEAN
       return (
         (status === 'DIRTY' && t === 'IN_PROGRESS') ||
         (status === 'IN_PROGRESS' && t === 'CLEAN')
@@ -277,7 +277,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
     return false
   })
 
-  const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
+  const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? 'â€”'
   const roomTypeName = room?.rooms?.room_types?.name ?? room?.room_type_name ?? ''
   const vipFlag = !!room?.vip_flag
   const guestName: string | null = room?.guest_name ?? null
@@ -311,7 +311,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
         role="dialog"
         aria-modal="true"
         aria-label={`Room ${roomNumber} details`}
-        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-white/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none
+        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-surface/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none
           transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
@@ -321,14 +321,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               Room {roomNumber}
               {roomTypeName && (
-                <span className="font-normal text-gray-500"> — {roomTypeName}</span>
+                <span className="font-normal text-gray-500"> â€” {roomTypeName}</span>
               )}
             </h2>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
               {vipFlag && (
                 <div className="flex items-center gap-0.5">
                   <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
-                  <span className="text-xs font-semibold text-amber-700">VIP</span>
+                  <span className="text-xs font-semibold text-[var(--caution)]">VIP</span>
                 </div>
               )}
               {guestName && (
@@ -365,7 +365,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                 {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
               </span>
               {assignedName && (
-                <span className="text-sm text-gray-500">— Assigned to {assignedName}</span>
+                <span className="text-sm text-gray-500">â€” Assigned to {assignedName}</span>
               )}
             </div>
 
@@ -404,7 +404,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
 
           {/* WO success / error banners */}
           {woSuccess && (
-            <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700">
+            <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-[var(--ready-soft)] border border-[var(--ready-line)] px-3 py-2 text-xs text-[var(--ready)]">
               <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
               <span>{woSuccess}</span>
             </div>
@@ -421,9 +421,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                 aria-label="Add room note"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Leave a note for your supervisor or team…"
+                placeholder="Leave a note for your supervisor or teamâ€¦"
                 rows={2}
-                className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
               />
               <div className="flex items-center gap-2">
                 <Button
@@ -437,15 +437,15 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                   ) : (
                     <Send className="w-3 h-3" />
                   )}
-                  {noteLoading ? 'Saving…' : 'Save Note'}
+                  {noteLoading ? 'Savingâ€¦' : 'Save Note'}
                 </Button>
                 {noteSuccess && (
-                  <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <span className="text-xs text-[var(--ready)] font-medium flex items-center gap-1">
                     <CheckCircle className="w-3.5 h-3.5" /> Note saved
                   </span>
                 )}
                 {noteError && (
-                  <span className="text-xs text-red-600">{noteError}</span>
+                  <span className="text-xs text-[var(--alert)]">{noteError}</span>
                 )}
               </div>
             </div>
@@ -473,14 +473,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
             {woOpen && (
               <div id="room-report-issue-form" className="mt-3 space-y-2.5">
                 <div>
-                  <label htmlFor="room-wo-title" className="block text-xs text-gray-500 mb-1">Issue title <span className="text-red-500">*</span></label>
+                  <label htmlFor="room-wo-title" className="block text-xs text-gray-500 mb-1">Issue title <span className="text-[var(--alert)]">*</span></label>
                   <input
                     id="room-wo-title"
                     type="text"
                     value={woTitle}
                     onChange={(e) => setWoTitle(e.target.value)}
                     placeholder="e.g. Toilet not flushing, A/C not cooling"
-                    className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
                 </div>
 
@@ -491,7 +491,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                       id="room-wo-category"
                       value={woCategory}
                       onChange={(e) => setWoCategory(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full rounded-lg border border-gray-200 bg-surface/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     >
                       {WO_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>{c.label}</option>
@@ -504,7 +504,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                       id="room-wo-priority"
                       value={woPriority}
                       onChange={(e) => setWoPriority(e.target.value as 'urgent' | 'normal' | 'low')}
-                      className="w-full rounded-lg border border-gray-200 bg-white/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-full rounded-lg border border-gray-200 bg-surface/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     >
                       <option value="urgent">Urgent</option>
                       <option value="normal">Normal</option>
@@ -518,9 +518,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                   <textarea
                     value={woDescription}
                     onChange={(e) => setWoDescription(e.target.value)}
-                    placeholder="Describe what you found…"
+                    placeholder="Describe what you foundâ€¦"
                     rows={2}
-                    className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                    className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
                   />
                 </div>
 
@@ -536,7 +536,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                     ) : (
                       <Wrench className="w-3 h-3" />
                     )}
-                    {woLoading ? 'Submitting…' : 'Submit to Engineering'}
+                    {woLoading ? 'Submittingâ€¦' : 'Submit to Engineering'}
                   </Button>
                   <button
                     onClick={() => setWoOpen(false)}
@@ -546,7 +546,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                   </button>
                 </div>
                 {woError && (
-                  <p className="text-xs text-red-600">{woError}</p>
+                  <p className="text-xs text-[var(--alert)]">{woError}</p>
                 )}
               </div>
             )}
@@ -561,24 +561,24 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
 
               <div className={`rounded-lg p-3 ${
                 riskLevel === 'HIGH'
-                  ? 'bg-red-50 border border-red-200'
+                  ? 'bg-[var(--alert-soft)] border border-[var(--alert-line)]'
                   : riskLevel === 'MEDIUM'
                   ? 'bg-orange-50 border border-orange-200'
-                  : 'bg-green-50 border border-green-200'
+                  : 'bg-[var(--ready-soft)] border border-[var(--ready-line)]'
               }`}>
                 <div className="flex items-center gap-2 mb-1">
                   {riskLevel === 'HIGH' || riskLevel === 'MEDIUM' ? (
-                    <AlertTriangle className={`w-4 h-4 shrink-0 ${riskLevel === 'HIGH' ? 'text-red-500' : 'text-orange-400'}`} />
+                    <AlertTriangle className={`w-4 h-4 shrink-0 ${riskLevel === 'HIGH' ? 'text-[var(--alert)]' : 'text-orange-400'}`} />
                   ) : (
                     <CheckCircle className="w-4 h-4 shrink-0 text-green-500" />
                   )}
                   <span className={`font-semibold text-sm ${
-                    riskLevel === 'HIGH' ? 'text-red-700' :
+                    riskLevel === 'HIGH' ? 'text-[var(--alert)]' :
                     riskLevel === 'MEDIUM' ? 'text-orange-700' :
-                    'text-green-700'
+                    'text-[var(--ready)]'
                   }`}>
                     {riskLevel ?? 'LOW'} RISK
-                    {etaTime && ` — ETA ${etaTime}`}
+                    {etaTime && ` â€” ETA ${etaTime}`}
                   </span>
                 </div>
 
@@ -642,14 +642,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-1.5 flex-wrap">
                             <span className="text-xs text-gray-400 shrink-0">
-                              {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
+                              {timestamp ? formatHistoryTimestamp(timestamp) : 'â€”'}
                             </span>
                             {fromStatus ? (
                               <>
                                 <span className={`text-xs font-semibold ${getStatusTextClass(fromStatus)}`}>
                                   {STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')}
                                 </span>
-                                <span className="text-xs text-gray-400">→</span>
+                                <span className="text-xs text-gray-400">â†’</span>
                                 <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
                                   {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
                                 </span>
@@ -661,7 +661,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                             )}
                             {actor && (
                               <span className="text-xs text-gray-500 truncate">
-                                — {actor}
+                                â€” {actor}
                               </span>
                             )}
                           </div>
@@ -678,22 +678,22 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
           </div>
         </div>
 
-        {/* Inspect queue banner — shown after a successful inspection when more CLEAN rooms exist */}
+        {/* Inspect queue banner â€” shown after a successful inspection when more CLEAN rooms exist */}
         {showNextBanner && nextCleanRoom && (
-          <div className="shrink-0 border-t border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+          <div className="shrink-0 border-t border-[var(--ready-line)] bg-[var(--ready-soft)] px-4 py-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-[var(--ready)] shrink-0" />
             <span className="text-sm text-green-800 flex-1 leading-tight">
-              Inspected · <strong>{remainingCount}</strong> room{remainingCount !== 1 ? 's' : ''} left
+              Inspected Â· <strong>{remainingCount}</strong> room{remainingCount !== 1 ? 's' : ''} left
             </span>
             <button
               onClick={() => { setShowNextBanner(false); onNextRoom!(nextCleanRoom) }}
               className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shrink-0"
             >
-              Next →
+              Next â†’
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-300 text-green-700 hover:bg-green-100 transition-colors shrink-0"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-300 text-[var(--ready)] hover:bg-green-100 transition-colors shrink-0"
             >
               Done
             </button>

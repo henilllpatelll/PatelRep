@@ -40,10 +40,10 @@ const TABS: { value: ActiveTab; label: string }[] = [
 ]
 
 const STATUS_STYLES: Record<GuestRequestStatus, string> = {
-  open: 'bg-blue-50 text-blue-700',
-  in_progress: 'bg-purple-50 text-purple-700',
-  escalated: 'bg-red-50 text-red-700',
-  resolved: 'bg-green-50 text-green-700',
+  open: 'bg-[var(--info-soft)] text-[var(--info)]',
+  in_progress: 'bg-[var(--ai-soft)] text-[var(--ai)]',
+  escalated: 'bg-[var(--alert-soft)] text-[var(--alert)]',
+  resolved: 'bg-[var(--ready-soft)] text-[var(--ready)]',
 }
 
 const STATUS_LABELS: Record<GuestRequestStatus, string> = {
@@ -131,7 +131,7 @@ function GuestRequestCard({
 
       {/* Resolved timestamp */}
       {request.status === 'resolved' && request.resolved_at && (
-        <p className="text-xs text-green-600 mb-3 flex items-center gap-1">
+        <p className="text-xs text-[var(--ready)] mb-3 flex items-center gap-1">
           <CheckCircle className="w-3 h-3" />
           Resolved {format(new Date(request.resolved_at), 'MMM d, h:mm a')}
         </p>
@@ -153,14 +153,14 @@ function GuestRequestCard({
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'in_progress')}
-                    className="px-3 py-1.5 bg-amber-400 text-black rounded-lg text-xs font-medium hover:bg-amber-500 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-amber-400 text-black rounded-lg text-xs font-medium hover:bg-[var(--caution)] transition-colors disabled:opacity-50"
                   >
                     Start
                   </button>
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'escalated')}
-                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg text-xs font-medium hover:bg-[var(--alert-soft)] transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     <AlertTriangle className="w-3 h-3" />
                     Escalate
@@ -182,7 +182,7 @@ function GuestRequestCard({
                   <button
                     disabled={isUpdating}
                     onClick={() => onUpdateStatus(request.id, 'escalated')}
-                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg text-xs font-medium hover:bg-[var(--alert-soft)] transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
                     <AlertTriangle className="w-3 h-3" />
                     Escalate
@@ -319,7 +319,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="edit-request-title" className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={modalRef} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={modalRef} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-request-title" className="text-lg font-semibold text-gray-900">Edit Guest Request</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
@@ -329,7 +329,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="edit-req-title" className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-red-500">*</span></label>
+            <label htmlFor="edit-req-title" className="block text-sm font-medium text-gray-700 mb-1">Issue / Request <span className="text-[var(--alert)]">*</span></label>
             <input id="edit-req-title" type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" autoFocus />
           </div>
           <div>
@@ -338,7 +338,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
           </div>
           <div>
             <label htmlFor="edit-req-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select id="edit-req-status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+            <select id="edit-req-status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as GuestRequestStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50">
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="escalated">Escalated</option>
@@ -352,7 +352,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
                 id="edit-req-assignee"
                 value={form.assigned_to}
                 onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               >
                 <option value="">Unassigned</option>
                 {housekeepers.map(h => (
@@ -365,7 +365,7 @@ function EditRequestModal({ request, onClose, onSaved }: EditRequestModalProps) 
             <label htmlFor="edit-req-details" className="block text-sm font-medium text-gray-700 mb-1">Additional Details</label>
             <textarea id="edit-req-details" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} placeholder="Room number, urgency, or any other context..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" />
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="ghost" onClick={onClose} className="flex-1 justify-center">Cancel</Button>
             <Button type="submit" variant="primary" disabled={isPending || !form.title.trim()} className="flex-1 justify-center">
@@ -479,7 +479,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
       />
 
       {/* Modal */}
-      <div ref={modalRef} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div ref={modalRef} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 id="create-request-title" className="text-lg font-semibold text-gray-900">New Guest Request</h2>
@@ -495,7 +495,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
           {/* Title */}
           <div>
             <label htmlFor="create-req-title" className="block text-sm font-medium text-gray-700 mb-1">
-              Issue or request description <span className="text-red-500">*</span>
+              Issue or request description <span className="text-[var(--alert)]">*</span>
             </label>
             <input
               id="create-req-title"
@@ -540,7 +540,7 @@ function CreateRequestModal({ isOpen, onClose, onCreate }: CreateRequestModalPro
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -651,8 +651,8 @@ function GuestRequestsPageContent() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-            <Bell className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
+            <Bell className="w-5 h-5 text-[var(--caution)]" />
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Guest Requests</h1>
@@ -673,22 +673,22 @@ function GuestRequestsPageContent() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Open */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-blue-600">{counts.open}</p>
+          <p className="text-2xl font-bold text-[var(--info)]">{counts.open}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Open</p>
         </Card>
         {/* In Progress */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-purple-600">{counts.in_progress}</p>
+          <p className="text-2xl font-bold text-[var(--ai)]">{counts.in_progress}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">In Progress</p>
         </Card>
         {/* Escalated */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-red-600">{counts.escalated}</p>
+          <p className="text-2xl font-bold text-[var(--alert)]">{counts.escalated}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Escalated</p>
         </Card>
         {/* Resolved */}
         <Card className="p-4">
-          <p className="text-2xl font-bold text-green-600">{counts.resolved}</p>
+          <p className="text-2xl font-bold text-[var(--ready)]">{counts.resolved}</p>
           <p className="text-xs text-gray-500 mt-0.5 font-medium uppercase tracking-wide">Resolved</p>
         </Card>
       </div>
@@ -705,15 +705,15 @@ function GuestRequestsPageContent() {
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 isActive
                   ? 'bg-stone-800 text-white border-stone-800'
-                  : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-300'
+                  : 'bg-surface text-ink2 border-line hover:bg-surface-3 hover:border-line'
               }`}
             >
               {tab.label}
               <span
                 className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                   isActive
-                    ? 'bg-white/20 text-white'
-                    : 'bg-stone-100 text-stone-600'
+                    ? 'bg-surface/20 text-white'
+                    : 'bg-surface-3 text-ink2'
                 }`}
               >
                 {count}

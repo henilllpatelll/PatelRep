@@ -37,7 +37,7 @@ function getRiskBadgeCls(score: number): string {
 }
 
 function getRiskRingColor(score: number): string {
-  if (score >= 70) return 'text-red-500'
+  if (score >= 70) return 'text-[var(--alert)]'
   if (score >= 40) return 'text-orange-400'
   return 'text-green-500'
 }
@@ -49,23 +49,23 @@ function getBorderColor(score: number): string {
 }
 
 function getAvgScoreColor(score: number): string {
-  if (score >= 70) return 'text-red-600'
+  if (score >= 70) return 'text-[var(--alert)]'
   if (score >= 40) return 'text-orange-500'
-  return 'text-green-600'
+  return 'text-[var(--ready)]'
 }
 
 // ─── Skeleton card ────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-2xl border border-stone-200 bg-white border-l-4 border-l-stone-200 p-5">
+    <div className="animate-pulse rounded-[var(--r-lg)] border border-line bg-surface border-l-4 border-l-stone-200 p-5">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-stone-100 shrink-0" />
+        <div className="w-12 h-12 rounded-full bg-surface-3 shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-stone-100 rounded w-1/3" />
-          <div className="h-3 bg-stone-100 rounded w-1/4" />
-          <div className="h-3 bg-stone-100 rounded w-2/3 mt-3" />
-          <div className="h-3 bg-stone-100 rounded w-1/2" />
+          <div className="h-4 bg-surface-3 rounded w-1/3" />
+          <div className="h-3 bg-surface-3 rounded w-1/4" />
+          <div className="h-3 bg-surface-3 rounded w-2/3 mt-3" />
+          <div className="h-3 bg-surface-3 rounded w-1/2" />
         </div>
       </div>
     </div>
@@ -158,7 +158,7 @@ function PredictionCard({
 
   return (
     <Card
-      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}${score >= 70 ? ' border-red-200 bg-red-50' : ''}`}
+      className={`border-l-4 ${borderColor} p-5 ${prediction.is_acknowledged ? 'opacity-75' : ''}${score >= 70 ? ' border-red-200 bg-[var(--alert-soft)]' : ''}`}
     >
       {/* Top row */}
       <div className="flex items-start gap-4">
@@ -181,7 +181,7 @@ function PredictionCard({
                 {riskLabel}
               </span>
               {prediction.is_acknowledged && (
-                <span className="text-xs font-medium text-green-600 flex items-center gap-1">
+                <span className="text-xs font-medium text-[var(--ready)] flex items-center gap-1">
                   <CheckCircle size={12} />
                   Acknowledged
                 </span>
@@ -210,7 +210,7 @@ function PredictionCard({
             {indicators.map((indicator, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/80 border border-gray-200 text-gray-600"
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface/80 border border-gray-200 text-gray-600"
               >
                 {indicator}
               </span>
@@ -229,7 +229,7 @@ function PredictionCard({
             {hasMoreReasoning && (
               <button
                 onClick={() => onToggleExpand(prediction.id)}
-                className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
+                className="mt-1 flex items-center gap-1 text-xs font-medium text-[var(--caution)] hover:text-amber-800 transition-colors"
               >
                 {isExpanded ? (
                   <>
@@ -292,7 +292,7 @@ function PredictionCard({
               variant="secondary"
               onClick={() => onAcknowledge(prediction.id)}
               disabled={isAcknowledging}
-              className="text-xs px-3 py-1.5 border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+              className="text-xs px-3 py-1.5 border-green-200 text-green-700 bg-[var(--ready-soft)] hover:bg-green-100"
             >
               {isAcknowledging ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -305,7 +305,7 @@ function PredictionCard({
         )}
 
         {prediction.is_acknowledged && acknowledgedAt && (
-          <p className="flex items-center gap-1.5 text-xs text-green-600 font-medium pt-1">
+          <p className="flex items-center gap-1.5 text-xs text-[var(--ready)] font-medium pt-1">
             <CheckCircle size={12} />
             Acknowledged {acknowledgedAt}
           </p>
@@ -435,7 +435,7 @@ export default function PredictionsPage() {
 
       {/* Success banner */}
       {successMsg && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--ready-soft)] border border-green-200 text-green-700 text-sm">
           <CheckCircle size={15} />
           {successMsg}
         </div>
@@ -446,17 +446,17 @@ export default function PredictionsPage() {
         <StatCard
           label="Active Alerts"
           value={activeCount}
-          accent={activeCount > 0 ? 'text-red-600' : 'text-gray-900'}
+          accent={activeCount > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
         />
         <StatCard
           label="High Risk"
           value={highRiskCount}
-          accent={highRiskCount > 0 ? 'text-red-600' : 'text-gray-900'}
+          accent={highRiskCount > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
         />
         <StatCard
           label="Acknowledged"
           value={acknowledgedCount}
-          accent={acknowledgedCount > 0 ? 'text-green-600' : 'text-gray-500'}
+          accent={acknowledgedCount > 0 ? 'text-[var(--ready)]' : 'text-gray-500'}
         />
         <StatCard
           label="Avg Risk Score"
@@ -468,7 +468,7 @@ export default function PredictionsPage() {
       {/* Filter row */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Risk filter */}
-        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-amber-200/40 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface/70 backdrop-blur-sm border border-[var(--caution-line)]/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Risk' },
@@ -483,7 +483,7 @@ export default function PredictionsPage() {
               aria-pressed={riskFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 riskFilter === key
-                  ? 'bg-amber-500 text-white shadow-sm'
+                  ? 'bg-[var(--caution)] text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -493,7 +493,7 @@ export default function PredictionsPage() {
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-1 bg-white/70 backdrop-blur-sm border border-amber-200/40 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface/70 backdrop-blur-sm border border-[var(--caution-line)]/40 rounded-lg p-1">
           {(
             [
               { key: 'all', label: 'All Status' },
@@ -507,7 +507,7 @@ export default function PredictionsPage() {
               aria-pressed={statusFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 statusFilter === key
-                  ? 'bg-amber-500 text-white shadow-sm'
+                  ? 'bg-[var(--caution)] text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
@@ -522,7 +522,7 @@ export default function PredictionsPage() {
               setRiskFilter('all')
               setStatusFilter('all')
             }}
-            className="text-sm text-amber-600 hover:text-amber-800 font-medium transition-colors"
+            className="text-sm text-[var(--caution)] hover:text-amber-800 font-medium transition-colors"
           >
             Clear filters
           </button>
@@ -539,7 +539,7 @@ export default function PredictionsPage() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-14 text-center">
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
-            <ShieldCheck size={24} className="text-green-600" />
+            <ShieldCheck size={24} className="text-[var(--ready)]" />
           </div>
           <p className="text-base font-semibold text-gray-800">No predictions found</p>
           {filtersActive ? (
@@ -550,7 +550,7 @@ export default function PredictionsPage() {
                   setRiskFilter('all')
                   setStatusFilter('all')
                 }}
-                className="text-amber-600 hover:underline font-medium"
+                className="text-[var(--caution)] hover:underline font-medium"
               >
                 Clear filters
               </button>{' '}
@@ -563,7 +563,7 @@ export default function PredictionsPage() {
               </p>
               <a
                 href="/engineering/assets"
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 hover:underline transition-colors"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--caution)] hover:text-[var(--caution)] hover:underline transition-colors"
               >
                 Go to Asset Register
               </a>
@@ -572,9 +572,9 @@ export default function PredictionsPage() {
           {!filtersActive && (
             <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
               {['Filter replacements', 'Noisy PTACs', 'Repeat outages'].map((item) => (
-                <div key={item} className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
-                  <p className="text-sm font-semibold text-stone-800">{item}</p>
-                  <p className="mt-1 text-xs text-stone-500">Risk signal to watch</p>
+                <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
+                  <p className="text-sm font-semibold text-ink">{item}</p>
+                  <p className="mt-1 text-xs text-ink3">Risk signal to watch</p>
                 </div>
               ))}
             </div>

@@ -38,7 +38,7 @@ function FieldLabel({ children, htmlFor, required }: { children: React.ReactNode
   return (
     <label htmlFor={htmlFor} className="block text-xs font-medium text-gray-600 mb-1">
       {children}
-      {required && <span className="text-red-500 ml-0.5">*</span>}
+      {required && <span className="text-[var(--alert)] ml-0.5">*</span>}
     </label>
   )
 }
@@ -47,7 +47,7 @@ function CredentialInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300 transition-colors placeholder:text-gray-400"
+      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300 transition-colors placeholder:text-gray-400"
     />
   )
 }
@@ -69,10 +69,10 @@ function ConfirmDisconnectDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={!loading ? onCancel : undefined} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="disconnect-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="disconnect-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <AlertTriangle size={18} className="text-red-600" />
+            <AlertTriangle size={18} className="text-[var(--alert)]" />
           </div>
           <div>
             <h3 id="disconnect-title" className="text-base font-semibold text-gray-900">Disconnect Opera Cloud</h3>
@@ -202,16 +202,16 @@ export default function IntegrationsPage() {
 
       {/* Success banner */}
       {successBanner && (
-        <div role="alert" className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
-          <CheckCircle2 size={16} className="text-green-600 shrink-0" />
+        <div role="alert" className="flex items-center gap-3 bg-[var(--ready-soft)] border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+          <CheckCircle2 size={16} className="text-[var(--ready)] shrink-0" />
           {successBanner}
         </div>
       )}
 
       {/* Error banner */}
       {errorBanner && (
-        <div role="alert" className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium">
-          <AlertTriangle size={16} className="text-red-500 shrink-0" />
+        <div role="alert" className="flex items-center gap-3 bg-[var(--alert-soft)] border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm font-medium">
+          <AlertTriangle size={16} className="text-[var(--alert)] shrink-0" />
           {errorBanner}
         </div>
       )}
@@ -246,7 +246,7 @@ export default function IntegrationsPage() {
             {statusQuery.isLoading ? (
               <Loader2 size={14} className="animate-spin text-gray-400" />
             ) : operaStatus?.connected ? (
-              <><span className="w-2 h-2 rounded-full bg-green-500" /><span className="text-green-700 font-medium text-sm">Connected</span></>
+              <><span className="w-2 h-2 rounded-full bg-[var(--ready)]" /><span className="text-green-700 font-medium text-sm">Connected</span></>
             ) : (
               <><span className="w-2 h-2 rounded-full bg-gray-300" /><span className="text-gray-400 font-medium text-sm">Disconnected</span></>
             )}
@@ -256,7 +256,7 @@ export default function IntegrationsPage() {
         {/* Connected state */}
         {!statusQuery.isLoading && operaStatus?.connected && (
           <>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-amber-50/40 border border-amber-100/50 rounded-lg px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-500 bg-[var(--caution-soft)]/40 border border-amber-100/50 rounded-lg px-4 py-3">
               {operaStatus.last_sync_at && (
                 <span>Last synced: <span className="text-gray-700 font-medium">{relativeTime(operaStatus.last_sync_at)}</span></span>
               )}
@@ -269,15 +269,15 @@ export default function IntegrationsPage() {
             </div>
 
             {syncResult && (
-              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
-                <CheckCircle2 size={14} className="shrink-0 text-green-600" />
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-[var(--ready-soft)] border border-green-200 rounded-lg px-4 py-2.5">
+                <CheckCircle2 size={14} className="shrink-0 text-[var(--ready)]" />
                 Synced {syncResult.count} reservation{syncResult.count !== 1 ? 's' : ''} — {relativeTime(syncResult.at)}
               </div>
             )}
 
             {testResult && (
-              <div className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
-                {testResult.ok ? <CheckCircle2 size={14} className="shrink-0 text-green-600" /> : <XCircle size={14} className="shrink-0 text-red-500" />}
+              <div className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-[var(--ready-soft)] border-green-200' : 'text-red-700 bg-[var(--alert-soft)] border-red-200'}`}>
+                {testResult.ok ? <CheckCircle2 size={14} className="shrink-0 text-[var(--ready)]" /> : <XCircle size={14} className="shrink-0 text-[var(--alert)]" />}
                 {testResult.message}
               </div>
             )}
@@ -418,7 +418,7 @@ export default function IntegrationsPage() {
 
         {/* Status fetch error */}
         {statusQuery.isError && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
+          <div className="flex items-center gap-2 text-sm text-[var(--alert)]">
             <AlertTriangle size={14} className="shrink-0" />
             Failed to load Opera status.{' '}
             <button onClick={() => statusQuery.refetch()} className="underline hover:no-underline">
@@ -432,7 +432,7 @@ export default function IntegrationsPage() {
       <Card className="p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--caution)] flex items-center justify-center shrink-0">
               <BookOpen size={18} className="text-white" />
             </div>
             <div>
@@ -442,7 +442,7 @@ export default function IntegrationsPage() {
           </div>
           <Link
             href="/sop"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--caution-soft)] border border-[var(--caution-line)] text-[var(--caution)] hover:bg-amber-100 rounded-lg transition-colors shrink-0"
           >
             Manage SOP Library
             <ArrowRight size={14} />

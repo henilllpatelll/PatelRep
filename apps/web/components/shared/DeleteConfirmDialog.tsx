@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Loader2 } from 'lucide-react'
 
@@ -24,7 +24,7 @@ export function DeleteConfirmDialog({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm mx-4 p-6">
+      <div className="relative bg-surface rounded-[var(--r-lg)] shadow-xl border border-gray-200 w-full max-w-sm mx-4 p-6">
         <h2 className="font-semibold text-gray-900 text-base mb-1">{title}</h2>
         {description ? (
           <p className="text-sm text-gray-500 mb-5">{description}</p>

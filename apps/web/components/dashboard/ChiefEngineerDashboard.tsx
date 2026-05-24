@@ -1,42 +1,56 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Wrench, Zap, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Wrench, Calendar, CheckCircle2, Zap } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { engineeringApi, type WorkOrder, type PMSchedule, type FailurePrediction } from '@/lib/api/engineering'
 import { reportsApi } from '@/lib/api/reports'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import { Stat, Pill, SectionLabel, AILabel, Mono } from '@/components/ui/primitives'
 import { format, subDays } from 'date-fns'
 
-function SLAGaugeSmall({ pct }: { pct: number }) {
-  const color = pct >= 90 ? '#22c55e' : pct >= 75 ? '#f59e0b' : '#ef4444'
+function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative w-14 h-14 shrink-0">
-        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="14" />
-          <circle cx="60" cy="60" r="50" fill="none" stroke={color} strokeWidth="14"
-            strokeDasharray={`${(pct / 100) * 314} 314`} strokeLinecap="round" />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-bold text-stone-900">{pct}%</span>
-        </div>
+    <div className="animate-pulse flex items-center gap-3 px-4 py-3 border-t border-line-2">
+      <div className="w-3 h-8 rounded bg-surface-3 shrink-0" />
+      <div className="flex-1">
+        <div className="h-3 bg-surface-3 rounded w-3/4 mb-1.5" />
+        <div className="h-2 bg-surface-3 rounded w-1/2" />
       </div>
-      <div>
-        <p className="text-sm font-semibold text-stone-800">SLA Compliance</p>
-        <p className="text-xs text-stone-400">Last 30 days</p>
-      </div>
+      <div className="h-5 bg-surface-3 rounded w-16" />
     </div>
   )
 }
 
+const PRIORITY_TONE: Record<string, 'alert' | 'caution' | 'neutral'> = {
+  urgent: 'alert',
+  normal: 'caution',
+  low: 'neutral',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Open',
+  in_progress: 'In progress',
+  on_hold: 'On hold',
+  completed: 'Done',
+  cancelled: 'Cancelled',
+}
+
 export function ChiefEngineerDashboard() {
   const user = useAuthStore(s => s.user)
+  const [greeting, setGreeting] = useState('Good morning')
+  useEffect(() => {
+    const h = new Date().getHours()
+    if (h < 12) setGreeting('Good morning')
+    else if (h < 18) setGreeting('Good afternoon')
+    else setGreeting('Good evening')
+  }, [])
+
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'Chief Engineer'
+  const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
 
   const { data: woData, isLoading: woLoading } = useQuery({
     queryKey: ['all-work-orders'],
@@ -50,7 +64,7 @@ export function ChiefEngineerDashboard() {
     refetchInterval: 120_000,
   })
 
-  const { data: predictionsData, isLoading: predictionsLoading } = useQuery({
+  const { data: predictionsData } = useQuery({
     queryKey: ['failure-predictions'],
     queryFn: () => engineeringApi.getFailurePredictions(),
     refetchInterval: 120_000,
@@ -79,180 +93,245 @@ export function ChiefEngineerDashboard() {
   const highRiskAssets = predictions.filter(p => !p.is_acknowledged && p.risk_score >= 70)
 
   const maint = maintData?.data
-  const slaPct = maint ? Math.round(maint.sla_compliance_pct) : null
+  const totalAssets = pmSchedules.length
+
+  const sortedWOs = [
+    ...urgentWOs.filter(wo => wo.status === 'in_progress'),
+    ...urgentWOs.filter(wo => wo.status === 'open'),
+    ...openWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'in_progress'),
+    ...openWOs.filter(wo => wo.priority !== 'urgent' && wo.status === 'open'),
+  ]
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       {/* Greeting */}
       <div>
-        <h1 className="text-[28px] font-bold text-[#1C1208] tracking-[-0.02em] leading-tight">
-          Good morning, {fullName}!
-        </h1>
-        <p className="text-xs font-semibold text-amber-500 mt-1.5 uppercase tracking-[0.12em]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </p>
+        <h1 className="font-display italic text-[34px] leading-[1.1] tracking-[-0.5px] text-ink mt-1">
+          {greeting}, {firstName}.
+        </h1>
+        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
+          {urgentWOs.length > 0
+            ? `${openWOs.length} open work orders — ${urgentWOs.length} need immediate attention.`
+            : openWOs.length > 0
+            ? `${openWOs.length} open work orders. No urgent items.`
+            : 'All work orders resolved. Good shift.'}
         </p>
       </div>
 
-      {/* Fleet health strip */}
-      <div className="grid grid-cols-4 gap-3">
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${urgentWOs.length > 0 ? 'bg-red-50/50 border-red-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${urgentWOs.length > 0 ? 'text-red-600' : 'text-stone-900'}`}>
-            {urgentWOs.length}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${urgentWOs.length > 0 ? 'text-red-500' : 'text-stone-500'}`}>Urgent WOs</p>
-        </Card>
-        <Card className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-stone-900">{openWOs.length}</p>
-          <p className="text-[10px] sm:text-xs font-semibold text-stone-500 mt-1 uppercase tracking-wider">Open WOs</p>
-        </Card>
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${unassignedWOs.length > 0 ? 'bg-amber-50/50 border-amber-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${unassignedWOs.length > 0 ? 'text-amber-700' : 'text-stone-900'}`}>
-            {unassignedWOs.length}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${unassignedWOs.length > 0 ? 'text-amber-600' : 'text-stone-500'}`}>Unassigned</p>
-        </Card>
-        <Card className={`p-3 sm:p-4 flex flex-col items-center justify-center text-center ${highRiskAssets.length > 0 ? 'bg-orange-50/50 border-orange-200' : ''}`}>
-          <p className={`text-2xl sm:text-3xl font-bold ${highRiskAssets.length > 0 ? 'text-orange-600' : 'text-stone-900'}`}>
-            {highRiskAssets.length}
-          </p>
-          <p className={`text-[10px] sm:text-xs font-semibold mt-1 uppercase tracking-wider ${highRiskAssets.length > 0 ? 'text-orange-600' : 'text-stone-500'}`}>At-Risk</p>
-        </Card>
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat
+          label="Open WOs"
+          value={openWOs.length}
+          delta={unassignedWOs.length > 0 ? `${unassignedWOs.length} unassigned` : undefined}
+          deltaTone={unassignedWOs.length > 0 ? 'caution' : 'ready'}
+        />
+        <Stat
+          label="Urgent Priority"
+          value={urgentWOs.length}
+          delta={urgentWOs.length > 0 ? 'needs action' : undefined}
+          deltaTone={urgentWOs.length > 0 ? 'alert' : 'ready'}
+        />
+        <Stat
+          label="PM Due"
+          value={pmDueSoon.length}
+          delta={pmDueSoon.length > 0 ? 'this week' : undefined}
+          deltaTone={pmDueSoon.length > 0 ? 'caution' : 'ready'}
+        />
+        <Stat
+          label="Assets Tracked"
+          value={totalAssets}
+          deltaTone="neutral"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* SLA + WO summary */}
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-amber-500" />
-              Work Order Queue
-            </h2>
-            <Link href="/engineering" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              Manage <ArrowRight className="w-3 h-3" />
+      {/* Work order queue */}
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+        <div className="px-4 pt-3.5">
+          <SectionLabel
+            hint={`${openWOs.length} open`}
+            action={
+              <Link href="/engineering" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+                View board
+              </Link>
+            }
+          >
+            Work order queue
+          </SectionLabel>
+        </div>
+        {woLoading ? (
+          [...Array(4)].map((_, i) => <SkeletonRow key={i} />)
+        ) : sortedWOs.length === 0 ? (
+          <div className="py-8 flex flex-col items-center gap-2">
+            <CheckCircle2 className="w-8 h-8 text-[var(--ready-line)]" />
+            <p className="text-[13px] text-ink3">All work orders closed</p>
+          </div>
+        ) : (
+          sortedWOs.slice(0, 8).map(wo => {
+            const tone = PRIORITY_TONE[wo.priority] ?? 'neutral'
+            const loc = wo.rooms?.room_number
+              ? `R-${wo.rooms.room_number}`
+              : wo.location_text ?? '—'
+            return (
+              <Link
+                key={wo.id}
+                href="/engineering"
+                className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors"
+              >
+                <div
+                  className="w-[3px] h-8 rounded-full shrink-0"
+                  style={{
+                    background: tone === 'alert'
+                      ? 'var(--alert)'
+                      : tone === 'caution'
+                      ? 'var(--caution)'
+                      : 'var(--line)',
+                  }}
+                />
+                <Mono className="text-[11px] text-ink3 shrink-0">
+                  WO-{wo.work_order_number}
+                </Mono>
+                <span className="text-[13px] font-medium text-ink flex-1 min-w-0 truncate">
+                  {wo.title}
+                </span>
+                <Mono className="text-[11px] text-ink3 bg-surface-2 border border-line rounded px-1.5 py-0.5 shrink-0">
+                  {loc}
+                </Mono>
+                <Pill tone={tone} size="sm">{wo.priority}</Pill>
+                <span className="text-[11px] text-ink3 w-16 text-right shrink-0 capitalize">
+                  {STATUS_LABEL[wo.status] ?? wo.status}
+                </span>
+              </Link>
+            )
+          })
+        )}
+        {sortedWOs.length > 8 && (
+          <div className="px-4 py-2.5 border-t border-line-2">
+            <Link href="/engineering" className="text-[11px] text-ink3 hover:text-ink transition-colors">
+              +{sortedWOs.length - 8} more work orders
             </Link>
           </div>
-          {slaPct !== null && (
-            <div className="mb-4 pb-3 border-b border-stone-100">
-              <SLAGaugeSmall pct={slaPct} />
-            </div>
-          )}
-          {woLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-6 bg-stone-100 rounded" />)}
-            </div>
-          ) : openWOs.length === 0 ? (
-            <div className="py-3 text-center">
-              <CheckCircle2 className="w-6 h-6 text-green-300 mx-auto mb-1" />
-              <p className="text-xs text-stone-400">All work orders closed</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5 text-sm">
-              {[
-                { label: 'Urgent', count: urgentWOs.length, color: 'text-red-600' },
-                { label: 'In Progress', count: openWOs.filter(wo => wo.status === 'in_progress').length, color: 'text-amber-600' },
-                { label: 'Open / Queued', count: openWOs.filter(wo => wo.status === 'open').length, color: 'text-stone-700' },
-                { label: 'Unassigned', count: unassignedWOs.length, color: 'text-orange-500' },
-              ].map(row => (
-                <div key={row.label} className="flex justify-between items-center py-0.5">
-                  <span className="text-stone-500">{row.label}</span>
-                  <span className={`font-semibold ${row.color}`}>{row.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        )}
+      </div>
 
-        {/* PM due soon */}
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-amber-500" />
-              PM Due in 7 Days
-            </h2>
-            <Link href="/engineering/pm-schedules" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              All PM <ArrowRight className="w-3 h-3" />
-            </Link>
+      {/* PM due soon */}
+      {(pmLoading || pmDueSoon.length > 0) && (
+        <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+          <div className="px-4 pt-3.5">
+            <SectionLabel
+              hint={`${pmDueSoon.length} due`}
+              action={
+                <Link href="/engineering/pm-schedules" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+                  All PM
+                </Link>
+              }
+            >
+              PM due in 7 days
+            </SectionLabel>
           </div>
           {pmLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-stone-100 rounded-lg" />)}
-            </div>
-          ) : pmDueSoon.length === 0 ? (
-            <div className="py-3 text-center">
-              <CheckCircle2 className="w-6 h-6 text-green-300 mx-auto mb-1" />
-              <p className="text-xs text-stone-400">No PM tasks due in the next 7 days</p>
+            <div className="px-4 pb-3 animate-pulse space-y-2">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-8 bg-surface-3 rounded-lg" />)}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div>
               {pmDueSoon.slice(0, 5).map(pm => {
                 const dueDate = new Date(pm.next_due_at)
                 const isOverdue = dueDate < now
                 return (
-                  <Link key={pm.id} href="/engineering/pm-schedules" className="flex items-start gap-3 py-2 px-2 -mx-2 hover:bg-stone-50 rounded-xl transition-colors group">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isOverdue ? 'bg-red-50 group-hover:bg-red-100' : 'bg-stone-100 group-hover:bg-amber-100'}`}>
-                      <Calendar className={`w-4 h-4 transition-colors ${isOverdue ? 'text-red-500' : 'text-stone-500 group-hover:text-amber-600'}`} />
+                  <Link
+                    key={pm.id}
+                    href="/engineering/pm-schedules"
+                    className="flex items-center gap-3 px-4 py-2.5 border-t border-line-2 hover:bg-surface-2 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-surface-2 border border-line flex items-center justify-center shrink-0">
+                      <Calendar className="w-3.5 h-3.5 text-ink3" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-stone-800 truncate group-hover:text-amber-700 transition-colors">{pm.name}</p>
-                      <p className="text-xs font-medium text-stone-500">{pm.assets?.name ?? '—'}</p>
-                    </div>
-                    <Badge variant={isOverdue ? 'high' : 'medium'}>
+                    <span className="text-[13px] font-medium text-ink flex-1 min-w-0 truncate">
+                      {pm.name}
+                    </span>
+                    <span className="text-[11.5px] text-ink3 truncate max-w-[120px]">
+                      {pm.assets?.name ?? '—'}
+                    </span>
+                    <Pill tone={isOverdue ? 'alert' : 'caution'} size="sm">
                       {isOverdue ? 'Overdue' : format(dueDate, 'MMM d')}
-                    </Badge>
+                    </Pill>
                   </Link>
                 )
               })}
               {pmDueSoon.length > 5 && (
-                <p className="text-xs text-stone-400 pt-1">+{pmDueSoon.length - 5} more</p>
+                <div className="px-4 py-2.5 border-t border-line-2">
+                  <Link href="/engineering/pm-schedules" className="text-[11px] text-ink3 hover:text-ink transition-colors">
+                    +{pmDueSoon.length - 5} more
+                  </Link>
+                </div>
               )}
             </div>
           )}
-        </Card>
-      </div>
+        </div>
+      )}
 
-      {/* High-risk asset alerts */}
-      {(predictionsLoading || highRiskAssets.length > 0) && (
-        <Card className={highRiskAssets.length > 0 ? 'border-orange-200 bg-orange-50' : undefined}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-orange-500" />
-              High-Risk Assets
-              {highRiskAssets.length > 0 && (
-                <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
-                  {highRiskAssets.length}
-                </span>
-              )}
-            </h2>
-            <Link href="/engineering/predictions" prefetch={false} className="text-xs text-amber-600 hover:underline flex items-center gap-0.5">
-              All predictions <ArrowRight className="w-3 h-3" />
-            </Link>
+      {/* AI failure predictions */}
+      {highRiskAssets.length > 0 && (
+        <div className="bg-surface border border-[var(--alert-line)] rounded-[var(--r-lg)] overflow-hidden shadow-card">
+          <div className="px-4 pt-3.5">
+            <SectionLabel
+              hint={`${highRiskAssets.length} flagged`}
+              action={
+                <Link href="/engineering/predictions" className="text-[11px] font-medium text-ink3 hover:text-ink transition-colors">
+                  All predictions
+                </Link>
+              }
+            >
+              High-risk assets
+            </SectionLabel>
           </div>
-          {predictionsLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[...Array(2)].map((_, i) => <div key={i} className="h-10 bg-orange-100 rounded-lg" />)}
+          <div className="px-4 pb-3">
+            <div className="bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3.5 mb-3">
+              <AILabel />
+              <p className="font-display italic text-[13px] leading-[1.4] text-ink mt-1.5">
+                {highRiskAssets.length} {highRiskAssets.length === 1 ? 'asset has' : 'assets have'} elevated failure risk.
+                Preventive action now can avoid unplanned downtime.
+              </p>
             </div>
-          ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {highRiskAssets.slice(0, 4).map(p => (
-                <Link key={p.id} href="/engineering/predictions" className="flex items-center justify-between bg-white rounded-xl px-3 py-3 border border-orange-100 hover:border-orange-300 hover:shadow-sm transition-all group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 group-hover:bg-orange-100 transition-colors">
-                      <Zap className="w-4 h-4 text-orange-500 group-hover:text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-stone-900 group-hover:text-orange-700 transition-colors">{p.assets?.name ?? 'Unknown Asset'}</p>
-                      <p className="text-xs font-medium text-stone-500">{p.assets?.asset_categories?.name}</p>
-                    </div>
+                <Link
+                  key={p.id}
+                  href="/engineering/predictions"
+                  className="flex items-center gap-3 py-2 hover:bg-surface-2 -mx-1 px-1 rounded-lg transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] flex items-center justify-center shrink-0">
+                    <Zap className="w-3.5 h-3.5 text-[var(--alert)]" />
                   </div>
-                  <Badge variant="high" className="shrink-0">{p.risk_score}% Risk</Badge>
+                  <span className="text-[13px] font-medium text-ink flex-1 min-w-0 truncate">
+                    {p.assets?.name ?? 'Unknown Asset'}
+                  </span>
+                  <span className="text-[11.5px] text-ink3 truncate max-w-[100px]">
+                    {p.assets?.asset_categories?.name}
+                  </span>
+                  <Pill tone="alert" size="sm">{p.risk_score}% risk</Pill>
                 </Link>
               ))}
-              {highRiskAssets.length > 4 && (
-                <p className="text-xs text-stone-400 pt-1">+{highRiskAssets.length - 4} more assets</p>
-              )}
             </div>
-          )}
-        </Card>
+          </div>
+        </div>
+      )}
+
+      {/* SLA callout — shown only when data available */}
+      {maint && (
+        <div className="bg-surface border border-line rounded-[var(--r-lg)] px-4 py-3.5 shadow-card flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">SLA Compliance</p>
+            <p className="font-display text-[28px] leading-none text-ink mt-1">
+              {Math.round(maint.sla_compliance_pct)}%
+            </p>
+          </div>
+          <p className="text-[11.5px] text-ink3">Last 30 days</p>
+        </div>
       )}
     </div>
   )

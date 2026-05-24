@@ -80,7 +80,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
 // ─── Credit bar color ──────────────────────────────────────────────────────────
 
 function creditBarColor(pct: number): string {
-  if (pct > 95) return 'bg-red-500'
+  if (pct > 95) return 'bg-[var(--alert)]'
   if (pct > 80) return 'bg-orange-500'
   return 'bg-blue-500'
 }
@@ -89,7 +89,7 @@ function creditBarColor(pct: number): string {
 
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-6 animate-pulse">
+    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-6 animate-pulse">
       <div className="h-5 bg-amber-100/60 rounded w-1/3 mb-4" />
       <div className="border-t border-white/60 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
@@ -205,10 +205,10 @@ export default function SettingsBillingPage() {
       {subData?.plan_status === 'trialing' && (
         <Card className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Zap className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <Zap className="h-5 w-5 text-[var(--caution)] flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-amber-800">You're on a free trial</p>
-              <p className="text-sm text-amber-600 mt-0.5">
+              <p className="text-sm text-[var(--caution)] mt-0.5">
                 Upgrade to keep full access after your trial ends.
                 {subData.trial_end && (
                   <> Trial ends <strong>{formatDate(subData.trial_end)}</strong>.</>
@@ -218,7 +218,7 @@ export default function SettingsBillingPage() {
           </div>
           <div className="flex flex-col gap-1.5">
             {checkoutError && (
-              <p className="text-xs text-red-600">{checkoutError}</p>
+              <p className="text-xs text-[var(--alert)]">{checkoutError}</p>
             )}
             <Button
               variant="primary"
@@ -286,7 +286,7 @@ export default function SettingsBillingPage() {
           {/* Manage Billing CTA */}
           <div className="mt-5 flex flex-col gap-1.5 items-start">
             {portalError && (
-              <p className="text-xs text-red-600">{portalError}</p>
+              <p className="text-xs text-[var(--alert)]">{portalError}</p>
             )}
             <Button
               variant="primary"
@@ -329,7 +329,7 @@ export default function SettingsBillingPage() {
             <span
               className={`text-sm font-semibold ${
                 creditPct > 95
-                  ? 'text-red-600'
+                  ? 'text-[var(--alert)]'
                   : creditPct > 80
                   ? 'text-orange-600'
                   : 'text-blue-600'
@@ -408,7 +408,7 @@ export default function SettingsBillingPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-amber-50/60">
+                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-[var(--caution-soft)]/60">
                   <th className="pb-2 pr-4 pt-2 pl-2">Date</th>
                   <th className="pb-2 pr-4 pt-2">Period</th>
                   <th className="pb-2 pr-4 pt-2">Amount</th>

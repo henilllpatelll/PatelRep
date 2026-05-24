@@ -16,8 +16,11 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Pill, StatusDot } from '@/components/ui/primitives'
 
-// ── Shift options ─────────────────────────────────────────────────────────────
+// -- Shift options -------------------------------------------------------------
 
 const SHIFTS = [
   { value: '', label: 'All Shifts' },
@@ -26,38 +29,33 @@ const SHIFTS = [
   { value: 'night', label: 'Night' },
 ]
 
-// ── Synced-ago badge ──────────────────────────────────────────────────────────
+// -- Live sync badge -----------------------------------------------------------
 
 function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
   const [label, setLabel] = useState('Never synced')
 
   useEffect(() => {
     function compute() {
-      if (!lastSyncedAt) {
-        setLabel('Never synced')
-        return
-      }
-      const diffMs = Date.now() - lastSyncedAt.getTime()
-      const diffMin = Math.floor(diffMs / 60_000)
-      if (diffMin < 1) setLabel('Synced just now')
-      else if (diffMin === 1) setLabel('Synced 1 min ago')
-      else setLabel(`Synced ${diffMin} min ago`)
+      if (!lastSyncedAt) { setLabel('Never synced'); return }
+      const diffMin = Math.floor((Date.now() - lastSyncedAt.getTime()) / 60_000)
+      if (diffMin < 1) setLabel('synced just now')
+      else if (diffMin === 1) setLabel('synced 1 min ago')
+      else setLabel(`synced ${diffMin} min ago`)
     }
-
     compute()
     const interval = setInterval(compute, 30_000)
     return () => clearInterval(interval)
   }, [lastSyncedAt])
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
-      <span className={`w-2 h-2 rounded-full ${lastSyncedAt ? 'bg-green-400' : 'bg-gray-300'}`} />
-      {label}
+    <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ready)]">
+      <span className={`w-[6px] h-[6px] rounded-full ${lastSyncedAt ? 'bg-[var(--ready)]' : 'bg-ink4'}`} />
+      Live &middot; {label}
     </span>
   )
 }
 
-// ── Housekeeper chip bar (mobile-first tap-to-assign) ─────────────────────────
+// -- Housekeeper chip bar (mobile assign mode) --------------------------------
 
 function HousekeeperBar() {
   const queryClient = useQueryClient()
@@ -93,10 +91,7 @@ function HousekeeperBar() {
         shift_id: null,
         assignments: Object.entries(pendingAssignments)
           .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
-          .map(([roomId, housekeeperId]) => ({
-            room_id: roomId,
-            housekeeper_id: housekeeperId,
-          })),
+          .map(([roomId, housekeeperId]) => ({ room_id: roomId, housekeeper_id: housekeeperId })),
         is_ai_suggested: false,
       })
       clearPendingAssignments()
@@ -106,7 +101,7 @@ function HousekeeperBar() {
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2500)
     } catch {
-      // noop — sidebar shows error on desktop
+      // noop - sidebar shows error on desktop
     } finally {
       setSaveLoading(false)
     }
@@ -117,45 +112,43 @@ function HousekeeperBar() {
   }
 
   return (
-    <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-3 space-y-2.5">
-      {/* Header row */}
+    <div className="rounded-[var(--r-lg)] bg-surface border border-line shadow-sm p-3 space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-gray-700">
+        <p className="text-xs font-semibold text-ink2">
           {activeAssigneeId
-            ? <span className="text-amber-700">Tap rooms to assign &rarr;</span>
+            ? <span className="text-[var(--caution)]">Tap rooms to assign</span>
             : 'Select a housekeeper:'}
         </p>
         <div className="flex items-center gap-2">
           {saveSuccess && (
-            <span className="text-xs text-green-600 font-medium">Saved ✓</span>
+            <span className="text-xs text-[var(--ready)] font-medium">Saved</span>
           )}
           {hasPending && (
             <button
               onClick={handleSave}
               disabled={saveLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-60"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60"
             >
               {saveLoading ? (
                 <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/25 rounded-full text-[10px] font-bold">{pendingCount}</span></>
+                <>Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span></>
               )}
             </button>
           )}
         </div>
       </div>
 
-      {/* Housekeeper chips */}
       {isLoading ? (
         <div className="flex gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-24 h-9 bg-gray-200 rounded-lg animate-pulse shrink-0" />
+            <div key={i} className="w-24 h-9 bg-surface-3 rounded-lg animate-pulse shrink-0" />
           ))}
         </div>
       ) : housekeepers.length === 0 ? (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink3">
           No housekeeper staff found.{' '}
-          <Link href="/staff" prefetch={false} className="text-amber-600 underline">Add staff</Link>
+          <Link href="/staff" prefetch={false} className="text-accent underline">Add staff</Link>
         </p>
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
@@ -169,34 +162,28 @@ function HousekeeperBar() {
             return (
               <button
                 key={hk.housekeeper_id}
-                onClick={() =>
-                  setActiveAssignee(
-                    isActive ? null : hk.housekeeper_id,
-                    isActive ? null : hk.name,
-                  )
-                }
+                onClick={() => setActiveAssignee(
+                  isActive ? null : hk.housekeeper_id,
+                  isActive ? null : hk.name,
+                )}
                 className={`flex items-center gap-2 shrink-0 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all select-none ${
                   isActive
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm scale-[1.02]'
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 active:bg-amber-50'
+                    ? 'bg-ink text-paper border-ink'
+                    : 'bg-surface border-line text-ink2 hover:border-line-2'
                 }`}
               >
                 <span
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
+                    isActive ? 'bg-white/15 text-paper' : 'bg-[var(--caution-soft)] text-[var(--caution)]'
                   }`}
                 >
                   {initials}
                 </span>
                 <span>{hk.name.split(' ')[0]}</span>
                 {(hk.rooms_assigned > 0 || assignedCount > 0) && (
-                  <span
-                    className={`text-[10px] px-1 py-0.5 rounded-full min-w-[18px] text-center ${
-                      isActive
-                        ? 'bg-white/25 text-white'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
+                  <span className={`text-[10px] px-1 py-0.5 rounded-full min-w-[18px] text-center ${
+                    isActive ? 'bg-white/20 text-paper' : 'bg-surface-3 text-ink3'
+                  }`}>
                     {hk.rooms_assigned + assignedCount}
                   </span>
                 )}
@@ -209,7 +196,7 @@ function HousekeeperBar() {
   )
 }
 
-// ── Housekeeper simple view ───────────────────────────────────────────────────
+// -- Housekeeper "my rooms" view ----------------------------------------------
 
 function HousekeeperRoomItem({
   room,
@@ -227,19 +214,19 @@ function HousekeeperRoomItem({
     localStorage.setItem('hk-notes-hint-seen', '1')
     return true
   })
-  const roomNumber = room.rooms?.room_number ?? '—'
+  const roomNumber = room.rooms?.room_number ?? '--'
   const roomType = room.rooms?.room_types?.name ?? ''
   const status: string = room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
 
-  const statusConfig: Record<string, { label: string; pill: string }> = {
-    DIRTY:      { label: 'To Clean',             pill: 'bg-red-100 text-red-700' },
-    PICKUP:     { label: 'Pickup',               pill: 'bg-purple-100 text-purple-700' },
-    IN_PROGRESS:{ label: 'In Progress',          pill: 'bg-blue-100 text-blue-700' },
-    CLEAN:      { label: 'Awaiting Inspection',  pill: 'bg-amber-100 text-amber-700' },
-    INSPECTED:  { label: 'Approved',             pill: 'bg-green-100 text-green-700' },
+  const statusConfig: Record<string, { label: string; pillClass: string }> = {
+    DIRTY:      { label: 'To Clean',            pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    PICKUP:     { label: 'Pickup',              pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
+    IN_PROGRESS:{ label: 'In Progress',         pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
+    CLEAN:      { label: 'Awaiting Inspection', pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
+    INSPECTED:  { label: 'Approved',            pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
   }
-  const cfg = statusConfig[status] ?? { label: status, pill: 'bg-gray-100 text-gray-600' }
+  const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
   async function handle(newStatus: string, e: React.MouseEvent) {
     e.stopPropagation()
@@ -249,23 +236,21 @@ function HousekeeperRoomItem({
 
   return (
     <div
-      className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-pointer active:bg-gray-50 transition-colors"
+      className="flex items-center justify-between gap-3 p-4 bg-surface rounded-[var(--r-lg)] border border-line cursor-pointer active:bg-surface-2 transition-colors"
       onClick={() => onOpenDetail(room)}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-base font-bold text-gray-900">Room {roomNumber}</span>
+          <span className="font-mono font-semibold text-base text-ink">Room {roomNumber}</span>
           {vip && (
-            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
-              VIP
-            </span>
+            <Pill tone="accent" size="sm">VIP</Pill>
           )}
         </div>
-        {roomType && <p className="text-xs text-gray-400">{roomType}</p>}
-        <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pill}`}>
+        {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
+        <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
           {cfg.label}
         </span>
-        {showHint && <p className="text-xs text-gray-400 mt-1">Tap for notes &amp; issues</p>}
+        {showHint && <p className="text-xs text-ink3 mt-1">Tap for notes &amp; issues</p>}
       </div>
 
       <div className="shrink-0 text-right">
@@ -273,27 +258,27 @@ function HousekeeperRoomItem({
           <button
             disabled={loading}
             onClick={(e) => handle('IN_PROGRESS', e)}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {loading ? '…' : 'Start'}
+            {loading ? '...' : 'Start'}
           </button>
         )}
         {status === 'IN_PROGRESS' && (
           <button
             disabled={loading}
             onClick={(e) => handle('CLEAN', e)}
-            className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-xl hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {loading ? '…' : 'Done'}
+            {loading ? '...' : 'Done'}
           </button>
         )}
         {status === 'CLEAN' && (
-          <span className="text-xs text-amber-600 font-medium">
+          <span className="text-xs text-[var(--caution)] font-medium">
             Waiting for<br />supervisor
           </span>
         )}
         {status === 'INSPECTED' && (
-          <span className="text-sm text-green-600 font-semibold">✓ Approved</span>
+          <span className="text-sm text-[var(--ready)] font-semibold">Approved</span>
         )}
       </div>
     </div>
@@ -332,15 +317,11 @@ function HousekeeperMyRoomsView() {
   const applyRoomStatusPayload = useCallback((payload: any) => {
     const row = payload?.new
     if (!row?.room_id) return
-
-    const mergeRoom = (room: any) =>
-      room.room_id === row.room_id ? { ...room, ...row } : room
-
+    const mergeRoom = (room: any) => room.room_id === row.room_id ? { ...room, ...row } : room
     queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map(mergeRoom) }
     })
-
     setSelectedRoom((current: any | null) =>
       current?.room_id === row.room_id ? mergeRoom(current) : current,
     )
@@ -348,9 +329,7 @@ function HousekeeperMyRoomsView() {
 
   useEffect(() => {
     if (!hotelId) return
-    if (session?.access_token) {
-      supabase.realtime.setAuth(session.access_token)
-    }
+    if (session?.access_token) supabase.realtime.setAuth(session.access_token)
 
     const invalidate = () => {
       if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
@@ -374,17 +353,14 @@ function HousekeeperMyRoomsView() {
   }, [applyRoomStatusPayload, hotelId, queryClient, session?.access_token, supabase, today])
 
   async function handleAction(roomId: string, status: string) {
-    // Optimistic update — reflect new status immediately without waiting for refetch
     queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status } : r) }
     })
-    // Also update the open drawer so the old transition button disappears immediately
     setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     try {
       await housekeepingApi.updateRoomStatus(roomId, status)
     } catch {
-      // Rollback on error
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
       return
     }
@@ -398,28 +374,28 @@ function HousekeeperMyRoomsView() {
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">My Rooms</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
+        <h1 className="font-display text-[32px] font-normal text-ink tracking-[-0.4px]">My Rooms</h1>
+        <p className="text-sm text-ink3 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
       {myRooms.length > 0 && (
-        <div className="flex gap-5 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm text-sm">
-          <span><strong className="text-red-600">{todoCount}</strong> to do</span>
-          <span><strong className="text-blue-600">{inProgressCount}</strong> in progress</span>
-          <span><strong className="text-green-600">{doneCount}</strong> done</span>
+        <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">
+          <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">to do</span></span>
+          <span><strong className="font-display text-[var(--info)]">{inProgressCount}</strong> <span className="text-ink3">in progress</span></span>
+          <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">done</span></span>
         </div>
       )}
 
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-20 bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
           ))}
         </div>
       ) : myRooms.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-gray-400">No rooms assigned to you today.</p>
-          <p className="text-gray-300 text-sm mt-1">Check with your supervisor.</p>
+          <p className="text-ink3">No rooms assigned to you today.</p>
+          <p className="text-ink4 text-sm mt-1">Check with your supervisor.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -443,7 +419,7 @@ function HousekeeperMyRoomsView() {
   )
 }
 
-// ── Supervisor / GM board view ────────────────────────────────────────────────
+// -- Supervisor / GM board view -----------------------------------------------
 
 function SupervisorHousekeepingPage() {
   const queryClient = useQueryClient()
@@ -467,9 +443,7 @@ function SupervisorHousekeepingPage() {
   }, [assignmentMode, canAssignRooms, toggleAssignmentMode])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -478,7 +452,6 @@ function SupervisorHousekeepingPage() {
     const roomId = active.id as string
     const housekeeperId = over.data?.current?.housekeeperId as string | undefined
     if (!housekeeperId) return
-
     try {
       await housekeepingApi.saveAssignments({
         date: selectedDate,
@@ -504,7 +477,7 @@ function SupervisorHousekeepingPage() {
         setPredictions(res.data?.rooms || [])
         setLastSyncedAt(new Date())
       } catch {
-        // silently fail — predictions are optional
+        // silently fail - predictions are optional
       } finally {
         setPredictionsLoading(false)
       }
@@ -517,133 +490,97 @@ function SupervisorHousekeepingPage() {
     setSelectedDate(format(addDays(current, delta), 'yyyy-MM-dd'))
   }
 
-  const dateLabel = format(parseISO(selectedDate), 'MMM d, yyyy')
   const totalRooms = rooms.length
   const needAttention = rooms.filter((r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
   const readyRooms = rooms.filter((r) => r.status === 'INSPECTED').length
   const highRiskCount = predictions.filter((p) => p.risk_level === 'HIGH').length
 
   return (
-    <div className="space-y-3">
-      {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: title + date nav */}
-        <div className="space-y-1.5">
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Housekeeping Board</h1>
-
-          <div className="flex flex-wrap items-center gap-1.5">
+    <div className="space-y-4">
+      {/* Page header */}
+      <PageHeader
+        eyebrow="Housekeeping"
+        title="Room status board"
+        meta={
+          <>
+            <Pill tone="ready" size="md">
+              <span className="font-mono">{readyRooms} ready</span>
+            </Pill>
+            <Pill tone="progress" size="md">
+              <span className="font-mono">{needAttention - rooms.filter(r => r.status === 'DIRTY').length} occupied</span>
+            </Pill>
+            <Pill tone="dirty" size="md">
+              <span className="font-mono">{rooms.filter(r => r.status === 'DIRTY').length} vacant dirty</span>
+            </Pill>
+            <span className="text-ink4 text-xs">&middot;</span>
+            <SyncBadge lastSyncedAt={lastSyncedAt} />
+          </>
+        }
+        actions={
+          <>
+            {/* Date navigation */}
             <button
               onClick={() => navigate(-1)}
-              className="px-3 py-2 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
+              className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
               aria-label="Previous day"
             >
-              &#8592; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
+              &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
             </button>
-
-            <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-sm font-semibold text-gray-900 shadow-sm">
-              {dateLabel}
+            <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink">
+              {format(parseISO(selectedDate), 'MMM d')}
             </span>
-
             <button
               onClick={() => navigate(1)}
-              className="px-3 py-2 rounded-lg bg-white/70 border border-white/90 text-xs font-medium text-gray-600 hover:bg-white/90 transition-colors"
+              className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
               aria-label="Next day"
             >
-              {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &#8594;
+              {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
             </button>
-
             <select
               value={selectedShift ?? ''}
               onChange={(e) => setSelectedShift(e.target.value || null)}
-              className="px-2.5 py-1 rounded-lg border border-white/90 text-xs text-gray-700 bg-white/70 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+              className="px-2.5 py-2 rounded-lg border border-line text-xs text-ink2 bg-surface hover:border-line-2 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
             >
               {SHIFTS.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-          </div>
-        </div>
-
-        {/* Right: actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View / Assign toggle */}
-          {canAssignRooms && (
-            <>
-              <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs bg-white shadow-sm">
-                <button
-                  onClick={() => assignmentMode && toggleAssignmentMode()}
-                  className={`px-3 py-2 font-medium transition-colors ${
-                    !assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  View
-                </button>
-                <button
-                  onClick={() => !assignmentMode && toggleAssignmentMode()}
-                  className={`px-3 py-2 font-medium transition-colors ${
-                    assignmentMode ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  Assign
-                </button>
-              </div>
-
-              <Link
-                href="/onboarding?step=2"
-                prefetch={false}
-                className="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+            {canAssignRooms && (
+              <Button
+                variant={assignmentMode ? 'primary' : 'secondary'}
+                onClick={toggleAssignmentMode}
               >
-                + Rooms
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
+                {assignmentMode ? 'Exit assign' : 'Assign mode'}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      {/* ── Stats + sync ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-          <span><strong className="text-gray-900 text-sm">{totalRooms}</strong> rooms</span>
-          <span><strong className="text-orange-600">{needAttention}</strong> need attention</span>
-          <span><strong className="text-green-600">{readyRooms}</strong> ready</span>
-          {highRiskCount > 0 && (
-            <span><strong className="text-red-600">{highRiskCount}</strong> at risk</span>
-          )}
-        </div>
-        <SyncBadge lastSyncedAt={lastSyncedAt} />
-      </div>
-
-      {/* ── Prediction alerts ─────────────────────────────────────────────── */}
+      {/* Prediction alerts */}
       {predictions.some((p) => p.risk_level === 'HIGH' || p.risk_level === 'MEDIUM') && (
         <PredictionPanel predictions={predictions} isLoading={predictionsLoading} />
       )}
 
-      {/* ── Drag error banner ─────────────────────────────────────────────── */}
+      {/* Drag error banner */}
       {dragError && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] text-sm text-[var(--alert)]">
           <span>{dragError}</span>
-          <button
-            onClick={() => setDragError(null)}
-            className="shrink-0 text-red-500 hover:text-red-700 font-medium"
-            aria-label="Dismiss"
-          >
-            ✕
+          <button onClick={() => setDragError(null)} className="shrink-0 font-medium" aria-label="Dismiss">
+            &times;
           </button>
         </div>
       )}
 
-      {/* ── Housekeeper bar (mobile assign mode) ──────────────────────────── */}
+      {/* Housekeeper chip bar (mobile assign mode) */}
       {assignmentMode && canAssignRooms && <HousekeeperBar />}
 
-      {/* ── Main layout ───────────────────────────────────────────────────── */}
+      {/* Main layout */}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 items-start">
-          {/* Board */}
           <div className="flex-1 min-w-0">
             <RoomStatusBoard />
           </div>
-
-          {/* Sidebar — desktop only */}
           {assignmentMode && canAssignRooms && (
             <div className="hidden lg:block">
               <AssignmentSidebar />
@@ -655,7 +592,7 @@ function SupervisorHousekeepingPage() {
   )
 }
 
-// ── Role-gated entry point ────────────────────────────────────────────────────
+// -- Role-gated entry point ---------------------------------------------------
 
 export default function HousekeepingPage() {
   const { role } = useRole()
@@ -664,9 +601,9 @@ export default function HousekeepingPage() {
   if (isAuthLoading || !role) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-56 rounded-lg bg-gray-100 animate-pulse" />
-        <div className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
-        <div className="h-72 rounded-2xl bg-gray-100 animate-pulse" />
+        <div className="h-8 w-56 rounded-lg bg-surface-3 animate-pulse" />
+        <div className="h-24 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
+        <div className="h-72 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
       </div>
     )
   }
@@ -678,7 +615,7 @@ export default function HousekeepingPage() {
   if (role !== 'gm' && role !== 'housekeeping_supervisor' && role !== 'front_desk') {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-gray-400">You don&apos;t have access to this section.</p>
+        <p className="text-sm text-ink3">You don&apos;t have access to this section.</p>
       </div>
     )
   }

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -27,7 +27,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'gm', label: 'General Manager' },
@@ -48,12 +48,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  gm: 'bg-amber-50 text-amber-700 border border-amber-200',
-  housekeeping_supervisor: 'bg-teal-50 text-teal-700 border border-teal-200',
-  housekeeper: 'bg-sky-50 text-sky-700 border border-sky-200',
-  chief_engineer: 'bg-amber-50 text-amber-700 border border-amber-200',
-  engineer: 'bg-slate-50 text-slate-600 border border-slate-200',
-  front_desk: 'bg-violet-50 text-violet-700 border border-violet-200',
+  gm: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
+  housekeeping_supervisor: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
+  housekeeper: 'bg-surface-2 text-ink-2 border border-line',
+  chief_engineer: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
+  engineer: 'bg-surface-2 text-ink-3 border border-line',
+  front_desk: 'bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]',
 }
 
 const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
@@ -65,7 +65,7 @@ const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
   front_desk: 'bg-amber-600',
 }
 
-// ─── Invite form schema ───────────────────────────────────────────────────────
+// â”€â”€â”€ Invite form schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const inviteSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
@@ -84,7 +84,7 @@ const directSchema = inviteSchema.extend({
 
 type DirectFormValues = z.infer<typeof directSchema>
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getInitials(name: string): string {
   return name
@@ -106,7 +106,7 @@ function relativeTime(dateStr: string): string {
   return 'just now'
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
@@ -128,7 +128,7 @@ function Avatar({ name, role }: { name: string; role: UserRole }) {
   )
 }
 
-// ─── Confirm Deactivate Dialog ────────────────────────────────────────────────
+// â”€â”€â”€ Confirm Deactivate Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ConfirmDeactivateDialog({
   staff,
@@ -152,10 +152,10 @@ function ConfirmDeactivateDialog({
         onClick={onCancel}
       />
       {/* Dialog */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="deactivate-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="deactivate-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl p-6 w-full max-w-sm space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <AlertTriangle size={18} className="text-red-600" />
+          <div className="w-10 h-10 rounded-full bg-[var(--alert-soft)] flex items-center justify-center shrink-0">
+            <AlertTriangle size={18} className="text-[var(--alert)]" />
           </div>
           <div>
             <h3 id="deactivate-staff-title" className="text-base font-semibold text-gray-900">Deactivate Staff Member</h3>
@@ -183,7 +183,7 @@ function ConfirmDeactivateDialog({
             disabled={loading}
             className="flex-1"
           >
-            {loading ? 'Deactivating…' : 'Deactivate'}
+            {loading ? 'Deactivatingâ€¦' : 'Deactivate'}
           </Button>
         </div>
       </div>
@@ -191,7 +191,7 @@ function ConfirmDeactivateDialog({
   )
 }
 
-// ─── Add Direct Modal ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Add Direct Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const queryClient = useQueryClient()
@@ -219,14 +219,14 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-        <div ref={successDialogRef} role="dialog" aria-modal="true" aria-labelledby="staff-added-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+        <div ref={successDialogRef} role="dialog" aria-modal="true" aria-labelledby="staff-added-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
             <h2 id="staff-added-title" className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
-            <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
+            <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"><X size={18} /></button>
           </div>
           <div className="px-6 py-5 space-y-4">
             <p className="text-sm text-gray-600"><span className="font-medium">{createdCredentials.name}</span> has been added. Share these login credentials with them:</p>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2 font-mono text-sm">
+            <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-xl p-4 space-y-2 font-mono text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Email</span><span className="font-medium text-gray-900">{createdCredentials.email}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Password</span><span className="font-medium text-gray-900">{createdCredentials.password}</span></div>
             </div>
@@ -241,43 +241,43 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={addDialogRef} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+      <div ref={addDialogRef} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 id="add-staff-title" className="text-lg font-semibold text-gray-900">Add Staff Manually</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
-          <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
+          <p className="text-xs text-gray-500">Creates an account immediately â€” no email sent. You set the initial password to share with the staff member.</p>
           {errors.root && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
               <AlertTriangle size={15} className="shrink-0" />{errors.root.message}
             </div>
           )}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Full Name</label>
-            <input {...register('full_name')} placeholder="Maria Garcia" className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.full_name ? 'border-red-300' : 'border-amber-200/40 hover:border-amber-200'}`} />
-            {errors.full_name && <p className="text-xs text-red-600">{errors.full_name.message}</p>}
+            <input {...register('full_name')} placeholder="Maria Garcia" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.full_name ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
+            {errors.full_name && <p className="text-xs text-[var(--alert)]">{errors.full_name.message}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input {...register('email')} type="email" placeholder="maria@sunriseinn.com" className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.email ? 'border-red-300' : 'border-amber-200/40 hover:border-amber-200'}`} />
-            {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+            <input {...register('email')} type="email" placeholder="maria@sunriseinn.com" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.email ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
+            {errors.email && <p className="text-xs text-[var(--alert)]">{errors.email.message}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input {...register('password')} type="password" placeholder="Min. 8 characters" className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.password ? 'border-red-300' : 'border-amber-200/40 hover:border-amber-200'}`} />
-            {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+            <input {...register('password')} type="password" placeholder="Min. 8 characters" className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${errors.password ? 'border-red-300' : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'}`} />
+            {errors.password && <p className="text-xs text-[var(--alert)]">{errors.password.message}</p>}
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select {...register('role')} className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+            <select {...register('role')} className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50">
               {ROLE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="flex-1">Cancel</Button>
             <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1">
-              <UserPlus size={15} />{isSubmitting ? 'Adding…' : 'Add Staff'}
+              <UserPlus size={15} />{isSubmitting ? 'Addingâ€¦' : 'Add Staff'}
             </Button>
           </div>
         </form>
@@ -286,7 +286,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
   )
 }
 
-// ─── Invite Modal ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Invite Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function InviteModal({
   onClose,
@@ -337,14 +337,14 @@ function InviteModal({
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 id="modal-title" className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"
           >
             <X size={18} />
           </button>
@@ -353,7 +353,7 @@ function InviteModal({
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
           {errors.root && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
               <AlertTriangle size={15} className="shrink-0" />
               {errors.root.message}
             </div>
@@ -365,14 +365,14 @@ function InviteModal({
             <input
               {...register('full_name')}
               placeholder="Maria Garcia"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
                 errors.full_name
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-amber-200/40 hover:border-amber-200'
+                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
               }`}
             />
             {errors.full_name && (
-              <p className="text-xs text-red-600">{errors.full_name.message}</p>
+              <p className="text-xs text-[var(--alert)]">{errors.full_name.message}</p>
             )}
           </div>
 
@@ -383,14 +383,14 @@ function InviteModal({
               {...register('email')}
               type="email"
               placeholder="maria@sunriseinn.com"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
                 errors.email
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-amber-200/40 hover:border-amber-200'
+                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
               }`}
             />
             {errors.email && (
-              <p className="text-xs text-red-600">{errors.email.message}</p>
+              <p className="text-xs text-[var(--alert)]">{errors.email.message}</p>
             )}
           </div>
 
@@ -399,10 +399,10 @@ function InviteModal({
             <label className="block text-sm font-medium text-gray-700">Role</label>
             <select
               {...register('role')}
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-200 transition-colors ${
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors ${
                 errors.role
                   ? 'border-red-300 focus:ring-red-500'
-                  : 'border-amber-200/40 hover:border-amber-200'
+                  : 'border-[var(--caution-line)]/40 hover:border-[var(--caution-line)]'
               }`}
             >
               {ROLE_OPTIONS.map(({ value, label }) => (
@@ -412,7 +412,7 @@ function InviteModal({
               ))}
             </select>
             {errors.role && (
-              <p className="text-xs text-red-600">{errors.role.message}</p>
+              <p className="text-xs text-[var(--alert)]">{errors.role.message}</p>
             )}
           </div>
 
@@ -434,7 +434,7 @@ function InviteModal({
               className="flex-1"
             >
               <Mail size={15} />
-              {isSubmitting ? 'Sending…' : 'Send Invite'}
+              {isSubmitting ? 'Sendingâ€¦' : 'Send Invite'}
             </Button>
           </div>
         </form>
@@ -443,7 +443,7 @@ function InviteModal({
   )
 }
 
-// ─── Schedule helpers ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Schedule helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'chief_engineer'>> = {
   housekeeper: 'housekeeping_supervisor',
@@ -453,10 +453,10 @@ const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'c
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function formatScheduleDays(days: number[]): string {
-  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' · ')
+  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' Â· ')
 }
 
-// ─── Edit Staff Modal ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Edit Staff Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function EditStaffModal({
   staff,
@@ -526,12 +526,12 @@ function EditStaffModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" tabIndex={-1} className="relative bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
 
         {/* Sticky header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-white/80 backdrop-blur-xl z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-surface/80 backdrop-blur-xl z-10">
           <h2 id="edit-staff-title" className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/60 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -547,7 +547,7 @@ function EditStaffModal({
           </div>
 
           {error && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
               <AlertTriangle size={15} className="shrink-0" />{error}
             </div>
           )}
@@ -558,7 +558,7 @@ function EditStaffModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+              className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
             >
               {ROLE_OPTIONS.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
@@ -574,9 +574,9 @@ function EditStaffModal({
               <select
                 value={customRoleId ?? ''}
                 onChange={(e) => setCustomRoleId(e.target.value || null)}
-                className="w-full px-3 py-2 text-sm border border-amber-200/40 rounded-lg bg-white/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               >
-                <option value="">— None (use base role) —</option>
+                <option value="">â€” None (use base role) â€”</option>
                 {(customRolesQuery.data ?? []).map((cr: CustomRole) => (
                   <option key={cr.id} value={cr.id}>{cr.name}</option>
                 ))}
@@ -584,23 +584,23 @@ function EditStaffModal({
             </div>
           )}
 
-          {/* Role Schedule — only for housekeeper / engineer */}
+          {/* Role Schedule â€” only for housekeeper / engineer */}
           {overrideRole && (
             <div className="space-y-3 border-t border-white/60 pt-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                <Calendar size={14} className="text-amber-500" />
+                <Calendar size={14} className="text-[var(--caution)]" />
                 Role Schedule
               </div>
               <p className="text-xs text-gray-500">
                 On scheduled days,{' '}
                 <span className="font-medium">{staff.full_name.split(' ')[0]}</span> acts as{' '}
-                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> — full dashboard
+                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> â€” full dashboard
                 and feature access for that role.
               </p>
 
               {/* Existing schedules */}
               {schedulesQuery.isLoading ? (
-                <p className="text-xs text-gray-400">Loading…</p>
+                <p className="text-xs text-gray-400">Loadingâ€¦</p>
               ) : (schedulesQuery.data ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 italic">No schedule overrides set.</p>
               ) : (
@@ -608,18 +608,18 @@ function EditStaffModal({
                   {(schedulesQuery.data ?? []).map((s: RoleSchedule) => (
                     <div
                       key={s.id}
-                      className="flex items-center justify-between px-3 py-2 bg-amber-50/70 border border-amber-100 rounded-lg"
+                      className="flex items-center justify-between px-3 py-2 bg-[var(--caution-soft)]/70 border border-amber-100 rounded-lg"
                     >
                       <span className="text-xs font-medium text-gray-800">
                         {formatScheduleDays(s.days_of_week)}
                         <span className="text-gray-400 font-normal ml-2">
-                          → {ROLE_LABELS[overrideRole]}
+                          â†’ {ROLE_LABELS[overrideRole]}
                         </span>
                       </span>
                       <button
                         onClick={() => deleteScheduleMutation.mutate(s.id)}
                         disabled={deleteScheduleMutation.isPending}
-                        className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors disabled:opacity-40"
+                        className="p-1 text-gray-400 hover:text-[var(--alert)] rounded transition-colors disabled:opacity-40"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -655,7 +655,7 @@ function EditStaffModal({
                   className="text-xs h-8"
                 >
                   <Plus size={13} />
-                  {createScheduleMutation.isPending ? 'Adding…' : 'Add Schedule'}
+                  {createScheduleMutation.isPending ? 'Addingâ€¦' : 'Add Schedule'}
                 </Button>
               </div>
             </div>
@@ -672,7 +672,7 @@ function EditStaffModal({
               disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null))}
               className="flex-1"
             >
-              {updateMutation.isPending ? 'Saving…' : 'Save Role'}
+              {updateMutation.isPending ? 'Savingâ€¦' : 'Save Role'}
             </Button>
           </div>
         </div>
@@ -681,13 +681,13 @@ function EditStaffModal({
   )
 }
 
-// ─── Staff Page ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Staff Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function StaffPage() {
   const { canManageStaff, isGM } = useRole()
   const queryClient = useQueryClient()
 
-  // ── All hooks must be called unconditionally before any early returns ───────
+  // â”€â”€ All hooks must be called unconditionally before any early returns â”€â”€â”€â”€â”€â”€â”€
 
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showAddDirectModal, setShowAddDirectModal] = useState(false)
@@ -706,7 +706,7 @@ export default function StaffPage() {
     return () => clearTimeout(t)
   }, [inviteSuccess])
 
-  // ── Data fetching ──────────────────────────────────────────────────────────
+  // â”€â”€ Data fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const staffQuery = useQuery({
     queryKey: ['staff'],
@@ -722,7 +722,7 @@ export default function StaffPage() {
     enabled: isGM,
   })
 
-  // ── Mutations ──────────────────────────────────────────────────────────────
+  // â”€â”€ Mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const deactivateMutation = useMutation({
     mutationFn: (staffId: string) => staffApi.deactivate(staffId),
@@ -739,7 +739,7 @@ export default function StaffPage() {
     },
   })
 
-  // ── Filtering ──────────────────────────────────────────────────────────────
+  // â”€â”€ Filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const filteredStaff = useMemo(() => {
     const staff = staffQuery.data ?? []
@@ -759,7 +759,7 @@ export default function StaffPage() {
 
   const invitations = invitationsQuery.data ?? []
 
-  // ── Guard: non-GM sees access restricted ───────────────────────────────────
+  // â”€â”€ Guard: non-GM sees access restricted â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (!isGM) {
     return (
@@ -773,17 +773,17 @@ export default function StaffPage() {
     )
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Staff Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {staffQuery.data?.length ?? 0} team member
-            {staffQuery.data?.length !== 1 ? 's' : ''}
+          <p className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-3 mb-1">Organization</p>
+          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Staff</h1>
+          <p className="text-[13px] text-ink-3 mt-0.5">
+            {staffQuery.data?.length ?? 0} team member{staffQuery.data?.length !== 1 ? 's' : ''}
           </p>
         </div>
         {canManageStaff && (
@@ -801,14 +801,11 @@ export default function StaffPage() {
               <ChevronDown size={14} className={`ml-auto transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
             </Button>
             {addMenuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-full rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+              <div className="absolute right-0 z-20 mt-2 w-full rounded-xl border border-line bg-surface p-1 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => {
-                    setAddMenuOpen(false)
-                    setShowInviteModal(true)
-                  }}
-                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-stone-700 hover:bg-amber-50"
+                  onClick={() => { setAddMenuOpen(false); setShowInviteModal(true) }}
+                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-2 hover:bg-surface-2"
                   role="menuitem"
                 >
                   <Mail size={16} />
@@ -816,11 +813,8 @@ export default function StaffPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setAddMenuOpen(false)
-                    setShowAddDirectModal(true)
-                  }}
-                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                  onClick={() => { setAddMenuOpen(false); setShowAddDirectModal(true) }}
+                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-ink-2 hover:bg-surface-3"
                   role="menuitem"
                 >
                   <UserPlus size={16} />
@@ -830,19 +824,13 @@ export default function StaffPage() {
             )}
           </div>
           <div className="hidden gap-2 sm:flex">
-            <Button
-              variant="ghost"
-              onClick={() => setShowAddDirectModal(true)}
-            >
+            <Button variant="ghost" onClick={() => setShowAddDirectModal(true)}>
               <UserPlus size={16} />
               Add Manually
             </Button>
-            <Button
-              variant="primary"
-              onClick={() => setShowInviteModal(true)}
-            >
+            <Button variant="primary" onClick={() => setShowInviteModal(true)}>
               <Mail size={16} />
-              Invite by Email
+              Invite
             </Button>
           </div>
           </>
@@ -851,7 +839,7 @@ export default function StaffPage() {
 
       {/* Invite success banner */}
       {inviteSuccess && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 font-medium">
+        <div className="flex items-center gap-3 px-4 py-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg text-sm text-green-800 font-medium">
           Invitation sent successfully.
         </div>
       )}
@@ -863,7 +851,7 @@ export default function StaffPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-stone-200 rounded-lg bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+            className="appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
           >
             <option value="all">All Roles</option>
             {ROLE_OPTIONS.map(({ value, label }) => (
@@ -885,7 +873,7 @@ export default function StaffPage() {
             onChange={(e) =>
               setStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
             }
-            className="appearance-none pl-3 pr-8 py-2 text-sm border border-stone-200 rounded-lg bg-white hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
+            className="appearance-none pl-3 pr-8 py-2 text-sm border border-line rounded-lg bg-surface hover:border-[var(--caution-line)] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -906,8 +894,8 @@ export default function StaffPage() {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or email…"
-            className="pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg bg-white w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 hover:border-amber-300 transition-colors"
+            placeholder="Search by name or emailâ€¦"
+            className="pl-9 pr-4 py-2 text-sm border border-line rounded-lg bg-surface w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 hover:border-[var(--caution-line)] transition-colors"
           />
         </div>
       </div>
@@ -915,21 +903,14 @@ export default function StaffPage() {
       {/* Staff table */}
       <Card className="overflow-hidden p-0">
         {staffQuery.isLoading ? (
-          <div className="px-6 py-12 text-center text-sm text-gray-500">
-            Loading staff…
-          </div>
+          <div className="px-6 py-12 text-center text-[13px] text-ink-3">Loading staff&hellip;</div>
         ) : staffQuery.isError ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-red-600 font-medium">Failed to load staff.</p>
-            <button
-              onClick={() => staffQuery.refetch()}
-              className="mt-2 text-sm text-amber-600 hover:underline"
-            >
-              Try again
-            </button>
+            <p className="text-[13px] text-[var(--alert)] font-medium">Failed to load staff.</p>
+            <button onClick={() => staffQuery.refetch()} className="mt-2 text-[13px] text-accent hover:underline">Try again</button>
           </div>
         ) : filteredStaff.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-gray-500">
+          <div className="px-6 py-12 text-center text-[13px] text-ink-3">
             {searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
               ? 'No staff match the current filters.'
               : 'No staff members yet. Invite your first team member above.'}
@@ -937,80 +918,52 @@ export default function StaffPage() {
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/60 bg-amber-50/60">
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                  Name
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                  Role
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                  Status
-                </th>
+              <tr className="border-b border-line bg-surface-2">
+                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Person</th>
+                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Role</th>
+                <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Status</th>
                 {canManageStaff && (
-                  <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Actions
-                  </th>
+                  <th className="text-right text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">Actions</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/40">
+            <tbody className="divide-y divide-line-2">
               {filteredStaff.map((member) => (
-                <tr key={member.id} className="hover:bg-amber-50/40 transition-colors group">
-                  <td className="px-6 py-4">
+                <tr key={member.id} className="hover:bg-surface-2 transition-colors">
+                  <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
                       <Avatar name={member.full_name} role={member.role} />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {member.full_name}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                        <p className="text-[13px] font-medium text-ink truncate">{member.full_name}</p>
+                        <p className="text-[11px] text-ink-3 truncate">{member.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3.5">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <RoleBadge role={member.role} />
                       {member.custom_role_name && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)]">
                           {member.custom_role_name}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-                        member.status === 'active'
-                          ? 'text-green-700'
-                          : 'text-gray-400'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          member.status === 'active' ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
-                      />
+                  <td className="px-6 py-3.5">
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${member.status === 'active' ? 'text-[var(--ready)]' : 'text-ink-4'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${member.status === 'active' ? 'bg-[var(--ready)]' : 'bg-ink-4'}`} />
                       {member.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   {canManageStaff && (
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2 transition-opacity">
-                        <button
-                          onClick={() => setEditStaff(member)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          <Pencil size={12} />
-                          Edit
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setEditStaff(member)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-ink-2 bg-surface-2 border border-line rounded-[var(--r-sm)] hover:bg-surface-3 transition-colors">
+                          <Pencil size={11} />Edit
                         </button>
                         {member.status === 'active' && (
-                          <button
-                            onClick={() => setConfirmDeactivate(member)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                          >
-                            <UserX size={12} />
-                            Deactivate
+                          <button onClick={() => setConfirmDeactivate(member)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-sm)] hover:opacity-80 transition-opacity">
+                            <UserX size={11} />Deactivate
                           </button>
                         )}
                       </div>
@@ -1026,60 +979,60 @@ export default function StaffPage() {
       {/* Pending Invitations */}
       {(invitations.length > 0 || invitationsQuery.isLoading) && (
         <div className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">Pending Invitations</h2>
+          <h2 className="text-[13px] font-semibold text-ink-2">Pending Invitations</h2>
 
           <Card className="overflow-hidden p-0">
             {invitationsQuery.isLoading ? (
-              <div className="px-6 py-8 text-center text-sm text-gray-500">
-                Loading invitations…
+              <div className="px-6 py-8 text-center text-[13px] text-ink-3">
+                Loading invitations&hellip;
               </div>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/60 bg-amber-50/60">
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                  <tr className="border-b border-line bg-surface-2">
+                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
                       Email
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
                       Role
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    <th className="text-left text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
                       Invited
                     </th>
                     {canManageStaff && (
-                      <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                      <th className="text-right text-[10.5px] font-semibold text-ink-3 uppercase tracking-[1px] px-6 py-3">
                         Actions
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/40">
+                <tbody className="divide-y divide-line">
                   {invitations.map((inv: StaffInvitation) => (
-                    <tr key={inv.id} className="hover:bg-amber-50/40 transition-colors group">
-                      <td className="px-6 py-4">
+                    <tr key={inv.id} className="hover:bg-surface-2 transition-colors group">
+                      <td className="px-6 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                            <Mail size={14} className="text-gray-400" />
+                          <div className="w-8 h-8 rounded-full bg-surface-3 border border-line flex items-center justify-center">
+                            <Mail size={14} className="text-ink-3" />
                           </div>
-                          <p className="text-sm text-gray-700 font-medium">{inv.email}</p>
+                          <p className="text-[13px] text-ink font-medium">{inv.email}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3.5">
                         <RoleBadge role={inv.role} />
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-1.5 text-[12px] text-ink-3">
                           <Clock size={13} />
                           {relativeTime(inv.invited_at)}
                         </div>
                       </td>
                       {canManageStaff && (
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3.5">
                           <div className="flex items-center justify-end gap-2 transition-opacity">
                             <button
                               onClick={() => resendMutation.mutate(inv.id)}
                               disabled={resendMutation.isPending}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ink-2 bg-surface-2 border border-line rounded-[var(--r-sm)] hover:bg-surface-3 transition-colors disabled:opacity-50"
                             >
                               <RefreshCw size={12} />
                               Resend

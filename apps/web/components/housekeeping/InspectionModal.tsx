@@ -42,8 +42,8 @@ function calcOverallResult(
 
 function OverallResultBadge({ result }: { result: OverallResult }) {
   const cfg: Record<OverallResult, { cls: string; label: string }> = {
-    passed: { cls: 'bg-green-100 text-green-700 border-green-200', label: 'PASSED' },
-    failed: { cls: 'bg-red-100 text-red-700 border-red-200', label: 'FAILED' },
+    passed: { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', label: 'PASSED' },
+    failed: { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', label: 'FAILED' },
     conditional: { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'CONDITIONAL' },
   }
   const { cls, label } = cfg[result]
@@ -176,13 +176,13 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="bg-white/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
-              <ClipboardCheck className="w-5 h-5 text-green-600 shrink-0" />
+              <ClipboardCheck className="w-5 h-5 text-[var(--ready)] shrink-0" />
               <h2 className="text-base font-bold text-gray-900">Inspect Room {roomNumber}</h2>
             </div>
             <Button
@@ -211,7 +211,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
 
                 {/* Checklist sections */}
                 {!templatesLoading && !template?.id && (
-                  <div className="flex items-start gap-2 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                  <div className="flex items-start gap-2 px-3 py-3 bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-lg text-sm text-[var(--caution)]">
                     <span className="shrink-0 mt-0.5">⚠</span>
                     <span>No inspection template configured for this hotel. Please create one in Settings before running inspections.</span>
                   </div>
@@ -256,8 +256,8 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   onClick={() => setItemResult(key, 'pass')}
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'pass'
-                                      ? 'bg-green-100 text-green-700 border-green-300'
-                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-green-200'
+                                      ? 'bg-green-100 text-[var(--ready)] border-green-300'
+                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--ready-line)]'
                                   }`}
                                 >
                                   <Check className="w-3 h-3" />
@@ -270,8 +270,8 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   onClick={() => setItemResult(key, 'fail')}
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'fail'
-                                      ? 'bg-red-100 text-red-700 border-red-300'
-                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-red-200'
+                                      ? 'bg-[var(--alert-soft)] text-[var(--alert)] border-red-300'
+                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--alert-line)]'
                                   }`}
                                 >
                                   <X className="w-3 h-3" />
@@ -285,7 +285,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                                   className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
                                     current === 'na'
                                       ? 'bg-gray-100 text-gray-600 border-gray-300'
-                                      : 'bg-white/70 text-gray-400 border-white/90 hover:border-gray-300'
+                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-gray-300'
                                   }`}
                                 >
                                   <Minus className="w-3 h-3" />
@@ -320,7 +320,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                               value={r}
                               checked={manualOverall === r}
                               onChange={() => setManualOverall(r)}
-                              className="accent-brand-600"
+                              className="accent-[var(--accent)]"
                             />
                             <span className="text-sm text-gray-700 capitalize">{r}</span>
                           </label>
@@ -340,13 +340,13 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
                     placeholder="Any notes about this inspection…"
-                    className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-white/50 backdrop-blur-sm"
+                    className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-surface/50 backdrop-blur-sm"
                   />
                 </div>
 
                 {/* Error */}
                 {submitError && (
-                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
                     {submitError}
                   </p>
                 )}

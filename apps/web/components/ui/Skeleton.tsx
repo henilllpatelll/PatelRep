@@ -6,13 +6,13 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className, variant = 'text' }: SkeletonProps) {
-  const BASE = 'bg-stone-100 animate-pulse relative overflow-hidden'
+  const BASE = 'bg-surface-3 animate-pulse relative overflow-hidden'
   const AFTER = 'after:absolute after:inset-0 after:shimmer'
 
   const VARIANTS = {
     text:        'h-4 w-full rounded-md',
-    card:        'h-32 w-full rounded-2xl',
-    'room-card': 'aspect-[4/3] w-full rounded-2xl',
+    card:        'h-32 w-full rounded-[var(--r-lg)]',
+    'room-card': 'aspect-[4/3] w-full rounded-[var(--r-lg)]',
     circle:      'rounded-full w-8 h-8',
   }
 
