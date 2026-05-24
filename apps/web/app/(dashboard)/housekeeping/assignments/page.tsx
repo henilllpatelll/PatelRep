@@ -34,7 +34,7 @@ function todayISO(): string {
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     DIRTY: 'bg-red-100 text-red-700',
-    IN_PROGRESS: 'bg-red-100 text-red-700',
+    IN_PROGRESS: 'bg-purple-100 text-purple-700',
     CLEAN: 'bg-blue-100 text-blue-700',
     INSPECTED: 'bg-green-100 text-green-700',
     OOO: 'bg-orange-100 text-orange-700',

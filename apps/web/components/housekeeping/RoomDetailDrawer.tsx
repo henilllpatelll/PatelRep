@@ -83,7 +83,7 @@ function formatCheckinTime(isoString: string | null | undefined): string | null 
 function getStatusDotClass(status: string): string {
   switch (status) {
     case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-[var(--alert)]'
+    case 'IN_PROGRESS': return 'text-[var(--progress)]'
     case 'OCCUPIED': return 'text-[var(--alert)]'
     case 'CLEAN': return 'text-[var(--info)]'
     case 'INSPECTED': return 'text-[var(--ready)]'
@@ -98,7 +98,7 @@ function getStatusDotClass(status: string): string {
 function getStatusTextClass(status: string): string {
   switch (status) {
     case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-[var(--alert)]'
+    case 'IN_PROGRESS': return 'text-[var(--progress)]'
     case 'OCCUPIED': return 'text-[var(--alert)]'
     case 'CLEAN': return 'text-[var(--info)]'
     case 'INSPECTED': return 'text-[var(--ready)]'
@@ -121,7 +121,7 @@ function TransitionButton({
 }) {
   const labels: Record<RoomStatus, string> = {
     DIRTY: 'Mark Vacant Dirty',
-    IN_PROGRESS: 'Mark Occupied',
+    IN_PROGRESS: 'Mark In Progress',
     CLEAN: 'Mark Clean ready for inspection',
     INSPECTED: 'Mark Inspected / Ready',
     OOO: 'Mark Out of Order / Out of Service',

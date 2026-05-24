@@ -4,7 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 
 export const STATUS_LABELS: Record<string, string> = {
   DIRTY: 'Vacant Dirty',
-  IN_PROGRESS: 'Occupied',
+  IN_PROGRESS: 'In Progress',
   CLEAN: 'Ready for Inspection',
   INSPECTED: 'Inspected / Ready',
   OOO: 'Out of Order / Out of Service',
@@ -17,7 +17,7 @@ export const STATUS_LABELS: Record<string, string> = {
 // Short labels for compact badges and filter chips
 export const STATUS_SHORT_LABELS: Record<string, string> = {
   DIRTY: 'Vacant Dirty',
-  IN_PROGRESS: 'Occupied',
+  IN_PROGRESS: 'In Progress',
   CLEAN: 'Clean',
   INSPECTED: 'Ready',
   OOO: 'OOO/OOS',
@@ -39,9 +39,9 @@ export const STATUS_COLORS: Record<
     badge: 'bg-red-100 text-red-700',
   },
   IN_PROGRESS: {
-    bg: 'bg-red-50',
-    border: 'border-red-300',
-    badge: 'bg-red-100 text-red-700',
+    bg: 'bg-purple-50',
+    border: 'border-purple-300',
+    badge: 'bg-purple-100 text-purple-700',
   },
   CLEAN: {
     bg: 'bg-blue-50',
@@ -83,7 +83,7 @@ export const STATUS_COLORS: Record<
 export const STATUS_BG: Record<string, string> = {
   INSPECTED:     '#16A34A',
   CLEAN:         '#2563EB',
-  IN_PROGRESS:   '#DC2626',
+  IN_PROGRESS:   '#7C3AED',
   PICK_UP:       '#EAB308',
   PICKUP:        '#EAB308',   // API value alias
   OCCUPIED:      '#DC2626',

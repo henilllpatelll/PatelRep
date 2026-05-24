@@ -1917,3 +1917,6 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:15 | Final local browser and Playwright smoke after dev restart | /login | 10 Playwright tests passed; 0 browser console errors | ~500 |
 | 10:08 | Normalized universal room status labels/colors across web and mobile | roomStatus.ts; housekeeping/dashboard/report/mobile room views; i18n | Green/blue/red/striped-red/yellow/orange contract applied | ~3100 |
 | 10:08 | Ran final checks for room-status display change | web/mobile | web type-check, lint, build; mobile type-check and tests passed | ~800 |
+| 10:20 | Added purple In Progress status while preserving striped red Occupied | room status tokens, web/mobile room status displays | web/mobile checks passed | ~900 |
+| 10:26 | designqc: captured 2 screenshots (61KB, ~5000 tok) | /housekeeping | ready for eval | ~0 |
+| 10:28 | Audited status color theme fit and progress contrast | globals.css; tailwind.config.ts; roomStatus.ts; designqc captures | Purple is tokenized and accessible; visual capture landed on protected login page | ~850 |

@@ -28,7 +28,7 @@
     "title": "My Rooms",
     "status": {
       "DIRTY": "Vacant Dirty",
-      "IN_PROGRESS": "Occupied",
+      "IN_PROGRESS": "In Progress",
       "CLEAN": "Clean ready for inspection",
       "INSPECTED": "Inspected / Ready",
       "OOO": "Out of Order / Out of Service",

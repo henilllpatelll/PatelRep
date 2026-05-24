@@ -13,7 +13,7 @@
   "rooms": {
     "status": {
       "dirty": "Vacante Sucia",
-      "in_progress": "Ocupada",
+      "in_progress": "En Proceso",
       "clean": "Limpia, lista para inspeccion",
       "inspected": "Inspeccionada / Lista",
       "ooo": "Fuera de Orden / Fuera de Servicio",

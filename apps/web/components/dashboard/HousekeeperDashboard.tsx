@@ -26,7 +26,7 @@ const STATUS_TONE: Record<string, string> = {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  DIRTY: 'Vacant Dirty', IN_PROGRESS: 'Occupied',
+  DIRTY: 'Vacant Dirty', IN_PROGRESS: 'In Progress',
   CLEAN: 'Clean ready for inspection', INSPECTED: 'Ready', OOO: 'OOO/OOS', PICKUP: 'Pickup',
 }
 

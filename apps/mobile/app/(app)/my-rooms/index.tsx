@@ -16,7 +16,7 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 
 const STATUS_COLORS: Record<string, string> = {
   DIRTY: "#DC2626",
-  IN_PROGRESS: "#DC2626",
+  IN_PROGRESS: "#7C3AED",
   CLEAN: "#2563EB",
   INSPECTED: "#16A34A",
   OOO: "#F97316",
@@ -32,7 +32,7 @@ function formatETA(isoString: string): string {
 function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
   const { t } = useTranslation();
   const statusColor = STATUS_COLORS[room.status] ?? "#6B7280";
-  const isOccupied = room.status === "IN_PROGRESS" || room.status === "OCCUPIED";
+  const isOccupied = room.status === "OCCUPIED";
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
   },
-  statusBar: { width: 6, alignSelf: "stretch" },
+  statusBar: { width: 6, alignSelf: "stretch", position: "relative", overflow: "hidden" },
   statusStripe: {
     position: "absolute",
     left: -5,

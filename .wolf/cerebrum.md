@@ -10,7 +10,7 @@
 
 - **Full audit then fix all at once (2026-05-20):** When the user says "fix all of these" after an audit, implement every item in one pass rather than asking which to prioritize.
 - **Use test credentials via env only (2026-05-23):** The user may provide TEST_PASSWORD for Playwright verification. Use it as a shell/process environment variable, but do not hardcode it into repo files or long-lived docs.
-- **Universal room status color contract (2026-05-24):** User wants room statuses shown consistently everywhere: green = Inspected / Ready, blue = Clean ready for inspection, red = Vacant Dirty, striped red = Occupied, yellow = Pickup, orange = Out of Order / Out of Service.
+- **Universal room status color contract (2026-05-24):** User wants room statuses shown consistently everywhere: green = Inspected / Ready, blue = Clean ready for inspection, purple = In Progress, red = Vacant Dirty, striped red = Occupied, yellow = Pickup, orange = Out of Order / Out of Service.
 
 ## Key Learnings
 

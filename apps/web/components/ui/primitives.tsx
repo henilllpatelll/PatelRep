@@ -9,7 +9,7 @@ type PillTone =
 const PILL_CLASSES: Record<PillTone, string> = {
   neutral:   'bg-surface-3 text-ink-2 border-line',
   dirty:     'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]',
-  progress:  'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]',
+  progress:  'bg-[var(--progress-soft)] text-[var(--progress)] border-[var(--progress-line)]',
   clean:     'bg-[var(--info-soft)] text-[var(--info)] border-[var(--info-line)]',
   inspected: 'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
   ready:     'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
@@ -59,7 +59,7 @@ export function Pill({ tone = 'neutral', size = 'md', children, className, strip
 const DOT_COLORS: Record<string, string> = {
   neutral:   'var(--ink-3)',
   dirty:     'var(--alert)',
-  progress:  'var(--alert)',
+  progress:  'var(--progress)',
   clean:     'var(--info)',
   inspected: 'var(--ready)',
   ready:     'var(--ready)',
@@ -137,7 +137,7 @@ export function SectionLabel({ children, hint, action, className }: SectionLabel
 }
 
 // ── Bar ──────────────────────────────────────────────────────────────────────
-type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'ai'
+type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'ai'
 
 const BAR_COLORS: Record<BarTone, string> = {
   accent:  'var(--accent)',
@@ -145,6 +145,7 @@ const BAR_COLORS: Record<BarTone, string> = {
   caution: 'var(--caution)',
   alert:   'var(--alert)',
   info:    'var(--info)',
+  progress:'var(--progress)',
   ai:      'var(--ai)',
 }
 

@@ -1096,8 +1096,20 @@
       "fix": "Reran commands with quoted paths or `Get-Content -LiteralPath`; kept subsequent verification commands quote-safe.",
       "tags": ["powershell", "tooling", "path-quoting"],
       "related_bugs": ["bug-043", "bug-067"],
+      "occurrences": 3,
+      "last_seen": "2026-05-24T10:24:00-05:00"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-05-24T10:26:00-05:00",
+      "error_message": "`bash -lc \"openwolf designqc --routes /housekeeping\"` failed with `/mnt/c/Users/Henil/AppData/Roaming/npm/openwolf: 15: exec: node: not found`.",
+      "file": "n/a",
+      "root_cause": "The Bash environment did not have Node on PATH even though the Windows OpenWolf shim can run with the installed Windows Node runtime.",
+      "fix": "Reran Design QC with `openwolf.cmd designqc --routes /housekeeping`, which captured desktop and mobile screenshots successfully.",
+      "tags": ["openwolf", "designqc", "windows", "tooling"],
+      "related_bugs": ["bug-069"],
       "occurrences": 1,
-      "last_seen": "2026-05-24T10:08:00-05:00"
+      "last_seen": "2026-05-24T10:26:00-05:00"
     }
   ]
 }

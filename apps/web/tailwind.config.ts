@@ -56,6 +56,10 @@ const config: Config = {
         'info-soft': 'var(--info-soft)',
         'info-line': 'var(--info-line)',
 
+        progress:      'var(--progress)',
+        'progress-soft': 'var(--progress-soft)',
+        'progress-line': 'var(--progress-line)',
+
         ai:        'var(--ai)',
         'ai-soft': 'var(--ai-soft)',
         'ai-line': 'var(--ai-line)',
@@ -70,9 +74,9 @@ const config: Config = {
           clean:              '#265d8a',
           'clean-text':       '#265d8a',
           'clean-bg':         '#d8e6f0',
-          'in-progress':      '#a6263c',
-          'in-progress-text': '#a6263c',
-          'in-progress-bg':   '#f5d8de',
+          'in-progress':      '#7c3aed',
+          'in-progress-text': '#7c3aed',
+          'in-progress-bg':   '#ede9fe',
           dirty:              '#a6263c',
           'dirty-text':       '#a6263c',
           'dirty-bg':         '#f5d8de',

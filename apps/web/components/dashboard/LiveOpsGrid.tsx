@@ -13,11 +13,11 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
   }
 }
 
-type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'ai'
+type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'ai'
 
 const TILES = [
   { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant Dirty', barTone: 'alert'   },
-  { code: 'IN_PROGRESS',tone: 'progress',  label: 'Occupied',     barTone: 'alert'   },
+  { code: 'IN_PROGRESS',tone: 'progress',  label: 'In Progress',  barTone: 'progress' },
   { code: 'CLEAN',      tone: 'clean',     label: 'Clean Inspect', barTone: 'info'   },
   { code: 'INSPECTED',  tone: 'inspected', label: 'Ready',        barTone: 'ready'   },
   { code: 'PICKUP',     tone: 'pickup',    label: 'Pickup',       barTone: 'caution' },

@@ -11,7 +11,7 @@ import { Pill, StatusDot, AILabel } from '@/components/ui/primitives'
 // ── Status → border color ─────────────────────────────────────────────────────
 const STATUS_BORDER: Record<string, string> = {
   DIRTY:          'border-[var(--alert-line)]',
-  IN_PROGRESS:    'border-[var(--alert-line)]',
+  IN_PROGRESS:    'border-[var(--progress-line)]',
   CLEAN:          'border-[var(--info-line)]',
   INSPECTED:      'border-[var(--ready-line)]',
   DO_NOT_DISTURB: 'border-line',
@@ -27,7 +27,7 @@ const STATUS_BORDER: Record<string, string> = {
 // ── Status → top strip color ──────────────────────────────────────────────────
 const STATUS_STRIP_COLOR: Record<string, string> = {
   DIRTY:          'var(--alert)',
-  IN_PROGRESS:    'var(--alert)',
+  IN_PROGRESS:    'var(--progress)',
   CLEAN:          'var(--info)',
   INSPECTED:      'var(--ready)',
   DO_NOT_DISTURB: 'var(--ink-4)',
@@ -51,7 +51,7 @@ const STATUS_PILL_TONE: Record<string, 'dirty' | 'progress' | 'clean' | 'inspect
   DO_NOT_DISTURB: 'neutral',
   OUT_OF_ORDER:   'ooo',
   OUT_OF_SERVICE: 'ooo',
-  OCCUPIED:       'progress',
+  OCCUPIED:       'dirty',
   VACANT:         'neutral',
   BLOCKED:        'neutral',
 }
@@ -130,7 +130,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
 
   // ── Derived style ──────────────────────────────────────────────────────────
   const alreadyAssigned = assignmentMode && !!assignedToName && !isPending
-  const isOccupied = status === 'IN_PROGRESS' || status === 'OCCUPIED'
+  const isOccupied = status === 'OCCUPIED'
 
   const cardBorder = isPending && assignmentMode
     ? 'border border-[var(--ai-line)]'
@@ -169,7 +169,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
         }
       }}
     >
-      {/* Colored top strip — striped for occupied/in-progress */}
+      {/* Colored top strip — striped for occupied */}
       <div
         className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--r-lg)]"
         style={isOccupied

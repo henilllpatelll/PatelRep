@@ -167,14 +167,15 @@ const CELL_MAP: Record<string, { bg: string; border: string; striped?: boolean; 
   INSPECTED:   { bg: 'var(--ready-soft)',   border: 'var(--ready-line)' },
   CLEAN:       { bg: 'var(--info-soft)',    border: 'var(--info-line)' },
   DIRTY:       { bg: 'var(--alert-soft)',   border: 'var(--alert-line)' },
-  IN_PROGRESS: { bg: 'var(--alert-soft)',   border: 'var(--alert-line)', striped: true },
+  IN_PROGRESS: { bg: 'var(--progress-soft)', border: 'var(--progress-line)' },
+  OCCUPIED:    { bg: 'var(--alert-soft)',   border: 'var(--alert-line)', striped: true },
   PICKUP:      { bg: 'var(--caution-soft)', border: 'var(--caution-line)' },
   OOO:         { bg: 'var(--accent-soft)',  border: 'var(--accent-line)', glyph: '×' },
 }
 
 const STATUS_LABEL_MAP: Record<string, string> = {
   INSPECTED: 'Ready', CLEAN: 'Clean ready for inspection', DIRTY: 'Vacant Dirty',
-  IN_PROGRESS: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order / out of service',
+  IN_PROGRESS: 'In Progress', OCCUPIED: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order / out of service',
 }
 
 function RoomGridMini({ boardData }: { boardData: unknown }) {
@@ -251,6 +252,7 @@ function RoomGridMini({ boardData }: { boardData: unknown }) {
           { l: 'Ready',        bg: 'var(--ready-soft)',   bd: 'var(--ready-line)' },
           { l: 'Clean inspect', bg: 'var(--info-soft)',   bd: 'var(--info-line)' },
           { l: 'Vacant Dirty', bg: 'var(--alert-soft)',   bd: 'var(--alert-line)' },
+          { l: 'In Progress',  bg: 'var(--progress-soft)', bd: 'var(--progress-line)' },
           { l: 'Occupied',     striped: true,              bd: 'var(--alert-line)' },
           { l: 'Pickup',       bg: 'var(--caution-soft)', bd: 'var(--caution-line)' },
           { l: 'OOO/OOS',      bg: 'var(--accent-soft)',  bd: 'var(--accent-line)', glyph: '×' },

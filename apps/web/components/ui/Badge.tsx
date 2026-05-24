@@ -8,7 +8,7 @@ type BadgeVariant =
 
 const BADGE_VARIANTS: Record<BadgeVariant, string> = {
   dirty:          'bg-[var(--alert-soft)]   text-[var(--alert)]   border-[var(--alert-line)]',
-  in_progress:    'bg-[var(--alert-soft)]   text-[var(--alert)]   border-[var(--alert-line)]',
+  in_progress:    'bg-[var(--progress-soft)] text-[var(--progress)] border-[var(--progress-line)]',
   clean:          'bg-[var(--info-soft)]    text-[var(--info)]    border-[var(--info-line)]',
   inspected:      'bg-[var(--ready-soft)]   text-[var(--ready)]   border-[var(--ready-line)]',
   pickup:         'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]',

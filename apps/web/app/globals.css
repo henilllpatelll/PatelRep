@@ -46,6 +46,10 @@
     --info-soft: #d8e6f0;
     --info-line: #a8c2d8;
 
+    --progress:      #7c3aed;
+    --progress-soft: #ede9fe;
+    --progress-line: #c4b5fd;
+
     --ai:      #4a2c8f;
     --ai-soft: #ece4f8;
     --ai-line: #c8b8e3;
@@ -96,6 +100,10 @@
     --alert:      #d96479;
     --alert-soft: #2e1620;
     --alert-line: #5a2a38;
+
+    --progress:      #a78bfa;
+    --progress-soft: #2e2348;
+    --progress-line: #5b4a86;
 
     --ai:      #b39ce0;
     --ai-soft: #1f1830;

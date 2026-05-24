@@ -28,7 +28,7 @@
     "title": "Mis Cuartos",
     "status": {
       "DIRTY": "Vacante Sucio",
-      "IN_PROGRESS": "Ocupado",
+      "IN_PROGRESS": "En Progreso",
       "CLEAN": "Limpio, listo para inspeccion",
       "INSPECTED": "Inspeccionado / Listo",
       "OOO": "Fuera de Orden / Fuera de Servicio",

@@ -13,7 +13,7 @@
   "rooms": {
     "status": {
       "dirty": "Vacant Dirty",
-      "in_progress": "Occupied",
+      "in_progress": "In Progress",
       "clean": "Clean ready for inspection",
       "inspected": "Inspected / Ready",
       "ooo": "Out of Order / Out of Service",

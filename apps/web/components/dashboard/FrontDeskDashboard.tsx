@@ -23,7 +23,7 @@ type StatusKey = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICK
 
 const ROOM_STATUS_CONFIG: Record<StatusKey, { label: string; tone: 'dirty' | 'progress' | 'clean' | 'ready' | 'ooo' | 'pickup' }> = {
   DIRTY:       { label: 'Vacant Dirty', tone: 'dirty' },
-  IN_PROGRESS: { label: 'Occupied',     tone: 'progress' },
+  IN_PROGRESS: { label: 'In Progress',  tone: 'progress' },
   CLEAN:       { label: 'Clean ready for inspection', tone: 'clean' },
   INSPECTED:   { label: 'Inspected / Ready', tone: 'ready' },
   OOO:         { label: 'Out of Order / Out of Service', tone: 'ooo' },
