@@ -52,7 +52,9 @@ export function HousekeeperDashboard() {
     queryKey: ['my-rooms', user?.id],
     queryFn: () => housekeepingApi.getMyRooms(),
     enabled: !!user?.id,
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: 10_000,
   })
 
   const { data: tasksData } = useQuery({

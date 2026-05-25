@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 4634330,
-    "total_reads": 2987,
-    "total_writes": 1967,
-    "total_sessions": 120,
-    "anatomy_hits": 945,
-    "anatomy_misses": 2008,
-    "repeated_reads_blocked": 1046,
-    "estimated_savings_vs_bare_cli": 3383822
+    "total_tokens_estimated": 4662013,
+    "total_reads": 3017,
+    "total_writes": 1978,
+    "total_sessions": 122,
+    "anatomy_hits": 949,
+    "anatomy_misses": 2034,
+    "repeated_reads_blocked": 1058,
+    "estimated_savings_vs_bare_cli": 3483282
   },
   "sessions": [
     {
@@ -32001,6 +32001,292 @@
         "writes_count": 1,
         "repeated_reads_blocked": 2,
         "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-05-25-2039",
+      "started": "2026-05-25T01:39:48.331Z",
+      "ended": "2026-05-25T01:50:25.717Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 9866,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2142,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/HousekeeperDashboard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/housekeeping_assignments.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 113,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 38,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 35,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 79,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 12008,
+        "output_tokens_estimated": 265,
+        "reads_count": 11,
+        "writes_count": 4,
+        "repeated_reads_blocked": 6,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-25-2039",
+      "started": "2026-05-25T01:39:48.331Z",
+      "ended": "2026-05-25T01:51:52.020Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 9866,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2142,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/HousekeeperDashboard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/housekeeping_assignments.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 113,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 38,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 35,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 79,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 12008,
+        "output_tokens_estimated": 265,
+        "reads_count": 11,
+        "writes_count": 4,
+        "repeated_reads_blocked": 6,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-25-2054",
+      "started": "2026-05-25T01:54:48.565Z",
+      "ended": "2026-05-25T02:01:26.473Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/_layout.tsx",
+          "tokens_estimated": 765,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2198,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/HousekeeperDashboard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 19,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 80,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/HousekeeperDashboard.tsx",
+          "tokens_estimated": 75,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 2963,
+        "output_tokens_estimated": 174,
+        "reads_count": 8,
+        "writes_count": 3,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
       }
     }
   ],

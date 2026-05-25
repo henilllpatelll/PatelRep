@@ -21,12 +21,7 @@ interface NavItem { href: string; label: string; icon: React.ElementType; subNav
 
 const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',      label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/housekeeping',   label: 'Housekeeping',   icon: Bed,         subNav: [
-    { href: '/housekeeping',             label: 'Room Board' },
-    { href: '/housekeeping/assignments', label: 'Assignments' },
-    { href: '/housekeeping/inspections', label: 'Inspections' },
-    { href: '/housekeeping/rooms',       label: 'All Rooms' },
-  ]},
+  { href: '/housekeeping',   label: 'Housekeeping',   icon: Bed },
   { href: '/engineering',    label: 'Engineering',    icon: Wrench,      subNav: [
     { href: '/engineering/work-orders',  label: 'Work Orders' },
     { href: '/engineering/assets',       label: 'Assets' },
@@ -99,6 +94,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const visibleNavItems = role
     ? ALL_NAV_ITEMS.filter(item => allowedHrefs.includes(item.href))
+        .map(item =>
+          item.href === '/housekeeping' && role === 'housekeeper'
+            ? { ...item, label: 'My Rooms' }
+            : item
+        )
     : ALL_NAV_ITEMS
 
   const settingsItem: NavItem = { href: '/settings',         label: 'Settings', icon: Settings }

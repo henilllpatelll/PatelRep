@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T23:47:45.105Z
-> Files: 20 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-25T02:00:44.944Z
+> Files: 24 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -435,6 +435,7 @@
 
 ## apps/api/routers/
 
+- `housekeeping.py` — API: 4 endpoints (~9866 tok)
 
 ## apps/api/services/
 
@@ -489,7 +490,7 @@
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — formatETA (~2092 tok)
-- `index.tsx` — STATUS_COLORS (~2142 tok)
+- `index.tsx` — STATUS_COLORS (~2198 tok)
 
 ## apps/mobile/app/(app)/profile/
 
@@ -610,6 +611,7 @@
 
 ## apps/web/components/dashboard/
 
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~2853 tok)
 
 ## apps/web/components/engineering/
 
@@ -619,6 +621,7 @@
 
 ## apps/web/components/shared/
 
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4451 tok)
 
 ## apps/web/components/ui/
 
@@ -628,6 +631,7 @@
 
 ## apps/web/lib/api/
 
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (16 endpoints) (~1199 tok)
 
 ## apps/web/lib/hooks/
 
