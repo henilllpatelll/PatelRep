@@ -44,6 +44,8 @@
     },
     "markClean": "Mark Clean",
     "markInProgress": "Start Cleaning",
+    "undoLastStep": "Undo Last Step",
+    "undoNeedsConnection": "Connect to the internet to undo an earlier room step.",
     "dndAlert": "Do Not Disturb",
     "vipGuest": "VIP Guest",
     "noRooms": "No rooms assigned",

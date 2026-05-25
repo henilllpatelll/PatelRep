@@ -286,6 +286,22 @@ export function RoomStatusBoard() {
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
+  const handleUndoStatus = async (roomId: string) => {
+    try {
+      const response: any = await housekeepingApi.undoRoomStatus(roomId)
+      const nextStatus = response?.data?.status
+      if (nextStatus) {
+        setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status: nextStatus } : prev)
+      }
+    } catch {
+      setAssignError('Failed to undo the last room step. Please try again.')
+      setTimeout(() => setAssignError(null), 3000)
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
+    }
+  }
+
   const handleRemoveSavedAssignment = useCallback(async (assignmentId: string) => {
     setRemovingAssignmentId(assignmentId)
     setAssignError(null)
@@ -408,6 +424,7 @@ export function RoomStatusBoard() {
                       onStatusChange={(roomId: string, newStatus: string) =>
                         handleStatusChange(roomId, newStatus)
                       }
+                      onUndoStatus={handleUndoStatus}
                       onOpenDetail={() => setSelectedRoom(room)}
                       onAssign={assignmentMode ? handleTapAssign : undefined}
                       pendingAssignee={pendingAssignments[room.room_id] ?? null}
@@ -433,6 +450,7 @@ export function RoomStatusBoard() {
         onStatusChange={(roomId: string, newStatus: string) =>
           handleStatusChange(roomId, newStatus)
         }
+        onUndoStatus={handleUndoStatus}
         cleanQueue={displayRooms.filter((r: any) => r.status === 'CLEAN')}
         onNextRoom={(next: any) => setSelectedRoom(next)}
       />

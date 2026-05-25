@@ -8,11 +8,9 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    // react-test-renderer lives only in root node_modules (not hoisted into workspace).
-    // Map react to the root copy so there is exactly one React instance during tests —
-    // prevents "Invalid hook call" from two separate React copies.
-    '^react$': path.resolve(__dirname, '../../node_modules/react/index.js'),
-    '^react/(.*)$': path.resolve(__dirname, '../../node_modules/react/$1'),
+    // Keep React and react-test-renderer on the mobile workspace's React 19 pair.
+    '^react$': path.resolve(__dirname, 'node_modules/react/index.js'),
+    '^react/(.*)$': path.resolve(__dirname, 'node_modules/react/$1'),
   },
   // In npm workspaces, jest-expo is hoisted to root but react-native is in workspace.
   // modulePaths lets jest-expo's preset find react-native from the workspace node_modules.

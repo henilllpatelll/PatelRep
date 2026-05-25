@@ -14,6 +14,9 @@
 
 ## Key Learnings
 
+- **Room status undo should use history, not guessed status targets (2026-05-25):** Accidental housekeeping taps need to revert the latest matching `room_status_history` row so stayover `PICKUP`, `IN_PROGRESS`, and `CLEAN` flows undo correctly. Skip prior undo notes when selecting the row so repeated undo moves back through the original cleaning steps rather than toggling redo.
+- **Mobile Jest must use the mobile React 19 pair (2026-05-25):** `apps/mobile/jest.config.js` should map `react` and `react/*` to `apps/mobile/node_modules`; mapping to the repo root React 18 breaks `react-test-renderer@19.1.0` with `Cannot read properties of undefined (reading 'S')`.
+
 - **Pending clean-type display must mirror saved assignment status (2026-05-24):** The API maps `FULL`/`LIGHT` room assignment `clean_type` to `PICKUP`, but the supervisor board also needs to apply that mapping while assignments are still pending in Zustand. Use `getEffectiveRoomStatusForCleanType()` before status chips, filters, cards, drawer queues, and header counts.
 - **Opera task sheet PDFs are useful acceptance-test fixtures (2026-05-24):** User provided a same-day Opera housekeeping task sheet PDF as the real-world workflow source. For manual web app validation, translate these into room-board counts, task sheet assignments, status transitions, and exception handling while avoiding unnecessary guest-name repetition.
 - **Housekeeping assignment save has three separate paths (2026-05-24):** Manual tap/sidebar save uses `POST /housekeeping/assignments`, desktop drag gets its room id from `RoomCard`'s dnd-kit draggable id, and AI confirmation uses `POST /ai/assignments/confirm`. All three must send/write `rooms.id` (`room_id`), not `room_status.id`, and AI confirmation must write `assigned_by`, `is_ai_suggested`, and `on_conflict="room_id,assignment_date"` to match the schema.

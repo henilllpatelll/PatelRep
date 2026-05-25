@@ -63,6 +63,7 @@ interface Props {
   room: any
   assignmentMode: boolean
   onStatusChange?: (roomId: string, newStatus: string) => void
+  onUndoStatus?: (roomId: string) => void
   onOpenDetail?: (room: any) => void
   onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
@@ -90,6 +91,7 @@ export function RoomCard({
   room,
   assignmentMode,
   onStatusChange,
+  onUndoStatus,
   onOpenDetail,
   onAssign,
   pendingAssignee,
@@ -147,6 +149,11 @@ export function RoomCard({
   function handleStatusChange(newStatus: string, e: React.MouseEvent) {
     e.stopPropagation()
     if (onStatusChange) onStatusChange(room.room_id, newStatus)
+  }
+
+  function handleUndoStatus(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (onUndoStatus) onUndoStatus(room.room_id)
   }
 
   // ── Derived style ──────────────────────────────────────────────────────────
@@ -283,12 +290,22 @@ export function RoomCard({
             </button>
           )}
           {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-ready text-white font-medium hover:opacity-90 transition-opacity"
-              onClick={(e) => handleStatusChange('CLEAN', e)}
-            >
-              Done
-            </button>
+            <>
+              <button
+                className="text-xs px-2 py-0.5 rounded-md bg-ready text-white font-medium hover:opacity-90 transition-opacity"
+                onClick={(e) => handleStatusChange('CLEAN', e)}
+              >
+                Done
+              </button>
+              {onUndoStatus && (
+                <button
+                  className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
+                  onClick={handleUndoStatus}
+                >
+                  Undo
+                </button>
+              )}
+            </>
           )}
           {status === 'CLEAN' && canSupervise && (
             <button
@@ -298,12 +315,28 @@ export function RoomCard({
               Inspect
             </button>
           )}
+          {status === 'CLEAN' && onUndoStatus && (isHousekeeper || canSupervise) && (
+            <button
+              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
+              onClick={handleUndoStatus}
+            >
+              Undo
+            </button>
+          )}
           {status === 'INSPECTED' && (
             <button
               className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
               onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
             >
               Details
+            </button>
+          )}
+          {status === 'INSPECTED' && onUndoStatus && canSupervise && (
+            <button
+              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
+              onClick={handleUndoStatus}
+            >
+              Undo
             </button>
           )}
           {status === 'OOO' && (

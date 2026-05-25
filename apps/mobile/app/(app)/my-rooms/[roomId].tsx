@@ -23,6 +23,7 @@ function formatETA(isoString: string): string {
 function getTransitions(status: string) {
   switch (status) {
     case "DIRTY":
+    case "PICKUP":
       return [{ label: "rooms.markInProgress", status: "IN_PROGRESS", color: "#7c3aed" }];
     case "IN_PROGRESS":
       return [{ label: "rooms.markClean", status: "CLEAN", color: "#265d8a" }];
@@ -34,10 +35,11 @@ function getTransitions(status: string) {
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { t } = useTranslation();
-  const { isOnline, myRooms } = useAppStore();
+  const { isOnline, myRooms, setMyRooms } = useAppStore();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [lastLocalStatus, setLastLocalStatus] = useState<Room["status"] | null>(null);
   const [showReportIssue, setShowReportIssue] = useState(false);
 
   useEffect(() => {
@@ -50,16 +52,50 @@ export default function RoomDetailScreen() {
     if (!room) return;
     setUpdating(true);
     const payload = { status: newStatus };
+    const previousStatus = room.status;
 
     try {
       if (isOnline) {
         const res = await api.patch<{ data: Room }>(`/rooms/${room.id}/status`, payload);
         void res;
-        setRoom({ ...room, status: newStatus as Room["status"] });
+        const nextRoom = { ...room, status: newStatus as Room["status"] };
+        setRoom(nextRoom);
+        setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
       } else {
         await enqueueAction("room_status", "update", payload, room.id);
-        setRoom({ ...room, status: newStatus as Room["status"] });
+        const nextRoom = { ...room, status: newStatus as Room["status"] };
+        setRoom(nextRoom);
+        setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
         // OfflineBanner in the layout already communicates offline state — no Alert needed
+      }
+      setLastLocalStatus(previousStatus);
+    } catch (err: unknown) {
+      Alert.alert("Error", (err as Error).message);
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function handleUndoStatus() {
+    if (!room) return;
+    setUpdating(true);
+
+    try {
+      if (isOnline) {
+        const res = await api.post<{ data: Room }>(`/rooms/${room.id}/status/undo`, {});
+        const nextStatus = res.data.status;
+        const nextRoom = { ...room, status: nextStatus };
+        setRoom(nextRoom);
+        setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
+      } else if (lastLocalStatus) {
+        const payload = { status: lastLocalStatus };
+        await enqueueAction("room_status", "update", payload, room.id);
+        const nextRoom = { ...room, status: lastLocalStatus };
+        setRoom(nextRoom);
+        setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
+        setLastLocalStatus(room.status);
+      } else {
+        Alert.alert(t("common.error"), t("rooms.undoNeedsConnection"));
       }
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
@@ -85,6 +121,7 @@ export default function RoomDetailScreen() {
   }
 
   const transitions = getTransitions(room.status);
+  const canUndo = room.status === "IN_PROGRESS" || room.status === "CLEAN";
 
   return (
     <ScrollView style={styles.container}>
@@ -149,6 +186,19 @@ export default function RoomDetailScreen() {
             )}
           </TouchableOpacity>
         ))}
+        {canUndo && (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.undoBtn]}
+            onPress={handleUndoStatus}
+            disabled={updating}
+          >
+            {updating ? (
+              <ActivityIndicator color="#1a1815" />
+            ) : (
+              <Text style={styles.undoText}>{t("rooms.undoLastStep")}</Text>
+            )}
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.actionBtn, styles.reportBtn]}
           onPress={() => setShowReportIssue(true)}
@@ -211,4 +261,10 @@ const styles = StyleSheet.create({
     borderColor: "#e8a8b3",
   },
   reportText: { color: "#a6263c", fontSize: 16, fontWeight: "600" },
+  undoBtn: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#d7cbbb",
+  },
+  undoText: { color: "#1a1815", fontSize: 16, fontWeight: "600" },
 });

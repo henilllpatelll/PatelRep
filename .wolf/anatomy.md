@@ -464,6 +464,7 @@
 ## apps/mobile/
 
 - `package.json` — Node.js package manifest (~526 tok)
+- `jest.config.js` — Expo/Jest config with workspace-local React mapping and module aliases. (~160 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -472,6 +473,8 @@
 
 
 ## apps/mobile/__tests__/screens/
+
+- `RoomDetail.test.tsx` — Jest/React Native coverage for my-room detail undo action calling room status undo endpoint. (~220 tok)
 
 
 ## apps/mobile/app/

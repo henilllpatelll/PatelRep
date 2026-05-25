@@ -1,12 +1,58 @@
 {
   "session_id": "session-2026-05-25-2155",
   "started": "2026-05-25T02:55:07.918Z",
-  "files_read": {},
+  "files_read": {
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
+      "count": 1,
+      "tokens": 9910,
+      "first_read": "2026-05-25T20:48:39.621Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/HousekeeperDashboard.tsx": {
+      "count": 1,
+      "tokens": 2978,
+      "first_read": "2026-05-25T20:48:40.097Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/SupervisorDashboard.tsx": {
+      "count": 1,
+      "tokens": 6744,
+      "first_read": "2026-05-25T20:48:40.414Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/reports.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:03.376Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/reports.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:03.962Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/ai.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:03.991Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:17.549Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/reports/page.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:57.259Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/insights.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-25T20:49:57.916Z"
+    }
+  },
   "files_written": [],
   "edit_counts": {},
-  "anatomy_hits": 0,
-  "anatomy_misses": 0,
+  "anatomy_hits": 3,
+  "anatomy_misses": 5,
   "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 0
+  "stop_count": 1
 }

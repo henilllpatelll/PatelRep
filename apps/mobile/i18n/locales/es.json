@@ -44,6 +44,8 @@
     },
     "markClean": "Marcar Limpio",
     "markInProgress": "Empezar Limpieza",
+    "undoLastStep": "Deshacer Ultimo Paso",
+    "undoNeedsConnection": "Conectate a internet para deshacer un paso anterior del cuarto.",
     "dndAlert": "No Molestar",
     "vipGuest": "Huésped VIP",
     "noRooms": "Sin cuartos asignados",

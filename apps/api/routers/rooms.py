@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import UpdateRoomStatusRequest, ImportRoomsRequest
+from models.requests import UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,8 @@ for _s in OOO_SOURCES:
     ALLOWED_TRANSITIONS[(_s, "OOO")] = {"gm", "housekeeping_supervisor"}
 ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = {"gm", "housekeeping_supervisor"}
 
+UNDO_ALL_ROLES = {"gm", "housekeeping_supervisor"}
+
 
 def _validate_transition(from_status: str | None, to_status: str, role: str) -> None:
     """Raises HTTPException(400) if the transition is not allowed for the role."""
@@ -55,6 +57,31 @@ def _validate_transition(from_status: str | None, to_status: str, role: str) -> 
                 f"{from_status} -> {to_status}"
             ),
         )
+
+
+def _find_latest_matching_status_change(history_rows: list[dict], current_status: str | None) -> dict | None:
+    for row in history_rows:
+        from_status = row.get("from_status")
+        to_status = row.get("to_status")
+        notes = row.get("notes") or ""
+        if not from_status or not to_status or from_status == to_status:
+            continue
+        if isinstance(notes, str) and notes.startswith("Undo "):
+            continue
+        if to_status == current_status:
+            return row
+    return None
+
+
+def _validate_undo_permission(history_row: dict, current_user: CurrentUser) -> None:
+    if current_user.role in UNDO_ALL_ROLES:
+        return
+    if history_row.get("changed_by") == current_user.user_id:
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="Housekeepers can only undo their own latest room status change",
+    )
 
 
 def _update_housekeeper_profile(
@@ -278,6 +305,82 @@ async def update_room_status(
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/status/undo
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/status/undo")
+async def undo_room_status(
+    room_id: str,
+    request: UndoRoomStatusRequest | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    current_status: str | None = current_row.data.get("status")
+    history_result = (
+        supabase.table("room_status_history")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .order("created_at", desc=True)
+        .limit(10)
+        .execute()
+    )
+    history_row = _find_latest_matching_status_change(history_result.data or [], current_status)
+    if not history_row:
+        raise HTTPException(status_code=409, detail="No matching status change to undo")
+
+    _validate_undo_permission(history_row, current_user)
+
+    undo_to_status = history_row["from_status"]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    notes = (request.notes if request else None) or f"Undo {current_status} back to {undo_to_status}"
+    update_result = (
+        supabase.table("room_status")
+        .update({
+            "status": undo_to_status,
+            "notes": notes,
+            "updated_at": now_iso,
+        })
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": current_status,
+        "to_status": undo_to_status,
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": notes,
+    }).execute()
+
+    updated_rows = update_result.data or []
+    updated_row = updated_rows[0] if updated_rows else {}
+    return {
+        "data": {
+            **updated_row,
+            "undo": {
+                "history_id": history_row.get("id"),
+                "from_status": current_status,
+                "to_status": undo_to_status,
+            },
+        },
+    }
 
 
 # ---------------------------------------------------------------------------

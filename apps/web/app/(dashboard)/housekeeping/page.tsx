@@ -234,10 +234,12 @@ function HousekeeperBar() {
 function HousekeeperRoomItem({
   room,
   onAction,
+  onUndo,
   onOpenDetail,
 }: {
   room: any
   onAction: (roomId: string, status: string) => Promise<void>
+  onUndo: (roomId: string) => Promise<void>
   onOpenDetail: (room: any) => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -267,6 +269,12 @@ function HousekeeperRoomItem({
     e.stopPropagation()
     setLoading(true)
     try { await onAction(room.room_id, newStatus) } finally { setLoading(false) }
+  }
+
+  async function handleUndo(e: React.MouseEvent) {
+    e.stopPropagation()
+    setLoading(true)
+    try { await onUndo(room.room_id) } finally { setLoading(false) }
   }
 
   return (
@@ -306,18 +314,36 @@ function HousekeeperRoomItem({
           </button>
         )}
         {status === 'IN_PROGRESS' && (
-          <button
-            disabled={loading}
-            onClick={(e) => handle('CLEAN', e)}
-            className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? '...' : 'Done'}
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <button
+              disabled={loading}
+              onClick={(e) => handle('CLEAN', e)}
+              className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? '...' : 'Done'}
+            </button>
+            <button
+              disabled={loading}
+              onClick={handleUndo}
+              className="px-4 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
+            >
+              Undo
+            </button>
+          </div>
         )}
         {status === 'CLEAN' && (
-          <span className="text-xs text-[var(--caution)] font-medium">
-            Waiting for<br />supervisor
-          </span>
+          <div className="flex flex-col items-end gap-1.5">
+            <span className="text-xs text-[var(--caution)] font-medium">
+              Waiting for<br />supervisor
+            </span>
+            <button
+              disabled={loading}
+              onClick={handleUndo}
+              className="px-3 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
+            >
+              Undo
+            </button>
+          </div>
         )}
         {status === 'INSPECTED' && (
           <span className="text-sm text-[var(--ready)] font-semibold">Approved</span>
@@ -417,6 +443,23 @@ function HousekeeperMyRoomsView() {
     queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
   }
 
+  async function handleUndo(roomId: string) {
+    try {
+      const response: any = await housekeepingApi.undoRoomStatus(roomId)
+      const nextStatus = response?.data?.status
+      if (nextStatus) {
+        queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
+          if (!old?.data) return old
+          return { ...old, data: (old.data as any[]).map((r: any) => r.room_id === roomId ? { ...r, status: nextStatus } : r) }
+        })
+        setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status: nextStatus } : prev)
+      }
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
+    }
+  }
+
   const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP').length
   const inProgressCount = myRooms.filter((r: any) => r.status === 'IN_PROGRESS').length
   const doneCount = myRooms.filter((r: any) => r.status === 'INSPECTED').length
@@ -454,6 +497,7 @@ function HousekeeperMyRoomsView() {
               key={room.room_id}
               room={room}
               onAction={handleAction}
+              onUndo={handleUndo}
               onOpenDetail={setSelectedRoom}
             />
           ))}
@@ -464,6 +508,7 @@ function HousekeeperMyRoomsView() {
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
         onStatusChange={handleAction}
+        onUndoStatus={handleUndo}
       />
     </div>
   )

@@ -2085,3 +2085,9 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:00 | Wired supervisor dashboard cards to live board metrics | SupervisorDashboard.tsx | Total Rooms, Assigned, To Inspect, and Ready derive from /housekeeping/board | ~700 |
 | 22:00 | Verified dashboard metric fix | housekeepingDashboardMetrics.test.ts, apps/web | Focused Node test passed; web type-check passed after strict typing fix; web lint passed | ~650 |
 | 22:10 | Corrected target to regular housekeeper dashboard for Claudia/Elisa | HousekeeperDashboard.tsx, housekeeping.ts, housekeepingDashboardMetrics.ts/test.ts | /dashboard now prefers my-rooms with user/date scoped key and board fallback; focused tests, type-check, and lint passed | ~1700 |
+| 15:42 | Loaded OpenWolf protocol, anatomy, cerebrum, and applicable TDD/frontend skills | .wolf/OPENWOLF.md; .wolf/anatomy.md; .wolf/cerebrum.md; skills | ready to locate housekeeping undo flow | ~9000 |
+| 15:43 | Located housekeeping status controls in web and mobile plus API room status path | apps/web; apps/mobile; apps/api | undo likely needs shared transition contract and UI affordance | ~6000 |
+| 15:49 | Added failing API tests for room status undo contract | apps/api/tests/smoke/test_webhooks_and_transitions.py | tests cover exact revert and cross-user rejection | ~1500 |
+| 15:54 | Implemented tenant-scoped room status undo endpoint | apps/api/routers/rooms.py; apps/api/models/requests.py | ready to rerun focused API tests | ~2200 |
+| 16:07 | Wired web/mobile undo buttons and added mobile room detail test | apps/web; apps/mobile; .wolf/anatomy.md | ready for focused web/mobile/API verification | ~4200 |
+| 16:24 | Completed verification and recorded bug/cerebrum learnings | .wolf/buglog.json; .wolf/cerebrum.md | API/web/mobile checks green after fixing mobile Jest config and stale FlatList mock | ~2200 |

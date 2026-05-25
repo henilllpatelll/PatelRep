@@ -40,6 +40,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onStatusChange: (roomId: string, newStatus: string) => void
+  onUndoStatus?: (roomId: string) => void
   cleanQueue?: any[]
   onNextRoom?: (room: any) => void
 }
@@ -155,7 +156,7 @@ function TransitionButton({
   )
 }
 
-export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQueue, onNextRoom }: Props) {
+export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndoStatus, cleanQueue, onNextRoom }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -280,6 +281,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
 
   // Available transitions based on role
   const allTransitions = STATUS_TRANSITIONS[status] ?? []
+  const canShowUndo = !!onUndoStatus && (
+    status === 'IN_PROGRESS' ||
+    status === 'CLEAN' ||
+    (status === 'INSPECTED' && canSupervise)
+  )
   const availableTransitions = allTransitions.filter((t) => {
     if (isHousekeeper) {
       // Housekeepers can only move DIRTYâ†’IN_PROGRESS and IN_PROGRESSâ†’CLEAN
@@ -402,7 +408,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
               </div>
             )}
 
-            {(availableTransitions.length > 0 || (status === 'CLEAN' && canSupervise)) && (
+            {(availableTransitions.length > 0 || (status === 'CLEAN' && canSupervise) || canShowUndo) && (
               <div className="flex flex-wrap gap-2">
                 {status === 'CLEAN' && canSupervise && (
                   <Button
@@ -421,6 +427,15 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, cleanQ
                     roomId={room.room_id}
                   />
                 ))}
+                {canShowUndo && roomId && (
+                  <Button
+                    variant="secondary"
+                    className="text-sm px-3 py-1.5"
+                    onClick={() => onUndoStatus(roomId)}
+                  >
+                    Undo Last Step
+                  </Button>
+                )}
               </div>
             )}
           </div>

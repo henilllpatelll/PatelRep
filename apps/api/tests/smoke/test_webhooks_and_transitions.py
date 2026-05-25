@@ -41,6 +41,9 @@ class FakeQuery:
         self.payload = {}
         self.filters = {}
         self.single = False
+        self.order_column = None
+        self.order_desc = False
+        self.limit_count = None
 
     def select(self, *_args, **_kwargs):
         self.action = "select"
@@ -70,9 +73,26 @@ class FakeQuery:
         self.single = True
         return self
 
+    def order(self, column, desc=False):
+        self.order_column = column
+        self.order_desc = desc
+        return self
+
+    def limit(self, count):
+        self.limit_count = count
+        return self
+
     def execute(self):
         rows = self.db.rows.setdefault(self.table_name, [])
         matched = [row for row in rows if all(row.get(k) == v for k, v in self.filters.items())]
+        if self.order_column:
+            matched = sorted(
+                matched,
+                key=lambda row: row.get(self.order_column) or "",
+                reverse=self.order_desc,
+            )
+        if self.limit_count is not None:
+            matched = matched[:self.limit_count]
 
         if self.action == "select":
             return SimpleNamespace(data=matched[0] if self.single and matched else matched)
@@ -131,6 +151,74 @@ async def test_room_transition_updates_status_and_writes_history(monkeypatch):
     assert db.inserts[0][1]["from_status"] == "DIRTY"
     assert db.inserts[0][1]["to_status"] == "IN_PROGRESS"
     assert db.inserts[0][1]["tenant_id"] == "hotel-a"
+
+
+@pytest.mark.asyncio
+async def test_room_status_undo_reverts_latest_matching_change(monkeypatch):
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "IN_PROGRESS",
+            "assigned_to": "hk-1",
+        }],
+        "room_status_history": [{
+            "id": "hist-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "from_status": "DIRTY",
+            "to_status": "IN_PROGRESS",
+            "changed_by": "hk-1",
+            "created_at": "2026-05-25T15:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.undo_room_status(
+        "room-1",
+        current_user=HOUSEKEEPER,
+    )
+
+    assert response["data"]["status"] == "DIRTY"
+    assert response["data"]["undo"]["from_status"] == "IN_PROGRESS"
+    assert response["data"]["undo"]["to_status"] == "DIRTY"
+    assert db.rows["room_status"][0]["status"] == "DIRTY"
+    assert db.inserts[0][1]["from_status"] == "IN_PROGRESS"
+    assert db.inserts[0][1]["to_status"] == "DIRTY"
+
+
+@pytest.mark.asyncio
+async def test_room_status_undo_rejects_other_housekeeper_change(monkeypatch):
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "CLEAN",
+            "assigned_to": "hk-1",
+        }],
+        "room_status_history": [{
+            "id": "hist-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "from_status": "IN_PROGRESS",
+            "to_status": "CLEAN",
+            "changed_by": "hk-2",
+            "created_at": "2026-05-25T15:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await rooms_router.undo_room_status(
+            "room-1",
+            current_user=HOUSEKEEPER,
+        )
+
+    assert exc.value.status_code == 403
+    assert db.rows["room_status"][0]["status"] == "CLEAN"
+    assert db.inserts == []
 
 
 @pytest.mark.asyncio

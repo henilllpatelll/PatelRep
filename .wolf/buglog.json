@@ -1914,6 +1914,59 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-05-24T22:10:13.4916468-05:00"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-05-25T20:54:01.592Z",
+      "error_message": "API undo tests failed because routers.rooms.undo_room_status did not exist.",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Room cleaning status transitions only supported forward updates; there was no tenant-scoped endpoint to revert an accidental status tap from room_status_history.",
+      "fix": "Added POST /rooms/{room_id}/status/undo, scoped by tenant, using the latest matching non-undo status history row and restricting housekeepers to their own changes.",
+      "tags": [
+        "housekeeping",
+        "room-status",
+        "undo",
+        "pytest"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T20:54:01.592Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-05-25T20:54:01.592Z",
+      "error_message": "Mobile Jest screen tests failed with TypeError: Cannot read properties of undefined (reading S).",
+      "file": "apps/mobile/jest.config.js",
+      "root_cause": "Jest mapped react to the repo root React 18 package while mobile uses React 19 with react-test-renderer 19.1.0.",
+      "fix": "Mapped react and react/* to apps/mobile/node_modules so React and react-test-renderer stay on the mobile workspace React 19 pair.",
+      "tags": [
+        "mobile",
+        "jest",
+        "react",
+        "test-renderer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T20:54:01.592Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-05-25T20:54:01.592Z",
+      "error_message": "WorkOrdersList mobile tests unmounted with View component warnings after the React 19 Jest mapper fix.",
+      "file": "apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+      "root_cause": "The test carried a stale manual FlatList mock that fought the React Native test renderer once the correct React version loaded.",
+      "fix": "Removed the FlatList mock and let jest-expo/@testing-library render the native FlatList directly.",
+      "tags": [
+        "mobile",
+        "jest",
+        "flatlist",
+        "test-harness"
+      ],
+      "related_bugs": [
+        "bug-118"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T20:54:01.592Z"
     }
   ]
 }

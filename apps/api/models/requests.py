@@ -29,6 +29,10 @@ class UpdateRoomStatusRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class UndoRoomStatusRequest(BaseModel):
+    notes: Optional[str] = None
+
+
 class UpdateRoomRequest(BaseModel):
     notes: Optional[str] = None
     is_active: Optional[bool] = None
