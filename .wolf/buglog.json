@@ -1820,6 +1820,100 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-25T02:00:44.961Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-05-25T02:33:03.480Z",
+      "error_message": "CSS fix: queryKey, refetchInterval",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "queryKey: ['housekeeping-board-supervisor', todayISO], → ['housekeeping-board', todayISO],; refetchInterval: 60_000, → 10_000,",
+      "fix": "Changed queryKey: ['housekeeping-board-supervisor', todayISO], → ['housekeeping-board', todayISO],; refetchInterval: 60_000, → 10_000,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-25T02:33:19.659Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-05-24T21:59:34.0588190-05:00",
+      "error_message": "Housekeeping dashboard cards show zeros instead of the real room counts.",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Supervisor dashboard stat cards used reports daily-summary and assignment summary values even though the live housekeeping board endpoint had the current room rows.",
+      "fix": "Added housekeepingDashboardMetrics helper and wired SupervisorDashboard stat cards/briefing to derive total, assigned, clean, and ready percentage from live boardData with report breakdown as a loading fallback.",
+      "tags": [
+        "housekeeping",
+        "dashboard",
+        "metrics",
+        "supervisor",
+        "react-query"
+      ],
+      "related_bugs": [
+        "bug-112"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:59:34.0588190-05:00"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-05-24T21:59:34.0588190-05:00",
+      "error_message": "npm run type-check --workspace=@patelrep/web failed with TS18048/TS2322 in housekeepingDashboardMetrics.ts.",
+      "file": "apps/web/lib/utils/housekeepingDashboardMetrics.ts",
+      "root_cause": "Object.values(fallbackBreakdown).reduce inferred a possibly undefined accumulator under strict TypeScript settings.",
+      "fix": "Added an explicit reduce<number> accumulator type and reran the focused metric test plus web type-check successfully.",
+      "tags": [
+        "typescript",
+        "type-check",
+        "housekeeping",
+        "metrics"
+      ],
+      "related_bugs": [
+        "bug-113"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:59:34.0588190-05:00"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-05-24T21:59:34.0588190-05:00",
+      "error_message": "PowerShell commands failed when route paths containing (dashboard) or Select-Object range syntax were not quoted correctly.",
+      "file": "N/A",
+      "root_cause": "PowerShell parsed unquoted parentheses in app route paths as expression syntax, and Select-Object -Index does not accept a raw 30..55 string.",
+      "fix": "Used -LiteralPath for route paths and Select-Object -Skip/-First for line windows.",
+      "tags": [
+        "powershell",
+        "search",
+        "path-quoting"
+      ],
+      "related_bugs": [
+        "bug-100"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:59:34.0588190-05:00"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-05-24T22:10:13.4916468-05:00",
+      "error_message": "Regular housekeeper dashboard for staff like Claudia and Elisa showed zeros across the room cards.",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "HousekeeperDashboard relied only on filtering the full housekeeping board cache by the current auth user id, so a stale board cache or identity mismatch could hide that housekeeper's actual assigned rooms.",
+      "fix": "Fetch /housekeeping/my-rooms with the client local date and a user-scoped query key, derive the dashboard room queue and stat cards from that authoritative per-housekeeper response, and fall back to a user-scoped board query if my-rooms is empty or unavailable.",
+      "tags": [
+        "housekeeping",
+        "housekeeper-dashboard",
+        "my-rooms",
+        "react-query",
+        "metrics"
+      ],
+      "related_bugs": [
+        "bug-109",
+        "bug-111"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:10:13.4916468-05:00"
     }
   ]
 }

@@ -194,8 +194,11 @@ async def get_my_rooms(
     for room in (result.data or []):
         assignment = assignment_map.get(room.get("room_id")) or {}
         clean_type = assignment.get("clean_type")
+        nested_room = room.get("rooms") or {}
         rows.append({
             **room,
+            "room_number": nested_room.get("room_number"),
+            "floor": nested_room.get("floor"),
             "status": effective_room_status(room.get("status"), clean_type),
             "assignment_id": assignment.get("id"),
             "assignment_date": assignment.get("assignment_date"),

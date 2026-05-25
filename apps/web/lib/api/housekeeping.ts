@@ -112,8 +112,8 @@ export const housekeepingApi = {
   getRoomHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
 
-  getMyRooms: () =>
-    apiClient.get('/housekeeping/my-rooms', { params: { date: format(new Date(), 'yyyy-MM-dd') } }),
+  getMyRooms: (date = format(new Date(), 'yyyy-MM-dd')) =>
+    apiClient.get('/housekeeping/my-rooms', { params: { date } }),
 
   createInspectionTemplate: (data: {
     name: string

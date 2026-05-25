@@ -9,6 +9,7 @@ import { aiApi } from '@/lib/api/ai'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { tasksApi, type Task } from '@/lib/api/tasks'
+import { getSupervisorHousekeepingMetrics } from '@/lib/utils/housekeepingDashboardMetrics'
 import { LiveOpsGrid } from './LiveOpsGrid'
 import {
   Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
@@ -399,13 +400,15 @@ export function SupervisorDashboard() {
   const { data: assignmentsData } = useQuery({
     queryKey: ['hk-assignments-today', todayISO],
     queryFn: () => housekeepingApi.getAssignments(todayISO),
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchInterval: 10_000,
   })
 
   const { data: boardData } = useQuery({
-    queryKey: ['housekeeping-board-supervisor', todayISO],
+    queryKey: ['housekeeping-board', todayISO],
     queryFn: () => housekeepingApi.getBoard(todayISO, undefined, false),
-    refetchInterval: 60_000,
+    staleTime: 0,
+    refetchInterval: 10_000,
   })
 
   const summary = summaryData?.data
@@ -415,13 +418,12 @@ export function SupervisorDashboard() {
   const openRequests: GuestRequest[] = (requestsData as { data?: GuestRequest[] })?.data ?? []
   const openTasks: Task[] = (tasksData as { data?: Task[] })?.data ?? []
 
-  const totalRooms = Object.values(breakdown).reduce((a, b) => a + b, 0)
-  const inspected = breakdown['INSPECTED'] ?? 0
-  const cleanPending = breakdown['CLEAN'] ?? 0
-  const assignedTotal: number = ((assignmentsData as any)?.data ?? []).reduce(
-    (sum: number, hk: any) => sum + (hk.rooms_assigned ?? 0), 0
-  )
-  const inspectedPct = assignedTotal > 0 ? Math.round((inspected / assignedTotal) * 100) : 0
+  const {
+    totalRooms,
+    assignedTotal,
+    cleanPending,
+    inspectedPct,
+  } = getSupervisorHousekeepingMetrics(boardData, breakdown)
 
   return (
     <div className="flex flex-col gap-5">

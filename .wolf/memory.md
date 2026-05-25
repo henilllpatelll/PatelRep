@@ -3,6 +3,8 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 01:30 | Removed Assignments/Inspections/All Rooms housekeeping sub-pages; stripped sidebar subNav; renamed sidebar label to "My Rooms" for housekeeper role; fixed HousekeeperDashboard staleTime+refetchInterval so dashboard updates promptly | Sidebar.tsx, HousekeeperDashboard.tsx, deleted 3 page.tsx files | clean | ~1200 tok |
+| 02:00 | Fixed HousekeeperDashboard showing zeros — switched from getMyRooms() (role-gated, unreliable) to getBoard()+client-filter matching HousekeeperMyRoomsView; aligned SupervisorDashboard cache key to ['housekeeping-board', date] | HousekeeperDashboard.tsx, SupervisorDashboard.tsx | clean | ~900 tok |
+| 02:30 | Fixed mobile my-rooms API response missing flat room_number/floor — added extraction from nested rooms join in get_my_rooms endpoint | housekeeping.py | clean | ~200 tok |
 | design-rework | Implemented frontend rework from design_handoff_frontend_rework/README.md: fixed Card/Input tokens, created primitives.tsx (Pill/Stat/AILabel/SectionLabel/Mono/Bar), upgraded Header to TopBar (search+AI+bell), rewrote GMDashboard/SupervisorDashboard/HousekeeperDashboard with Instrument Serif greeting + Stat tiles, replaced stone/amber colors with CSS var tokens across 35+ files, added PageHeader component, created ROIMetricsStrip using Stat primitive | apps/web/** | build passes, tsc clean | ~8000 tok |
 | design-rework-2 | Redesigned ChiefEngineerDashboard and FrontDeskDashboard: font-mono eyebrow greeting, font-display italic h1, Stat strip (4 stats), SectionLabel card headers, Pill tone badges, AI insight callout with AILabel + font-display italic text, work order rows with priority left-border, Mono room chips, consistent bg-surface/border-line/shadow-card cards | ChiefEngineerDashboard.tsx, FrontDeskDashboard.tsx | tsc clean (pre-existing sop/page.tsx error unrelated) | ~2500 tok |
 | 15:25 | Fix expo prebuild crash: tar v7 override broke @expo/cli interop (_tar().default was undefined); downgraded tar override to ^6.2.1 in apps/mobile/package.json | apps/mobile/package.json | prebuild passes | ~300 tok |
@@ -2061,3 +2063,25 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 21:00 | Edited apps/web/components/shared/Sidebar.tsx | CSS: label | ~80 |
 | 21:00 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | CSS: staleTime, refetchOnMount | ~75 |
 | 21:01 | Session end: 3 writes across 2 files (Sidebar.tsx, HousekeeperDashboard.tsx) | 8 reads | ~3137 tok |
+| 21:13 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | added 1 import(s) | ~2915 |
+| 21:14 | Session end: 4 writes across 2 files (Sidebar.tsx, HousekeeperDashboard.tsx) | 13 reads | ~19970 tok |
+| 21:33 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: staleTime | ~61 |
+| 21:33 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: staleTime | ~60 |
+| 21:33 | Session end: 6 writes across 3 files (Sidebar.tsx, HousekeeperDashboard.tsx, SupervisorDashboard.tsx) | 15 reads | ~20091 tok |
+
+## Session: 2026-05-25 21:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:37 | Edited apps/api/routers/housekeeping.py | modified in() | ~183 |
+| 21:38 | Session end: 1 writes across 1 files (housekeeping.py) | 4 reads | ~14339 tok |
+
+## Session: 2026-05-25 21:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:59 | Investigated housekeeping dashboard zero-card report | HousekeeperDashboard.tsx, SupervisorDashboard.tsx, housekeeping.py, housekeeping.ts | Root cause isolated to supervisor cards using stale summary values instead of live board rows | ~8500 |
+| 21:59 | Added focused metric helper and regression test | housekeepingDashboardMetrics.ts, housekeepingDashboardMetrics.test.ts | Board rows now override stale zero report summary; fallback preserved before board loads | ~900 |
+| 22:00 | Wired supervisor dashboard cards to live board metrics | SupervisorDashboard.tsx | Total Rooms, Assigned, To Inspect, and Ready derive from /housekeeping/board | ~700 |
+| 22:00 | Verified dashboard metric fix | housekeepingDashboardMetrics.test.ts, apps/web | Focused Node test passed; web type-check passed after strict typing fix; web lint passed | ~650 |
+| 22:10 | Corrected target to regular housekeeper dashboard for Claudia/Elisa | HousekeeperDashboard.tsx, housekeeping.ts, housekeepingDashboardMetrics.ts/test.ts | /dashboard now prefers my-rooms with user/date scoped key and board fallback; focused tests, type-check, and lint passed | ~1700 |

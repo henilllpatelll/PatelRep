@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
@@ -7,18 +8,11 @@ import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { tasksApi } from '@/lib/api/tasks'
 import { aiApi } from '@/lib/api/ai'
+import {
+  getHousekeeperDashboardMetrics,
+  getHousekeeperDashboardRooms,
+} from '@/lib/utils/housekeepingDashboardMetrics'
 import { Stat, Pill, StatusDot, SectionLabel, Mono, AILabel } from '@/components/ui/primitives'
-
-type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP'
-
-interface MyRoom {
-  room_id: string
-  room_number: string
-  floor?: number
-  status: string
-  room_type?: string
-  notes?: string
-}
 
 const STATUS_TONE: Record<string, string> = {
   DIRTY: 'dirty', IN_PROGRESS: 'progress', CLEAN: 'clean',
@@ -34,6 +28,7 @@ type PillTone = 'dirty' | 'progress' | 'clean' | 'inspected' | 'ooo' | 'pickup' 
 
 export function HousekeeperDashboard() {
   const user = useAuthStore(s => s.user)
+  const today = format(new Date(), 'yyyy-MM-dd')
   const [greeting, setGreeting] = useState('Good morning')
   useEffect(() => {
     const h = new Date().getHours()
@@ -48,9 +43,19 @@ export function HousekeeperDashboard() {
     'there'
   const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
 
-  const { data: myRoomsData, isLoading: roomsLoading } = useQuery({
-    queryKey: ['my-rooms', user?.id],
-    queryFn: () => housekeepingApi.getMyRooms(),
+  const { data: myRoomsData, isLoading: myRoomsLoading } = useQuery({
+    queryKey: ['my-rooms', user?.id, today],
+    queryFn: () => housekeepingApi.getMyRooms(today),
+    enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: 10_000,
+    retry: 1,
+  })
+
+  const { data: boardData, isLoading: roomsLoading } = useQuery({
+    queryKey: ['housekeeping-board-housekeeper-dashboard', user?.id, today],
+    queryFn: () => housekeepingApi.getBoard(today, undefined, false),
     enabled: !!user?.id,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -70,13 +75,12 @@ export function HousekeeperDashboard() {
     refetchInterval: 120_000,
   })
 
-  const rooms: MyRoom[] = (myRoomsData as { data?: MyRoom[] })?.data ?? []
+  const rooms = getHousekeeperDashboardRooms(myRoomsData, boardData, user?.id)
   const tasks = (tasksData as { data?: { id: string; title: string; priority: string; due_at?: string }[] })?.data ?? []
   const hkRisks = (alertsData?.data?.housekeeping_risks ?? []).slice(0, 3)
 
-  const done = rooms.filter(r => r.status === 'INSPECTED').length
-  const remaining = rooms.filter(r => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
-  const inspectNow = rooms.filter(r => r.status === 'CLEAN').length
+  const { totalRooms, done, remaining, inspectNow } = getHousekeeperDashboardMetrics(rooms)
+  const isLoadingRooms = myRoomsLoading || (rooms.length === 0 && roomsLoading)
 
   return (
     <div className="flex flex-col gap-5">
@@ -97,7 +101,7 @@ export function HousekeeperDashboard() {
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Rooms today" value={rooms.length} delta={remaining > 0 ? `${remaining} left` : 'all done'} deltaTone={remaining > 0 ? 'info' : 'ready'} />
+        <Stat label="Rooms today" value={totalRooms} delta={remaining > 0 ? `${remaining} left` : 'all done'} deltaTone={remaining > 0 ? 'info' : 'ready'} />
         <Stat label="Done" value={done} delta={done > 0 ? `+${done}` : '—'} deltaTone="ready" />
         <Stat label="Avg time" value="—" deltaTone="info" />
         <Stat label="Inspect now" value={inspectNow} delta={inspectNow > 0 ? 'pending' : 'none'} deltaTone={inspectNow > 0 ? 'caution' : 'ready'} />
@@ -119,7 +123,7 @@ export function HousekeeperDashboard() {
               My queue
             </SectionLabel>
           </div>
-          {roomsLoading ? (
+          {isLoadingRooms ? (
             <div className="px-4 pb-4 space-y-3">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="h-[58px] bg-surface-2 rounded-[10px] animate-pulse" />
@@ -132,7 +136,10 @@ export function HousekeeperDashboard() {
             </div>
           ) : (
             <div>
-              {rooms.map((room, i) => {
+              {rooms.map((room: any, i: number) => {
+                const roomNumber = room.rooms?.room_number ?? room.room_number ?? '—'
+                const floor = room.rooms?.floor ?? room.floor
+                const roomType = room.rooms?.room_types?.name ?? null
                 const tone = STATUS_TONE[room.status] ?? 'neutral'
                 const label = STATUS_LABEL[room.status] ?? room.status
                 const isActive = i === 0
@@ -144,7 +151,7 @@ export function HousekeeperDashboard() {
                     className={`flex items-start gap-3 px-4 py-3 border-t border-line-2 hover:bg-surface-2 transition-colors ${isActive ? 'bg-[var(--accent-soft)]' : ''}`}
                   >
                     <div className="w-11 h-11 rounded-[10px] bg-surface border border-line-2 flex flex-col items-center justify-center relative shrink-0">
-                      <Mono className="text-[14px] font-semibold text-ink">{room.room_number}</Mono>
+                      <Mono className="text-[14px] font-semibold text-ink">{roomNumber}</Mono>
                       <StatusDot tone={tone} size={6} />
                       {isActive && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-accent text-white text-[9px] font-bold flex items-center justify-center border-2 border-paper">1</span>
@@ -153,17 +160,14 @@ export function HousekeeperDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13.5px] font-medium text-ink">
-                          {room.room_type ?? `Room ${room.room_number}`}
-                          {room.floor ? ` · Floor ${room.floor}` : ''}
+                          {roomType ?? `Room ${roomNumber}`}
+                          {floor ? ` · Floor ${floor}` : ''}
                         </span>
                         <Pill tone={pillTone} size="sm">{label}</Pill>
                         <span className="ml-auto font-mono text-[11px] text-ink3">
                           {isActive ? 'now' : i === 1 ? 'next up' : 'flex'}
                         </span>
                       </div>
-                      {room.notes && (
-                        <p className="text-[12px] text-ink2 mt-1">{room.notes}</p>
-                      )}
                     </div>
                   </Link>
                 )

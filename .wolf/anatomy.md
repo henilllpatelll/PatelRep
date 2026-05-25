@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-25T02:00:44.944Z
-> Files: 24 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-25T02:37:47.733Z
+> Files: 25 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -435,7 +435,7 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 4 endpoints (~9866 tok)
+- `housekeeping.py` — API: 3 endpoints (~9910 tok)
 
 ## apps/api/services/
 
@@ -611,7 +611,8 @@
 
 ## apps/web/components/dashboard/
 
-- `HousekeeperDashboard.tsx` — STATUS_TONE (~2853 tok)
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~2978 tok)
+- `SupervisorDashboard.tsx` — avatarColor (~6744 tok)
 
 ## apps/web/components/engineering/
 
@@ -639,6 +640,11 @@
 ## apps/web/lib/supabase/
 
 
+## apps/web/lib/utils/
+
+- `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
+- `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
+
 ## apps/web/stores/
 
 
@@ -658,4 +664,3 @@
 
 
 ## supabase/migrations/
-
