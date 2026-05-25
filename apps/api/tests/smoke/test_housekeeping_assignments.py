@@ -21,6 +21,7 @@ class FakeDB:
         self.rows = rows or {}
         self.upserts = []
         self.updates = []
+        self.deletes = []
 
     def table(self, name):
         return FakeQuery(self, name)
@@ -44,6 +45,10 @@ class FakeQuery:
     def update(self, payload):
         self.action = "update"
         self.payload = payload
+        return self
+
+    def delete(self):
+        self.action = "delete"
         return self
 
     def upsert(self, payload, on_conflict=None, **_kwargs):
@@ -105,6 +110,12 @@ class FakeQuery:
                     saved.append(row)
             self.db.upserts.append((self.table_name, payload_rows, tuple(self.conflict_columns)))
             return SimpleNamespace(data=saved)
+
+        if self.action == "delete":
+            deleted = list(matched)
+            self.db.rows[self.table_name] = [row for row in rows if row not in deleted]
+            self.db.deletes.append((self.table_name, dict(self.filters)))
+            return SimpleNamespace(data=deleted)
 
         return SimpleNamespace(data=[])
 
@@ -174,9 +185,11 @@ async def test_board_uses_selected_date_assignments_not_stale_room_status(monkey
     assert by_room[room_today]["assigned_to"] == hk_today
     assert by_room[room_today]["assignment_id"] == "assign-today"
     assert by_room[room_today]["clean_type"] == "LIGHT"
+    assert by_room[room_today]["status"] == "PICKUP"
     assert by_room[room_unassigned_today]["assigned_to"] is None
     assert by_room[room_unassigned_today]["assignment_id"] is None
     assert by_room[room_unassigned_today]["clean_type"] is None
+    assert by_room[room_unassigned_today]["status"] == "DIRTY"
 
 
 @pytest.mark.asyncio
@@ -205,6 +218,7 @@ async def test_create_assignments_reassigns_existing_room_for_same_day(monkeypat
             "room_id": room_id,
             "tenant_id": SUPERVISOR.hotel_id,
             "assigned_to": old_hk,
+            "status": "DIRTY",
         }],
     })
     monkeypatch.setattr(housekeeping_router, "supabase", db)
@@ -231,4 +245,113 @@ async def test_create_assignments_reassigns_existing_room_for_same_day(monkeypat
     assert db.rows["room_assignments"][0]["clean_type"] == "FULL"
     assert db.rows["room_assignments"][0]["assigned_by"] == SUPERVISOR.user_id
     assert db.rows["room_status"][0]["assigned_to"] == new_hk
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
     assert db.upserts[0][2] == ("room_id", "assignment_date")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("clean_type", "expected_status"),
+    [("LIGHT", "PICKUP"), ("FULL", "PICKUP"), ("DEP", "DIRTY")],
+)
+async def test_create_assignments_maps_clean_type_to_room_status(
+    monkeypatch,
+    clean_type,
+    expected_status,
+):
+    room_id = "22222222-2222-4222-8222-222222222222"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "101"}],
+        "user_roles": [{
+            "id": "role-1",
+            "user_id": hk_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "role": "housekeeper",
+            "is_active": True,
+        }],
+        "room_assignments": [],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": None,
+            "status": "DIRTY" if clean_type in ("FULL", "LIGHT") else "PICKUP",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    def fake_create_task(coro):
+        coro.close()
+        return None
+
+    monkeypatch.setattr(housekeeping_router.asyncio, "create_task", fake_create_task)
+
+    request = CreateAssignmentsRequest(
+        date=date(2026, 5, 24),
+        shift_id=None,
+        assignments=[{"room_id": room_id, "housekeeper_id": hk_id, "clean_type": clean_type}],
+        is_ai_suggested=False,
+    )
+
+    await housekeeping_router.create_assignments(request, current_user=SUPERVISOR)
+
+    assert db.rows["room_assignments"][0]["clean_type"] == clean_type
+    assert db.rows["room_status"][0]["assigned_to"] == hk_id
+    assert db.rows["room_status"][0]["status"] == expected_status
+
+
+@pytest.mark.asyncio
+async def test_delete_assignment_removes_row_and_clears_status_assignee(monkeypatch):
+    assignment_id = "assign-existing"
+    room_id = "22222222-2222-4222-8222-222222222222"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "room_assignments": [{
+            "id": assignment_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "room_id": room_id,
+            "assigned_to": hk_id,
+            "assigned_by": "old-supervisor",
+            "assignment_date": "2026-05-24",
+        }],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": hk_id,
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.delete_assignment(
+        assignment_id,
+        current_user=SUPERVISOR,
+    )
+
+    assert response == {"data": {"success": True, "deleted_id": assignment_id}}
+    assert db.rows["room_assignments"] == []
+    assert db.rows["room_status"][0]["assigned_to"] is None
+    assert db.deletes[0] == ("room_assignments", {"id": assignment_id, "tenant_id": SUPERVISOR.hotel_id})
+
+
+@pytest.mark.asyncio
+async def test_delete_assignment_rejects_cross_tenant_assignment(monkeypatch):
+    db = FakeDB({
+        "room_assignments": [{
+            "id": "assign-other",
+            "tenant_id": "other-hotel",
+            "room_id": "22222222-2222-4222-8222-222222222222",
+            "assigned_to": "44444444-4444-4444-8444-444444444444",
+            "assignment_date": "2026-05-24",
+        }],
+        "room_status": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    with pytest.raises(Exception) as exc:
+        await housekeeping_router.delete_assignment(
+            "assign-other",
+            current_user=SUPERVISOR,
+        )
+
+    assert exc.value.status_code == 404
+    assert len(db.rows["room_assignments"]) == 1

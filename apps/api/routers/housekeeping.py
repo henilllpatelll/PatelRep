@@ -7,6 +7,7 @@ from datetime import date
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase
+from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
 
 logger = logging.getLogger(__name__)
 
@@ -132,13 +133,15 @@ async def get_housekeeping_board(
     rooms_with_predictions = []
     for room in rows:
         assignment = assignment_map.get(room.get("room_id"))
+        clean_type = assignment.get("clean_type") if assignment else None
         rooms_with_predictions.append({
             **room,
+            "status": effective_room_status(room.get("status"), clean_type),
             "assigned_to": assignment.get("assigned_to") if assignment else None,
             "assignment_id": assignment.get("id") if assignment else None,
             "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
             "assignment_shift_id": assignment.get("shift_id") if assignment else None,
-            **_clean_type_payload(assignment.get("clean_type") if assignment else None),
+            **_clean_type_payload(clean_type),
             "prediction": pred_map.get(room.get("room_id")),
         })
 
@@ -189,11 +192,13 @@ async def get_my_rooms(
     rows = []
     for room in (result.data or []):
         assignment = assignment_map.get(room.get("room_id")) or {}
+        clean_type = assignment.get("clean_type")
         rows.append({
             **room,
+            "status": effective_room_status(room.get("status"), clean_type),
             "assignment_id": assignment.get("id"),
             "assignment_date": assignment.get("assignment_date"),
-            **_clean_type_payload(assignment.get("clean_type")),
+            **_clean_type_payload(clean_type),
         })
     return {"data": rows}
 
@@ -258,9 +263,10 @@ async def get_assignments(
 
         room_info = a.get("rooms") or {}
         rt_info = room_info.get("room_types") or {}
-        status = status_map.get(a.get("room_id"), "")
+        status = effective_room_status(status_map.get(a.get("room_id"), ""), a.get("clean_type"))
 
         grouped[hk_id]["rooms"].append({
+            "assignment_id": a.get("id"),
             "room_id": a.get("room_id"),
             "room_number": room_info.get("room_number", ""),
             "status": status,
@@ -362,12 +368,21 @@ async def create_assignments(
             )
         raise HTTPException(status_code=500, detail="Failed to save assignments. Please try again.")
 
-    # Mirror assigned_to on room_status for quick lookups
+    # Mirror assigned_to on room_status for quick lookups and keep Opera
+    # stayover task types in the Pickup lane.
     for a in request.assignments:
+        clean_type = a.clean_type or "DEP"
+        room_status = room_status_for_clean_type(clean_type)
         supabase.table("room_status")\
             .update({"assigned_to": str(a.housekeeper_id)})\
             .eq("room_id", str(a.room_id))\
             .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+        supabase.table("room_status")\
+            .update({"status": room_status})\
+            .eq("room_id", str(a.room_id))\
+            .eq("tenant_id", current_user.hotel_id)\
+            .in_("status", ["DIRTY", "PICKUP"])\
             .execute()
 
     # Fire-and-forget push notifications (never block the HTTP response)
@@ -381,6 +396,49 @@ async def create_assignments(
         asyncio.create_task(_send_assignment_push(str(a.housekeeper_id), room_number, str(a.room_id)))
 
     return {"data": result.data}
+
+
+# ---------------------------------------------------------------------------
+# DELETE /housekeeping/assignments/{assignment_id}
+# ---------------------------------------------------------------------------
+
+@router.delete("/assignments/{assignment_id}")
+async def delete_assignment(
+    assignment_id: str,
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    assignment_result = (
+        supabase.table("room_assignments")
+        .select("id, room_id, assigned_to")
+        .eq("id", assignment_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    assignment = assignment_result.data if assignment_result else None
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    delete_result = (
+        supabase.table("room_assignments")
+        .delete()
+        .eq("id", assignment_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+    if not (delete_result.data if delete_result else None):
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    supabase.table("room_status")\
+        .update({"assigned_to": None})\
+        .eq("room_id", assignment.get("room_id"))\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("assigned_to", assignment.get("assigned_to"))\
+        .execute()
+
+    return {"data": {"success": True, "deleted_id": assignment_id}}
 
 
 # ---------------------------------------------------------------------------

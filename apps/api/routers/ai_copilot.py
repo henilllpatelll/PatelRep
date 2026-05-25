@@ -12,6 +12,7 @@ from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
 from services.ai.sop_rag import query_sop
+from services.housekeeping_assignments import room_status_for_clean_type
 from services.policy import check_action_permitted
 import openai
 import anthropic
@@ -497,19 +498,26 @@ async def confirm_assignments(
             room_id = _resolve_room_id(current_user.hotel_id, room_number)
             if not room_id:
                 continue
+            clean_type = assignment.clean_type or "DEP"
             supabase.table("room_assignments").upsert({
                 "tenant_id": current_user.hotel_id,
                 "room_id": room_id,
                 "assigned_to": staff_id,
                 "assigned_by": current_user.user_id,
                 "assignment_date": today,
-                "clean_type": assignment.clean_type or "DEP",
+                "clean_type": clean_type,
                 "is_ai_suggested": True,
             }, on_conflict="room_id,assignment_date").execute()
             supabase.table("room_status")\
                 .update({"assigned_to": staff_id})\
                 .eq("tenant_id", current_user.hotel_id)\
                 .eq("room_id", room_id)\
+                .execute()
+            supabase.table("room_status")\
+                .update({"status": room_status_for_clean_type(clean_type)})\
+                .eq("tenant_id", current_user.hotel_id)\
+                .eq("room_id", room_id)\
+                .in_("status", ["DIRTY", "PICKUP"])\
                 .execute()
             assigned_count += 1
 

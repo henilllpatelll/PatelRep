@@ -67,6 +67,10 @@ interface Props {
   onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
   assignedToName?: string | null   // name of housekeeper already assigned (different from active assignee)
+  assignedToActive?: boolean
+  savedAssignmentId?: string | null
+  onRemoveSavedAssignment?: (assignmentId: string) => void
+  isRemovingAssignment?: boolean
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'DO_NOT_DISTURB' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
@@ -82,7 +86,19 @@ function formatTime(isoString: string | null | undefined): string | null {
   }
 }
 
-export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, onAssign, pendingAssignee, assignedToName }: Props) {
+export function RoomCard({
+  room,
+  assignmentMode,
+  onStatusChange,
+  onOpenDetail,
+  onAssign,
+  pendingAssignee,
+  assignedToName,
+  assignedToActive,
+  savedAssignmentId,
+  onRemoveSavedAssignment,
+  isRemovingAssignment,
+}: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -91,6 +107,8 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   const prediction = room.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
   const isPending = !!pendingAssignee
+  const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !!savedAssignmentId && !isPending
+  const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive)
   const isHighRisk = riskLevel === 'HIGH'
 
   const assignedName: string | null =
@@ -118,6 +136,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   function handleCardClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return
     if (isDragging) return
+    if (isSavedAssignedToActive) return
     if (assignmentMode && onAssign) {
       onAssign(room.room_id)
       return
@@ -131,16 +150,16 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
   }
 
   // ── Derived style ──────────────────────────────────────────────────────────
-  const alreadyAssigned = assignmentMode && !!assignedToName && !isPending
+  const alreadyAssigned = assignmentMode && !!assignedToName && !isAssignmentSelected
   const isOccupied = status === 'OCCUPIED'
 
-  const cardBorder = isPending && assignmentMode
+  const cardBorder = isAssignmentSelected
     ? 'border border-[var(--ai-line)]'
     : `border ${STATUS_BORDER[status] ?? 'border-line'}`
 
-  const cardBg = isPending && assignmentMode ? 'bg-[var(--ai-soft)]' : 'bg-surface'
+  const cardBg = isAssignmentSelected ? 'bg-[var(--ai-soft)]' : 'bg-surface'
 
-  const stripColor = isPending && assignmentMode
+  const stripColor = isAssignmentSelected
     ? 'var(--ai)'
     : (STATUS_STRIP_COLOR[status] ?? 'var(--line)')
 
@@ -156,7 +175,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       className={cn(
         'relative rounded-[var(--r-lg)] px-3 pb-3 pt-4 flex flex-col gap-1.5 min-h-[116px] transition-all duration-150 overflow-hidden',
         cardBg, cardBorder,
-        isPending && assignmentMode && 'ring-2 ring-[var(--ai-line)] ring-offset-1',
+        isAssignmentSelected && 'ring-2 ring-[var(--ai-line)] ring-offset-1',
         vipFlag && 'shadow-[0_0_0_2px_var(--caution-line)]',
         isDragging ? 'cursor-grabbing opacity-50' : 'cursor-pointer',
         alreadyAssigned && 'opacity-60',
@@ -237,7 +256,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       )}
 
       {/* Pending assignment overlay */}
-      {assignmentMode && isPending && (
+      {isAssignmentSelected && (
         <div className="flex items-center gap-0.5 mt-0.5">
           <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
           <span className="text-xs text-[var(--ai)] font-medium">Assigned</span>
@@ -300,7 +319,7 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
       )}
 
       {/* Assignment mode hints */}
-      {assignmentMode && !isPending && !alreadyAssigned && (
+      {assignmentMode && !isAssignmentSelected && !alreadyAssigned && (
         <p className="text-xs text-[var(--ai)] mt-0.5">Tap to assign</p>
       )}
       {alreadyAssigned && (
@@ -308,15 +327,22 @@ export function RoomCard({ room, assignmentMode, onStatusChange, onOpenDetail, o
           {assignedToName} · tap to reassign
         </p>
       )}
-      {assignmentMode && isPending && (
+      {isAssignmentSelected && (
         <button
           className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
+          disabled={isRemovingAssignment}
           onClick={(e) => {
             e.stopPropagation()
-            if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
+            if (isPending) {
+              if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
+              return
+            }
+            if (savedAssignmentId && onRemoveSavedAssignment) {
+              onRemoveSavedAssignment(savedAssignmentId)
+            }
           }}
         >
-          Remove
+          {isRemovingAssignment ? 'Removing...' : 'Remove'}
         </button>
       )}
     </div>

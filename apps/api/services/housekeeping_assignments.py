@@ -1,0 +1,13 @@
+"""Shared housekeeping assignment helpers."""
+
+
+def room_status_for_clean_type(clean_type: str | None) -> str:
+    """Map Opera clean task codes to PatelRep room status."""
+    return "PICKUP" if clean_type in {"FULL", "LIGHT"} else "DIRTY"
+
+
+def effective_room_status(status: str | None, clean_type: str | None) -> str | None:
+    """Return the room status users should see for an active assignment."""
+    if status not in {"DIRTY", "PICKUP"} or not clean_type:
+        return status
+    return room_status_for_clean_type(clean_type)

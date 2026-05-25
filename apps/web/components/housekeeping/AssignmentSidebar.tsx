@@ -1,505 +1,102 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useDroppable } from '@dnd-kit/core'
+import { useQueryClient } from '@tanstack/react-query'
+import { Sparkles } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
-import { staffApi } from '@/lib/api/staff'
-import {
-  CLEAN_TYPE_OPTIONS,
-  CLEAN_TYPE_SHORT_LABELS,
-  type CleanType,
-} from '@/lib/utils/cleanType'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { AILabel } from '@/components/ui/primitives'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface HousekeeperAssignment {
-  housekeeper_id: string
-  name: string
-  rooms_assigned: number
-  rooms_done: number
-  total_rooms: number
-  current_room?: string | null
-  current_room_status?: string | null
-}
-
-interface AISuggestion {
-  housekeeper_id: string
-  housekeeper_name: string
-  rooms: string[]
-  estimated_finish: string
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
-function ProgressBar({ done, total }: { done: number; total: number }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-surface-3 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-[var(--caution)] rounded-full transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-ink3 whitespace-nowrap">
-        {done}/{total}
-      </span>
-    </div>
-  )
-}
-
-// ── Drop zone row per housekeeper ─────────────────────────────────────────────
-
-interface HousekeeperDropRowProps {
-  hk: HousekeeperAssignment
-  roomNumberMap: Record<string, string>
-  pendingAssignments: Record<string, string>
-  removePendingAssignment: (roomId: string) => void
-}
-
-function HousekeeperDropRow({
-  hk,
-}: HousekeeperDropRowProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `hk-${hk.housekeeper_id}`,
-    data: { housekeeperId: hk.housekeeper_id },
-  })
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`px-4 py-3 transition-colors rounded-lg mx-1 my-0.5 ${
-        isOver
-          ? 'bg-[var(--caution-soft)] border-2 border-[var(--caution-line)] border-dashed'
-          : 'border-2 border-transparent'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-[var(--caution)] flex items-center justify-center text-white text-xs font-bold shrink-0">
-          {getInitials(hk.name)}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ink truncate">{hk.name}</p>
-          {hk.current_room && (
-            <p className="text-xs text-ink3 truncate">
-              {hk.current_room_status === 'IN_PROGRESS' ? 'Cleaning' : 'In'} Room{' '}
-              {hk.current_room}
-            </p>
-          )}
-        </div>
-        <span className="ml-auto text-xs text-ink3 shrink-0">
-          {hk.rooms_done} done
-        </span>
-      </div>
-      <ProgressBar done={hk.rooms_done} total={hk.total_rooms} />
-
-      {/* Drop hint */}
-      {isOver && (
-        <p className="text-xs text-[var(--caution)] font-medium mt-1.5 text-center">
-          Drop to assign
-        </p>
-      )}
-    </div>
-  )
-}
-
-// ── AI Suggestions overlay ────────────────────────────────────────────────────
-
-interface AISuggestionsOverlayProps {
-  suggestions: AISuggestion[]
-  onApply: () => void
-  onDismiss: () => void
-}
-
-function AISuggestionsOverlay({ suggestions, onApply, onDismiss }: AISuggestionsOverlayProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-      <Card className="w-full max-w-sm p-5">
-        <div className="bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3 mb-4">
-          <div className="flex items-center gap-2 mb-1.5">
-            <AILabel confidence={87} />
-          </div>
-          <p className="font-display italic text-[14px] leading-[1.4] text-ink">
-            Based on workload, skill level, and current occupancy.
-          </p>
-        </div>
-
-        <div className="space-y-3 mb-5">
-          {suggestions.map((s) => (
-            <Card key={s.housekeeper_id} className="p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[13px] font-medium text-ink">{s.housekeeper_name}</span>
-                <span className="text-[11px] font-mono text-ink-3">Est. {s.estimated_finish}</span>
-              </div>
-              <p className="text-[11.5px] text-ink-2">
-                Rooms: {s.rooms.join(', ')}
-              </p>
-            </Card>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="primary"
-            onClick={onApply}
-            className="flex-1 py-2"
-          >
-            Apply All Suggestions
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={onDismiss}
-            className="flex-1 py-2"
-          >
-            Dismiss
-          </Button>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 export function AssignmentSidebar() {
   const queryClient = useQueryClient()
-
-  const {
-    selectedDate,
-    selectedShift,
-    pendingAssignments,
-    pendingAssignmentCleanTypes,
-    activeCleanType,
-    setPendingAssignment,
-    removePendingAssignment,
-    clearPendingAssignments,
-    setActiveCleanType,
-    rooms,
-  } = useHousekeepingStore()
-
+  const { selectedDate, selectedShift, rooms } = useHousekeepingStore()
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[] | null>(null)
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // ── Fetch assignments ───────────────────────────────────────────────────
-  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
-    queryKey: ['housekeeping-assignments', selectedDate],
-    queryFn: () => housekeepingApi.getAssignments(selectedDate, selectedShift ?? undefined),
-  })
+  const unassignedCount = rooms.filter((room: any) => !room.assigned_to).length
+  const dirtyCount = rooms.filter((room: any) => room.status === 'DIRTY' || room.status === 'PICKUP').length
 
-  const housekeepers: HousekeeperAssignment[] = (assignmentsData as any)?.data ?? []
-
-  // ── Fetch all HK staff — shown by default, enriched with today's assignment data ──
-  const { data: staffData } = useQuery({
-    queryKey: ['staff-list'],
-    queryFn: () => staffApi.list(),
-  })
-  const housekeeperStaff = (staffData?.data?.staff ?? []).filter(
-    (s: any) => s.role === 'housekeeper' || s.role === 'housekeeping_supervisor',
-  )
-
-  // All HK staff shown automatically; enrich with live assignment data when available
-  const mergedHousekeepers: HousekeeperAssignment[] = housekeeperStaff.map((s: any) => {
-    const existing = housekeepers.find((h) => h.housekeeper_id === s.user_id)
-    return existing ?? {
-      housekeeper_id: s.user_id,
-      name: s.full_name,
-      rooms_assigned: 0,
-      rooms_done: 0,
-      total_rooms: 0,
-      current_room: null,
-      current_room_status: null,
-    }
-  })
-
-  // ── Build a room number lookup from the board store rooms ─────────────
-  const roomNumberMap = rooms.reduce<Record<string, string>>((acc, r) => {
-    if (r.room_id && r.rooms?.room_number) acc[r.room_id] = r.rooms.room_number
-    return acc
-  }, {})
-
-  // ── AI auto-assign ─────────────────────────────────────────────────────
-  const handleAiSuggest = async () => {
+  const handleAiAutoAssign = async () => {
     setAiLoading(true)
+    setMessage(null)
     try {
-      const res = await housekeepingApi.aiSuggestAssignments(
-        selectedDate,
-        selectedShift ?? undefined,
-      )
-      const suggestions: AISuggestion[] = (res as any)?.data?.suggestions ?? []
-      setAiSuggestions(suggestions)
-    } catch {
-      // silently fail — user can retry
+      const result = await housekeepingApi.aiSuggestAssignments(selectedDate, selectedShift ?? undefined)
+      const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
+
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+      queryClient.invalidateQueries({ queryKey: ['staff-list'] })
+
+      setMessage({
+        type: 'success',
+        text: count !== null
+          ? `AI assigned ${count} room${count !== 1 ? 's' : ''}.`
+          : 'AI assignments applied.',
+      })
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err?.message || 'AI assignment failed. Please try again.',
+      })
     } finally {
       setAiLoading(false)
     }
   }
 
-  const handleApplyAiSuggestions = () => {
-    if (!aiSuggestions) return
-    for (const s of aiSuggestions) {
-      for (const roomId of s.rooms) {
-        setPendingAssignment(roomId, s.housekeeper_id)
-      }
-    }
-    setAiSuggestions(null)
-  }
-
-  // ── Save assignments ───────────────────────────────────────────────────
-  const hasPending = Object.keys(pendingAssignments).length > 0
-
-  const handleSave = async () => {
-    if (!hasPending) return
-    setSaveLoading(true)
-    setSaveError(null)
-    setSaveSuccessMsg(null)
-
-    // Count new assignments vs reassignments before the save clears state
-    const reassignCount = Object.entries(pendingAssignments).filter(([roomId, hkId]) => {
-      const r = rooms.find((r: any) => r.room_id === roomId)
-      return r?.assigned_to && r.assigned_to !== hkId
-    }).length
-    const newCount = Object.keys(pendingAssignments).length - reassignCount
-
-    try {
-      await housekeepingApi.saveAssignments({
-        date: selectedDate,
-        shift_id: null,
-        assignments: Object.entries(pendingAssignments)
-          .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
-          .map(([roomId, housekeeperId]) => ({
-            room_id: roomId,
-            housekeeper_id: housekeeperId,
-            clean_type: pendingAssignmentCleanTypes[roomId] ?? activeCleanType,
-          })),
-        is_ai_suggested: false,
-      })
-      clearPendingAssignments()
-      queryClient.invalidateQueries({
-        queryKey: ['housekeeping-board', selectedDate, selectedShift],
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['housekeeping-assignments', selectedDate],
-      })
-      const parts: string[] = []
-      if (newCount > 0) parts.push(`${newCount} assignment${newCount !== 1 ? 's' : ''} saved`)
-      if (reassignCount > 0) parts.push(`${reassignCount} room${reassignCount !== 1 ? 's' : ''} reassigned`)
-      setSaveSuccessMsg(parts.join(', ') + '.')
-      setTimeout(() => setSaveSuccessMsg(null), 3000)
-    } catch (err: any) {
-      setSaveError(err?.message ?? 'Failed to save assignments')
-    } finally {
-      setSaveLoading(false)
-    }
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <>
-      {aiSuggestions && (
-        <AISuggestionsOverlay
-          suggestions={aiSuggestions}
-          onApply={handleApplyAiSuggestions}
-          onDismiss={() => setAiSuggestions(null)}
-        />
+    <Card className="w-72 shrink-0 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--r-md)] bg-[var(--ai-soft)] text-[var(--ai)]">
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-ink">AI Assignments</h3>
+          <p className="mt-0.5 text-xs text-ink3">
+            Balance today&apos;s open rooms across the team.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
+          <p className="text-[11px] font-medium text-ink3">Unassigned</p>
+          <p className="mt-1 font-mono text-lg font-semibold text-ink">{unassignedCount}</p>
+        </div>
+        <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
+          <p className="text-[11px] font-medium text-ink3">Needs work</p>
+          <p className="mt-1 font-mono text-lg font-semibold text-ink">{dirtyCount}</p>
+        </div>
+      </div>
+
+      {message && (
+        <div className={`mt-3 rounded-[var(--r-md)] border px-3 py-2 text-xs ${
+          message.type === 'success'
+            ? 'border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)]'
+            : 'border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)]'
+        }`}>
+          {message.text}
+        </div>
       )}
 
-      <Card className="w-72 shrink-0 flex flex-col overflow-hidden h-fit max-h-[calc(100vh-10rem)] p-0">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-line">
-          <h3 className="font-semibold text-ink text-sm">Housekeepers</h3>
-          <p className="text-xs text-ink-3 mt-0.5">Drag a room card onto a name to assign</p>
-        </div>
-
-        <div className="px-3 py-3 border-b border-line">
-          <div className="grid grid-cols-3 gap-1 rounded-[var(--r-md)] bg-surface-2 p-1">
-            {CLEAN_TYPE_OPTIONS.map((option) => {
-              const selected = activeCleanType === option.value
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  title={option.hint}
-                  aria-pressed={selected}
-                  onClick={() => setActiveCleanType(option.value)}
-                  className={`min-h-[38px] rounded-[var(--r-sm)] px-2 text-[11px] font-semibold transition-colors ${
-                    selected
-                      ? 'bg-surface text-ink shadow-sm border border-line'
-                      : 'text-ink3 hover:text-ink'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* AI insight callout */}
-        {mergedHousekeepers.length > 0 && (
-          <div className="mx-3 mt-3 bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <AILabel confidence={87} />
-            </div>
-            <p className="font-display italic text-[13px] leading-[1.4] text-ink">
-              Assign by floor proximity to cut average clean time.
-            </p>
-          </div>
+      <Button
+        variant="primary"
+        onClick={handleAiAutoAssign}
+        disabled={aiLoading || rooms.length === 0}
+        className="mt-4 w-full"
+      >
+        {aiLoading ? (
+          <>
+            <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            Assigning...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            Auto-Assign with AI
+          </>
         )}
-
-        {/* Housekeeper list */}
-        <div className="flex-1 overflow-y-auto py-1">
-          {assignmentsLoading ? (
-            <div className="p-4 space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2 animate-pulse">
-                  <div className="flex gap-2">
-                    <div className="w-8 h-8 bg-surface-3 rounded-full" />
-                    <div className="flex-1 h-4 bg-surface-3 rounded" />
-                  </div>
-                  <div className="h-2 bg-surface-3 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : mergedHousekeepers.length === 0 ? (
-            <p className="p-4 text-xs text-ink3 text-center">
-              No housekeeping staff found.
-            </p>
-          ) : (
-            <div className="divide-y divide-line">
-              {mergedHousekeepers.map((hk) => (
-                <HousekeeperDropRow
-                  key={hk.housekeeper_id}
-                  hk={hk}
-                  roomNumberMap={roomNumberMap}
-                  pendingAssignments={pendingAssignments}
-                  removePendingAssignment={removePendingAssignment}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Pending assignments */}
-        {hasPending && (
-          <div className="border-t border-line px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-ink2">Pending Changes</span>
-              <span className="inline-flex items-center justify-center w-5 h-5 bg-[var(--caution)] text-white text-xs font-bold rounded-full">
-                {Object.keys(pendingAssignments).length}
-              </span>
-            </div>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {Object.entries(pendingAssignments).map(([roomId, housekeeperId]) => {
-                const roomNumber = roomNumberMap[roomId] ?? roomId
-                const cleanType = pendingAssignmentCleanTypes[roomId] as CleanType | undefined
-                const toHk = mergedHousekeepers.find((h) => h.housekeeper_id === housekeeperId)
-                const currentAssignedTo = rooms.find((r: any) => r.room_id === roomId)?.assigned_to
-                const fromHk = currentAssignedTo && currentAssignedTo !== housekeeperId
-                  ? mergedHousekeepers.find((h) => h.housekeeper_id === currentAssignedTo)
-                  : null
-                return (
-                  <div key={roomId} className="flex items-center justify-between text-xs">
-                    <span className="text-ink2">
-                      Room {roomNumber}{' '}
-                      {cleanType && (
-                        <span className="text-ink3">({CLEAN_TYPE_SHORT_LABELS[cleanType]}) </span>
-                      )}
-                      {fromHk ? (
-                        <>
-                          <span className="line-through text-ink3">{fromHk.name.split(' ')[0]}</span>
-                          {' '}&rarr;{' '}
-                          <span className="font-medium text-[var(--caution)]">{toHk?.name ?? housekeeperId}</span>
-                        </>
-                      ) : (
-                        <>
-                          &rarr;{' '}
-                          <span className="font-medium text-ink">{toHk?.name ?? housekeeperId}</span>
-                        </>
-                      )}
-                    </span>
-                    <button
-                      onClick={() => removePendingAssignment(roomId)}
-                      className="text-ink3 hover:text-[var(--alert)] transition-colors ml-2"
-                      aria-label="Remove pending assignment"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Success / error feedback */}
-        {saveSuccessMsg && (
-          <div className="mx-4 mb-2 px-3 py-2 bg-[var(--ready-soft)] text-[var(--ready)] text-xs rounded-lg">
-            {saveSuccessMsg}
-          </div>
-        )}
-        {saveError && (
-          <div className="mx-4 mb-2 px-3 py-2 bg-[var(--alert-soft)] text-[var(--alert)] text-xs rounded-lg">
-            {saveError}
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className="px-4 py-3 border-t border-line space-y-2">
-          <Button
-            variant="ai"
-            onClick={handleAiSuggest}
-            disabled={aiLoading}
-            className="w-full py-2"
-          >
-            {aiLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Thinking...
-              </>
-            ) : (
-              'AI Auto-Assign'
-            )}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSave}
-            disabled={!hasPending || saveLoading}
-            className="w-full py-2"
-          >
-            {saveLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                Save Assignments
-                {hasPending && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 bg-surface text-accent text-xs font-bold rounded-full">
-                    {Object.keys(pendingAssignments).length}
-                  </span>
-                )}
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
-    </>
+      </Button>
+    </Card>
   )
 }

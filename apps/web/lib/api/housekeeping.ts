@@ -81,6 +81,9 @@ export const housekeepingApi = {
   saveAssignments: (data: AssignmentPayload) =>
     apiClient.post('/housekeeping/assignments', data),
 
+  deleteAssignment: (assignmentId: string) =>
+    apiClient.delete(`/housekeeping/assignments/${assignmentId}`),
+
   aiSuggestAssignments: (date: string, shiftId?: string) =>
     apiClient.post(
       '/housekeeping/ai-suggest-assignments',

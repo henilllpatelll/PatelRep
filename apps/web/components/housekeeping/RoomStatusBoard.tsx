@@ -11,6 +11,7 @@ import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
+import { getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
 
 // -- Status chip config --------------------------------------------------------
 
@@ -124,12 +125,12 @@ export function RoomStatusBoard() {
   const hotelId = getHotelIdFromToken(session?.access_token)
 
   const {
-    filteredRooms,
     rooms: allRooms,
     setRooms,
     setPredictions,
     setLastSyncedAt,
     pendingAssignments,
+    pendingAssignmentCleanTypes,
     assignmentMode,
     activeAssigneeId,
     setPendingAssignment,
@@ -143,12 +144,40 @@ export function RoomStatusBoard() {
     predictions,
   } = useHousekeepingStore()
 
+  const displayRooms = useMemo(() =>
+    allRooms.map((room: any) => {
+      const pendingCleanType = pendingAssignmentCleanTypes[room.room_id]
+      const cleanType = pendingCleanType ?? room.clean_type
+      const status = getEffectiveRoomStatusForCleanType(room.status, cleanType)
+      if (!pendingCleanType && status === room.status) return room
+      return { ...room, clean_type: cleanType, status }
+    }),
+    [allRooms, pendingAssignmentCleanTypes],
+  )
+
+  const rooms = useMemo(() => {
+    let result = displayRooms
+
+    if (statusFilter !== null) {
+      result = result.filter((room: any) => room.status === statusFilter)
+    }
+
+    if (showRiskOnly) {
+      result = result.filter((room: any) => {
+        const pred = predictions[room.room_id] ?? room.prediction
+        return pred?.risk_level === 'HIGH' || pred?.risk_level === 'MEDIUM'
+      })
+    }
+
+    return result
+  }, [displayRooms, predictions, showRiskOnly, statusFilter])
+
   const riskCount = useMemo(
-    () => allRooms.filter((r: any) => {
+    () => displayRooms.filter((r: any) => {
       const pred = predictions[r.room_id] ?? r.prediction
       return pred?.risk_level === 'HIGH' || pred?.risk_level === 'MEDIUM'
     }).length,
-    [allRooms, predictions],
+    [displayRooms, predictions],
   )
 
   // -- Staff name lookup -------------------------------------------------------
@@ -166,6 +195,7 @@ export function RoomStatusBoard() {
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
+  const [removingAssignmentId, setRemovingAssignmentId] = useState<string | null>(null)
 
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const applyRoomStatusPayload = useCallback((payload: any) => {
@@ -173,10 +203,17 @@ export function RoomStatusBoard() {
     if (!row?.room_id) return
     const { assigned_to: _assignedTo, ...statusRow } = row
 
-    const mergeRoom = (room: any) =>
-      room.room_id === row.room_id
-        ? { ...room, ...statusRow, rooms: room.rooms, prediction: room.prediction }
-        : room
+    const mergeRoom = (room: any) => {
+      if (room.room_id !== row.room_id) return room
+      const nextStatus = getEffectiveRoomStatusForCleanType(statusRow.status, room.clean_type)
+      return {
+        ...room,
+        ...statusRow,
+        status: nextStatus,
+        rooms: room.rooms,
+        prediction: room.prediction,
+      }
+    }
 
     setRooms(useHousekeepingStore.getState().rooms.map(mergeRoom))
     queryClient.setQueryData(
@@ -249,6 +286,21 @@ export function RoomStatusBoard() {
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
+  const handleRemoveSavedAssignment = useCallback(async (assignmentId: string) => {
+    setRemovingAssignmentId(assignmentId)
+    setAssignError(null)
+    try {
+      await housekeepingApi.deleteAssignment(assignmentId)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+    } catch {
+      setAssignError('Failed to remove assignment. Please try again.')
+      setTimeout(() => setAssignError(null), 3000)
+    } finally {
+      setRemovingAssignmentId(null)
+    }
+  }, [queryClient, selectedDate, selectedShift])
+
   // -- Tap-to-assign -----------------------------------------------------------
   const handleTapAssign = useCallback((roomId: string) => {
     if (!activeAssigneeId) return
@@ -259,8 +311,6 @@ export function RoomStatusBoard() {
     }
     const roomData = allRooms.find((r: any) => r.room_id === roomId)
     if (roomData?.assigned_to === activeAssigneeId) {
-      setAssignError('Room is already assigned to this housekeeper')
-      setTimeout(() => setAssignError(null), 3000)
       return
     }
     setAssignError(null)
@@ -278,7 +328,6 @@ export function RoomStatusBoard() {
     [allRooms, activeAssigneeId, hkNameById]
   )
 
-  const rooms = filteredRooms()
   const byFloor = rooms.reduce<Record<number, any[]>>((acc, room) => {
     const floor: number = room.rooms?.floor ?? 0
     if (!acc[floor]) acc[floor] = []
@@ -308,7 +357,7 @@ export function RoomStatusBoard() {
     <div className="space-y-4">
       {/* Status filter chips */}
       <StatusSummaryBar
-        rooms={allRooms}
+        rooms={displayRooms}
         statusFilter={statusFilter}
         onFilter={setStatusFilter}
         showRiskOnly={showRiskOnly}
@@ -363,6 +412,10 @@ export function RoomStatusBoard() {
                       onAssign={assignmentMode ? handleTapAssign : undefined}
                       pendingAssignee={pendingAssignments[room.room_id] ?? null}
                       assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
+                      assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
+                      savedAssignmentId={room.assignment_id ?? null}
+                      onRemoveSavedAssignment={handleRemoveSavedAssignment}
+                      isRemovingAssignment={!!room.assignment_id && removingAssignmentId === room.assignment_id}
                     />
                   ))}
                 </div>
@@ -380,7 +433,7 @@ export function RoomStatusBoard() {
         onStatusChange={(roomId: string, newStatus: string) =>
           handleStatusChange(roomId, newStatus)
         }
-        cleanQueue={allRooms.filter((r: any) => r.status === 'CLEAN')}
+        cleanQueue={displayRooms.filter((r: any) => r.status === 'CLEAN')}
         onNextRoom={(next: any) => setSelectedRoom(next)}
       />
     </div>

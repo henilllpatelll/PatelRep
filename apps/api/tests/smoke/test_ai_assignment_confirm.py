@@ -114,6 +114,12 @@ async def test_confirm_assignments_writes_required_assignment_fields(monkeypatch
             "is_active": True,
         }],
         "room_assignments": [],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": None,
+            "status": "DIRTY",
+        }],
     })
     monkeypatch.setattr(ai_copilot, "supabase", db)
 
@@ -139,6 +145,8 @@ async def test_confirm_assignments_writes_required_assignment_fields(monkeypatch
     assert payload["clean_type"] == "LIGHT"
     assert payload["is_ai_suggested"] is True
     assert conflict_columns == ("room_id", "assignment_date")
+    assert db.rows["room_status"][0]["assigned_to"] == housekeeper_id
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
 
 
 @pytest.mark.asyncio

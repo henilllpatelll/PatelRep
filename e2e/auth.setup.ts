@@ -17,12 +17,13 @@ setup('authenticate as GM', async ({ page }) => {
   setup.skip(!PASSWORD, 'Set TEST_PASSWORD to run authenticated Playwright setup')
 
   await page.goto('/login')
-  await expect(page.getByRole('heading', { name: /PatelRep/i })).toBeVisible()
+  await expect(page.locator('#email-pw')).toBeVisible()
+  await expect(page.locator('#password-pw')).toBeVisible()
 
   // Fill email + password
   await page.fill('#email-pw', EMAIL)
   await page.fill('#password-pw', PASSWORD!)
-  await page.click('button[type="submit"]')
+  await page.getByRole('button', { name: 'Sign In' }).click()
 
   // Login uses window.location.href — wait for navigation to dashboard/onboarding
   await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 20_000 })

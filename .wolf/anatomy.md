@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T19:15:22.561Z
-> Files: 15 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-24T23:47:45.105Z
+> Files: 20 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -411,6 +411,13 @@
 ## Session Additions 2026-05-24 Assignment Fix
 
 
+## Session Additions 2026-05-24 Clean Type Pickup Display
+
+- `apps/api/services/housekeeping_assignments.py` — Shared API helper for persisted room assignment clean-type to status mapping. (~80 tok)
+- `apps/web/app/(dashboard)/housekeeping/page.tsx` — Role-gated housekeeping route; housekeeper my-rooms view, supervisor header/actions, assignment mode, and prediction panel. (~6900 tok)
+- `apps/web/components/housekeeping/RoomStatusBoard.tsx` — Supervisor room board with realtime merge, pending assignment state, status chips, filters, grouped room cards, and drawer handoff. (~4200 tok)
+- `apps/web/lib/utils/cleanType.ts` — Clean-type labels/options plus helpers mapping `FULL`/`LIGHT` stayover service to `PICKUP` display status. (~180 tok)
+
 ## Session Additions 2026-05-24 Room Status Contract
 
 
@@ -518,6 +525,7 @@
 
 ## apps/web/
 
+- `package.json` — Node.js package manifest (~449 tok)
 
 ## apps/web/app/
 

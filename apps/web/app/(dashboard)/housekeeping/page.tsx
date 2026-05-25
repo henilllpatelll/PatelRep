@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
 import {
   CLEAN_TYPE_OPTIONS,
+  getEffectiveRoomStatusForCleanType,
   getCleanTypeShortLabel,
 } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -359,7 +360,14 @@ function HousekeeperMyRoomsView() {
     const row = payload?.new
     if (!row?.room_id) return
     const { assigned_to: _assignedTo, ...statusRow } = row
-    const mergeRoom = (room: any) => room.room_id === row.room_id ? { ...room, ...statusRow } : room
+    const mergeRoom = (room: any) => {
+      if (room.room_id !== row.room_id) return room
+      return {
+        ...room,
+        ...statusRow,
+        status: getEffectiveRoomStatusForCleanType(statusRow.status, room.clean_type),
+      }
+    }
     queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
       if (!old?.data) return old
       return { ...old, data: (old.data as any[]).map(mergeRoom) }
@@ -472,6 +480,7 @@ function SupervisorHousekeepingPage() {
     assignmentMode,
     lastSyncedAt,
     activeCleanType,
+    pendingAssignmentCleanTypes,
     rooms,
     setSelectedDate,
     setSelectedShift,
@@ -533,10 +542,20 @@ function SupervisorHousekeepingPage() {
     setSelectedDate(format(addDays(current, delta), 'yyyy-MM-dd'))
   }
 
-  const totalRooms = rooms.length
-  const needAttention = rooms.filter((r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
-  const readyRooms = rooms.filter((r) => r.status === 'INSPECTED').length
-  const highRiskCount = predictions.filter((p) => p.risk_level === 'HIGH').length
+  const displayRooms = useMemo(() =>
+    rooms.map((room: any) => {
+      const pendingCleanType = pendingAssignmentCleanTypes[room.room_id]
+      const cleanType = pendingCleanType ?? room.clean_type
+      const status = getEffectiveRoomStatusForCleanType(room.status, cleanType)
+      if (!pendingCleanType && status === room.status) return room
+      return { ...room, clean_type: cleanType, status }
+    }),
+    [pendingAssignmentCleanTypes, rooms],
+  )
+
+  const needAttention = displayRooms.filter((r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
+  const readyRooms = displayRooms.filter((r) => r.status === 'INSPECTED').length
+  const dirtyRooms = displayRooms.filter((r) => r.status === 'DIRTY').length
 
   return (
     <div className="space-y-4">
@@ -550,10 +569,10 @@ function SupervisorHousekeepingPage() {
               <span className="font-mono">{readyRooms} ready</span>
             </Pill>
             <Pill tone="progress" size="md">
-              <span className="font-mono">{needAttention - rooms.filter(r => r.status === 'DIRTY').length} in progress</span>
+              <span className="font-mono">{needAttention - dirtyRooms} in progress</span>
             </Pill>
             <Pill tone="dirty" size="md">
-              <span className="font-mono">{rooms.filter(r => r.status === 'DIRTY').length} vacant dirty</span>
+              <span className="font-mono">{dirtyRooms} vacant dirty</span>
             </Pill>
             <span className="text-ink4 text-xs">&middot;</span>
             <SyncBadge lastSyncedAt={lastSyncedAt} />

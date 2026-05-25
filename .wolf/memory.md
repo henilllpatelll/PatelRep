@@ -2015,3 +2015,27 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:28 | Session end: 1 writes across 1 files (index.tsx) | 13 reads | ~3491 tok |
 | 14:31 | Session end: 1 writes across 1 files (index.tsx) | 13 reads | ~3491 tok |
 | 12:24 | Applied clean_type migration to linked Supabase database | supabase/migrations/042_room_assignment_clean_type.sql | remote column and constraint verified, migration history repaired as applied, focused API tests passed | ~1200 |
+| 12:33 | Added saved room assignment removal from housekeeping sidebar | apps/api/routers/housekeeping.py, apps/web/components/housekeeping/AssignmentSidebar.tsx | supervisors can remove already-saved room assignments; API/web checks passed | ~1800 |
+| 12:41 | Ran authenticated housekeeping Playwright E2E with provided TEST_PASSWORD | e2e/auth.setup.ts, e2e/03-housekeeping.spec.ts | updated stale login selector, 10/10 housekeeping E2E tests passed, removed generated auth/test artifacts | ~900 |
+| 12:44 | Persisted TEST_PASSWORD as Windows user environment variable | user environment, e2e/03-housekeeping.spec.ts | future Playwright runs can authenticate without repo-stored secrets; housekeeping E2E passed 10/10 and artifacts cleaned | ~500 |
+| 12:51 | Matched saved assignment card UI to pending assignment UI | apps/web/components/housekeeping/RoomCard.tsx, apps/web/components/housekeeping/RoomStatusBoard.tsx | rooms assigned to selected housekeeper stay purple with card-level remove; checks and authenticated E2E passed | ~1300 |
+| 12:54 | Fixed pending assignment card remove label | apps/web/components/housekeeping/RoomStatusBoard.tsx | pending rooms now show Remove instead of Removing; type-check and lint passed | ~350 |
+| 12:57 | Removed redundant sidebar saved-assignment remove UI | apps/web/components/housekeeping/AssignmentSidebar.tsx | room-card remove remains the single assignment removal path; type-check and lint passed | ~500 |
+| 13:08 | Reworked housekeeping assignment sidebar into focused selector/save panel | apps/web/components/housekeeping/AssignmentSidebar.tsx | removed AI tip/auto-assign/sidebar removal clutter; housekeeper rows select active assignee and show pending counts; type-check, lint, build, authenticated housekeeping E2E, and diff check passed | ~900 |
+| 13:18 | Simplified housekeeping assignment sidebar to AI-only | apps/web/components/housekeeping/AssignmentSidebar.tsx | removed duplicate Departure/Full/Light controls and duplicate housekeeper list; sidebar now only runs AI auto-assign and shows assignment counts; type-check, lint, build, and diff check passed | ~650 |
+| 13:29 | Mapped Opera stayover clean types to Pickup status on assignment save | apps/api/services/housekeeping_assignments.py, apps/api/routers/housekeeping.py, apps/api/routers/ai_copilot.py | FULL/LIGHT assignments now set room_status to PICKUP while DEP sets DIRTY; focused tests, ruff, and full API smoke passed | ~850 |
+| 13:39 | Fixed existing FULL/LIGHT assignments still rendering Vacant Dirty | apps/api/services/housekeeping_assignments.py, apps/api/routers/housekeeping.py, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx | board/my-rooms/assignment responses and realtime merges now derive Pickup from clean_type for DIRTY/PICKUP rooms; API smoke, web type-check/lint/build, and diff check passed | ~900 |
+| 17:29 | Investigated user-reported full/light clean status bug and found prior API fixes plus likely pending UI gap | apps/api/services/housekeeping_assignments.py; apps/web/components/housekeeping/RoomStatusBoard.tsx; apps/web/app/(dashboard)/housekeeping/page.tsx | narrowed to pending/status display paths | ~4200 |
+| 17:31 | Applied frontend clean-type display fix and ran web type/lint checks | apps/web/lib/utils/cleanType.ts; apps/web/components/housekeeping/RoomStatusBoard.tsx; apps/web/app/(dashboard)/housekeeping/page.tsx | type-check and lint passed | ~2800 |
+| 17:36 | Browser-checked local housekeeping route redirect and recorded clean-type display learning | .wolf/cerebrum.md; .wolf/buglog.json; .wolf/anatomy.md | local app reached login for /housekeeping with no browser console errors; authenticated UI check blocked by missing auth state | ~1600 |
+| 17:38 | Re-ran final web build after cleanup | apps/web/app/(dashboard)/housekeeping/page.tsx; apps/web/components/housekeeping/RoomStatusBoard.tsx; apps/web/lib/utils/cleanType.ts | type-check, lint, and build passed | ~900 |
+| 17:53 | Fixed mobile LAN login hydration by allowing local dev origins | apps/web/next.config.mjs | phone-style URL no longer gets 403 on Next chunks; email/password focus and fill passed on mobile viewport; type-check, lint, build, and diff check passed | ~850 |
+
+## Session: 2026-05-24 18:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:35 | Port 8000 occupied by another FastAPI app — switched PatelRep API to 8001. Updated apps/web/.env.local and apps/api/.env | apps/web/.env.local, apps/api/.env | success | ~200 |
+| 18:47 | Edited apps/web/package.json | inline fix | ~12 |
+| 18:48 | Session end: 1 writes across 1 files (package.json) | 9 reads | ~12 tok |
+| 20:24 | Session end: 1 writes across 1 files (package.json) | 9 reads | ~12 tok |

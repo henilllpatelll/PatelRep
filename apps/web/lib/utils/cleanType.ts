@@ -27,3 +27,15 @@ export function getCleanTypeShortLabel(cleanType?: string | null): string | null
   if (!cleanType) return null
   return CLEAN_TYPE_SHORT_LABELS[cleanType as CleanType] ?? cleanType
 }
+
+export function getRoomStatusForCleanType(cleanType?: string | null): 'DIRTY' | 'PICKUP' {
+  return cleanType === 'FULL' || cleanType === 'LIGHT' ? 'PICKUP' : 'DIRTY'
+}
+
+export function getEffectiveRoomStatusForCleanType(
+  status?: string | null,
+  cleanType?: string | null,
+): string | null | undefined {
+  if ((status !== 'DIRTY' && status !== 'PICKUP') || !cleanType) return status
+  return getRoomStatusForCleanType(cleanType)
+}

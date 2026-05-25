@@ -6,8 +6,8 @@
       "timestamp": "2026-05-23T23:27:24.422Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/app/(dashboard)/tasks/page.tsx",
-      "root_cause": "hover: bg-blue-700 disabled:opacity-50 transition-colors\" \u2192 bg-amber-500 disabled:opacity-50 transition-colors\"",
-      "fix": "Changed hover: bg-blue-700 disabled:opacity-50 transition-colors\" \u2192 bg-amber-500 disabled:opacity-50 transition-colors\"",
+      "root_cause": "hover: bg-blue-700 disabled:opacity-50 transition-colors\" → bg-amber-500 disabled:opacity-50 transition-colors\"",
+      "fix": "Changed hover: bg-blue-700 disabled:opacity-50 transition-colors\" → bg-amber-500 disabled:opacity-50 transition-colors\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -22,8 +22,8 @@
       "timestamp": "2026-05-23T23:27:40.943Z",
       "error_message": "CSS fix: data",
       "file": "apps/web/components/dashboard/ROIMetricsStrip.tsx",
-      "root_cause": "data: statsData, isLoading: statsLoading \u2192 statsData, isLoading: statsLoading, isError: statsError",
-      "fix": "Changed data: statsData, isLoading: statsLoading \u2192 statsData, isLoading: statsLoading, isError: statsError",
+      "root_cause": "data: statsData, isLoading: statsLoading → statsData, isLoading: statsLoading, isError: statsError",
+      "fix": "Changed data: statsData, isLoading: statsLoading → statsData, isLoading: statsLoading, isError: statsError",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -38,7 +38,7 @@
       "timestamp": "2026-05-23T23:27:47.294Z",
       "error_message": "Missing error handling in getHotelIdFromSession",
       "file": "apps/web/components/dashboard/TrendChartsRow.tsx",
-      "root_cause": "Code path had no error handling \u2014 exceptions would propagate uncaught",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
       "fix": "Added try/catch block",
       "tags": [
         "auto-detected",
@@ -70,7 +70,7 @@
       "timestamp": "2026-05-23T23:28:01.534Z",
       "error_message": "Missing error handling in unknown",
       "file": "apps/web/app/(dashboard)/billing/page.tsx",
-      "root_cause": "Code path had no error handling \u2014 exceptions would propagate uncaught",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
       "fix": "Added try/catch block",
       "tags": [
         "auto-detected",
@@ -103,7 +103,7 @@
       "error_message": "Null/undefined access in ",
       "file": "apps/web/app/(dashboard)/scheduling/page.tsx",
       "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check) | Also: enabled: !!hotel?.id, | Also: // Period display \u2014 use period field (e.g. \"2026-05\") format; const raw = (creditData as any)?.period_start ?? creditData? | Also: const user = useAuthStore((state) => state.user); const fullName: string =",
+      "fix": "Added null safety (optional chaining or null check) | Also: enabled: !!hotel?.id, | Also: // Period display — use period field (e.g. \"2026-05\") format; const raw = (creditData as any)?.period_start ?? creditData? | Also: const user = useAuthStore((state) => state.user); const fullName: string =",
       "tags": [
         "auto-detected",
         "null-safety",
@@ -167,7 +167,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
       "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 49\u219280 lines (4 removed)",
+      "fix": "Rewrote 49→80 lines (4 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -230,8 +230,8 @@
       "timestamp": "2026-05-23T23:29:37.364Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/components/housekeeping/RoomCard.tsx",
-      "root_cause": "hover: bg-white/90 transition-colors\" \u2192 bg-white/90 hover:underline transition-colors\"",
-      "fix": "Changed hover: bg-white/90 transition-colors\" \u2192 bg-white/90 hover:underline transition-colors\"",
+      "root_cause": "hover: bg-white/90 transition-colors\" → bg-white/90 hover:underline transition-colors\"",
+      "fix": "Changed hover: bg-white/90 transition-colors\" → bg-white/90 hover:underline transition-colors\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -280,7 +280,7 @@
       "error_message": "Significant refactor of ",
       "file": "CLAUDE.md",
       "root_cause": "6 lines replaced/restructured",
-      "fix": "Rewrote 25\u219236 lines (6 removed)",
+      "fix": "Rewrote 25→36 lines (6 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -344,8 +344,8 @@
       "timestamp": "2026-05-24T02:59:39.967Z",
       "error_message": "CSS fix: variable",
       "file": "apps/web/app/layout.tsx",
-      "root_cause": "variable: '--font-jetbrains-mono', \u2192 '--font-display',",
-      "fix": "Changed variable: '--font-jetbrains-mono', \u2192 '--font-display',",
+      "root_cause": "variable: '--font-jetbrains-mono', → '--font-display',",
+      "fix": "Changed variable: '--font-jetbrains-mono', → '--font-display',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -360,8 +360,8 @@
       "timestamp": "2026-05-24T03:02:11.654Z",
       "error_message": "CSS fix: md, hover",
       "file": "apps/web/components/shared/Header.tsx",
-      "root_cause": "md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name \u2192 gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" \u2192 bg-alert-soft transition-colors\"",
-      "fix": "Changed md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name \u2192 gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" \u2192 bg-alert-soft transition-colors\"",
+      "root_cause": "md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name → gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" → bg-alert-soft transition-colors\"",
+      "fix": "Changed md: inline-flex bg-[#17130F] text-amber-300 text-xs font-medium rounded-full px-3 py-1 border border-[#2D221A] max-w-[200px] truncate\" title={hotel.name → gap-3\">; hover: bg-red-950/30 hover:text-red-300 transition-colors\" → bg-alert-soft transition-colors\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -392,8 +392,8 @@
       "timestamp": "2026-05-24T03:02:51.879Z",
       "error_message": "CSS fix: OCCUPIED, PICKUP",
       "file": "apps/web/components/housekeeping/RoomCard.tsx",
-      "root_cause": "OCCUPIED: 'default', \u2192 'in_progress',; PICKUP: 'clean', \u2192 'pickup',",
-      "fix": "Changed OCCUPIED: 'default', \u2192 'in_progress',; PICKUP: 'clean', \u2192 'pickup',",
+      "root_cause": "OCCUPIED: 'default', → 'in_progress',; PICKUP: 'clean', → 'pickup',",
+      "fix": "Changed OCCUPIED: 'default', → 'in_progress',; PICKUP: 'clean', → 'pickup',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -409,7 +409,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/web/components/housekeeping/RoomCard.tsx",
       "root_cause": "3 lines replaced/restructured",
-      "fix": "Rewrote 3\u21926 lines (3 removed)",
+      "fix": "Rewrote 3→6 lines (3 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -424,8 +424,8 @@
       "timestamp": "2026-05-24T03:04:33.689Z",
       "error_message": "CSS fix: focus",
       "file": "apps/web/components/ai/AICopilotBubble.tsx",
-      "root_cause": "focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" \u2192 outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
-      "fix": "Changed focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" \u2192 outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
+      "root_cause": "focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" → outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
+      "fix": "Changed focus: outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400\" → outline-none focus:ring-2 focus:ring-[var(--ai-line)] focus:border-ai-line text-ink placeholder:text-ink4\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -457,7 +457,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/web/tailwind.config.ts",
       "root_cause": "10 lines replaced/restructured",
-      "fix": "Rewrote 11\u219219 lines (10 removed)",
+      "fix": "Rewrote 11→19 lines (10 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -473,7 +473,7 @@
       "error_message": "Wrong reference: total_rooms should be room_count",
       "file": "apps/web/components/shared/Sidebar.tsx",
       "root_cause": "Used \"total_rooms\" instead of \"room_count\"",
-      "fix": "Changed total_rooms \u2192 room_count",
+      "fix": "Changed total_rooms → room_count",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -488,8 +488,8 @@
       "timestamp": "2026-05-24T03:43:49.049Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/components/ui/Card.tsx",
-      "root_cause": "hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', \u2192 shadow-card-hover transition-shadow duration-150',",
-      "fix": "Changed hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', \u2192 shadow-card-hover transition-shadow duration-150',",
+      "root_cause": "hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', → shadow-card-hover transition-shadow duration-150',",
+      "fix": "Changed hover: shadow-card-hover hover:-translate-y-0.5 transition-all duration-200', → shadow-card-hover transition-shadow duration-150',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -504,8 +504,8 @@
       "timestamp": "2026-05-24T03:43:54.200Z",
       "error_message": "CSS fix: placeholder, focus, disabled",
       "file": "apps/web/components/ui/Input.tsx",
-      "root_cause": "placeholder: text-stone-300', \u2192 text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', \u2192 border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', \u2192 opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
-      "fix": "Changed placeholder: text-stone-300', \u2192 text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', \u2192 border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', \u2192 opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
+      "root_cause": "placeholder: text-stone-300', → text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', → border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', → opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
+      "fix": "Changed placeholder: text-stone-300', → text-ink4',; focus: border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none', → border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none',; disabled: opacity-50 disabled:bg-stone-100 disabled:cursor-not-allowed', → opacity-50 disabled:bg-surface-3 disabled:cursor-not-allowed',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -536,8 +536,8 @@
       "timestamp": "2026-05-24T04:46:22.939Z",
       "error_message": "CSS fix: activeBg, inactiveBg",
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "root_cause": "activeBg: 'bg-gray-600', \u2192 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', \u2192 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
-      "fix": "Changed activeBg: 'bg-gray-600', \u2192 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', \u2192 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
+      "root_cause": "activeBg: 'bg-gray-600', → 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', → 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
+      "fix": "Changed activeBg: 'bg-gray-600', → 'bg-ink3',; inactiveBg: 'bg-gray-100 text-gray-600 hover:bg-gray-200', → 'bg-surface-3 text-ink3 hover:bg-[var(--line)]',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -616,8 +616,8 @@
       "timestamp": "2026-05-24T04:59:31.977Z",
       "error_message": "CSS fix: background, row",
       "file": "apps/web/components/housekeeping/RoomCard.tsx",
-      "root_cause": "background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, \u2192 stripColor; row: housekeeper name + eta */ \u2192 room number + AI risk dot + VIP */",
-      "fix": "Changed background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, \u2192 stripColor; row: housekeeper name + eta */ \u2192 room number + AI risk dot + VIP */",
+      "root_cause": "background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, → stripColor; row: housekeeper name + eta */ → room number + AI risk dot + VIP */",
+      "fix": "Changed background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)`, → stripColor; row: housekeeper name + eta */ → room number + AI risk dot + VIP */",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -632,8 +632,8 @@
       "timestamp": "2026-05-24T05:01:16.386Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/app/(dashboard)/staff/page.tsx",
-      "root_cause": "hover: bg-[var(--alert-soft)] transition-colors\" \u2192 opacity-80 transition-opacity\">",
-      "fix": "Changed hover: bg-[var(--alert-soft)] transition-colors\" \u2192 opacity-80 transition-opacity\">",
+      "root_cause": "hover: bg-[var(--alert-soft)] transition-colors\" → opacity-80 transition-opacity\">",
+      "fix": "Changed hover: bg-[var(--alert-soft)] transition-colors\" → opacity-80 transition-opacity\">",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -848,8 +848,8 @@
       "timestamp": "2026-05-24T12:37:53.013Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "root_cause": "hover: border-line-2 hover:text-ink' \u2192 bg-surface-2'",
-      "fix": "Changed hover: border-line-2 hover:text-ink' \u2192 bg-surface-2'",
+      "root_cause": "hover: border-line-2 hover:text-ink' → bg-surface-2'",
+      "fix": "Changed hover: border-line-2 hover:text-ink' → bg-surface-2'",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -864,8 +864,8 @@
       "timestamp": "2026-05-24T12:38:27.562Z",
       "error_message": "CSS fix: STATUS_TONES, open, in_progress",
       "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
-      "root_cause": "STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { \u2192 Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', \u2192 'alert',; in_progress: 'ai', \u2192 'caution',",
-      "fix": "Changed STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { \u2192 Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', \u2192 'alert',; in_progress: 'ai', \u2192 'caution',",
+      "root_cause": "STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { → Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', → 'alert',; in_progress: 'ai', → 'caution',",
+      "fix": "Changed STATUS_TONES: Record<GuestRequestStatus, 'info' | 'ai' | 'alert' | 'ready'> = { → Record<GuestRequestStatus, 'alert' | 'caution' | 'ready'> = {; open: 'info', → 'alert',; in_progress: 'ai', → 'caution',",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -881,7 +881,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
       "root_cause": "3 lines replaced/restructured",
-      "fix": "Rewrote 5\u219217 lines (3 removed)",
+      "fix": "Rewrote 5→17 lines (3 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -897,7 +897,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 6\u21926 lines (5 removed) | Also: <Card className=\"p-4\">; <p className=\"text-2xl font-bold text-[var(--info) | Also: const ROLE_BADGE_COLORS: Record<UserRole, string> ; gm: 'bg-[var(--caution-soft)] text-[var(--caution) | Also: return (; <span | Also: <span className=\"inline-flex items-center px-2 py-; {member.custom_role_name}",
+      "fix": "Rewrote 6→6 lines (5 removed) | Also: <Card className=\"p-4\">; <p className=\"text-2xl font-bold text-[var(--info) | Also: const ROLE_BADGE_COLORS: Record<UserRole, string> ; gm: 'bg-[var(--caution-soft)] text-[var(--caution) | Also: return (; <span | Also: <span className=\"inline-flex items-center px-2 py-; {member.custom_role_name}",
       "tags": [
         "auto-detected",
         "refactor",
@@ -913,7 +913,7 @@
       "error_message": "Wrong reference: isLoading should be SectionLabel",
       "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
       "root_cause": "Used \"isLoading\" instead of \"SectionLabel\"",
-      "fix": "Changed isLoading \u2192 SectionLabel",
+      "fix": "Changed isLoading → SectionLabel",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -976,8 +976,8 @@
       "timestamp": "2026-05-24T13:24:06.523Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/components/shared/DeleteConfirmDialog.tsx",
-      "root_cause": "hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" \u2192 opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
-      "fix": "Changed hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" \u2192 opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
+      "root_cause": "hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" → opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
+      "fix": "Changed hover: bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2\" → opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -1024,8 +1024,8 @@
       "timestamp": "2026-05-24T13:25:56.881Z",
       "error_message": "CSS fix: hover",
       "file": "apps/web/app/(dashboard)/guest-requests/page.tsx",
-      "root_cause": "hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" \u2192 opacity-90 transition-opacity disabled:opacity-50\"",
-      "fix": "Changed hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" \u2192 opacity-90 transition-opacity disabled:opacity-50\"",
+      "root_cause": "hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" → opacity-90 transition-opacity disabled:opacity-50\"",
+      "fix": "Changed hover: bg-[var(--caution)] transition-colors disabled:opacity-50\" → opacity-90 transition-opacity disabled:opacity-50\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -1350,7 +1350,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/_layout.tsx",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 5\u21927 lines (5 removed)",
+      "fix": "Rewrote 5→7 lines (5 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -1381,8 +1381,8 @@
       "timestamp": "2026-05-24T17:43:53.633Z",
       "error_message": "CSS fix: backgroundColor",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "backgroundColor: \"#FEE2E2\", \u2192 \"#f5d8de\",",
-      "fix": "Changed backgroundColor: \"#FEE2E2\", \u2192 \"#f5d8de\",",
+      "root_cause": "backgroundColor: \"#FEE2E2\", → \"#f5d8de\",",
+      "fix": "Changed backgroundColor: \"#FEE2E2\", → \"#f5d8de\",",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -1397,8 +1397,8 @@
       "timestamp": "2026-05-24T17:44:16.897Z",
       "error_message": "CSS fix: label",
       "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "label: \"rooms.markClean\", status: \"CLEAN\", color: \"#2563EB\" \u2192 \"rooms.markClean\", status: \"CLEAN\", color: \"#265d8a\"",
-      "fix": "Changed label: \"rooms.markClean\", status: \"CLEAN\", color: \"#2563EB\" \u2192 \"rooms.markClean\", status: \"CLEAN\", color: \"#265d8a\"",
+      "root_cause": "label: \"rooms.markClean\", status: \"CLEAN\", color: \"#2563EB\" → \"rooms.markClean\", status: \"CLEAN\", color: \"#265d8a\"",
+      "fix": "Changed label: \"rooms.markClean\", status: \"CLEAN\", color: \"#2563EB\" → \"rooms.markClean\", status: \"CLEAN\", color: \"#265d8a\"",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -1446,7 +1446,7 @@
       "error_message": "Wrong reference: 1E40AF should be b8431c",
       "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
       "root_cause": "Used \"1E40AF\" instead of \"b8431c\"",
-      "fix": "Changed 1E40AF \u2192 b8431c",
+      "fix": "Changed 1E40AF → b8431c",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -1477,7 +1477,7 @@
       "timestamp": "2026-05-24T18:35:30.643Z",
       "error_message": "Missing error handling in unknown",
       "file": "apps/mobile/app/(app)/copilot/index.tsx",
-      "root_cause": "Code path had no error handling \u2014 exceptions would propagate uncaught",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
       "fix": "Added try/catch block",
       "tags": [
         "auto-detected",
@@ -1525,7 +1525,7 @@
       "timestamp": "2026-05-24T18:43:57.590Z",
       "error_message": "Missing error handling in unknown",
       "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "Code path had no error handling \u2014 exceptions would propagate uncaught",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
       "fix": "Added try/catch block",
       "tags": [
         "auto-detected",
@@ -1542,7 +1542,7 @@
       "error_message": "Wrong reference: 5000 should be 2000",
       "file": "apps/mobile/app/_layout.tsx",
       "root_cause": "Used \"5000\" instead of \"2000\"",
-      "fix": "Changed 5000 \u2192 2000",
+      "fix": "Changed 5000 → 2000",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -1567,6 +1567,178 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-24T20:49:30.246471Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-05-24T21:16:56.691326Z",
+      "error_message": "Housekeeping assignment removal tests failed because routers.housekeeping.delete_assignment does not exist.",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The app could save/reassign daily room assignments but had no tenant-scoped delete endpoint for unassigning a saved room.",
+      "fix": "Add DELETE /housekeeping/assignments/{assignment_id} that verifies tenant ownership, deletes the assignment, and clears room_status.assigned_to for that room.",
+      "tags": [
+        "housekeeping",
+        "assignments",
+        "delete",
+        "pytest"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:16:56.691326Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-05-24T21:22:57.756290Z",
+      "error_message": "Playwright auth setup failed waiting for heading /PatelRep/ on the login page; current login page heading is 'Welcome back to your hotel.'.",
+      "file": "e2e/auth.setup.ts",
+      "root_cause": "The login page design changed and PatelRep is no longer exposed as a heading, making the setup selector stale.",
+      "fix": "Use stable form controls (#email-pw, #password-pw) and the Sign In button for auth setup readiness instead of a branding heading.",
+      "tags": [
+        "playwright",
+        "auth-setup",
+        "login-selector"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:22:57.756290Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-05-24T21:41:31.254769Z",
+      "error_message": "Pending room assignment card showed 'Removing...' instead of 'Remove'.",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Pending assignments have no saved assignment_id, and the UI compared removingAssignmentId to room.assignment_id without checking that an assignment_id exists; null/undefined state could evaluate as currently removing.",
+      "fix": "Only pass isRemovingAssignment when the room has a saved assignment_id and it matches the active removingAssignmentId.",
+      "tags": [
+        "housekeeping",
+        "assignment-ui",
+        "null-check"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T21:41:31.254769Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-05-24T22:10:00.000000Z",
+      "error_message": "PowerShell Select-String command failed because an unquoted path contained '(dashboard)'.",
+      "file": "N/A",
+      "root_cause": "PowerShell parsed the parentheses in apps/web/app/(dashboard)/housekeeping as expression syntax when the path was not quoted.",
+      "fix": "Use rg for broad searches or quote dashboard route paths before passing them to PowerShell commands.",
+      "tags": [
+        "powershell",
+        "search",
+        "path-quoting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:10:00.000000Z"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-05-24T22:20:00.000000Z",
+      "error_message": "API pytest command failed because the venv path was incorrect from apps/api.",
+      "file": "N/A",
+      "root_cause": "Used ..\\.venv\\Scripts\\python while already inside apps/api; the API virtualenv lives at apps/api/.venv.",
+      "fix": "Run API checks from apps/api with .\\.venv\\Scripts\\python -m pytest ...",
+      "tags": [
+        "pytest",
+        "venv",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:20:00.000000Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-05-24T22:21:00.000000Z",
+      "error_message": "FULL and LIGHT room assignments preserved DIRTY instead of mapping stayover service to PICKUP.",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Assignment save only mirrored assigned_to to room_status and did not derive status from the Opera clean task code.",
+      "fix": "Added a shared room_status_for_clean_type helper and used it in housekeeping assignment save plus AI assignment confirmation; FULL/LIGHT map to PICKUP and DEP maps to DIRTY.",
+      "tags": [
+        "housekeeping",
+        "opera",
+        "clean-type",
+        "room-status"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:21:00.000000Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-05-24T22:36:00.000000Z",
+      "error_message": "Existing FULL/LIGHT assignments still displayed as Vacant Dirty on the housekeeping board.",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The write path updated future saves, but get_housekeeping_board returned the raw room_status.status for existing assignments whose stored status was still DIRTY.",
+      "fix": "Use an effective room status derived from today's assignment clean_type in board, my-rooms, assignment-list API responses, and realtime frontend merges.",
+      "tags": [
+        "housekeeping",
+        "board",
+        "clean-type",
+        "pickup"
+      ],
+      "related_bugs": [
+        "bug-102"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:36:00.000000Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-05-24T17:34:00-05:00",
+      "error_message": "User reported full and light clean showing as vacant dirty instead of a stayover pickup.",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Saved API responses already mapped FULL/LIGHT clean_type to PICKUP, but the supervisor board still used raw room status while clean-type assignments were pending or merged through frontend state.",
+      "fix": "Added shared web clean-type status helpers and decorated housekeeping display rooms with pending clean_type before status counts, filters, room cards, drawer queues, and supervisor header counts.",
+      "tags": [
+        "housekeeping",
+        "frontend",
+        "clean-type",
+        "pickup",
+        "pending-assignment"
+      ],
+      "related_bugs": [
+        "bug-102",
+        "bug-103"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T17:34:00-05:00"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-05-24T22:52:00.000000Z",
+      "error_message": "Mobile login fields stayed disabled when the app was opened via LAN IP.",
+      "file": "apps/web/next.config.mjs",
+      "root_cause": "Next dev server returned 403 for _next static chunks from the network IP origin, so React never hydrated and the login inputs remained disabled.",
+      "fix": "Configure allowedDevOrigins from local IPv4 network interfaces and restart Next dev bound to 0.0.0.0.",
+      "tags": [
+        "nextjs",
+        "mobile",
+        "dev-server",
+        "login",
+        "hydration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T22:52:00.000000Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-05-24T23:47:45.146Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"next dev\"",
+      "fix": "Changed to \"next dev --hostname 0.0.0.0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-24T23:47:45.146Z"
     }
   ]
 }
