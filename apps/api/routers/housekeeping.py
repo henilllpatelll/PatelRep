@@ -154,11 +154,12 @@ async def get_housekeeping_board(
 
 @router.get("/my-rooms")
 async def get_my_rooms(
+    assignment_date: Optional[date] = Query(None, alias="date"),
     current_user: CurrentUser = Depends(require_role("housekeeper")),
 ):
-    # Fetch today's assignments for this housekeeper from the assignments table
-    # (room_status.assigned_to persists across days, so we scope by assignment_date)
-    today = date.today()
+    # Accept client-supplied date (local hotel timezone) so Railway's UTC clock
+    # doesn't cause a mismatch after 7 PM CST when date.today() rolls to tomorrow.
+    today = assignment_date or date.today()
     assignments = (
         supabase.table("room_assignments")
         .select("id, room_id, assignment_date, clean_type")

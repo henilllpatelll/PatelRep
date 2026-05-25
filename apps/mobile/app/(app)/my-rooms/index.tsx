@@ -96,7 +96,9 @@ export default function MyRoomsScreen() {
   const loadRooms = useCallback(async () => {
     if (isOnline) {
       try {
-        const result = await api.get<{ data: Room[] }>("/housekeeping/my-rooms");
+        const today = new Date()
+        const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate}`);
         setMyRooms(result.data);
         await upsertRooms(result.data);
       } catch {

@@ -1,3 +1,4 @@
+import { format } from 'date-fns'
 import { apiClient } from '@/lib/api/client'
 import type { CleanType } from '@/lib/utils/cleanType'
 
@@ -112,7 +113,7 @@ export const housekeepingApi = {
     apiClient.get(`/rooms/${roomId}/history`),
 
   getMyRooms: () =>
-    apiClient.get('/housekeeping/my-rooms'),
+    apiClient.get('/housekeeping/my-rooms', { params: { date: format(new Date(), 'yyyy-MM-dd') } }),
 
   createInspectionTemplate: (data: {
     name: string

@@ -2039,3 +2039,14 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 18:47 | Edited apps/web/package.json | inline fix | ~12 |
 | 18:48 | Session end: 1 writes across 1 files (package.json) | 9 reads | ~12 tok |
 | 20:24 | Session end: 1 writes across 1 files (package.json) | 9 reads | ~12 tok |
+
+## Session: 2026-05-25 20:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:49 | Edited apps/api/routers/housekeeping.py | modified get_my_rooms() | ~113 |
+| 20:49 | Edited apps/web/lib/api/housekeeping.ts | added 1 import(s) | ~38 |
+| 20:49 | Edited apps/web/lib/api/housekeeping.ts | 2→2 lines | ~35 |
+| 20:49 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 1→3 lines | ~79 |
+| 21:00 | Fixed assigned rooms not showing for housekeepers: GET /my-rooms used date.today() UTC causing date mismatch after 7 PM CDT; added ?date= param to API, updated web+mobile to pass local date | housekeeping.py, housekeeping.ts, my-rooms/index.tsx | bug-109 logged | ~800 tok |
+| 20:50 | Session end: 4 writes across 3 files (housekeeping.py, housekeeping.ts, index.tsx) | 11 reads | ~12273 tok |

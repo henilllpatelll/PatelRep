@@ -76,6 +76,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-05-24] **GET /housekeeping/my-rooms must accept client date, not use date.today()** — Railway server runs UTC; `date.today()` rolls to tomorrow after 7 PM CDT. Assignments are stored with the client's local Texas date. Always accept `?date=YYYY-MM-DD` from the client and fall back to `date.today()` only as a last resort. Web client must pass `format(new Date(), 'yyyy-MM-dd')`, mobile must build the local date string manually (no date-fns on mobile).
+
 - [2026-05-24] **Check existing Supabase migration numbers before creating a new migration** — `041_escalation_level.sql` already existed, so the room assignment clean-type migration had to be renumbered to `042_room_assignment_clean_type.sql`.
 
 - [2026-05-24] **Do not use `room_status.id` or `user_roles.hotel_id` in assignment flows** — Room assignment payloads must use `rooms.id` / `room_id`. `user_roles` is tenant-scoped by `tenant_id`, not `hotel_id`; using `hotel_id` makes AI staff-name resolution return no housekeepers.
