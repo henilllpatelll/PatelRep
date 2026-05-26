@@ -1967,6 +1967,43 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-05-25T20:54:01.592Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-05-26T02:43:28.2195810-05:00",
+      "error_message": "Housekeeping tabs were missing for supervisor, GM, and front desk views.",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Commit 416811d removed the housekeeping sub-route pages and stripped the Housekeeping sidebar subNav, leaving only the parent nav item.",
+      "fix": "Restored the deleted assignment, inspection, and all-rooms route pages; added getHousekeepingSubNavItems() and wired Sidebar to show full tabs for GM/supervisor and board/all-rooms tabs for front desk.",
+      "tags": [
+        "housekeeping",
+        "navigation",
+        "sidebar",
+        "role-gating",
+        "web"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T02:43:28.2195810-05:00"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-05-26T02:43:28.2195810-05:00",
+      "error_message": "PowerShell git commands failed when route paths containing (dashboard) were not quoted.",
+      "file": "N/A",
+      "root_cause": "PowerShell parsed unquoted parentheses in apps/web/app/(dashboard)/housekeeping as expression syntax.",
+      "fix": "Used quoted pathspecs for git show/log/restore commands touching dashboard route paths.",
+      "tags": [
+        "powershell",
+        "git",
+        "path-quoting"
+      ],
+      "related_bugs": [
+        "bug-100",
+        "bug-115"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-05-26T02:43:28.2195810-05:00"
     }
   ]
 }

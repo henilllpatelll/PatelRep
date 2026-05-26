@@ -15,6 +15,7 @@ import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/stores/authStore'
+import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
 
 interface SubNavItem { href: string; label: string }
 interface NavItem { href: string; label: string; icon: React.ElementType; subNav?: SubNavItem[]; count?: number; tag?: string }
@@ -97,6 +98,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         .map(item =>
           item.href === '/housekeeping' && role === 'housekeeper'
             ? { ...item, label: 'My Rooms' }
+            : item.href === '/housekeeping'
+            ? {
+                ...item,
+                subNav: getHousekeepingSubNavItems(role),
+              }
             : item
         )
     : ALL_NAV_ITEMS

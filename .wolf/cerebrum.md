@@ -14,6 +14,7 @@
 
 ## Key Learnings
 
+- **Housekeeping tabs live in Sidebar subNav, not the page header (2026-05-26):** The GM/supervisor/front-desk Housekeeping tabs are nested under the Sidebar Housekeeping item. Keep role visibility centralized in `apps/web/lib/utils/housekeepingNavigation.ts`: GM/supervisor get Room Board, Assignments, Inspections, All Rooms; front desk gets Room Board and All Rooms; housekeepers get My Rooms with no supervisor tabs.
 - **Room status undo should use history, not guessed status targets (2026-05-25):** Accidental housekeeping taps need to revert the latest matching `room_status_history` row so stayover `PICKUP`, `IN_PROGRESS`, and `CLEAN` flows undo correctly. Skip prior undo notes when selecting the row so repeated undo moves back through the original cleaning steps rather than toggling redo.
 - **Mobile Jest must use the mobile React 19 pair (2026-05-25):** `apps/mobile/jest.config.js` should map `react` and `react/*` to `apps/mobile/node_modules`; mapping to the repo root React 18 breaks `react-test-renderer@19.1.0` with `Cannot read properties of undefined (reading 'S')`.
 

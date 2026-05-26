@@ -566,12 +566,15 @@
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
+- `page.tsx` — Housekeeping assignment summary page with date picker, AI auto-assign action, expandable housekeeper room rows. (~2450 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
+- `page.tsx` — Housekeeping inspection queue/history page with date/result filters and responsive desktop/mobile layouts. (~2900 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — All rooms management page with filters, CSV/manual import modal, delete confirmation, and room detail drawer. (~8200 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
@@ -625,7 +628,8 @@
 
 ## apps/web/components/shared/
 
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4451 tok)
+- `Sidebar.tsx` — Main role-filtered dashboard navigation with hotel switcher, nested subnav, and housekeeping role tabs. (~4550 tok)
+
 
 ## apps/web/components/ui/
 
@@ -644,6 +648,9 @@
 
 
 ## apps/web/lib/utils/
+
+- `housekeepingNavigation.ts` — Role-filtered housekeeping subnav/tab definitions for GM, supervisor, and front desk. (~120 tok)
+- `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
 
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)

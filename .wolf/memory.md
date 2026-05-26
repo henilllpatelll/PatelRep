@@ -2091,3 +2091,8 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 15:54 | Implemented tenant-scoped room status undo endpoint | apps/api/routers/rooms.py; apps/api/models/requests.py | ready to rerun focused API tests | ~2200 |
 | 16:07 | Wired web/mobile undo buttons and added mobile room detail test | apps/web; apps/mobile; .wolf/anatomy.md | ready for focused web/mobile/API verification | ~4200 |
 | 16:24 | Completed verification and recorded bug/cerebrum learnings | .wolf/buglog.json; .wolf/cerebrum.md | API/web/mobile checks green after fixing mobile Jest config and stale FlatList mock | ~2200 |
+| 02:35 | Assembled full manual QA workflow from repo scripts, E2E specs, and OpenWolf memory | package.json; playwright configs; e2e; apps/api/tests; apps/mobile | ready to hand off copyable test checklist | ~3500 |
+| 02:38 | Loaded OpenWolf protocol plus frontend/TDD/project web skills | .wolf; skills; apps/web | confirmed housekeeping subnav regression area | ~12000 |
+| 02:40 | Added failing housekeeping navigation regression test | apps/web/lib/utils/housekeepingNavigation.test.ts | type-check failed on missing helper as expected | ~400 |
+| 02:43 | Restored housekeeping route tabs and deleted subpages | Sidebar.tsx; housekeepingNavigation.ts; housekeeping subroutes | GM/supervisor/front-desk tabs restored with role-safe visibility; type-check and lint passed | ~2200 |
+| 02:45 | Completed final web verification | apps/web | role nav test, type-check, lint, and Next build passed; build route table includes restored housekeeping subroutes | ~800 |
