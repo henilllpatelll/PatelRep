@@ -2674,6 +2674,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T08:30:25.333Z"
+    },
+    {
+      "id": "bug-162",
+      "timestamp": "2026-05-27T08:36:36.154Z",
+      "error_message": "CSS fix: housekeeper",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "housekeeper: ['/dashboard','/housekeeping','/tasks','/logbook'], → ['/dashboard','/housekeeping','/tasks'],",
+      "fix": "Changed housekeeper: ['/dashboard','/housekeeping','/tasks','/logbook'], → ['/dashboard','/housekeeping','/tasks'],",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:36:36.154Z"
+    },
+    {
+      "id": "bug-163",
+      "timestamp": "2026-05-27T08:36:52.635Z",
+      "error_message": "Wrong reference: ALL_ROLES should be engineer",
+      "file": "apps/web/proxy.ts",
+      "root_cause": "Used \"ALL_ROLES\" instead of \"engineer\"",
+      "fix": "Changed ALL_ROLES → engineer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:36:52.635Z"
     }
   ]
 }

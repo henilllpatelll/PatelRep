@@ -43,7 +43,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
   gm: ['/dashboard','/housekeeping','/engineering','/guest-requests','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeping_supervisor: ['/dashboard','/housekeeping','/guest-requests','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeper:    ['/dashboard','/housekeeping','/tasks','/logbook'],
+  housekeeper:    ['/dashboard','/housekeeping','/tasks'],
   chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   engineer:       ['/dashboard','/engineering','/tasks','/logbook'],
   front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/guest-requests','/lost-found'],
