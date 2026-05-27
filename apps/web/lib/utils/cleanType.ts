@@ -9,7 +9,7 @@ export const CLEAN_TYPE_LABELS: Record<CleanType, string> = {
 export const CLEAN_TYPE_SHORT_LABELS: Record<CleanType, string> = {
   DEP: 'Departure',
   FULL: 'Full Linen',
-  LIGHT: 'Light',
+  LIGHT: 'Light Linen',
 }
 
 export const CLEAN_TYPE_OPTIONS: Array<{ value: CleanType; label: string; hint: string }> = [

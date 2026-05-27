@@ -4,7 +4,6 @@ import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
-import { housekeepingApi } from '@/lib/api/housekeeping'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { useRole } from '@/lib/hooks/useRole'
@@ -536,11 +535,6 @@ export default function RoomsPage() {
     },
   })
 
-  async function handleStatusChange(roomId: string, newStatus: string) {
-    await housekeepingApi.updateRoomStatus(roomId, newStatus)
-    queryClient.invalidateQueries({ queryKey: ['rooms'] })
-  }
-
   const { data, isLoading, isError, error } = useQuery<{ data: RoomStatus[] }>({
     queryKey: ['rooms'],
     queryFn: () => roomsApi.list(),
@@ -818,7 +812,6 @@ export default function RoomsPage() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
-        onStatusChange={handleStatusChange}
       />
     </div>
   )

@@ -2206,3 +2206,48 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 23:01 | designqc: captured 2 screenshots (61KB, ~5000 tok) | / | ready for eval | ~0 |
 | 23:02 | designqc: captured 2 screenshots (61KB, ~5000 tok) | / | ready for eval | ~0 |
+| 23:05 | Fixed clean-state undo permissions and inline undo confirmation UI | rooms.py, test_webhooks_and_transitions.py, RoomDetailDrawer.tsx, housekeeping/page.tsx, mobile i18n | API smoke 12/12, web type-check/lint, focused/full mobile tests, mobile type-check, JSON checks passed | ~2200 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~17 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | expanded (+7 lines) | ~84 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | added nullish coalescing | ~88 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: 2xl | ~81 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 3→3 lines | ~56 |
+| 23:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | "grid grid-cols-2 sm:grid-" → "grid grid-cols-2 sm:grid-" | ~34 |
+| 23:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 39→39 lines | ~505 |
+| 23:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | reduced (-18 lines) | ~60 |
+| 23:30 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | inline fix | ~14 |
+| 23:32 | Room board UI fixes: departure badge red+icon, remove redundant pills, normalize card heights, floor label mono, Light/FullLinen badge contrast, Assign mode button outline, responsive grid xl→5col | RoomCard.tsx, RoomStatusBoard.tsx, housekeeping/page.tsx | all confirmed in screenshot | ~3200 |
+| 23:32 | Session end: 9 writes across 3 files (RoomCard.tsx, RoomStatusBoard.tsx, page.tsx) | 8 reads | ~17055 tok |
+| 00:02 | Edited apps/web/lib/utils/cleanType.ts | "Light" → "Light Linen" | ~7 |
+| 00:02 | Edited apps/web/components/housekeeping/RoomCard.tsx | "clean" → "pickup" | ~6 |
+| 00:03 | Session end: 11 writes across 4 files (RoomCard.tsx, RoomStatusBoard.tsx, page.tsx, cleanType.ts) | 8 reads | ~17068 tok |
+| 00:04 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | "dark" → "primary" | ~15 |
+| 00:04 | Session end: 12 writes across 4 files (RoomCard.tsx, RoomStatusBoard.tsx, page.tsx, cleanType.ts) | 8 reads | ~17083 tok |
+| 00:06 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: CLEAN_TYPE_TEXT_COLOR | ~69 |
+| 00:06 | Edited apps/web/components/housekeeping/RoomCard.tsx | 16→13 lines | ~170 |
+| 00:07 | Session end: 14 writes across 4 files (RoomCard.tsx, RoomStatusBoard.tsx, page.tsx, cleanType.ts) | 8 reads | ~17445 tok |
+| 00:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: clean_type | ~110 |
+| 00:21 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | CSS: clean_type | ~81 |
+| 00:21 | Session end: 16 writes across 4 files (RoomCard.tsx, RoomStatusBoard.tsx, page.tsx, cleanType.ts) | 10 reads | ~27384 tok |
+
+## Session: 2026-05-27 00:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-27 00:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:10 | Added room activity board enrichment and regression coverage | apps/api/routers/housekeeping.py; apps/api/tests/smoke/test_housekeeping_assignments.py | Board/my-rooms now include latest_note and open_work_order fields; focused and full API tests pass | ~5200 |
+| 01:10 | Exposed work-order submission from room drawer for all staff | apps/web/components/housekeeping/RoomDetailDrawer.tsx | Housekeepers can submit work orders after tapping a room; note/WO saves refresh board cards | ~2700 |
+| 01:10 | Rendered compact note/work-order cues on room cards | apps/web/components/housekeeping/RoomCard.tsx; apps/web/app/(dashboard)/housekeeping/page.tsx | Supervisor cards and housekeeper rows show latest note/open WO; clean rooms no longer show housekeeper undo | ~3400 |
+| 01:10 | Ran verification for housekeeping room activity changes | apps/api; apps/web | API tests 172 passed; web type-check and lint passed; web build skipped because :3000 dev server is active | ~800 |
+| 01:22 | Removed status action controls from room detail drawer | apps/web/components/housekeeping/RoomDetailDrawer.tsx; RoomDetailDrawer call sites | Drawer now shows status info only, with note/work-order/history actions; status actions stay on room cards/lists | ~2200 |
+| 01:22 | Verified room drawer status-action removal | apps/web | Web type-check and lint passed; diff check passed with CRLF warnings only | ~500 |
+| 01:28 | Changed Add Note to button-driven drawer action | apps/web/components/housekeeping/RoomDetailDrawer.tsx | Add Note now appears beside Submit Work Order and opens a collapsible note form | ~900 |
+| 01:28 | Verified Add Note button drawer change | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~350 |
+| 01:31 | Removed duplicate Add Note/Work Order dropdown headers | apps/web/components/housekeeping/RoomDetailDrawer.tsx | Top action buttons now reveal forms directly without extra dropdown rows | ~650 |
+| 01:31 | Verified dropdown removal | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~300 |
+| 01:34 | Added Done confirmation and clean-state card undo | apps/web/app/(dashboard)/housekeeping/page.tsx | Done now requires Confirm Done/Cancel; Clean room rows show Undo with Confirm Undo/Cancel | ~950 |
+| 01:34 | Verified Done/Undo card confirmation update | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~350 |

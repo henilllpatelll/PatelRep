@@ -63,6 +63,57 @@ def _clean_type_payload(clean_type: str | None) -> dict:
     }
 
 
+def _attach_room_activity(rows: list[dict], hotel_id: str) -> list[dict]:
+    room_ids = [row.get("room_id") for row in rows if row.get("room_id")]
+    if not room_ids:
+        return rows
+
+    latest_note_by_room: dict[str, dict] = {}
+    note_result = (
+        supabase.table("room_status_history")
+        .select("room_id, notes, created_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", room_ids)
+        .order("created_at", desc=True)
+        .limit(max(len(room_ids) * 4, 50))
+        .execute()
+    )
+    for note in note_result.data or []:
+        room_id = note.get("room_id")
+        note_text = (note.get("notes") or "").strip()
+        if room_id and note_text and room_id not in latest_note_by_room:
+            latest_note_by_room[room_id] = note
+
+    open_work_order_by_room: dict[str, dict] = {}
+    work_order_result = (
+        supabase.table("work_orders")
+        .select("id, room_id, work_order_number, title, priority, status, created_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", room_ids)
+        .in_("status", ["open", "in_progress", "on_hold"])
+        .order("created_at", desc=True)
+        .limit(max(len(room_ids) * 2, 50))
+        .execute()
+    )
+    for work_order in work_order_result.data or []:
+        room_id = work_order.get("room_id")
+        if room_id and room_id not in open_work_order_by_room:
+            open_work_order_by_room[room_id] = work_order
+
+    for row in rows:
+        room_id = row.get("room_id")
+        note = latest_note_by_room.get(room_id)
+        work_order = open_work_order_by_room.get(room_id)
+        row["latest_note"] = (note.get("notes") or "").strip() if note else None
+        row["latest_note_at"] = note.get("created_at") if note else None
+        row["open_work_order_id"] = work_order.get("id") if work_order else None
+        row["open_work_order_number"] = work_order.get("work_order_number") if work_order else None
+        row["open_work_order_title"] = work_order.get("title") if work_order else None
+        row["open_work_order_priority"] = work_order.get("priority") if work_order else None
+        row["open_work_order_status"] = work_order.get("status") if work_order else None
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # GET /housekeeping/board
 # ---------------------------------------------------------------------------
@@ -145,6 +196,7 @@ async def get_housekeeping_board(
             "prediction": pred_map.get(room.get("room_id")),
         })
 
+    _attach_room_activity(rooms_with_predictions, current_user.hotel_id)
     return {"data": rooms_with_predictions}
 
 
@@ -204,6 +256,7 @@ async def get_my_rooms(
             "assignment_date": assignment.get("assignment_date"),
             **_clean_type_payload(clean_type),
         })
+    _attach_room_activity(rows, current_user.hotel_id)
     return {"data": rows}
 
 

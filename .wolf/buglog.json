@@ -2195,6 +2195,255 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T03:49:25.888Z"
+    },
+    {
+      "id": "bug-133",
+      "timestamp": "2026-05-27T04:05:00.000Z",
+      "error_message": "Clean room undo failed for assigned housekeeper/front desk paths.",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Undo permission only allowed GM/supervisor override or exact history changed_by match, so clean-state undo could reject assigned housekeepers when history attribution differed and front desk when the UI exposed undo.",
+      "fix": "Allowed front_desk role to use undo override and allowed assigned housekeepers to undo their assigned room's latest status change; added focused smoke coverage.",
+      "tags": [
+        "housekeeping",
+        "undo",
+        "clean-status",
+        "permissions",
+        "api"
+      ],
+      "related_bugs": [
+        "bug-117"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:05:00.000Z"
+    },
+    {
+      "id": "bug-134",
+      "timestamp": "2026-05-27T04:05:00.000Z",
+      "error_message": "Web type-check failed with TS1005/TS1381 after editing RoomDetailDrawer undo confirmation JSX.",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "The conditional render branch had an extra closing parenthesis after the fragment.",
+      "fix": "Removed the stray parenthesis and reran web type-check successfully.",
+      "tags": [
+        "web",
+        "typescript",
+        "jsx",
+        "undo"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:05:00.000Z"
+    },
+    {
+      "id": "bug-135",
+      "timestamp": "2026-05-27T04:05:00.000Z",
+      "error_message": "PowerShell search command failed because an unquoted path contained '(dashboard)'.",
+      "file": "N/A",
+      "root_cause": "PowerShell parsed apps/web/app/(dashboard)/housekeeping as expression syntax when the path was not quoted.",
+      "fix": "Reran searches with quoted route paths and targeted component directories.",
+      "tags": [
+        "powershell",
+        "search",
+        "path-quoting"
+      ],
+      "related_bugs": [
+        "bug-100",
+        "bug-121",
+        "bug-128"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:05:00.000Z"
+    },
+    {
+      "id": "bug-136",
+      "timestamp": "2026-05-27T04:29:09.516Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:29:09.516Z"
+    },
+    {
+      "id": "bug-137",
+      "timestamp": "2026-05-27T04:29:14.966Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:29:14.966Z"
+    },
+    {
+      "id": "bug-138",
+      "timestamp": "2026-05-27T04:29:20.847Z",
+      "error_message": "CSS fix: sm",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "sm: grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3\"> → grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3\">",
+      "fix": "Changed sm: grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3\"> → grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:29:20.847Z"
+    },
+    {
+      "id": "bug-139",
+      "timestamp": "2026-05-27T04:29:25.412Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had \"font-display text-[20px] font-normal text-ink tra",
+      "fix": "Changed to \"font-mono text-[12px] font-bold uppercase trackin",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-27T04:29:29.808Z"
+    },
+    {
+      "id": "bug-140",
+      "timestamp": "2026-05-27T04:29:53.613Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "18 lines replaced/restructured",
+      "fix": "Rewrote 25→7 lines (18 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T04:29:53.613Z"
+    },
+    {
+      "id": "bug-141",
+      "timestamp": "2026-05-27T05:02:56.002Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/utils/cleanType.ts",
+      "root_cause": "Had 'Light'",
+      "fix": "Changed to 'Light Linen'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T05:02:56.002Z"
+    },
+    {
+      "id": "bug-142",
+      "timestamp": "2026-05-27T05:02:59.893Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Had 'clean'",
+      "fix": "Changed to 'pickup'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T05:02:59.893Z"
+    },
+    {
+      "id": "bug-143",
+      "timestamp": "2026-05-27T05:04:10.696Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Had 'dark'",
+      "fix": "Changed to 'primary'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T05:04:10.696Z"
+    },
+    {
+      "id": "bug-144",
+      "timestamp": "2026-05-27T05:06:43.933Z",
+      "error_message": "CSS fix: DEP, FULL, LIGHT",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "DEP: 'dirty', → 'text-[var(--alert)]',; FULL: 'pickup', → 'text-[var(--caution)]',; LIGHT: 'pickup', → 'text-[var(--caution)]',",
+      "fix": "Changed DEP: 'dirty', → 'text-[var(--alert)]',; FULL: 'pickup', → 'text-[var(--caution)]',; LIGHT: 'pickup', → 'text-[var(--caution)]',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T05:06:43.933Z"
+    },
+    {
+      "id": "bug-145",
+      "timestamp": "2026-05-27T06:08:00.000Z",
+      "error_message": "PowerShell ParserError: The string is missing the terminator: \".",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "A broad rg command mixed quotes and paths with parentheses, causing PowerShell parsing to fail before rg ran.",
+      "fix": "Reran the search with smaller targeted commands and quoted dashboard paths.",
+      "tags": ["powershell", "search", "quoting"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:08:00.000Z"
+    },
+    {
+      "id": "bug-146",
+      "timestamp": "2026-05-27T06:13:00.000Z",
+      "error_message": "apps\\api\\.venv\\Scripts\\python.exe: No module named pytest",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "The API test command used apps\\api\\.venv\\Scripts\\python while the working directory was already apps/api, resolving to apps/api/apps/api/.venv.",
+      "fix": "Reran tests from apps/api with .\\.venv\\Scripts\\python.",
+      "tags": ["pytest", "windows-path", "verification"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:13:00.000Z"
+    },
+    {
+      "id": "bug-147",
+      "timestamp": "2026-05-27T06:15:00.000Z",
+      "error_message": "KeyError: 'latest_note' in test_board_includes_latest_note_and_open_work_order_for_room_cards",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The housekeeping board response did not enrich rooms with latest note or open work order fields, so room cards could not show recent activity.",
+      "fix": "Added tenant-scoped batched room activity enrichment for room_status_history notes and open work_orders, then attached the fields to board and my-rooms responses.",
+      "tags": ["housekeeping", "board", "room-card", "work-orders", "notes"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:15:00.000Z"
+    },
+    {
+      "id": "bug-148",
+      "timestamp": "2026-05-27T06:21:39.517Z",
+      "error_message": "Type '{ room: any; isOpen: boolean; onClose: () => void; onStatusChange: ... }' is not assignable to type 'Props'. Property 'onStatusChange' does not exist on type 'Props'.",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "After removing status actions from RoomDetailDrawer, other call sites still passed the old onStatusChange prop.",
+      "fix": "Removed stale RoomDetailDrawer status props from housekeeping rooms and settings rooms pages, and deleted now-unused status handler helpers.",
+      "tags": ["typescript", "room-detail-drawer", "housekeeping", "props"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:21:39.517Z"
     }
   ]
 }

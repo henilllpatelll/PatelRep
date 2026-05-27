@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   X,
@@ -13,7 +13,6 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
-  TriangleAlert,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -22,7 +21,6 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
-import { InspectionModal } from '@/components/housekeeping/InspectionModal'
 import { Button } from '@/components/ui/Button'
 
 const WO_CATEGORIES = [
@@ -40,27 +38,10 @@ interface Props {
   room: any | null
   isOpen: boolean
   onClose: () => void
-  onStatusChange: (roomId: string, newStatus: string) => void
-  onUndoStatus?: (roomId: string) => void
-  cleanQueue?: any[]
-  onNextRoom?: (room: any) => void
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
-
-// Valid status transitions
-const STATUS_TRANSITIONS: Record<RoomStatus, RoomStatus[]> = {
-  DIRTY: ['IN_PROGRESS', 'OOO'],
-  IN_PROGRESS: ['CLEAN', 'DIRTY'],
-  CLEAN: ['INSPECTED', 'DIRTY'],
-  INSPECTED: ['DIRTY'],
-  OOO: ['DIRTY'],
-  PICKUP: ['IN_PROGRESS', 'DIRTY', 'CLEAN'],
-  OCCUPIED: ['DIRTY'],
-  OUT_OF_ORDER: ['DIRTY'],
-  OUT_OF_SERVICE: ['DIRTY'],
-}
 
 function formatHistoryTimestamp(isoString: string): string {
   try {
@@ -154,51 +135,7 @@ function getStatusTextClass(status: string): string {
   }
 }
 
-function TransitionButton({
-  targetStatus,
-  onStatusChange,
-  roomId,
-}: {
-  targetStatus: RoomStatus
-  onStatusChange: (roomId: string, newStatus: string) => void
-  roomId: string
-}) {
-  const labels: Record<RoomStatus, string> = {
-    DIRTY: 'Mark Vacant Dirty',
-    IN_PROGRESS: 'Mark In Progress',
-    CLEAN: 'Mark Clean',
-    INSPECTED: 'Mark Ready',
-    OOO: 'Mark Out of Order',
-    PICKUP: 'Mark Pickup',
-    OCCUPIED: 'Mark Occupied',
-    OUT_OF_ORDER: 'Mark Out of Order',
-    OUT_OF_SERVICE: 'Mark Out of Order',
-  }
-
-  const variants: Record<RoomStatus, 'primary' | 'secondary' | 'destructive' | 'ghost'> = {
-    DIRTY: 'destructive',
-    IN_PROGRESS: 'primary',
-    CLEAN: 'secondary',
-    INSPECTED: 'primary',
-    OOO: 'ghost',
-    PICKUP: 'secondary',
-    OCCUPIED: 'secondary',
-    OUT_OF_ORDER: 'ghost',
-    OUT_OF_SERVICE: 'ghost',
-  }
-
-  return (
-    <Button
-      variant={variants[targetStatus]}
-      className="text-sm px-3 py-1.5"
-      onClick={() => onStatusChange(roomId, targetStatus)}
-    >
-      {labels[targetStatus]}
-    </Button>
-  )
-}
-
-export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndoStatus, cleanQueue, onNextRoom }: Props) {
+export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -206,16 +143,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
   const currentUser = useAuthStore((state) => state.user)
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
-  const [showInspectionModal, setShowInspectionModal] = useState(false)
-  const [showNextBanner, setShowNextBanner] = useState(false)
   const [showStatusHistory, setShowStatusHistory] = useState(false)
-  const [undoPending, setUndoPending] = useState(false)
 
   // â”€â”€ Note state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [noteText, setNoteText] = useState('')
   const [noteLoading, setNoteLoading] = useState(false)
   const [noteSuccess, setNoteSuccess] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
+  const [noteOpen, setNoteOpen] = useState(false)
 
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
@@ -235,6 +170,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
     setNoteText('')
     setNoteSuccess(false)
     setNoteError(null)
+    setNoteOpen(false)
     setWoOpen(false)
     setWoTitle('')
     setWoCategory('general')
@@ -242,21 +178,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
     setWoPriority('normal')
     setWoSuccess(null)
     setWoError(null)
-    setShowNextBanner(false)
     setShowStatusHistory(false)
-    setUndoPending(false)
   }, [roomId, isOpen])
-
-  const nextCleanRoom = useMemo(() => {
-    if (!cleanQueue?.length || !room) return null
-    const others = cleanQueue.filter((r) => r.room_id !== room.room_id)
-    return others[0] ?? null
-  }, [cleanQueue, room])
-
-  const remainingCount = useMemo(() => {
-    if (!cleanQueue || !room) return 0
-    return cleanQueue.filter((r) => r.room_id !== room.room_id).length
-  }, [cleanQueue, room])
 
   async function handleAddNote() {
     if (!noteText.trim() || !roomId) return
@@ -265,8 +188,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
     try {
       await housekeepingApi.addNote(roomId, noteText.trim())
       setNoteText('')
+      setNoteOpen(false)
       setNoteSuccess(true)
       setTimeout(() => setNoteSuccess(false), 4000)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
     } catch {
       setNoteError('Failed to save note. Please try again.')
@@ -295,6 +221,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
       const roomLabel = room?.rooms?.room_number ?? room?.room_number ?? roomId
       setWoSuccess(`Work order submitted â€” engineering team notified for Room ${roomLabel}`)
       setTimeout(() => setWoSuccess(null), 6000)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
     } catch {
       setWoError('Failed to submit work order. Please try again.')
     } finally {
@@ -333,36 +261,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
       drawerRef.current.focus()
     }
   }, [isOpen])
-
-  // Available transitions based on role
-  const allTransitions = STATUS_TRANSITIONS[status] ?? []
-  const canShowUndo = !!onUndoStatus && (
-    status === 'IN_PROGRESS' ||
-    status === 'CLEAN' ||
-    (status === 'INSPECTED' && canSupervise)
-  )
-  const handleUndoClick = () => {
-    if (!roomId || !onUndoStatus) return
-    if (!undoPending) {
-      setUndoPending(true)
-      return
-    }
-    setUndoPending(false)
-    onUndoStatus(roomId)
-  }
-  const availableTransitions = allTransitions.filter((t) => {
-    if (isHousekeeper) {
-      // Housekeepers can only move DIRTYâ†’IN_PROGRESS and IN_PROGRESSâ†’CLEAN
-      return (
-        (status === 'DIRTY' && t === 'IN_PROGRESS') ||
-        (status === 'PICKUP' && (t === 'IN_PROGRESS' || t === 'CLEAN')) ||
-        (status === 'IN_PROGRESS' && t === 'CLEAN')
-      )
-    }
-    // Supervisors and GMs can do all transitions
-    if (canSupervise) return true
-    return false
-  })
 
   const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? 'â€”'
   const roomTypeName = room?.rooms?.room_types?.name ?? room?.room_type_name ?? ''
@@ -474,6 +372,24 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                 {actionNote}
               </div>
             )}
+            <div className="mb-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setNoteOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Add Note
+              </button>
+              <button
+                type="button"
+                onClick={() => setWoOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Submit Work Order
+              </button>
+            </div>
 
             {status === 'OOO' && (openWorkOrder || maintenanceNote) && (
               <div className="flex items-start gap-2 bg-gray-50 rounded-lg p-2 mb-3 text-xs text-gray-600">
@@ -482,55 +398,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   {openWorkOrder && <p className="font-medium">WO-{openWorkOrder} open</p>}
                   {maintenanceNote && <p className="mt-0.5">{maintenanceNote}</p>}
                 </div>
-              </div>
-            )}
-
-            {(availableTransitions.length > 0 || (status === 'CLEAN' && canSupervise) || canShowUndo) && (
-              <div className="flex flex-wrap gap-2">
-                {status === 'CLEAN' && canSupervise && (
-                  <Button
-                    variant="primary"
-                    className="text-sm px-3 py-1.5"
-                    onClick={() => setShowInspectionModal(true)}
-                  >
-                    Inspect &amp; Mark Clean
-                  </Button>
-                )}
-                {availableTransitions.map((t) => (
-                  <TransitionButton
-                    key={t}
-                    targetStatus={t}
-                    onStatusChange={(id, s) => { onStatusChange(id, s); }}
-                    roomId={room.room_id}
-                  />
-                ))}
-                {canShowUndo && roomId && (
-                  undoPending ? (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="destructive"
-                        className="text-sm px-3 py-1.5"
-                        onClick={handleUndoClick}
-                      >
-                        Confirm undo
-                      </Button>
-                      <button
-                        onClick={() => setUndoPending(false)}
-                        className="text-xs text-ink3 hover:text-ink"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      className="text-sm px-3 py-1.5"
-                      onClick={handleUndoClick}
-                    >
-                      Undo Last Step
-                    </Button>
-                  )
-                )}
               </div>
             )}
           </div>
@@ -542,14 +409,15 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
               <span>{woSuccess}</span>
             </div>
           )}
+          {noteSuccess && (
+            <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-[var(--ready-soft)] border border-[var(--ready-line)] px-3 py-2 text-xs text-[var(--ready)]">
+              <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
+              <span>Note saved</span>
+            </div>
+          )}
 
-          {/* Add Note Section */}
-          <div className="p-4 border-b border-white/60">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5" />
-              Add Note
-            </h3>
-            <div className="space-y-2">
+          {noteOpen && (
+          <div id="room-add-note-form" className="p-4 border-b border-white/60 space-y-2">
               <textarea
                 aria-label="Add room note"
                 value={noteText}
@@ -572,39 +440,21 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   )}
                   {noteLoading ? 'Savingâ€¦' : 'Save Note'}
                 </Button>
-                {noteSuccess && (
-                  <span className="text-xs text-[var(--ready)] font-medium flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" /> Note saved
-                  </span>
-                )}
                 {noteError && (
                   <span className="text-xs text-[var(--alert)]">{noteError}</span>
                 )}
+                <button
+                  onClick={() => setNoteOpen(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Report Issue and advanced sections — supervisors/GMs only */}
-          {!isHousekeeper && <div className="p-4 border-b border-white/60">
-            <button
-              onClick={() => setWoOpen((v) => !v)}
-              aria-expanded={woOpen}
-              aria-controls="room-report-issue-form"
-              className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide"
-            >
-              <span className="flex items-center gap-1.5">
-                <TriangleAlert className="w-3.5 h-3.5 text-orange-400" />
-                Report Issue
-              </span>
-              {woOpen ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              )}
-            </button>
-
-            {woOpen && (
-              <div id="room-report-issue-form" className="mt-3 space-y-2.5">
+          {woOpen && (
+          <div id="room-report-issue-form" className="p-4 border-b border-white/60 space-y-2.5">
                 <div>
                   <label htmlFor="room-wo-title" className="block text-xs text-gray-500 mb-1">Issue title <span className="text-[var(--alert)]">*</span></label>
                   <input
@@ -682,9 +532,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   <p className="text-xs text-[var(--alert)]">{woError}</p>
                 )}
               </div>
-            )}
-          </div>
-          }
+          )}
 
           {/* AI Prediction and Status History — supervisors/GMs/front_desk only */}
           {!isHousekeeper && <>
@@ -828,43 +676,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
           </>}
         </div>
 
-        {/* Inspect queue banner â€” shown after a successful inspection when more CLEAN rooms exist */}
-        {showNextBanner && nextCleanRoom && (
-          <div className="shrink-0 border-t border-[var(--ready-line)] bg-[var(--ready-soft)] px-4 py-3 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-[var(--ready)] shrink-0" />
-            <span className="text-sm text-green-800 flex-1 leading-tight">
-              Inspected Â· <strong>{remainingCount}</strong> room{remainingCount !== 1 ? 's' : ''} left
-            </span>
-            <button
-              onClick={() => { setShowNextBanner(false); onNextRoom!(nextCleanRoom) }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shrink-0"
-            >
-              Next â†’
-            </button>
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-300 text-[var(--ready)] hover:bg-green-100 transition-colors shrink-0"
-            >
-              Done
-            </button>
-          </div>
-        )}
       </div>
-
-      <InspectionModal
-        roomId={room?.room_id ?? ''}
-        roomNumber={roomNumber}
-        isOpen={showInspectionModal}
-        onClose={() => setShowInspectionModal(false)}
-        onSuccess={() => {
-          setShowInspectionModal(false)
-          if (nextCleanRoom && onNextRoom) {
-            setShowNextBanner(true)
-          } else {
-            onClose()
-          }
-        }}
-      />
     </>
   )
 }

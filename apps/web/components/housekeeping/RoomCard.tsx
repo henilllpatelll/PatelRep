@@ -1,11 +1,10 @@
 'use client'
 
-import { Clock, User, Wrench } from 'lucide-react'
-import { useRole } from '@/lib/hooks/useRole'
+import { Clock, LogOut, MessageSquare, User, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
-import { Pill, StatusDot, AILabel } from '@/components/ui/primitives'
+import { Pill } from '@/components/ui/primitives'
 
 // ── Status → border color ─────────────────────────────────────────────────────
 const STATUS_BORDER: Record<string, string> = {
@@ -53,6 +52,13 @@ const STATUS_PILL_TONE: Record<string, 'dirty' | 'progress' | 'clean' | 'inspect
   OCCUPIED:       'dirty',
   VACANT:         'neutral',
   BLOCKED:        'neutral',
+}
+
+// ── Clean type → text color ───────────────────────────────────────────────────
+const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
+  DEP:   'text-[var(--alert)]',
+  FULL:  'text-[var(--caution)]',
+  LIGHT: 'text-[var(--caution)]',
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -109,9 +115,14 @@ export function RoomCard({
     room.user_profiles?.preferred_name ?? room.user_profiles?.full_name ?? null
   const roomNumber: string = room.rooms?.room_number ?? room.room_number ?? '—'
   const vipFlag: boolean = !!room.vip_flag
-  const openWorkOrder: string | null = room.open_work_order_number ?? null
+  const openWorkOrder: string | number | null = room.open_work_order_number ?? null
+  const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
+  const latestNote: string | null = room.latest_note ?? room.maintenance_note ?? null
   const roomTypeName: string | null = room.rooms?.room_types?.name ?? null
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
+  const workOrderLabel = openWorkOrder
+    ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`
+    : openWorkOrderTitle
 
   const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
   const etaTime = formatTime(prediction?.predicted_ready_at)
@@ -194,16 +205,18 @@ export function RoomCard({
       {roomTypeName && (
         <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
       )}
-      {cleanTypeLabel && (
-        <Pill tone="neutral" size="sm">{cleanTypeLabel}</Pill>
-      )}
-
-      {/* Status pill */}
-      <div className="mt-auto flex items-center justify-between gap-1 flex-wrap">
+      {/* Status pill + clean type inline */}
+      <div className="mt-auto flex items-center gap-1.5 flex-wrap">
         <Pill tone={pillTone} size="sm" striped={isOccupied}>
           {statusLabel}
           {isOccupied && etaTime ? ` · ${etaTime}` : ''}
         </Pill>
+        {cleanTypeLabel && (
+          <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3')}>
+            {room.clean_type === 'DEP' && <LogOut className="w-2.5 h-2.5" />}
+            {cleanTypeLabel}
+          </span>
+        )}
       </div>
 
       {/* Assignee row */}
@@ -221,10 +234,20 @@ export function RoomCard({
           <span className="text-[11px] font-mono text-ink3">{checkinTime}</span>
         </div>
       )}
-      {status === 'OOO' && openWorkOrder && (
-        <div className="flex items-center gap-0.5">
-          <Wrench className="w-3 h-3 text-ink3" />
-          <span className="text-[11px] font-mono text-ink3">WO-{openWorkOrder}</span>
+      {(workOrderLabel || latestNote) && (
+        <div className="mt-0.5 space-y-0.5">
+          {workOrderLabel && (
+            <div className="flex items-center gap-1 min-w-0 text-[11px] text-orange-700">
+              <Wrench className="w-3 h-3 shrink-0" />
+              <span className="truncate">{workOrderLabel}</span>
+            </div>
+          )}
+          {latestNote && (
+            <div className="flex items-center gap-1 min-w-0 text-[11px] text-ink3">
+              <MessageSquare className="w-3 h-3 shrink-0" />
+              <span className="truncate">{latestNote}</span>
+            </div>
+          )}
         </div>
       )}
 

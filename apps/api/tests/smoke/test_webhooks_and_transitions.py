@@ -232,7 +232,7 @@ async def test_room_status_undo_rejects_other_housekeeper_change(monkeypatch):
             "room_id": "room-1",
             "tenant_id": "hotel-a",
             "status": "CLEAN",
-            "assigned_to": "hk-1",
+            "assigned_to": "hk-3",
         }],
         "room_status_history": [{
             "id": "hist-1",
@@ -255,6 +255,74 @@ async def test_room_status_undo_rejects_other_housekeeper_change(monkeypatch):
     assert exc.value.status_code == 403
     assert db.rows["room_status"][0]["status"] == "CLEAN"
     assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_room_status_undo_allows_assigned_housekeeper_clean_rollback(monkeypatch):
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "CLEAN",
+            "assigned_to": "hk-1",
+        }],
+        "room_status_history": [{
+            "id": "hist-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "from_status": "IN_PROGRESS",
+            "to_status": "CLEAN",
+            "changed_by": "hk-2",
+            "created_at": "2026-05-25T15:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.undo_room_status(
+        "room-1",
+        current_user=HOUSEKEEPER,
+    )
+
+    assert response["data"]["status"] == "IN_PROGRESS"
+    assert db.rows["room_status"][0]["status"] == "IN_PROGRESS"
+
+
+@pytest.mark.asyncio
+async def test_room_status_undo_allows_front_desk_clean_rollback(monkeypatch):
+    front_desk = CurrentUser(
+        user_id="fd-1",
+        hotel_id="hotel-a",
+        role="front_desk",
+        email="fd@example.com",
+    )
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "CLEAN",
+            "assigned_to": "hk-1",
+        }],
+        "room_status_history": [{
+            "id": "hist-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "from_status": "IN_PROGRESS",
+            "to_status": "CLEAN",
+            "changed_by": "hk-1",
+            "created_at": "2026-05-25T15:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.undo_room_status(
+        "room-1",
+        current_user=front_desk,
+    )
+
+    assert response["data"]["status"] == "IN_PROGRESS"
+    assert db.rows["room_status"][0]["status"] == "IN_PROGRESS"
 
 
 @pytest.mark.asyncio

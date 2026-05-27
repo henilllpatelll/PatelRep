@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { MessageSquare, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
@@ -22,7 +23,7 @@ import {
 } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
-import { Pill, StatusDot } from '@/components/ui/primitives'
+import { Pill } from '@/components/ui/primitives'
 
 // -- Shift options -------------------------------------------------------------
 
@@ -242,6 +243,7 @@ function HousekeeperRoomItem({
   onOpenDetail: (room: any) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [donePending, setDonePending] = useState(false)
   const [undoPending, setUndoPending] = useState(false)
   const [showHint] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -254,6 +256,12 @@ function HousekeeperRoomItem({
   const status: string = room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
+  const latestNote: string | null = room.latest_note ?? room.maintenance_note ?? null
+  const openWorkOrder = room.open_work_order_number ?? null
+  const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
+  const workOrderLabel = openWorkOrder
+    ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`
+    : openWorkOrderTitle
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
@@ -265,15 +273,38 @@ function HousekeeperRoomItem({
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
+  useEffect(() => {
+    setDonePending(false)
+    setUndoPending(false)
+  }, [status])
+
   async function handle(newStatus: string, e: React.MouseEvent) {
     e.stopPropagation()
     setLoading(true)
     try { await onAction(room.room_id, newStatus) } finally { setLoading(false) }
   }
 
+  function handleDonePress(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!donePending) {
+      setUndoPending(false)
+      setDonePending(true)
+      return
+    }
+    setDonePending(false)
+    setLoading(true)
+    onAction(room.room_id, 'CLEAN').finally(() => setLoading(false))
+  }
+
+  function cancelDone(e: React.MouseEvent) {
+    e.stopPropagation()
+    setDonePending(false)
+  }
+
   function handleUndoPress(e: React.MouseEvent) {
     e.stopPropagation()
     if (!undoPending) {
+      setDonePending(false)
       setUndoPending(true)
       return
     }
@@ -287,6 +318,29 @@ function HousekeeperRoomItem({
     setUndoPending(false)
   }
 
+  const doneButton = donePending ? (
+    <div className="flex flex-col gap-1 items-end">
+      <button
+        disabled={loading}
+        onClick={handleDonePress}
+        className="px-4 py-1.5 bg-[var(--ready)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
+      >
+        Confirm Done
+      </button>
+      <button onClick={cancelDone} className="px-3 py-1 text-ink3 text-xs">
+        Cancel
+      </button>
+    </div>
+  ) : (
+    <button
+      disabled={loading}
+      onClick={handleDonePress}
+      className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+    >
+      {loading ? '...' : 'Done'}
+    </button>
+  )
+
   const undoButton = undoPending ? (
     <div className="flex flex-col gap-1 items-end">
       <button
@@ -294,7 +348,7 @@ function HousekeeperRoomItem({
         onClick={handleUndoPress}
         className="px-4 py-1.5 bg-[var(--alert)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
       >
-        Confirm
+        Confirm Undo
       </button>
       <button onClick={cancelUndo} className="px-3 py-1 text-ink3 text-xs">
         Cancel
@@ -334,6 +388,22 @@ function HousekeeperRoomItem({
           )}
         </div>
         {showHint && <p className="text-xs text-ink3 mt-1">Tap for notes &amp; issues</p>}
+        {(workOrderLabel || latestNote) && (
+          <div className="mt-2 space-y-1">
+            {workOrderLabel && (
+              <div className="flex items-center gap-1.5 min-w-0 text-xs text-orange-700">
+                <Wrench className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{workOrderLabel}</span>
+              </div>
+            )}
+            {latestNote && (
+              <div className="flex items-center gap-1.5 min-w-0 text-xs text-ink3">
+                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{latestNote}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 text-right">
@@ -348,14 +418,16 @@ function HousekeeperRoomItem({
         )}
         {status === 'IN_PROGRESS' && (
           <div className="flex flex-col gap-1.5 items-end">
-            <button
-              disabled={loading}
-              onClick={(e) => handle('CLEAN', e)}
-              className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {loading ? '...' : 'Done'}
-            </button>
-            {undoButton}
+            {donePending ? (
+              doneButton
+            ) : undoPending ? (
+              undoButton
+            ) : (
+              <>
+                {doneButton}
+                {undoButton}
+              </>
+            )}
           </div>
         )}
         {status === 'CLEAN' && (
@@ -412,6 +484,7 @@ function HousekeeperMyRoomsView() {
       return {
         ...room,
         ...statusRow,
+        clean_type: room.clean_type,
         status: getEffectiveRoomStatusForCleanType(statusRow.status, room.clean_type),
       }
     }
@@ -530,8 +603,6 @@ function HousekeeperMyRoomsView() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
-        onStatusChange={handleAction}
-        onUndoStatus={handleUndo}
       />
     </div>
   )
@@ -595,31 +666,13 @@ function SupervisorHousekeepingPage() {
     [pendingAssignmentCleanTypes, rooms],
   )
 
-  const needAttention = displayRooms.filter((r) => r.status === 'DIRTY' || r.status === 'IN_PROGRESS').length
-  const readyRooms = displayRooms.filter((r) => r.status === 'INSPECTED').length
-  const dirtyRooms = displayRooms.filter((r) => r.status === 'DIRTY').length
-
   return (
     <div className="space-y-4">
       {/* Page header */}
       <PageHeader
         eyebrow="Housekeeping"
         title="Room status board"
-        meta={
-          <>
-            <Pill tone="ready" size="md">
-              <span className="font-mono">{readyRooms} ready</span>
-            </Pill>
-            <Pill tone="progress" size="md">
-              <span className="font-mono">{needAttention - dirtyRooms} in progress</span>
-            </Pill>
-            <Pill tone="dirty" size="md">
-              <span className="font-mono">{dirtyRooms} vacant dirty</span>
-            </Pill>
-            <span className="text-ink4 text-xs">&middot;</span>
-            <SyncBadge lastSyncedAt={lastSyncedAt} />
-          </>
-        }
+        meta={<SyncBadge lastSyncedAt={lastSyncedAt} />}
         actions={
           <>
             {/* Date navigation */}

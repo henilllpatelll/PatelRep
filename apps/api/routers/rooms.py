@@ -37,7 +37,7 @@ for _s in OOO_SOURCES:
     ALLOWED_TRANSITIONS[(_s, "OOO")] = {"gm", "housekeeping_supervisor"}
 ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = {"gm", "housekeeping_supervisor"}
 
-UNDO_ALL_ROLES = {"gm", "housekeeping_supervisor"}
+UNDO_ALL_ROLES = {"gm", "housekeeping_supervisor", "front_desk"}
 
 
 def _validate_transition(from_status: str | None, to_status: str, role: str) -> None:
@@ -73,10 +73,12 @@ def _find_latest_matching_status_change(history_rows: list[dict], current_status
     return None
 
 
-def _validate_undo_permission(history_row: dict, current_user: CurrentUser) -> None:
+def _validate_undo_permission(history_row: dict, current_user: CurrentUser, room_status_data: dict) -> None:
     if current_user.role in UNDO_ALL_ROLES:
         return
     if history_row.get("changed_by") == current_user.user_id:
+        return
+    if current_user.role == "housekeeper" and room_status_data.get("assigned_to") == current_user.user_id:
         return
     raise HTTPException(
         status_code=403,
@@ -342,7 +344,7 @@ async def undo_room_status(
     if not history_row:
         raise HTTPException(status_code=409, detail="No matching status change to undo")
 
-    _validate_undo_permission(history_row, current_user)
+    _validate_undo_permission(history_row, current_user, current_row.data)
 
     undo_to_status = history_row["from_status"]
     now_iso = datetime.now(timezone.utc).isoformat()

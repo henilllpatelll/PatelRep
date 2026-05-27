@@ -6,7 +6,6 @@ import { Upload, ChevronDown, Trash2 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { roomsApi, type RoomStatus } from '@/lib/api/rooms'
-import { housekeepingApi } from '@/lib/api/housekeeping'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { RoomsImportModal } from '@/components/settings/RoomsImportModal'
@@ -85,11 +84,6 @@ export default function RoomsSettingsPage() {
       setConfirmDeleteRoomId(null)
     },
   })
-
-  async function handleRoomStatusChange(roomId: string, newStatus: string) {
-    await housekeepingApi.updateRoomStatus(roomId, newStatus)
-    queryClient.invalidateQueries({ queryKey: ['rooms'] })
-  }
 
   return (
     <div className="space-y-4 max-w-4xl">
@@ -278,7 +272,6 @@ export default function RoomsSettingsPage() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
-        onStatusChange={handleRoomStatusChange}
       />
     </div>
   )

@@ -37,7 +37,7 @@ function SkeletonGrid() {
   return (
     <div className="space-y-6">
       <div className="h-5 w-40 bg-surface-3 rounded animate-pulse" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="h-[116px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
         ))}
@@ -212,6 +212,7 @@ export function RoomStatusBoard() {
       return {
         ...room,
         ...statusRow,
+        clean_type: room.clean_type,
         status: nextStatus,
         rooms: room.rooms,
         prediction: room.prediction,
@@ -288,23 +289,6 @@ export function RoomStatusBoard() {
     queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
     queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
-  }
-
-  const handleUndoStatus = async (roomId: string) => {
-    try {
-      const response: any = await housekeepingApi.undoRoomStatus(roomId)
-      const nextStatus = response?.data?.status
-      if (nextStatus) {
-        setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status: nextStatus } : prev)
-      }
-    } catch {
-      setAssignError('Failed to undo the last room step. Please try again.')
-      setTimeout(() => setAssignError(null), 3000)
-    } finally {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
-      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
-      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
-    }
   }
 
   const handleRemoveSavedAssignment = useCallback(async (assignmentId: string) => {
@@ -413,14 +397,14 @@ export function RoomStatusBoard() {
               <div key={floor}>
                 {/* Floor divider header */}
                 <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
-                  <h3 className="font-display text-[20px] font-normal text-ink tracking-[-0.2px]">
+                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2">
                     {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
                   </h3>
                   <span className="font-mono text-[11px] text-ink3">
                     {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
                   {floorRooms.map((room) => (
                     <RoomCard
                       key={room.room_id}
@@ -451,12 +435,6 @@ export function RoomStatusBoard() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
-        onStatusChange={(roomId: string, newStatus: string) =>
-          handleStatusChange(roomId, newStatus)
-        }
-        onUndoStatus={handleUndoStatus}
-        cleanQueue={displayRooms.filter((r: any) => r.status === 'CLEAN')}
-        onNextRoom={(next: any) => setSelectedRoom(next)}
       />
     </div>
   )

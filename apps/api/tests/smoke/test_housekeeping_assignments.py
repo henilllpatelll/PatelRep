@@ -35,6 +35,8 @@ class FakeQuery:
         self.payload = None
         self.filters = []
         self.in_filters = []
+        self.orders = []
+        self.limit_count = None
         self.single = False
         self.conflict_columns = []
 
@@ -65,10 +67,12 @@ class FakeQuery:
         self.in_filters.append((column, set(values)))
         return self
 
-    def limit(self, *_args, **_kwargs):
+    def limit(self, count, *_args, **_kwargs):
+        self.limit_count = count
         return self
 
-    def order(self, *_args, **_kwargs):
+    def order(self, column, desc=False, **_kwargs):
+        self.orders.append((column, desc))
         return self
 
     def maybe_single(self):
@@ -78,6 +82,10 @@ class FakeQuery:
     def execute(self):
         rows = self.db.rows.setdefault(self.table_name, [])
         matched = self._matched(rows)
+        for column, desc in reversed(self.orders):
+            matched = sorted(matched, key=lambda row: row.get(column) or "", reverse=desc)
+        if self.limit_count is not None:
+            matched = matched[:self.limit_count]
 
         if self.action == "select":
             return SimpleNamespace(data=matched[0] if self.single and matched else matched)
@@ -190,6 +198,75 @@ async def test_board_uses_selected_date_assignments_not_stale_room_status(monkey
     assert by_room[room_unassigned_today]["assignment_id"] is None
     assert by_room[room_unassigned_today]["clean_type"] is None
     assert by_room[room_unassigned_today]["status"] == "DIRTY"
+
+
+@pytest.mark.asyncio
+async def test_board_includes_latest_note_and_open_work_order_for_room_cards(monkeypatch):
+    room_id = "22222222-2222-4222-8222-222222222222"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": None,
+            "status": "DIRTY",
+            "rooms": {"floor": 1, "room_number": "101"},
+        }],
+        "room_assignments": [],
+        "room_readiness_predictions": [],
+        "room_status_history": [
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Old note",
+                "created_at": "2026-05-24T13:00:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "TV remote missing",
+                "created_at": "2026-05-24T14:00:00+00:00",
+            },
+        ],
+        "work_orders": [
+            {
+                "id": "wo-complete",
+                "tenant_id": SUPERVISOR.hotel_id,
+                "room_id": room_id,
+                "work_order_number": 11,
+                "title": "Completed old issue",
+                "priority": "low",
+                "status": "completed",
+                "created_at": "2026-05-24T13:30:00+00:00",
+            },
+            {
+                "id": "wo-open",
+                "tenant_id": SUPERVISOR.hotel_id,
+                "room_id": room_id,
+                "work_order_number": 12,
+                "title": "A/C not cooling",
+                "priority": "urgent",
+                "status": "open",
+                "created_at": "2026-05-24T14:30:00+00:00",
+            },
+        ],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    room = response["data"][0]
+    assert room["latest_note"] == "TV remote missing"
+    assert room["latest_note_at"] == "2026-05-24T14:00:00+00:00"
+    assert room["open_work_order_id"] == "wo-open"
+    assert room["open_work_order_number"] == 12
+    assert room["open_work_order_title"] == "A/C not cooling"
+    assert room["open_work_order_priority"] == "urgent"
+    assert room["open_work_order_status"] == "open"
 
 
 @pytest.mark.asyncio
