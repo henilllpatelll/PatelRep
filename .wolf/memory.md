@@ -2199,3 +2199,10 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 5→6 lines | ~27 |
 | session | HK UX simplification | page.tsx, RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, roomStatus.ts | Removed DnD, window.confirm → inline 2-step, slimmed drawer by role, unified labels, cards are pure display tiles | ~2800 |
 | 22:54 | Session end: 14 writes across 5 files (roomStatus.ts, RoomStatusBoard.tsx, RoomCard.tsx, page.tsx, RoomDetailDrawer.tsx) | 6 reads | ~22132 tok |
+
+## Session: 2026-05-27 23:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:01 | designqc: captured 2 screenshots (61KB, ~5000 tok) | / | ready for eval | ~0 |
+| 23:02 | designqc: captured 2 screenshots (61KB, ~5000 tok) | / | ready for eval | ~0 |

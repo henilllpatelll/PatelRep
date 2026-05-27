@@ -3,11 +3,11 @@
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
     "total_tokens_estimated": 5250343,
-    "total_reads": 3241,
+    "total_reads": 3243,
     "total_writes": 2071,
-    "total_sessions": 131,
+    "total_sessions": 132,
     "anatomy_hits": 986,
-    "anatomy_misses": 2209,
+    "anatomy_misses": 2211,
     "repeated_reads_blocked": 1097,
     "estimated_savings_vs_bare_cli": 3746880
   },
@@ -34398,6 +34398,34 @@
         "reads_count": 6,
         "writes_count": 14,
         "repeated_reads_blocked": 3,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-05-27-2300",
+      "started": "2026-05-27T04:00:58.239Z",
+      "ended": "2026-05-27T04:06:10.309Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
         "anatomy_lookups": 0
       }
     }
