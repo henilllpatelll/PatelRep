@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:40:18.110Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:47:36.823Z
 > Files: 66 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
@@ -678,7 +678,7 @@
 
 ## apps/web/components/shared/
 
-- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2525 tok)
+- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2585 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4463 tok)
 
 ## apps/web/components/ui/

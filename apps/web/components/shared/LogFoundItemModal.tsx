@@ -109,9 +109,9 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreat
         aria-modal="true"
         aria-labelledby="log-found-item-title"
         tabIndex={-1}
-        className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6"
+        className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]"
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <div>
             <h2 id="log-found-item-title" className="text-lg font-semibold text-gray-900">Log Found Item</h2>
             {roomNumber && (
@@ -123,7 +123,7 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreat
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto px-6 pb-6 space-y-4">
           {/* Photo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -131,16 +131,17 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreat
             </label>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
             {photoPreview ? (
-              <div className="relative rounded-lg overflow-hidden border border-line h-32">
+              <div className="relative rounded-xl overflow-hidden border border-line bg-stone-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                <img src={photoPreview} alt="Preview" className="w-full max-h-52 object-contain" />
                 <button
                   type="button"
                   onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
-                  className="absolute top-1.5 right-1.5 p-1 bg-white/80 rounded-full hover:bg-white transition-colors"
+                  className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-white/90 rounded-full text-xs font-medium text-gray-700 hover:bg-white shadow-sm transition-colors border border-gray-200"
                   aria-label="Remove photo"
                 >
-                  <X className="w-3.5 h-3.5 text-gray-700" />
+                  <X className="w-3 h-3" />
+                  Remove
                 </button>
               </div>
             ) : (
@@ -202,7 +203,7 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreat
             <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pt-1 shrink-0">
             <button type="button" onClick={handleClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               Cancel
             </button>

@@ -2722,6 +2722,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T08:40:18.133Z"
+    },
+    {
+      "id": "bug-165",
+      "timestamp": "2026-05-27T08:47:25.818Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/shared/LogFoundItemModal.tsx",
+      "root_cause": "hover: bg-white transition-colors\" → bg-white shadow-sm transition-colors border border-gray-200\"",
+      "fix": "Changed hover: bg-white transition-colors\" → bg-white shadow-sm transition-colors border border-gray-200\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:47:25.818Z"
+    },
+    {
+      "id": "bug-166",
+      "timestamp": "2026-05-27T08:47:36.850Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/LogFoundItemModal.tsx",
+      "root_cause": "Had \"flex gap-3 pt-1\"",
+      "fix": "Changed to \"flex gap-3 pt-1 shrink-0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:47:36.850Z"
     }
   ]
 }
