@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:36:52.613Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:40:18.110Z
 > Files: 66 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
@@ -542,7 +542,7 @@
 ## apps/web/
 
 - `package.json` — Node.js package manifest (~449 tok)
-- `proxy.ts` — API routes: GET (1 endpoints) (~1627 tok)
+- `proxy.ts` — API routes: GET (1 endpoints) (~1623 tok)
 
 ## apps/web/app/
 
@@ -679,7 +679,7 @@
 ## apps/web/components/shared/
 
 - `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2525 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4466 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4463 tok)
 
 ## apps/web/components/ui/
 

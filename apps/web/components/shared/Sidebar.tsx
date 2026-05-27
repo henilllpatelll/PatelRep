@@ -45,7 +45,7 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
   housekeeping_supervisor: ['/dashboard','/housekeeping','/guest-requests','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/tasks'],
   chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  engineer:       ['/dashboard','/engineering','/tasks','/logbook'],
+  engineer:       ['/dashboard','/engineering','/tasks'],
   front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/guest-requests','/lost-found'],
 }
 

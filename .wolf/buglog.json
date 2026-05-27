@@ -2688,8 +2688,8 @@
         "tsx"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-05-27T08:36:36.154Z"
+      "occurrences": 2,
+      "last_seen": "2026-05-27T08:40:07.087Z"
     },
     {
       "id": "bug-163",
@@ -2706,6 +2706,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T08:36:52.635Z"
+    },
+    {
+      "id": "bug-164",
+      "timestamp": "2026-05-27T08:40:18.133Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/proxy.ts",
+      "root_cause": "Had 'engineer'",
+      "fix": "Changed to 'housekeeping_supervisor'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:40:18.133Z"
     }
   ]
 }

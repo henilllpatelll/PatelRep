@@ -20,9 +20,9 @@
     "semantic_hash": "ee92342918af7b3bcc20aa4208517981"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1779871012.6368346,
-    "ast_hash": "6741c97151944a1f0b3619a8d8d74975",
-    "semantic_hash": "6741c97151944a1f0b3619a8d8d74975"
+    "mtime": 1779871218.134328,
+    "ast_hash": "1ec896e4e8072416e36cfe35ad6feff8",
+    "semantic_hash": "1ec896e4e8072416e36cfe35ad6feff8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1779871016.512011,
-    "ast_hash": "a4b0c2348ae91518c6863f9847f234a6",
-    "semantic_hash": "a4b0c2348ae91518c6863f9847f234a6"
+    "mtime": 1779871220.556399,
+    "ast_hash": "b0af013b2e494e95d655ecc3f3fb1508",
+    "semantic_hash": "b0af013b2e494e95d655ecc3f3fb1508"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1779638262.3881073,
@@ -750,9 +750,9 @@
     "semantic_hash": "762a94d1749c8e97eebf3f94102e8eb2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\proxy.ts": {
-    "mtime": 1779871012.3845212,
-    "ast_hash": "2a3990c9ec463359f7812aa71abfb2f5",
-    "semantic_hash": "2a3990c9ec463359f7812aa71abfb2f5"
+    "mtime": 1779871217.8702178,
+    "ast_hash": "c1f2c3838e058faa7c07e255eef508f2",
+    "semantic_hash": "c1f2c3838e058faa7c07e255eef508f2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\tailwind.config.ts": {
     "mtime": 1779635792.163356,
@@ -1080,9 +1080,9 @@
     "semantic_hash": "2d18cdcb0f88f5a8453e5508de8b03c4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Sidebar.tsx": {
-    "mtime": 1779870995.8682926,
-    "ast_hash": "feb9948b0548238388b9090b42d90832",
-    "semantic_hash": "feb9948b0548238388b9090b42d90832"
+    "mtime": 1779871206.8211935,
+    "ast_hash": "cfce62dcb455c124ff93715983455d14",
+    "semantic_hash": "cfce62dcb455c124ff93715983455d14"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\TweaksPanel.tsx": {
     "mtime": 1779630715.0720744,
@@ -1790,9 +1790,9 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1779871012.6284692,
-    "ast_hash": "1e85d37854bd23c707b60eb3bc3bd3a5",
-    "semantic_hash": "1e85d37854bd23c707b60eb3bc3bd3a5"
+    "mtime": 1779871218.1260116,
+    "ast_hash": "7e5744db9981078ea49fb4dcf88a0abd",
+    "semantic_hash": "7e5744db9981078ea49fb4dcf88a0abd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
     "mtime": 1779866742.5399559,
@@ -1805,9 +1805,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1779871016.512011,
-    "ast_hash": "7ff01b91acc8e2ecc4c233a3fc2486f0",
-    "semantic_hash": "7ff01b91acc8e2ecc4c233a3fc2486f0"
+    "mtime": 1779871220.556399,
+    "ast_hash": "a34e9dd31d4450e1fa43bb5a31e1a543",
+    "semantic_hash": "a34e9dd31d4450e1fa43bb5a31e1a543"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,

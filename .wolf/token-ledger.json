@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 5478075,
-    "total_reads": 3408,
-    "total_writes": 2337,
+    "total_tokens_estimated": 5482639,
+    "total_reads": 3410,
+    "total_writes": 2341,
     "total_sessions": 135,
-    "anatomy_hits": 1025,
-    "anatomy_misses": 2337,
+    "anatomy_hits": 1026,
+    "anatomy_misses": 2338,
     "repeated_reads_blocked": 1129,
-    "estimated_savings_vs_bare_cli": 4004191
+    "estimated_savings_vs_bare_cli": 4004391
   },
   "sessions": [
     {
@@ -36999,6 +36999,55 @@
         "output_tokens_estimated": 49,
         "reads_count": 2,
         "writes_count": 2,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-27-0335",
+      "started": "2026-05-27T08:35:58.245Z",
+      "ended": "2026-05-27T08:40:20.541Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 4469,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 32,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts",
+          "tokens_estimated": 29,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 4469,
+        "output_tokens_estimated": 95,
+        "reads_count": 2,
+        "writes_count": 4,
         "repeated_reads_blocked": 0,
         "anatomy_lookups": 1
       }
