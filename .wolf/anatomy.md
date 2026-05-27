@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-25T02:37:47.733Z
-> Files: 25 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T03:03:48.493Z
+> Files: 49 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -17,6 +17,7 @@
 
 ## .claude/
 
+- `settings.json` (~570 tok)
 
 ## .claude/rules/
 
@@ -463,8 +464,8 @@
 
 ## apps/mobile/
 
-- `package.json` — Node.js package manifest (~526 tok)
 - `jest.config.js` — Expo/Jest config with workspace-local React mapping and module aliases. (~160 tok)
+- `package.json` — Node.js package manifest (~526 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -475,7 +476,6 @@
 ## apps/mobile/__tests__/screens/
 
 - `RoomDetail.test.tsx` — Jest/React Native coverage for my-room detail undo action calling room status undo endpoint. (~220 tok)
-
 
 ## apps/mobile/app/
 
@@ -593,12 +593,38 @@
 
 ## apps/web/app/(dashboard)/settings/
 
+- `layout.tsx` — NAV_GROUPS (~1415 tok)
+- `page.tsx` — SettingsPage (~34 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
 
+## apps/web/app/(dashboard)/settings/departments/
+
+- `page.tsx` — DEPARTMENTS (~877 tok)
+
+## apps/web/app/(dashboard)/settings/front-desk/
+
+- `page.tsx` — FRONT_DESK_MODULES (~1770 tok)
+
+## apps/web/app/(dashboard)/settings/general/
+
+- `page.tsx` — hotelProfileSchema — renders form (~2986 tok)
+
+## apps/web/app/(dashboard)/settings/inspections/
+
+- `page.tsx` — InspectionsSettingsPage (~1929 tok)
+
 ## apps/web/app/(dashboard)/settings/integrations/
 
+
+## apps/web/app/(dashboard)/settings/roles/
+
+- `page.tsx` — RolesSettingsPage (~1686 tok)
+
+## apps/web/app/(dashboard)/settings/rooms/
+
+- `page.tsx` — RoomsStatusBadge — renders table (~3394 tok)
 
 ## apps/web/app/(dashboard)/sop/
 
@@ -626,10 +652,15 @@
 ## apps/web/components/housekeeping/
 
 
+## apps/web/components/settings/
+
+- `RoleForm.tsx` — EMPTY_ROLE_FORM (~2610 tok)
+- `RoomsImportModal.tsx` — EMPTY_IMPORT_ROW — renders table (~4514 tok)
+- `TemplateForm.tsx` — INSPECTION_SECTIONS (~2680 tok)
+
 ## apps/web/components/shared/
 
-- `Sidebar.tsx` — Main role-filtered dashboard navigation with hotel switcher, nested subnav, and housekeeping role tabs. (~4550 tok)
-
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4469 tok)
 
 ## apps/web/components/ui/
 
@@ -649,11 +680,10 @@
 
 ## apps/web/lib/utils/
 
-- `housekeepingNavigation.ts` — Role-filtered housekeeping subnav/tab definitions for GM, supervisor, and front desk. (~120 tok)
-- `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
-
-- `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
+- `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
+- `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
+- `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~227 tok)
 
 ## apps/web/stores/
 
@@ -673,4 +703,11 @@
 ## e2e/helpers/
 
 
+## graphify-out/
+
+- `.graphify_chunk_01.json` (~15132 tok)
+- `.graphify_chunk_02.json` (~9905 tok)
+- `auto_update.py` (~1320 tok)
+
 ## supabase/migrations/
+

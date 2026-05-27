@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
-  FileText, Library, Settings, CreditCard, Bell, ClipboardList,
+  FileText, Library, Settings, Bell, ClipboardList,
   Package, Sparkles, ChevronDown,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
@@ -70,7 +70,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { role, canViewBilling } = useRole()
+  const { role } = useRole()
   const { user } = useAuth()
   const { hotel, hotels, setHotel } = useHotelStore()
   const customRoleModules = useAuthStore((state) => state.customRoleModules)
@@ -107,9 +107,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         )
     : ALL_NAV_ITEMS
 
-  const settingsItem: NavItem = { href: '/settings',         label: 'Settings', icon: Settings }
-  const billingItem:  NavItem = { href: '/settings/billing', label: 'Billing',  icon: CreditCard }
-  const bottomItems = role === 'gm' ? [settingsItem, ...(canViewBilling ? [billingItem] : [])] : []
+  const settingsItem: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
+  const bottomItems = role === 'gm' ? [settingsItem] : []
 
   const opsItems   = visibleNavItems.filter(i => OPERATIONS_HREFS.includes(i.href))
   const intelItems = visibleNavItems.filter(i => INTELLIGENCE_HREFS.includes(i.href))

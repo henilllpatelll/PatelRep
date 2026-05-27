@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "react-native";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 
 const mockSetMyRooms = jest.fn();
@@ -62,7 +63,28 @@ beforeEach(() => {
 });
 
 describe("RoomDetailScreen", () => {
-  it("calls room status undo when Undo Last Step is pressed", async () => {
+  it("asks for confirmation before undoing the last room status step", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    const { getByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("rooms.undoLastStep")).toBeTruthy());
+    fireEvent.press(getByText("rooms.undoLastStep"));
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      "rooms.confirmUndoTitle",
+      "rooms.confirmUndoMessage",
+      expect.arrayContaining([
+        expect.objectContaining({ text: "common.cancel", style: "cancel" }),
+        expect.objectContaining({ text: "rooms.confirmUndoAction", style: "destructive" }),
+      ])
+    );
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("calls room status undo after confirmation", async () => {
+    jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      buttons?.find((button) => button.text === "rooms.confirmUndoAction")?.onPress?.();
+    });
     const { getByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(getByText("rooms.undoLastStep")).toBeTruthy());

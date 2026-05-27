@@ -76,7 +76,7 @@ export default function RoomDetailScreen() {
     }
   }
 
-  async function handleUndoStatus() {
+  async function performUndoStatus() {
     if (!room) return;
     setUpdating(true);
 
@@ -102,6 +102,21 @@ export default function RoomDetailScreen() {
     } finally {
       setUpdating(false);
     }
+  }
+
+  function handleUndoStatus() {
+    if (!room) return;
+
+    Alert.alert(t("rooms.confirmUndoTitle"), t("rooms.confirmUndoMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("rooms.confirmUndoAction"),
+        style: "destructive",
+        onPress: () => {
+          void performUndoStatus();
+        },
+      },
+    ]);
   }
 
   if (loading) {

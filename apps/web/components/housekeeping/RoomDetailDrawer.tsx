@@ -286,6 +286,12 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
     status === 'CLEAN' ||
     (status === 'INSPECTED' && canSupervise)
   )
+  const handleUndoClick = () => {
+    if (!roomId || !onUndoStatus) return
+    const confirmed = window.confirm('Undo last step? Use this only if the last status tap was a mistake.')
+    if (!confirmed) return
+    onUndoStatus(roomId)
+  }
   const availableTransitions = allTransitions.filter((t) => {
     if (isHousekeeper) {
       // Housekeepers can only move DIRTYâ†’IN_PROGRESS and IN_PROGRESSâ†’CLEAN
@@ -431,7 +437,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   <Button
                     variant="secondary"
                     className="text-sm px-3 py-1.5"
-                    onClick={() => onUndoStatus(roomId)}
+                    onClick={handleUndoClick}
                   >
                     Undo Last Step
                   </Button>

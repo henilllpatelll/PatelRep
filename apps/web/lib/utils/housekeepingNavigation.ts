@@ -9,12 +9,10 @@ const SUPERVISOR_HOUSEKEEPING_TABS: HousekeepingSubNavItem[] = [
   { href: '/housekeeping', label: 'Room Board' },
   { href: '/housekeeping/assignments', label: 'Assignments' },
   { href: '/housekeeping/inspections', label: 'Inspections' },
-  { href: '/housekeeping/rooms', label: 'All Rooms' },
 ]
 
 const FRONT_DESK_HOUSEKEEPING_TABS: HousekeepingSubNavItem[] = [
   { href: '/housekeeping', label: 'Room Board' },
-  { href: '/housekeeping/rooms', label: 'All Rooms' },
 ]
 
 export function getHousekeepingSubNavItems(role: UserRole | null | undefined): HousekeepingSubNavItem[] {
