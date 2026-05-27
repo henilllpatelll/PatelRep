@@ -2251,3 +2251,7 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:31 | Verified dropdown removal | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~300 |
 | 01:34 | Added Done confirmation and clean-state card undo | apps/web/app/(dashboard)/housekeeping/page.tsx | Done now requires Confirm Done/Cancel; Clean room rows show Undo with Confirm Undo/Cancel | ~950 |
 | 01:34 | Verified Done/Undo card confirmation update | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~350 |
+| 01:47 | Investigated local room-status reset path | supabase/config.toml; apps/api/.env; apps/web/.env.local | Local Supabase/Docker unavailable; local app env points to hosted Supabase, so no reset was run | ~1700 |
+| 01:50 | Matched housekeeper clean-type styling to room board | apps/web/app/(dashboard)/housekeeping/page.tsx | DEP/FULL/LIGHT indicators now use same icon/color treatment as RoomCard | ~650 |
+| 01:50 | Made room drawer action buttons toggle forms closed | apps/web/components/housekeeping/RoomDetailDrawer.tsx | Add Note and Submit Work Order buttons now hide their form when clicked again | ~350 |
+| 01:50 | Verified clean-type and drawer toggle updates | apps/web | Web type-check and lint passed; diff check passed with CRLF warnings only | ~300 |

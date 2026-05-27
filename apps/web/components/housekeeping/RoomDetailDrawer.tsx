@@ -375,7 +375,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
             <div className="mb-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setNoteOpen(true)}
+                onClick={() => setNoteOpen((value) => !value)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
               >
                 <MessageSquare className="h-3.5 w-3.5" />
@@ -383,7 +383,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => setWoOpen(true)}
+                onClick={() => setWoOpen((value) => !value)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
               >
                 <Wrench className="h-3.5 w-3.5" />

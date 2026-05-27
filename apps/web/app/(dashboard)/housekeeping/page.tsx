@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Wrench } from 'lucide-react'
+import { LogOut, MessageSquare, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
@@ -33,6 +33,12 @@ const SHIFTS = [
   { value: 'evening', label: 'Evening' },
   { value: 'night', label: 'Night' },
 ]
+
+const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
+  DEP: 'text-[var(--alert)]',
+  FULL: 'text-[var(--caution)]',
+  LIGHT: 'text-[var(--caution)]',
+}
 
 // -- Live sync badge -----------------------------------------------------------
 
@@ -382,7 +388,8 @@ function HousekeeperRoomItem({
             {cfg.label}
           </span>
           {cleanTypeLabel && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-ink2 border border-line">
+            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
+              {room.clean_type === 'DEP' && <LogOut className="h-2.5 w-2.5" />}
               {cleanTypeLabel}
             </span>
           )}

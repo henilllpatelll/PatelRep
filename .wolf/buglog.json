@@ -2444,6 +2444,30 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:21:39.517Z"
+    },
+    {
+      "id": "bug-149",
+      "timestamp": "2026-05-27T06:47:21.608Z",
+      "error_message": "Local reset blocked: Supabase local status failed because Docker Desktop Linux engine pipe was missing; local Postgres 5432 rejected postgres password.",
+      "file": "supabase/config.toml",
+      "root_cause": "The Supabase local stack is not running, Docker Desktop is unavailable, and the Windows Postgres service is not accessible with default credentials.",
+      "fix": "Did not run any remote reset. Verified apps/web/.env.local and apps/api/.env point to the hosted Supabase project, so local app data is not isolated from the linked cloud database.",
+      "tags": ["local-db", "supabase", "docker", "postgres", "data-reset"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:47:21.608Z"
+    },
+    {
+      "id": "bug-150",
+      "timestamp": "2026-05-27T06:50:13.930Z",
+      "error_message": "Housekeeper view departure/full/light clean is not the same color or symbol as it is on room board view.",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Housekeeper room rows rendered clean_type as a neutral pill while RoomCard rendered clean_type as inline colored text with a departure icon.",
+      "fix": "Changed the housekeeper clean-type marker to use the same alert/caution text colors and departure LogOut icon as the room board card.",
+      "tags": ["housekeeping", "ui-consistency", "clean-type", "room-card"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T06:50:13.930Z"
     }
   ]
 }
