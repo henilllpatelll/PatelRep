@@ -254,6 +254,7 @@ class CreateLostFoundRequest(BaseModel):
     room_id: Optional[UUID4] = None
     location_found: Optional[str] = None
     notes: Optional[str] = None
+    photo_url: Optional[str] = None
 
 
 # --- Logbook ---

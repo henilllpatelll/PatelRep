@@ -110,5 +110,18 @@
   "profile": {
     "title": "Perfil",
     "hotel": "Hotel"
+  },
+  "foundItem": {
+    "button": "Objeto Encontrado",
+    "title": "Reportar Objeto Encontrado",
+    "room": "Cuarto {{room}}",
+    "addPhoto": "Agregar Foto",
+    "takePhoto": "Tomar Foto",
+    "chooseGallery": "Elegir de Galería",
+    "descriptionPlaceholder": "Describe el objeto (ej. cartera, cargador, chaqueta)...",
+    "submit": "Reportar Objeto Encontrado",
+    "offlineError": "Conéctate a internet para reportar un objeto encontrado.",
+    "cameraPermissionTitle": "Acceso a la Cámara",
+    "cameraPermissionMessage": "Permite el acceso a la cámara para fotografiar el objeto."
   }
 }

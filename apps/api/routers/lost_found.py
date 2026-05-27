@@ -20,6 +20,7 @@ async def create_lost_found_item(
         "room_id": str(request.room_id) if request.room_id else None,
         "location_found": request.location_found,
         "notes": request.notes,
+        "photo_url": request.photo_url,
         "found_by": current_user.user_id,
         "status": "unclaimed",
     }

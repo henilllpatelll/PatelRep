@@ -2404,7 +2404,11 @@
       "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
       "root_cause": "A broad rg command mixed quotes and paths with parentheses, causing PowerShell parsing to fail before rg ran.",
       "fix": "Reran the search with smaller targeted commands and quoted dashboard paths.",
-      "tags": ["powershell", "search", "quoting"],
+      "tags": [
+        "powershell",
+        "search",
+        "quoting"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:08:00.000Z"
@@ -2416,7 +2420,11 @@
       "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
       "root_cause": "The API test command used apps\\api\\.venv\\Scripts\\python while the working directory was already apps/api, resolving to apps/api/apps/api/.venv.",
       "fix": "Reran tests from apps/api with .\\.venv\\Scripts\\python.",
-      "tags": ["pytest", "windows-path", "verification"],
+      "tags": [
+        "pytest",
+        "windows-path",
+        "verification"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:13:00.000Z"
@@ -2428,7 +2436,13 @@
       "file": "apps/api/routers/housekeeping.py",
       "root_cause": "The housekeeping board response did not enrich rooms with latest note or open work order fields, so room cards could not show recent activity.",
       "fix": "Added tenant-scoped batched room activity enrichment for room_status_history notes and open work_orders, then attached the fields to board and my-rooms responses.",
-      "tags": ["housekeeping", "board", "room-card", "work-orders", "notes"],
+      "tags": [
+        "housekeeping",
+        "board",
+        "room-card",
+        "work-orders",
+        "notes"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:15:00.000Z"
@@ -2440,7 +2454,12 @@
       "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
       "root_cause": "After removing status actions from RoomDetailDrawer, other call sites still passed the old onStatusChange prop.",
       "fix": "Removed stale RoomDetailDrawer status props from housekeeping rooms and settings rooms pages, and deleted now-unused status handler helpers.",
-      "tags": ["typescript", "room-detail-drawer", "housekeeping", "props"],
+      "tags": [
+        "typescript",
+        "room-detail-drawer",
+        "housekeeping",
+        "props"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:21:39.517Z"
@@ -2452,7 +2471,13 @@
       "file": "supabase/config.toml",
       "root_cause": "The Supabase local stack is not running, Docker Desktop is unavailable, and the Windows Postgres service is not accessible with default credentials.",
       "fix": "Did not run any remote reset. Verified apps/web/.env.local and apps/api/.env point to the hosted Supabase project, so local app data is not isolated from the linked cloud database.",
-      "tags": ["local-db", "supabase", "docker", "postgres", "data-reset"],
+      "tags": [
+        "local-db",
+        "supabase",
+        "docker",
+        "postgres",
+        "data-reset"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:47:21.608Z"
@@ -2464,10 +2489,191 @@
       "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
       "root_cause": "Housekeeper room rows rendered clean_type as a neutral pill while RoomCard rendered clean_type as inline colored text with a departure icon.",
       "fix": "Changed the housekeeper clean-type marker to use the same alert/caution text colors and departure LogOut icon as the room board card.",
-      "tags": ["housekeeping", "ui-consistency", "clean-type", "room-card"],
+      "tags": [
+        "housekeeping",
+        "ui-consistency",
+        "clean-type",
+        "room-card"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T06:50:13.930Z"
+    },
+    {
+      "id": "bug-151",
+      "timestamp": "2026-05-27T07:37:43.561Z",
+      "error_message": "CSS fix: backgroundColor",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "backgroundColor: \"#ffffff\", → \"#f5f0e8\",",
+      "fix": "Changed backgroundColor: \"#ffffff\", → \"#f5f0e8\",",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T07:37:43.561Z"
+    },
+    {
+      "id": "bug-152",
+      "timestamp": "2026-05-27T07:40:09.824Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "root_cause": "Had \"expo-file-system\"",
+      "fix": "Changed to \"expo-file-system/legacy\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T07:40:09.824Z"
+    },
+    {
+      "id": "bug-153",
+      "timestamp": "2026-05-27T07:50:07.593Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T07:50:07.593Z"
+    },
+    {
+      "id": "bug-154",
+      "timestamp": "2026-05-27T07:50:25.863Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Photo */}; Photo <span className=\"text-gray-400 font-normal\">(optional)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-27T07:50:44.011Z"
+    },
+    {
+      "id": "bug-155",
+      "timestamp": "2026-05-27T08:24:01.225Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Had '@/lib/supabase/client'",
+      "fix": "Changed to '@/components/shared/LogFoundItemModal'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:24:01.225Z"
+    },
+    {
+      "id": "bug-156",
+      "timestamp": "2026-05-27T08:25:33.046Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "hover: opacity-80 transition-opacity w-full\" → text-[var(--caution)] hover:bg-[var(--caution-soft)] transition-colors\"",
+      "fix": "Changed hover: opacity-80 transition-opacity w-full\" → text-[var(--caution)] hover:bg-[var(--caution-soft)] transition-colors\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:25:33.046Z"
+    },
+    {
+      "id": "bug-157",
+      "timestamp": "2026-05-27T08:25:49.393Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:25:49.393Z"
+    },
+    {
+      "id": "bug-158",
+      "timestamp": "2026-05-27T08:26:01.137Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:26:01.137Z"
+    },
+    {
+      "id": "bug-159",
+      "timestamp": "2026-05-27T08:29:20.528Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 16→3 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:29:20.528Z"
+    },
+    {
+      "id": "bug-160",
+      "timestamp": "2026-05-27T08:30:02.965Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "hover: bg-orange-100\" → opacity-80\"",
+      "fix": "Changed hover: bg-orange-100\" → opacity-80\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:30:02.965Z"
+    },
+    {
+      "id": "bug-161",
+      "timestamp": "2026-05-27T08:30:25.333Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T08:30:25.333Z"
     }
   ]
 }

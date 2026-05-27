@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T05:21:04.129Z
-> Files: 55 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:30:35.495Z
+> Files: 65 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -433,10 +433,12 @@
 
 ## apps/api/models/
 
+- `requests.py` — --- Staff Role Schedules --- (~3163 tok)
 
 ## apps/api/routers/
 
 - `housekeeping.py` — API: 3 endpoints (~9910 tok)
+- `lost_found.py` — API: 5 endpoints (~1217 tok)
 
 ## apps/api/services/
 
@@ -492,7 +494,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — formatETA (~2092 tok)
+- `[roomId].tsx` — formatETA (~3643 tok)
 - `index.tsx` — STATUS_COLORS (~2198 tok)
 
 ## apps/mobile/app/(app)/profile/
@@ -515,14 +517,24 @@
 
 ## apps/mobile/components/housekeeping/
 
+- `FoundItemModal.tsx` — base64ToArrayBuffer — renders modal (~2330 tok)
 
 ## apps/mobile/i18n/
 
 - `index.ts` (~114 tok)
 
+## apps/mobile/i18n/locales/
+
+- `en.json` (~1136 tok)
+- `es.json` (~1216 tok)
+
 ## apps/mobile/lib/
 
 - `notifications.ts` — API routes: PATCH (1 endpoints) (~522 tok)
+
+## apps/mobile/lib/api/
+
+- `lostFound.ts` — Exports CreateLostFoundPayload, createLostFoundItem (~93 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -582,6 +594,7 @@
 
 ## apps/web/app/(dashboard)/lost-found/
 
+- `page.tsx` — TABS (~8466 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
@@ -652,9 +665,9 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_BORDER (~2955 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~9989 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~5384 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3144 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8439 tok)
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~5077 tok)
 
 ## apps/web/components/settings/
 
@@ -664,6 +677,7 @@
 
 ## apps/web/components/shared/
 
+- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2525 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4469 tok)
 
 ## apps/web/components/ui/
@@ -675,6 +689,7 @@
 ## apps/web/lib/api/
 
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (16 endpoints) (~1199 tok)
+- `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~469 tok)
 
 ## apps/web/lib/hooks/
 
@@ -717,3 +732,4 @@
 
 ## supabase/migrations/
 
+- `042_lost_found_photos_bucket.sql` — Create storage bucket for lost and found item photos (~156 tok)

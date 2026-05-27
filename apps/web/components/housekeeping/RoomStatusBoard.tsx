@@ -436,6 +436,7 @@ export function RoomStatusBoard() {
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
       />
+
     </div>
   )
 }

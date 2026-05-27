@@ -2,6 +2,8 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 02:55 | Lost & Found web photo upload: photo_url to LostFoundItem type + createItem payload, uploadItemPhoto helper, file picker + preview in LogItemModal, photo thumbnail in ItemCard | lost-found/page.tsx, lost_found.ts | complete | ~1k tok |
+| 02:40 | Lost & Found mobile upload: migration 042 (storage bucket), API photo_url field, FoundItemModal.tsx (camera+gallery+Supabase storage), Found Item button in [roomId].tsx, i18n en+es | 8 files | complete | ~3k tok |
 | graphify | Built full knowledge graph of PatelRep repo — 3509 nodes, 6478 edges, 237 communities from 424 files. Outputs: graphify-out/graph.html, graph.json, GRAPH_REPORT.md. 49x token reduction vs raw corpus. | graphify-out/ | complete | ~8k tok |
 | settings-rework | Full rework of settings: replaced 1586-line monolith with sidebar-nav sub-layout + 6 subroute pages + 3 extracted components. layout.tsx + page.tsx redirect + general/departments/front-desk/roles/inspections/rooms pages + RoomsImportModal/RoleForm/TemplateForm components. TS+lint pass. | apps/web/app/(dashboard)/settings/, apps/web/components/settings/ | complete | ~25k tok |
 | 02:xx | Reworked settings section into sidebar-nav sub-layout with 8 subroutes | settings/layout.tsx, settings/page.tsx, settings/general/, settings/departments/, settings/front-desk/, settings/roles/, settings/inspections/, settings/rooms/, components/settings/RoleForm.tsx, components/settings/TemplateForm.tsx, components/settings/RoomsImportModal.tsx | complete | ~12k tok |
@@ -2255,3 +2257,64 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:50 | Matched housekeeper clean-type styling to room board | apps/web/app/(dashboard)/housekeeping/page.tsx | DEP/FULL/LIGHT indicators now use same icon/color treatment as RoomCard | ~650 |
 | 01:50 | Made room drawer action buttons toggle forms closed | apps/web/components/housekeeping/RoomDetailDrawer.tsx | Add Note and Submit Work Order buttons now hide their form when clicked again | ~350 |
 | 01:50 | Verified clean-type and drawer toggle updates | apps/web | Web type-check and lint passed; diff check passed with CRLF warnings only | ~300 |
+| 02:25 | Updated housekeeper ready side label with occupancy wording | apps/web/app/(dashboard)/housekeeping/page.tsx | Ready rows now say Ready Vacant or Ready Occupied based on guest/occupancy fields | ~450 |
+| 02:25 | Verified ready side label update | apps/web | Web type-check and lint passed; diff check passed with CRLF warning only | ~250 |
+| 02:36 | Created supabase/migrations/042_lost_found_photos_bucket.sql | — | ~156 |
+| 02:36 | Edited apps/api/models/requests.py | modified CreateLostFoundRequest() | ~59 |
+| 02:36 | Edited apps/api/routers/lost_found.py | 9→10 lines | ~106 |
+| 02:36 | Created apps/mobile/lib/api/lostFound.ts | — | ~93 |
+| 02:37 | Created apps/mobile/components/housekeeping/FoundItemModal.tsx | — | ~2328 |
+| 02:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 import(s) | ~42 |
+| 02:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→2 lines | ~36 |
+| 02:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+7 lines) | ~180 |
+| 02:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+6 lines) | ~101 |
+| 02:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+10 lines) | ~125 |
+| 02:37 | Edited apps/mobile/i18n/locales/en.json | expanded (+13 lines) | ~172 |
+| 02:37 | Edited apps/mobile/i18n/locales/es.json | expanded (+13 lines) | ~188 |
+| 02:40 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | "expo-file-system" → "expo-file-system/legacy" | ~16 |
+| 02:40 | Session end: 13 writes across 8 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~6232 tok |
+| 02:45 | Session end: 13 writes across 8 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~6232 tok |
+| 02:49 | Edited apps/web/lib/api/lost_found.ts | 17→18 lines | ~124 |
+| 02:49 | Edited apps/web/lib/api/lost_found.ts | 6→7 lines | ~43 |
+| 02:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 10→11 lines | ~35 |
+| 02:49 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~28 |
+| 02:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added error handling | ~358 |
+| 02:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | CSS: hover | ~165 |
+| 02:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added optional chaining | ~420 |
+| 02:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | modified handleClose() | ~74 |
+| 02:50 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added optional chaining | ~681 |
+| 02:51 | Session end: 22 writes across 10 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 15 reads | ~8160 tok |
+| 02:53 | Session end: 22 writes across 10 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 15 reads | ~8160 tok |
+| 02:57 | Session end: 22 writes across 10 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 15 reads | ~8160 tok |
+| 03:21 | Session end: 22 writes across 10 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 15 reads | ~8160 tok |
+| 03:23 | Created apps/web/components/shared/LogFoundItemModal.tsx | — | ~2525 |
+| 03:24 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 2→2 lines | ~34 |
+| 03:24 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 2→1 lines | ~6 |
+| 03:24 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | removed 26 lines | ~8 |
+| 03:24 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | removed 9 lines | ~9 |
+| 03:24 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | removed 195 lines | ~57 |
+| 03:25 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 9→9 lines | ~84 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~24 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: roomId, roomNumber | ~45 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→4 lines | ~23 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | modified if() | ~434 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~61 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: roomId, roomNumber | ~50 |
+| 03:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→3 lines | ~71 |
+| 03:26 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added optional chaining | ~134 |
+| 03:26 | Session end: 37 writes across 13 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 18 reads | ~40729 tok |
+| 03:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~21 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | 4→3 lines | ~27 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | 4→3 lines | ~18 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomCard.tsx | removed 16 lines | ~5 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | — | ~0 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→1 lines | ~20 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→1 lines | ~22 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | — | ~0 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 11→12 lines | ~43 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 import(s) | ~35 |
+| 03:29 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 1→2 lines | ~32 |
+| 03:30 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+8 lines) | ~250 |
+| 03:30 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added nullish coalescing | ~70 |
+| 03:30 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 11→11 lines | ~74 |
+| 03:30 | Session end: 51 writes across 14 files (042_lost_found_photos_bucket.sql, requests.py, lost_found.py, lostFound.ts, FoundItemModal.tsx) | 18 reads | ~41346 tok |

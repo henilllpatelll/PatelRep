@@ -7,6 +7,7 @@ export interface LostFoundItem {
   description: string
   location_found?: string
   notes?: string
+  photo_url?: string
   room_id?: string
   status: LostFoundStatus
   found_by: string
@@ -39,6 +40,7 @@ export const lostFoundApi = {
     room_id?: string
     location_found?: string
     notes?: string
+    photo_url?: string
   }) =>
     apiClient.post('/lost-found', payload) as Promise<{ data: LostFoundItem }>,
 

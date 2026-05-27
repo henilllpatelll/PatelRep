@@ -10,6 +10,7 @@ import {
   Wrench,
   Circle,
   MessageSquare,
+  Package,
   ChevronDown,
   ChevronUp,
   Send,
@@ -22,6 +23,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { Button } from '@/components/ui/Button'
+import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
 
 const WO_CATEGORIES = [
   { value: 'plumbing',    label: 'Plumbing' },
@@ -151,6 +153,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const [noteSuccess, setNoteSuccess] = useState(false)
   const [noteError, setNoteError] = useState<string | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
+  const [foundItemOpen, setFoundItemOpen] = useState(false)
 
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
@@ -388,6 +391,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
               >
                 <Wrench className="h-3.5 w-3.5" />
                 Submit Work Order
+              </button>
+              <button
+                type="button"
+                onClick={() => setFoundItemOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--caution-line)] bg-[var(--caution-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--caution)] hover:opacity-80"
+              >
+                <Package className="h-3.5 w-3.5" />
+                Lost &amp; Found
               </button>
             </div>
 
@@ -677,6 +688,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
         </div>
 
       </div>
+      <LogFoundItemModal
+        isOpen={foundItemOpen}
+        roomId={roomId ?? undefined}
+        roomNumber={roomNumber}
+        onClose={() => setFoundItemOpen(false)}
+        onCreate={() => setFoundItemOpen(false)}
+      />
     </>
   )
 }

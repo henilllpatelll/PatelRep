@@ -110,5 +110,18 @@
   "profile": {
     "title": "Profile",
     "hotel": "Hotel"
+  },
+  "foundItem": {
+    "button": "Found Item",
+    "title": "Report Found Item",
+    "room": "Room {{room}}",
+    "addPhoto": "Add Photo",
+    "takePhoto": "Take Photo",
+    "chooseGallery": "Choose from Gallery",
+    "descriptionPlaceholder": "Describe the item (e.g. wallet, phone charger, jacket)...",
+    "submit": "Report Found Item",
+    "offlineError": "Connect to the internet to report a found item.",
+    "cameraPermissionTitle": "Camera Access",
+    "cameraPermissionMessage": "Allow camera access to photograph the item."
   }
 }

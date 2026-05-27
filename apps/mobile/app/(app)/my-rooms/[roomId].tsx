@@ -15,6 +15,7 @@ import { api } from "@/lib/api/client";
 import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
+import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 
 function formatETA(isoString: string): string {
   return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -76,6 +77,7 @@ export default function RoomDetailScreen() {
   const [lastLocalStatus, setLastLocalStatus] = useState<Room["status"] | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showReportIssue, setShowReportIssue] = useState(false);
+  const [showFoundItem, setShowFoundItem] = useState(false);
 
   useEffect(() => {
     const found = myRooms.find((r) => r.id === roomId);
@@ -288,6 +290,13 @@ export default function RoomDetailScreen() {
           <Ionicons name="warning-outline" size={18} color="#DC2626" />
           <Text style={styles.reportText}>{t("rooms.reportIssue")}</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.foundItemBtn]}
+          onPress={() => setShowFoundItem(true)}
+        >
+          <Ionicons name="bag-outline" size={18} color="#5c5040" />
+          <Text style={styles.foundItemText}>{t("foundItem.button")}</Text>
+        </TouchableOpacity>
       </View>
 
       <ReportIssueModal
@@ -295,6 +304,12 @@ export default function RoomDetailScreen() {
         roomId={room.id}
         roomNumber={room.room_number}
         onClose={() => setShowReportIssue(false)}
+      />
+      <FoundItemModal
+        visible={showFoundItem}
+        roomId={room.id}
+        roomNumber={room.room_number}
+        onClose={() => setShowFoundItem(false)}
       />
     </ScrollView>
   );
@@ -350,4 +365,14 @@ const styles = StyleSheet.create({
     borderColor: "#d7cbbb",
   },
   undoText: { color: "#1a1815", fontSize: 16, fontWeight: "600" },
+  foundItemBtn: {
+    backgroundColor: "#f5f0e8",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#d7cbbb",
+  },
+  foundItemText: { color: "#5c5040", fontSize: 16, fontWeight: "600" },
 });

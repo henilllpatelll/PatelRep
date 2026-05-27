@@ -19,6 +19,7 @@ import {
   type LostFoundStatus,
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
+import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Pill, SectionLabel, Stat } from '@/components/ui/primitives'
@@ -133,6 +134,14 @@ function ItemCard({
           <KebabMenu onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} />
         </div>
       </div>
+
+      {/* Photo */}
+      {item.photo_url && (
+        <a href={item.photo_url} target="_blank" rel="noopener noreferrer" className="block mb-2 rounded-lg overflow-hidden border border-line">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.photo_url} alt="Found item" className="w-full h-32 object-cover hover:opacity-90 transition-opacity" />
+        </a>
+      )}
 
       {/* Description */}
       <p className="font-semibold text-gray-900 text-sm leading-snug mb-2">
@@ -299,151 +308,6 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
             <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {isPending ? 'Savingâ€¦' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Log Found Item Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface LogItemModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onCreate: () => void
-}
-
-function LogItemModal({ isOpen, onClose, onCreate }: LogItemModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const [description, setDescription] = useState('')
-  const [locationFound, setLocationFound] = useState('')
-  const [notes, setNotes] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      lostFoundApi.createItem({
-        description: description.trim(),
-        location_found: locationFound.trim() || undefined,
-        notes: notes.trim() || undefined,
-      }),
-    onSuccess: () => {
-      setDescription('')
-      setLocationFound('')
-      setNotes('')
-      setError(null)
-      onCreate()
-    },
-    onError: (err: Error) => {
-      setError(err.message || 'Failed to log item')
-    },
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!description.trim()) {
-      setError('Please describe the found item.')
-      return
-    }
-    setError(null)
-    mutate()
-  }
-
-  function handleClose() {
-    setDescription('')
-    setLocationFound('')
-    setNotes('')
-    setError(null)
-    onClose()
-  }
-
-  useModalFocusTrap(dialogRef, isOpen, handleClose)
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="log-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 id="log-lost-found-title" className="text-lg font-semibold text-gray-900">Log Found Item</h2>
-          <button
-            onClick={handleClose}
-            aria-label="Close"
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description <span className="text-[var(--alert)]">*</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Black iPhone 14, gold bracelet, blue umbrella..."
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
-              autoFocus
-            />
-          </div>
-
-          {/* Location Found */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location Found <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={locationFound}
-              onChange={(e) => setLocationFound(e.target.value)}
-              placeholder="e.g. Room 204, Pool area, Lobby..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional details..."
-              rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !description.trim()}
-              className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
-            >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Loggingâ€¦' : 'Log Item'}
             </button>
           </div>
         </form>
@@ -789,7 +653,7 @@ export default function LostFoundPage() {
       )}
 
       {/* â”€â”€ Log Item Modal â”€â”€ */}
-      <LogItemModal
+      <LogFoundItemModal
         isOpen={showLogModal}
         onClose={() => setShowLogModal(false)}
         onCreate={() => {

@@ -268,6 +268,14 @@ function HousekeeperRoomItem({
   const workOrderLabel = openWorkOrder
     ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`
     : openWorkOrderTitle
+  const isOccupiedRoom = Boolean(
+    room.guest_name ||
+    room.occupied ||
+    room.is_occupied ||
+    room.occupancy_status === 'occupied' ||
+    room.room_occupancy === 'occupied',
+  )
+  const readyLabel = isOccupiedRoom ? 'Ready Occupied' : 'Ready Vacant'
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
@@ -446,7 +454,7 @@ function HousekeeperRoomItem({
           </div>
         )}
         {status === 'INSPECTED' && (
-          <span className="text-sm text-[var(--ready)] font-semibold">Approved</span>
+          <span className="text-sm text-[var(--ready)] font-semibold">{readyLabel}</span>
         )}
       </div>
     </div>
