@@ -1,8 +1,6 @@
 'use client'
 
 import { Clock, User, Wrench } from 'lucide-react'
-import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
@@ -63,11 +61,10 @@ interface Props {
   room: any
   assignmentMode: boolean
   onStatusChange?: (roomId: string, newStatus: string) => void
-  onUndoStatus?: (roomId: string) => void
   onOpenDetail?: (room: any) => void
   onAssign?: (roomId: string) => void
   pendingAssignee?: string | null
-  assignedToName?: string | null   // name of housekeeper already assigned (different from active assignee)
+  assignedToName?: string | null
   assignedToActive?: boolean
   savedAssignmentId?: string | null
   onRemoveSavedAssignment?: (assignmentId: string) => void
@@ -91,7 +88,6 @@ export function RoomCard({
   room,
   assignmentMode,
   onStatusChange,
-  onUndoStatus,
   onOpenDetail,
   onAssign,
   pendingAssignee,
@@ -101,10 +97,6 @@ export function RoomCard({
   onRemoveSavedAssignment,
   isRemovingAssignment,
 }: Props) {
-  const { role, isSupervisor, isGM } = useRole()
-  const isHousekeeper = role === 'housekeeper'
-  const canSupervise = isSupervisor || isGM
-
   const status: RoomStatus = (room.status || 'DIRTY') as RoomStatus
   const prediction = room.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
@@ -124,36 +116,15 @@ export function RoomCard({
   const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
   const etaTime = formatTime(prediction?.predicted_ready_at)
 
-  // ── dnd-kit draggable ──────────────────────────────────────────────────────
-  const { setNodeRef, transform, listeners, attributes, isDragging } = useDraggable({
-    id: room.room_id,
-    data: { room },
-  })
-
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform) }
-    : undefined
-
   // ── Event handlers ─────────────────────────────────────────────────────────
   function handleCardClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return
-    if (isDragging) return
     if (isSavedAssignedToActive) return
     if (assignmentMode && onAssign) {
       onAssign(room.room_id)
       return
     }
     if (onOpenDetail) onOpenDetail(room)
-  }
-
-  function handleStatusChange(newStatus: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (onStatusChange) onStatusChange(room.room_id, newStatus)
-  }
-
-  function handleUndoStatus(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (onUndoStatus) onUndoStatus(room.room_id)
   }
 
   // ── Derived style ──────────────────────────────────────────────────────────
@@ -175,16 +146,11 @@ export function RoomCard({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...(assignmentMode ? listeners : {})}
-      {...(assignmentMode ? attributes : {})}
       className={cn(
-        'relative rounded-[var(--r-lg)] px-3 pb-3 pt-4 flex flex-col gap-1.5 min-h-[116px] transition-all duration-150 overflow-hidden',
+        'relative rounded-[var(--r-lg)] px-3 pb-3 pt-4 flex flex-col gap-1.5 min-h-[116px] transition-all duration-150 overflow-hidden cursor-pointer',
         cardBg, cardBorder,
         isAssignmentSelected && 'ring-2 ring-[var(--ai-line)] ring-offset-1',
         vipFlag && 'shadow-[0_0_0_2px_var(--caution-line)]',
-        isDragging ? 'cursor-grabbing opacity-50' : 'cursor-pointer',
         alreadyAssigned && 'opacity-60',
       )}
       onClick={handleCardClick}
@@ -197,7 +163,7 @@ export function RoomCard({
         }
       }}
     >
-      {/* Colored top strip — striped for occupied */}
+      {/* Colored top strip */}
       <div
         className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--r-lg)]"
         style={isOccupied
@@ -206,7 +172,7 @@ export function RoomCard({
         }
       />
 
-      {/* Top row: room number + AI risk dot + VIP */}
+      {/* Room number + AI risk dot + VIP */}
       <div className="flex items-center gap-1.5 mt-0.5">
         <span className="font-mono font-semibold text-[19px] leading-none text-ink">{roomNumber}</span>
         {vipFlag && (
@@ -224,7 +190,7 @@ export function RoomCard({
         )}
       </div>
 
-      {/* Room type */}
+      {/* Room type + clean type */}
       {roomTypeName && (
         <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
       )}
@@ -232,7 +198,7 @@ export function RoomCard({
         <Pill tone="neutral" size="sm">{cleanTypeLabel}</Pill>
       )}
 
-      {/* Status pill + eta */}
+      {/* Status pill */}
       <div className="mt-auto flex items-center justify-between gap-1 flex-wrap">
         <Pill tone={pillTone} size="sm" striped={isOccupied}>
           {statusLabel}
@@ -248,7 +214,7 @@ export function RoomCard({
         </div>
       )}
 
-      {/* Time info for non-occupied statuses */}
+      {/* Time info */}
       {!isOccupied && status === 'INSPECTED' && checkinTime && (
         <div className="flex items-center gap-0.5">
           <Clock className="w-3 h-3 text-ink3" />
@@ -262,96 +228,7 @@ export function RoomCard({
         </div>
       )}
 
-      {/* Pending assignment overlay */}
-      {isAssignmentSelected && (
-        <div className="flex items-center gap-0.5 mt-0.5">
-          <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
-          <span className="text-xs text-[var(--ai)] font-medium">Assigned</span>
-        </div>
-      )}
-
-      {/* Action buttons (view mode only) */}
-      {!assignmentMode && (
-        <div className="flex flex-wrap gap-1 mt-0.5">
-          {(status === 'DIRTY' || status === 'PICKUP') && isHousekeeper && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-accent text-white font-medium hover:opacity-90 transition-opacity"
-              onClick={(e) => handleStatusChange('IN_PROGRESS', e)}
-            >
-              Start
-            </button>
-          )}
-          {(status === 'DIRTY' || status === 'PICKUP') && canSupervise && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-              onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
-            >
-              Reassign
-            </button>
-          )}
-          {status === 'IN_PROGRESS' && (isHousekeeper || canSupervise) && (
-            <>
-              <button
-                className="text-xs px-2 py-0.5 rounded-md bg-ready text-white font-medium hover:opacity-90 transition-opacity"
-                onClick={(e) => handleStatusChange('CLEAN', e)}
-              >
-                Done
-              </button>
-              {onUndoStatus && (
-                <button
-                  className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-                  onClick={handleUndoStatus}
-                >
-                  Undo
-                </button>
-              )}
-            </>
-          )}
-          {status === 'CLEAN' && canSupervise && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-info text-white font-medium hover:opacity-90 transition-opacity"
-              onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
-            >
-              Inspect
-            </button>
-          )}
-          {status === 'CLEAN' && onUndoStatus && (isHousekeeper || canSupervise) && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-              onClick={handleUndoStatus}
-            >
-              Undo
-            </button>
-          )}
-          {status === 'INSPECTED' && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-              onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
-            >
-              Details
-            </button>
-          )}
-          {status === 'INSPECTED' && onUndoStatus && canSupervise && (
-            <button
-              className="text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-              onClick={handleUndoStatus}
-            >
-              Undo
-            </button>
-          )}
-          {status === 'OOO' && (
-            <button
-              className="flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-md bg-surface border border-line text-ink2 font-medium hover:bg-surface-2 transition-colors"
-              onClick={(e) => { e.stopPropagation(); if (onOpenDetail) onOpenDetail(room) }}
-            >
-              <Wrench className="w-2.5 h-2.5" />
-              View WO
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Assignment mode hints */}
+      {/* Assignment mode overlays */}
       {assignmentMode && !isAssignmentSelected && !alreadyAssigned && (
         <p className="text-xs text-[var(--ai)] mt-0.5">Tap to assign</p>
       )}
@@ -361,22 +238,28 @@ export function RoomCard({
         </p>
       )}
       {isAssignmentSelected && (
-        <button
-          className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
-          disabled={isRemovingAssignment}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (isPending) {
-              if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
-              return
-            }
-            if (savedAssignmentId && onRemoveSavedAssignment) {
-              onRemoveSavedAssignment(savedAssignmentId)
-            }
-          }}
-        >
-          {isRemovingAssignment ? 'Removing...' : 'Remove'}
-        </button>
+        <>
+          <div className="flex items-center gap-0.5 mt-0.5">
+            <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
+            <span className="text-xs text-[var(--ai)] font-medium">Assigned</span>
+          </div>
+          <button
+            className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
+            disabled={isRemovingAssignment}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (isPending) {
+                if (onStatusChange) onStatusChange(room.room_id, '__remove_assignment')
+                return
+              }
+              if (savedAssignmentId && onRemoveSavedAssignment) {
+                onRemoveSavedAssignment(savedAssignmentId)
+              }
+            }}
+          >
+            {isRemovingAssignment ? 'Removing...' : 'Remove'}
+          </button>
+        </>
       )}
     </div>
   )

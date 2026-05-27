@@ -1,289 +1,134 @@
 {
-  "session_id": "session-2026-05-27-2013",
-  "started": "2026-05-27T01:13:02.621Z",
+  "session_id": "session-2026-05-27-2238",
+  "started": "2026-05-27T03:38:22.466Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/page.tsx": {
-      "count": 3,
-      "tokens": 34,
-      "first_read": "2026-05-27T01:14:41.243Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/AGENTS.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-27T02:20:42.063Z"
+      "first_read": "2026-05-27T03:38:56.226Z"
     },
-    "C:/Users/Henil/projects/PatelRep/CLAUDE.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-27T02:20:42.231Z"
+      "first_read": "2026-05-27T03:39:05.005Z"
     },
-    "C:/Users/Henil/projects/PatelRep/FRONTEND_AUDIT.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-27T02:20:42.412Z"
+      "first_read": "2026-05-27T03:39:05.119Z"
     },
-    "C:/Users/Henil/projects/PatelRep/FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
+      "count": 4,
+      "tokens": 9984,
+      "first_read": "2026-05-27T03:39:08.863Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/roomStatus.ts": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-27T02:20:48.830Z"
+      "first_read": "2026-05-27T03:46:33.513Z"
     },
-    "C:/Users/Henil/projects/PatelRep/README.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/AssignmentSidebar.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-27T02:20:48.876Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/UI_UX_FIXES_BACKLOG.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:20:51.622Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.claude/rules/openwolf.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:20:52.014Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:20:54.859Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.planning/ai-copilot-primary-interface.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:20:55.427Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.planning/sop-voice-fastpath.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:20:58.376Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/LAUNCH_CHECKLIST.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:21:01.794Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/requirements.txt": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:21:01.805Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/.expo/README.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:21:16.838Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/AGENTS.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:21:16.843Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/design_handoff_frontend_rework/README.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:21:18.876Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/graphify-out/GRAPH_REPORT.md": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:27:28.139Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.claude/settings.json": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:34:15.992Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/ui/Input.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:41:13.822Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/billing/page.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:41:23.784Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/integrations/page.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:41:24.175Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/housekeepingNavigation.ts": {
-      "count": 2,
-      "tokens": 227,
-      "first_read": "2026-05-27T02:43:23.495Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/staff.ts": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:43:27.190Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/index.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-27T02:46:14.686Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/layout.tsx": {
-      "count": 1,
-      "tokens": 1415,
-      "first_read": "2026-05-27T02:53:17.324Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/general/page.tsx": {
-      "count": 1,
-      "tokens": 2986,
-      "first_read": "2026-05-27T02:53:20.662Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/departments/page.tsx": {
-      "count": 1,
-      "tokens": 877,
-      "first_read": "2026-05-27T02:53:20.812Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/rooms/page.tsx": {
-      "count": 1,
-      "tokens": 3394,
-      "first_read": "2026-05-27T02:53:26.661Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/settings/RoomsImportModal.tsx": {
-      "count": 1,
-      "tokens": 4514,
-      "first_read": "2026-05-27T02:53:26.999Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx": {
-      "count": 1,
-      "tokens": 4550,
-      "first_read": "2026-05-27T03:03:25.964Z"
+      "first_read": "2026-05-27T03:47:15.662Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/graphify-out/.graphify_chunk_02.json",
-      "action": "create",
-      "tokens": 9905,
-      "at": "2026-05-27T02:23:02.072Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/graphify-out/.graphify_chunk_01.json",
-      "action": "create",
-      "tokens": 15132,
-      "at": "2026-05-27T02:23:48.493Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/graphify-out/auto_update.py",
-      "action": "create",
-      "tokens": 1320,
-      "at": "2026-05-27T02:35:31.211Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/.claude/settings.json",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/roomStatus.ts",
       "action": "edit",
-      "tokens": 155,
-      "at": "2026-05-27T02:36:11.339Z"
+      "tokens": 5,
+      "at": "2026-05-27T03:49:21.015Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/layout.tsx",
-      "action": "create",
-      "tokens": 1415,
-      "at": "2026-05-27T02:46:36.778Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/page.tsx",
-      "action": "create",
-      "tokens": 34,
-      "at": "2026-05-27T02:46:40.104Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/general/page.tsx",
-      "action": "create",
-      "tokens": 2986,
-      "at": "2026-05-27T02:47:17.505Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/departments/page.tsx",
-      "action": "create",
-      "tokens": 877,
-      "at": "2026-05-27T02:47:32.458Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/front-desk/page.tsx",
-      "action": "create",
-      "tokens": 1770,
-      "at": "2026-05-27T02:47:57.425Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/settings/RoleForm.tsx",
-      "action": "create",
-      "tokens": 2610,
-      "at": "2026-05-27T02:48:30.875Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/settings/TemplateForm.tsx",
-      "action": "create",
-      "tokens": 2680,
-      "at": "2026-05-27T02:49:03.846Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/roles/page.tsx",
-      "action": "create",
-      "tokens": 1686,
-      "at": "2026-05-27T02:49:27.164Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/inspections/page.tsx",
-      "action": "create",
-      "tokens": 1929,
-      "at": "2026-05-27T02:49:48.190Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/settings/RoomsImportModal.tsx",
-      "action": "create",
-      "tokens": 4514,
-      "at": "2026-05-27T02:50:39.721Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/settings/rooms/page.tsx",
-      "action": "create",
-      "tokens": 3394,
-      "at": "2026-05-27T02:51:20.283Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 42,
-      "at": "2026-05-27T03:03:36.858Z"
+      "tokens": 19,
+      "at": "2026-05-27T03:49:25.882Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 15,
-      "at": "2026-05-27T03:03:41.495Z"
+      "tokens": 292,
+      "at": "2026-05-27T03:49:36.558Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Sidebar.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 8,
-      "at": "2026-05-27T03:03:48.521Z"
+      "tokens": 300,
+      "at": "2026-05-27T03:49:47.434Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+      "action": "create",
+      "tokens": 2823,
+      "at": "2026-05-27T03:50:34.236Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "action": "create",
+      "tokens": 7930,
+      "at": "2026-05-27T03:52:28.121Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 98,
+      "at": "2026-05-27T03:52:39.520Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 74,
+      "at": "2026-05-27T03:52:45.140Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 92,
+      "at": "2026-05-27T03:52:51.711Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 100,
+      "at": "2026-05-27T03:52:59.049Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 290,
+      "at": "2026-05-27T03:53:06.286Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 44,
+      "at": "2026-05-27T03:53:15.256Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 54,
+      "at": "2026-05-27T03:53:29.901Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 27,
+      "at": "2026-05-27T03:53:41.843Z"
     }
   ],
   "edit_counts": {
-    "graphify-out/.graphify_chunk_02.json": 1,
-    "graphify-out/.graphify_chunk_01.json": 1,
-    "graphify-out/auto_update.py": 1,
-    ".claude/settings.json": 1,
-    "apps/web/app/(dashboard)/settings/layout.tsx": 1,
-    "apps/web/app/(dashboard)/settings/page.tsx": 1,
-    "apps/web/app/(dashboard)/settings/general/page.tsx": 1,
-    "apps/web/app/(dashboard)/settings/departments/page.tsx": 1,
-    "apps/web/app/(dashboard)/settings/front-desk/page.tsx": 1,
-    "apps/web/components/settings/RoleForm.tsx": 1,
-    "apps/web/components/settings/TemplateForm.tsx": 1,
-    "apps/web/app/(dashboard)/settings/roles/page.tsx": 1,
-    "apps/web/app/(dashboard)/settings/inspections/page.tsx": 1,
-    "apps/web/components/settings/RoomsImportModal.tsx": 1,
-    "apps/web/app/(dashboard)/settings/rooms/page.tsx": 1,
-    "apps/web/components/shared/Sidebar.tsx": 3
+    "apps/web/lib/utils/roomStatus.ts": 1,
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 3,
+    "apps/web/components/housekeeping/RoomCard.tsx": 1,
+    "apps/web/app/(dashboard)/housekeeping/page.tsx": 1,
+    "apps/web/components/housekeeping/RoomDetailDrawer.tsx": 8
   },
-  "anatomy_hits": 7,
-  "anatomy_misses": 21,
-  "repeated_reads_warned": 6,
+  "anatomy_hits": 0,
+  "anatomy_misses": 6,
+  "repeated_reads_warned": 3,
   "cerebrum_warnings": 0,
-  "stop_count": 9
+  "stop_count": 2
 }

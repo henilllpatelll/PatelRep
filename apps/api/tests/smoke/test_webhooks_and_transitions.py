@@ -189,6 +189,42 @@ async def test_room_status_undo_reverts_latest_matching_change(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_room_history_respects_limit(monkeypatch):
+    db = FakeDB({
+        "room_status_history": [
+            {
+                "id": "hist-1",
+                "room_id": "room-1",
+                "tenant_id": "hotel-a",
+                "from_status": "IN_PROGRESS",
+                "to_status": "CLEAN",
+                "changed_by": "hk-1",
+                "created_at": "2026-05-25T16:00:00+00:00",
+            },
+            {
+                "id": "hist-2",
+                "room_id": "room-1",
+                "tenant_id": "hotel-a",
+                "from_status": "DIRTY",
+                "to_status": "IN_PROGRESS",
+                "changed_by": "hk-1",
+                "created_at": "2026-05-25T15:00:00+00:00",
+            },
+        ],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.get_room_history(
+        "room-1",
+        limit=1,
+        current_user=HOUSEKEEPER,
+    )
+
+    assert len(response["data"]) == 1
+    assert response["data"][0]["to_status"] == "CLEAN"
+
+
+@pytest.mark.asyncio
 async def test_room_status_undo_rejects_other_housekeeper_change(monkeypatch):
     db = FakeDB({
         "room_status": [{

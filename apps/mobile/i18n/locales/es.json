@@ -48,6 +48,7 @@
     "confirmUndoTitle": "Deshacer último paso?",
     "confirmUndoMessage": "Usa esto solo si tocaste el estado por error.",
     "confirmUndoAction": "Sí, Deshacer",
+    "lastAction": "Última acción: {{action}}",
     "undoNeedsConnection": "Conectate a internet para deshacer un paso anterior del cuarto.",
     "dndAlert": "No Molestar",
     "vipGuest": "Huésped VIP",

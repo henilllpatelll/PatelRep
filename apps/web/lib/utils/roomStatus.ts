@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 export const STATUS_LABELS: Record<string, string> = {
   DIRTY: 'Vacant Dirty',
   IN_PROGRESS: 'In Progress',
-  CLEAN: 'Ready for Inspection',
+  CLEAN: 'Clean',
   INSPECTED: 'Inspected / Ready',
   OOO: 'Out of Order / Out of Service',
   OUT_OF_ORDER: 'Out of Order / Out of Service',

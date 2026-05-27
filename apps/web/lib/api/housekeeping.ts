@@ -112,8 +112,8 @@ export const housekeepingApi = {
   addNote: (roomId: string, text: string) =>
     apiClient.post(`/rooms/${roomId}/notes`, { text }),
 
-  getRoomHistory: (roomId: string) =>
-    apiClient.get(`/rooms/${roomId}/history`),
+  getRoomHistory: (roomId: string, limit = 50) =>
+    apiClient.get(`/rooms/${roomId}/history`, { params: { limit } }),
 
   getMyRooms: (date = format(new Date(), 'yyyy-MM-dd')) =>
     apiClient.get('/housekeeping/my-rooms', { params: { date } }),

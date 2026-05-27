@@ -5,8 +5,8 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3563 nodes · 6560 edges · 242 communities (208 shown, 34 thin omitted)
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 571 edges (avg confidence: 0.55)
+- 3591 nodes · 6750 edges · 254 communities (217 shown, 37 thin omitted)
+- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 575 edges (avg confidence: 0.55)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -77,8 +77,8 @@
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
-- [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
@@ -91,7 +91,7 @@
 - [[_COMMUNITY_Community 79|Community 79]]
 - [[_COMMUNITY_Community 80|Community 80]]
 - [[_COMMUNITY_Community 81|Community 81]]
-- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 84|Community 84]]
 - [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
@@ -111,13 +111,13 @@
 - [[_COMMUNITY_Community 100|Community 100]]
 - [[_COMMUNITY_Community 101|Community 101]]
 - [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
 - [[_COMMUNITY_Community 104|Community 104]]
 - [[_COMMUNITY_Community 105|Community 105]]
 - [[_COMMUNITY_Community 106|Community 106]]
 - [[_COMMUNITY_Community 107|Community 107]]
 - [[_COMMUNITY_Community 108|Community 108]]
 - [[_COMMUNITY_Community 109|Community 109]]
-- [[_COMMUNITY_Community 110|Community 110]]
 - [[_COMMUNITY_Community 111|Community 111]]
 - [[_COMMUNITY_Community 112|Community 112]]
 - [[_COMMUNITY_Community 113|Community 113]]
@@ -157,11 +157,14 @@
 - [[_COMMUNITY_Community 147|Community 147]]
 - [[_COMMUNITY_Community 148|Community 148]]
 - [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
 - [[_COMMUNITY_Community 152|Community 152]]
 - [[_COMMUNITY_Community 153|Community 153]]
 - [[_COMMUNITY_Community 154|Community 154]]
 - [[_COMMUNITY_Community 155|Community 155]]
-- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
 - [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 161|Community 161]]
 - [[_COMMUNITY_Community 162|Community 162]]
@@ -170,39 +173,48 @@
 - [[_COMMUNITY_Community 165|Community 165]]
 - [[_COMMUNITY_Community 166|Community 166]]
 - [[_COMMUNITY_Community 167|Community 167]]
-- [[_COMMUNITY_Community 168|Community 168]]
-- [[_COMMUNITY_Community 169|Community 169]]
 - [[_COMMUNITY_Community 170|Community 170]]
 - [[_COMMUNITY_Community 171|Community 171]]
-- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
 - [[_COMMUNITY_Community 175|Community 175]]
 - [[_COMMUNITY_Community 176|Community 176]]
 - [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
 - [[_COMMUNITY_Community 179|Community 179]]
 - [[_COMMUNITY_Community 180|Community 180]]
 - [[_COMMUNITY_Community 181|Community 181]]
 - [[_COMMUNITY_Community 182|Community 182]]
-- [[_COMMUNITY_Community 183|Community 183]]
-- [[_COMMUNITY_Community 184|Community 184]]
 - [[_COMMUNITY_Community 185|Community 185]]
 - [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 189|Community 189]]
+- [[_COMMUNITY_Community 191|Community 191]]
+- [[_COMMUNITY_Community 192|Community 192]]
 - [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
 - [[_COMMUNITY_Community 195|Community 195]]
 - [[_COMMUNITY_Community 196|Community 196]]
 - [[_COMMUNITY_Community 197|Community 197]]
 - [[_COMMUNITY_Community 198|Community 198]]
-- [[_COMMUNITY_Community 199|Community 199]]
-- [[_COMMUNITY_Community 200|Community 200]]
-- [[_COMMUNITY_Community 201|Community 201]]
 - [[_COMMUNITY_Community 202|Community 202]]
-- [[_COMMUNITY_Community 203|Community 203]]
-- [[_COMMUNITY_Community 204|Community 204]]
-- [[_COMMUNITY_Community 205|Community 205]]
-- [[_COMMUNITY_Community 206|Community 206]]
-- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 207|Community 207]]
 - [[_COMMUNITY_Community 209|Community 209]]
+- [[_COMMUNITY_Community 210|Community 210]]
 - [[_COMMUNITY_Community 211|Community 211]]
-- [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 212|Community 212]]
+- [[_COMMUNITY_Community 213|Community 213]]
+- [[_COMMUNITY_Community 214|Community 214]]
+- [[_COMMUNITY_Community 215|Community 215]]
+- [[_COMMUNITY_Community 216|Community 216]]
+- [[_COMMUNITY_Community 217|Community 217]]
+- [[_COMMUNITY_Community 218|Community 218]]
+- [[_COMMUNITY_Community 219|Community 219]]
+- [[_COMMUNITY_Community 220|Community 220]]
+- [[_COMMUNITY_Community 222|Community 222]]
+- [[_COMMUNITY_Community 223|Community 223]]
+- [[_COMMUNITY_Community 253|Community 253]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `CurrentUser` - 124 edges
@@ -236,299 +248,299 @@
 - **Design System Foundation — Tokens, Typography, Room Status Colors** — design_handoff_color_tokens, design_handoff_typography, design_handoff_room_status_colors [EXTRACTED 1.00]
 - **API AI Provider Dependencies — OpenAI, Anthropic, supabase-py** — api_req_openai, api_req_anthropic, api_req_supabase [EXTRACTED 1.00]
 
-## Communities (242 total, 34 thin omitted)
+## Communities (254 total, 37 thin omitted)
 
 ### Community 0 - "Android Gradle Library Accessors"
-Cohesion: 0.07
-Nodes (42): bool, bool, date, int, OperaConnectRequest, bool, str, BaseModel (+34 more)
+Cohesion: 0.04
+Nodes (59): AIUsageReport, DailySummary, MaintenanceReport, reportsApi, StaffMetric, StaffPerformanceReport, AIRiskAlertsPanel(), ChiefEngineerDashboard() (+51 more)
 
 ### Community 1 - "React Native Android Build Plugins"
-Cohesion: 0.06
-Nodes (46): AICopilotBubble(), ChatMessage, ConfirmViewProps, DEFAULT_QUICK_ACTIONS, generateId(), MessageRole, QUICK_ACTIONS_BY_ROLE, AssignmentCard() (+38 more)
+Cohesion: 0.07
+Nodes (45): AICopilotBubble(), ChatMessage, ConfirmViewProps, DEFAULT_QUICK_ACTIONS, generateId(), MessageRole, QUICK_ACTIONS_BY_ROLE, AssignmentCard() (+37 more)
 
 ### Community 2 - "Housekeeping API"
-Cohesion: 0.07
-Nodes (56): _build_limited_client(), test_ai_routes_have_stricter_rate_limit_tier(), test_rate_limit_uses_forwarded_client_ip(), test_security_headers_treat_forwarded_https_as_secure(), test_verified_users_get_separate_buckets_behind_same_ip(), _auth_header(), FakeMultiTenantDB, Tenant isolation smoke-tests.  Two "hotels" are simulated in FakeMultiTenantDB (+48 more)
+Cohesion: 0.09
+Nodes (40): CurrentUser, int, str, bool, CurrentUser, int, add_room_note(), delete_room() (+32 more)
 
 ### Community 3 - "AI Copilot Chat UI"
-Cohesion: 0.06
-Nodes (29): AndroidGradleLibraryAccessors, AndroidLibraryAccessors, BundleAccessors, CapabilityNotationParser, DefaultVersionCatalog, Deprecated, ImmutableAttributesFactory, Inject (+21 more)
+Cohesion: 0.08
+Nodes (10): AndroidxVersionAccessors, BinaryVersionAccessors, InferVersionAccessors, JavaxVersionAccessors, NexusVersionAccessors, Provider, String, YogaVersionAccessors (+2 more)
 
 ### Community 4 - "Gradle Plugin Block Libraries"
-Cohesion: 0.07
-Nodes (46): AssignmentPayload, housekeepingApi, InspectionRecord, InspectionTemplate, InspectionTemplateItem, RoomPrediction, SubmitInspectionPayload, UpdateRoomStatusPayload (+38 more)
+Cohesion: 0.09
+Nodes (38): _cors_headers_for(), CORSFallbackMiddleware, generic_exception_handler(), lifespan(), postgrest_exception_handler(), SecurityHeadersMiddleware, APIError, Request (+30 more)
 
 ### Community 5 - "Kotlin & Android Plugin Accessors"
-Cohesion: 0.05
-Nodes (34): ImportResult, ImportRoomPayload, roomsApi, RoomStatus, RoomStatusHistoryEntry, ImportResult, RoomsPage(), ALL_MODULES (+26 more)
+Cohesion: 0.07
+Nodes (29): BinaryCompatibilityPluginAccessors, BinaryCompatibilityVersionAccessors, CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, JavaxAnnotationVersionAccessors, ObjectFactory (+21 more)
 
 ### Community 6 - "Engineering & Work Orders API"
 Cohesion: 0.07
 Nodes (15): AndroidxAppcompatLibraryAccessors, AndroidxLibraryAccessors, AndroidxTestLibraryAccessors, BundleAccessors, Deprecated, FrescoLibraryAccessors, InferLibraryAccessors, JavaxLibraryAccessors (+7 more)
 
 ### Community 7 - "Room Management & Import API"
-Cohesion: 0.08
-Nodes (10): AndroidxVersionAccessors, BinaryVersionAccessors, InferVersionAccessors, JavaxVersionAccessors, NexusVersionAccessors, Provider, String, YogaVersionAccessors (+2 more)
-
-### Community 8 - "Android Version Accessors"
-Cohesion: 0.09
-Nodes (38): _cors_headers_for(), CORSFallbackMiddleware, generic_exception_handler(), lifespan(), postgrest_exception_handler(), SecurityHeadersMiddleware, APIError, Request (+30 more)
-
-### Community 9 - "API Middleware & CORS"
 Cohesion: 0.07
 Nodes (41): bool, float, int, str, AsyncClient, AUTH_FILE, createBtn, emailField (+33 more)
 
-### Community 10 - "Multi-tenant Test Infrastructure"
-Cohesion: 0.06
-Nodes (44): CurrentUser, str, CurrentUser, OperaConnectRequest, CurrentUser, int, str, CurrentUser (+36 more)
-
-### Community 11 - "Load & Performance Tests"
-Cohesion: 0.07
-Nodes (23): AndroidLibraryAccessors, BundleAccessors, CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, KotlinLibraryAccessors, KotlinPluginAccessors (+15 more)
-
-### Community 12 - "Android Appcompat Libraries"
-Cohesion: 0.08
-Nodes (36): AICopilotPage(), genId(), AIUsageReport, DailySummary, MaintenanceReport, reportsApi, StaffMetric, StaffPerformanceReport (+28 more)
-
-### Community 13 - "Web Frontend Dependencies"
+### Community 8 - "Android Version Accessors"
 Cohesion: 0.05
 Nodes (17): AndroidxLibraryAccessors, BundleAccessors, FrescoLibraryAccessors, InferLibraryAccessors, JavaxLibraryAccessors, MinimalExternalModuleDependency, Okhttp3LibraryAccessors, PluginAccessors (+9 more)
 
-### Community 14 - "Staff Management API"
+### Community 9 - "API Middleware & CORS"
+Cohesion: 0.11
+Nodes (43): AddCommentRequest, bool, bool, int, OperaConnectRequest, bool, BaseModel, CompleteWorkOrderRequest (+35 more)
+
+### Community 10 - "Multi-tenant Test Infrastructure"
 Cohesion: 0.04
 Nodes (48): dependencies, class-variance-authority, clsx, date-fns, @dnd-kit/core, @dnd-kit/sortable, framer-motion, @hookform/resolvers (+40 more)
 
-### Community 15 - "Gradle Library Catalog"
+### Community 11 - "Load & Performance Tests"
 Cohesion: 0.10
 Nodes (47): AddStaffDirectRequest, CurrentUser, str, CreateCustomRoleRequest, CreateRoleScheduleRequest, InviteStaffRequest, AddStaffDirectRequest, CreateCustomRoleRequest (+39 more)
 
-### Community 16 - "AI NL Parsing Service"
+### Community 12 - "Android Appcompat Libraries"
 Cohesion: 0.08
 Nodes (43): str, str, str, str, acquire_new_token(), _basic_auth_header(), get_opera_credentials(), get_valid_access_token() (+35 more)
 
+### Community 13 - "Web Frontend Dependencies"
+Cohesion: 0.09
+Nodes (44): FakeMultiTenantDB, Tenant isolation smoke-tests.  Two "hotels" are simulated in FakeMultiTenantDB, Hotel A has no subscription row; Hotel B's row is invisible behind tenant filter, credit_ledger has no Hotel A row — endpoint returns the safe empty-period messag, End-to-end: run several Hotel A operations; confirm Hotel B data is pristine., Hotel A GM cannot update Hotel B room status — fetch by (room_id + tenant_id) mi, claim_work_order pre-checks tenant ownership — cross-tenant claim returns 404., complete_work_order pre-checks tenant ownership — cross-tenant complete returns (+36 more)
+
+### Community 14 - "Staff Management API"
+Cohesion: 0.10
+Nodes (41): parse_assignments(), Returns {"assignments": [...], "prompt_tokens": int, "completion_tokens": int}, parse_guest_requests(), Returns {"requests": [...], "prompt_tokens": int, "completion_tokens": int}, parse_work_orders(), Returns {"work_orders": [...], "prompt_tokens": int, "completion_tokens": int}, bool, float (+33 more)
+
+### Community 15 - "Gradle Library Catalog"
+Cohesion: 0.07
+Nodes (34): useAuth(), DashboardShell(), COMMANDS, Header(), HeaderProps, ROLE_LABELS, PageTransition(), ALL_NAV_ITEMS (+26 more)
+
+### Community 16 - "AI NL Parsing Service"
+Cohesion: 0.06
+Nodes (36): integrationsApi, OperaConnectRequest, OperaConnectResponse, OperaStatus, OperaStatusResponse, OperaSyncResponse, OperaTestResponse, lostFoundApi (+28 more)
+
 ### Community 17 - "Auth & Crypto Middleware"
-Cohesion: 0.08
-Nodes (24): BinaryCompatibilityPluginAccessors, BinaryCompatibilityVersionAccessors, CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, JavaxAnnotationVersionAccessors, ObjectFactory (+16 more)
+Cohesion: 0.05
+Nodes (26): ImportResult, ImportRoomPayload, roomsApi, RoomStatus, RoomStatusHistoryEntry, ImportResult, RoomsPage(), ALL_MODULES (+18 more)
 
 ### Community 18 - "Housekeeping Assignment UI"
-Cohesion: 0.08
-Nodes (24): BinaryCompatibilityPluginAccessors, BinaryCompatibilityVersionAccessors, CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, JavaxAnnotationVersionAccessors, ObjectFactory (+16 more)
+Cohesion: 0.05
+Nodes (40): common, back, cancel, confirm, loading, save, copilot, placeholder (+32 more)
 
 ### Community 19 - "Android Test Libraries"
-Cohesion: 0.06
-Nodes (24): AbstractExternalDependencyFactory, AndroidGradleLibraryAccessors, KotlinGradleLibraryAccessors, YogaProguardLibraryAccessors, FrescoImagepipelineLibraryAccessors, FrescoUiLibraryAccessors, JavaxAnnotationLibraryAccessors, YogaProguardLibraryAccessors (+16 more)
+Cohesion: 0.05
+Nodes (40): common, back, cancel, confirm, loading, save, copilot, placeholder (+32 more)
 
 ### Community 20 - "Auth Notifications & Staff"
-Cohesion: 0.06
-Nodes (39): CreateCustomRoleData, CreateRoleScheduleData, CustomRole, InviteStaffData, InviteStaffResponse, RoleSchedule, StaffInvitation, StaffInvitationsResponse (+31 more)
-
-### Community 21 - "Housekeeping Inspection API"
-Cohesion: 0.06
-Nodes (31): apiClient, GuestRequest, guestRequestsApi, GuestRequestStatus, lostFoundApi, LostFoundItem, LostFoundStatus, ActiveTab (+23 more)
-
-### Community 22 - "English Localization"
-Cohesion: 0.05
-Nodes (40): common, back, cancel, confirm, loading, save, copilot, placeholder (+32 more)
-
-### Community 23 - "Spanish Localization"
-Cohesion: 0.05
-Nodes (40): common, back, cancel, confirm, loading, save, copilot, placeholder (+32 more)
-
-### Community 24 - "Android Provider Config"
 Cohesion: 0.13
 Nodes (4): Provider, String, AndroidxVersionAccessors, VersionAccessors
 
-### Community 25 - "Bug Detection Tooling"
+### Community 21 - "Housekeeping Inspection API"
 Cohesion: 0.18
 Nodes (34): main(), autoDetectBugFix(), detectFixPattern(), extractCalls(), extractChangedLines(), extractCSSProps(), findOperatorChange(), main() (+26 more)
 
-### Community 26 - "Scheduling API"
-Cohesion: 0.07
-Nodes (24): ApiClientError, getToken(), RequestOptions, toFriendlyError(), staffApi, ibmPlexMono, ibmPlexSans, instrumentSerif (+16 more)
+### Community 22 - "English Localization"
+Cohesion: 0.06
+Nodes (30): AssignmentListResponse, AssignmentResponse, BulkAssignmentData, CreateAssignmentData, CreateShiftData, RosterEntry, schedulingApi, Shift (+22 more)
 
-### Community 27 - "File Scanner Config"
+### Community 23 - "Spanish Localization"
+Cohesion: 0.12
+Nodes (39): bool, CurrentUser, date, str, BulkShiftAssignmentRequest, CreateShiftAssignmentRequest, CreateShiftRequest, BulkShiftAssignmentRequest (+31 more)
+
+### Community 24 - "Android Provider Config"
 Cohesion: 0.05
 Nodes (39): auto_scan_on_init, exclude_patterns, max_description_length, max_files, rescan_interval_hours, max_tokens, reflection_frequency, api_key_env (+31 more)
 
-### Community 28 - "Assignment Data Models"
-Cohesion: 0.08
-Nodes (31): BarTone, getHotelIdFromSession(), LiveOpsGrid(), TILES, Avatar(), avatarColor(), CELL_MAP, HKRow (+23 more)
-
-### Community 29 - "Mobile App Config"
+### Community 25 - "Bug Detection Tooling"
 Cohesion: 0.05
 Nodes (37): backgroundColor, foregroundImage, adaptiveIcon, googleServicesFile, package, permissions, versionCode, projectId (+29 more)
 
-### Community 30 - "Asset Management API"
+### Community 26 - "Scheduling API"
 Cohesion: 0.13
 Nodes (36): bool, CurrentUser, int, Request, str, CreateAssetRequest, CreatePMScheduleRequest, CreateAssetRequest (+28 more)
 
-### Community 31 - "SOP Query UI"
+### Community 27 - "File Scanner Config"
+Cohesion: 0.09
+Nodes (20): ApiClientError, getToken(), RequestOptions, toFriendlyError(), ibmPlexMono, ibmPlexSans, instrumentSerif, metadata (+12 more)
+
+### Community 28 - "Assignment Data Models"
 Cohesion: 0.07
 Nodes (28): CreateHotelData, HotelResponse, hotelsApi, HotelStatsResponse, UpdateHotelData, AI_TIPS, AISidebar(), AISidebarProps (+20 more)
 
-### Community 32 - "Room Prediction Dashboard"
+### Community 29 - "Mobile App Config"
 Cohesion: 0.12
 Nodes (34): CurrentUser, date, str, str, _clean_type_payload(), create_assignments(), create_inspection_template(), delete_assignment() (+26 more)
 
-### Community 33 - "Reports API"
-Cohesion: 0.07
-Nodes (29): WorkOrderComment, CATEGORY_ICONS, formatTs(), PRIORITY_TONE, Props, slaDisplay(), STATUS_TONE, WorkOrderDetailDrawer() (+21 more)
+### Community 30 - "Asset Management API"
+Cohesion: 0.11
+Nodes (21): AppLayout(), getTabsForRole(), TabDef, RootLayout(), AuthLayout(), styles, { getByText }, mockUseAppStore (+13 more)
 
-### Community 34 - "Modal Focus Trap"
+### Community 31 - "SOP Query UI"
 Cohesion: 0.08
 Nodes (18): SOPQueryModal(), SOPQueryModalProps, sopApi, SOPDocument, SOPQueryResult, SOPSource, SuggestedTask, CATEGORIES (+10 more)
 
+### Community 32 - "Room Prediction Dashboard"
+Cohesion: 0.10
+Nodes (25): billingApi, CreditUsage, Invoice, Subscription, creditBarColor(), formatCents(), formatDate(), formatNumber() (+17 more)
+
+### Community 33 - "Reports API"
+Cohesion: 0.09
+Nodes (28): CreateCustomRoleData, CreateRoleScheduleData, CustomRole, InviteStaffData, InviteStaffResponse, RoleSchedule, StaffInvitation, StaffInvitationsResponse (+20 more)
+
+### Community 34 - "Modal Focus Trap"
+Cohesion: 0.10
+Nodes (12): BinaryCompatibilityPluginAccessors, BinaryCompatibilityVersionAccessors, CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, ObjectFactory, ProviderFactory (+4 more)
+
 ### Community 35 - "AI Sidebar UI"
-Cohesion: 0.08
-Nodes (22): PMSchedule, integrationsApi, OperaConnectRequest, OperaConnectResponse, OperaStatus, OperaStatusResponse, OperaSyncResponse, OperaTestResponse (+14 more)
+Cohesion: 0.10
+Nodes (12): AndroidLibraryAccessors, BundleAccessors, KotlinLibraryAccessors, MinimalExternalModuleDependency, PluginAccessors, Provider, String, VersionAccessors (+4 more)
 
 ### Community 36 - "API Client & Error Handling"
-Cohesion: 0.14
-Nodes (30): bool, CopilotChatRequest, int, bool, CurrentUser, int, str, CopilotChatRequest (+22 more)
-
-### Community 37 - "Expo Mobile Dependencies"
-Cohesion: 0.13
-Nodes (29): CurrentUser, str, bulk_create_assignments(), clock_in(), clock_out(), create_shift(), create_shift_assignment(), delete_assignment() (+21 more)
-
-### Community 38 - "API Endpoint Tests"
-Cohesion: 0.09
-Nodes (22): AssignmentListResponse, AssignmentResponse, BulkAssignmentData, CreateAssignmentData, CreateShiftData, RosterEntry, schedulingApi, Shift (+14 more)
-
-### Community 39 - "Webhook & Transition Tests"
-Cohesion: 0.09
-Nodes (15): expanded, HousekeeperRow, map, RoomEntry, Mode, PageHeader(), PageHeaderProps, Tab (+7 more)
-
-### Community 40 - "Rooms API"
-Cohesion: 0.07
-Nodes (9): Verify all expected routers are registered (not just checking 404)., Internal cron endpoints require X-Cron-Secret header, not JWT., Responses should follow {data: ...} or {error: ...} format., Verify all endpoints require authentication., TestAPIRoutersRegistered, TestAuthProtection, TestHealthEndpoints, TestInternalEndpointsNeedCronSecret (+1 more)
-
-### Community 41 - "EAS Build Config"
 Cohesion: 0.07
 Nodes (29): dependencies, expo, expo-camera, expo-constants, expo-document-picker, expo-file-system, expo-font, expo-image-manipulator (+21 more)
 
-### Community 42 - "Work Order Comments API"
-Cohesion: 0.11
-Nodes (13): FakeDB, FakeQuery, FakeRequest, stripe_event(), test_opera_webhook_unknown_hotel_is_ignored(), test_pickup_room_can_start_normal_clean_flow(), test_room_status_undo_rejects_other_housekeeper_change(), test_room_status_undo_reverts_latest_matching_change() (+5 more)
+### Community 37 - "Expo Mobile Dependencies"
+Cohesion: 0.07
+Nodes (9): Verify all expected routers are registered (not just checking 404)., Internal cron endpoints require X-Cron-Secret header, not JWT., Responses should follow {data: ...} or {error: ...} format., Verify all endpoints require authentication., TestAPIRoutersRegistered, TestAuthProtection, TestHealthEndpoints, TestInternalEndpointsNeedCronSecret (+1 more)
 
-### Community 43 - "Header, Sidebar & Navigation"
-Cohesion: 0.19
-Nodes (27): bool, CurrentUser, int, str, ImportRoomsRequest, ImportRoomsRequest, UndoRoomStatusRequest, UpdateRoomStatusRequest (+19 more)
+### Community 38 - "API Endpoint Tests"
+Cohesion: 0.10
+Nodes (25): CurrentUser, str, CurrentUser, bool, CurrentUser, int, str, FastAPI (+17 more)
 
-### Community 44 - "Billing API"
-Cohesion: 0.12
-Nodes (22): useAuth(), COMMANDS, Header(), HeaderProps, ROLE_LABELS, ALL_NAV_ITEMS, INTELLIGENCE_HREFS, NAV_BY_ROLE (+14 more)
-
-### Community 45 - "ESLint & Test Config"
+### Community 39 - "Webhook & Transition Tests"
 Cohesion: 0.09
 Nodes (27): buildType, serviceAccountKeyPath, track, build, development, preview, production, cli (+19 more)
 
-### Community 46 - "Task Management Models"
-Cohesion: 0.23
-Nodes (26): AddCommentRequest, CurrentUser, int, str, CompleteWorkOrderRequest, CreateWorkOrderRequest, AddCommentRequest, CompleteWorkOrderRequest (+18 more)
+### Community 40 - "Rooms API"
+Cohesion: 0.11
+Nodes (20): api, getAuthHeader(), mockGetSession, mockRefreshSession, request(), registerForPushNotifications(), savePushTokenToProfile(), setupPushNotifications() (+12 more)
 
-### Community 47 - "Opera Integration & Webhooks"
-Cohesion: 0.13
-Nodes (18): billingApi, CreditUsage, Invoice, Subscription, creditBarColor(), formatCents(), formatDate(), formatNumber() (+10 more)
+### Community 41 - "EAS Build Config"
+Cohesion: 0.11
+Nodes (19): FrescoImagepipelineLibraryAccessors, FrescoUiLibraryAccessors, JavaxAnnotationLibraryAccessors, JavaxAnnotationVersionAccessors, YogaProguardLibraryAccessors, DependencyNotationSupplier, AndroidxAppcompatLibraryAccessors, AndroidxTestLibraryAccessors (+11 more)
 
-### Community 48 - "Lost & Found API"
+### Community 42 - "Work Order Comments API"
 Cohesion: 0.10
 Nodes (22): EMPTY_STORAGE, engUser, fdUser, forbidden, hkUser, ROLE_ALLOWED, ROLE_BLOCKED, seededUsers (+14 more)
 
-### Community 49 - "Auth Mock & Test Helpers"
+### Community 43 - "Header, Sidebar & Navigation"
+Cohesion: 0.16
+Nodes (19): AssignmentSidebar(), getHotelIdFromToken(), HousekeeperBar(), HousekeeperMyRoomsView(), HousekeeperRoomItem(), HousekeepingPage(), SHIFTS, SupervisorHousekeepingPage() (+11 more)
+
+### Community 44 - "Billing API"
+Cohesion: 0.08
+Nodes (7): AbstractExternalDependencyFactory, KotlinGradleLibraryAccessors, YogaProguardLibraryAccessors, KotlinLibraryAccessors, AndroidGradleLibraryAccessors, KotlinGradleLibraryAccessors, YogaLibraryAccessors
+
+### Community 45 - "ESLint & Test Config"
 Cohesion: 0.12
-Nodes (21): CreateTaskData, Priority, Task, TaskComment, TaskListFilters, tasksApi, TaskStatus, TaskType (+13 more)
+Nodes (23): CurrentUser, int, str, bool, bytes, Request, str, CreateGuestRequestRequest (+15 more)
 
-### Community 50 - "Project Architecture Rationale"
-Cohesion: 0.15
-Nodes (20): bytes, CurrentUser, str, UploadFile, bytes, int, str, BackgroundTasks (+12 more)
+### Community 46 - "Task Management Models"
+Cohesion: 0.13
+Nodes (20): CreateTaskData, Priority, Task, TaskComment, TaskListFilters, tasksApi, TaskStatus, TaskType (+12 more)
 
-### Community 51 - "Community 51"
+### Community 47 - "Opera Integration & Webhooks"
+Cohesion: 0.13
+Nodes (18): Asset, engineeringApi, PMSchedule, WorkOrder, WorkOrderPhoto, CATEGORIES, CreateWorkOrderModal(), PRIORITIES (+10 more)
+
+### Community 48 - "Lost & Found API"
 Cohesion: 0.09
 Nodes (24): FastAPI Backend (apps/api), Cron Jobs via Railway FastAPI /internal/*, DO-NOT-REPEAT: Opera auth_code OAuth Redirect, Opera Cloud Integration (A4) — Feature-Flagged, assets.py Router, auth.py Router, billing.py Router, guest_requests.py Router (+16 more)
 
-### Community 52 - "Community 52"
-Cohesion: 0.16
-Nodes (12): api, getAuthHeader(), mockGetSession, mockRefreshSession, request(), styles, registerForPushNotifications(), savePushTokenToProfile() (+4 more)
+### Community 49 - "Auth Mock & Test Helpers"
+Cohesion: 0.15
+Nodes (20): bytes, CurrentUser, str, UploadFile, bytes, int, str, BackgroundTasks (+12 more)
 
-### Community 53 - "Community 53"
-Cohesion: 0.20
-Nodes (22): bool, float, int, str, CurrentUser, str, check_and_deduct_credits(), log_ai_interaction() (+14 more)
+### Community 50 - "Project Architecture Rationale"
+Cohesion: 0.11
+Nodes (15): GuestRequest, guestRequestsApi, GuestRequestStatus, staffApi, ActiveTab, CreateRequestModalProps, EditRequestModalProps, GuestRequestCardProps (+7 more)
 
-### Community 54 - "Community 54"
-Cohesion: 0.14
-Nodes (17): AppLayout(), getTabsForRole(), TabDef, RootLayout(), AuthLayout(), { getByText }, mockUseAppStore, { toJSON } (+9 more)
-
-### Community 55 - "Community 55"
+### Community 51 - "Community 51"
 Cohesion: 0.09
 Nodes (22): dependencies, patch-package, devDependencies, typescript, name, private, scripts, ab:auth (+14 more)
 
-### Community 56 - "Community 56"
+### Community 52 - "Community 52"
 Cohesion: 0.13
 Nodes (7): FakeDB, FakeQuery, test_board_uses_selected_date_assignments_not_stale_room_status(), test_create_assignments_maps_clean_type_to_room_status(), test_create_assignments_reassigns_existing_room_for_same_day(), test_delete_assignment_rejects_cross_tenant_assignment(), test_delete_assignment_removes_row_and_clears_status_assignee()
 
-### Community 57 - "Community 57"
+### Community 53 - "Community 53"
 Cohesion: 0.19
 Nodes (20): str, check_due_pm(), check_escalations(), cleanup_expired_logbook_entries(), generate_shift_summaries(), monthly_trueup(), _notify_role(), Cron: Generate AI shift summaries for shifts that ended in the last 2 hours. (+12 more)
 
-### Community 58 - "Community 58"
+### Community 54 - "Community 54"
+Cohesion: 0.17
+Nodes (13): CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, KotlinPluginAccessors, ObjectFactory, PluginDependency, ProviderFactory (+5 more)
+
+### Community 55 - "Community 55"
+Cohesion: 0.12
+Nodes (15): apiClient, Department, logbookApi, LogbookEntry, AISummaryPanelProps, CreateEntryModalProps, EditEntryModalProps, EntryCardProps (+7 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.11
+Nodes (3): str, _Q, Minimal Supabase query builder that applies only .eq() filters.
+
+### Community 57 - "Community 57"
 Cohesion: 0.22
 Nodes (19): count_rooms_ahead(), _default_minutes_for_room_type(), get_at_risk_rooms(), get_housekeeper_profile(), notify_supervisors_high_risk(), _parse_iso(), Look up the housekeeper's average cleaning speed for this room type.      Retu, Count how many rooms assigned to this housekeeper today are still     DIRTY or (+11 more)
 
+### Community 58 - "Community 58"
+Cohesion: 0.19
+Nodes (12): CapabilityNotationParser, DefaultVersionCatalog, ImmutableAttributesFactory, Inject, KotlinPluginAccessors, ObjectFactory, PluginDependency, ProviderFactory (+4 more)
+
 ### Community 59 - "Community 59"
-Cohesion: 0.17
-Nodes (17): _analyze_asset(), _build_asset_prompt(), Compute a simple rule-based risk assessment when Claude is unavailable     or r, Call Claude Sonnet to analyze failure risk for a single asset.     Falls back t, Build the Claude user-message prompt for a single asset., Analyze all active assets for a hotel and generate/update failure predictions., Run failure predictions for all hotels that have active assets.     Called from, Run failure prediction analysis for a single asset.     Returns the prediction (+9 more)
+Cohesion: 0.15
+Nodes (17): aiApi, HousekeeperDashboard(), PillTone, STATUS_LABEL, STATUS_TONE, SupervisorDashboard(), getBoardRows(), getHousekeeperDashboardMetrics() (+9 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.13
-Nodes (14): Department, logbookApi, LogbookEntry, AISummaryPanelProps, CreateEntryModalProps, EditEntryModalProps, EntryCardProps, ExpiryPickerProps (+6 more)
+Cohesion: 0.11
+Nodes (10): AndroidPluginAccessors, BinaryPluginAccessors, KotlinPluginAccessors, NexusPluginAccessors, PluginDependency, AndroidPluginAccessors, BinaryCompatibilityPluginAccessors, KotlinPluginAccessors (+2 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.11
-Nodes (17): createWorkOrder(), CreateWorkOrderPayload, cancelButton, defaultProps, descriptionInput, { getByPlaceholderText, getByTestId }, { getByPlaceholderText, getByTestId, getByText }, { getByText, getByTestId } (+9 more)
-
-### Community 62 - "Community 62"
 Cohesion: 0.10
 Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
 
+### Community 62 - "Community 62"
+Cohesion: 0.17
+Nodes (8): AndroidLibraryAccessors, BundleAccessors, Deprecated, KotlinLibraryAccessors, MinimalExternalModuleDependency, PluginAccessors, VersionAccessors, LibrariesForLibsInPluginsBlock
+
 ### Community 63 - "Community 63"
-Cohesion: 0.16
-Nodes (16): HousekeeperDashboard(), PillTone, STATUS_LABEL, STATUS_TONE, SupervisorDashboard(), getBoardRows(), getHousekeeperDashboardMetrics(), getHousekeeperDashboardRooms() (+8 more)
+Cohesion: 0.15
+Nodes (12): AIUsageTab(), completionRateColor(), DailySummaryTab(), DateRange, getDateRange(), maintenanceSlaColor(), MaintenanceTab(), ReportsPage() (+4 more)
 
 ### Community 64 - "Community 64"
 Cohesion: 0.15
 Nodes (6): FakeQuery, FakeSupabase, test_guest_request_create_returns_refreshed_task_id(), test_guest_request_update_does_not_forward_notes_or_assigned_to(), test_postgrest_schema_error_returns_safe_422(), test_task_update_maps_notes_to_task_comments()
 
 ### Community 65 - "Community 65"
-Cohesion: 0.11
-Nodes (18): rooms, checkinTime, dndAlert, eta, floor, issueCategory, issueSubmitted, markClean (+10 more)
+Cohesion: 0.26
+Nodes (18): CurrentUser, int, str, CreateTaskRequest, CreateTaskRequest, UpdateTaskRequest, add_task_comment(), batch_create_tasks() (+10 more)
 
 ### Community 66 - "Community 66"
 Cohesion: 0.11
 Nodes (18): rooms, checkinTime, dndAlert, eta, floor, issueCategory, issueSubmitted, markClean (+10 more)
 
-### Community 67 - "Community 67"
-Cohesion: 0.18
-Nodes (12): engineeringApi, FailurePrediction, WorkOrder, WorkOrderPhoto, CATEGORIES, CreateWorkOrderModal(), PRIORITIES, Props (+4 more)
-
 ### Community 68 - "Community 68"
-Cohesion: 0.16
-Nodes (11): AIUsageTab(), completionRateColor(), DailySummaryTab(), DateRange, getDateRange(), maintenanceSlaColor(), MaintenanceTab(), StaffPerformanceTab() (+3 more)
+Cohesion: 0.18
+Nodes (14): AssignmentPayload, housekeepingApi, InspectionRecord, InspectionTemplate, InspectionTemplateItem, RoomPrediction, SubmitInspectionPayload, UpdateRoomStatusPayload (+6 more)
+
+### Community 69 - "Community 69"
+Cohesion: 0.32
+Nodes (15): formatCheckinTime(), formatHistoryTimestamp(), formatLastAction(), getActionableNote(), getActionLabel(), getLastUpdateAt(), getStatusDotClass(), getStatusTextClass() (+7 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.16
-Nodes (12): DashboardShell(), PageTransition(), Accent, ACCENT_OPTIONS, Density, DENSITY_OPTIONS, TweaksPanel(), Accent (+4 more)
+Cohesion: 0.11
+Nodes (18): rooms, checkinTime, dndAlert, eta, floor, issueCategory, issueSubmitted, markClean (+10 more)
 
 ### Community 71 - "Community 71"
+Cohesion: 0.29
+Nodes (17): CurrentUser, str, add_comment(), claim_work_order(), complete_work_order(), create_work_order(), delete_work_order(), _ensure_engineer_can_complete_work_order() (+9 more)
+
+### Community 72 - "Community 72"
 Cohesion: 0.24
 Nodes (15): deleteSyncQueueItem(), enqueueAction(), getDb(), getPendingSyncQueue(), getRooms(), initSchema(), upsertRooms(), flushSyncQueue() (+7 more)
 
-### Community 72 - "Community 72"
-Cohesion: 0.30
-Nodes (16): CurrentUser, date, int, str, CreateLogbookEntryRequest, CreateLogbookEntryRequest, UpdateLogbookEntryRequest, _build_entries_query() (+8 more)
-
 ### Community 73 - "Community 73"
-Cohesion: 0.12
-Nodes (7): AndroidPluginAccessors, BinaryPluginAccessors, KotlinPluginAccessors, NexusPluginAccessors, PluginDependency, AndroidPluginAccessors, PluginAccessors
+Cohesion: 0.13
+Nodes (7): expanded, HousekeeperRow, map, RoomEntry, Mode, Input, InputProps
 
 ### Community 74 - "Community 74"
 Cohesion: 0.12
@@ -539,338 +551,374 @@ Cohesion: 0.16
 Nodes (17): AICopilotBubble.tsx — Floating AI Chat Component, amber-* Tailwind Tokens (Brand Color), ARIA Modal Pattern (role=dialog, aria-modal, focus trap), CORS Auth Issue — /v1/auth/me Intermittent Failures, Floating AI Button Overlaps Mobile Content, Frontend Audit — PatelRep Dashboard, Frosted Glass — Overlays Only (Cerebrum Rule), Inspection History Exposes Raw UUIDs as Inspector Names (+9 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.15
-Nodes (11): Asset, AssetDetailModal(), AssetDetailModalProps, AssetRegisterPage(), CreateAssetModalProps, formatCurrency(), getRiskBadge(), getWarrantyLabel() (+3 more)
+Cohesion: 0.30
+Nodes (16): CurrentUser, date, int, str, CreateLogbookEntryRequest, CreateLogbookEntryRequest, UpdateLogbookEntryRequest, _build_entries_query() (+8 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.15
 Nodes (4): FakeDB, FakeQuery, test_confirm_assignments_resolves_staff_by_tenant_role(), test_confirm_assignments_writes_required_assignment_fields()
 
 ### Community 78 - "Community 78"
+Cohesion: 0.16
+Nodes (10): AssetDetailModal(), AssetDetailModalProps, AssetRegisterPage(), CreateAssetModalProps, formatCurrency(), getRiskBadge(), getWarrantyLabel(), RISK_FILTERS (+2 more)
+
+### Community 79 - "Community 79"
+Cohesion: 0.16
+Nodes (10): Badge(), BADGE_VARIANTS, BadgeProps, BadgeVariant, ButtonProps, ButtonVariant, VARIANTS, CardProps (+2 more)
+
+### Community 80 - "Community 80"
 Cohesion: 0.14
 Nodes (5): ICONS, ROOM_TONES, roomBg(), RoomNumberTile(), roomTone()
 
-### Community 79 - "Community 79"
-Cohesion: 0.31
-Nodes (14): CurrentUser, str, CreateTaskRequest, add_task_comment(), batch_create_tasks(), create_task(), delete_task(), _ensure_tenant_row() (+6 more)
-
-### Community 80 - "Community 80"
-Cohesion: 0.18
-Nodes (13): FailurePredictionSidebar(), AVATAR_COLORS, avatarColor(), COLUMNS, getHotelIdFromToken(), initials(), KanbanStatus, PillTone (+5 more)
-
 ### Community 81 - "Community 81"
+Cohesion: 0.25
+Nodes (13): _analyze_asset(), _build_asset_prompt(), Compute a simple rule-based risk assessment when Claude is unavailable     or r, Call Claude Sonnet to analyze failure risk for a single asset.     Falls back t, Build the Claude user-message prompt for a single asset., Analyze all active assets for a hotel and generate/update failure predictions., Run failure predictions for all hotels that have active assets.     Called from, Run failure prediction analysis for a single asset.     Returns the prediction (+5 more)
+
+### Community 82 - "Community 82"
 Cohesion: 0.18
 Nodes (12): getAvgScoreColor(), getBorderColor(), getRiskBadgeCls(), getRiskLabel(), getRiskRingColor(), PredictionCard(), PredictionCardProps, PredictionsPage() (+4 more)
 
-### Community 83 - "Community 83"
-Cohesion: 0.32
-Nodes (13): CurrentUser, str, CreateHotelRequest, CreateHotelRequest, UpdateHotelRequest, create_hotel(), get_hotel(), get_hotel_stats() (+5 more)
-
 ### Community 84 - "Community 84"
+Cohesion: 0.18
+Nodes (9): calcNextDueAt(), CompletePMModal(), CompletePMModalProps, CreatePMScheduleModalProps, formatIntervalLabel(), INTERVAL_OPTIONS, PMScheduleMobileCard(), PMSchedulesPage() (+1 more)
+
+### Community 85 - "Community 85"
+Cohesion: 0.20
+Nodes (12): AVATAR_COLORS, avatarColor(), COLUMNS, getHotelIdFromToken(), initials(), KanbanStatus, PillTone, PRIORITY_BORDER (+4 more)
+
+### Community 86 - "Community 86"
 Cohesion: 0.16
 Nodes (6): DC, DCCtx, dcFlatten(), DCSection(), DesignCanvas(), s
 
-### Community 85 - "Community 85"
+### Community 87 - "Community 87"
 Cohesion: 0.16
 Nodes (14): OpenWolf Anatomy Index, buglog.json — Bug History Log, cerebrum.md — Project Learnings and Do-Not-Repeat, HousekeeperDashboard.tsx, housekeeping_assignments.py — Shared Assignment Helper, housekeepingDashboardMetrics.ts — Live Metric Derivation, housekeepingNavigation.ts — Subnav Visibility by Role, memory.md — Session Memory Log (+6 more)
 
-### Community 86 - "Community 86"
+### Community 88 - "Community 88"
+Cohesion: 0.27
+Nodes (12): formatCheckinTime(), getRiskColorClass(), getTimeSinceSync(), getValidTransitions(), isSupervisor(), STATUS_BG, STATUS_COLORS, STATUS_LABELS (+4 more)
+
+### Community 89 - "Community 89"
+Cohesion: 0.32
+Nodes (13): CurrentUser, str, CreateHotelRequest, CreateHotelRequest, UpdateHotelRequest, create_hotel(), get_hotel(), get_hotel_stats() (+5 more)
+
+### Community 90 - "Community 90"
+Cohesion: 0.23
+Nodes (12): _build_limited_client(), test_ai_routes_have_stricter_rate_limit_tier(), test_rate_limit_uses_forwarded_client_ip(), test_security_headers_treat_forwarded_https_as_secure(), test_verified_users_get_separate_buckets_behind_same_ip(), _auth_header(), test_engineer_cannot_delete_work_order(), test_onboarding_invite_allows_new_hotel_owner() (+4 more)
+
+### Community 91 - "Community 91"
 Cohesion: 0.24
 Nodes (11): _chunk_text(), index_sop_document(), _log_ai_interaction(), query_sop(), Full ingestion pipeline: download → parse → chunk → embed → store.      Called, Perform a RAG query over indexed SOP documents for the given hotel.      Retur, Split text into overlapping chunks of ~CHUNK_SIZE characters.      Strategy:, bool (+3 more)
 
-### Community 87 - "Community 87"
-Cohesion: 0.27
-Nodes (12): CurrentUser, int, str, CreateGuestRequestRequest, CreateGuestRequestRequest, create_guest_request(), delete_guest_request(), list_guest_requests() (+4 more)
-
-### Community 88 - "Community 88"
-Cohesion: 0.15
-Nodes (13): status, CLEAN, completed, DIRTY, IN_PROGRESS, INSPECTED, OCCUPIED, OOO (+5 more)
-
-### Community 89 - "Community 89"
-Cohesion: 0.15
-Nodes (13): copilot, placeholder, confirm, confirmTask, edit, quickActions, taskCreated, thinking (+5 more)
-
-### Community 90 - "Community 90"
-Cohesion: 0.15
-Nodes (13): copilot, placeholder, confirm, confirmTask, edit, quickActions, taskCreated, thinking (+5 more)
-
-### Community 91 - "Community 91"
-Cohesion: 0.15
-Nodes (13): status, CLEAN, completed, DIRTY, IN_PROGRESS, INSPECTED, OCCUPIED, OOO (+5 more)
-
 ### Community 92 - "Community 92"
-Cohesion: 0.27
-Nodes (9): formatETA(), getTransitions(), RoomDetailScreen(), styles, alertSpy, { getByText }, mockApiPost, mockRooms (+1 more)
-
-### Community 93 - "Community 93"
 Cohesion: 0.24
 Nodes (6): _body(), FakeOperaDB, FakeQuery, test_opera_connect_returns_controlled_error_for_bad_credentials(), test_opera_connect_returns_safe_error_for_unreachable_ohip(), test_opera_connect_uses_credential_based_flow()
 
+### Community 93 - "Community 93"
+Cohesion: 0.15
+Nodes (13): status, CLEAN, completed, DIRTY, IN_PROGRESS, INSPECTED, OCCUPIED, OOO (+5 more)
+
 ### Community 94 - "Community 94"
+Cohesion: 0.15
+Nodes (13): copilot, placeholder, confirm, confirmTask, edit, quickActions, taskCreated, thinking (+5 more)
+
+### Community 95 - "Community 95"
+Cohesion: 0.23
+Nodes (10): FailurePrediction, FailurePredictionSidebar(), getRiskBadgeCls(), getRiskBgColor(), getRiskLabel(), getRiskRingColor(), PredictionCard(), PredictionCardProps (+2 more)
+
+### Community 96 - "Community 96"
+Cohesion: 0.24
+Nodes (11): InspectionMobileCard(), InspectionQueueRow(), InspectionResult, InspectionsPage(), resultLabel(), resultPillTone(), sevenDaysAgoISO(), todayISO() (+3 more)
+
+### Community 97 - "Community 97"
+Cohesion: 0.15
+Nodes (13): status, CLEAN, completed, DIRTY, IN_PROGRESS, INSPECTED, OCCUPIED, OOO (+5 more)
+
+### Community 98 - "Community 98"
+Cohesion: 0.15
+Nodes (13): copilot, placeholder, confirm, confirmTask, edit, quickActions, taskCreated, thinking (+5 more)
+
+### Community 99 - "Community 99"
+Cohesion: 0.26
+Nodes (12): CurrentUser, int, str, CreateLostFoundRequest, create_lost_found_item(), delete_lost_found_item(), get_lost_found_item(), list_lost_found_items() (+4 more)
+
+### Community 100 - "Community 100"
+Cohesion: 0.19
+Nodes (12): CopilotChatRequest, CurrentUser, str, UploadFile, get_onboarding_status(), _import_rooms_batch(), import_rooms_csv(), onboarding_ai_assistant() (+4 more)
+
+### Community 101 - "Community 101"
+Cohesion: 0.15
+Nodes (12): cancelButton, defaultProps, descriptionInput, { getByPlaceholderText, getByTestId }, { getByPlaceholderText, getByTestId, getByText }, { getByText, getByTestId }, input, mockApiPost (+4 more)
+
+### Community 102 - "Community 102"
 Cohesion: 0.23
 Nodes (9): ALL_MODULES, BASE_ROLE_COLORS, BASE_ROLE_LABELS, BASE_ROLES, EMPTY_ROLE_FORM, MODULE_LABELS, RoleCard(), RoleFormCard() (+1 more)
 
-### Community 95 - "Community 95"
-Cohesion: 0.21
-Nodes (10): CATEGORY_ICONS, formatSLA(), priorityVariant(), Props, STATUS_STYLES, WorkOrderCard(), Badge(), BADGE_VARIANTS (+2 more)
-
-### Community 96 - "Community 96"
+### Community 103 - "Community 103"
 Cohesion: 0.21
 Nodes (12): AI Copilot as Primary Staff Interface Plan, ambiguous Intent — Button Chips Instead of Text, claude-sonnet-3.5 — Reasoning-Quality AI Tasks, GPT-4o-mini — Latency-Sensitive AI Tasks, guest_request_creation Intent — AI Copilot Extension, pgvector RPC match_sop_chunks — match_hotel_id Param, ai_copilot.py Router, sop.py Router (+4 more)
 
-### Community 97 - "Community 97"
+### Community 104 - "Community 104"
 Cohesion: 0.18
 Nodes (12): CI: Lint API (ruff check), CI: Lint Web (ESLint + TypeScript), CI: Test API (pytest smoke tests), Dashboard Stat Cards Never Resolve from Skeleton (C-01), GitHub Actions Deploy Workflow, Next.js 14 Web Dashboard (apps/web), (auth)/login — Unauthenticated Web Route, (dashboard)/ — Authenticated Web Routes (+4 more)
 
-### Community 98 - "Community 98"
+### Community 105 - "Community 105"
+Cohesion: 0.29
+Nodes (11): CurrentUser, date, str, get_ai_usage_report(), get_daily_summary(), get_maintenance_report(), get_staff_performance(), Return a daily operational summary: room statuses, task completion, open WOs. (+3 more)
+
+### Community 106 - "Community 106"
 Cohesion: 0.18
 Nodes (10): exclude, include, pythonVersion, reportArgumentType, reportAttributeAccessIssue, reportCallIssue, reportMissingTypeStubs, reportOptionalMemberAccess (+2 more)
 
-### Community 99 - "Community 99"
+### Community 107 - "Community 107"
 Cohesion: 0.18
 Nodes (11): workOrders, addPhoto, claim, complete, completed, inProgress, myOrders, noOrders (+3 more)
 
-### Community 100 - "Community 100"
-Cohesion: 0.18
-Nodes (11): workOrders, addPhoto, claim, complete, completed, inProgress, myOrders, noOrders (+3 more)
-
-### Community 101 - "Community 101"
+### Community 108 - "Community 108"
 Cohesion: 0.22
 Nodes (11): API Production Launch Checklist, Housekeeping Tabs in Sidebar SubNav, Key Learnings (Cerebrum), Mobile Jest React 19 Pairing, OHIP API Auth & Path Patterns, Room Status Undo via History, Security Review Findings (Staff Invite / Opera OAuth), Cron Job Setup (7 Endpoints with X-Cron-Secret) (+3 more)
 
-### Community 102 - "Community 102"
+### Community 109 - "Community 109"
 Cohesion: 0.20
 Nodes (5): ACCENT_OPTIONS, RoleDashboard(), root, TweaksCtx, useTweaksCtx()
 
-### Community 104 - "Community 104"
+### Community 111 - "Community 111"
+Cohesion: 0.45
+Nodes (8): formatTime(), Props, RiskLevel, RoomCard(), RoomStatus, STATUS_BORDER, STATUS_PILL_TONE, STATUS_STRIP_COLOR
+
+### Community 112 - "Community 112"
+Cohesion: 0.18
+Nodes (11): workOrders, addPhoto, claim, complete, completed, inProgress, myOrders, noOrders (+3 more)
+
+### Community 113 - "Community 113"
+Cohesion: 0.24
+Nodes (10): CurrentUser, OperaConnectRequest, opera_connect(), opera_disconnect(), opera_status(), opera_sync(), Disconnect Opera Cloud integration and clear stored tokens., Connect Opera Cloud using OHIP credentials.     Tests the connection by obtaini (+2 more)
+
+### Community 114 - "Community 114"
+Cohesion: 0.36
+Nodes (8): formatETA(), formatLastAction(), getActionLabel(), getLastUpdateAt(), getTransitions(), RoomDetailScreen(), styles, Room
+
+### Community 115 - "Community 115"
 Cohesion: 0.18
 Nodes (10): anatomy_hits, anatomy_misses, cerebrum_warnings, edit_counts, files_read, files_written, repeated_reads_warned, session_id (+2 more)
 
-### Community 105 - "Community 105"
-Cohesion: 0.20
-Nodes (10): devDependencies, @babel/core, jest, jest-expo, react-test-renderer, @testing-library/jest-native, @testing-library/react-native, @types/jest (+2 more)
-
-### Community 106 - "Community 106"
+### Community 116 - "Community 116"
 Cohesion: 0.27
 Nodes (8): str, Client, get_supabase(), get_supabase_user_client(), _LazySupabase, Returns a Supabase client authenticated as the user (respects RLS)., Proxy that defers client creation until first use., Returns a Supabase client using the service role key (bypasses RLS for server op
 
-### Community 107 - "Community 107"
+### Community 117 - "Community 117"
 Cohesion: 0.20
 Nodes (3): AndroidxAppcompatLibraryAccessors, AndroidxTestLibraryAccessors, AndroidxLibraryAccessors
 
-### Community 108 - "Community 108"
+### Community 118 - "Community 118"
+Cohesion: 0.49
+Nodes (7): getHotelIdFromToken(), RoomStatusBoard(), SkeletonGrid(), STATUS_CHIPS, StatusChip, StatusSummaryBar(), SummaryBarProps
+
+### Community 119 - "Community 119"
 Cohesion: 0.20
-Nodes (8): mockApiGet, sampleWO, PRIORITY_COLORS, STATUS_COLORS, styles, Tab, WorkOrder, WorkOrdersScreen()
+Nodes (10): devDependencies, @babel/core, jest, jest-expo, react-test-renderer, @testing-library/jest-native, @testing-library/react-native, @types/jest (+2 more)
 
-### Community 109 - "Community 109"
-Cohesion: 0.29
-Nodes (9): CurrentUser, create_checkout_session(), create_portal_session(), get_credits(), get_subscription(), list_invoices(), Return last 10 Stripe invoices for this hotel., Create a Stripe Customer Portal session for subscription management. (+1 more)
-
-### Community 110 - "Community 110"
-Cohesion: 0.20
-Nodes (10): bool, bytes, Request, str, opera_webhook(), Validate HMAC-SHA256 signature from Opera Business Events.     The secret is de, Opera Cloud Business Events webhook.     Handles: RESERVATION.CHECKED_OUT, RESE, Stripe billing event webhook handler. (+2 more)
-
-### Community 111 - "Community 111"
+### Community 120 - "Community 120"
 Cohesion: 0.27
 Nodes (9): ALL_ROLES, config, decodeJwtClaims(), getRouteRoles(), isPublicRoute(), proxy(), PUBLIC_ROUTES, ROLE_ROUTE_RULES (+1 more)
 
-### Community 112 - "Community 112"
-Cohesion: 0.22
-Nodes (9): common, back, cancel, confirm, loading, save, error, offline (+1 more)
-
-### Community 113 - "Community 113"
-Cohesion: 0.22
-Nodes (8): notifications, inspectionFailed, slaWarning, taskAssigned, woAssigned, profile, hotel, title
-
-### Community 114 - "Community 114"
-Cohesion: 0.22
-Nodes (9): common, back, cancel, confirm, loading, save, error, offline (+1 more)
-
-### Community 115 - "Community 115"
-Cohesion: 0.22
-Nodes (8): notifications, inspectionFailed, slaWarning, taskAssigned, woAssigned, profile, hotel, title
-
-### Community 116 - "Community 116"
-Cohesion: 0.22
-Nodes (9): Client Date Not Server date.today(), Do-Not-Repeat List (Cerebrum), Drawer selectedRoom Optimistic Update Bug, OpenWolf Cerebrum — Learning Memory, Room Status Color Contract, useEffect Must Include isOpen Dep for Drawers, User Preferences (Cerebrum), Room Status Color System (Handoff) (+1 more)
-
-### Community 117 - "Community 117"
-Cohesion: 0.22
-Nodes (9): AI Treatment Design Principles (Violet Token), Design Token Color System (Terracotta + Teal), Design Component Inventory (Pill, Stat, AILabel, Shell), Frontend Implementation Checklist (10 Steps), Design Handoff Prototype Entry (index.html), Frontend Rework Design Handoff README, 17+ Screen Designs Across 6 Roles, State Management Preservation Policy (+1 more)
-
-### Community 118 - "Community 118"
-Cohesion: 0.22
-Nodes (9): Aceternity UI Migration Prompt, Chakra UI Migration Prompt, Cult UI Migration Prompt (AI Aesthetic), DaisyUI Migration Prompt, Flowbite Migration Prompt, Reframe UI Framework Knowledge Base, HeroUI Migration Prompt, Magic UI Migration Prompt (+1 more)
-
-### Community 120 - "Community 120"
+### Community 121 - "Community 121"
 Cohesion: 0.33
 Nodes (6): EMPTY_TEMPLATE_FORM, INSPECTION_SECTIONS, TemplateCard(), TemplateFormCard(), TemplateFormValues, TemplateItemForm
 
-### Community 121 - "Community 121"
+### Community 122 - "Community 122"
+Cohesion: 0.50
+Nodes (3): Provider, String, VersionAccessors
+
+### Community 123 - "Community 123"
+Cohesion: 0.22
+Nodes (9): common, back, cancel, confirm, loading, save, error, offline (+1 more)
+
+### Community 124 - "Community 124"
+Cohesion: 0.22
+Nodes (8): notifications, inspectionFailed, slaWarning, taskAssigned, woAssigned, profile, hotel, title
+
+### Community 125 - "Community 125"
+Cohesion: 0.22
+Nodes (9): Client Date Not Server date.today(), Do-Not-Repeat List (Cerebrum), Drawer selectedRoom Optimistic Update Bug, OpenWolf Cerebrum — Learning Memory, Room Status Color Contract, useEffect Must Include isOpen Dep for Drawers, User Preferences (Cerebrum), Room Status Color System (Handoff) (+1 more)
+
+### Community 126 - "Community 126"
+Cohesion: 0.22
+Nodes (9): AI Treatment Design Principles (Violet Token), Design Token Color System (Terracotta + Teal), Design Component Inventory (Pill, Stat, AILabel, Shell), Frontend Implementation Checklist (10 Steps), Design Handoff Prototype Entry (index.html), Frontend Rework Design Handoff README, 17+ Screen Designs Across 6 Roles, State Management Preservation Policy (+1 more)
+
+### Community 127 - "Community 127"
+Cohesion: 0.22
+Nodes (9): Aceternity UI Migration Prompt, Chakra UI Migration Prompt, Cult UI Migration Prompt (AI Aesthetic), DaisyUI Migration Prompt, Flowbite Migration Prompt, Reframe UI Framework Knowledge Base, HeroUI Migration Prompt, Magic UI Migration Prompt (+1 more)
+
+### Community 129 - "Community 129"
+Cohesion: 0.22
+Nodes (9): common, back, cancel, confirm, loading, save, error, offline (+1 more)
+
+### Community 130 - "Community 130"
+Cohesion: 0.22
+Nodes (8): notifications, inspectionFailed, slaWarning, taskAssigned, woAssigned, profile, hotel, title
+
+### Community 131 - "Community 131"
 Cohesion: 0.25
 Nodes (8): CopilotResponse, CopilotScreen(), Message, mod, QUICK_ACTIONS, SpeechEventHandler, styles, useSpeechRecognitionEvent()
 
-### Community 122 - "Community 122"
+### Community 132 - "Community 132"
+Cohesion: 0.31
+Nodes (7): alertSpy, { getByText }, { getByText, queryByText }, mockApiGet, mockApiPost, mockRooms, mockSetMyRooms
+
+### Community 133 - "Community 133"
 Cohesion: 0.36
 Nodes (7): parse_nl_tasks(), ParsedTaskOutput, Returns a parse_nl_tasks-shaped dict if message matches a known high-confidence, Parse natural language into structured task objects using GPT-4o-mini function c, title_not_empty(), try_fast_path(), str
 
-### Community 123 - "Community 123"
-Cohesion: 0.39
-Nodes (6): getRiskBadgeCls(), getRiskBgColor(), getRiskLabel(), getRiskRingColor(), PredictionCard(), PredictionCardProps
+### Community 134 - "Community 134"
+Cohesion: 0.32
+Nodes (7): WorkOrderComment, CATEGORY_ICONS, formatTs(), PRIORITY_TONE, slaDisplay(), STATUS_TONE, WorkOrderDetailDrawer()
 
-### Community 124 - "Community 124"
+### Community 135 - "Community 135"
 Cohesion: 0.25
 Nodes (8): anthropic 0.29.0, cryptography 48.0.0, FastAPI 0.136.3, openai 1.35.0, pdfplumber 0.11.9, stripe 10.1.0, API Python Requirements (FastAPI + Dependencies), Stripe Setup Requirements ($99/mo Product)
 
-### Community 125 - "Community 125"
+### Community 136 - "Community 136"
 Cohesion: 0.25
 Nodes (8): supabase-py 2.5.0, Decision Log (Cerebrum), Next.js 16 Upgrade Notes, Opera Credential Fernet Encryption, Supabase Realtime Does Not Enforce RLS, Tenant Isolation IDOR Pattern, Web AGENTS.md — Next.js Agent Rules, This Next.js Has Breaking Changes — Read Docs First
 
-### Community 126 - "Community 126"
+### Community 137 - "Community 137"
 Cohesion: 0.25
 Nodes (8): OpenWolf Memory — Session Action Log, Anatomy-First File Navigation Rule, Bug Logging Policy (OpenWolf), Cerebrum Learning Update Rule (MANDATORY), OpenWolf Design QC (Screenshot Capture), OpenWolf Operating Protocol, OpenWolf Reframe — Framework Migration Flow, Token Discipline Policy
 
-### Community 127 - "Community 127"
+### Community 138 - "Community 138"
 Cohesion: 0.25
 Nodes (7): enabledPlugins, railway@claude-plugins-official, hooks, PostToolUse, PreToolUse, SessionStart, Stop
 
-### Community 128 - "Community 128"
+### Community 139 - "Community 139"
 Cohesion: 0.25
 Nodes (3): FrescoImagepipelineLibraryAccessors, FrescoUiLibraryAccessors, FrescoLibraryAccessors
 
-### Community 129 - "Community 129"
+### Community 140 - "Community 140"
 Cohesion: 0.36
 Nodes (8): AI Credit Accounting (A3) — Actual Token Usage, Credit Fast Path — Rule Engine (0 Credits at 0.90 Confidence), middleware/credits.py — AI Credit Gate, Expo React Native Mobile App (apps/mobile), apps/mobile/app/(app)/copilot/index.tsx — Mobile Copilot Screen, SOP Q&A + Voice Input + Credit Fast Path Plan, task_parser.py — NL Task Parser Service, Mobile Voice Input — expo-speech-recognition (On-Device STT)
 
-### Community 130 - "Community 130"
+### Community 141 - "Community 141"
 Cohesion: 0.25
 Nodes (7): compilerOptions, baseUrl, paths, strict, extends, include, @/*
 
-### Community 131 - "Community 131"
+### Community 142 - "Community 142"
 Cohesion: 0.29
 Nodes (6): client, configuration_version, project_info, project_id, project_number, storage_bucket
 
-### Community 133 - "Community 133"
+### Community 143 - "Community 143"
 Cohesion: 0.48
 Nodes (6): str, _fake_jwt(), test_persist_refreshed_auth_state_updates_local_storage_session(), test_session_from_playwright_local_storage_state(), test_token_from_playwright_local_storage_state(), test_token_from_supabase_cookie_state()
 
-### Community 134 - "Community 134"
-Cohesion: 0.29
-Nodes (7): auth, email, login, magicLink, magicLinkSent, password, signInWith
-
-### Community 135 - "Community 135"
-Cohesion: 0.29
-Nodes (7): auth, email, login, magicLink, magicLinkSent, password, signInWith
-
-### Community 136 - "Community 136"
-Cohesion: 0.29
-Nodes (7): overrides, fast-xml-parser, postcss, send, tar, @tootallnate/once, @xmldom/xmldom
-
-### Community 137 - "Community 137"
-Cohesion: 0.29
-Nodes (7): scripts, android, ios, start, test, type-check, web
-
-### Community 138 - "Community 138"
-Cohesion: 0.29
-Nodes (6): authProfile, baseUrl, email, routes, sessionName, waitMs
-
-### Community 139 - "Community 139"
-Cohesion: 0.29
-Nodes (7): AGENTS.md — Codex Instructions, CLAUDE.md — Project Instructions, Multi-tenancy hotel_id Scoping Pattern, PatelRep — AI Staff Copilot SaaS, Railway Infrastructure (API + Web Services), README.md — Project Overview, Supabase Migrations (001-041)
-
-### Community 140 - "Community 140"
+### Community 145 - "Community 145"
 Cohesion: 0.29
 Nodes (6): client, configuration_version, project_info, project_id, project_number, storage_bucket
 
-### Community 141 - "Community 141"
-Cohesion: 0.33
-Nodes (6): formatETA(), MyRoomsScreen(), RoomCard(), STATUS_COLORS, styles, Room
-
-### Community 143 - "Community 143"
-Cohesion: 0.33
-Nodes (3): HotelProfileFormValues, hotelProfileSchema, US_TIMEZONES
-
-### Community 144 - "Community 144"
-Cohesion: 0.33
-Nodes (3): NAV_GROUPS, NavGroup, NavItem
-
 ### Community 146 - "Community 146"
+Cohesion: 0.29
+Nodes (7): auth, email, login, magicLink, magicLinkSent, password, signInWith
+
+### Community 147 - "Community 147"
+Cohesion: 0.29
+Nodes (6): authProfile, baseUrl, email, routes, sessionName, waitMs
+
+### Community 148 - "Community 148"
+Cohesion: 0.29
+Nodes (7): AGENTS.md — Codex Instructions, CLAUDE.md — Project Instructions, Multi-tenancy hotel_id Scoping Pattern, PatelRep — AI Staff Copilot SaaS, Railway Infrastructure (API + Web Services), README.md — Project Overview, Supabase Migrations (001-041)
+
+### Community 149 - "Community 149"
+Cohesion: 0.29
+Nodes (7): auth, email, login, magicLink, magicLinkSent, password, signInWith
+
+### Community 150 - "Community 150"
+Cohesion: 0.29
+Nodes (7): overrides, fast-xml-parser, postcss, send, tar, @tootallnate/once, @xmldom/xmldom
+
+### Community 151 - "Community 151"
+Cohesion: 0.29
+Nodes (7): scripts, android, ios, start, test, type-check, web
+
+### Community 153 - "Community 153"
+Cohesion: 0.38
+Nodes (5): createWorkOrder(), CreateWorkOrderPayload, ReportIssueModal(), ReportIssueModalProps, styles
+
+### Community 154 - "Community 154"
 Cohesion: 0.47
 Nodes (5): generate_gm_insights(), _get_7day_stats(), Aggregate 7-day operational stats from the DB., Generate GM insights using Claude Sonnet based on 7-day operational data.     R, str
 
-### Community 147 - "Community 147"
+### Community 155 - "Community 155"
+Cohesion: 0.33
+Nodes (3): NAV_GROUPS, NavGroup, NavItem
+
+### Community 157 - "Community 157"
 Cohesion: 0.33
 Nodes (5): bool, str, check_action_permitted(), Deterministic action policy — no LLM involved.  Rules here are enforced before a, Return (permitted, reason).     permitted=True if role may execute action withou
 
-### Community 148 - "Community 148"
-Cohesion: 0.33
-Nodes (6): tabs, copilot, myRooms, profile, tasks, workOrders
-
-### Community 149 - "Community 149"
-Cohesion: 0.33
-Nodes (6): tabs, copilot, myRooms, profile, tasks, workOrders
-
-### Community 152 - "Community 152"
-Cohesion: 0.33
-Nodes (5): dead_letter_queue, engine_status, execution_log, last_heartbeat, upcoming
-
-### Community 153 - "Community 153"
-Cohesion: 0.33
-Nodes (5): achievements, generated_at, improvements, next_tasks, risks
-
-### Community 154 - "Community 154"
-Cohesion: 0.40
-Nodes (5): low, normal, urgent, emergency, priority
-
-### Community 155 - "Community 155"
-Cohesion: 0.40
-Nodes (5): low, normal, urgent, emergency, priority
-
 ### Community 159 - "Community 159"
-Cohesion: 0.40
-Nodes (4): assignLink, inspLink, roomsLink, shiftSelect
+Cohesion: 0.33
+Nodes (6): tabs, copilot, myRooms, profile, tasks, workOrders
 
 ### Community 161 - "Community 161"
-Cohesion: 0.40
-Nodes (3): STATUS_COLORS, styles, Task
+Cohesion: 0.33
+Nodes (3): HotelProfileFormValues, hotelProfileSchema, US_TIMEZONES
 
 ### Community 162 - "Community 162"
-Cohesion: 0.40
-Nodes (4): { getByTestId }, { getByTestId, getByText }, mockApiGet, mockApiPost
+Cohesion: 0.33
+Nodes (6): tabs, copilot, myRooms, profile, tasks, workOrders
 
 ### Community 163 - "Community 163"
 Cohesion: 0.40
-Nodes (4): captured_at, captures, estimated_tokens, total_size_kb
+Nodes (5): formatETA(), MyRoomsScreen(), RoomCard(), STATUS_COLORS, styles
+
+### Community 164 - "Community 164"
+Cohesion: 0.33
+Nodes (5): dead_letter_queue, engine_status, execution_log, last_heartbeat, upcoming
+
+### Community 165 - "Community 165"
+Cohesion: 0.33
+Nodes (5): achievements, generated_at, improvements, next_tasks, risks
 
 ### Community 166 - "Community 166"
-Cohesion: 0.50
-Nodes (3): parse_assignments(), Returns {"assignments": [...], "prompt_tokens": int, "completion_tokens": int}, str
+Cohesion: 0.40
+Nodes (4): generate_shift_summary(), AI Shift Summary service — generates a concise shift handoff summary using Claud, Generate an AI shift summary for a completed shift.     Returns dict with summa, str
 
 ### Community 167 - "Community 167"
-Cohesion: 0.50
-Nodes (3): parse_guest_requests(), Returns {"requests": [...], "prompt_tokens": int, "completion_tokens": int}, str
-
-### Community 168 - "Community 168"
-Cohesion: 0.50
-Nodes (3): parse_work_orders(), Returns {"work_orders": [...], "prompt_tokens": int, "completion_tokens": int}, str
-
-### Community 169 - "Community 169"
-Cohesion: 0.50
-Nodes (4): HIGH, LOW, MEDIUM, risk
-
-### Community 170 - "Community 170"
-Cohesion: 0.50
-Nodes (4): HIGH, LOW, MEDIUM, risk
+Cohesion: 0.40
+Nodes (5): low, normal, urgent, emergency, priority
 
 ### Community 171 - "Community 171"
-Cohesion: 0.50
-Nodes (3): main, name, version
+Cohesion: 0.40
+Nodes (4): assignLink, inspLink, roomsLink, shiftSelect
 
-### Community 172 - "Community 172"
+### Community 173 - "Community 173"
+Cohesion: 0.40
+Nodes (5): low, normal, urgent, emergency, priority
+
+### Community 174 - "Community 174"
+Cohesion: 0.40
+Nodes (3): STATUS_COLORS, styles, Task
+
+### Community 175 - "Community 175"
+Cohesion: 0.40
+Nodes (4): captured_at, captures, estimated_tokens, total_size_kb
+
+### Community 180 - "Community 180"
+Cohesion: 0.50
+Nodes (4): HIGH, LOW, MEDIUM, risk
+
+### Community 181 - "Community 181"
 Cohesion: 0.67
 Nodes (3): BaseSettings, get_settings(), Settings
 
-### Community 175 - "Community 175"
+### Community 186 - "Community 186"
+Cohesion: 0.50
+Nodes (4): HIGH, LOW, MEDIUM, risk
+
+### Community 187 - "Community 187"
+Cohesion: 0.50
+Nodes (3): main, name, version
+
+### Community 188 - "Community 188"
 Cohesion: 0.50
 Nodes (3): extends, rules, react/no-unescaped-entities
 
@@ -879,24 +927,24 @@ Nodes (3): extends, rules, react/no-unescaped-entities
   FRONTEND_AUDIT.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **1016 isolated node(s):** `name`, `private`, `workspaces`, `postinstall`, `build` (+1011 more)
+- **1002 isolated node(s):** `name`, `private`, `workspaces`, `postinstall`, `build` (+997 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `ARIA Modal Pattern (role=dialog, aria-modal, focus trap)` and `Frosted Glass — Overlays Only (Cerebrum Rule)`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `CurrentUser` connect `API Client & Error Handling` to `Android Gradle Library Accessors`, `Housekeeping API`, `Android Version Accessors`, `Multi-tenant Test Infrastructure`, `Gradle Library Catalog`, `Asset Management API`, `Room Prediction Dashboard`, `Expo Mobile Dependencies`, `Work Order Comments API`, `Header, Sidebar & Navigation`, `Task Management Models`, `Project Architecture Rationale`, `Community 53`, `Community 56`, `Community 64`, `Community 72`, `Community 77`, `Community 79`, `Community 83`, `Community 87`, `Community 93`, `Community 109`?**
+- **Why does `CurrentUser` connect `API Middleware & CORS` to `Housekeeping API`, `Gradle Plugin Block Libraries`, `Load & Performance Tests`, `Web Frontend Dependencies`, `Staff Management API`, `Spanish Localization`, `Scheduling API`, `Mobile App Config`, `API Endpoint Tests`, `ESLint & Test Config`, `Auth Mock & Test Helpers`, `Community 52`, `Community 56`, `Community 64`, `Community 65`, `Community 71`, `Community 76`, `Community 77`, `Community 89`, `Community 92`, `Community 99`, `Community 100`, `Community 105`, `Community 113`?**
   _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Why does `datetime` connect `Multi-tenant Test Infrastructure` to `Android Gradle Library Accessors`, `Housekeeping API`, `Gradle Library Catalog`, `AI NL Parsing Service`, `Community 146`, `Asset Management API`, `Room Prediction Dashboard`, `Expo Mobile Dependencies`, `Header, Sidebar & Navigation`, `Task Management Models`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 72`, `Community 79`, `Community 83`, `Community 86`, `Community 87`, `Community 109`, `Community 122`?**
+- **Why does `datetime` connect `ESLint & Test Config` to `Housekeeping API`, `Community 133`, `API Middleware & CORS`, `Load & Performance Tests`, `Android Appcompat Libraries`, `Web Frontend Dependencies`, `Staff Management API`, `Spanish Localization`, `Community 154`, `Scheduling API`, `Mobile App Config`, `API Endpoint Tests`, `Community 52`, `Community 53`, `Community 57`, `Community 65`, `Community 71`, `Community 76`, `Community 81`, `Community 89`, `Community 91`, `Community 99`, `Community 105`, `Community 113`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `middleware/auth.py — JWT Validation` connect `Multi-tenant Test Infrastructure` to `Housekeeping API`, `Android Version Accessors`, `Gradle Library Catalog`, `Community 151`, `Asset Management API`, `Room Prediction Dashboard`, `API Client & Error Handling`, `Expo Mobile Dependencies`, `Work Order Comments API`, `Header, Sidebar & Navigation`, `Task Management Models`, `Project Architecture Rationale`, `Community 51`, `Community 53`, `Community 56`, `Community 64`, `Community 72`, `Community 75`, `Community 77`, `Community 79`, `Community 83`, `Community 87`, `Community 93`, `Community 109`?**
+- **Why does `middleware/auth.py — JWT Validation` connect `API Endpoint Tests` to `Housekeeping API`, `Gradle Plugin Block Libraries`, `Load & Performance Tests`, `Web Frontend Dependencies`, `Staff Management API`, `Spanish Localization`, `Scheduling API`, `Mobile App Config`, `Community 158`, `ESLint & Test Config`, `Lost & Found API`, `Auth Mock & Test Helpers`, `Community 52`, `Community 64`, `Community 65`, `Community 71`, `Community 75`, `Community 76`, `Community 77`, `Community 89`, `Community 92`, `Community 99`, `Community 100`, `Community 105`, `Community 113`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Are the 121 inferred relationships involving `CurrentUser` (e.g. with `str` and `int`) actually correct?**
   _`CurrentUser` has 121 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 13 inferred relationships involving `FakeMultiTenantDB` (e.g. with `CurrentUser` and `UpdateRoomStatusRequest`) actually correct?**
   _`FakeMultiTenantDB` has 13 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `private`, `workspaces` to the rest of the system?**
-  _1205 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1193 weakly-connected nodes found - possible documentation gaps or missing edges._

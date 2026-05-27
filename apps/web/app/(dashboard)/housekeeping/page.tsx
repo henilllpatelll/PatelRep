@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
@@ -243,6 +242,7 @@ function HousekeeperRoomItem({
   onOpenDetail: (room: any) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [undoPending, setUndoPending] = useState(false)
   const [showHint] = useState(() => {
     if (typeof window === 'undefined') return false
     if (localStorage.getItem('hk-notes-hint-seen')) return false
@@ -256,11 +256,11 @@ function HousekeeperRoomItem({
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
-    DIRTY:      { label: 'Vacant Dirty',        pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
-    PICKUP:     { label: 'Pickup',              pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
-    IN_PROGRESS:{ label: 'In Progress',         pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
-    CLEAN:      { label: 'Clean ready for inspection', pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
-    INSPECTED:  { label: 'Inspected / Ready',   pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
+    DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    PICKUP:     { label: 'Pickup',            pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
+    IN_PROGRESS:{ label: 'In Progress',       pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
+    CLEAN:      { label: 'Clean',             pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
+    INSPECTED:  { label: 'Inspected / Ready', pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
     OOO:        { label: 'Out of Order / Out of Service', pillClass: 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)]' },
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
@@ -271,11 +271,44 @@ function HousekeeperRoomItem({
     try { await onAction(room.room_id, newStatus) } finally { setLoading(false) }
   }
 
-  async function handleUndo(e: React.MouseEvent) {
+  function handleUndoPress(e: React.MouseEvent) {
     e.stopPropagation()
+    if (!undoPending) {
+      setUndoPending(true)
+      return
+    }
+    setUndoPending(false)
     setLoading(true)
-    try { await onUndo(room.room_id) } finally { setLoading(false) }
+    onUndo(room.room_id).finally(() => setLoading(false))
   }
+
+  function cancelUndo(e: React.MouseEvent) {
+    e.stopPropagation()
+    setUndoPending(false)
+  }
+
+  const undoButton = undoPending ? (
+    <div className="flex flex-col gap-1 items-end">
+      <button
+        disabled={loading}
+        onClick={handleUndoPress}
+        className="px-4 py-1.5 bg-[var(--alert)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
+      >
+        Confirm
+      </button>
+      <button onClick={cancelUndo} className="px-3 py-1 text-ink3 text-xs">
+        Cancel
+      </button>
+    </div>
+  ) : (
+    <button
+      disabled={loading}
+      onClick={handleUndoPress}
+      className="px-4 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
+    >
+      Undo
+    </button>
+  )
 
   return (
     <div
@@ -314,7 +347,7 @@ function HousekeeperRoomItem({
           </button>
         )}
         {status === 'IN_PROGRESS' && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 items-end">
             <button
               disabled={loading}
               onClick={(e) => handle('CLEAN', e)}
@@ -322,13 +355,7 @@ function HousekeeperRoomItem({
             >
               {loading ? '...' : 'Done'}
             </button>
-            <button
-              disabled={loading}
-              onClick={handleUndo}
-              className="px-4 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
-            >
-              Undo
-            </button>
+            {undoButton}
           </div>
         )}
         {status === 'CLEAN' && (
@@ -336,13 +363,7 @@ function HousekeeperRoomItem({
             <span className="text-xs text-[var(--caution)] font-medium">
               Waiting for<br />supervisor
             </span>
-            <button
-              disabled={loading}
-              onClick={handleUndo}
-              className="px-3 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
-            >
-              Undo
-            </button>
+            {undoButton}
           </div>
         )}
         {status === 'INSPECTED' && (
@@ -441,6 +462,7 @@ function HousekeeperMyRoomsView() {
       return
     }
     queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+    queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
   }
 
   async function handleUndo(roomId: string) {
@@ -456,6 +478,7 @@ function HousekeeperMyRoomsView() {
       }
     } finally {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', today] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
     }
   }
@@ -533,35 +556,9 @@ function SupervisorHousekeepingPage() {
     setLastSyncedAt,
   } = useHousekeepingStore()
 
-  const [dragError, setDragError] = useState<string | null>(null)
-
   useEffect(() => {
     if (assignmentMode && !canAssignRooms) toggleAssignmentMode()
   }, [assignmentMode, canAssignRooms, toggleAssignmentMode])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  )
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over) return
-    const roomId = active.id as string
-    const housekeeperId = over.data?.current?.housekeeperId as string | undefined
-    if (!housekeeperId) return
-    try {
-      await housekeepingApi.saveAssignments({
-        date: selectedDate,
-        shift_id: null,
-        assignments: [{ room_id: roomId, housekeeper_id: housekeeperId, clean_type: activeCleanType }],
-        is_ai_suggested: false,
-      })
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
-    } catch {
-      setDragError('Failed to assign room. Please try again.')
-    }
-  }
 
   const [predictions, setPredictions] = useState<RoomPrediction[]>([])
   const [predictionsLoading, setPredictionsLoading] = useState(false)
@@ -669,32 +666,20 @@ function SupervisorHousekeepingPage() {
         <PredictionPanel predictions={predictions} isLoading={predictionsLoading} />
       )}
 
-      {/* Drag error banner */}
-      {dragError && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] text-sm text-[var(--alert)]">
-          <span>{dragError}</span>
-          <button onClick={() => setDragError(null)} className="shrink-0 font-medium" aria-label="Dismiss">
-            &times;
-          </button>
-        </div>
-      )}
-
-      {/* Housekeeper chip bar (mobile assign mode) */}
+      {/* Housekeeper chip bar (assign mode) */}
       {assignmentMode && canAssignRooms && <HousekeeperBar />}
 
       {/* Main layout */}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 items-start">
-          <div className="flex-1 min-w-0">
-            <RoomStatusBoard />
-          </div>
-          {assignmentMode && canAssignRooms && (
-            <div className="hidden lg:block">
-              <AssignmentSidebar />
-            </div>
-          )}
+      <div className="flex gap-4 items-start">
+        <div className="flex-1 min-w-0">
+          <RoomStatusBoard />
         </div>
-      </DndContext>
+        {assignmentMode && canAssignRooms && (
+          <div className="hidden lg:block">
+            <AssignmentSidebar />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

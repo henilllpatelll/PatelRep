@@ -390,6 +390,7 @@ async def undo_room_status(
 @router.get("/{room_id}/history")
 async def get_room_history(
     room_id: str,
+    limit: int = Query(50, ge=1, le=50),
     current_user: CurrentUser = Depends(get_current_user),
 ):
     result = (
@@ -398,7 +399,7 @@ async def get_room_history(
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .order("created_at", desc=True)
-        .limit(50)
+        .limit(limit)
         .execute()
     )
     return {"data": result.data or []}

@@ -20,6 +20,40 @@ function formatETA(isoString: string): string {
   return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function getLastUpdateAt(room: Room): string | null {
+  return room.updated_at ?? room.last_cleaned_at ?? room.last_inspected_at ?? null;
+}
+
+function getActionLabel(status: string): string {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "Started";
+    case "CLEAN":
+      return "Marked clean";
+    case "INSPECTED":
+      return "Marked ready";
+    case "DIRTY":
+      return "Returned to cleaning";
+    case "OOO":
+    case "OUT_OF_ORDER":
+    case "OUT_OF_SERVICE":
+      return "Marked out of order";
+    case "PICKUP":
+      return "Marked pickup";
+    default:
+      return "Updated";
+  }
+}
+
+function formatLastAction(entry: any | null, room: Room, currentUserId?: string): string | null {
+  const status = entry?.to_status ?? room.status;
+  const timestamp = entry?.created_at ?? getLastUpdateAt(room);
+  if (!timestamp) return null;
+
+  const actor = entry?.changed_by && entry.changed_by === currentUserId ? " by you" : "";
+  return `${getActionLabel(status)}${actor} at ${formatETA(timestamp)}`;
+}
+
 function getTransitions(status: string) {
   switch (status) {
     case "DIRTY":
@@ -35,18 +69,46 @@ function getTransitions(status: string) {
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { t } = useTranslation();
-  const { isOnline, myRooms, setMyRooms } = useAppStore();
+  const { isOnline, myRooms, setMyRooms, user } = useAppStore();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [lastLocalStatus, setLastLocalStatus] = useState<Room["status"] | null>(null);
+  const [lastAction, setLastAction] = useState<string | null>(null);
   const [showReportIssue, setShowReportIssue] = useState(false);
 
   useEffect(() => {
     const found = myRooms.find((r) => r.id === roomId);
     setRoom(found ?? null);
+    setLastAction(found ? formatLastAction(null, found, user?.id) : null);
     setLoading(false);
-  }, [roomId, myRooms]);
+  }, [roomId, myRooms, user?.id]);
+
+  useEffect(() => {
+    if (!room) return;
+    const activeRoom = room;
+    const fallbackAction = formatLastAction(null, activeRoom, user?.id);
+    let cancelled = false;
+
+    async function loadLastAction() {
+      if (!isOnline) {
+        return;
+      }
+
+      try {
+        const res = await api.get<{ data: any[] }>(`/rooms/${activeRoom.id}/history?limit=1`);
+        const nextAction = formatLastAction(res.data?.[0] ?? null, activeRoom, user?.id);
+        if (!cancelled && nextAction !== fallbackAction) setLastAction(nextAction);
+      } catch {
+        if (!cancelled && fallbackAction) setLastAction(fallbackAction);
+      }
+    }
+
+    void loadLastAction();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnline, room, user?.id]);
 
   async function handleStatusChange(newStatus: string) {
     if (!room) return;
@@ -58,12 +120,12 @@ export default function RoomDetailScreen() {
       if (isOnline) {
         const res = await api.patch<{ data: Room }>(`/rooms/${room.id}/status`, payload);
         void res;
-        const nextRoom = { ...room, status: newStatus as Room["status"] };
+        const nextRoom = { ...room, status: newStatus as Room["status"], updated_at: new Date().toISOString() };
         setRoom(nextRoom);
         setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
       } else {
         await enqueueAction("room_status", "update", payload, room.id);
-        const nextRoom = { ...room, status: newStatus as Room["status"] };
+        const nextRoom = { ...room, status: newStatus as Room["status"], updated_at: new Date().toISOString() };
         setRoom(nextRoom);
         setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
         // OfflineBanner in the layout already communicates offline state — no Alert needed
@@ -84,13 +146,13 @@ export default function RoomDetailScreen() {
       if (isOnline) {
         const res = await api.post<{ data: Room }>(`/rooms/${room.id}/status/undo`, {});
         const nextStatus = res.data.status;
-        const nextRoom = { ...room, status: nextStatus };
+        const nextRoom = { ...room, status: nextStatus, updated_at: new Date().toISOString() };
         setRoom(nextRoom);
         setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
       } else if (lastLocalStatus) {
         const payload = { status: lastLocalStatus };
         await enqueueAction("room_status", "update", payload, room.id);
-        const nextRoom = { ...room, status: lastLocalStatus };
+        const nextRoom = { ...room, status: lastLocalStatus, updated_at: new Date().toISOString() };
         setRoom(nextRoom);
         setMyRooms(myRooms.map((r) => (r.id === room.id ? nextRoom : r)));
         setLastLocalStatus(room.status);
@@ -150,6 +212,11 @@ export default function RoomDetailScreen() {
       <View style={styles.section}>
         <Text style={styles.label}>Status</Text>
         <Text style={styles.value}>{t(`rooms.status.${room.status}`)}</Text>
+        {lastAction && (
+          <Text style={styles.metaText}>
+            {t("rooms.lastAction", { action: lastAction })}
+          </Text>
+        )}
       </View>
 
       {room.guest_name && (
@@ -257,6 +324,7 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 11, color: "#807a70", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8 },
   value: { fontSize: 16, color: "#1a1815", fontWeight: "500" },
+  metaText: { fontSize: 12, color: "#807a70", marginTop: 6 },
   alertBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f5e9cf", borderColor: "#e0c890" },
   alertText: { color: "#a16207", fontWeight: "500" },
   vipBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f5e9cf", borderColor: "#e0c890" },

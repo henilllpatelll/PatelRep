@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T03:03:48.493Z
-> Files: 49 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T03:53:41.795Z
+> Files: 54 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/plans/
 
@@ -563,6 +563,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
+- `page.tsx` — SHIFTS (~7930 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -651,6 +652,9 @@
 
 ## apps/web/components/housekeeping/
 
+- `RoomCard.tsx` — STATUS_BORDER (~2823 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~9989 tok)
+- `RoomStatusBoard.tsx` — STATUS_CHIPS (~5363 tok)
 
 ## apps/web/components/settings/
 
@@ -684,6 +688,7 @@
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
 - `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~227 tok)
+- `roomStatus.ts` — Transition rules: (~1950 tok)
 
 ## apps/web/stores/
 

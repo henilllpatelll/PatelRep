@@ -2174,3 +2174,28 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:03 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~15 |
 | 22:03 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~8 |
 | 22:04 | Session end: 18 writes across 10 files (.graphify_chunk_02.json, .graphify_chunk_01.json, auto_update.py, settings.json, layout.tsx) | 30 reads | ~68469 tok |
+| 22:08 | Extended housekeeping undo confirmation to remaining web card/list buttons | apps/web/components/housekeeping/RoomCard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx | web type-check and lint passed; search confirmed remaining direct undo API calls sit behind guarded UI handlers | ~900 |
+| 22:15 | Role-gated room status history UI | RoomDetailDrawer.tsx, mobile RoomDetail, mobile i18n/store/test | all staff get compact Last update; supervisor/GM/front desk get toggleable full history; focused mobile test, full mobile Jest, mobile/web type-check, web lint passed | ~2600 |
+| 22:21 | Ensured compact Last update always shows for all staff while full status timeline remains role-gated | RoomDetailDrawer.tsx, mobile RoomDetail | focused mobile test, mobile/web type-check, web lint, and i18n JSON parse passed | ~700 |
+
+## Session: 2026-05-27 22:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:25 | Refined room detail to show current status + last action for all staff, full timeline only for GM/supervisor/front desk | rooms.py, housekeeping.ts, RoomDetailDrawer.tsx, mobile RoomDetail/store/i18n/test | API focused smoke, full mobile Jest, mobile/web type-check, web lint, JSON checks passed | ~3600 |
+| 22:49 | Edited apps/web/lib/utils/roomStatus.ts | "Ready for Inspection" → "Clean" | ~5 |
+| 22:49 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~19 |
+| 22:49 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 18→21 lines | ~292 |
+| 22:49 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 17→16 lines | ~300 |
+| 22:50 | Created apps/web/components/housekeeping/RoomCard.tsx | — | ~2823 |
+| 22:52 | Created apps/web/app/(dashboard)/housekeeping/page.tsx | — | ~7930 |
+| 22:52 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 11→11 lines | ~98 |
+| 22:52 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→4 lines | ~74 |
+| 22:52 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 12→13 lines | ~92 |
+| 22:52 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | confirm() → setUndoPending() | ~100 |
+| 22:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover | ~290 |
+| 22:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→2 lines | ~44 |
+| 22:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→7 lines | ~54 |
+| 22:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 5→6 lines | ~27 |
+| session | HK UX simplification | page.tsx, RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, roomStatus.ts | Removed DnD, window.confirm → inline 2-step, slimmed drawer by role, unified labels, cards are pure display tiles | ~2800 |
+| 22:54 | Session end: 14 writes across 5 files (roomStatus.ts, RoomStatusBoard.tsx, RoomCard.tsx, page.tsx, RoomDetailDrawer.tsx) | 6 reads | ~22132 tok |

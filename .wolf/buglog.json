@@ -2107,6 +2107,94 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T03:03:48.527Z"
+    },
+    {
+      "id": "bug-128",
+      "timestamp": "2026-05-27T03:15:00.000Z",
+      "error_message": "PowerShell search command failed because an unquoted path contained '(dashboard)'.",
+      "file": "N/A",
+      "root_cause": "PowerShell parsed apps/web/app/(dashboard)/housekeeping as expression syntax when the rg path was not quoted.",
+      "fix": "Used quoted file reads and route-safe targeted searches instead.",
+      "tags": [
+        "powershell",
+        "search",
+        "path-quoting"
+      ],
+      "related_bugs": [
+        "bug-100",
+        "bug-121",
+        "bug-125"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T03:15:00.000Z"
+    },
+    {
+      "id": "bug-129",
+      "timestamp": "2026-05-27T03:25:00.000Z",
+      "error_message": "Room history limit test failed because get_room_history did not accept a limit parameter.",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "The history endpoint always returned up to 50 rows, so the UI could not fetch only the latest room action for non-admin staff.",
+      "fix": "Added a validated limit query parameter to GET /rooms/{room_id}/history and updated the web API client to pass the requested limit.",
+      "tags": [
+        "housekeeping",
+        "room-history",
+        "api",
+        "pytest"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T03:25:00.000Z"
+    },
+    {
+      "id": "bug-130",
+      "timestamp": "2026-05-27T03:25:00.000Z",
+      "error_message": "Mobile RoomDetail test harness failed with Can't access .root on unmounted test renderer after wrapping render() in act().",
+      "file": "apps/mobile/__tests__/screens/RoomDetail.test.tsx",
+      "root_cause": "React Native Testing Library host-component detection is incompatible with manually wrapping its render helper in async act in this Jest setup.",
+      "fix": "Reverted the manual act wrapper and instead made the mocked last-action history response match the fallback path so focused tests pass cleanly.",
+      "tags": [
+        "mobile",
+        "jest",
+        "react-native-testing-library",
+        "test-harness"
+      ],
+      "related_bugs": [
+        "bug-118"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T03:25:00.000Z"
+    },
+    {
+      "id": "bug-131",
+      "timestamp": "2026-05-27T03:49:21.020Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/utils/roomStatus.ts",
+      "root_cause": "Had 'Ready for Inspection'",
+      "fix": "Changed to 'Clean'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T03:49:21.020Z"
+    },
+    {
+      "id": "bug-132",
+      "timestamp": "2026-05-27T03:49:25.888Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had 'Clean ready for inspection'",
+      "fix": "Changed to 'Clean'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T03:49:25.888Z"
     }
   ]
 }

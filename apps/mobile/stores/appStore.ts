@@ -33,6 +33,9 @@ export interface Room {
   predicted_ready_at: string | null;
   vip_flag: boolean;
   checkin_time: string | null;
+  updated_at?: string | null;
+  last_cleaned_at?: string | null;
+  last_inspected_at?: string | null;
 }
 
 export const useAppStore = create<AppState>((set) => ({

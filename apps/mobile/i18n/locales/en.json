@@ -48,6 +48,7 @@
     "confirmUndoTitle": "Undo last step?",
     "confirmUndoMessage": "Use this only if the last status tap was a mistake.",
     "confirmUndoAction": "Yes, Undo",
+    "lastAction": "Last action: {{action}}",
     "undoNeedsConnection": "Connect to the internet to undo an earlier room step.",
     "dndAlert": "Do Not Disturb",
     "vipGuest": "VIP Guest",

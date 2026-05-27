@@ -19,6 +19,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { engineeringApi } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
+import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { InspectionModal } from '@/components/housekeeping/InspectionModal'
@@ -82,6 +83,47 @@ function formatCheckinTime(isoString: string | null | undefined): string | null 
   }
 }
 
+function getActionLabel(status: string): string {
+  switch (status) {
+    case 'IN_PROGRESS': return 'Started'
+    case 'CLEAN': return 'Marked clean'
+    case 'INSPECTED': return 'Marked ready'
+    case 'DIRTY': return 'Returned to cleaning'
+    case 'OOO':
+    case 'OUT_OF_ORDER':
+    case 'OUT_OF_SERVICE': return 'Marked out of order'
+    case 'PICKUP': return 'Marked pickup'
+    default: return 'Updated'
+  }
+}
+
+function getLastUpdateAt(room: any | null): string | null {
+  return room?.updated_at ?? room?.last_cleaned_at ?? room?.last_inspected_at ?? null
+}
+
+function formatLastAction(entry: any | null, room: any | null, currentUserId?: string): string | null {
+  const status = entry?.to_status ?? room?.status
+  const timestamp = entry?.created_at ?? getLastUpdateAt(room)
+  if (!status || !timestamp) return null
+
+  const actorName = entry?.actor_name ?? entry?.user_profiles?.preferred_name ?? null
+  const actor =
+    entry?.changed_by && entry.changed_by === currentUserId
+      ? ' by you'
+      : actorName
+      ? ` by ${actorName}`
+      : ''
+
+  return `${getActionLabel(status)}${actor} at ${formatHistoryTimestamp(timestamp)}`
+}
+
+function getActionableNote(entry: any | null): string | null {
+  const note = entry?.notes ?? entry?.note ?? null
+  const status = entry?.to_status ?? ''
+  if (!note || !['DIRTY', 'PICKUP', 'IN_PROGRESS'].includes(status)) return null
+  return note
+}
+
 function getStatusDotClass(status: string): string {
   switch (status) {
     case 'DIRTY': return 'text-[var(--alert)]'
@@ -124,13 +166,13 @@ function TransitionButton({
   const labels: Record<RoomStatus, string> = {
     DIRTY: 'Mark Vacant Dirty',
     IN_PROGRESS: 'Mark In Progress',
-    CLEAN: 'Mark Clean ready for inspection',
-    INSPECTED: 'Mark Inspected / Ready',
-    OOO: 'Mark Out of Order / Out of Service',
+    CLEAN: 'Mark Clean',
+    INSPECTED: 'Mark Ready',
+    OOO: 'Mark Out of Order',
     PICKUP: 'Mark Pickup',
     OCCUPIED: 'Mark Occupied',
-    OUT_OF_ORDER: 'Mark Out of Order / Out of Service',
-    OUT_OF_SERVICE: 'Mark Out of Order / Out of Service',
+    OUT_OF_ORDER: 'Mark Out of Order',
+    OUT_OF_SERVICE: 'Mark Out of Order',
   }
 
   const variants: Record<RoomStatus, 'primary' | 'secondary' | 'destructive' | 'ghost'> = {
@@ -160,10 +202,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
+  const canViewStatusHistory = canSupervise || role === 'front_desk'
+  const currentUser = useAuthStore((state) => state.user)
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
   const [showInspectionModal, setShowInspectionModal] = useState(false)
   const [showNextBanner, setShowNextBanner] = useState(false)
+  const [showStatusHistory, setShowStatusHistory] = useState(false)
+  const [undoPending, setUndoPending] = useState(false)
 
   // â”€â”€ Note state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [noteText, setNoteText] = useState('')
@@ -197,6 +243,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
     setWoSuccess(null)
     setWoError(null)
     setShowNextBanner(false)
+    setShowStatusHistory(false)
+    setUndoPending(false)
   }, [roomId, isOpen])
 
   const nextCleanRoom = useMemo(() => {
@@ -256,10 +304,17 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
   const prediction = room?.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
 
+  const { data: lastActionData } = useQuery({
+    queryKey: ['room-history-last-action', roomId],
+    queryFn: () => housekeepingApi.getRoomHistory(roomId!, 1),
+    enabled: !!roomId && isOpen,
+    staleTime: 15_000,
+  })
+
   const { data: historyData, isLoading: historyLoading } = useQuery({
     queryKey: ['room-history', roomId],
-    queryFn: () => housekeepingApi.getRoomHistory(roomId!),
-    enabled: !!roomId && isOpen,
+    queryFn: () => housekeepingApi.getRoomHistory(roomId!, 50),
+    enabled: !!roomId && isOpen && canViewStatusHistory && showStatusHistory,
     staleTime: 30_000,
   })
 
@@ -288,8 +343,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
   )
   const handleUndoClick = () => {
     if (!roomId || !onUndoStatus) return
-    const confirmed = window.confirm('Undo last step? Use this only if the last status tap was a mistake.')
-    if (!confirmed) return
+    if (!undoPending) {
+      setUndoPending(true)
+      return
+    }
+    setUndoPending(false)
     onUndoStatus(roomId)
   }
   const availableTransitions = allTransitions.filter((t) => {
@@ -322,6 +380,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
   const riskFactors: string[] = prediction?.risk_factors ?? []
 
   const history: any[] = historyData?.data ?? []
+  const latestAction = lastActionData?.data?.[0] ?? null
+  const lastAction = formatLastAction(latestAction, room, currentUser?.id)
+  const actionNote = getActionableNote(latestAction)
 
   if (!isOpen) return null
 
@@ -396,13 +457,23 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
             </h3>
             <div className="flex items-center gap-2 mb-3">
               <Circle className={`w-4 h-4 fill-current ${getStatusDotClass(status)}`} />
-              <span className={`font-semibold text-sm ${getStatusTextClass(status)}`}>
+              <span className={`font-semibold text-base ${getStatusTextClass(status)}`}>
                 {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
               </span>
               {assignedName && (
                 <span className="text-sm text-gray-500">â€” Assigned to {assignedName}</span>
               )}
             </div>
+            {lastAction && (
+              <p className="text-xs text-gray-500 mb-3">
+                Last action: {lastAction}
+              </p>
+            )}
+            {actionNote && (
+              <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800 mb-3">
+                {actionNote}
+              </div>
+            )}
 
             {status === 'OOO' && (openWorkOrder || maintenanceNote) && (
               <div className="flex items-start gap-2 bg-gray-50 rounded-lg p-2 mb-3 text-xs text-gray-600">
@@ -434,13 +505,31 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   />
                 ))}
                 {canShowUndo && roomId && (
-                  <Button
-                    variant="secondary"
-                    className="text-sm px-3 py-1.5"
-                    onClick={handleUndoClick}
-                  >
-                    Undo Last Step
-                  </Button>
+                  undoPending ? (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="destructive"
+                        className="text-sm px-3 py-1.5"
+                        onClick={handleUndoClick}
+                      >
+                        Confirm undo
+                      </Button>
+                      <button
+                        onClick={() => setUndoPending(false)}
+                        className="text-xs text-ink3 hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      className="text-sm px-3 py-1.5"
+                      onClick={handleUndoClick}
+                    >
+                      Undo Last Step
+                    </Button>
+                  )
                 )}
               </div>
             )}
@@ -495,8 +584,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
             </div>
           </div>
 
-          {/* Report Issue (Work Order) Section */}
-          <div className="p-4 border-b border-white/60">
+          {/* Report Issue and advanced sections — supervisors/GMs only */}
+          {!isHousekeeper && <div className="p-4 border-b border-white/60">
             <button
               onClick={() => setWoOpen((v) => !v)}
               aria-expanded={woOpen}
@@ -595,6 +684,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
               </div>
             )}
           </div>
+          }
+
+          {/* AI Prediction and Status History — supervisors/GMs/front_desk only */}
+          {!isHousekeeper && <>
 
           {/* AI Prediction Section */}
           {prediction && (
@@ -643,12 +736,23 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
           )}
 
           {/* Status History Section */}
+          {canViewStatusHistory && (
           <div className="p-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Status History
-            </h3>
+            <button
+              type="button"
+              onClick={() => setShowStatusHistory((value) => !value)}
+              aria-expanded={showStatusHistory}
+              className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3"
+            >
+              <span>Status History</span>
+              {showStatusHistory ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
 
-            {historyLoading ? (
+            {showStatusHistory && (historyLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-start gap-3 animate-pulse">
@@ -718,8 +822,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onStatusChange, onUndo
                   })}
                 </div>
               </div>
-            )}
+            ))}
           </div>
+          )}
+          </>}
         </div>
 
         {/* Inspect queue banner â€” shown after a successful inspection when more CLEAN rooms exist */}

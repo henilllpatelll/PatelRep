@@ -15,6 +15,7 @@ let mockRooms = [
     predicted_ready_at: null,
     vip_flag: false,
     checkin_time: null,
+    updated_at: "2026-05-25T15:00:00.000Z",
   },
 ];
 
@@ -31,6 +32,7 @@ jest.mock("@expo/vector-icons", () => ({
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
 jest.mock("@/lib/api/client", () => ({
   api: {
+    get: jest.fn(),
     patch: jest.fn(),
     post: jest.fn(),
   },
@@ -50,10 +52,14 @@ import { api } from "@/lib/api/client";
 import RoomDetailScreen from "@/app/(app)/my-rooms/[roomId]";
 
 const mockApiPost = api.post as jest.Mock;
+const mockApiGet = api.get as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockRooms = [{ ...mockRooms[0], status: "CLEAN" }];
+  mockApiGet.mockResolvedValue({
+    data: [],
+  });
   mockApiPost.mockResolvedValue({
     data: {
       ...mockRooms[0],
@@ -63,11 +69,20 @@ beforeEach(() => {
 });
 
 describe("RoomDetailScreen", () => {
+  it("shows a compact last action line instead of full status history", async () => {
+    const { getByText, queryByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
+    await waitFor(() => expect(getByText("rooms.lastAction")).toBeTruthy());
+    expect(queryByText("Status History")).toBeNull();
+  });
+
   it("asks for confirmation before undoing the last room status step", async () => {
     const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
     const { getByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(getByText("rooms.undoLastStep")).toBeTruthy());
+    await waitFor(() => expect(getByText("rooms.lastAction")).toBeTruthy());
     fireEvent.press(getByText("rooms.undoLastStep"));
 
     expect(alertSpy).toHaveBeenCalledWith(
@@ -88,6 +103,7 @@ describe("RoomDetailScreen", () => {
     const { getByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(getByText("rooms.undoLastStep")).toBeTruthy());
+    await waitFor(() => expect(getByText("rooms.lastAction")).toBeTruthy());
     fireEvent.press(getByText("rooms.undoLastStep"));
 
     await waitFor(() =>

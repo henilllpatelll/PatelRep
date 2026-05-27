@@ -25,7 +25,7 @@ const STATUS_CHIPS: StatusChip[] = [
   { key: null,          label: 'All',          dotTone: 'neutral' },
   { key: 'DIRTY',       label: 'Vacant Dirty', dotTone: 'dirty' },
   { key: 'IN_PROGRESS', label: 'In Progress',  dotTone: 'progress' },
-  { key: 'CLEAN',       label: 'Clean ready for inspection', dotTone: 'clean' },
+  { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
   { key: 'INSPECTED',   label: 'Ready',        dotTone: 'ready' },
   { key: 'PICKUP',      label: 'Pickup',       dotTone: 'pickup' },
   { key: 'OOO',         label: 'OOO/OOS',      dotTone: 'ooo' },
@@ -88,23 +88,26 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
           )
         })}
 
-        {/* At Risk toggle chip */}
-        {onToggleRisk && (
-          <button
-            onClick={onToggleRisk}
-            aria-pressed={showRiskOnly}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
-              showRiskOnly
-                ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
-                : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
-            }`}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-            </svg>
-            At risk
-            <span className="font-mono font-bold text-[11px]">{riskCount ?? 0}</span>
-          </button>
+        {/* At Risk toggle chip — separated from status chips */}
+        {onToggleRisk && (riskCount ?? 0) > 0 && (
+          <>
+            <span className="shrink-0 w-px h-5 bg-line self-center" aria-hidden="true" />
+            <button
+              onClick={onToggleRisk}
+              aria-pressed={showRiskOnly}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
+                showRiskOnly
+                  ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
+                  : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
+              </svg>
+              AI risk
+              <span className="font-mono font-bold text-[11px]">{riskCount}</span>
+            </button>
+          </>
         )}
       </div>
       <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-paper to-transparent" />
@@ -283,6 +286,7 @@ export function RoomStatusBoard() {
     setSelectedRoom((prev: any) => prev?.room_id === roomId ? { ...prev, status } : prev)
     await housekeepingApi.updateRoomStatus(roomId, status)
     queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+    queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
     queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
   }
 
@@ -298,6 +302,7 @@ export function RoomStatusBoard() {
       setTimeout(() => setAssignError(null), 3000)
     } finally {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
     }
   }
@@ -424,7 +429,6 @@ export function RoomStatusBoard() {
                       onStatusChange={(roomId: string, newStatus: string) =>
                         handleStatusChange(roomId, newStatus)
                       }
-                      onUndoStatus={handleUndoStatus}
                       onOpenDetail={() => setSelectedRoom(room)}
                       onAssign={assignmentMode ? handleTapAssign : undefined}
                       pendingAssignee={pendingAssignments[room.room_id] ?? null}
