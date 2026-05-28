@@ -1,13 +1,14 @@
 import asyncio
 import logging
 import httpx
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
 from datetime import date
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
+from services.opera_pdf import parse_hk_details, parse_task_sheet
 
 logger = logging.getLogger(__name__)
 
@@ -976,3 +977,191 @@ async def delete_inspection_template(
         .eq("id", template_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/import/hk-details
+# ---------------------------------------------------------------------------
+
+@router.post("/import/hk-details")
+async def import_hk_details(
+    file: UploadFile = File(...),
+    assignment_date: str = Form(...),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """
+    Import an Opera HK Details PDF to reset room_status for the day.
+    Skips rooms currently IN_PROGRESS to protect active cleaning work.
+    """
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    pdf_bytes = await file.read()
+    rows, warnings = parse_hk_details(pdf_bytes)
+
+    if not rows:
+        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+
+    # Fetch all rooms for this hotel to resolve room_number → room_id
+    rooms_res = supabase.table("rooms") \
+        .select("id, room_number") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    room_map: dict[str, str] = {r["room_number"]: r["id"] for r in (rooms_res.data or [])}
+
+    applied = 0
+    skipped_active = 0
+    not_found: list[str] = []
+
+    for row in rows:
+        room_id = room_map.get(row.room_number)
+        if not room_id:
+            not_found.append(row.room_number)
+            continue
+
+        # Fetch current status to protect IN_PROGRESS rooms
+        current = supabase.table("room_status") \
+            .select("status") \
+            .eq("room_id", room_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .maybe_single() \
+            .execute()
+
+        if current.data and current.data.get("status") == "IN_PROGRESS":
+            skipped_active += 1
+            continue
+
+        resolved_status = (
+            "OCCUPIED"
+            if row.our_status == "DIRTY" and row.fo_status == "OCC"
+            else row.our_status
+        )
+
+        update_data: dict = {
+            "room_id": room_id,
+            "tenant_id": current_user.hotel_id,
+            "status": resolved_status,
+            "fo_status": row.fo_status,
+        }
+
+        supabase.table("room_status") \
+            .upsert(update_data, on_conflict="room_id") \
+            .execute()
+        applied += 1
+
+    if not_found:
+        warnings.append(f"Rooms not found in system: {', '.join(not_found[:20])}")
+
+    return {
+        "data": {
+            "applied": applied,
+            "skipped_active": skipped_active,
+            "not_found": len(not_found),
+            "total_parsed": len(rows),
+            "warnings": warnings,
+        }
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/import/task-sheet
+# ---------------------------------------------------------------------------
+
+@router.post("/import/task-sheet")
+async def import_task_sheet(
+    file: UploadFile = File(...),
+    assignment_date: str = Form(...),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """
+    Import an Opera Task Sheet PDF to set clean_type for rooms needing cleaning.
+    Skips rooms that are already IN_PROGRESS, CLEAN, or INSPECTED.
+    Sets DIRTY+OCC+Stayover rooms with FULL/LIGHT task to PICKUP status.
+    """
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    pdf_bytes = await file.read()
+    rows, warnings = parse_task_sheet(pdf_bytes)
+
+    if not rows:
+        raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+
+    # Fetch all rooms for this hotel
+    rooms_res = supabase.table("rooms") \
+        .select("id, room_number") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    room_map: dict[str, str] = {r["room_number"]: r["id"] for r in (rooms_res.data or [])}
+
+    applied = 0
+    skipped_active = 0
+    not_found: list[str] = []
+
+    for row in rows:
+        room_id = room_map.get(row.room_number)
+        if not room_id:
+            not_found.append(row.room_number)
+            continue
+
+        # Fetch current room status
+        current = supabase.table("room_status") \
+            .select("status, fo_status") \
+            .eq("room_id", room_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .maybe_single() \
+            .execute()
+
+        current_status = current.data.get("status") if current.data else None
+
+        if current_status in ("IN_PROGRESS", "CLEAN", "INSPECTED"):
+            skipped_active += 1
+            continue
+
+        # Determine the new status based on task code
+        # FULL/LIGHT on a stayover (OCC) room → PICKUP
+        # DEP (departure) room stays DIRTY
+        new_status = current_status or "DIRTY"
+        fo = row.fo_status or (current.data.get("fo_status") if current.data else None)
+
+        if row.clean_type in ("FULL", "LIGHT") and fo == "OCC":
+            new_status = "PICKUP"
+        elif row.clean_type == "DEP":
+            new_status = "DIRTY"
+
+        # Update clean_type on existing assignment if one exists; skip if not yet assigned
+        if row.clean_type:
+            supabase.table("room_assignments") \
+                .update({"clean_type": row.clean_type}) \
+                .eq("room_id", room_id) \
+                .eq("assignment_date", assignment_date) \
+                .eq("tenant_id", current_user.hotel_id) \
+                .execute()
+
+        # Update room_status with new status and fo_status
+        supabase.table("room_status") \
+            .upsert(
+                {
+                    "room_id": room_id,
+                    "tenant_id": current_user.hotel_id,
+                    "status": new_status,
+                    "fo_status": fo,
+                },
+                on_conflict="room_id",
+            ) \
+            .execute()
+
+        applied += 1
+
+    if not_found:
+        warnings.append(f"Rooms not found in system: {', '.join(not_found[:20])}")
+
+    return {
+        "data": {
+            "applied": applied,
+            "skipped_active": skipped_active,
+            "not_found": len(not_found),
+            "total_parsed": len(rows),
+            "warnings": warnings,
+        }
+    }

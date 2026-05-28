@@ -132,4 +132,18 @@ export const housekeepingApi = {
 
   deleteInspectionTemplate: (id: string) =>
     apiClient.delete(`/housekeeping/inspections/templates/${id}`),
+
+  importHKDetails: (file: File, assignmentDate: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('assignment_date', assignmentDate)
+    return apiClient.post('/housekeeping/import/hk-details', form)
+  },
+
+  importTaskSheet: (file: File, assignmentDate: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('assignment_date', assignmentDate)
+    return apiClient.post('/housekeeping/import/task-sheet', form)
+  },
 }

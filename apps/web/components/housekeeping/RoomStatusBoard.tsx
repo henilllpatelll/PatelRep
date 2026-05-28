@@ -24,6 +24,7 @@ interface StatusChip {
 const STATUS_CHIPS: StatusChip[] = [
   { key: null,          label: 'All',          dotTone: 'neutral' },
   { key: 'DIRTY',       label: 'Vacant Dirty', dotTone: 'dirty' },
+  { key: 'OCCUPIED',    label: 'Occupied Dirty', dotTone: 'dirty' },
   { key: 'IN_PROGRESS', label: 'In Progress',  dotTone: 'progress' },
   { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
   { key: 'INSPECTED',   label: 'Inspected',    dotTone: 'ready' },

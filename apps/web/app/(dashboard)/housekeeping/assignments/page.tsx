@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -52,6 +53,7 @@ export default function AssignmentsPage() {
   }, [])
   const queryClient = useQueryClient()
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [showImport, setShowImport] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -96,6 +98,13 @@ export default function AssignmentsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
+      {showImport && (
+        <OccupancyImportModal
+          date={date}
+          onClose={() => setShowImport(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -105,21 +114,30 @@ export default function AssignmentsPage() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={handleAiAutoAssign}
-          disabled={aiLoading}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          {aiLoading ? (
-            <>
-              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              Thinking...
-            </>
-          ) : (
-            'Auto-Assign with AI'
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => setShowImport(true)}
+            className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
+          >
+            Import from Opera
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleAiAutoAssign}
+            disabled={aiLoading}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {aiLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Thinking...
+              </>
+            ) : (
+              'Auto-Assign with AI'
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Date picker */}
