@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 5681083,
-    "total_reads": 3481,
-    "total_writes": 2458,
+    "total_tokens_estimated": 5714549,
+    "total_reads": 3503,
+    "total_writes": 2482,
     "total_sessions": 138,
-    "anatomy_hits": 1074,
-    "anatomy_misses": 2360,
-    "repeated_reads_blocked": 1156,
-    "estimated_savings_vs_bare_cli": 4101675
+    "anatomy_hits": 1084,
+    "anatomy_misses": 2370,
+    "repeated_reads_blocked": 1162,
+    "estimated_savings_vs_bare_cli": 4114911
   },
   "sessions": [
     {
@@ -38231,6 +38231,292 @@
         "writes_count": 10,
         "repeated_reads_blocked": 3,
         "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-28-1937",
+      "started": "2026-05-28T00:37:17.002Z",
+      "ended": "2026-05-28T00:57:02.567Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 2642,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 1546,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 2036,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/database.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts",
+          "tokens_estimated": 469,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts",
+          "tokens_estimated": 93,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx",
+          "tokens_estimated": 8466,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/next.config.mjs",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 93,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 321,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts",
+          "tokens_estimated": 78,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 136,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts",
+          "tokens_estimated": 343,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 146,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 0,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 88,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 11,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 48,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 204,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15252,
+        "output_tokens_estimated": 1481,
+        "reads_count": 11,
+        "writes_count": 12,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 5
+      }
+    },
+    {
+      "id": "session-2026-05-28-1937",
+      "started": "2026-05-28T00:37:17.002Z",
+      "ended": "2026-05-28T00:57:54.315Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 2642,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 1546,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 2036,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/database.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts",
+          "tokens_estimated": 469,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts",
+          "tokens_estimated": 93,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx",
+          "tokens_estimated": 8466,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/next.config.mjs",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 93,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+          "tokens_estimated": 321,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts",
+          "tokens_estimated": 78,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 136,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts",
+          "tokens_estimated": 343,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 146,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 0,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 88,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 11,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 48,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+          "tokens_estimated": 204,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15252,
+        "output_tokens_estimated": 1481,
+        "reads_count": 11,
+        "writes_count": 12,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 5
       }
     }
   ],

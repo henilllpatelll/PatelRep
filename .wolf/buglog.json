@@ -3045,6 +3045,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T00:00:00.000Z"
+    },
+    {
+      "id": "bug-185",
+      "timestamp": "2026-05-28T00:50:49.596Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/shared/LogFoundItemModal.tsx",
+      "root_cause": "No early return/throw for edge case: photoFile",
+      "fix": "Added guard clause: if (photoFile)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:50:49.596Z"
     }
   ]
 }

@@ -7,12 +7,8 @@ import { lostFoundApi } from '@/lib/api/lost_found'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 export async function uploadItemPhoto(file: File): Promise<string | null> {
-  try {
-    const result = await lostFoundApi.uploadPhoto(file)
-    return result?.data?.url ?? null
-  } catch {
-    return null
-  }
+  const result = await lostFoundApi.uploadPhoto(file)
+  return result?.data?.url ?? null
 }
 
 interface Props {
@@ -45,7 +41,8 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
       let photoUrl: string | undefined
       if (photoFile) {
         const url = await uploadItemPhoto(photoFile)
-        if (url) photoUrl = url
+        if (!url) throw new Error('Photo upload failed — please try again or remove the photo.')
+        photoUrl = url
       }
       return lostFoundApi.createItem({
         description: description.trim(),
