@@ -2,17 +2,26 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Upload, ChevronDown, Trash2 } from 'lucide-react'
+import { Upload, ChevronDown, Trash2, Loader2 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { roomsApi, type RoomStatus } from '@/lib/api/rooms'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
-import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { RoomsImportModal } from '@/components/settings/RoomsImportModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const GM_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'DIRTY',       label: 'Vacant Dirty' },
+  { value: 'OCCUPIED',    label: 'Occupied' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'PICKUP',      label: 'Pickup' },
+  { value: 'CLEAN',       label: 'Clean' },
+  { value: 'INSPECTED',   label: 'Inspected Vacant' },
+  { value: 'OOO',         label: 'Out of Order / Out of Service' },
+]
 
 function RoomsStatusBadge({ status }: { status: string }) {
   const colors = (STATUS_COLORS as Record<string, { badge: string }>)[status] ?? {
@@ -33,8 +42,8 @@ export default function RoomsSettingsPage() {
   const queryClient = useQueryClient()
 
   const [showRoomImportModal, setShowRoomImportModal] = useState(false)
-  const [selectedRoom, setSelectedRoom] = useState<RoomStatus | null>(null)
   const [confirmDeleteRoomId, setConfirmDeleteRoomId] = useState<string | null>(null)
+  const [changingStatusRoomId, setChangingStatusRoomId] = useState<string | null>(null)
   const [roomFloorFilter, setRoomFloorFilter] = useState<number | 'all'>('all')
   const [roomStatusFilter, setRoomStatusFilter] = useState('all')
   const [roomSearchQuery, setRoomSearchQuery] = useState('')
@@ -82,6 +91,15 @@ export default function RoomsSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
       setConfirmDeleteRoomId(null)
+    },
+  })
+
+  const changeStatusMutation = useMutation({
+    mutationFn: ({ roomId, status }: { roomId: string; status: string }) =>
+      roomsApi.updateStatus(roomId, status, undefined, true),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      setChangingStatusRoomId(null)
     },
   })
 
@@ -215,20 +233,59 @@ export default function RoomsSettingsPage() {
                         {room.rooms?.floor ?? '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <RoomsStatusBadge status={room.status} />
+                        {changingStatusRoomId === room.room_id ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative">
+                              <select
+                                defaultValue={room.status}
+                                disabled={changeStatusMutation.isPending}
+                                onChange={e =>
+                                  changeStatusMutation.mutate({
+                                    roomId: room.room_id,
+                                    status: e.target.value,
+                                  })
+                                }
+                                className="appearance-none pl-2 pr-7 py-1 border border-amber-400/60 rounded-md text-xs text-stone-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer disabled:opacity-50"
+                              >
+                                {GM_STATUS_OPTIONS.map(({ value, label }) => (
+                                  <option key={value} value={value}>{label}</option>
+                                ))}
+                              </select>
+                              <ChevronDown
+                                size={11}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none"
+                              />
+                            </div>
+                            {changeStatusMutation.isPending ? (
+                              <Loader2 size={12} className="animate-spin text-stone-400" />
+                            ) : (
+                              <button
+                                onClick={() => setChangingStatusRoomId(null)}
+                                className="text-xs text-stone-400 hover:text-stone-600"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setChangingStatusRoomId(room.room_id)}
+                            className="group flex items-center gap-1.5"
+                            title="Click to change status"
+                          >
+                            <RoomsStatusBadge status={room.status} />
+                            <ChevronDown
+                              size={11}
+                              className="text-stone-300 group-hover:text-stone-500 transition-colors"
+                            />
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-stone-600">
                         {assignee ?? <span className="text-stone-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            className="px-3 py-1 text-xs"
-                            onClick={() => setSelectedRoom(room)}
-                          >
-                            Edit
-                          </Button>
                           {confirmDeleteRoomId !== room.room_id ? (
                             <button
                               onClick={() => setConfirmDeleteRoomId(room.room_id)}
@@ -268,11 +325,6 @@ export default function RoomsSettingsPage() {
       {showRoomImportModal && (
         <RoomsImportModal onClose={() => setShowRoomImportModal(false)} />
       )}
-      <RoomDetailDrawer
-        room={selectedRoom}
-        isOpen={selectedRoom !== null}
-        onClose={() => setSelectedRoom(null)}
-      />
     </div>
   )
 }

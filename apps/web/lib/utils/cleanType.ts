@@ -8,14 +8,14 @@ export const CLEAN_TYPE_LABELS: Record<CleanType, string> = {
 
 export const CLEAN_TYPE_SHORT_LABELS: Record<CleanType, string> = {
   DEP: 'Departure',
-  FULL: 'Full Linen',
-  LIGHT: 'Light Linen',
+  FULL: 'Full',
+  LIGHT: 'Light',
 }
 
 export const CLEAN_TYPE_OPTIONS: Array<{ value: CleanType; label: string; hint: string }> = [
-  { value: 'DEP', label: 'Departure', hint: 'Checkout room' },
-  { value: 'FULL', label: 'Full Linen', hint: 'Stayover with linen change' },
-  { value: 'LIGHT', label: 'Light', hint: 'Stayover pickup' },
+  { value: 'DEP', label: 'Departure Clean', hint: 'Checkout room' },
+  { value: 'FULL', label: 'Full Cleaning', hint: 'Stayover with linen change' },
+  { value: 'LIGHT', label: 'Light Cleaning', hint: 'Stayover pickup' },
 ]
 
 export function getCleanTypeLabel(cleanType?: string | null): string | null {

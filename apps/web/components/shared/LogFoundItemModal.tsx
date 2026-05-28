@@ -34,11 +34,12 @@ interface Props {
   isOpen: boolean
   roomId?: string
   roomNumber?: string
+  compact?: boolean
   onClose: () => void
   onCreate: () => void
 }
 
-export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreate }: Props) {
+export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose, onCreate }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [description, setDescription] = useState('')
@@ -171,33 +172,37 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, onClose, onCreat
             />
           </div>
 
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location Found <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={locationFound}
-              onChange={(e) => setLocationFound(e.target.value)}
-              placeholder="e.g. Room 204, Pool area, Lobby..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-            />
-          </div>
+          {!compact && (
+            <>
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location Found <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={locationFound}
+                  onChange={(e) => setLocationFound(e.target.value)}
+                  placeholder="e.g. Room 204, Pool area, Lobby..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                />
+              </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional details..."
-              rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
-            />
-          </div>
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any additional details..."
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+                />
+              </div>
+            </>
+          )}
 
           {error && (
             <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>

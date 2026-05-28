@@ -26,7 +26,7 @@ const STATUS_CHIPS: StatusChip[] = [
   { key: 'DIRTY',       label: 'Vacant Dirty', dotTone: 'dirty' },
   { key: 'IN_PROGRESS', label: 'In Progress',  dotTone: 'progress' },
   { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
-  { key: 'INSPECTED',   label: 'Ready',        dotTone: 'ready' },
+  { key: 'INSPECTED',   label: 'Inspected',    dotTone: 'ready' },
   { key: 'PICKUP',      label: 'Pickup',       dotTone: 'pickup' },
   { key: 'OOO',         label: 'OOO/OOS',      dotTone: 'ooo' },
 ]

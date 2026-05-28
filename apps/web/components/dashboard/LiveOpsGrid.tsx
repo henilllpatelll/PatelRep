@@ -19,7 +19,7 @@ const TILES = [
   { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant Dirty', barTone: 'alert'   },
   { code: 'IN_PROGRESS',tone: 'progress',  label: 'In Progress',  barTone: 'progress' },
   { code: 'CLEAN',      tone: 'clean',     label: 'Clean Inspect', barTone: 'info'   },
-  { code: 'INSPECTED',  tone: 'inspected', label: 'Ready',        barTone: 'ready'   },
+  { code: 'INSPECTED',  tone: 'inspected', label: 'Inspected',   barTone: 'ready'   },
   { code: 'PICKUP',     tone: 'pickup',    label: 'Pickup',       barTone: 'caution' },
   { code: 'OOO',        tone: 'ooo',       label: 'OOO/OOS',      barTone: 'accent'  },
 ] as const

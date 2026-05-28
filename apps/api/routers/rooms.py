@@ -250,8 +250,9 @@ async def update_room_status(
     from_status: str = current_row.data.get("status")
     to_status: str = request.status
 
-    # 2. Validate transition
-    _validate_transition(from_status, to_status, current_user.role)
+    # 2. Validate transition — GMs can force any status from settings
+    if not (request.force and current_user.role == "gm"):
+        _validate_transition(from_status, to_status, current_user.role)
 
     # 3. Build the update payload
     now_iso = datetime.now(timezone.utc).isoformat()

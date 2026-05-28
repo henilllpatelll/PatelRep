@@ -25,8 +25,9 @@ class CreateHotelRequest(BaseModel):
 
 # --- Rooms ---
 class UpdateRoomStatusRequest(BaseModel):
-    status: Literal["DIRTY", "IN_PROGRESS", "CLEAN", "INSPECTED", "OOO", "PICKUP"]
+    status: Literal["DIRTY", "IN_PROGRESS", "CLEAN", "INSPECTED", "OOO", "PICKUP", "OCCUPIED"]
     notes: Optional[str] = None
+    force: bool = False
 
 
 class UndoRoomStatusRequest(BaseModel):

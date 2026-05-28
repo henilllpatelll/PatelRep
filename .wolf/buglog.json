@@ -2754,6 +2754,182 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T08:47:36.850Z"
+    },
+    {
+      "id": "bug-167",
+      "timestamp": "2026-05-27T20:10:49.391Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": "apps/web/app/(dashboard)/settings/rooms/page.tsx",
+      "root_cause": "mutationFn: (roomId: string) => roomsApi.deleteRoom(roomId), → ({ roomId, status",
+      "fix": "Changed mutationFn: (roomId: string) => roomsApi.deleteRoom(roomId), → ({ roomId, status",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:10:49.391Z"
+    },
+    {
+      "id": "bug-168",
+      "timestamp": "2026-05-27T20:10:59.310Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/settings/rooms/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:10:59.310Z"
+    },
+    {
+      "id": "bug-169",
+      "timestamp": "2026-05-27T20:11:08.183Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/settings/rooms/page.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:11:08.183Z"
+    },
+    {
+      "id": "bug-170",
+      "timestamp": "2026-05-27T20:15:11.560Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/settings/rooms/page.tsx",
+      "root_cause": "Had 'Inspected / Ready'",
+      "fix": "Changed to 'Inspected Vacant'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:15:11.560Z"
+    },
+    {
+      "id": "bug-171",
+      "timestamp": "2026-05-27T20:16:46.311Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/utils/roomStatus.ts",
+      "root_cause": "Had 'Inspected / Ready'",
+      "fix": "Changed to 'Inspected Vacant'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-27T20:16:49.606Z"
+    },
+    {
+      "id": "bug-172",
+      "timestamp": "2026-05-27T20:16:53.493Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had 'Ready'",
+      "fix": "Changed to 'Inspected'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:16:53.493Z"
+    },
+    {
+      "id": "bug-173",
+      "timestamp": "2026-05-27T20:16:57.791Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/LiveOpsGrid.tsx",
+      "root_cause": "Had 'Ready'",
+      "fix": "Changed to 'Inspected'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:16:57.791Z"
+    },
+    {
+      "id": "bug-174",
+      "timestamp": "2026-05-27T20:17:02.011Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "Had 'Ready'",
+      "fix": "Changed to 'Inspected'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:17:02.011Z"
+    },
+    {
+      "id": "bug-175",
+      "timestamp": "2026-05-27T20:17:05.497Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Had 'Ready'",
+      "fix": "Changed to 'Inspected'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-05-27T20:17:20.374Z"
+    },
+    {
+      "id": "bug-176",
+      "timestamp": "2026-05-27T20:17:24.522Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Had 'Inspected / Ready'",
+      "fix": "Changed to 'Inspected Vacant'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:17:24.522Z"
+    },
+    {
+      "id": "bug-177",
+      "timestamp": "2026-05-27T20:23:48.330Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 13→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T20:23:48.330Z"
     }
   ]
 }

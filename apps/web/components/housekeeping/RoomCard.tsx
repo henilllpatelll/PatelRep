@@ -211,12 +211,16 @@ export function RoomCard({
           {statusLabel}
           {isOccupied && etaTime ? ` · ${etaTime}` : ''}
         </Pill>
-        {cleanTypeLabel && (
+        {status === 'INSPECTED' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
+          <span className="text-[10px] font-semibold text-[var(--ready)]">
+            {room.clean_type === 'FULL' ? 'Full Done' : 'Light Done'}
+          </span>
+        ) : cleanTypeLabel ? (
           <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3')}>
             {room.clean_type === 'DEP' && <LogOut className="w-2.5 h-2.5" />}
             {cleanTypeLabel}
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* Assignee row */}

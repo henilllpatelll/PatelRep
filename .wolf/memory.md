@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 02:55 | Lost & Found web photo upload: photo_url to LostFoundItem type + createItem payload, uploadItemPhoto helper, file picker + preview in LogItemModal, photo thumbnail in ItemCard | lost-found/page.tsx, lost_found.ts | complete | ~1k tok |
+| 14:30 | GM room status override in settings: inline status select with force=true, bypass transition rules in rooms.py, added OCCUPIED to request Literal | settings/rooms/page.tsx, rooms.py, requests.py, rooms.ts | complete | ~800 tok |
 | 02:40 | Lost & Found mobile upload: migration 042 (storage bucket), API photo_url field, FoundItemModal.tsx (camera+gallery+Supabase storage), Found Item button in [roomId].tsx, i18n en+es | 8 files | complete | ~3k tok |
 | graphify | Built full knowledge graph of PatelRep repo — 3509 nodes, 6478 edges, 237 communities from 424 files. Outputs: graphify-out/graph.html, graph.json, GRAPH_REPORT.md. 49x token reduction vs raw corpus. | graphify-out/ | complete | ~8k tok |
 | settings-rework | Full rework of settings: replaced 1586-line monolith with sidebar-nav sub-layout + 6 subroute pages + 3 extracted components. layout.tsx + page.tsx redirect + general/departments/front-desk/roles/inspections/rooms pages + RoomsImportModal/RoleForm/TemplateForm components. TS+lint pass. | apps/web/app/(dashboard)/settings/, apps/web/components/settings/ | complete | ~25k tok |
@@ -2333,3 +2334,49 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 03:47 | Edited apps/web/components/shared/LogFoundItemModal.tsx | 14→15 lines | ~243 |
 | 03:47 | Edited apps/web/components/shared/LogFoundItemModal.tsx | "flex gap-3 pt-1" → "flex gap-3 pt-1 shrink-0" | ~15 |
 | 03:47 | Session end: 7 writes across 3 files (Sidebar.tsx, proxy.ts, LogFoundItemModal.tsx) | 5 reads | ~18447 tok |
+| 04:51 | Edited apps/web/components/shared/LogFoundItemModal.tsx | modified LogFoundItemModal() | ~71 |
+| 04:51 | Edited apps/web/components/shared/LogFoundItemModal.tsx | 27→31 lines | ~406 |
+| 04:51 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 7→8 lines | ~71 |
+| 04:51 | Session end: 10 writes across 4 files (Sidebar.tsx, proxy.ts, LogFoundItemModal.tsx, RoomDetailDrawer.tsx) | 6 reads | ~27442 tok |
+| 14:28 | Session end: 10 writes across 4 files (Sidebar.tsx, proxy.ts, LogFoundItemModal.tsx, RoomDetailDrawer.tsx) | 6 reads | ~27442 tok |
+| 14:31 | Session end: 10 writes across 4 files (Sidebar.tsx, proxy.ts, LogFoundItemModal.tsx, RoomDetailDrawer.tsx) | 7 reads | ~27442 tok |
+
+## Session: 2026-05-27 15:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:10 | Edited apps/api/models/requests.py | modified UpdateRoomStatusRequest() | ~55 |
+| 15:10 | Edited apps/api/routers/rooms.py | modified not() | ~57 |
+| 15:10 | Edited apps/web/lib/api/rooms.ts | 2→2 lines | ~46 |
+| 15:10 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 13→12 lines | ~170 |
+| 15:10 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 3→3 lines | ~70 |
+| 15:10 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | CSS: status | ~159 |
+| 15:10 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | expanded (+46 lines) | ~781 |
+| 15:11 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | reduced (-7 lines) | ~42 |
+| 15:11 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 8→3 lines | ~33 |
+| 15:11 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | modified RoomsStatusBadge() | ~163 |
+| 15:11 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 3→3 lines | ~57 |
+| 15:12 | Session end: 11 writes across 4 files (requests.py, rooms.py, rooms.ts, page.tsx) | 6 reads | ~11937 tok |
+| 15:15 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | inline fix | ~16 |
+| 15:15 | Session end: 12 writes across 4 files (requests.py, rooms.py, rooms.ts, page.tsx) | 6 reads | ~11953 tok |
+| 15:16 | Edited apps/web/lib/utils/roomStatus.ts | "Inspected / Ready" → "Inspected Vacant" | ~10 |
+| 15:16 | Edited apps/web/lib/utils/roomStatus.ts | "Ready" → "Inspected" | ~8 |
+| 15:16 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~19 |
+| 15:16 | Edited apps/web/components/dashboard/LiveOpsGrid.tsx | inline fix | ~25 |
+| 15:17 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | inline fix | ~28 |
+| 15:17 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | "Ready" → "Inspected" | ~25 |
+| 15:17 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | "Ready" → "Inspected" | ~24 |
+| 15:17 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | "Ready" → "Inspected" | ~20 |
+| 15:17 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | "Ready" → "Inspected" | ~23 |
+| 15:17 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | "Inspected / Ready" → "Inspected Vacant" | ~18 |
+| 15:17 | Session end: 22 writes across 10 files (requests.py, rooms.py, rooms.ts, page.tsx, roomStatus.ts) | 11 reads | ~26904 tok |
+| 15:23 | Edited apps/web/lib/utils/cleanType.ts | 11→11 lines | ~127 |
+| 15:23 | Edited apps/web/components/housekeeping/RoomCard.tsx | 13→17 lines | ~247 |
+| 15:23 | Session end: 24 writes across 12 files (requests.py, rooms.py, rooms.ts, page.tsx, roomStatus.ts) | 14 reads | ~38599 tok |
+
+## Session: 2026-05-27 18:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:13 | Edited ../../.claude/CLAUDE.md | expanded (+10 lines) | ~246 |
+| 18:13 | Session end: 1 writes across 1 files (CLAUDE.md) | 1 reads | ~263 tok |

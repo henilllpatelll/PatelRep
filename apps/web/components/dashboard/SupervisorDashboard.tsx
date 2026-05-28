@@ -175,7 +175,7 @@ const CELL_MAP: Record<string, { bg: string; border: string; striped?: boolean; 
 }
 
 const STATUS_LABEL_MAP: Record<string, string> = {
-  INSPECTED: 'Ready', CLEAN: 'Clean ready for inspection', DIRTY: 'Vacant Dirty',
+  INSPECTED: 'Inspected', CLEAN: 'Clean ready for inspection', DIRTY: 'Vacant Dirty',
   IN_PROGRESS: 'In Progress', OCCUPIED: 'Occupied', PICKUP: 'Pickup', OOO: 'Out of order / out of service',
 }
 
@@ -250,7 +250,7 @@ function RoomGridMini({ boardData }: { boardData: unknown }) {
       </div>
       <div className="px-4 py-2.5 border-t border-line-2 flex flex-wrap gap-3 text-[11px] text-ink3">
         {[
-          { l: 'Ready',        bg: 'var(--ready-soft)',   bd: 'var(--ready-line)' },
+          { l: 'Inspected',    bg: 'var(--ready-soft)',   bd: 'var(--ready-line)' },
           { l: 'Clean inspect', bg: 'var(--info-soft)',   bd: 'var(--info-line)' },
           { l: 'Vacant Dirty', bg: 'var(--alert-soft)',   bd: 'var(--alert-line)' },
           { l: 'In Progress',  bg: 'var(--progress-soft)', bd: 'var(--progress-line)' },
@@ -498,7 +498,7 @@ export function SupervisorDashboard() {
                 { label: 'Total rooms', value: totalRooms },
                 { label: 'Assigned',    value: assignedTotal },
                 { label: 'To inspect',  value: cleanPending },
-                { label: 'Ready',       value: `${inspectedPct}%` },
+                { label: 'Inspected',   value: `${inspectedPct}%` },
               ].map(({ label, value }, i) => (
                 <div key={label} className={`flex items-baseline gap-2.5 ${i < 3 ? 'border-b border-white/10 pb-2.5' : ''}`}>
                   <span className="text-[11px] opacity-60 flex-1 uppercase tracking-[0.5px]">{label}</span>
@@ -515,7 +515,7 @@ export function SupervisorDashboard() {
         <Stat label="Total Rooms" value={totalRooms} />
         <Stat label="Assigned" value={assignedTotal} deltaTone={assignedTotal > 0 ? 'caution' : 'ready'} />
         <Stat label="To Inspect" value={cleanPending} deltaTone={cleanPending > 0 ? 'info' : 'ready'} />
-        <Stat label="Ready" value={`${inspectedPct}%`} deltaTone="ready" />
+        <Stat label="Inspected" value={`${inspectedPct}%`} deltaTone="ready" />
       </div>
 
       {/* Live ops strip */}

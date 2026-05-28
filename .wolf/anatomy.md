@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T08:47:36.823Z
-> Files: 66 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T23:13:02.291Z
+> Files: 71 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../.claude/
+
+- `CLAUDE.md` — Claude Code Configuration (~831 tok)
 
 ## ../../.claude/plans/
 
@@ -433,12 +437,13 @@
 
 ## apps/api/models/
 
-- `requests.py` — --- Staff Role Schedules --- (~3163 tok)
+- `requests.py` — --- Staff Role Schedules --- (~3174 tok)
 
 ## apps/api/routers/
 
 - `housekeeping.py` — API: 3 endpoints (~9910 tok)
 - `lost_found.py` — API: 5 endpoints (~1217 tok)
+- `rooms.py` — API: 4 endpoints (~6058 tok)
 
 ## apps/api/services/
 
@@ -639,7 +644,7 @@
 
 ## apps/web/app/(dashboard)/settings/rooms/
 
-- `page.tsx` — RoomsStatusBadge — renders table (~3394 tok)
+- `page.tsx` — GM_STATUS_OPTIONS — renders table (~4116 tok)
 
 ## apps/web/app/(dashboard)/sop/
 
@@ -658,16 +663,18 @@
 
 ## apps/web/components/dashboard/
 
-- `HousekeeperDashboard.tsx` — STATUS_TONE (~2978 tok)
-- `SupervisorDashboard.tsx` — avatarColor (~6744 tok)
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~3161 tok)
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~2952 tok)
+- `LiveOpsGrid.tsx` — getHotelIdFromSession (~982 tok)
+- `SupervisorDashboard.tsx` — avatarColor (~6697 tok)
 
 ## apps/web/components/engineering/
 
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_BORDER (~3144 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8439 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3221 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8443 tok)
 - `RoomStatusBoard.tsx` — STATUS_CHIPS (~5077 tok)
 
 ## apps/web/components/settings/
@@ -678,7 +685,7 @@
 
 ## apps/web/components/shared/
 
-- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2585 tok)
+- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2642 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4463 tok)
 
 ## apps/web/components/ui/
@@ -691,6 +698,7 @@
 
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (16 endpoints) (~1199 tok)
 - `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~469 tok)
+- `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1304 tok)
 
 ## apps/web/lib/hooks/
 
@@ -700,7 +708,7 @@
 
 ## apps/web/lib/utils/
 
-- `cleanType.ts` — Exports CleanType, CLEAN_TYPE_LABELS, CLEAN_TYPE_SHORT_LABELS, CLEAN_TYPE_OPTIONS + 4 more (~409 tok)
+- `cleanType.ts` — Exports CleanType, CLEAN_TYPE_LABELS, CLEAN_TYPE_SHORT_LABELS, CLEAN_TYPE_OPTIONS + 4 more (~411 tok)
 - `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)

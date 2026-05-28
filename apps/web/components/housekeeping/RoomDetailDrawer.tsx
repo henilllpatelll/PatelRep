@@ -692,6 +692,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
         isOpen={foundItemOpen}
         roomId={roomId ?? undefined}
         roomNumber={roomNumber}
+        compact
         onClose={() => setFoundItemOpen(false)}
         onCreate={() => setFoundItemOpen(false)}
       />

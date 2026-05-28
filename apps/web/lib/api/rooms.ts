@@ -72,8 +72,8 @@ export const roomsApi = {
 
   get: (roomId: string) => apiClient.get(`/rooms/${roomId}`),
 
-  updateStatus: (roomId: string, status: string, notes?: string) =>
-    apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),
+  updateStatus: (roomId: string, status: string, notes?: string, force?: boolean) =>
+    apiClient.patch(`/rooms/${roomId}/status`, { status, notes, force }),
 
   getHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
