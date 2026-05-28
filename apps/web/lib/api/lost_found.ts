@@ -61,4 +61,10 @@ export const lostFoundApi = {
 
   deleteItem: (id: string) =>
     apiClient.delete(`/lost-found/${id}`),
+
+  uploadPhoto: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiClient.post('/lost-found/upload-photo', form) as Promise<{ data: { url: string } }>
+  },
 }

@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 00:00 | Fixed Lost & Found photo uploads (bug-184): uploads silently failed via anon Supabase client; routed through new backend POST /lost-found/upload-photo using service role key | lost_found.py, LogFoundItemModal.tsx, FoundItemModal.tsx, lostFound.ts (mobile+web) | complete | ~3k tok |
 | 02:55 | Lost & Found web photo upload: photo_url to LostFoundItem type + createItem payload, uploadItemPhoto helper, file picker + preview in LogItemModal, photo thumbnail in ItemCard | lost-found/page.tsx, lost_found.ts | complete | ~1k tok |
 | 14:30 | GM room status override in settings: inline status select with force=true, bypass transition rules in rooms.py, added OCCUPIED to request Literal | settings/rooms/page.tsx, rooms.py, requests.py, rooms.ts | complete | ~800 tok |
 | 02:40 | Lost & Found mobile upload: migration 042 (storage bucket), API photo_url field, FoundItemModal.tsx (camera+gallery+Supabase storage), Found Item button in [roomId].tsx, i18n en+es | 8 files | complete | ~3k tok |
@@ -2380,3 +2381,19 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 18:13 | Edited ../../.claude/CLAUDE.md | expanded (+10 lines) | ~246 |
 | 18:13 | Session end: 1 writes across 1 files (CLAUDE.md) | 1 reads | ~263 tok |
+
+## Session: 2026-05-28 19:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:39 | Edited apps/api/routers/lost_found.py | added 1 import(s) | ~93 |
+| 19:39 | Edited apps/api/routers/lost_found.py | modified upload_photo() | ~321 |
+| 19:39 | Edited apps/web/lib/api/lost_found.ts | expanded (+6 lines) | ~78 |
+| 19:39 | Edited apps/web/components/shared/LogFoundItemModal.tsx | modified uploadItemPhoto() | ~136 |
+| 19:39 | Edited apps/mobile/lib/api/lostFound.ts | added error handling | ~343 |
+| 19:39 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | 20→18 lines | ~146 |
+| 19:39 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | — | ~0 |
+| 19:40 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | modified uploadPhoto() | ~88 |
+| 19:40 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | inline fix | ~11 |
+| 19:40 | Edited apps/mobile/components/housekeeping/FoundItemModal.tsx | modified FoundItemModal() | ~13 |
+| 19:41 | Session end: 10 writes across 5 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 9 reads | ~8015 tok |

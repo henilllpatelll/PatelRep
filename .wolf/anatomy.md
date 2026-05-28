@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T23:13:02.291Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-28T00:40:16.222Z
 > Files: 71 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -442,7 +442,7 @@
 ## apps/api/routers/
 
 - `housekeeping.py` — API: 3 endpoints (~9910 tok)
-- `lost_found.py` — API: 5 endpoints (~1217 tok)
+- `lost_found.py` — API: 6 endpoints (~1546 tok)
 - `rooms.py` — API: 4 endpoints (~6058 tok)
 
 ## apps/api/services/
@@ -522,7 +522,7 @@
 
 ## apps/mobile/components/housekeeping/
 
-- `FoundItemModal.tsx` — base64ToArrayBuffer — renders modal (~2330 tok)
+- `FoundItemModal.tsx` — FoundItemModal — renders modal (~2035 tok)
 
 ## apps/mobile/i18n/
 
@@ -539,7 +539,7 @@
 
 ## apps/mobile/lib/api/
 
-- `lostFound.ts` — Exports CreateLostFoundPayload, createLostFoundItem (~93 tok)
+- `lostFound.ts` — Exports CreateLostFoundPayload, createLostFoundItem, uploadLostFoundPhoto (~344 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -685,7 +685,7 @@
 
 ## apps/web/components/shared/
 
-- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2642 tok)
+- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2444 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4463 tok)
 
 ## apps/web/components/ui/
@@ -697,7 +697,7 @@
 ## apps/web/lib/api/
 
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (16 endpoints) (~1199 tok)
-- `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~469 tok)
+- `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (5 endpoints) (~527 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1304 tok)
 
 ## apps/web/lib/hooks/

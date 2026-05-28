@@ -13,26 +13,15 @@ import {
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import * as FileSystem from "expo-file-system/legacy";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { createLostFoundItem } from "@/lib/api/lostFound";
+import { createLostFoundItem, uploadLostFoundPhoto } from "@/lib/api/lostFound";
 
 interface FoundItemModalProps {
   visible: boolean;
   roomId: string;
   roomNumber: string;
   onClose: () => void;
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = globalThis.atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
 }
 
 export default function FoundItemModal({
@@ -42,7 +31,7 @@ export default function FoundItemModal({
   onClose,
 }: FoundItemModalProps) {
   const { t } = useTranslation();
-  const { isOnline, user } = useAppStore();
+  const { isOnline } = useAppStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -95,35 +84,12 @@ export default function FoundItemModal({
   }
 
   async function uploadPhoto(uri: string): Promise<string | null> {
-    try {
-      const manipResult = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 1024 } }],
-        { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const arrayBuffer = base64ToArrayBuffer(base64);
-      const hotelId = user?.hotel_id ?? "unknown";
-      const path = `${hotelId}/${Date.now()}.jpg`;
-
-      const { data, error } = await supabase.storage
-        .from("lost-found-photos")
-        .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: false });
-
-      if (error || !data) return null;
-
-      const { data: urlData } = supabase.storage
-        .from("lost-found-photos")
-        .getPublicUrl(data.path);
-
-      return urlData.publicUrl;
-    } catch {
-      return null;
-    }
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1024 } }],
+      { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return uploadLostFoundPhoto(manipResult.uri);
   }
 
   async function handleSubmit() {

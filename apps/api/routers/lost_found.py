@@ -1,11 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from typing import Optional
 from datetime import datetime, timezone
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateLostFoundRequest
 from core.database import supabase
+from core.config import settings
 
 router = APIRouter(prefix="/lost-found", tags=["lost-found"])
+
+
+@router.post("/upload-photo")
+async def upload_photo(
+    file: UploadFile = File(...),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Upload a photo for a lost & found item and return its public URL."""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+
+    ext_map = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}
+    ext = ext_map.get(file.content_type, "jpg")
+    path = f"{current_user.hotel_id}/{int(datetime.now(timezone.utc).timestamp() * 1000)}.{ext}"
+
+    contents = await file.read()
+
+    try:
+        supabase.storage.from_("lost-found-photos").upload(
+            path, contents, {"content-type": file.content_type, "upsert": "false"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Photo upload failed: {e}")
+
+    public_url = f"{settings.supabase_url}/storage/v1/object/public/lost-found-photos/{path}"
+    return {"data": {"url": public_url}}
 
 
 @router.post("")

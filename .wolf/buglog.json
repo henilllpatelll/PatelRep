@@ -2930,6 +2930,121 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T20:23:48.330Z"
+    },
+    {
+      "id": "bug-178",
+      "timestamp": "2026-05-28T00:39:12.830Z",
+      "error_message": "Missing await",
+      "file": "apps/api/routers/lost_found.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:39:12.830Z"
+    },
+    {
+      "id": "bug-179",
+      "timestamp": "2026-05-28T00:39:20.080Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/api/lost_found.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:39:20.080Z"
+    },
+    {
+      "id": "bug-180",
+      "timestamp": "2026-05-28T00:39:29.690Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/LogFoundItemModal.tsx",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 29→14 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:39:29.690Z"
+    },
+    {
+      "id": "bug-181",
+      "timestamp": "2026-05-28T00:39:40.509Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/lib/api/lostFound.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:39:40.509Z"
+    },
+    {
+      "id": "bug-182",
+      "timestamp": "2026-05-28T00:40:00.200Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "root_cause": "17 lines replaced/restructured",
+      "fix": "Rewrote 31→8 lines (17 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:40:00.200Z"
+    },
+    {
+      "id": "bug-183",
+      "timestamp": "2026-05-28T00:40:08.174Z",
+      "error_message": "Wrong reference: user should be useAppStore",
+      "file": "apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "root_cause": "Used \"user\" instead of \"useAppStore\"",
+      "fix": "Changed user → useAppStore",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T00:40:08.174Z"
+    },
+    {
+      "id": "bug-184",
+      "timestamp": "2026-05-27T00:00:00.000Z",
+      "error_message": "Lost & Found photos cannot be viewed after posting — photos not uploading",
+      "file": "apps/web/components/shared/LogFoundItemModal.tsx, apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "root_cause": "Both web and mobile uploaded photos directly via the anon Supabase client (browser/mobile). Even with correct bucket RLS INSERT policies, uploads silently failed — zero files in storage, zero photo_urls in DB. Root cause: anon client upload was failing at the RLS layer, errors were being swallowed.",
+      "fix": "Added POST /lost-found/upload-photo backend endpoint that uses the service role Supabase client (bypasses RLS entirely). Web uploadItemPhoto and mobile uploadLostFoundPhoto now call this API endpoint via FormData POST instead of direct Supabase storage calls.",
+      "tags": [
+        "lost-found",
+        "storage",
+        "rls",
+        "photo-upload",
+        "supabase-storage",
+        "service-role"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T00:00:00.000Z"
     }
   ]
 }

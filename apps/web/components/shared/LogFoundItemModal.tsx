@@ -3,31 +3,16 @@
 import { useRef, useState } from 'react'
 import { X, Loader2, ImagePlus } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { lostFoundApi } from '@/lib/api/lost_found'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 export async function uploadItemPhoto(file: File): Promise<string | null> {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
-
-  let hotelId = 'unknown'
   try {
-    hotelId = (JSON.parse(atob(session.access_token.split('.')[1])) as Record<string, unknown>)?.hotel_id as string ?? 'unknown'
-  } catch { /* use default */ }
-
-  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-  const path = `${hotelId}/${Date.now()}.${ext}`
-
-  const { data, error } = await supabase.storage
-    .from('lost-found-photos')
-    .upload(path, file, { contentType: file.type, upsert: false })
-
-  if (error || !data) return null
-
-  const { data: urlData } = supabase.storage.from('lost-found-photos').getPublicUrl(data.path)
-  return urlData.publicUrl
+    const result = await lostFoundApi.uploadPhoto(file)
+    return result?.data?.url ?? null
+  } catch {
+    return null
+  }
 }
 
 interface Props {
