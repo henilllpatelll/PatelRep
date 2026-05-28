@@ -12,7 +12,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatDistanceToNow, format } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import {
   lostFoundApi,
   type LostFoundItem,
@@ -20,24 +20,11 @@ import {
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Pill, SectionLabel, Stat } from '@/components/ui/primitives'
+import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
-
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-type ActiveTab = 'all' | LostFoundStatus
-
-const TABS: { value: ActiveTab; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'unclaimed', label: 'Unclaimed' },
-  { value: 'claimed', label: 'Claimed' },
-  { value: 'donated', label: 'Donated' },
-  { value: 'discarded', label: 'Discarded' },
-]
 
 const STATUS_TONE: Record<LostFoundStatus, 'info' | 'ready' | 'ai' | 'neutral'> = {
   unclaimed: 'info',
@@ -53,26 +40,7 @@ const STATUS_LABELS: Record<LostFoundStatus, string> = {
   discarded: 'Discarded',
 }
 
-const TAB_ACTIVE_STYLES: Record<ActiveTab, string> = {
-  all: 'bg-gray-800 text-white border-gray-800',
-  unclaimed: 'bg-blue-600 text-white border-blue-600',
-  claimed: 'bg-green-600 text-white border-green-600',
-  donated: 'bg-purple-600 text-white border-purple-600',
-  discarded: 'bg-gray-500 text-white border-gray-500',
-}
-
-const TAB_INACTIVE_STYLES: Record<ActiveTab, string> = {
-  all: 'bg-surface text-gray-700 border-gray-200 hover:bg-gray-50',
-  unclaimed: 'bg-surface text-[var(--info)] border-[var(--info-line)] hover:bg-[var(--info-soft)]',
-  claimed: 'bg-surface text-[var(--ready)] border-[var(--ready-line)] hover:bg-[var(--ready-soft)]',
-  donated: 'bg-surface text-[var(--ai)] border-[var(--ai-line)] hover:bg-[var(--ai-soft)]',
-  discarded: 'bg-surface text-gray-600 border-gray-200 hover:bg-gray-50',
-}
-
-// â”€â”€â”€ Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-// â”€â”€â”€ Skeleton Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Skeleton Card -----------------------------------------------------------
 
 function SkeletonCard() {
   return (
@@ -84,38 +52,23 @@ function SkeletonCard() {
       <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
       <div className="h-3 w-1/2 bg-gray-100 rounded mb-3" />
       <div className="flex gap-2 pt-2 border-t border-gray-100">
-        <div className="h-7 w-20 bg-gray-200 rounded-lg" />
-        <div className="h-7 w-16 bg-gray-200 rounded-lg" />
-        <div className="h-7 w-16 bg-gray-200 rounded-lg" />
+        <div className="h-7 w-24 bg-gray-200 rounded-lg" />
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Item Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Item Card ---------------------------------------------------------------
 
 interface ItemCardProps {
   item: LostFoundItem
   canAct: boolean
   onMarkClaimed: (item: LostFoundItem) => void
-  onQuickUpdate: (id: string, status: LostFoundStatus) => void
   onEdit: (item: LostFoundItem) => void
   onDelete: (item: LostFoundItem) => void
-  isUpdating: boolean
-  updatingId: string | null
 }
 
-function ItemCard({
-  item,
-  canAct,
-  onMarkClaimed,
-  onQuickUpdate,
-  onEdit,
-  onDelete,
-  isUpdating,
-  updatingId,
-}: ItemCardProps) {
-  const isPending = isUpdating && updatingId === item.id
+function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardProps) {
   const staffName =
     item.user_profiles?.preferred_name ||
     item.user_profiles?.full_name ||
@@ -139,7 +92,7 @@ function ItemCard({
       {item.photo_url && (
         <a href={item.photo_url} target="_blank" rel="noopener noreferrer" className="block mb-2 rounded-lg overflow-hidden border border-line">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.photo_url} alt="Found item" className="w-full h-32 object-cover hover:opacity-90 transition-opacity" />
+          <img src={item.photo_url} alt="Found item" className="w-full h-52 object-cover hover:opacity-90 transition-opacity" />
         </a>
       )}
 
@@ -156,11 +109,7 @@ function ItemCard({
             {item.location_found}
           </span>
         )}
-        {item.rooms?.room_number && (
-          <span className="flex items-center gap-1">
-            Room {item.rooms.room_number}
-          </span>
-        )}
+
         <span className="flex items-center gap-1">
           <User className="w-3 h-3" />
           {staffName}
@@ -172,48 +121,23 @@ function ItemCard({
         <p className="text-xs text-gray-500 italic mb-3 line-clamp-2">{item.notes}</p>
       )}
 
-      {/* Claimed info */}
-      {item.status !== 'unclaimed' && item.claimed_at && (
-        <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-          <CheckCircle className="w-3 h-3 text-green-500" />
-          {item.status === 'claimed'
-            ? `Claimed by ${item.claimed_by_name || 'guest'} â€” ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`
-            : `${STATUS_LABELS[item.status]} â€” ${format(new Date(item.claimed_at), 'MMM d, h:mm a')}`}
-        </p>
-      )}
-
-      {/* Action buttons â€” only for "unclaimed" status */}
-      {canAct && item.status === 'unclaimed' && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-          {isPending ? (
-            <span className="flex items-center gap-1.5 text-xs text-gray-500">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Updatingâ€¦
-            </span>
-          ) : (
-            <>
-              <button
-                onClick={() => onMarkClaimed(item)}
-                className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center gap-1"
-              >
-                <CheckCircle className="w-3 h-3" />
-                Mark Claimed
-              </button>
-              <button
-                onClick={() => onQuickUpdate(item.id, 'donated')}
-                className="px-3 py-1.5 border border-line text-ink2 rounded-lg text-xs font-medium hover:bg-surface-3 transition-colors"
-              >
-                Donate
-              </button>
-            </>
-          )}
+      {/* Mark Claimed button */}
+      {canAct && (
+        <div className="pt-2 border-t border-gray-100">
+          <button
+            onClick={() => onMarkClaimed(item)}
+            className="w-full px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+          >
+            <CheckCircle className="w-3 h-3" />
+            Mark Claimed
+          </button>
         </div>
       )}
     </div>
   )
 }
 
-// â”€â”€â”€ Edit Item Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Edit Item Modal ---------------------------------------------------------
 
 interface EditItemModalProps {
   item: LostFoundItem | null
@@ -226,10 +150,6 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
   const [form, setForm] = useState({
     description: item?.description ?? '',
     location_found: item?.location_found ?? '',
-    notes: item?.notes ?? '',
-    status: item?.status ?? 'unclaimed',
-    claimed_by_name: item?.claimed_by_name ?? '',
-    claimed_by_contact: item?.claimed_by_contact ?? '',
   })
   const [error, setError] = useState<string | null>(null)
 
@@ -238,10 +158,6 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
       lostFoundApi.updateItem(item!.id, {
         description: form.description.trim() || undefined,
         location_found: form.location_found.trim() || undefined,
-        notes: form.notes.trim() || undefined,
-        status: form.status as LostFoundStatus,
-        claimed_by_name: form.claimed_by_name.trim() || undefined,
-        claimed_by_contact: form.claimed_by_contact.trim() || undefined,
       }),
     onSuccess: () => { setError(null); onSaved() },
     onError: (err: Error) => setError(err.message || 'Failed to save'),
@@ -270,44 +186,19 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-[var(--alert)]">*</span></label>
-            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-          </div>
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Location Found</label>
             <input type="text" value={form.location_found} onChange={(e) => setForm((f) => ({ ...f, location_found: e.target.value }))} placeholder="e.g. Room 204, Pool area" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as LostFoundStatus }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400">
-              <option value="unclaimed">Unclaimed</option>
-              <option value="claimed">Claimed</option>
-              <option value="donated">Donated</option>
-              <option value="discarded">Discarded</option>
-            </select>
-          </div>
-          {form.status === 'claimed' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Claimed By Name</label>
-                <input type="text" value={form.claimed_by_name} onChange={(e) => setForm((f) => ({ ...f, claimed_by_name: e.target.value }))} placeholder="e.g. John Smith" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Info</label>
-                <input type="text" value={form.claimed_by_contact} onChange={(e) => setForm((f) => ({ ...f, claimed_by_contact: e.target.value }))} placeholder="Phone or email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              </div>
-            </>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Any additional details..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-[var(--alert)]">*</span></label>
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
           </div>
           {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
             <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Savingâ€¦' : 'Save Changes'}
+              {isPending ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -316,139 +207,7 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
   )
 }
 
-// â”€â”€â”€ Mark Claimed Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface ClaimModalProps {
-  item: LostFoundItem | null
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function ClaimModal({ item, onClose, onSuccess }: ClaimModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const [claimedByName, setClaimedByName] = useState('')
-  const [claimedByContact, setClaimedByContact] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      lostFoundApi.updateItem(item!.id, {
-        status: 'claimed',
-        claimed_by_name: claimedByName.trim() || undefined,
-        claimed_by_contact: claimedByContact.trim() || undefined,
-      }),
-    onSuccess: () => {
-      setClaimedByName('')
-      setClaimedByContact('')
-      setError(null)
-      onSuccess()
-    },
-    onError: (err: Error) => {
-      setError(err.message || 'Failed to update item')
-    },
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!claimedByName.trim()) {
-      setError('Please enter the claimant name.')
-      return
-    }
-    setError(null)
-    mutate()
-  }
-
-  function handleClose() {
-    setClaimedByName('')
-    setClaimedByContact('')
-    setError(null)
-    onClose()
-  }
-
-  useModalFocusTrap(dialogRef, !!item, handleClose)
-  if (!item) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-stone-900/20 backdrop-blur-sm" onClick={handleClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="claim-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 id="claim-lost-found-title" className="text-lg font-semibold text-gray-900">Mark as Claimed</h2>
-          <button
-            onClick={handleClose}
-            aria-label="Close"
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <p className="text-sm text-gray-600 mb-4 bg-gray-50 rounded-lg px-3 py-2">
-          {item.description}
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Claimant name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Claimant Name <span className="text-[var(--alert)]">*</span>
-            </label>
-            <input
-              type="text"
-              value={claimedByName}
-              onChange={(e) => setClaimedByName(e.target.value)}
-              placeholder="e.g. John Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-              autoFocus
-            />
-          </div>
-
-          {/* Contact info */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Info <span className="text-gray-400 font-normal">(phone or email)</span>
-            </label>
-            <input
-              type="text"
-              value={claimedByContact}
-              onChange={(e) => setClaimedByContact(e.target.value)}
-              placeholder="e.g. 555-1234 or guest@email.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !claimedByName.trim()}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Savingâ€¦' : 'Confirm Claim'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Main Page ---------------------------------------------------------------
 
 export default function LostFoundPage() {
   const { isGM, role } = useRole()
@@ -459,15 +218,12 @@ export default function LostFoundPage() {
   const canCreate = isGM || isFrontDesk || isSupervisor
   const canAct = isGM || isFrontDesk || isSupervisor
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('all')
   const [search, setSearch] = useState('')
   const [showLogModal, setShowLogModal] = useState(false)
   const [claimTarget, setClaimTarget] = useState<LostFoundItem | null>(null)
   const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
-  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  // â”€â”€ Fetch all items â”€â”€
   const { data: items, isLoading } = useQuery({
     queryKey: ['lost-found'],
     queryFn: () => lostFoundApi.listItems({ per_page: 100 }),
@@ -475,39 +231,12 @@ export default function LostFoundPage() {
     refetchInterval: 60_000,
   })
 
-  // â”€â”€ Counts â”€â”€
-  const counts = {
-    unclaimed: items?.filter((i) => i.status === 'unclaimed').length ?? 0,
-    claimed: items?.filter((i) => i.status === 'claimed').length ?? 0,
-    donated: items?.filter((i) => i.status === 'donated').length ?? 0,
-    discarded: items?.filter((i) => i.status === 'discarded').length ?? 0,
-  }
-
-  // â”€â”€ Client-side filter â”€â”€
   const filtered = useMemo(() => {
-    let list = items ?? []
-    if (activeTab !== 'all') {
-      list = list.filter((i) => i.status === activeTab)
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter((i) => i.description.toLowerCase().includes(q))
-    }
-    return list
-  }, [items, activeTab, search])
+    if (!search.trim()) return items ?? []
+    const q = search.toLowerCase()
+    return (items ?? []).filter((i) => i.description.toLowerCase().includes(q))
+  }, [items, search])
 
-  // â”€â”€ Quick status update mutation â”€â”€
-  const { mutate: quickUpdate, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: LostFoundStatus }) =>
-      lostFoundApi.updateItem(id, { status }),
-    onMutate: ({ id }) => setUpdatingId(id),
-    onSettled: () => setUpdatingId(null),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-    },
-  })
-
-  // â”€â”€ Delete mutation â”€â”€
   const { mutate: deleteItem, isPending: deleting } = useMutation({
     mutationFn: (id: string) => lostFoundApi.deleteItem(id),
     onMutate: async (id) => {
@@ -517,6 +246,7 @@ export default function LostFoundPage() {
         if (!old?.data) return old
         return { ...old, data: old.data.filter((i: LostFoundItem) => i.id !== id) }
       })
+      setClaimTarget(null)
       setDeleteTarget(null)
       return { previous }
     },
@@ -528,13 +258,9 @@ export default function LostFoundPage() {
     },
   })
 
-  function handleQuickUpdate(id: string, status: LostFoundStatus) {
-    quickUpdate({ id, status })
-  }
-
   return (
     <div className="space-y-6">
-      {/* â”€â”€ Header â”€â”€ */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
@@ -543,7 +269,7 @@ export default function LostFoundPage() {
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Lost &amp; Found</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Track and manage found items
+              {items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
             </p>
           </div>
         </div>
@@ -555,64 +281,17 @@ export default function LostFoundPage() {
         )}
       </div>
 
-      {/* â”€â”€ Stats row â”€â”€ */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Unclaimed" value={<span className="text-[var(--info)]">{counts.unclaimed}</span>} />
-        <Stat label="Claimed" value={<span className="text-[var(--ready)]">{counts.claimed}</span>} />
-        <Stat label="Donated" value={<span className="text-[var(--ai)]">{counts.donated}</span>} />
-        <Stat label="Discarded" value={<span className="text-gray-500">{counts.discarded}</span>} />
-      </div>
+      {/* Search */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search lost and found items"
+        placeholder="Search by description..."
+        className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+      />
 
-      {/* â”€â”€ Filter bar â”€â”€ */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Status tabs */}
-        <div className="flex gap-1.5 flex-wrap">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.value
-            const count =
-              tab.value === 'all'
-                ? (items?.length ?? 0)
-                : counts[tab.value as LostFoundStatus]
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                aria-pressed={isActive}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  isActive
-                    ? TAB_ACTIVE_STYLES[tab.value]
-                    : TAB_INACTIVE_STYLES[tab.value]
-                }`}
-              >
-                {tab.label}
-                {count > 0 && (
-                  <span
-                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                      isActive ? 'bg-surface/25 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Search input */}
-        <div className="sm:ml-auto">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search lost and found items"
-            placeholder="Search by descriptionâ€¦"
-            className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      {/* ── Items grid ── */}
+      {/* Items grid */}
       <SectionLabel>Items</SectionLabel>
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -627,11 +306,7 @@ export default function LostFoundPage() {
           </div>
           <p className="text-sm font-medium text-gray-700">No items found</p>
           <p className="text-xs text-gray-400 mt-1">
-            {search
-              ? `No items match "${search}"`
-              : activeTab === 'all'
-              ? 'No lost & found items logged yet.'
-              : `No ${STATUS_LABELS[activeTab as LostFoundStatus].toLowerCase()} items.`}
+            {search ? `No items match "${search}"` : 'No lost & found items logged yet.'}
           </p>
         </div>
       ) : (
@@ -641,18 +316,15 @@ export default function LostFoundPage() {
               key={item.id}
               item={item}
               canAct={canAct}
-              onMarkClaimed={(i) => setClaimTarget(i)}
-              onQuickUpdate={handleQuickUpdate}
+              onMarkClaimed={setClaimTarget}
               onEdit={setEditTarget}
               onDelete={setDeleteTarget}
-              isUpdating={isUpdating}
-              updatingId={updatingId}
             />
           ))}
         </div>
       )}
 
-      {/* â”€â”€ Log Item Modal â”€â”€ */}
+      {/* Log Item Modal */}
       <LogFoundItemModal
         isOpen={showLogModal}
         onClose={() => setShowLogModal(false)}
@@ -662,17 +334,7 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* â”€â”€ Claim Modal â”€â”€ */}
-      <ClaimModal
-        item={claimTarget}
-        onClose={() => setClaimTarget(null)}
-        onSuccess={() => {
-          setClaimTarget(null)
-          queryClient.invalidateQueries({ queryKey: ['lost-found'] })
-        }}
-      />
-
-      {/* â”€â”€ Edit Modal â”€â”€ */}
+      {/* Edit Modal */}
       <EditItemModal
         key={editTarget?.id ?? ''}
         item={editTarget}
@@ -683,7 +345,18 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* â”€â”€ Delete Confirm â”€â”€ */}
+      {/* Mark Claimed confirm */}
+      <DeleteConfirmDialog
+        open={!!claimTarget}
+        title="Mark as Claimed"
+        description={`Mark "${claimTarget?.description ?? 'this item'}" as claimed and remove it from the list?`}
+        confirmLabel="Mark Claimed"
+        onConfirm={() => claimTarget && deleteItem(claimTarget.id)}
+        onCancel={() => setClaimTarget(null)}
+        loading={deleting}
+      />
+
+      {/* Delete confirm */}
       <DeleteConfirmDialog
         open={!!deleteTarget}
         title={`Delete "${deleteTarget?.description ?? 'item'}"`}

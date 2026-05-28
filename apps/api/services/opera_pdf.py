@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Optional
 
 import pdfplumber
+
+_TASKSHEET_NO_RE = re.compile(r"/(\d+)$")
 
 @dataclass
 class HKDetailsRow:

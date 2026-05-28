@@ -12,24 +12,19 @@ import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
 import { getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
+import type { CleanType } from '@/lib/utils/cleanType'
+import {
+  filterHousekeepingBoardRooms,
+  getHousekeepingBoardFilterCounts,
+  normalizeHousekeepingBoardRoom,
+} from '@/lib/utils/housekeepingBoardFilters'
 
 // -- Status chip config --------------------------------------------------------
 
-interface StatusChip {
-  key: string | null
-  label: string
-  dotTone: string
-}
-
-const STATUS_CHIPS: StatusChip[] = [
-  { key: null,          label: 'All',          dotTone: 'neutral' },
-  { key: 'DIRTY',       label: 'Vacant Dirty', dotTone: 'dirty' },
-  { key: 'OCCUPIED',    label: 'Occupied Dirty', dotTone: 'dirty' },
-  { key: 'IN_PROGRESS', label: 'In Progress',  dotTone: 'progress' },
-  { key: 'CLEAN',       label: 'Clean',        dotTone: 'clean' },
-  { key: 'INSPECTED',   label: 'Inspected',    dotTone: 'ready' },
-  { key: 'PICKUP',      label: 'Pickup',       dotTone: 'pickup' },
-  { key: 'OOO',         label: 'OOO/OOS',      dotTone: 'ooo' },
+const CLEAN_TYPE_CHIPS: Array<{ key: CleanType; label: string; dotTone: string }> = [
+  { key: 'DEP', label: 'Departure', dotTone: 'dirty' },
+  { key: 'FULL', label: 'Full', dotTone: 'pickup' },
+  { key: 'LIGHT', label: 'Light', dotTone: 'pickup' },
 ]
 
 // -- Skeleton loader -----------------------------------------------------------
@@ -51,30 +46,46 @@ function SkeletonGrid() {
 
 interface SummaryBarProps {
   rooms: any[]
-  statusFilter: string | null
-  onFilter: (status: string | null) => void
+  cleanTypeFilter: CleanType | null
+  onCleanTypeFilter: (cleanType: CleanType | null) => void
   showRiskOnly?: boolean
   onToggleRisk?: () => void
   riskCount?: number
 }
 
-function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggleRisk, riskCount }: SummaryBarProps) {
-  const counts = rooms.reduce<Record<string, number>>((acc, r) => {
-    const s = r.status || 'DIRTY'
-    acc[s] = (acc[s] || 0) + 1
-    return acc
-  }, {})
+function StatusSummaryBar({
+  rooms,
+  cleanTypeFilter,
+  onCleanTypeFilter,
+  showRiskOnly,
+  onToggleRisk,
+  riskCount,
+}: SummaryBarProps) {
+  const { cleanTypeCounts } = getHousekeepingBoardFilterCounts(rooms)
 
   return (
     <div className="relative mb-4">
       <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {STATUS_CHIPS.map((chip) => {
-          const count = chip.key === null ? rooms.length : (counts[chip.key] ?? 0)
-          const isActive = statusFilter === chip.key
+        <button
+          onClick={() => onCleanTypeFilter(null)}
+          aria-pressed={cleanTypeFilter === null}
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
+            cleanTypeFilter === null
+              ? 'bg-ink text-paper border-ink font-medium'
+              : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
+          }`}
+        >
+          <StatusDot tone="neutral" size={7} />
+          All
+          <span className="font-mono font-semibold text-[11px] opacity-70">{rooms.length}</span>
+        </button>
+        {CLEAN_TYPE_CHIPS.map((chip) => {
+          const count = cleanTypeCounts[chip.key] ?? 0
+          const isActive = cleanTypeFilter === chip.key
           return (
             <button
-              key={chip.key ?? 'all'}
-              onClick={() => onFilter(chip.key)}
+              key={chip.key}
+              onClick={() => onCleanTypeFilter(isActive ? null : chip.key)}
               aria-pressed={isActive}
               className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
                 isActive
@@ -89,14 +100,15 @@ function StatusSummaryBar({ rooms, statusFilter, onFilter, showRiskOnly, onToggl
           )
         })}
 
-        {/* At Risk toggle chip — separated from status chips */}
-        {onToggleRisk && (riskCount ?? 0) > 0 && (
+        {/* At Risk toggle chip */}
+        {onToggleRisk && (
           <>
             <span className="shrink-0 w-px h-5 bg-line self-center" aria-hidden="true" />
             <button
               onClick={onToggleRisk}
               aria-pressed={showRiskOnly}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border ${
+              disabled={(riskCount ?? 0) === 0}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border disabled:opacity-40 disabled:cursor-default ${
                 showRiskOnly
                   ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
                   : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
@@ -134,7 +146,6 @@ export function RoomStatusBoard() {
     setPredictions,
     setLastSyncedAt,
     pendingAssignments,
-    pendingAssignmentCleanTypes,
     assignmentMode,
     activeAssigneeId,
     setPendingAssignment,
@@ -143,38 +154,26 @@ export function RoomStatusBoard() {
     selectedShift,
     statusFilter,
     setStatusFilter,
+    cleanTypeFilter,
+    setCleanTypeFilter,
     showRiskOnly,
     toggleRiskOnly,
     predictions,
   } = useHousekeepingStore()
 
   const displayRooms = useMemo(() =>
-    allRooms.map((room: any) => {
-      const pendingCleanType = pendingAssignmentCleanTypes[room.room_id]
-      const cleanType = pendingCleanType ?? room.clean_type
-      const status = getEffectiveRoomStatusForCleanType(room.status, cleanType)
-      if (!pendingCleanType && status === room.status) return room
-      return { ...room, clean_type: cleanType, status }
-    }),
-    [allRooms, pendingAssignmentCleanTypes],
+    allRooms.map((room: any) => normalizeHousekeepingBoardRoom(room)),
+    [allRooms],
   )
 
   const rooms = useMemo(() => {
-    let result = displayRooms
-
-    if (statusFilter !== null) {
-      result = result.filter((room: any) => room.status === statusFilter)
-    }
-
-    if (showRiskOnly) {
-      result = result.filter((room: any) => {
-        const pred = predictions[room.room_id] ?? room.prediction
-        return pred?.risk_level === 'HIGH' || pred?.risk_level === 'MEDIUM'
-      })
-    }
-
-    return result
-  }, [displayRooms, predictions, showRiskOnly, statusFilter])
+    return filterHousekeepingBoardRooms(displayRooms, {
+      statusFilter,
+      cleanTypeFilter,
+      showRiskOnly,
+      predictions,
+    })
+  }, [cleanTypeFilter, displayRooms, predictions, showRiskOnly, statusFilter])
 
   const riskCount = useMemo(
     () => displayRooms.filter((r: any) => {
@@ -209,11 +208,16 @@ export function RoomStatusBoard() {
 
     const mergeRoom = (room: any) => {
       if (room.room_id !== row.room_id) return room
-      const nextStatus = getEffectiveRoomStatusForCleanType(statusRow.status, room.clean_type)
+      const nextCleanType = statusRow.clean_type ?? room.clean_type
+      const nextStatus = getEffectiveRoomStatusForCleanType(
+        statusRow.status,
+        nextCleanType,
+        statusRow.fo_status ?? room.fo_status,
+      )
       return {
         ...room,
         ...statusRow,
-        clean_type: room.clean_type,
+        clean_type: nextCleanType,
         status: nextStatus,
         rooms: room.rooms,
         prediction: room.prediction,
@@ -364,8 +368,8 @@ export function RoomStatusBoard() {
       {/* Status filter chips */}
       <StatusSummaryBar
         rooms={displayRooms}
-        statusFilter={statusFilter}
-        onFilter={setStatusFilter}
+        cleanTypeFilter={cleanTypeFilter}
+        onCleanTypeFilter={setCleanTypeFilter}
         showRiskOnly={showRiskOnly}
         onToggleRisk={toggleRiskOnly}
         riskCount={riskCount}

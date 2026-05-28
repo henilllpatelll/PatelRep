@@ -25,7 +25,8 @@ def handle_checkout(hotel_id: str, payload: dict) -> None:
         "status": "DIRTY",
         "guest_name": None,
         "checkin_time": None,
-        "checkout_time": None,
+        "actual_checkout_at": datetime.now(timezone.utc).isoformat(),
+        "fo_status": "VAC",
         "vip_flag": False,
         "dnd_flag": False,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -61,6 +62,8 @@ def handle_checkin(hotel_id: str, payload: dict) -> None:
     supabase.table("room_status").update({
         "guest_name": guest_name or None,
         "vip_flag": vip_flag,
+        "fo_status": "OCC",
+        "actual_checkout_at": None,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }).eq("room_id", room_id).execute()
 

@@ -17,7 +17,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
 import {
-  CLEAN_TYPE_OPTIONS,
+  getCleanAwareStatusLabel,
   getEffectiveRoomStatusForCleanType,
   getCleanTypeShortLabel,
 } from '@/lib/utils/cleanType'
@@ -76,9 +76,6 @@ function HousekeeperBar() {
     activeAssigneeId,
     setActiveAssignee,
     pendingAssignments,
-    pendingAssignmentCleanTypes,
-    activeCleanType,
-    setActiveCleanType,
     clearPendingAssignments,
   } = useHousekeepingStore()
 
@@ -108,7 +105,6 @@ function HousekeeperBar() {
           .map(([roomId, housekeeperId]) => ({
             room_id: roomId,
             housekeeper_id: housekeeperId,
-            clean_type: pendingAssignmentCleanTypes[roomId] ?? activeCleanType,
           })),
         is_ai_suggested: false,
       })
@@ -210,27 +206,6 @@ function HousekeeperBar() {
           })}
         </div>
       )}
-      <div className="grid grid-cols-3 gap-1 rounded-[var(--r-md)] bg-surface-2 p-1">
-        {CLEAN_TYPE_OPTIONS.map((option) => {
-          const selected = activeCleanType === option.value
-          return (
-            <button
-              key={option.value}
-              type="button"
-              title={option.hint}
-              aria-pressed={selected}
-              onClick={() => setActiveCleanType(option.value)}
-              className={`min-h-[36px] rounded-[var(--r-sm)] px-2 text-[11px] font-semibold transition-colors ${
-                selected
-                  ? 'bg-surface text-ink shadow-sm border border-line'
-                  : 'text-ink3 hover:text-ink'
-              }`}
-            >
-              {option.label}
-            </button>
-          )
-        })}
-      </div>
     </div>
   )
 }
@@ -262,7 +237,7 @@ function HousekeeperRoomItem({
   const status: string = room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
-  const latestNote: string | null = room.latest_note ?? room.maintenance_note ?? null
+  const latestNote: string | null = room.latest_note ?? null
   const openWorkOrder = room.open_work_order_number ?? null
   const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
   const workOrderLabel = openWorkOrder
@@ -283,7 +258,7 @@ function HousekeeperRoomItem({
     IN_PROGRESS:{ label: 'In Progress',       pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
     CLEAN:      { label: 'Clean',             pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
     INSPECTED:  { label: 'Inspected / Ready', pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
-    OOO:        { label: 'Out of Order / Out of Service', pillClass: 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)]' },
+    OOO:        { label: 'Out of Order / Out of Service', pillClass: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]' },
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
@@ -393,11 +368,11 @@ function HousekeeperRoomItem({
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
-            {cfg.label}
+            {getCleanAwareStatusLabel(cfg.label, room.clean_type, status)}
           </span>
-          {cleanTypeLabel && (
-            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
-              {room.clean_type === 'DEP' && <LogOut className="h-2.5 w-2.5" />}
+          {room.clean_type === 'DEP' && cleanTypeLabel && (
+            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR['DEP']}`}>
+              <LogOut className="h-2.5 w-2.5" />
               {cleanTypeLabel}
             </span>
           )}
@@ -499,8 +474,12 @@ function HousekeeperMyRoomsView() {
       return {
         ...room,
         ...statusRow,
-        clean_type: room.clean_type,
-        status: getEffectiveRoomStatusForCleanType(statusRow.status, room.clean_type),
+        clean_type: statusRow.clean_type ?? room.clean_type,
+        status: getEffectiveRoomStatusForCleanType(
+          statusRow.status,
+          statusRow.clean_type ?? room.clean_type,
+          statusRow.fo_status ?? room.fo_status,
+        ),
       }
     }
     queryClient.setQueryData(['housekeeping-board', today], (old: any) => {
@@ -633,8 +612,6 @@ function SupervisorHousekeepingPage() {
     selectedShift,
     assignmentMode,
     lastSyncedAt,
-    activeCleanType,
-    pendingAssignmentCleanTypes,
     rooms,
     setSelectedDate,
     setSelectedShift,
@@ -672,13 +649,11 @@ function SupervisorHousekeepingPage() {
 
   const displayRooms = useMemo(() =>
     rooms.map((room: any) => {
-      const pendingCleanType = pendingAssignmentCleanTypes[room.room_id]
-      const cleanType = pendingCleanType ?? room.clean_type
-      const status = getEffectiveRoomStatusForCleanType(room.status, cleanType)
-      if (!pendingCleanType && status === room.status) return room
-      return { ...room, clean_type: cleanType, status }
+      const status = getEffectiveRoomStatusForCleanType(room.status, room.clean_type, room.fo_status)
+      if (status === room.status) return room
+      return { ...room, status }
     }),
-    [pendingAssignmentCleanTypes, rooms],
+    [rooms],
   )
 
   return (

@@ -1,0 +1,185 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e156] [cursor=pointer]:
+        - generic [ref=e157]: S
+        - generic [ref=e158]:
+          - generic [ref=e159]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e160]: 114 rooms
+        - img [ref=e161]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e20] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e21]
+              - generic [ref=e26]: Dashboard
+            - link "Housekeeping" [ref=e29] [cursor=pointer]:
+              - /url: /housekeeping
+              - img [ref=e30]
+              - generic [ref=e32]: Housekeeping
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Tasks" [ref=e49] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e50]
+              - generic [ref=e53]: Tasks
+        - generic [ref=e54]:
+          - paragraph [ref=e56]: Intelligence
+          - generic [ref=e57]:
+            - link "AI Copilot AI" [active] [ref=e60] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e61]
+              - generic [ref=e63]: AI Copilot
+              - generic [ref=e64]: AI
+            - link "SOP Library" [ref=e67] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e68]
+              - generic [ref=e70]: SOP Library
+            - link "Reports" [ref=e73] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e74]
+              - generic [ref=e77]: Reports
+        - generic [ref=e78]:
+          - paragraph [ref=e80]: Organization
+          - generic [ref=e81]:
+            - link "Logbook" [ref=e84] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e85]
+              - generic [ref=e88]: Logbook
+            - link "Staff" [ref=e91] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e92]
+              - generic [ref=e97]: Staff
+            - link "Schedule" [ref=e100] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e101]
+              - generic [ref=e103]: Schedule
+      - link "Settings" [ref=e165] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e166]
+        - text: Settings
+      - generic [ref=e105]:
+        - generic [ref=e106]: H
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: hp.patelrep@gmail.com
+          - paragraph [ref=e169]: General Manager
+    - generic [ref=e109]:
+      - banner [ref=e110]:
+        - generic [ref=e111]:
+          - img [ref=e112]
+          - textbox "Open command palette" [ref=e115]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e116]: ⌘K
+        - generic [ref=e119]: Thu, May 28 · Evening shift
+        - button "Open AI Copilot (⌘J)" [ref=e121] [cursor=pointer]:
+          - img [ref=e122]
+          - generic [ref=e124]: Ask copilot
+          - generic [ref=e125]: ⌘J
+        - button "Notifications" [ref=e126] [cursor=pointer]:
+          - img [ref=e127]
+          - generic [ref=e130]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e170] [cursor=pointer]:
+          - generic [ref=e133]: H
+          - img [ref=e134]
+      - main [ref=e136]:
+        - generic [ref=e319]:
+          - generic [ref=e320]:
+            - generic [ref=e321]:
+              - generic [ref=e322]:
+                - paragraph [ref=e323]: Intelligence
+                - heading "Copilot" [level=1] [ref=e324]
+              - generic [ref=e325]:
+                - button "History" [ref=e326] [cursor=pointer]:
+                  - img [ref=e327]
+                  - text: History
+                - button "Model" [ref=e331] [cursor=pointer]:
+                  - img [ref=e332]
+                  - text: Model
+            - generic "AI Copilot conversation" [ref=e335]:
+              - generic [ref=e336]:
+                - img [ref=e338]
+                - generic [ref=e340]:
+                  - paragraph [ref=e342]: Hi! I'm your AI Copilot. Ask anything about your hotel — rooms, staff, work orders, history. Grounded on your data, citing sources.
+                  - generic [ref=e343]:
+                    - generic [ref=e344]: claude-sonnet-3.5
+                    - generic [ref=e345]:
+                      - img [ref=e346]
+                      - text: AI
+              - generic [ref=e348]:
+                - button "Show GM insights" [ref=e349] [cursor=pointer]
+                - button "At-risk rooms today" [ref=e350] [cursor=pointer]
+                - button "Open work orders" [ref=e351] [cursor=pointer]
+            - generic [ref=e353]:
+              - generic [ref=e354]:
+                - img [ref=e355]
+                - textbox "Message the AI Copilot" [ref=e357]:
+                  - /placeholder: What needs attention right now?
+                - generic [ref=e358]: ⌘ ⏎
+              - generic [ref=e359]:
+                - button "Send message" [disabled] [ref=e360]:
+                  - img [ref=e361]
+                  - text: Ask
+                - button "Clear" [disabled] [ref=e364]
+          - complementary [ref=e365]:
+            - generic [ref=e366]:
+              - generic [ref=e369]:
+                - generic [ref=e370]: Examples
+                - generic [ref=e371]: Try one
+              - generic [ref=e372]:
+                - button "Show me checkouts running late" [ref=e373] [cursor=pointer]:
+                  - img [ref=e374]
+                  - generic [ref=e376]: Show me checkouts running late
+                - button "Which rooms need to be ready by 3pm?" [ref=e377] [cursor=pointer]:
+                  - img [ref=e378]
+                  - generic [ref=e380]: Which rooms need to be ready by 3pm?
+                - button "AC issues this week" [ref=e381] [cursor=pointer]:
+                  - img [ref=e382]
+                  - generic [ref=e384]: AC issues this week
+                - button "Reassign remaining rooms" [ref=e385] [cursor=pointer]:
+                  - img [ref=e386]
+                  - generic [ref=e388]: Reassign remaining rooms
+                - button "Cost of reactive vs preventive" [ref=e389] [cursor=pointer]:
+                  - img [ref=e390]
+                  - generic [ref=e392]: Cost of reactive vs preventive
+            - generic [ref=e393]:
+              - generic [ref=e395]:
+                - generic [ref=e396]: Credit usage
+                - generic [ref=e397]: This week
+              - generic [ref=e398]:
+                - generic [ref=e399]: $0.00
+                - generic [ref=e400]: of cap
+              - generic [ref=e402]:
+                - generic [ref=e403]: 0 AI queries
+                - generic [ref=e404]: 0%
+            - generic [ref=e405]:
+              - generic [ref=e409]: Recent
+              - generic [ref=e410]:
+                - img [ref=e411]
+                - generic [ref=e413]: Reassign late checkouts
+                - generic [ref=e414]: 14m
+              - generic [ref=e415]:
+                - img [ref=e416]
+                - generic [ref=e418]: Quarterly PM plan
+                - generic [ref=e419]: 2h
+              - generic [ref=e420]:
+                - img [ref=e421]
+                - generic [ref=e423]: Linen par tonight
+                - generic [ref=e424]: yest
+    - button "Display preferences" [ref=e151] [cursor=pointer]:
+      - img [ref=e152]
+  - button "Open Next.js Dev Tools" [ref=e313] [cursor=pointer]:
+    - img [ref=e314]
+  - alert [ref=e317]

@@ -176,6 +176,7 @@ async def delete_guest_request(
         supabase.table("task_comments") \
             .delete() \
             .eq("task_id", task_id) \
+            .eq("tenant_id", current_user.hotel_id) \
             .execute()
         supabase.table("tasks") \
             .delete() \

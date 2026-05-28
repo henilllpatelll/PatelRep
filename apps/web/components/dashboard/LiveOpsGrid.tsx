@@ -13,7 +13,7 @@ function getHotelIdFromSession(accessToken: string | undefined): string {
   }
 }
 
-type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'ai'
+type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'blocked' | 'ai'
 
 const TILES = [
   { code: 'DIRTY',      tone: 'dirty',     label: 'Vacant Dirty', barTone: 'alert'   },
@@ -21,7 +21,7 @@ const TILES = [
   { code: 'CLEAN',      tone: 'clean',     label: 'Clean Inspect', barTone: 'info'   },
   { code: 'INSPECTED',  tone: 'inspected', label: 'Inspected',   barTone: 'ready'   },
   { code: 'PICKUP',     tone: 'pickup',    label: 'Pickup',       barTone: 'caution' },
-  { code: 'OOO',        tone: 'ooo',       label: 'OOO/OOS',      barTone: 'accent'  },
+  { code: 'OOO',        tone: 'ooo',       label: 'OOO/OOS',      barTone: 'blocked' },
 ] as const
 
 export function LiveOpsGrid() {

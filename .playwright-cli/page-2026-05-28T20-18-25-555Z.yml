@@ -1,0 +1,182 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e14] [cursor=pointer]:
+        - generic [ref=e15]: S
+        - generic [ref=e16]:
+          - generic [ref=e17]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e18]: 114 rooms
+        - img [ref=e19]
+      - navigation [ref=e21]:
+        - generic [ref=e22]:
+          - paragraph [ref=e23]: Operations
+          - generic [ref=e24]:
+            - link "Dashboard" [ref=e27] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e28]
+              - generic [ref=e33]: Dashboard
+            - generic [ref=e34]:
+              - link "Housekeeping" [ref=e37] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e38]
+                - generic [ref=e40]: Housekeeping
+              - generic [ref=e41]:
+                - link "Room Board" [ref=e42] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e43] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e44] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e47] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e48]
+              - generic [ref=e50]: Engineering
+            - link "Lost & Found" [ref=e53] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e54]
+              - generic [ref=e58]: Lost & Found
+            - link "Tasks" [ref=e61] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e62]
+              - generic [ref=e65]: Tasks
+        - generic [ref=e66]:
+          - paragraph [ref=e68]: Intelligence
+          - generic [ref=e69]:
+            - link "AI Copilot AI" [ref=e72] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e73]
+              - generic [ref=e75]: AI Copilot
+              - generic [ref=e76]: AI
+            - link "SOP Library" [ref=e79] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e80]
+              - generic [ref=e82]: SOP Library
+            - link "Reports" [ref=e85] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e86]
+              - generic [ref=e89]: Reports
+        - generic [ref=e90]:
+          - paragraph [ref=e92]: Organization
+          - generic [ref=e93]:
+            - link "Logbook" [ref=e96] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e97]
+              - generic [ref=e100]: Logbook
+            - link "Staff" [ref=e103] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e104]
+              - generic [ref=e109]: Staff
+            - link "Schedule" [ref=e112] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e113]
+              - generic [ref=e115]: Schedule
+      - link "Settings" [ref=e118] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e119]
+        - text: Settings
+      - generic [ref=e123]:
+        - generic [ref=e124]: H
+        - generic [ref=e125]:
+          - paragraph [ref=e126]: hp.patelrep@gmail.com
+          - paragraph [ref=e127]: General Manager
+    - generic [ref=e128]:
+      - banner [ref=e129]:
+        - generic [ref=e130]:
+          - img [ref=e131]
+          - textbox "Open command palette" [ref=e134]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e135]: ⌘K
+        - generic [ref=e138]: Thu, May 28 · Evening shift
+        - button "Open AI Copilot (⌘J)" [ref=e140] [cursor=pointer]:
+          - img [ref=e141]
+          - generic [ref=e143]: Ask copilot
+          - generic [ref=e144]: ⌘J
+        - button "Notifications" [ref=e145] [cursor=pointer]:
+          - img [ref=e146]
+          - generic [ref=e149]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e151] [cursor=pointer]:
+          - generic [ref=e152]: H
+          - img [ref=e153]
+      - main [ref=e155]:
+        - generic [ref=e157]:
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - paragraph [ref=e161]: Housekeeping
+              - heading "Room status board" [level=1] [ref=e162]
+              - generic [ref=e164]: Live · synced just now
+            - generic [ref=e166]:
+              - button "Previous day" [ref=e167] [cursor=pointer]: ← May 27
+              - generic [ref=e168]: May 28
+              - button "Next day" [ref=e169] [cursor=pointer]: May 29 →
+              - combobox [ref=e170]:
+                - option "All Shifts" [selected]
+                - option "Morning"
+                - option "Evening"
+                - option "Night"
+              - button "Assign mode" [ref=e171] [cursor=pointer]
+          - generic [ref=e210]:
+            - generic [ref=e212]:
+              - button "All 114" [ref=e213] [cursor=pointer]:
+                - text: All
+                - generic [ref=e215]: "114"
+              - button "Vacant Dirty 0" [ref=e216] [cursor=pointer]:
+                - text: Vacant Dirty
+                - generic [ref=e218]: "0"
+              - button "Occupied Dirty 85" [ref=e219] [cursor=pointer]:
+                - text: Occupied Dirty
+                - generic [ref=e221]: "85"
+              - button "In Progress 0" [ref=e222] [cursor=pointer]:
+                - text: In Progress
+                - generic [ref=e224]: "0"
+              - button "Clean 0" [ref=e225] [cursor=pointer]:
+                - text: Clean
+                - generic [ref=e227]: "0"
+              - button "Inspected 25" [ref=e228] [cursor=pointer]:
+                - text: Inspected
+                - generic [ref=e230]: "25"
+              - button "Pickup 2" [active] [pressed] [ref=e231] [cursor=pointer]:
+                - text: Pickup
+                - generic [ref=e233]: "2"
+              - button "OOO/OOS 2" [ref=e234] [cursor=pointer]:
+                - text: OOO/OOS
+                - generic [ref=e236]: "2"
+              - button "Departure 35" [ref=e238] [cursor=pointer]:
+                - text: Departure
+                - generic [ref=e240]: "35"
+              - button "Full 1" [ref=e241] [cursor=pointer]:
+                - text: Full
+                - generic [ref=e243]: "1"
+              - button "Light 1" [ref=e244] [cursor=pointer]:
+                - text: Light
+                - generic [ref=e246]: "1"
+            - generic [ref=e248]:
+              - generic [ref=e249]:
+                - heading "Floor 1" [level=3] [ref=e250]
+                - generic [ref=e251]: 2 rooms
+              - generic [ref=e252]:
+                - button "109 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e329] [cursor=pointer]:
+                  - generic [ref=e332]: "109"
+                  - generic [ref=e333]: Two Bedroom Suite 2BR Two Queens
+                  - generic [ref=e334]:
+                    - generic [ref=e335]: Pickup
+                    - generic [ref=e336]: Full
+                - button "116 Studio Suite - King Pickup Light" [ref=e383] [cursor=pointer]:
+                  - generic [ref=e386]: "116"
+                  - generic [ref=e387]: Studio Suite - King
+                  - generic [ref=e388]:
+                    - generic [ref=e389]: Pickup
+                    - generic [ref=e390]: Light
+    - button "Open AI Copilot" [ref=e190] [cursor=pointer]:
+      - img [ref=e191]
+      - generic [ref=e193]: Ask copilot
+      - generic [ref=e194]: ⌘J
+    - button "Display preferences" [ref=e196] [cursor=pointer]:
+      - img [ref=e197]
+  - button "Open Next.js Dev Tools" [ref=e205] [cursor=pointer]:
+    - img [ref=e206]
+  - alert [ref=e209]

@@ -52,6 +52,12 @@ export interface UpdateRoomStatusPayload {
   notes?: string
 }
 
+export interface ManualCheckoutPayload {
+  checkout_time?: string
+  actual_checkout_at?: string
+  notes?: string
+}
+
 export interface RoomPrediction {
   room_id: string
   housekeeper_id: string | null
@@ -105,6 +111,9 @@ export const housekeepingApi = {
 
   updateRoomStatus: (roomId: string, status: string, notes?: string) =>
     apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),
+
+  markCheckedOut: (roomId: string, data?: ManualCheckoutPayload) =>
+    apiClient.post(`/rooms/${roomId}/checkout`, data ?? {}),
 
   undoRoomStatus: (roomId: string, notes?: string) =>
     apiClient.post(`/rooms/${roomId}/status/undo`, notes ? { notes } : {}),

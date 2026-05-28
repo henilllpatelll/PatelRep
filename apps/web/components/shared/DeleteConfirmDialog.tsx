@@ -6,6 +6,7 @@ interface DeleteConfirmDialogProps {
   open: boolean
   title: string
   description?: string
+  confirmLabel?: string
   onConfirm: () => void
   onCancel: () => void
   loading?: boolean
@@ -15,6 +16,7 @@ export function DeleteConfirmDialog({
   open,
   title,
   description,
+  confirmLabel = 'Delete',
   onConfirm,
   onCancel,
   loading,
@@ -45,7 +47,7 @@ export function DeleteConfirmDialog({
             className="flex-1 px-4 py-2 bg-[var(--alert)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
           >
             {loading && <Loader2 size={14} className="animate-spin" />}
-            Delete
+            {confirmLabel}
           </button>
         </div>
       </div>

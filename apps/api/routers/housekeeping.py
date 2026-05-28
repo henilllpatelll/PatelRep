@@ -3,7 +3,8 @@ import logging
 import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
+from dateutil import tz
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateAssignmentsRequest, SubmitInspectionRequest
 from core.database import supabase
@@ -19,6 +20,28 @@ CLEAN_TYPE_LABELS = {
     "FULL": "Full Linen Change",
     "LIGHT": "Light Service",
 }
+TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX = "task_sheet_clean_type="
+
+HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hours=-6))
+
+
+def _is_missing_clean_type_column_error(exc: Exception) -> bool:
+    err = str(exc)
+    return ("42703" in err or "PGRST204" in err) and "clean_type" in err
+
+
+def _without_clean_type(payload: dict) -> dict:
+    return {key: value for key, value in payload.items() if key != "clean_type"}
+
+
+def _execute_room_status_clean_type_write(payload: dict, build_query):
+    try:
+        return build_query(payload).execute()
+    except Exception as exc:
+        if "clean_type" in payload and _is_missing_clean_type_column_error(exc):
+            logger.warning("room_status.clean_type column missing; retrying room_status write without clean_type")
+            return build_query(_without_clean_type(payload)).execute()
+        raise
 
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
@@ -64,17 +87,82 @@ def _clean_type_payload(clean_type: str | None) -> dict:
     }
 
 
-def _attach_room_activity(rows: list[dict], hotel_id: str) -> list[dict]:
+def _task_sheet_clean_type_note(clean_type: str) -> str:
+    return f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}{clean_type}"
+
+
+def _clean_type_from_task_sheet_note(note: str | None) -> str | None:
+    if not note or not note.startswith(TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX):
+        return None
+    clean_type = note.removeprefix(TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX).strip().upper()
+    return clean_type if clean_type in CLEAN_TYPE_LABELS else None
+
+
+def _activity_day_window_utc(activity_date: date) -> tuple[str, str]:
+    local_start = datetime.combine(activity_date, time.min, tzinfo=HOTEL_ACTIVITY_TIMEZONE)
+    local_end = local_start + timedelta(days=1)
+    return (
+        local_start.astimezone(timezone.utc).isoformat(),
+        local_end.astimezone(timezone.utc).isoformat(),
+    )
+
+
+def _attach_task_sheet_clean_types(rows: list[dict], hotel_id: str, activity_date: date) -> list[dict]:
     room_ids = [row.get("room_id") for row in rows if row.get("room_id")]
     if not room_ids:
         return rows
 
-    latest_note_by_room: dict[str, dict] = {}
-    note_result = (
+    activity_start, activity_end = _activity_day_window_utc(activity_date)
+    history_result = (
         supabase.table("room_status_history")
         .select("room_id, notes, created_at")
         .eq("tenant_id", hotel_id)
         .in_("room_id", room_ids)
+        .gte("created_at", activity_start)
+        .lt("created_at", activity_end)
+        .order("created_at", desc=True)
+        .limit(max(len(room_ids) * 4, 50))
+        .execute()
+    )
+
+    imported_clean_type_by_room: dict[str, str] = {}
+    for history_row in history_result.data or []:
+        room_id = history_row.get("room_id")
+        clean_type = _clean_type_from_task_sheet_note(history_row.get("notes"))
+        if room_id and clean_type and room_id not in imported_clean_type_by_room:
+            imported_clean_type_by_room[room_id] = clean_type
+
+    for row in rows:
+        history_ct = imported_clean_type_by_room.get(row.get("room_id"))
+        clean_type = history_ct or row.get("clean_type")
+        if not clean_type:
+            continue
+        row["clean_type"] = clean_type
+        row["clean_type_label"] = CLEAN_TYPE_LABELS.get(clean_type, clean_type)
+        if history_ct:
+            # Recompute directly from fo_status so stale room_status.clean_type can't corrupt the result
+            row["status"] = room_status_for_clean_type(clean_type, row.get("fo_status"))
+        else:
+            row["status"] = effective_room_status(row.get("status"), clean_type, row.get("fo_status"))
+
+    return rows
+
+
+def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) -> list[dict]:
+    room_ids = [row.get("room_id") for row in rows if row.get("room_id")]
+    if not room_ids:
+        return rows
+
+    activity_start, activity_end = _activity_day_window_utc(activity_date)
+
+    latest_note_by_room: dict[str, dict] = {}
+    note_result = (
+        supabase.table("room_status_history")
+        .select("room_id, notes, from_status, to_status, changed_by, change_source, created_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", room_ids)
+        .gte("created_at", activity_start)
+        .lt("created_at", activity_end)
         .order("created_at", desc=True)
         .limit(max(len(room_ids) * 4, 50))
         .execute()
@@ -82,7 +170,18 @@ def _attach_room_activity(rows: list[dict], hotel_id: str) -> list[dict]:
     for note in note_result.data or []:
         room_id = note.get("room_id")
         note_text = (note.get("notes") or "").strip()
-        if room_id and note_text and room_id not in latest_note_by_room:
+        from_status = note.get("from_status")
+        to_status = note.get("to_status")
+        is_task_sheet_marker = _clean_type_from_task_sheet_note(note_text) is not None
+        is_staff_note = (
+            bool(note.get("changed_by"))
+            and note.get("change_source", "app") == "app"
+            and bool(from_status)
+            and from_status == to_status
+        )
+        if is_task_sheet_marker:
+            continue
+        if room_id and note_text and is_staff_note and room_id not in latest_note_by_room:
             latest_note_by_room[room_id] = note
 
     open_work_order_by_room: dict[str, dict] = {}
@@ -185,10 +284,10 @@ async def get_housekeeping_board(
     rooms_with_predictions = []
     for room in rows:
         assignment = assignment_map.get(room.get("room_id"))
-        clean_type = assignment.get("clean_type") if assignment else None
+        clean_type = (assignment.get("clean_type") if assignment else None) or room.get("clean_type")
         rooms_with_predictions.append({
             **room,
-            "status": effective_room_status(room.get("status"), clean_type),
+            "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
             "assigned_to": assignment.get("assigned_to") if assignment else None,
             "assignment_id": assignment.get("id") if assignment else None,
             "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
@@ -197,7 +296,8 @@ async def get_housekeeping_board(
             "prediction": pred_map.get(room.get("room_id")),
         })
 
-    _attach_room_activity(rooms_with_predictions, current_user.hotel_id)
+    _attach_task_sheet_clean_types(rooms_with_predictions, current_user.hotel_id, target_date)
+    _attach_room_activity(rooms_with_predictions, current_user.hotel_id, target_date)
     return {"data": rooms_with_predictions}
 
 
@@ -232,32 +332,47 @@ async def get_my_rooms(
         return {"data": []}
 
     # Return current status for all rooms assigned today (all statuses, not filtered)
-    result = (
-        supabase.table("room_status")
-        .select(
-            "id, room_id, tenant_id, status, assigned_to, "
-            "vip_flag, checkin_time, risk_level, predicted_ready_at, "
-            "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
-        )
-        .eq("tenant_id", current_user.hotel_id)
-        .in_("room_id", room_ids)
-        .execute()
+    my_rooms_select = (
+        "id, room_id, tenant_id, status, assigned_to, "
+        "clean_type, vip_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
+        "risk_level, predicted_ready_at, "
+        "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
     )
+    try:
+        result = (
+            supabase.table("room_status")
+            .select(my_rooms_select)
+            .eq("tenant_id", current_user.hotel_id)
+            .in_("room_id", room_ids)
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_clean_type_column_error(exc):
+            raise
+        logger.warning("room_status.clean_type column missing; retrying my-rooms select without clean_type")
+        result = (
+            supabase.table("room_status")
+            .select(my_rooms_select.replace("clean_type, ", ""))
+            .eq("tenant_id", current_user.hotel_id)
+            .in_("room_id", room_ids)
+            .execute()
+        )
     rows = []
     for room in (result.data or []):
         assignment = assignment_map.get(room.get("room_id")) or {}
-        clean_type = assignment.get("clean_type")
+        clean_type = assignment.get("clean_type") or room.get("clean_type")
         nested_room = room.get("rooms") or {}
         rows.append({
             **room,
             "room_number": nested_room.get("room_number"),
             "floor": nested_room.get("floor"),
-            "status": effective_room_status(room.get("status"), clean_type),
+            "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
             "assignment_id": assignment.get("id"),
             "assignment_date": assignment.get("assignment_date"),
             **_clean_type_payload(clean_type),
         })
-    _attach_room_activity(rows, current_user.hotel_id)
+    _attach_task_sheet_clean_types(rows, current_user.hotel_id, today)
+    _attach_room_activity(rows, current_user.hotel_id, today)
     return {"data": rows}
 
 
@@ -398,6 +513,17 @@ async def create_assignments(
         _ensure_tenant_row("rooms", str(assignment.room_id), current_user.hotel_id, "Room")
         _ensure_housekeeper(str(assignment.housekeeper_id), current_user.hotel_id)
 
+    # Preserve clean_type already set by PDF import; only overwrite if explicitly provided
+    existing_clean = supabase.table("room_assignments")\
+        .select("room_id, clean_type")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("assignment_date", request.date.isoformat())\
+        .in_("room_id", [str(a.room_id) for a in request.assignments])\
+        .execute()
+    existing_clean_map: dict[str, str | None] = {
+        row["room_id"]: row.get("clean_type") for row in (existing_clean.data or [])
+    }
+
     assignments_data = [
         {
             "tenant_id": current_user.hotel_id,
@@ -406,7 +532,7 @@ async def create_assignments(
             "assigned_by": current_user.user_id,
             "shift_id": str(request.shift_id) if request.shift_id else None,
             "assignment_date": request.date.isoformat(),
-            "clean_type": a.clean_type or "DEP",
+            "clean_type": a.clean_type or existing_clean_map.get(str(a.room_id)),
             "is_ai_suggested": request.is_ai_suggested,
         }
         for a in request.assignments
@@ -429,19 +555,30 @@ async def create_assignments(
     # Mirror assigned_to on room_status for quick lookups and keep Opera
     # stayover task types in the Pickup lane.
     for a in request.assignments:
-        clean_type = a.clean_type or "DEP"
-        room_status = room_status_for_clean_type(clean_type)
-        supabase.table("room_status")\
-            .update({"assigned_to": str(a.housekeeper_id)})\
-            .eq("room_id", str(a.room_id))\
-            .eq("tenant_id", current_user.hotel_id)\
-            .execute()
-        supabase.table("room_status")\
-            .update({"status": room_status})\
-            .eq("room_id", str(a.room_id))\
-            .eq("tenant_id", current_user.hotel_id)\
-            .in_("status", ["DIRTY", "PICKUP"])\
-            .execute()
+        clean_type = a.clean_type or existing_clean_map.get(str(a.room_id))
+        if clean_type:
+            room_status = room_status_for_clean_type(clean_type)
+            _execute_room_status_clean_type_write(
+                {"assigned_to": str(a.housekeeper_id), "clean_type": clean_type},
+                lambda payload, room_id=str(a.room_id): supabase.table("room_status")
+                    .update(payload)
+                    .eq("room_id", room_id)
+                    .eq("tenant_id", current_user.hotel_id),
+            )
+            _execute_room_status_clean_type_write(
+                {"status": room_status, "clean_type": clean_type},
+                lambda payload, room_id=str(a.room_id): supabase.table("room_status")
+                    .update(payload)
+                    .eq("room_id", room_id)
+                    .eq("tenant_id", current_user.hotel_id)
+                    .in_("status", ["DIRTY", "PICKUP"]),
+            )
+        else:
+            supabase.table("room_status")\
+                .update({"assigned_to": str(a.housekeeper_id)})\
+                .eq("room_id", str(a.room_id))\
+                .eq("tenant_id", current_user.hotel_id)\
+                .execute()
 
     # Fire-and-forget push notifications (never block the HTTP response)
     for a in request.assignments:
@@ -1118,16 +1255,17 @@ async def import_task_sheet(
             skipped_active += 1
             continue
 
-        # Determine the new status based on task code
-        # FULL/LIGHT on a stayover (OCC) room → PICKUP
-        # DEP (departure) room stays DIRTY
+        # Determine the new status based on Opera occupancy + reservation status.
+        # DI + OCC + Stayover = PICKUP regardless of task column.
+        # DEP stays OCCUPIED (guest still in room until actual checkout).
         new_status = current_status or "DIRTY"
         fo = row.fo_status or (current.data.get("fo_status") if current.data else None)
+        is_stayover = "stayover" in (row.reservation_status or "").lower()
 
-        if row.clean_type in ("FULL", "LIGHT") and fo == "OCC":
+        if row.clean_type == "DEP":
+            new_status = "OCCUPIED" if fo == "OCC" else "DIRTY"
+        elif fo == "OCC" and is_stayover:
             new_status = "PICKUP"
-        elif row.clean_type == "DEP":
-            new_status = "DIRTY"
 
         # Update clean_type on existing assignment if one exists; skip if not yet assigned
         if row.clean_type:
@@ -1139,17 +1277,30 @@ async def import_task_sheet(
                 .execute()
 
         # Update room_status with new status and fo_status
-        supabase.table("room_status") \
-            .upsert(
-                {
-                    "room_id": room_id,
-                    "tenant_id": current_user.hotel_id,
-                    "status": new_status,
-                    "fo_status": fo,
-                },
-                on_conflict="room_id",
-            ) \
-            .execute()
+        status_update = {
+            "room_id": room_id,
+            "tenant_id": current_user.hotel_id,
+            "status": new_status,
+            "fo_status": fo,
+        }
+        if row.clean_type:
+            status_update["clean_type"] = row.clean_type
+
+        _execute_room_status_clean_type_write(
+            status_update,
+            lambda payload: supabase.table("room_status").upsert(payload, on_conflict="room_id"),
+        )
+
+        history_notes = _task_sheet_clean_type_note(row.clean_type) if row.clean_type else None
+        supabase.table("room_status_history").insert({
+            "room_id": room_id,
+            "tenant_id": current_user.hotel_id,
+            "from_status": current_status,
+            "to_status": new_status,
+            "changed_by": current_user.user_id,
+            "change_source": "system",
+            **({"notes": history_notes} if history_notes else {}),
+        }).execute()
 
         applied += 1
 

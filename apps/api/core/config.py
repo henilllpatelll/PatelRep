@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=str(Path(__file__).parent.parent / ".env"))
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).parent.parent / ".env")
+    )
 
     # Supabase
     supabase_url: str
@@ -24,8 +26,8 @@ class Settings(BaseSettings):
     opera_oauth_client_secret: str = ""
     opera_oauth_redirect_uri: str = ""
     opera_oauth_base_url: str = "https://api.oracle.com"
-    opera_app_key: str = ""          # x-app-key header (UUID from Developer Portal)
-    opera_enterprise_id: str = ""    # enterpriseId header (OCIM client_credentials only)
+    opera_app_key: str = ""  # x-app-key header (UUID from Developer Portal)
+    opera_enterprise_id: str = ""  # enterpriseId header (OCIM client_credentials only)
     opera_credential_encryption_key: str = ""
 
     # Billing
@@ -44,6 +46,8 @@ class Settings(BaseSettings):
     api_rate_limit_auth_per_minute: int = 10
     api_rate_limit_webhook_per_minute: int = 120
     api_rate_limit_health_per_minute: int = 60
+    supabase_http_timeout_seconds: float = 30.0
+    supabase_storage_timeout_seconds: float = 30.0
 
 
 @lru_cache()

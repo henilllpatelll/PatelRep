@@ -1,0 +1,165 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e180] [cursor=pointer]:
+        - generic [ref=e181]: S
+        - generic [ref=e182]:
+          - generic [ref=e183]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e184]: 114 rooms
+        - img [ref=e185]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e187]:
+                - link "Room Board" [ref=e188] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e189] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e190] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Tasks" [ref=e49] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e50]
+              - generic [ref=e53]: Tasks
+        - generic [ref=e54]:
+          - paragraph [ref=e56]: Intelligence
+          - generic [ref=e57]:
+            - link "AI Copilot AI" [ref=e60] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e61]
+              - generic [ref=e63]: AI Copilot
+              - generic [ref=e64]: AI
+            - link "SOP Library" [ref=e67] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e68]
+              - generic [ref=e70]: SOP Library
+            - link "Reports" [ref=e73] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e74]
+              - generic [ref=e77]: Reports
+        - generic [ref=e78]:
+          - paragraph [ref=e80]: Organization
+          - generic [ref=e81]:
+            - link "Logbook" [ref=e84] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e85]
+              - generic [ref=e88]: Logbook
+            - link "Staff" [ref=e91] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e92]
+              - generic [ref=e97]: Staff
+            - link "Schedule" [ref=e100] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e101]
+              - generic [ref=e103]: Schedule
+      - link "Settings" [ref=e193] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e194]
+        - text: Settings
+      - generic [ref=e105]:
+        - generic [ref=e106]: H
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: hp.patelrep@gmail.com
+          - paragraph [ref=e197]: General Manager
+    - generic [ref=e109]:
+      - banner [ref=e110]:
+        - generic [ref=e111]:
+          - img [ref=e112]
+          - textbox "Open command palette" [ref=e115]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e116]: ⌘K
+        - generic [ref=e119]: Thu, May 28 · Day shift
+        - button "Open AI Copilot (⌘J)" [ref=e121] [cursor=pointer]:
+          - img [ref=e122]
+          - generic [ref=e124]: Ask copilot
+          - generic [ref=e125]: ⌘J
+        - button "Notifications" [ref=e126] [cursor=pointer]:
+          - img [ref=e127]
+          - generic [ref=e130]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e167] [cursor=pointer]:
+          - generic [ref=e133]: H
+          - img [ref=e134]
+      - main [ref=e136]:
+        - generic [ref=e138]:
+          - generic [ref=e199]:
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - heading "Import from Opera" [level=2] [ref=e202]
+                - paragraph [ref=e203]: 2026-05-28
+              - button [ref=e204] [cursor=pointer]:
+                - img [ref=e205]
+            - generic [ref=e208]:
+              - button "1. HK Details" [ref=e209] [cursor=pointer]
+              - button "2. Task Sheet" [ref=e210] [cursor=pointer]
+            - generic [ref=e211]:
+              - paragraph [ref=e212]: Upload the Opera HK Details report to reset today's room status — sets Clean rooms to OOO, Dirty Occupied to Dirty, Departure rooms to Dirty, and preserves any rooms currently in progress.
+              - generic [ref=e214] [cursor=pointer]:
+                - img [ref=e215]
+                - paragraph [ref=e218]: Drop HK Details PDF here
+                - paragraph [ref=e219]: or click to browse
+              - button "Apply HK Details" [disabled] [ref=e220]
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - heading "Room Assignments" [level=1] [ref=e141]
+              - paragraph [ref=e142]: Manage housekeeper assignments for a given date.
+            - generic [ref=e143]:
+              - button "Import from Opera" [active] [ref=e144] [cursor=pointer]
+              - button "Auto-Assign with AI" [ref=e145] [cursor=pointer]
+          - generic [ref=e146]:
+            - generic [ref=e147]: Date
+            - textbox [ref=e148]: 2026-05-28
+            - button "Today" [ref=e149] [cursor=pointer]
+            - generic [ref=e168]: Thursday, May 28, 2026
+          - table [ref=e221]:
+            - rowgroup [ref=e222]:
+              - row "Housekeeper Rooms Assigned Rooms Done In Progress" [ref=e223]:
+                - columnheader "Housekeeper" [ref=e224]
+                - columnheader "Rooms Assigned" [ref=e225]
+                - columnheader "Rooms Done" [ref=e226]
+                - columnheader "In Progress" [ref=e227]
+                - columnheader [ref=e228]
+            - rowgroup [ref=e229]:
+              - row "Claudia 18 0 0 Show rooms▼" [ref=e230] [cursor=pointer]:
+                - cell "Claudia" [ref=e231]
+                - cell "18" [ref=e232]
+                - cell "0" [ref=e233]
+                - cell "0" [ref=e234]
+                - cell "Show rooms▼" [ref=e235]
+              - row "Elisa 17 0 0 Show rooms▼" [ref=e236] [cursor=pointer]:
+                - cell "Elisa" [ref=e237]
+                - cell "17" [ref=e238]
+                - cell "0" [ref=e239]
+                - cell "0" [ref=e240]
+                - cell "Show rooms▼" [ref=e241]
+    - button "Open AI Copilot" [ref=e157] [cursor=pointer]:
+      - img [ref=e158]
+      - generic [ref=e160]: Ask copilot
+      - generic [ref=e161]: ⌘J
+    - button "Display preferences" [ref=e163] [cursor=pointer]:
+      - img [ref=e164]
+  - button "Open Next.js Dev Tools" [ref=e174] [cursor=pointer]:
+    - img [ref=e175]
+  - alert [ref=e178]

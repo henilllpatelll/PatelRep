@@ -70,11 +70,15 @@ export async function proxy(request: NextRequest) {
     },
   )
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  const user = session?.user ?? null
-  const jwtClaims = decodeJwtClaims(session?.access_token)
+  // getUser() verifies the token with the Supabase Auth server on every request —
+  // more secure than getSession() which only reads the cookie without server verification.
+  const [{ data: sessionData }, { data: userData }] = await Promise.all([
+    supabase.auth.getSession(),
+    supabase.auth.getUser(),
+  ])
+  const user = userData.user ?? null
+  // Decode claims from the session token (JWT is signed; tampering breaks signature).
+  const jwtClaims = decodeJwtClaims(sessionData.session?.access_token)
 
   const { pathname } = request.nextUrl
 

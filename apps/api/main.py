@@ -12,21 +12,54 @@ from starlette.requests import Request as StarletteRequest
 from core.config import settings
 from middleware.rate_limit import RateLimitMiddleware, RateLimitRule
 from routers import (
-    auth, hotels, rooms, housekeeping, tasks, work_orders,
-    assets, ai_copilot, sop, billing, webhooks,
-    integrations, internal, notifications, scheduling,
-    guest_requests, logbook, reports, onboarding, staff, lost_found
+    auth,
+    hotels,
+    rooms,
+    housekeeping,
+    tasks,
+    work_orders,
+    assets,
+    ai_copilot,
+    sop,
+    billing,
+    webhooks,
+    integrations,
+    internal,
+    notifications,
+    scheduling,
+    guest_requests,
+    logbook,
+    reports,
+    onboarding,
+    staff,
+    lost_found,
 )
 
 logger = logging.getLogger(__name__)
 
+_ALLOWED_ORIGINS = [
+    settings.app_url,
+    "https://app.patelrep.com",
+    "https://patelrepweb-production.up.railway.app",
+    "https://patelrep-web.vercel.app",
+]
+_ALLOWED_METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]
+_ALLOWED_HEADERS = ["Authorization", "Content-Type", "Accept", "X-Requested-With"]
+_EXPOSE_HEADERS = [
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
+    "X-RateLimit-Reset",
+    "Retry-After",
+]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("PatelRep API starting in %s mode", settings.app_env)
     yield
-    # Shutdown
+    from core.database import close_supabase
+
+    close_supabase()
     logger.info("PatelRep API shutting down")
 
 
@@ -40,20 +73,38 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
-# CORS
+# Middleware pipeline — Starlette adds in LIFO: last add_middleware = outermost = first on request.
+# Execution order on request: SecurityHeaders → RateLimit → CORS → App
+# Execution order on response: App → CORS → RateLimit → SecurityHeaders
+
+# 1. CORS (innermost — handles preflight and sets Access-Control-* headers)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.app_url,
-        "https://app.patelrep.com",
-        "https://patelrepweb-production.up.railway.app",
-        "https://patelrep-web.vercel.app",
-    ],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=_ALLOWED_METHODS,
+    allow_headers=_ALLOWED_HEADERS,
+    expose_headers=_EXPOSE_HEADERS,
+    max_age=600,
 )
+
+# 2. Rate limiting (middle — applied after CORS preflight is resolved)
+app.add_middleware(
+    RateLimitMiddleware,
+    enabled=settings.api_rate_limit_enabled,
+    default_rule=RateLimitRule(settings.api_rate_limit_default_per_minute, 60),
+    anonymous_rule=RateLimitRule(settings.api_rate_limit_anonymous_per_minute, 60),
+    per_ip_authenticated_rule=RateLimitRule(
+        settings.api_rate_limit_authenticated_ip_per_minute, 60
+    ),
+    ai_rule=RateLimitRule(settings.api_rate_limit_ai_per_minute, 60),
+    auth_rule=RateLimitRule(settings.api_rate_limit_auth_per_minute, 60),
+    webhook_rule=RateLimitRule(settings.api_rate_limit_webhook_per_minute, 60),
+    health_rule=RateLimitRule(settings.api_rate_limit_health_per_minute, 60),
+)
+
+# 3. Security headers (outermost — applied to every response regardless of outcome)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -63,40 +114,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=()"
+        )
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         forwarded_proto = request.headers.get("x-forwarded-proto", "")
-        if request.url.scheme == "https" or forwarded_proto.split(",", 1)[0].strip() == "https":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        if (
+            request.url.scheme == "https"
+            or forwarded_proto.split(",", 1)[0].strip() == "https"
+        ):
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return response
+
 
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(
-    RateLimitMiddleware,
-    enabled=settings.api_rate_limit_enabled,
-    default_rule=RateLimitRule(settings.api_rate_limit_default_per_minute, 60),
-    anonymous_rule=RateLimitRule(settings.api_rate_limit_anonymous_per_minute, 60),
-    per_ip_authenticated_rule=RateLimitRule(settings.api_rate_limit_authenticated_ip_per_minute, 60),
-    ai_rule=RateLimitRule(settings.api_rate_limit_ai_per_minute, 60),
-    auth_rule=RateLimitRule(settings.api_rate_limit_auth_per_minute, 60),
-    webhook_rule=RateLimitRule(settings.api_rate_limit_webhook_per_minute, 60),
-    health_rule=RateLimitRule(settings.api_rate_limit_health_per_minute, 60),
-)
-
-
-class CORSFallbackMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: StarletteRequest, call_next):
-        if request.method == "OPTIONS":
-            return JSONResponse(status_code=200, content={}, headers=_cors_headers_for(request))
-
-        response = await call_next(request)
-        for key, value in _cors_headers_for(request).items():
-            response.headers[key] = value
-        return response
-
-
-app.add_middleware(CORSFallbackMiddleware)
 
 
 # Health check (no auth required)
@@ -106,6 +140,7 @@ async def health():
     try:
         # Quick ping to check DB connectivity (rooms is confirmed accessible)
         from core.database import supabase
+
         supabase.table("rooms").select("id").limit(1).execute()
         db_ok = True
     except Exception as e:
@@ -147,21 +182,17 @@ app.include_router(lost_found.router, prefix=PREFIX)
 
 
 def _cors_headers_for(request: Request) -> dict[str, str]:
+    """CORS headers for exception handlers, which bypass middleware."""
     origin = request.headers.get("origin", "")
-    allowed = [
-        settings.app_url,
-        "https://patelrepweb-production.up.railway.app",
-        "https://patelrep-web.vercel.app",
-    ]
-    if origin in allowed or re.match(r"http://(localhost|127\.0\.0\.1):\d+$", origin):
+    if origin in _ALLOWED_ORIGINS or re.match(
+        r"http://(localhost|127\.0\.0\.1):\d+$", origin
+    ):
         return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
-            "Access-Control-Allow-Headers": request.headers.get(
-                "access-control-request-headers",
-                "Authorization,Content-Type",
-            ),
+            "Access-Control-Allow-Methods": ",".join(_ALLOWED_METHODS),
+            "Access-Control-Allow-Headers": ",".join(_ALLOWED_HEADERS),
+            "Access-Control-Expose-Headers": ",".join(_EXPOSE_HEADERS),
             "Vary": "Origin",
         }
     return {}
@@ -171,7 +202,9 @@ def _cors_headers_for(request: Request) -> dict[str, str]:
 async def postgrest_exception_handler(request: Request, exc: APIError):
     code = getattr(exc, "code", None) or "DATABASE_ERROR"
     message = getattr(exc, "message", "") or ""
-    status_code = 422 if code == "PGRST204" or "schema cache" in message.lower() else 400
+    status_code = (
+        422 if code == "PGRST204" or "schema cache" in message.lower() else 400
+    )
     safe_message = (
         "One or more fields are not supported by this endpoint."
         if status_code == 422

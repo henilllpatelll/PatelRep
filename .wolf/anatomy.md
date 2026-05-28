@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-28T00:50:49.563Z
-> Files: 71 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-28T21:23:26.793Z
+> Files: 101 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -31,12 +31,14 @@
 
 ## .claude/skills/patelrep-api/
 
+- `SKILL.md` — Project-specific FastAPI/Supabase API conventions for PatelRep routers, tenant scoping, auth, and tests. (~900 tok)
 
 ## .claude/skills/patelrep-mobile/
 
 
 ## .claude/skills/patelrep-web/
 
+- `SKILL.md` — Project-specific Next.js/Tailwind web conventions for PatelRep dashboards, room operations UI, auth state, and API hooks. (~800 tok)
 
 ## .claude/skills/ui-ux-pro-max/
 
@@ -428,6 +430,8 @@
 
 ## apps/api/
 
+- `_reload_trigger.py` — reload trigger — safe to delete (~10 tok)
+- `main.py` — API: 1 endpoints (~2244 tok)
 
 ## apps/api/core/
 
@@ -441,12 +445,19 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 3 endpoints (~9910 tok)
+- `guest_requests.py` — API: 4 endpoints (~1858 tok)
+- `housekeeping.py` — API: 2 endpoints (~14143 tok)
+- `logbook.py` — API: 6 endpoints (~2002 tok)
 - `lost_found.py` — API: 6 endpoints (~1546 tok)
+- `notifications.py` — API: 3 endpoints (~421 tok)
 - `rooms.py` — API: 4 endpoints (~6058 tok)
+- `staff.py` — API: 8 endpoints (~5263 tok)
+- `tasks.py` — API: 7 endpoints (~2706 tok)
+- `work_orders.py` — API: 7 endpoints (~3890 tok)
 
 ## apps/api/services/
 
+- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2385 tok)
 
 ## apps/api/services/ai/
 
@@ -459,6 +470,10 @@
 
 ## apps/api/tests/smoke/
 
+- `test_database_pooling.py` — Unit coverage for Supabase singleton client options and close lifecycle. (~120 tok)
+- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 12 more (~9447 tok)
+- `test_index_migration.py` — Migration-content check for API hot-path indexes and pg_trgm enablement. (~80 tok)
+- `test_input_validation.py` — Pydantic request sanitization, bounds, email/phone normalization, and shift-time validation tests. (~300 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 
@@ -472,6 +487,7 @@
 ## apps/mobile/
 
 - `jest.config.js` — Expo/Jest config with workspace-local React mapping and module aliases. (~160 tok)
+- `jest.setup.js` — Mobile Jest setup with AsyncStorage mock and test Supabase env fallbacks. (~40 tok)
 - `package.json` — Node.js package manifest (~526 tok)
 
 ## apps/mobile/__tests__/components/
@@ -546,8 +562,9 @@
 
 ## apps/web/
 
+- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~549 tok)
 - `package.json` — Node.js package manifest (~449 tok)
-- `proxy.ts` — API routes: GET (1 endpoints) (~1623 tok)
+- `proxy.ts` — API routes: GET (1 endpoints) (~1721 tok)
 
 ## apps/web/app/
 
@@ -578,14 +595,15 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
+- `page.tsx` — GuestRequestsPage (~39 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~7768 tok)
+- `page.tsx` — SHIFTS (~8403 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
-- `page.tsx` — Housekeeping assignment summary page with date picker, AI auto-assign action, expandable housekeeper room rows. (~2450 tok)
+- `page.tsx` — todayISO — renders table (~2945 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
@@ -600,7 +618,7 @@
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — TABS (~8466 tok)
+- `page.tsx` — STATUS_TONE — renders form (~4102 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
@@ -654,6 +672,7 @@
 
 ## apps/web/app/(dashboard)/tasks/
 
+- `page.tsx` — TASK_TYPES — renders form (~10123 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -673,9 +692,10 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomCard.tsx` — STATUS_BORDER (~3221 tok)
+- `OccupancyImportModal.tsx` — OccupancyImportModal (~2623 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3488 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8443 tok)
-- `RoomStatusBoard.tsx` — STATUS_CHIPS (~5077 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5103 tok)
 
 ## apps/web/components/settings/
 
@@ -685,8 +705,10 @@
 
 ## apps/web/components/shared/
 
-- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2457 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4463 tok)
+- `DeleteConfirmDialog.tsx` — DeleteConfirmDialog (~526 tok)
+- `GuestRequestsPanel.tsx` — TABS — renders form (~7882 tok)
+- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2222 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4416 tok)
 
 ## apps/web/components/ui/
 
@@ -696,7 +718,7 @@
 
 ## apps/web/lib/api/
 
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (16 endpoints) (~1199 tok)
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (19 endpoints) (~1394 tok)
 - `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (5 endpoints) (~527 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1304 tok)
 
@@ -709,6 +731,8 @@
 ## apps/web/lib/utils/
 
 - `cleanType.ts` — Exports CleanType, CLEAN_TYPE_LABELS, CLEAN_TYPE_SHORT_LABELS, CLEAN_TYPE_OPTIONS + 4 more (~411 tok)
+- `housekeepingBoardFilters.test.ts` — Node test coverage for housekeeping room-board status and clean-type filters. (~180 tok)
+- `housekeepingBoardFilters.ts` — Shared room-board filter/count helpers for status, clean type, AI risk chips, and legacy DIRTY+OCC departure inference. (~250 tok)
 - `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
@@ -717,6 +741,7 @@
 
 ## apps/web/stores/
 
+- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1116 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -742,3 +767,8 @@
 ## supabase/migrations/
 
 - `042_lost_found_photos_bucket.sql` — Create storage bucket for lost and found item photos (~156 tok)
+- `043_input_validation_and_pooling_indexes.sql` — Adds pg_trgm and compound indexes for task, lost-found, inspection, and staff-invitation list paths. (~270 tok)
+- `044_fo_status.sql` — Add fo_status to room_status for Opera occupancy tracking (OCC/VAC) (~47 tok)
+- `045_occupied_dirty_status.sql` — Add OCCUPIED to room_status.status CHECK constraint. (~109 tok)
+- `046_actual_checkout_at.sql` — Adds actual checkout timestamp for manual/Opera departure checkout while preserving scheduled checkout_time. (~70 tok)
+- `047_room_status_clean_type.sql` — Adds nullable room_status.clean_type for imported Opera task-sheet labels on unassigned room-board cards. (~70 tok)

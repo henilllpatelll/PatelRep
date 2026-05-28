@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from middleware.auth import CurrentUser
-from models.requests import UpdateRoomStatusRequest
+from models.requests import ManualCheckoutRequest, UpdateRoomStatusRequest
 from routers import rooms as rooms_router
 from routers import webhooks as webhooks_router
 
@@ -20,6 +20,12 @@ SUPERVISOR = CurrentUser(
     hotel_id="hotel-a",
     role="housekeeping_supervisor",
     email="sup@example.com",
+)
+FRONT_DESK = CurrentUser(
+    user_id="fd-1",
+    hotel_id="hotel-a",
+    role="front_desk",
+    email="fd@example.com",
 )
 
 
@@ -69,6 +75,10 @@ class FakeQuery:
     def gte(self, *_args, **_kwargs):
         return self
 
+    def in_(self, column, values):
+        self.filters[column] = set(values)
+        return self
+
     def maybe_single(self):
         self.single = True
         return self
@@ -84,7 +94,10 @@ class FakeQuery:
 
     def execute(self):
         rows = self.db.rows.setdefault(self.table_name, [])
-        matched = [row for row in rows if all(row.get(k) == v for k, v in self.filters.items())]
+        matched = [
+            row for row in rows
+            if all(row.get(k) in v if isinstance(v, set) else row.get(k) == v for k, v in self.filters.items())
+        ]
         if self.order_column:
             matched = sorted(
                 matched,
@@ -119,6 +132,112 @@ class FakeRequest:
 
     async def body(self):
         return self._payload
+
+
+@pytest.mark.asyncio
+async def test_manual_checkout_marks_departure_dirty_and_notifies_assignee(monkeypatch):
+    scheduled_checkout = "2026-05-28T11:00:00+00:00"
+    actual_checkout = "2026-05-28T15:20:00+00:00"
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "OCCUPIED",
+            "assigned_to": "hk-1",
+            "checkout_time": scheduled_checkout,
+            "guest_name": "Guest Name",
+            "vip_flag": True,
+            "dnd_flag": True,
+        }],
+        "rooms": [{
+            "id": "room-1",
+            "tenant_id": "hotel-a",
+            "room_number": "214",
+        }],
+        "room_status_history": [],
+        "notifications": [],
+    })
+    push_calls = []
+
+    def fake_push(*args):
+        push_calls.append(args)
+        async def noop():
+            return None
+        return noop()
+
+    monkeypatch.setattr(rooms_router, "supabase", db)
+    monkeypatch.setattr(rooms_router, "_send_checkout_push", fake_push)
+
+    response = await rooms_router.manual_checkout_room(
+        "room-1",
+        ManualCheckoutRequest(actual_checkout_at=actual_checkout),
+        current_user=FRONT_DESK,
+    )
+
+    updated = db.rows["room_status"][0]
+    assert response["data"]["status"] == "DIRTY"
+    assert updated["status"] == "DIRTY"
+    assert updated["fo_status"] == "VAC"
+    assert updated["actual_checkout_at"] == actual_checkout
+    assert updated["checkout_time"] == scheduled_checkout
+    assert updated["guest_name"] is None
+    assert updated["vip_flag"] is False
+    assert updated["dnd_flag"] is False
+    assert db.inserts[0][0] == "room_status_history"
+    assert db.inserts[0][1]["from_status"] == "OCCUPIED"
+    assert db.inserts[0][1]["to_status"] == "DIRTY"
+    assert db.rows["notifications"][0]["user_id"] == "hk-1"
+    assert db.rows["notifications"][0]["type"] == "room_checked_out"
+    assert push_calls == [("hk-1", "214", "room-1")]
+
+
+@pytest.mark.asyncio
+async def test_manual_checkout_preserves_active_cleaning_status(monkeypatch):
+    actual_checkout = "2026-05-28T15:20:00+00:00"
+    db = FakeDB({
+        "room_status": [{
+            "id": "rs-1",
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "IN_PROGRESS",
+            "assigned_to": "hk-1",
+            "checkout_time": "2026-05-28T11:00:00+00:00",
+        }],
+        "rooms": [{
+            "id": "room-1",
+            "tenant_id": "hotel-a",
+            "room_number": "214",
+        }],
+        "room_status_history": [],
+        "notifications": [],
+    })
+    push_calls = []
+
+    def fake_push(*args):
+        push_calls.append(args)
+        async def noop():
+            return None
+        return noop()
+
+    monkeypatch.setattr(rooms_router, "supabase", db)
+    monkeypatch.setattr(rooms_router, "_send_checkout_push", fake_push)
+
+    response = await rooms_router.manual_checkout_room(
+        "room-1",
+        ManualCheckoutRequest(actual_checkout_at=actual_checkout),
+        current_user=FRONT_DESK,
+    )
+
+    updated = db.rows["room_status"][0]
+    assert response["data"]["status"] == "IN_PROGRESS"
+    assert updated["status"] == "IN_PROGRESS"
+    assert updated["fo_status"] == "VAC"
+    assert updated["actual_checkout_at"] == actual_checkout
+    assert db.inserts[0][1]["from_status"] == "IN_PROGRESS"
+    assert db.inserts[0][1]["to_status"] == "IN_PROGRESS"
+    assert db.rows["notifications"] == []
+    assert push_calls == []
 
 
 def stripe_event(event_type, obj):

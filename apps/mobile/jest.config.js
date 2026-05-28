@@ -15,5 +15,6 @@ module.exports = {
   // In npm workspaces, jest-expo is hoisted to root but react-native is in workspace.
   // modulePaths lets jest-expo's preset find react-native from the workspace node_modules.
   modulePaths: [path.resolve(__dirname, 'node_modules')],
+  setupFiles: ['<rootDir>/jest.setup.js'],
   roots: ['<rootDir>'],
 };

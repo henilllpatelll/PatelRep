@@ -406,6 +406,14 @@ async def create_role_schedule(
     """Create a day-of-week role schedule override for a staff member."""
     if not body.days_of_week:
         raise HTTPException(status_code=422, detail="At least one day_of_week is required")
+    member_check = supabase.table("user_roles")\
+        .select("user_id")\
+        .eq("user_id", user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .maybe_single()\
+        .execute()
+    if not member_check or not member_check.data:
+        raise HTTPException(status_code=404, detail="Staff member not found")
 
     row: dict = {
         "hotel_id": current_user.hotel_id,

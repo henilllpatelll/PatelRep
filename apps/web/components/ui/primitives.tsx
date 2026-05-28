@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 // ── Pill ─────────────────────────────────────────────────────────────────────
 type PillTone =
   | 'neutral' | 'dirty' | 'progress' | 'clean' | 'inspected'
-  | 'pickup' | 'ooo' | 'accent' | 'ai' | 'alert' | 'caution' | 'info' | 'ready'
+  | 'pickup' | 'ooo' | 'blocked' | 'accent' | 'ai' | 'alert' | 'caution' | 'info' | 'ready'
 
 const PILL_CLASSES: Record<PillTone, string> = {
   neutral:   'bg-surface-3 text-ink-2 border-line',
@@ -14,7 +14,8 @@ const PILL_CLASSES: Record<PillTone, string> = {
   inspected: 'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
   ready:     'bg-[var(--ready-soft)] text-[var(--ready)] border-[var(--ready-line)]',
   pickup:    'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]',
-  ooo:       'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
+  ooo:       'bg-[var(--blocked-soft)] text-[var(--blocked)] border-[var(--blocked-line)]',
+  blocked:   'bg-[var(--blocked-soft)] text-[var(--blocked)] border-[var(--blocked-line)]',
   accent:    'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent-line)]',
   ai:        'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)]',
   alert:     'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]',
@@ -64,7 +65,8 @@ const DOT_COLORS: Record<string, string> = {
   inspected: 'var(--ready)',
   ready:     'var(--ready)',
   pickup:    'var(--caution)',
-  ooo:       'var(--accent)',
+  ooo:       'var(--blocked)',
+  blocked:   'var(--blocked)',
   accent:    'var(--accent)',
   ai:        'var(--ai)',
 }
@@ -137,7 +139,7 @@ export function SectionLabel({ children, hint, action, className }: SectionLabel
 }
 
 // ── Bar ──────────────────────────────────────────────────────────────────────
-type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'ai'
+type BarTone = 'accent' | 'ready' | 'caution' | 'alert' | 'info' | 'progress' | 'blocked' | 'ai'
 
 const BAR_COLORS: Record<BarTone, string> = {
   accent:  'var(--accent)',
@@ -146,6 +148,7 @@ const BAR_COLORS: Record<BarTone, string> = {
   alert:   'var(--alert)',
   info:    'var(--info)',
   progress:'var(--progress)',
+  blocked: 'var(--blocked)',
   ai:      'var(--ai)',
 }
 

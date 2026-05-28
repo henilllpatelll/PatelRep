@@ -33,6 +33,9 @@ export interface Room {
   predicted_ready_at: string | null;
   vip_flag: boolean;
   checkin_time: string | null;
+  checkout_time?: string | null;
+  actual_checkout_at?: string | null;
+  fo_status?: "OCC" | "VAC" | null;
   updated_at?: string | null;
   last_cleaned_at?: string | null;
   last_inspected_at?: string | null;

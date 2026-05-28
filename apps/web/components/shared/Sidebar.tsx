@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
-  FileText, Library, Settings, Bell, ClipboardList,
+  FileText, Library, Settings, ClipboardList,
   Package, Sparkles, ChevronDown,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
@@ -29,7 +29,6 @@ const ALL_NAV_ITEMS: NavItem[] = [
     { href: '/engineering/pm-schedules', label: 'PM Schedules' },
     { href: '/engineering/predictions',  label: 'Predictions' },
   ]},
-  { href: '/guest-requests', label: 'Guest Requests', icon: Bell },
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
   { href: '/tasks',          label: 'Tasks',          icon: ClipboardList },
   { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
@@ -41,12 +40,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
 ]
 
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/guest-requests','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/guest-requests','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
+  housekeeping_supervisor: ['/dashboard','/housekeeping','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/tasks'],
   chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   engineer:       ['/dashboard','/engineering','/tasks'],
-  front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/guest-requests','/lost-found'],
+  front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/lost-found'],
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -58,7 +57,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   front_desk:              'Front Desk',
 }
 
-const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/guest-requests','/lost-found','/tasks']
+const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/lost-found','/tasks']
 const INTELLIGENCE_HREFS = ['/ai','/sop','/reports']
 const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 
@@ -90,7 +89,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     customRoleModules
       ? ['/dashboard', ...customRoleModules.map(m => `/${m}`)]
       : role === 'front_desk'
-      ? ['/dashboard', ...(hotel?.front_desk_modules ?? ['housekeeping','guest-requests','lost-found','tasks','logbook']).map(m => `/${m}`)]
+      ? ['/dashboard', ...(hotel?.front_desk_modules ?? ['housekeeping','lost-found','tasks','logbook']).map(m => `/${m}`)]
       : role ? NAV_BY_ROLE[role] : []
 
   const visibleNavItems = role

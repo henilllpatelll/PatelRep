@@ -31,6 +31,7 @@ async def mark_read(notification_id: str, current_user: CurrentUser = Depends(ge
         .update({"is_read": True})\
         .eq("id", notification_id)\
         .eq("user_id", current_user.user_id)\
+        .eq("tenant_id", current_user.hotel_id)\
         .execute()
     return {"data": {"success": True}}
 

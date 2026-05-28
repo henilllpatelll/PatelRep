@@ -171,7 +171,7 @@ const CELL_MAP: Record<string, { bg: string; border: string; striped?: boolean; 
   IN_PROGRESS: { bg: 'var(--progress-soft)', border: 'var(--progress-line)' },
   OCCUPIED:    { bg: 'var(--alert-soft)',   border: 'var(--alert-line)', striped: true },
   PICKUP:      { bg: 'var(--caution-soft)', border: 'var(--caution-line)' },
-  OOO:         { bg: 'var(--accent-soft)',  border: 'var(--accent-line)', glyph: '×' },
+  OOO:         { bg: 'var(--blocked-soft)', border: 'var(--blocked-line)', glyph: '×' },
 }
 
 const STATUS_LABEL_MAP: Record<string, string> = {
@@ -256,7 +256,7 @@ function RoomGridMini({ boardData }: { boardData: unknown }) {
           { l: 'In Progress',  bg: 'var(--progress-soft)', bd: 'var(--progress-line)' },
           { l: 'Occupied',     striped: true,              bd: 'var(--alert-line)' },
           { l: 'Pickup',       bg: 'var(--caution-soft)', bd: 'var(--caution-line)' },
-          { l: 'OOO/OOS',      bg: 'var(--accent-soft)',  bd: 'var(--accent-line)', glyph: '×' },
+          { l: 'OOO/OOS',      bg: 'var(--blocked-soft)', bd: 'var(--blocked-line)', glyph: '×' },
         ].map((it, i) => (
           <span key={i} className="inline-flex items-center gap-1.5">
             <span

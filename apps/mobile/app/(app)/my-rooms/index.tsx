@@ -71,6 +71,13 @@ function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
           <Text style={styles.guestName}>{room.guest_name}</Text>
         )}
 
+        {(room.actual_checkout_at || room.checkout_time) && (
+          <Text style={styles.checkoutText}>
+            {room.actual_checkout_at ? "Checked out " : "Due "}
+            {formatETA(room.actual_checkout_at ?? room.checkout_time!)}
+          </Text>
+        )}
+
         {room.risk_level === "HIGH" && (
           <View style={styles.riskBadge}>
             <Ionicons name="warning" size={12} color="#EF4444" />
@@ -219,6 +226,7 @@ const styles = StyleSheet.create({
   },
   vipBadgeText: { fontSize: 11, color: "#a16207", fontWeight: "600" },
   guestName: { fontSize: 13, color: "#4a4640", marginTop: 2 },
+  checkoutText: { fontSize: 12, color: "#92400E", marginTop: 4, fontWeight: "600" },
   flag: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   flagText: { fontSize: 12, color: "#807a70" },
   riskBadge: {

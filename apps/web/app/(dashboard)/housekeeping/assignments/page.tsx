@@ -15,6 +15,7 @@ interface RoomEntry {
   room_id: string
   room_number: string
   status: string
+  clean_type?: string | null
 }
 
 interface HousekeeperRow {
@@ -38,7 +39,7 @@ function statusBadge(status: string) {
     IN_PROGRESS: 'bg-purple-100 text-purple-700',
     CLEAN: 'bg-blue-100 text-blue-700',
     INSPECTED: 'bg-green-100 text-green-700',
-    OOO: 'bg-orange-100 text-orange-700',
+    OOO: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]',
     PICKUP: 'bg-yellow-100 text-yellow-700',
   }
   return map[status] ?? 'bg-gray-100 text-gray-600'
@@ -245,6 +246,9 @@ export default function AssignmentsPage() {
                                   className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${statusBadge(r.status)}`}
                                 >
                                   {r.room_number}
+                                  {r.clean_type && r.status === 'PICKUP' && (r.clean_type === 'FULL' || r.clean_type === 'LIGHT') && (
+                                    <span className="opacity-80">· {r.clean_type === 'FULL' ? 'Full' : 'Light'}</span>
+                                  )}
                                 </span>
                               ))
                             )}

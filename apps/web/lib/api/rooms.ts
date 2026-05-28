@@ -11,6 +11,8 @@ export interface RoomStatus {
   vip_flag: boolean
   checkin_time: string | null
   checkout_time: string | null
+  actual_checkout_at: string | null
+  fo_status: 'OCC' | 'VAC' | null
   dnd_flag: boolean
   priority: number
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | null

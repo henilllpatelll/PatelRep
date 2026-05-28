@@ -1,11 +1,14 @@
+import io
 from datetime import date
 from types import SimpleNamespace
 
 import pytest
+from fastapi import UploadFile
 
 from middleware.auth import CurrentUser
 from models.requests import CreateAssignmentsRequest
 from routers import housekeeping as housekeeping_router
+from services.opera_pdf import TaskSheetRow
 
 
 SUPERVISOR = CurrentUser(
@@ -17,11 +20,13 @@ SUPERVISOR = CurrentUser(
 
 
 class FakeDB:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, missing_room_status_clean_type=False):
         self.rows = rows or {}
         self.upserts = []
         self.updates = []
+        self.inserts = []
         self.deletes = []
+        self.missing_room_status_clean_type = missing_room_status_clean_type
 
     def table(self, name):
         return FakeQuery(self, name)
@@ -35,6 +40,8 @@ class FakeQuery:
         self.payload = None
         self.filters = []
         self.in_filters = []
+        self.gte_filters = []
+        self.lt_filters = []
         self.orders = []
         self.limit_count = None
         self.single = False
@@ -46,6 +53,11 @@ class FakeQuery:
 
     def update(self, payload):
         self.action = "update"
+        self.payload = payload
+        return self
+
+    def insert(self, payload):
+        self.action = "insert"
         self.payload = payload
         return self
 
@@ -65,6 +77,14 @@ class FakeQuery:
 
     def in_(self, column, values):
         self.in_filters.append((column, set(values)))
+        return self
+
+    def gte(self, column, value):
+        self.gte_filters.append((column, value))
+        return self
+
+    def lt(self, column, value):
+        self.lt_filters.append((column, value))
         return self
 
     def limit(self, count, *_args, **_kwargs):
@@ -91,12 +111,16 @@ class FakeQuery:
             return SimpleNamespace(data=matched[0] if self.single and matched else matched)
 
         if self.action == "update":
+            if self._has_missing_clean_type_column_payload():
+                raise Exception("Error 42703: column room_status.clean_type does not exist")
             for row in matched:
                 row.update(self.payload)
             self.db.updates.append((self.table_name, dict(self.payload), dict(self.filters)))
             return SimpleNamespace(data=matched)
 
         if self.action == "upsert":
+            if self._has_missing_clean_type_column_payload():
+                raise Exception("Error 42703: column room_status.clean_type does not exist")
             payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
             saved = []
             for payload in payload_rows:
@@ -119,6 +143,17 @@ class FakeQuery:
             self.db.upserts.append((self.table_name, payload_rows, tuple(self.conflict_columns)))
             return SimpleNamespace(data=saved)
 
+        if self.action == "insert":
+            payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
+            saved = []
+            for payload in payload_rows:
+                assert isinstance(payload, dict)
+                row = {"id": f"{self.table_name}-{len(rows) + 1}", **payload}
+                rows.append(row)
+                saved.append(row)
+            self.db.inserts.append((self.table_name, payload_rows))
+            return SimpleNamespace(data=saved)
+
         if self.action == "delete":
             deleted = list(matched)
             self.db.rows[self.table_name] = [row for row in rows if row not in deleted]
@@ -127,12 +162,22 @@ class FakeQuery:
 
         return SimpleNamespace(data=[])
 
+    def _has_missing_clean_type_column_payload(self):
+        if not self.db.missing_room_status_clean_type or self.table_name != "room_status":
+            return False
+        payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
+        return any(isinstance(payload, dict) and "clean_type" in payload for payload in payload_rows)
+
     def _matched(self, rows):
         matched = rows
         for column, value in self.filters:
             matched = [row for row in matched if row.get(column) == value]
         for column, values in self.in_filters:
             matched = [row for row in matched if row.get(column) in values]
+        for column, value in self.gte_filters:
+            matched = [row for row in matched if (row.get(column) or "") >= value]
+        for column, value in self.lt_filters:
+            matched = [row for row in matched if (row.get(column) or "") < value]
         return matched
 
 
@@ -218,13 +263,62 @@ async def test_board_includes_latest_note_and_open_work_order_for_room_cards(mon
                 "room_id": room_id,
                 "tenant_id": SUPERVISOR.hotel_id,
                 "notes": "Old note",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": SUPERVISOR.user_id,
                 "created_at": "2026-05-24T13:00:00+00:00",
             },
             {
                 "room_id": room_id,
                 "tenant_id": SUPERVISOR.hotel_id,
                 "notes": "TV remote missing",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": SUPERVISOR.user_id,
                 "created_at": "2026-05-24T14:00:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Late-night staff note",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": SUPERVISOR.user_id,
+                "created_at": "2026-05-25T02:30:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Automated staff note",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": None,
+                "created_at": "2026-05-24T14:30:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Started cleaning",
+                "from_status": "DIRTY",
+                "to_status": "IN_PROGRESS",
+                "changed_by": SUPERVISOR.user_id,
+                "created_at": "2026-05-24T15:00:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Realtime validation restored",
+                "changed_by": SUPERVISOR.user_id,
+                "created_at": "2026-05-25T03:00:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Next day note",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": SUPERVISOR.user_id,
+                "created_at": "2026-05-25T09:00:00+00:00",
             },
         ],
         "work_orders": [
@@ -260,8 +354,8 @@ async def test_board_includes_latest_note_and_open_work_order_for_room_cards(mon
     )
 
     room = response["data"][0]
-    assert room["latest_note"] == "TV remote missing"
-    assert room["latest_note_at"] == "2026-05-24T14:00:00+00:00"
+    assert room["latest_note"] == "Late-night staff note"
+    assert room["latest_note_at"] == "2026-05-25T02:30:00+00:00"
     assert room["open_work_order_id"] == "wo-open"
     assert room["open_work_order_number"] == 12
     assert room["open_work_order_title"] == "A/C not cooling"
@@ -378,6 +472,357 @@ async def test_create_assignments_maps_clean_type_to_room_status(
 
 
 @pytest.mark.asyncio
+async def test_create_assignments_keeps_working_before_room_status_clean_type_migration(monkeypatch):
+    room_id = "99999999-9999-4999-8999-999999999999"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": None,
+            "status": "DIRTY",
+        }],
+        "room_assignments": [],
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "109"}],
+        "user_roles": [{
+            "id": "role-109",
+            "user_id": hk_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "role": "housekeeper",
+            "is_active": True,
+        }],
+    }, missing_room_status_clean_type=True)
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(housekeeping_router, "_send_assignment_push", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(housekeeping_router.asyncio, "create_task", lambda *_args, **_kwargs: None)
+
+    request = CreateAssignmentsRequest(
+        date=date(2026, 5, 24),
+        shift_id=None,
+        assignments=[{"room_id": room_id, "housekeeper_id": hk_id, "clean_type": "FULL"}],
+        is_ai_suggested=False,
+    )
+
+    await housekeeping_router.create_assignments(request, current_user=SUPERVISOR)
+
+    assert db.rows["room_assignments"][0]["clean_type"] == "FULL"
+    assert db.rows["room_status"][0]["assigned_to"] == hk_id
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
+    assert "clean_type" not in db.rows["room_status"][0]
+
+
+@pytest.mark.asyncio
+async def test_task_sheet_import_keeps_occ_due_out_departure_occupied_dirty(monkeypatch):
+    room_id = "22222222-2222-4222-8222-222222222222"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "101"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+        }],
+        "room_assignments": [{
+            "id": "assign-101",
+            "tenant_id": SUPERVISOR.hotel_id,
+            "room_id": room_id,
+            "assigned_to": "44444444-4444-4444-8444-444444444444",
+            "assigned_by": SUPERVISOR.user_id,
+            "assignment_date": "2026-05-24",
+            "clean_type": "FULL",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="101",
+                fo_status="OCC",
+                reservation_status="Due Out",
+                guest_name="Guest",
+                clean_type="DEP",
+            )],
+            [],
+        ),
+    )
+
+    response = await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    assert response["data"]["applied"] == 1
+    assert db.rows["room_status"][0]["status"] == "OCCUPIED"
+    assert db.rows["room_status"][0]["fo_status"] == "OCC"
+    assert db.rows["room_assignments"][0]["clean_type"] == "DEP"
+
+
+@pytest.mark.asyncio
+async def test_task_sheet_import_occ_stayover_with_light_task_becomes_pickup(monkeypatch):
+    room_id = "33333333-3333-4333-8333-333333333333"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "102"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "OCC",
+        }],
+        "room_assignments": [{
+            "id": "assign-102",
+            "tenant_id": SUPERVISOR.hotel_id,
+            "room_id": room_id,
+            "assigned_to": "44444444-4444-4444-8444-444444444444",
+            "assigned_by": SUPERVISOR.user_id,
+            "assignment_date": "2026-05-24",
+            "clean_type": "DEP",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="102",
+                fo_status="OCC",
+                reservation_status="Stayover",
+                guest_name="Guest",
+                clean_type="LIGHT",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
+    assert db.rows["room_assignments"][0]["clean_type"] == "LIGHT"
+
+
+@pytest.mark.asyncio
+async def test_task_sheet_import_occ_stayover_no_task_still_becomes_pickup(monkeypatch):
+    """DI + OCC + Stayover is always PICKUP, even when the task column is blank."""
+    room_id = "55555555-5555-4555-8555-555555555555"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "105"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "OCC",
+        }],
+        "room_assignments": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="105",
+                fo_status="OCC",
+                reservation_status="Stayover",
+                guest_name="Guest",
+                clean_type=None,
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
+    assert db.rows["room_status"][0]["fo_status"] == "OCC"
+    # history written even without clean_type
+    assert len(db.rows["room_status_history"]) == 1
+    assert db.rows["room_status_history"][0]["to_status"] == "PICKUP"
+
+
+@pytest.mark.asyncio
+async def test_task_sheet_import_stores_clean_type_without_assignment(monkeypatch):
+    room_id = "77777777-7777-4777-8777-777777777777"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "107"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "OCC",
+        }],
+        "room_assignments": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="107",
+                fo_status="OCC",
+                reservation_status="Due Out",
+                guest_name="Guest",
+                clean_type="DEP",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    assert db.rows["room_status"][0]["status"] == "OCCUPIED"
+    assert db.rows["room_status"][0]["fo_status"] == "OCC"
+    assert db.rows["room_status"][0]["clean_type"] == "DEP"
+    assert db.rows["room_assignments"] == []
+
+
+@pytest.mark.asyncio
+async def test_task_sheet_import_retries_room_status_without_clean_type_when_column_missing(monkeypatch):
+    room_id = "88888888-8888-4888-8888-888888888888"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "108"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "OCC",
+        }],
+        "room_assignments": [],
+    }, missing_room_status_clean_type=True)
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="108",
+                fo_status="OCC",
+                reservation_status="Due Out",
+                guest_name="Guest",
+                clean_type="DEP",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    assert db.rows["room_status"][0]["status"] == "OCCUPIED"
+    assert db.rows["room_status"][0]["fo_status"] == "OCC"
+    assert "clean_type" not in db.rows["room_status"][0]
+    assert db.rows["room_status_history"][0]["notes"] == "task_sheet_clean_type=DEP"
+
+
+def test_missing_clean_type_column_detection_handles_postgrest_schema_cache_error():
+    exc = Exception("PGRST204: Could not find the 'clean_type' column of 'room_status' in the schema cache")
+
+    assert housekeeping_router._is_missing_clean_type_column_error(exc)
+
+
+@pytest.mark.asyncio
+async def test_board_uses_task_sheet_history_clean_type_when_room_status_column_missing(monkeypatch):
+    room_id = "12121212-1212-4212-8212-121212121212"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "PICKUP",
+            "fo_status": "OCC",
+            "rooms": {"floor": 1, "room_number": "121"},
+        }],
+        "room_assignments": [],
+        "room_readiness_predictions": [],
+        "room_status_history": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "notes": "task_sheet_clean_type=LIGHT",
+            "from_status": "DIRTY",
+            "to_status": "PICKUP",
+            "changed_by": SUPERVISOR.user_id,
+            "change_source": "system",
+            "created_at": "2026-05-24T14:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    room = response["data"][0]
+    assert room["status"] == "PICKUP"
+    assert room["clean_type"] == "LIGHT"
+    assert room["clean_type_label"] == "Light Service"
+    assert room.get("latest_note") is None
+
+
+@pytest.mark.asyncio
+async def test_board_uses_imported_clean_type_when_room_is_unassigned(monkeypatch):
+    departure_room = "88888888-8888-4888-8888-888888888888"
+    pickup_room = "99999999-9999-4999-8999-999999999999"
+    db = FakeDB({
+        "room_status": [
+            {
+                "room_id": departure_room,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "status": "DIRTY",
+                "fo_status": "OCC",
+                "clean_type": "DEP",
+                "rooms": {"floor": 1, "room_number": "108"},
+            },
+            {
+                "room_id": pickup_room,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "status": "DIRTY",
+                "fo_status": "OCC",
+                "clean_type": "FULL",
+                "rooms": {"floor": 1, "room_number": "109"},
+            },
+        ],
+        "room_assignments": [],
+        "room_readiness_predictions": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    by_room = {row["room_id"]: row for row in response["data"]}
+    assert by_room[departure_room]["status"] == "OCCUPIED"
+    assert by_room[departure_room]["clean_type"] == "DEP"
+    assert by_room[departure_room]["clean_type_label"] == "Departure Clean"
+    assert by_room[pickup_room]["status"] == "PICKUP"
+    assert by_room[pickup_room]["clean_type"] == "FULL"
+    assert by_room[pickup_room]["clean_type_label"] == "Full Linen Change"
+
+
+@pytest.mark.asyncio
 async def test_delete_assignment_removes_row_and_clears_status_assignee(monkeypatch):
     assignment_id = "assign-existing"
     room_id = "22222222-2222-4222-8222-222222222222"
@@ -432,3 +877,44 @@ async def test_delete_assignment_rejects_cross_tenant_assignment(monkeypatch):
 
     assert exc.value.status_code == 404
     assert len(db.rows["room_assignments"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_board_history_clean_type_overrides_stale_room_status_clean_type(monkeypatch):
+    """History FULL beats stale room_status DEP so the room shows as PICKUP."""
+    room_id = "abababab-abab-4aba-8aba-abababababab"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "OCC",
+            "clean_type": "DEP",          # stale from an earlier import
+            "rooms": {"floor": 1, "room_number": "202"},
+        }],
+        "room_assignments": [],
+        "room_readiness_predictions": [],
+        "room_status_history": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "notes": "task_sheet_clean_type=FULL",   # more recent import says FULL
+            "from_status": "DIRTY",
+            "to_status": "PICKUP",
+            "changed_by": SUPERVISOR.user_id,
+            "change_source": "system",
+            "created_at": "2026-05-24T15:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    room = response["data"][0]
+    assert room["status"] == "PICKUP", f"Expected PICKUP, got {room['status']}"
+    assert room["clean_type"] == "FULL"
+    assert room["clean_type_label"] == "Full Linen Change"

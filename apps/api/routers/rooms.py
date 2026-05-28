@@ -1,10 +1,12 @@
 import logging
+import asyncio
+import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
+from models.requests import ManualCheckoutRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,7 @@ for _s in OOO_SOURCES:
 ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = {"gm", "housekeeping_supervisor"}
 
 UNDO_ALL_ROLES = {"gm", "housekeeping_supervisor", "front_desk"}
+CHECKOUT_PRESERVE_STATUS = {"IN_PROGRESS", "CLEAN", "INSPECTED", "OOO"}
 
 
 def _validate_transition(from_status: str | None, to_status: str, role: str) -> None:
@@ -159,6 +162,36 @@ def _update_housekeeper_profile(
             "completion_count": 1,
             "last_updated_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
+
+
+async def _send_checkout_push(housekeeper_id: str, room_number: str, room_id: str) -> None:
+    """Fire-and-forget push notification when front desk marks an assigned departure checked out."""
+    try:
+        profile = (
+            supabase.table("user_profiles")
+            .select("expo_push_token")
+            .eq("id", housekeeper_id)
+            .maybe_single()
+            .execute()
+        )
+        token = (profile.data or {}).get("expo_push_token")
+        if not token:
+            logger.debug("No push token for housekeeper=%s, skipping checkout push", housekeeper_id)
+            return
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post("https://exp.host/--/api/v2/push/send", json={
+                "to": token,
+                "title": "Room Checked Out",
+                "body": f"Room {room_number} checked out. Departure clean is ready.",
+                "data": {
+                    "type": "room_checked_out",
+                    "room_id": room_id,
+                    "room_number": room_number,
+                    "url": f"/(app)/my-rooms/{room_id}",
+                },
+            })
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -305,6 +338,102 @@ async def update_room_status(
                 current_user.hotel_id,
                 exc_info=True,
             )
+
+    updated_rows = update_result.data or []
+    return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/checkout
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/checkout")
+async def manual_checkout_room(
+    room_id: str,
+    request: ManualCheckoutRequest | None = None,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    room_result = (
+        supabase.table("rooms")
+        .select("room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not room_result or not room_result.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    from_status: str | None = current_row.data.get("status")
+    assigned_to = current_row.data.get("assigned_to")
+    was_already_checked_out = bool(current_row.data.get("actual_checkout_at"))
+    prior_fo_status = current_row.data.get("fo_status")
+    to_status = from_status if from_status in CHECKOUT_PRESERVE_STATUS else "DIRTY"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    actual_checkout_at = (request.actual_checkout_at if request else None) or datetime.now(timezone.utc)
+    notes = (request.notes if request else None) or "Guest checked out"
+
+    update_payload: dict = {
+        "status": to_status,
+        "fo_status": "VAC",
+        "actual_checkout_at": actual_checkout_at.isoformat(),
+        "guest_name": None,
+        "vip_flag": False,
+        "dnd_flag": False,
+        "updated_at": now_iso,
+        "notes": notes,
+    }
+    if request and request.checkout_time:
+        update_payload["checkout_time"] = request.checkout_time.isoformat()
+
+    update_result = (
+        supabase.table("room_status")
+        .update(update_payload)
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": from_status,
+        "to_status": to_status,
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": notes,
+    }).execute()
+
+    room_number = room_result.data.get("room_number") or ""
+    should_notify = (
+        bool(assigned_to)
+        and to_status == "DIRTY"
+        and not was_already_checked_out
+        and (from_status != "DIRTY" or prior_fo_status == "OCC")
+    )
+    if should_notify:
+        supabase.table("notifications").insert({
+            "tenant_id": current_user.hotel_id,
+            "user_id": assigned_to,
+            "type": "room_checked_out",
+            "title": f"Room {room_number} checked out",
+            "body": "Departure clean is ready.",
+            "data": {"room_id": room_id, "room_number": room_number},
+            "is_read": False,
+            "push_sent": False,
+        }).execute()
+        asyncio.create_task(_send_checkout_push(assigned_to, room_number, room_id))
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}

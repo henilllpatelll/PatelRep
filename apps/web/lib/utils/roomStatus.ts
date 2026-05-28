@@ -54,9 +54,9 @@ export const STATUS_COLORS: Record<
     badge: 'bg-green-100 text-green-700',
   },
   OOO: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-300',
-    badge: 'bg-orange-100 text-orange-700',
+    bg: 'bg-stone-50',
+    border: 'border-stone-300',
+    badge: 'bg-stone-100 text-stone-700',
   },
   PICKUP: {
     bg: 'bg-yellow-50',
@@ -64,14 +64,14 @@ export const STATUS_COLORS: Record<
     badge: 'bg-yellow-100 text-yellow-700',
   },
   OUT_OF_ORDER: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-300',
-    badge: 'bg-orange-100 text-orange-700',
+    bg: 'bg-stone-50',
+    border: 'border-stone-300',
+    badge: 'bg-stone-100 text-stone-700',
   },
   OUT_OF_SERVICE: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-300',
-    badge: 'bg-orange-100 text-orange-700',
+    bg: 'bg-stone-50',
+    border: 'border-stone-300',
+    badge: 'bg-stone-100 text-stone-700',
   },
   OCCUPIED: {
     bg: 'bg-red-50',
@@ -89,9 +89,9 @@ export const STATUS_BG: Record<string, string> = {
   OCCUPIED:      '#DC2626',
   DIRTY:         '#DC2626',
   CHECK_OUT:     '#DC2626',
-  OUT_OF_SERVICE:'#F97316',
-  OUT_OF_ORDER:  '#F97316',
-  OOO:           '#F97316',   // API value alias
+  OUT_OF_SERVICE:'#57534E',
+  OUT_OF_ORDER:  '#57534E',
+  OOO:           '#57534E',   // API value alias
   VIP:           '#FCD34D',
 }
 

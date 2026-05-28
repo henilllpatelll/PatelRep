@@ -1,147 +1,88 @@
 {
-  "session_id": "session-2026-05-28-1937",
-  "started": "2026-05-28T00:37:17.002Z",
+  "session_id": "session-2026-05-28-1609",
+  "started": "2026-05-28T21:09:54.685Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx": {
       "count": 1,
-      "tokens": 2642,
-      "first_read": "2026-05-28T00:37:23.606Z"
+      "tokens": 2945,
+      "first_read": "2026-05-28T21:10:49.671Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py": {
-      "count": 2,
-      "tokens": 1546,
-      "first_read": "2026-05-28T00:37:23.896Z"
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx": {
+      "count": 8,
+      "tokens": 5090,
+      "first_read": "2026-05-28T21:11:07.756Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx": {
-      "count": 3,
-      "tokens": 2036,
-      "first_read": "2026-05-28T00:37:27.452Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/core/database.py": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/cleanType.ts": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-28T00:37:27.740Z"
+      "tokens": 411,
+      "first_read": "2026-05-28T21:11:08.066Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
       "count": 1,
-      "tokens": 469,
-      "first_read": "2026-05-28T00:37:37.089Z"
+      "tokens": 8443,
+      "first_read": "2026-05-28T21:11:28.323Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts": {
-      "count": 1,
-      "tokens": 93,
-      "first_read": "2026-05-28T00:37:37.967Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/client.ts": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/AssignmentSidebar.tsx": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-05-28T00:37:45.505Z"
+      "first_read": "2026-05-28T21:11:41.043Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-28T00:37:45.718Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/core/config.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-28T00:39:15.395Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx": {
-      "count": 1,
-      "tokens": 8466,
-      "first_read": "2026-05-28T00:46:15.508Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/next.config.mjs": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-28T00:47:19.100Z"
+      "tokens": 8403,
+      "first_read": "2026-05-28T21:11:44.654Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 93,
-      "at": "2026-05-28T00:39:03.294Z"
+      "tokens": 181,
+      "at": "2026-05-28T21:12:54.306Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/lost_found.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 321,
-      "at": "2026-05-28T00:39:12.823Z"
+      "tokens": 73,
+      "at": "2026-05-28T21:12:59.869Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lost_found.ts",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 78,
-      "at": "2026-05-28T00:39:20.071Z"
+      "tokens": 1,
+      "at": "2026-05-28T21:13:11.338Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 136,
-      "at": "2026-05-28T00:39:29.684Z"
+      "tokens": 24,
+      "at": "2026-05-28T21:13:18.196Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/lostFound.ts",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 343,
-      "at": "2026-05-28T00:39:40.497Z"
+      "tokens": 222,
+      "at": "2026-05-28T21:21:47.993Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 146,
-      "at": "2026-05-28T00:39:47.733Z"
+      "tokens": 90,
+      "at": "2026-05-28T21:23:16.473Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
       "action": "edit",
-      "tokens": 0,
-      "at": "2026-05-28T00:39:52.689Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
-      "action": "edit",
-      "tokens": 88,
-      "at": "2026-05-28T00:40:00.188Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
-      "action": "edit",
-      "tokens": 11,
-      "at": "2026-05-28T00:40:08.162Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/housekeeping/FoundItemModal.tsx",
-      "action": "edit",
-      "tokens": 13,
-      "at": "2026-05-28T00:40:16.274Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
-      "action": "edit",
-      "tokens": 48,
-      "at": "2026-05-28T00:50:41.947Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/LogFoundItemModal.tsx",
-      "action": "edit",
-      "tokens": 204,
-      "at": "2026-05-28T00:50:49.590Z"
+      "tokens": 115,
+      "at": "2026-05-28T21:23:26.818Z"
     }
   ],
   "edit_counts": {
-    "apps/api/routers/lost_found.py": 2,
-    "apps/web/lib/api/lost_found.ts": 1,
-    "apps/web/components/shared/LogFoundItemModal.tsx": 3,
-    "apps/mobile/lib/api/lostFound.ts": 1,
-    "apps/mobile/components/housekeeping/FoundItemModal.tsx": 5
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 7
   },
-  "anatomy_hits": 5,
-  "anatomy_misses": 5,
-  "repeated_reads_warned": 3,
+  "anatomy_hits": 4,
+  "anatomy_misses": 1,
+  "repeated_reads_warned": 7,
   "cerebrum_warnings": 0,
   "stop_count": 3
 }

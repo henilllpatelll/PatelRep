@@ -50,6 +50,10 @@
     --progress-soft: #ede9fe;
     --progress-line: #c4b5fd;
 
+    --blocked:      #57534e;
+    --blocked-soft: #f5f5f4;
+    --blocked-line: #d6d3d1;
+
     --ai:      #4a2c8f;
     --ai-soft: #ece4f8;
     --ai-line: #c8b8e3;
@@ -104,6 +108,10 @@
     --progress:      #a78bfa;
     --progress-soft: #2e2348;
     --progress-line: #5b4a86;
+
+    --blocked:      #d6d3d1;
+    --blocked-soft: #292524;
+    --blocked-line: #57534e;
 
     --ai:      #b39ce0;
     --ai-soft: #1f1830;

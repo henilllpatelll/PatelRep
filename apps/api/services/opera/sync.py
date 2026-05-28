@@ -111,6 +111,7 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
             "vip_flag": mapped.get("vip_flag", False),
             "checkin_time": mapped.get("checkin_time"),
             "checkout_time": mapped.get("checkout_time"),
+            "actual_checkout_at": None,
         }).eq("room_id", room_id).execute()
 
 

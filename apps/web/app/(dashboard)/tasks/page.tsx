@@ -4,30 +4,28 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Plus, ClipboardList, Clock, Bed, Wrench, Users, HelpCircle,
-  X, Send, Loader2, Pencil, Mic,
+  Plus, ClipboardList, Clock, Bed, Users, HelpCircle,
+  X, Send, Loader2, Pencil,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useRole } from '@/lib/hooks/useRole'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { KebabMenu } from '@/components/shared/KebabMenu'
-import { Pill, StatusDot, AILabel, Mono, SectionLabel, Bar } from '@/components/ui/primitives'
+import { Pill, AILabel, Mono } from '@/components/ui/primitives'
 
 const TASK_TYPES: Array<{ value: TaskType; label: string }> = [
   { value: 'housekeeping', label: 'Housekeeping' },
-  { value: 'engineering', label: 'Maintenance' },
   { value: 'guest_request', label: 'Guest Request' },
-  { value: 'lost_found', label: 'Lost & Found' },
   { value: 'general', label: 'General' },
 ]
 
-const TASK_TYPE_LABELS: Record<TaskType, string> = {
+const TASK_TYPE_LABELS: Record<string, string> = {
   housekeeping: 'Housekeeping',
-  engineering: 'Maintenance',
   guest_request: 'Guest Request',
-  lost_found: 'Lost & Found',
   general: 'General',
+  engineering: 'Maintenance',
+  lost_found: 'Lost & Found',
 }
 
 const PRIORITIES: Array<{ value: Priority; label: string }> = [
@@ -42,9 +40,8 @@ const SparkIcon = () => (
   </svg>
 )
 
-function taskTypeIcon(t: TaskType) {
+function taskTypeIcon(t: string) {
   if (t === 'housekeeping') return <Bed size={13} className="shrink-0" />
-  if (t === 'engineering') return <Wrench size={13} className="shrink-0" />
   if (t === 'guest_request') return <Users size={13} className="shrink-0" />
   return <HelpCircle size={13} className="shrink-0" />
 }
@@ -81,39 +78,35 @@ function DueTime({ task, isOverdue }: { task: Task; isOverdue: boolean }) {
     : new Date(task.due_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <Mono className={`text-[11px] min-w-[72px] text-right ${isOverdue ? 'text-[var(--alert)]' : 'text-ink-3'}`}>
+    <Mono className={`text-[11px] min-w-[64px] text-right ${isOverdue ? 'text-[var(--alert)]' : 'text-ink3'}`}>
       {label}
     </Mono>
   )
 }
 
-function groupTasks(tasks: Task[]): Array<{ label: string; tone: string; items: Task[] }> {
+function sortTasksFlat(tasks: Task[]): Task[] {
   const now = Date.now()
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
-  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
-  const weekEnd = new Date(todayEnd); weekEnd.setDate(weekEnd.getDate() + 6)
+  const priorityOrder: Record<Priority, number> = { urgent: 0, normal: 1, low: 2 }
 
-  const overdue: Task[] = []
-  const today: Task[] = []
-  const thisWeek: Task[] = []
-  const other: Task[] = []
+  return [...tasks].sort((a, b) => {
+    const aDone = a.status === 'completed' || a.status === 'cancelled'
+    const bDone = b.status === 'completed' || b.status === 'cancelled'
+    if (aDone !== bDone) return aDone ? 1 : -1
+    if (aDone && bDone) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 
-  for (const t of tasks) {
-    if (t.status === 'completed' || t.status === 'cancelled') continue
-    if (!t.due_at) { other.push(t); continue }
-    const due = new Date(t.due_at).getTime()
-    if (due < now) overdue.push(t)
-    else if (due <= todayEnd.getTime()) today.push(t)
-    else if (due <= weekEnd.getTime()) thisWeek.push(t)
-    else other.push(t)
-  }
+    const aOverdue = !!(a.due_at && new Date(a.due_at).getTime() < now)
+    const bOverdue = !!(b.due_at && new Date(b.due_at).getTime() < now)
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
 
-  const groups = []
-  if (overdue.length) groups.push({ label: 'Overdue', tone: 'alert', items: overdue })
-  if (today.length) groups.push({ label: 'Today', tone: 'caution', items: today })
-  if (thisWeek.length) groups.push({ label: 'This week', tone: 'info', items: thisWeek })
-  if (other.length) groups.push({ label: 'No due date', tone: 'neutral', items: other })
-  return groups
+    const priDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
+    if (priDiff !== 0) return priDiff
+
+    if (a.due_at && b.due_at) return new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
+    if (a.due_at) return -1
+    if (b.due_at) return 1
+
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
 }
 
 function TaskRow({
@@ -133,51 +126,68 @@ function TaskRow({
   onDelete: (t: Task) => void
   updating: boolean
 }) {
+  const isDone = task.status === 'completed' || task.status === 'cancelled'
+
   return (
     <div
       role="button"
       tabIndex={0}
-      className="flex items-center gap-[11px] px-2 py-[10px] border-b border-[var(--line-2)] hover:bg-surface-2 cursor-pointer transition-colors"
+      className={`relative flex items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
       onClick={() => onOpen(task)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(task) } }}
     >
+      {isOverdue && (
+        <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[var(--alert)] rounded-l" />
+      )}
       <span
-        className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-[var(--line)] shrink-0"
+        role="checkbox"
+        aria-checked={isDone}
+        tabIndex={-1}
+        className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-[var(--line)] shrink-0 flex items-center justify-center hover:border-[var(--accent)] transition-colors"
         onClick={(e) => {
           e.stopPropagation()
           if (task.status === 'open') onStatusChange(task.id, 'in_progress')
           else if (task.status === 'in_progress') onStatusChange(task.id, 'completed')
         }}
-      />
-      <Pill tone={priorityTone(task.priority)} size="sm">{task.priority}</Pill>
-      <span className="flex items-center gap-1.5 text-ink2 shrink-0">
-        {taskTypeIcon(task.task_type)}
+      >
+        {isDone && (
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="var(--ready)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
       </span>
-      <span className="text-[13.5px] flex-1 min-w-0 text-ink truncate">{task.title}</span>
+
+      <Pill tone={priorityTone(task.priority)} size="sm">{task.priority}</Pill>
+
+      <span className="text-ink3 shrink-0">{taskTypeIcon(task.task_type)}</span>
+
+      <span className={`text-[13.5px] flex-1 min-w-0 text-ink truncate ${isDone ? 'line-through text-ink3' : ''}`}>
+        {task.title}
+      </span>
+
       {task.is_ai_created && (
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--ai)] bg-[var(--ai-soft)] border border-[var(--ai-line)] px-[6px] py-px rounded-[4px] tracking-[0.4px] shrink-0">
           <SparkIcon /> AI
         </span>
       )}
-      <div className="flex gap-[5px] shrink-0">
-        {task.rooms && (
-          <span className="text-[10.5px] text-ink-3 bg-surface-3 px-[5px] py-px rounded-[3px]">
-            #{task.rooms.room_number}
-          </span>
-        )}
-        <span className="text-[10.5px] text-ink-3 bg-surface-3 px-[5px] py-px rounded-[3px]">
-          #{TASK_TYPE_LABELS[task.task_type].toLowerCase().replace(' ', '-')}
+
+      {task.rooms && (
+        <span className="text-[10.5px] text-ink3 bg-surface-3 px-[5px] py-px rounded-[3px] shrink-0">
+          #{task.rooms.room_number}
         </span>
-      </div>
+      )}
+
       {task.user_profiles && (
         <span className="w-[22px] h-[22px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[9px] font-bold flex items-center justify-center shrink-0 uppercase">
           {(task.user_profiles.preferred_name ?? task.user_profiles.full_name ?? '?').slice(0, 2)}
         </span>
       )}
+
       <DueTime task={task} isOverdue={isOverdue} />
+
       <div onClick={(e) => e.stopPropagation()}>
         <KebabMenu
-          onEdit={task.status === 'open' || task.status === 'in_progress' ? () => onEdit(task) : undefined}
+          onEdit={!isDone ? () => onEdit(task) : undefined}
           onDelete={() => onDelete(task)}
         />
       </div>
@@ -246,7 +256,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: {
           </div>
           <div>
             <label className="block text-xs font-medium text-ink2 mb-1.5">Title *</label>
-            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Fix leaking faucet in Room 302" className="w-full px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" required />
+            <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Extra towels for Room 302" className="w-full px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -272,14 +282,14 @@ function CreateTaskModal({ onClose, onCreate, creating }: {
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-ink2 mb-1.5">Description (optional)</label>
+            <label className="block text-xs font-medium text-ink2 mb-1.5">Notes (optional)</label>
             <textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={2} className="w-full px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 resize-none" />
           </div>
           {error && <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-medium text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3 transition-colors">Cancel</button>
             <button type="submit" disabled={creating || !form.title.trim()} className="flex-1 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-opacity">
-              {creating && <Loader2 size={13} className="animate-spin" />}Create Task
+              {creating && <Loader2 size={13} className="animate-spin" />}Create
             </button>
           </div>
         </form>
@@ -323,6 +333,8 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
     finally { setSubmitting(false) }
   }
 
+  const isDone = task.status === 'completed' || task.status === 'cancelled'
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-stone-900/10 backdrop-blur-sm" onClick={onClose} />
@@ -330,10 +342,12 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)] shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-ink3">{taskTypeIcon(task.task_type)}</span>
-            <h2 className="font-semibold text-ink text-sm">Task Details</h2>
+            <h2 className="font-semibold text-ink text-sm">
+              {TASK_TYPE_LABELS[task.task_type] ?? task.task_type}
+            </h2>
           </div>
           <div className="flex items-center gap-1">
-            {task.status !== 'completed' && task.status !== 'cancelled' && (
+            {!isDone && (
               <button onClick={() => setIsEditing((v) => !v)} className="text-ink3 hover:text-ink2 p-1"><Pencil size={15} /></button>
             )}
             <button onClick={onClose} className="text-ink3 hover:text-ink2 p-1"><X size={18} /></button>
@@ -345,10 +359,10 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
             <div className="bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-xl p-4 space-y-3">
               <p className="text-xs font-semibold text-[var(--caution)]">Edit Task</p>
               <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} className="w-full text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" placeholder="Title" />
-              <textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 resize-none" placeholder="Description" />
+              <textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 resize-none" placeholder="Notes" />
               <div className="grid grid-cols-2 gap-2">
                 <select value={editForm.priority} onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as Priority }))} className="text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none">
-                  <option value="urgent">Urgent</option><option value="normal">Normal</option><option value="low">Low</option>
+                  {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
                 <select value={editForm.task_type} onChange={(e) => setEditForm((f) => ({ ...f, task_type: e.target.value as TaskType }))} className="text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none">
                   {TASK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -410,12 +424,12 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
             )}
           </div>
 
-          {(task.status === 'open' || task.status === 'in_progress') && (
+          {!isDone && (
             <div>
               <p className="text-xs font-medium text-ink3 mb-2">Update Status</p>
               <div className="flex gap-2">
                 {task.status === 'open' && (
-                  <button onClick={() => onStatusChange(task.id, 'in_progress')} disabled={updating} className="flex-1 py-2 text-sm font-medium bg-[var(--caution)] text-white rounded-lg disabled:opacity-50 transition-colors">Start Task</button>
+                  <button onClick={() => onStatusChange(task.id, 'in_progress')} disabled={updating} className="flex-1 py-2 text-sm font-medium bg-[var(--caution)] text-white rounded-lg disabled:opacity-50 transition-colors">Start</button>
                 )}
                 {task.status === 'in_progress' && !showCompleteForm && (
                   <button onClick={() => setShowCompleteForm(true)} disabled={updating} className="flex-1 py-2 text-sm font-medium bg-[var(--ready)] text-white rounded-lg disabled:opacity-50 transition-colors">Mark Complete</button>
@@ -428,7 +442,7 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
                   <textarea value={completeNotes} onChange={(e) => setCompleteNotes(e.target.value)} rows={2} className="w-full text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--ready)]/40 resize-none" />
                   <div className="flex gap-2">
                     <button onClick={() => completeTask()} disabled={completing} className="flex-1 py-2 text-sm font-medium bg-[var(--ready)] text-white rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                      {completing && <Loader2 size={12} className="animate-spin" />}Confirm Complete
+                      {completing && <Loader2 size={12} className="animate-spin" />}Confirm
                     </button>
                     <button onClick={() => { setShowCompleteForm(false); setCompleteNotes('') }} className="px-4 py-2 text-sm text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3">Cancel</button>
                   </div>
@@ -438,8 +452,12 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
           )}
 
           <div>
-            <p className="text-xs font-medium text-ink3 mb-2">Comments {task.task_comments && task.task_comments.length > 0 && `(${task.task_comments.length})`}</p>
-            {(!task.task_comments || task.task_comments.length === 0) && <p className="text-xs text-ink3 italic">No comments yet.</p>}
+            <p className="text-xs font-medium text-ink3 mb-2">
+              Comments {task.task_comments && task.task_comments.length > 0 && `(${task.task_comments.length})`}
+            </p>
+            {(!task.task_comments || task.task_comments.length === 0) && (
+              <p className="text-xs text-ink3 italic">No comments yet.</p>
+            )}
             <div className="space-y-2">
               {task.task_comments?.map((c) => (
                 <div key={c.id} className={`rounded-lg px-3 py-2 text-sm ${c.is_system ? 'bg-surface-2 text-ink3 italic' : 'bg-[var(--info-soft)] text-ink'}`}>
@@ -454,7 +472,14 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
         <div className="p-4 border-t border-[var(--line)] shrink-0">
           {commentSuccess && <p className="text-xs text-[var(--ready)] mb-1.5">Comment added</p>}
           <div className="flex gap-2">
-            <input value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!submitting) handleComment() } }} placeholder="Add a comment..." aria-label="Add a comment" className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-[var(--line)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+            <input
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!submitting) handleComment() } }}
+              placeholder="Add a comment..."
+              aria-label="Add a comment"
+              className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-[var(--line)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
+            />
             <button onClick={handleComment} disabled={submitting || !comment.trim()} className="p-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity">
               <Send size={14} />
             </button>
@@ -476,7 +501,6 @@ function TasksPageContent() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [drawerEditMode, setDrawerEditMode] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
-  const [quickCapture, setQuickCapture] = useState('')
 
   function handleTabChange(tab: 'all' | TaskStatus) {
     setStatusFilter(tab)
@@ -511,7 +535,10 @@ function TasksPageContent() {
 
   const { mutate: updateStatus, isPending: updating } = useMutation({
     mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) => tasksApi.update(taskId, { status }),
-    onSuccess: (_, variables) => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); setSelectedTask((prev) => prev && prev.id === variables.taskId ? { ...prev, status: variables.status } : prev) },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      setSelectedTask((prev) => prev && prev.id === variables.taskId ? { ...prev, status: variables.status } : prev)
+    },
   })
 
   const handleStatusChange = (taskId: string, status: TaskStatus) => updateStatus({ taskId, status })
@@ -523,27 +550,13 @@ function TasksPageContent() {
     if (res?.data) setSelectedTask(res.data)
   }
 
-  const openCount = tasks.filter((t) => t.status === 'open').length
-  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length
-  const urgentCount = tasks.filter((t) => t.priority === 'urgent' && t.status !== 'completed' && t.status !== 'cancelled').length
-  const aiCount = tasks.filter((t) => t.is_ai_created && t.status !== 'completed' && t.status !== 'cancelled').length
-
+  const now = Date.now()
   const activeTasks = tasks.filter((t) => t.status !== 'completed' && t.status !== 'cancelled')
-  const groups = groupTasks(activeTasks)
+  const urgentCount = activeTasks.filter((t) => t.priority === 'urgent').length
+  const overdueCount = activeTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < now).length
+  const inProgressCount = activeTasks.filter((t) => t.status === 'in_progress').length
 
-  const completedTasks = tasks.filter((t) => t.status === 'completed' || t.status === 'cancelled')
-
-  const assigneeCounts: Record<string, { name: string; count: number }> = {}
-  for (const t of activeTasks) {
-    if (t.user_profiles) {
-      const id = t.assigned_to ?? 'unknown'
-      const name = t.user_profiles.preferred_name ?? t.user_profiles.full_name ?? 'Unknown'
-      if (!assigneeCounts[id]) assigneeCounts[id] = { name, count: 0 }
-      assigneeCounts[id].count++
-    }
-  }
-  const assigneeList = Object.values(assigneeCounts).sort((a, b) => b.count - a.count).slice(0, 6)
-  const maxCount = assigneeList[0]?.count ?? 1
+  const sortedTasks = sortTasksFlat(tasks)
 
   const STATUS_TABS = [
     { value: 'all' as const, label: 'All' },
@@ -555,160 +568,112 @@ function TasksPageContent() {
 
   return (
     <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3 mb-0.5">Operations</p>
           <h1 className="text-[22px] font-semibold text-ink leading-tight">Tasks</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {urgentCount > 0 && <Pill tone="alert" size="sm"><Clock size={9} /> <Mono>{urgentCount}</Mono> overdue</Pill>}
-            {openCount > 0 && <Pill tone="caution" size="sm"><Mono>{openCount}</Mono> open</Pill>}
-            {inProgressCount > 0 && <Pill tone="info" size="sm"><Mono>{inProgressCount}</Mono> in progress</Pill>}
-            {aiCount > 0 && <Pill tone="ai" size="sm"><SparkIcon /> <Mono>{aiCount}</Mono> AI</Pill>}
+            {overdueCount > 0 && (
+              <Pill tone="alert" size="sm"><Clock size={9} /> <Mono>{overdueCount}</Mono> overdue</Pill>
+            )}
+            {urgentCount > 0 && (
+              <Pill tone="caution" size="sm"><Mono>{urgentCount}</Mono> urgent</Pill>
+            )}
+            {inProgressCount > 0 && (
+              <Pill tone="info" size="sm"><Mono>{inProgressCount}</Mono> in progress</Pill>
+            )}
           </div>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity shrink-0">
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity shrink-0"
+        >
           <Plus size={15} />New task
         </button>
       </div>
 
-      <div className="flex flex-nowrap gap-1 border-b border-[var(--line)] overflow-x-auto">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => handleTabChange(tab.value)}
-            className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
-              statusFilter === tab.value ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-ink3 hover:text-ink2'
-            }`}
+      {/* Filters row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-nowrap gap-1 border-b border-[var(--line)] overflow-x-auto flex-1">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => handleTabChange(tab.value)}
+              className={`flex-shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                statusFilter === tab.value
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-ink3 hover:text-ink2'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 shrink-0 pb-px">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as TaskType | '')}
+            aria-label="Filter by type"
+            className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none"
           >
-            {tab.label}
-          </button>
-        ))}
+            <option value="">All Types</option>
+            {TASK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
+            aria-label="Filter by priority"
+            className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none"
+          >
+            <option value="">All Priorities</option>
+            {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+        </div>
       </div>
 
-      <div className="flex gap-3">
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TaskType | '')} aria-label="Filter by type" className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none">
-          <option value="">All Types</option>
-          {TASK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value as Priority | '')} aria-label="Filter by priority" className="border border-[var(--line)] rounded-lg px-3 py-1.5 text-sm bg-surface text-ink2 focus:outline-none">
-          <option value="">All Priorities</option>
-          {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-      </div>
-
+      {/* Task list */}
       {isLoading ? (
-        <div className="space-y-2">{[1, 2, 3, 4].map((i) => <div key={i} className="h-10 bg-surface-2 rounded-lg animate-pulse" />)}</div>
-      ) : tasks.length === 0 ? (
+        <div className="space-y-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-[42px] bg-surface-2 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      ) : sortedTasks.length === 0 ? (
         <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] p-12 text-center">
           <ClipboardList size={36} className="mx-auto text-ink4 mb-3" />
-          <p className="text-ink2 font-medium">No tasks found</p>
-          <p className="text-sm text-ink3 mt-1">Create a task or use AI Copilot for natural language</p>
-          <button onClick={() => setShowCreate(true)} className="mt-4 flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 mx-auto">
+          <p className="text-ink2 font-medium">No tasks</p>
+          <p className="text-sm text-ink3 mt-1">All clear — or create one above</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-4 flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 mx-auto"
+          >
             <Plus size={14} />New Task
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
-          <div className="space-y-5 min-w-0">
-            {groups.map((group) => (
-              <div key={group.label}>
-                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-dashed border-[var(--line-2)]">
-                  <StatusDot tone={group.tone} />
-                  <h3 className="text-[13px] font-semibold text-ink">{group.label}</h3>
-                  <Mono className="text-[11px] text-ink3">{group.items.length}</Mono>
-                </div>
-                <div>
-                  {group.items.map((task) => (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      isOverdue={group.label === 'Overdue'}
-                      onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
-                      onStatusChange={handleStatusChange}
-                      onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}
-                      onDelete={setDeleteTarget}
-                      updating={updating}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-            {statusFilter === 'all' && completedTasks.length > 0 && groups.length === 0 && (
-              <div>
-                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-dashed border-[var(--line-2)]">
-                  <StatusDot tone="neutral" />
-                  <h3 className="text-[13px] font-semibold text-ink">Completed</h3>
-                  <Mono className="text-[11px] text-ink3">{completedTasks.length}</Mono>
-                </div>
-                <div>
-                  {completedTasks.slice(0, 10).map((task) => (
-                    <TaskRow key={task.id} task={task} isOverdue={false} onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }} onStatusChange={handleStatusChange} onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }} onDelete={setDeleteTarget} updating={updating} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {statusFilter !== 'all' && tasks.length > 0 && (
-              <div>
-                {tasks.map((task) => (
-                  <TaskRow key={task.id} task={task} isOverdue={false} onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }} onStatusChange={handleStatusChange} onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }} onDelete={setDeleteTarget} updating={updating} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <aside className="flex flex-col gap-3.5">
-            <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] p-4">
-              <SectionLabel>Quick capture</SectionLabel>
-              <div className="bg-surface-2 border border-[var(--line)] rounded-[10px] px-3 py-2.5 text-[13px] text-ink3 mb-2.5 min-h-[40px]">
-                <textarea
-                  value={quickCapture}
-                  onChange={(e) => setQuickCapture(e.target.value)}
-                  placeholder="Type or speak — AI parses to a task..."
-                  rows={2}
-                  className="w-full bg-transparent text-ink text-[13px] placeholder:text-ink3 resize-none focus:outline-none"
-                />
-              </div>
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => { if (quickCapture.trim()) { setShowCreate(true) } }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold bg-[var(--ai)] text-white rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  <SparkIcon />Parse
-                </button>
-                <button className="px-3 py-1.5 text-xs font-medium border border-[var(--line)] text-ink2 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-1">
-                  <Mic size={11} />Voice
-                </button>
-              </div>
-              <p className="mt-2.5 text-[11px] text-ink3 leading-[1.5]">
-                Try: <em>"have Diego clean the pool filter tomorrow morning before 8"</em>
-              </p>
-            </div>
-
-            {assigneeList.length > 0 && (
-              <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">
-                <div className="px-4 pt-3.5 pb-2.5">
-                  <SectionLabel hint="Active">By assignee</SectionLabel>
-                </div>
-                {assigneeList.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2.5 px-4 py-2 border-t border-[var(--line-2)]">
-                    <span className="w-[22px] h-[22px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[9px] font-bold flex items-center justify-center uppercase shrink-0">
-                      {a.name.slice(0, 2)}
-                    </span>
-                    <span className="text-[12.5px] text-ink flex-1 truncate">{a.name}</span>
-                    <div className="w-20">
-                      <Bar value={a.count} max={maxCount} tone="accent" height={3} />
-                    </div>
-                    <Mono className="text-[11px] text-ink3">{a.count}</Mono>
-                  </div>
-                ))}
-              </div>
-            )}
-          </aside>
+        <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">
+          {sortedTasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              isOverdue={!!(task.due_at && new Date(task.due_at).getTime() < now && task.status !== 'completed' && task.status !== 'cancelled')}
+              onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
+              onStatusChange={handleStatusChange}
+              onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}
+              onDelete={setDeleteTarget}
+              updating={updating}
+            />
+          ))}
         </div>
       )}
 
       {showCreate && (
-        <CreateTaskModal onClose={() => setShowCreate(false)} onCreate={async (data) => { await createTask(data) }} creating={creating} />
+        <CreateTaskModal
+          onClose={() => setShowCreate(false)}
+          onCreate={async (data) => { await createTask(data) }}
+          creating={creating}
+        />
       )}
 
       {selectedTask && (

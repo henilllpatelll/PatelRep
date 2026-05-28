@@ -1,0 +1,96 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - link "Housekeeping" [ref=e29] [cursor=pointer]:
+              - /url: /housekeeping
+              - img [ref=e30]
+              - generic [ref=e32]: Housekeeping
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Guest Requests" [ref=e41] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e42]
+              - generic [ref=e45]: Guest Requests
+            - link "Lost & Found" [ref=e48] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e49]
+              - generic [ref=e53]: Lost & Found
+            - link "Tasks" [ref=e56] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e57]
+              - generic [ref=e60]: Tasks
+        - generic [ref=e61]:
+          - paragraph [ref=e63]: Intelligence
+          - generic [ref=e64]:
+            - link "AI Copilot AI" [ref=e67] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e68]
+              - generic [ref=e70]: AI Copilot
+              - generic [ref=e71]: AI
+            - link "SOP Library" [ref=e74] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e75]
+              - generic [ref=e77]: SOP Library
+            - link "Reports" [ref=e80] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e81]
+              - generic [ref=e84]: Reports
+        - generic [ref=e85]:
+          - paragraph [ref=e87]: Organization
+          - generic [ref=e88]:
+            - link "Logbook" [ref=e91] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e92]
+              - generic [ref=e95]: Logbook
+            - link "Staff" [ref=e98] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e99]
+              - generic [ref=e104]: Staff
+            - link "Schedule" [ref=e107] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e108]
+              - generic [ref=e110]: Schedule
+      - generic [ref=e112]:
+        - generic [ref=e113]: H
+        - paragraph [ref=e115]: hp.patelrep@gmail.com
+    - generic [ref=e116]:
+      - banner [ref=e117]:
+        - generic [ref=e118]:
+          - img [ref=e119]
+          - textbox "Open command palette" [ref=e122]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e123]: ⌘K
+        - generic [ref=e126]: Thu, May 28 · Day shift
+        - button "Open AI Copilot (⌘J)" [ref=e128] [cursor=pointer]:
+          - img [ref=e129]
+          - generic [ref=e131]: Ask copilot
+          - generic [ref=e132]: ⌘J
+        - button "Notifications" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e137]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e139] [cursor=pointer]:
+          - generic [ref=e140]: H
+          - img [ref=e141]
+      - main [ref=e143]
+    - button "Open AI Copilot" [ref=e150] [cursor=pointer]:
+      - img [ref=e151]
+      - generic [ref=e153]: Ask copilot
+      - generic [ref=e154]: ⌘J
+    - button "Display preferences" [ref=e156] [cursor=pointer]:
+      - img [ref=e157]
+  - alert [ref=e160]

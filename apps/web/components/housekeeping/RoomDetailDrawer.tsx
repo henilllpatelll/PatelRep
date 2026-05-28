@@ -14,6 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  Clock,
+  LogOut,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -66,6 +68,24 @@ function formatCheckinTime(isoString: string | null | undefined): string | null 
   }
 }
 
+function formatTimeInput(isoString: string | null | undefined): string {
+  if (!isoString) return ''
+  try {
+    return format(new Date(isoString), 'HH:mm')
+  } catch {
+    return ''
+  }
+}
+
+function buildCheckoutTimeIso(timeValue: string, existingIso?: string | null): string | undefined {
+  if (!timeValue) return undefined
+  const [hours, minutes] = timeValue.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return undefined
+  const date = existingIso ? new Date(existingIso) : new Date()
+  date.setHours(hours, minutes, 0, 0)
+  return date.toISOString()
+}
+
 function getActionLabel(status: string): string {
   switch (status) {
     case 'IN_PROGRESS': return 'Started'
@@ -114,9 +134,9 @@ function getStatusDotClass(status: string): string {
     case 'OCCUPIED': return 'text-[var(--alert)]'
     case 'CLEAN': return 'text-[var(--info)]'
     case 'INSPECTED': return 'text-[var(--ready)]'
-    case 'OOO': return 'text-[var(--accent)]'
-    case 'OUT_OF_ORDER': return 'text-[var(--accent)]'
-    case 'OUT_OF_SERVICE': return 'text-[var(--accent)]'
+    case 'OOO': return 'text-[var(--blocked)]'
+    case 'OUT_OF_ORDER': return 'text-[var(--blocked)]'
+    case 'OUT_OF_SERVICE': return 'text-[var(--blocked)]'
     case 'PICKUP': return 'text-[var(--caution)]'
     default: return 'text-gray-400'
   }
@@ -129,9 +149,9 @@ function getStatusTextClass(status: string): string {
     case 'OCCUPIED': return 'text-[var(--alert)]'
     case 'CLEAN': return 'text-[var(--info)]'
     case 'INSPECTED': return 'text-[var(--ready)]'
-    case 'OOO': return 'text-[var(--accent)]'
-    case 'OUT_OF_ORDER': return 'text-[var(--accent)]'
-    case 'OUT_OF_SERVICE': return 'text-[var(--accent)]'
+    case 'OOO': return 'text-[var(--blocked)]'
+    case 'OUT_OF_ORDER': return 'text-[var(--blocked)]'
+    case 'OUT_OF_SERVICE': return 'text-[var(--blocked)]'
     case 'PICKUP': return 'text-[var(--caution)]'
     default: return 'text-gray-600'
   }
@@ -154,6 +174,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const [noteError, setNoteError] = useState<string | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [foundItemOpen, setFoundItemOpen] = useState(false)
+  const [checkoutTimeInput, setCheckoutTimeInput] = useState('')
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
@@ -174,6 +198,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     setNoteSuccess(false)
     setNoteError(null)
     setNoteOpen(false)
+    setCheckoutTimeInput(formatTimeInput(room?.checkout_time))
+    setCheckoutSuccess(false)
+    setCheckoutError(null)
     setWoOpen(false)
     setWoTitle('')
     setWoCategory('general')
@@ -182,7 +209,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     setWoSuccess(null)
     setWoError(null)
     setShowStatusHistory(false)
-  }, [roomId, isOpen])
+  }, [roomId, isOpen, room?.checkout_time])
 
   async function handleAddNote() {
     if (!noteText.trim() || !roomId) return
@@ -232,6 +259,27 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
       setWoLoading(false)
     }
   }
+
+  async function handleManualCheckout() {
+    if (!roomId) return
+    setCheckoutLoading(true)
+    setCheckoutError(null)
+    try {
+      await housekeepingApi.markCheckedOut(roomId, {
+        checkout_time: buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time),
+      })
+      setCheckoutSuccess(true)
+      setTimeout(() => setCheckoutSuccess(false), 5000)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
+    } catch {
+      setCheckoutError('Failed to mark checked out. Please try again.')
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
   const prediction = room?.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
 
@@ -276,6 +324,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const maintenanceNote: string | null = room?.maintenance_note ?? null
 
   const checkinTime = formatCheckinTime(prediction?.checkin_time ?? room?.checkin_time)
+  const scheduledCheckoutTime = formatCheckinTime(room?.checkout_time)
+  const actualCheckoutTime = formatCheckinTime(room?.actual_checkout_at)
+  const isDepartureRoom = room?.clean_type === 'DEP' || !!room?.checkout_time || status === 'OCCUPIED'
+  const canMarkCheckout = (canSupervise || role === 'front_desk') && !!roomId && isDepartureRoom
+  const isCheckedOut = !!room?.actual_checkout_at || (room?.fo_status === 'VAC' && room?.clean_type === 'DEP')
   const etaTime = formatCheckinTime(prediction?.predicted_ready_at)
   const delayMinutes: number | null = prediction?.delay_minutes ?? null
   const riskFactors: string[] = prediction?.risk_factors ?? []
@@ -331,6 +384,16 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
                   Check-in: {checkinTime} Today
                 </span>
               )}
+              {scheduledCheckoutTime && (
+                <span className="text-xs text-gray-500">
+                  Checkout: {scheduledCheckoutTime}
+                </span>
+              )}
+              {actualCheckoutTime && (
+                <span className="text-xs text-[var(--alert)]">
+                  Checked out: {actualCheckoutTime}
+                </span>
+              )}
               {cleanTypeLabel && (
                 <span className="text-xs text-gray-500">
                   Service: {cleanTypeLabel}
@@ -373,6 +436,54 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
             {actionNote && (
               <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800 mb-3">
                 {actionNote}
+              </div>
+            )}
+            {canMarkCheckout && (
+              <div className="mb-3 rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--alert)]">
+                      <LogOut className="h-3.5 w-3.5" />
+                      {isCheckedOut ? 'Guest checked out' : 'Departure checkout'}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-gray-600">
+                      {actualCheckoutTime
+                        ? `Checked out at ${actualCheckoutTime}`
+                        : scheduledCheckoutTime
+                        ? `Scheduled for ${scheduledCheckoutTime}`
+                        : 'No checkout time set'}
+                    </p>
+                  </div>
+                  <label className="sr-only" htmlFor="room-checkout-time">Scheduled checkout time</label>
+                  <input
+                    id="room-checkout-time"
+                    type="time"
+                    value={checkoutTimeInput}
+                    onChange={(event) => setCheckoutTimeInput(event.target.value)}
+                    className="h-8 w-[86px] rounded-md border border-white/80 bg-white/75 px-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleManualCheckout}
+                    disabled={checkoutLoading || isCheckedOut}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                  >
+                    {checkoutLoading ? (
+                      <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                    {isCheckedOut ? 'Checked Out' : 'Mark Checked Out'}
+                  </button>
+                  {checkoutSuccess && (
+                    <span className="text-xs text-[var(--ready)]">Housekeeping notified</span>
+                  )}
+                  {checkoutError && (
+                    <span className="text-xs text-[var(--alert)]">{checkoutError}</span>
+                  )}
+                </div>
               </div>
             )}
             <div className="mb-3 flex flex-wrap gap-2">

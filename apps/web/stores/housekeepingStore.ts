@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { format } from 'date-fns'
-import type { CleanType } from '@/lib/utils/cleanType'
+import type { CleanTypeFilter } from '@/lib/utils/housekeepingBoardFilters'
 
 export interface RoomPrediction {
   room_id: string
@@ -18,11 +18,10 @@ export interface HousekeepingStore {
   selectedShift: string | null
   assignmentMode: boolean
   pendingAssignments: Record<string, string>
-  pendingAssignmentCleanTypes: Record<string, CleanType>
-  activeCleanType: CleanType
   activeAssigneeId: string | null
   activeAssigneeName: string | null
   statusFilter: string | null
+  cleanTypeFilter: CleanTypeFilter
   showRiskOnly: boolean
   lastSyncedAt: Date | null
 
@@ -32,12 +31,12 @@ export interface HousekeepingStore {
   setSelectedDate: (date: string) => void
   setSelectedShift: (shiftId: string | null) => void
   toggleAssignmentMode: () => void
-  setPendingAssignment: (roomId: string, housekeeperId: string, cleanType?: CleanType) => void
+  setPendingAssignment: (roomId: string, housekeeperId: string) => void
   removePendingAssignment: (roomId: string) => void
   clearPendingAssignments: () => void
-  setActiveCleanType: (cleanType: CleanType) => void
   setActiveAssignee: (id: string | null, name: string | null) => void
   setStatusFilter: (status: string | null) => void
+  setCleanTypeFilter: (cleanType: CleanTypeFilter) => void
   toggleRiskOnly: () => void
   setLastSyncedAt: (date: Date) => void
 
@@ -56,11 +55,10 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   selectedShift: null,
   assignmentMode: false,
   pendingAssignments: {},
-  pendingAssignmentCleanTypes: {},
-  activeCleanType: 'DEP',
   activeAssigneeId: null,
   activeAssigneeName: null,
   statusFilter: null,
+  cleanTypeFilter: null,
   showRiskOnly: false,
   lastSyncedAt: null,
 
@@ -82,47 +80,44 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
     set((state) => ({
       assignmentMode: !state.assignmentMode,
       pendingAssignments: state.assignmentMode ? {} : state.pendingAssignments,
-      pendingAssignmentCleanTypes: state.assignmentMode ? {} : state.pendingAssignmentCleanTypes,
       activeAssigneeId: null,
       activeAssigneeName: null,
     })),
 
-  setPendingAssignment: (roomId, housekeeperId, cleanType) =>
+  setPendingAssignment: (roomId, housekeeperId) =>
     set((state) => ({
       pendingAssignments: { ...state.pendingAssignments, [roomId]: housekeeperId },
-      pendingAssignmentCleanTypes: {
-        ...state.pendingAssignmentCleanTypes,
-        [roomId]: cleanType ?? state.activeCleanType,
-      },
     })),
 
   removePendingAssignment: (roomId) =>
     set((state) => {
       const next = { ...state.pendingAssignments }
-      const nextCleanTypes = { ...state.pendingAssignmentCleanTypes }
       delete next[roomId]
-      delete nextCleanTypes[roomId]
-      return { pendingAssignments: next, pendingAssignmentCleanTypes: nextCleanTypes }
+      return { pendingAssignments: next }
     }),
 
-  clearPendingAssignments: () => set({ pendingAssignments: {}, pendingAssignmentCleanTypes: {} }),
-
-  setActiveCleanType: (cleanType) => set({ activeCleanType: cleanType }),
+  clearPendingAssignments: () => set({ pendingAssignments: {} }),
 
   setActiveAssignee: (id, name) => set({ activeAssigneeId: id, activeAssigneeName: name }),
 
   setStatusFilter: (status) => set({ statusFilter: status }),
+
+  setCleanTypeFilter: (cleanType) => set({ cleanTypeFilter: cleanType }),
 
   toggleRiskOnly: () => set((state) => ({ showRiskOnly: !state.showRiskOnly })),
 
   setLastSyncedAt: (date) => set({ lastSyncedAt: date }),
 
   filteredRooms: () => {
-    const { rooms, statusFilter, showRiskOnly, predictions } = get()
+    const { rooms, statusFilter, cleanTypeFilter, showRiskOnly, predictions } = get()
     let result = rooms
 
     if (statusFilter !== null) {
       result = result.filter((room) => room.status === statusFilter)
+    }
+
+    if (cleanTypeFilter !== null) {
+      result = result.filter((room) => room.clean_type === cleanTypeFilter)
     }
 
     if (showRiskOnly) {

@@ -64,7 +64,7 @@ async def list_logbook_entries(
     per_page: int = Query(20),
     current_user: CurrentUser = Depends(get_current_user)
 ):
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f+00:00")
     kwargs = dict(
         hotel_id=current_user.hotel_id,
         department_id=department_id,

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+from typing import Literal, Optional
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateTaskRequest, UpdateTaskRequest
 from core.database import supabase
@@ -23,24 +23,30 @@ TASK_UPDATE_COLUMNS = {
 
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
-    result = supabase.table(table)\
-        .select("id")\
-        .eq("id", row_id)\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
+    result = (
+        supabase.table(table)
+        .select("id")
+        .eq("id", row_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not result or not result.data:
         raise HTTPException(status_code=404, detail=f"{label} not found")
 
 
-def _ensure_tenant_staff(user_id: str, hotel_id: str, label: str = "Staff member") -> None:
-    result = supabase.table("user_roles")\
-        .select("id")\
-        .eq("user_id", user_id)\
-        .eq("tenant_id", hotel_id)\
-        .eq("is_active", True)\
-        .limit(1)\
+def _ensure_tenant_staff(
+    user_id: str, hotel_id: str, label: str = "Staff member"
+) -> None:
+    result = (
+        supabase.table("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("tenant_id", hotel_id)
+        .eq("is_active", True)
+        .limit(1)
         .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail=f"{label} not found")
 
@@ -49,15 +55,16 @@ def _validate_task_references(request: CreateTaskRequest, hotel_id: str) -> None
     if request.room_id:
         _ensure_tenant_row("rooms", str(request.room_id), hotel_id, "Room")
     if request.department_id:
-        _ensure_tenant_row("departments", str(request.department_id), hotel_id, "Department")
+        _ensure_tenant_row(
+            "departments", str(request.department_id), hotel_id, "Department"
+        )
     if request.assigned_to:
         _ensure_tenant_staff(str(request.assigned_to), hotel_id)
 
 
 @router.post("")
 async def create_task(
-    request: CreateTaskRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    request: CreateTaskRequest, current_user: CurrentUser = Depends(get_current_user)
 ):
     if request.use_ai and request.nl_input:
         # Defer to AI copilot for NL parsing — return preview
@@ -65,7 +72,7 @@ async def create_task(
             "data": {
                 "requires_ai_confirmation": True,
                 "nl_input": request.nl_input,
-                "message": "Use POST /ai/copilot/chat with use_ai=true for NL task creation"
+                "message": "Use POST /ai/copilot/chat with use_ai=true for NL task creation",
             }
         }
 
@@ -94,20 +101,26 @@ async def create_task(
 
 @router.get("")
 async def list_tasks(
-    status: Optional[str] = Query(None),
-    task_type: Optional[str] = Query(None),
-    priority: Optional[str] = Query(None),
+    status: Optional[
+        Literal["open", "in_progress", "completed", "cancelled", "escalated"]
+    ] = Query(None),
+    task_type: Optional[
+        Literal["housekeeping", "engineering", "guest_request", "lost_found", "general"]
+    ] = Query(None),
+    priority: Optional[Literal["urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
-    page: int = Query(1),
-    per_page: int = Query(20),
-    current_user: CurrentUser = Depends(get_current_user)
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
-    query = supabase.table("tasks")\
-        .select("*, rooms(room_number)")\
-        .eq("tenant_id", current_user.hotel_id)\
-        .order("created_at", desc=True)\
+    query = (
+        supabase.table("tasks")
+        .select("*, rooms(room_number)")
+        .eq("tenant_id", current_user.hotel_id)
+        .order("created_at", desc=True)
         .range((page - 1) * per_page, page * per_page - 1)
+    )
 
     if status:
         query = query.eq("status", status)
@@ -131,11 +144,13 @@ async def list_tasks(
 
 @router.get("/{task_id}")
 async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current_user)):
-    result = supabase.table("tasks")\
-        .select("*, rooms(room_number, floor), task_comments(*)")\
-        .eq("id", task_id)\
-        .eq("tenant_id", current_user.hotel_id)\
+    result = (
+        supabase.table("tasks")
+        .select("*, rooms(room_number, floor), task_comments(*)")
+        .eq("id", task_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail="Task not found")
     return {"data": result.data[0]}
@@ -145,7 +160,7 @@ async def get_task(task_id: str, current_user: CurrentUser = Depends(get_current
 async def update_task(
     task_id: str,
     request: UpdateTaskRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     raw_update = request.model_dump(exclude_none=True)
     notes = raw_update.pop("notes", None)
@@ -162,88 +177,108 @@ async def update_task(
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     if update_data:
-        result = supabase.table("tasks")\
-            .update(update_data)\
-            .eq("id", task_id)\
-            .eq("tenant_id", current_user.hotel_id)\
+        result = (
+            supabase.table("tasks")
+            .update(update_data)
+            .eq("id", task_id)
+            .eq("tenant_id", current_user.hotel_id)
             .execute()
+        )
     else:
-        result = supabase.table("tasks")\
-            .select("*")\
-            .eq("id", task_id)\
-            .eq("tenant_id", current_user.hotel_id)\
-            .maybe_single()\
+        result = (
+            supabase.table("tasks")
+            .select("*")
+            .eq("id", task_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .maybe_single()
             .execute()
+        )
 
-    task = result.data[0] if isinstance(result.data, list) and result.data else result.data
+    task = (
+        result.data[0] if isinstance(result.data, list) and result.data else result.data
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     if isinstance(notes, str) and notes.strip():
-        supabase.table("task_comments").insert({
-            "task_id": task_id,
-            "tenant_id": current_user.hotel_id,
-            "user_id": current_user.user_id,
-            "comment": notes.strip(),
-        }).execute()
+        supabase.table("task_comments").insert(
+            {
+                "task_id": task_id,
+                "tenant_id": current_user.hotel_id,
+                "user_id": current_user.user_id,
+                "comment": notes.strip(),
+            }
+        ).execute()
 
     return {"data": task}
 
 
 @router.delete("/{task_id}", status_code=204)
 async def delete_task(
-    task_id: str,
-    current_user: CurrentUser = Depends(get_current_user)
+    task_id: str, current_user: CurrentUser = Depends(get_current_user)
 ):
-    result = supabase.table("tasks") \
-        .delete() \
-        .eq("id", task_id) \
-        .eq("tenant_id", current_user.hotel_id) \
+    result = (
+        supabase.table("tasks")
+        .delete()
+        .eq("id", task_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail="Task not found")
     # Belt-and-suspenders: delete orphaned comments if cascade FK not set
-    supabase.table("task_comments") \
-        .delete() \
-        .eq("task_id", task_id) \
-        .execute()
+    supabase.table("task_comments").delete().eq("task_id", task_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
 
 
 @router.post("/{task_id}/comments")
 async def add_task_comment(
     task_id: str,
-    comment: str = Query(...),
-    current_user: CurrentUser = Depends(get_current_user)
+    comment: str = Query(..., min_length=1, max_length=2000),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
-    task = supabase.table("tasks")\
-        .select("id")\
-        .eq("id", task_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
+    task = (
+        supabase.table("tasks")
+        .select("id")
+        .eq("id", task_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not task.data:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    result = supabase.table("task_comments").insert({
-        "task_id": task_id,
-        "tenant_id": current_user.hotel_id,
-        "user_id": current_user.user_id,
-        "comment": comment,
-    }).execute()
+    result = (
+        supabase.table("task_comments")
+        .insert(
+            {
+                "task_id": task_id,
+                "tenant_id": current_user.hotel_id,
+                "user_id": current_user.user_id,
+                "comment": comment,
+            }
+        )
+        .execute()
+    )
     return {"data": result.data[0] if result.data else None}
 
 
 @router.post("/batch")
 async def batch_create_tasks(
-    tasks: list[dict],
-    current_user: CurrentUser = Depends(get_current_user)
+    tasks: list[dict], current_user: CurrentUser = Depends(get_current_user)
 ):
     """Batch create multiple tasks (used after AI copilot confirmation)."""
     sla = {"urgent": 60, "normal": 240, "low": 480}
     created = []
     for t in tasks:
         priority = t.get("priority", "normal")
-        due_at = t.get("due_at") or (datetime.now(timezone.utc) + timedelta(minutes=sla.get(priority, 240))).isoformat()
+        due_at = (
+            t.get("due_at")
+            or (
+                datetime.now(timezone.utc) + timedelta(minutes=sla.get(priority, 240))
+            ).isoformat()
+        )
         row = {
             "tenant_id": current_user.hotel_id,
             "title": t["title"],

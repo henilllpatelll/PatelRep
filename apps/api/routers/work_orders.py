@@ -1,9 +1,14 @@
 import asyncio
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CreateWorkOrderRequest, CompleteWorkOrderRequest, UpdateWorkOrderRequest, AddCommentRequest
+from models.requests import (
+    CreateWorkOrderRequest,
+    CompleteWorkOrderRequest,
+    UpdateWorkOrderRequest,
+    AddCommentRequest,
+)
 from core.database import supabase
 from datetime import datetime, timedelta, timezone
 
@@ -12,7 +17,9 @@ router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
 
 
-def _ensure_engineer_can_update_work_order(current_user: CurrentUser, work_order: dict, update_data: dict | None = None) -> None:
+def _ensure_engineer_can_update_work_order(
+    current_user: CurrentUser, work_order: dict, update_data: dict | None = None
+) -> None:
     if current_user.role != "engineer":
         return
 
@@ -21,41 +28,67 @@ def _ensure_engineer_can_update_work_order(current_user: CurrentUser, work_order
     is_claimable = assigned_to is None and work_order.get("status") == "open"
 
     if not (is_assigned_to_me or is_claimable):
-        raise HTTPException(status_code=403, detail="Engineers can only update assigned or unassigned open work orders")
+        raise HTTPException(
+            status_code=403,
+            detail="Engineers can only update assigned or unassigned open work orders",
+        )
 
-    if update_data and "assigned_to" in update_data and update_data["assigned_to"] != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Engineers cannot reassign work orders to another user")
+    if (
+        update_data
+        and "assigned_to" in update_data
+        and update_data["assigned_to"] != current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Engineers cannot reassign work orders to another user",
+        )
 
 
-def _ensure_engineer_can_complete_work_order(current_user: CurrentUser, work_order: dict) -> None:
-    if current_user.role == "engineer" and work_order.get("assigned_to") != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Engineers can only complete work orders assigned to them")
+def _ensure_engineer_can_complete_work_order(
+    current_user: CurrentUser, work_order: dict
+) -> None:
+    if (
+        current_user.role == "engineer"
+        and work_order.get("assigned_to") != current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Engineers can only complete work orders assigned to them",
+        )
 
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:
-    result = supabase.table(table)\
-        .select("id")\
-        .eq("id", row_id)\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
+    result = (
+        supabase.table(table)
+        .select("id")
+        .eq("id", row_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not result or not result.data:
         raise HTTPException(status_code=404, detail=f"{label} not found")
 
 
-def _ensure_tenant_staff(user_id: str, hotel_id: str, label: str = "Staff member") -> None:
-    result = supabase.table("user_roles")\
-        .select("id")\
-        .eq("user_id", user_id)\
-        .eq("tenant_id", hotel_id)\
-        .eq("is_active", True)\
-        .limit(1)\
+def _ensure_tenant_staff(
+    user_id: str, hotel_id: str, label: str = "Staff member"
+) -> None:
+    result = (
+        supabase.table("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("tenant_id", hotel_id)
+        .eq("is_active", True)
+        .limit(1)
         .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail=f"{label} not found")
 
 
-def _validate_work_order_references(request: CreateWorkOrderRequest, hotel_id: str) -> None:
+def _validate_work_order_references(
+    request: CreateWorkOrderRequest, hotel_id: str
+) -> None:
     if request.room_id:
         _ensure_tenant_row("rooms", str(request.room_id), hotel_id, "Room")
     if request.asset_id:
@@ -67,7 +100,7 @@ def _validate_work_order_references(request: CreateWorkOrderRequest, hotel_id: s
 @router.post("")
 async def create_work_order(
     request: CreateWorkOrderRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     sla = SLA_MINUTES.get(request.priority, 240)
     due_at = datetime.now(timezone.utc) + timedelta(minutes=sla)
@@ -94,13 +127,26 @@ async def create_work_order(
 
 @router.get("")
 async def list_work_orders(
-    status: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-    priority: Optional[str] = Query(None),
+    status: Optional[
+        Literal["open", "in_progress", "on_hold", "completed", "cancelled"]
+    ] = Query(None),
+    category: Optional[
+        Literal[
+            "plumbing",
+            "electrical",
+            "hvac",
+            "furniture",
+            "appliance",
+            "structural",
+            "safety",
+            "general",
+        ]
+    ] = Query(None),
+    priority: Optional[Literal["urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
-    page: int = Query(1),
-    per_page: int = Query(20),
-    current_user: CurrentUser = Depends(get_current_user)
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     if current_user.role == "engineer":
         # OR-filter (assigned_to=me OR assigned_to IS NULL) forces a seq-scan.
@@ -108,11 +154,13 @@ async def list_work_orders(
         fetch_up_to = page * per_page  # enough rows to slice the requested page
 
         def _base():
-            q = supabase.table("work_orders") \
-                .select("*, rooms(room_number), assets(name)") \
-                .eq("tenant_id", current_user.hotel_id) \
-                .order("created_at", desc=True) \
+            q = (
+                supabase.table("work_orders")
+                .select("*, rooms(room_number), assets(name)")
+                .eq("tenant_id", current_user.hotel_id)
+                .order("created_at", desc=True)
                 .range(0, fetch_up_to - 1)
+            )
             if status:
                 q = q.eq("status", status)
             if category:
@@ -133,13 +181,18 @@ async def list_work_orders(
         merged.sort(key=lambda r: r["created_at"], reverse=True)
 
         start = (page - 1) * per_page
-        return {"data": merged[start: start + per_page], "meta": {"page": page, "per_page": per_page}}
+        return {
+            "data": merged[start : start + per_page],
+            "meta": {"page": page, "per_page": per_page},
+        }
 
-    query = supabase.table("work_orders") \
-        .select("*, rooms(room_number), assets(name)") \
-        .eq("tenant_id", current_user.hotel_id) \
-        .order("created_at", desc=True) \
+    query = (
+        supabase.table("work_orders")
+        .select("*, rooms(room_number), assets(name)")
+        .eq("tenant_id", current_user.hotel_id)
+        .order("created_at", desc=True)
         .range((page - 1) * per_page, page * per_page - 1)
+    )
 
     if status:
         query = query.eq("status", status)
@@ -155,12 +208,18 @@ async def list_work_orders(
 
 
 @router.get("/{wo_id}")
-async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_current_user)):
-    result = supabase.table("work_orders")\
-        .select("*, rooms(room_number, floor), assets(*), work_order_photos(*), work_order_comments(*)")\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
+async def get_work_order(
+    wo_id: str, current_user: CurrentUser = Depends(get_current_user)
+):
+    result = (
+        supabase.table("work_orders")
+        .select(
+            "*, rooms(room_number, floor), assets(*), work_order_photos(*), work_order_comments(*)"
+        )
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     return {"data": result.data[0]}
@@ -169,24 +228,30 @@ async def get_work_order(wo_id: str, current_user: CurrentUser = Depends(get_cur
 async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> None:
     """Fire-and-forget push notification to engineer on work order assignment."""
     try:
-        profile = supabase.table("user_profiles")\
-            .select("expo_push_token")\
-            .eq("id", engineer_id)\
-            .maybe_single().execute()
+        profile = (
+            supabase.table("user_profiles")
+            .select("expo_push_token")
+            .eq("id", engineer_id)
+            .maybe_single()
+            .execute()
+        )
         token = (profile.data or {}).get("expo_push_token")
         if not token:
             return
         async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post("https://exp.host/--/api/v2/push/send", json={
-                "to": token,
-                "title": "Work Order Assigned",
-                "body": title,
-                "data": {
-                    "type": "wo_assignment",
-                    "url": f"/(app)/work-orders/{wo_id}",
-                    "wo_id": wo_id,
+            await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json={
+                    "to": token,
+                    "title": "Work Order Assigned",
+                    "body": title,
+                    "data": {
+                        "type": "wo_assignment",
+                        "url": f"/(app)/work-orders/{wo_id}",
+                        "wo_id": wo_id,
+                    },
                 },
-            })
+            )
     except Exception:
         pass  # Never block claim response on push failure
 
@@ -194,31 +259,43 @@ async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> 
 @router.post("/{wo_id}/claim")
 async def claim_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
 ):
-    wo_check = supabase.table("work_orders")\
-        .select("id, status")\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id, status")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     if wo_check.data["status"] != "open":
         raise HTTPException(status_code=409, detail="Work order is no longer open")
 
-    result = supabase.table("work_orders")\
-        .update({"assigned_to": current_user.user_id, "status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()})\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
+    result = (
+        supabase.table("work_orders")
+        .update(
+            {
+                "assigned_to": current_user.user_id,
+                "status": "in_progress",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     wo = result.data[0] if result.data else None
     if wo:
-        asyncio.create_task(_send_wo_assignment_push(
-            current_user.user_id,
-            wo_id,
-            wo.get("title", "Work order assigned")
-        ))
+        asyncio.create_task(
+            _send_wo_assignment_push(
+                current_user.user_id, wo_id, wo.get("title", "Work order assigned")
+            )
+        )
     return {"data": wo}
 
 
@@ -226,29 +303,37 @@ async def claim_work_order(
 async def complete_work_order(
     wo_id: str,
     request: CompleteWorkOrderRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
 ):
-    wo_check = supabase.table("work_orders")\
-        .select("id, assigned_to")\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id, assigned_to")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     _ensure_engineer_can_complete_work_order(current_user, wo_check.data)
 
-    result = supabase.table("work_orders")\
-        .update({
-            "status": "completed",
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-            "notes": request.notes,
-            "labor_hours": request.labor_hours,
-            "parts_used": request.parts_used,
-        })\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
+    result = (
+        supabase.table("work_orders")
+        .update(
+            {
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "notes": request.notes,
+                "labor_hours": request.labor_hours,
+                "parts_used": request.parts_used,
+            }
+        )
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     return {"data": result.data[0] if result.data else None}
 
 
@@ -256,17 +341,26 @@ async def complete_work_order(
 async def update_work_order(
     wo_id: str,
     request: UpdateWorkOrderRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
 ):
-    if request.status == "cancelled" and current_user.role not in ("gm", "chief_engineer"):
-        raise HTTPException(status_code=403, detail="Only GM or Chief Engineer can cancel work orders")
+    if request.status == "cancelled" and current_user.role not in (
+        "gm",
+        "chief_engineer",
+    ):
+        raise HTTPException(
+            status_code=403, detail="Only GM or Chief Engineer can cancel work orders"
+        )
 
-    wo_check = supabase.table("work_orders")\
-        .select("id, assigned_to, status")\
-        .eq("id", wo_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .maybe_single()\
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id, assigned_to, status")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not (wo_check and wo_check.data):
         raise HTTPException(status_code=404, detail="Work order not found")
 
@@ -276,66 +370,81 @@ async def update_work_order(
         _ensure_tenant_staff(update_data["assigned_to"], current_user.hotel_id)
     if "room_id" in update_data:
         update_data["room_id"] = str(update_data["room_id"])
-        _ensure_tenant_row("rooms", update_data["room_id"], current_user.hotel_id, "Room")
+        _ensure_tenant_row(
+            "rooms", update_data["room_id"], current_user.hotel_id, "Room"
+        )
     if "asset_id" in update_data:
         update_data["asset_id"] = str(update_data["asset_id"])
-        _ensure_tenant_row("assets", update_data["asset_id"], current_user.hotel_id, "Asset")
+        _ensure_tenant_row(
+            "assets", update_data["asset_id"], current_user.hotel_id, "Asset"
+        )
     _ensure_engineer_can_update_work_order(current_user, wo_check.data, update_data)
 
-    result = supabase.table("work_orders") \
-        .update(update_data) \
-        .eq("id", wo_id) \
-        .eq("tenant_id", current_user.hotel_id) \
+    result = (
+        supabase.table("work_orders")
+        .update(update_data)
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
         .execute()
+    )
     return {"data": result.data[0] if result.data else None}
 
 
 @router.delete("/{wo_id}", status_code=204)
 async def delete_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
 ):
-    wo_check = supabase.table("work_orders") \
-        .select("id") \
-        .eq("id", wo_id) \
-        .eq("tenant_id", current_user.hotel_id) \
-        .maybe_single() \
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
         .execute()
+    )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
 
-    supabase.table("work_order_comments") \
-        .delete() \
-        .eq("work_order_id", wo_id) \
-        .execute()
-    supabase.table("work_order_photos") \
-        .delete() \
-        .eq("work_order_id", wo_id) \
-        .execute()
-    supabase.table("work_orders") \
-        .delete() \
-        .eq("id", wo_id) \
-        .eq("tenant_id", current_user.hotel_id) \
-        .execute()
+    supabase.table("work_order_comments").delete().eq("work_order_id", wo_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
+    supabase.table("work_order_photos").delete().eq("work_order_id", wo_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
+    supabase.table("work_orders").delete().eq("id", wo_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
 
 
 @router.post("/{wo_id}/comments")
 async def add_comment(
     wo_id: str,
     request: AddCommentRequest,
-    current_user: CurrentUser = Depends(get_current_user)
+    current_user: CurrentUser = Depends(get_current_user),
 ):
-    wo_check = supabase.table("work_orders").select("id")\
-        .eq("id", wo_id).eq("tenant_id", current_user.hotel_id)\
-        .maybe_single().execute()
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
     if not wo_check or not wo_check.data:
         raise HTTPException(status_code=404, detail="Work order not found")
 
-    result = supabase.table("work_order_comments").insert({
-        "work_order_id": wo_id,
-        "tenant_id": current_user.hotel_id,
-        "user_id": current_user.user_id,
-        "comment": request.comment,
-        "is_system": False,
-    }).execute()
+    result = (
+        supabase.table("work_order_comments")
+        .insert(
+            {
+                "work_order_id": wo_id,
+                "tenant_id": current_user.hotel_id,
+                "user_id": current_user.user_id,
+                "comment": request.comment,
+                "is_system": False,
+            }
+        )
+        .execute()
+    )
     return {"data": result.data[0] if result.data else None}

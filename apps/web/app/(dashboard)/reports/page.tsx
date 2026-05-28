@@ -74,7 +74,7 @@ const STATUS_BG: Record<string, string> = {
   IN_PROGRESS: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]',
   CLEAN: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]',
   INSPECTED: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]',
-  OOO: 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)]',
+  OOO: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]',
   PICKUP: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
 }
 

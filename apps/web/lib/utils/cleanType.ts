@@ -28,6 +28,21 @@ export function getCleanTypeShortLabel(cleanType?: string | null): string | null
   return CLEAN_TYPE_SHORT_LABELS[cleanType as CleanType] ?? cleanType
 }
 
+export function getCleanAwareStatusLabel(
+  statusLabel: string,
+  cleanType?: string | null,
+  status?: string | null,
+): string {
+  const cleanTypeLabel = getCleanTypeShortLabel(cleanType)
+  if (!cleanTypeLabel) return statusLabel
+
+  if (status === 'PICKUP' && (cleanType === 'FULL' || cleanType === 'LIGHT')) {
+    return `${statusLabel} - ${cleanTypeLabel}`
+  }
+
+  return statusLabel
+}
+
 export function getRoomStatusForCleanType(cleanType?: string | null): 'DIRTY' | 'PICKUP' {
   return cleanType === 'FULL' || cleanType === 'LIGHT' ? 'PICKUP' : 'DIRTY'
 }
@@ -35,7 +50,9 @@ export function getRoomStatusForCleanType(cleanType?: string | null): 'DIRTY' | 
 export function getEffectiveRoomStatusForCleanType(
   status?: string | null,
   cleanType?: string | null,
+  foStatus?: string | null,
 ): string | null | undefined {
   if ((status !== 'DIRTY' && status !== 'PICKUP') || !cleanType) return status
+  if (cleanType === 'DEP' && foStatus === 'OCC') return 'OCCUPIED'
   return getRoomStatusForCleanType(cleanType)
 }

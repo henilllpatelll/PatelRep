@@ -2,7 +2,12 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 00:00 | Security hardening — IDOR/XSS/CSRF/SQLi audit: 7 fixes across tasks.py, work_orders.py, guest_requests.py, notifications.py, staff.py, logbook.py, next.config.mjs | bugs 197-200 | complete | ~4k tok |
+| 00:00 | Opera PDF import — 044_fo_status.sql, services/opera_pdf.py, two new housekeeping endpoints, TS client funcs, OccupancyImportModal, assignments page Import button | 6 files | complete | ~6k tok |
+| session | Task sheet display fix: RoomCard + HousekeeperRoomItem now show "Pickup - Full"/"Pickup - Light" in the primary pill; assignments page room chips show clean type; DEP treatment unchanged | RoomCard.tsx, housekeeping/page.tsx, assignments/page.tsx | complete | ~2k tok |
+| session | Middleware/security hardening: CORS explicit methods+headers+expose_headers, removed redundant CORSFallbackMiddleware, fixed Starlette LIFO pipeline order, CSP env-gated unsafe-eval, added object-src/base-uri/form-action, HSTS+COOP on web, getUser() in proxy.ts | apps/api/main.py, apps/web/next.config.mjs, apps/web/proxy.ts | complete | ~3k tok |
 | 00:00 | Fixed Lost & Found photo uploads (bug-184): uploads silently failed via anon Supabase client; routed through new backend POST /lost-found/upload-photo using service role key | lost_found.py, LogFoundItemModal.tsx, FoundItemModal.tsx, lostFound.ts (mobile+web) | complete | ~3k tok |
+| 00:00 | Merged Guest Requests into Tasks page: extracted GuestRequestsPanel.tsx, added source switcher tabs to tasks/page.tsx, removed /guest-requests from sidebar, added redirect in guest-requests/page.tsx | tasks/page.tsx, GuestRequestsPanel.tsx, Sidebar.tsx, guest-requests/page.tsx | complete | ~4k tok |
 | 02:55 | Lost & Found web photo upload: photo_url to LostFoundItem type + createItem payload, uploadItemPhoto helper, file picker + preview in LogItemModal, photo thumbnail in ItemCard | lost-found/page.tsx, lost_found.ts | complete | ~1k tok |
 | 14:30 | GM room status override in settings: inline status select with force=true, bypass transition rules in rooms.py, added OCCUPIED to request Literal | settings/rooms/page.tsx, rooms.py, requests.py, rooms.ts | complete | ~800 tok |
 | 02:40 | Lost & Found mobile upload: migration 042 (storage bucket), API photo_url field, FoundItemModal.tsx (camera+gallery+Supabase storage), Found Item button in [roomId].tsx, i18n en+es | 8 files | complete | ~3k tok |
@@ -2401,3 +2406,233 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 19:50 | Edited apps/web/components/shared/LogFoundItemModal.tsx | modified if() | ~204 |
 | 19:57 | Session end: 12 writes across 5 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 11 reads | ~16733 tok |
 | 19:57 | Session end: 12 writes across 5 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 11 reads | ~16733 tok |
+| 20:16 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 32 → 52 | ~37 |
+| 20:16 | Session end: 13 writes across 6 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 11 reads | ~16770 tok |
+| 20:25 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | 8→9 lines | ~53 |
+| 20:25 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | modified DeleteConfirmDialog() | ~47 |
+| 20:25 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | 2→2 lines | ~28 |
+| 20:26 | Created apps/web/app/(dashboard)/lost-found/page.tsx | — | ~4385 |
+| 20:26 | Session end: 17 writes across 7 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~21283 tok |
+| 20:30 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | removed 6 lines | ~1 |
+| 20:30 | Session end: 18 writes across 7 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~17203 tok |
+| 20:40 | Edited apps/web/components/shared/LogFoundItemModal.tsx | reduced (-16 lines) | ~392 |
+| 20:41 | Edited apps/web/components/shared/LogFoundItemModal.tsx | 3→2 lines | ~45 |
+| 20:41 | Edited apps/web/components/shared/LogFoundItemModal.tsx | 3→2 lines | ~25 |
+| 20:41 | Edited apps/web/components/shared/LogFoundItemModal.tsx | 3→2 lines | ~24 |
+| 20:41 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 6→2 lines | ~26 |
+| 20:41 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 8→4 lines | ~50 |
+| 20:41 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 12→8 lines | ~251 |
+| 20:41 | Session end: 26 writes across 7 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~17760 tok |
+| 20:47 | Session end: 26 writes across 7 files (lost_found.py, lost_found.ts, LogFoundItemModal.tsx, lostFound.ts, FoundItemModal.tsx) | 12 reads | ~17760 tok |
+
+## Session: 2026-05-28 20:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:04 | Created apps/web/components/shared/GuestRequestsPanel.tsx | — | ~7860 |
+| 21:04 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 import(s) | ~153 |
+| 21:04 | Edited apps/web/app/(dashboard)/tasks/page.tsx | modified TasksPageContent() | ~120 |
+| 21:04 | Edited apps/web/app/(dashboard)/tasks/page.tsx | CSS: s | ~165 |
+| 21:04 | Edited apps/web/app/(dashboard)/tasks/page.tsx | CSS: hover, hover | ~410 |
+| 21:06 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 207→205 lines | ~3170 |
+| 21:06 | Edited apps/web/components/shared/Sidebar.tsx | 5→5 lines | ~49 |
+| 21:06 | Edited apps/web/components/shared/Sidebar.tsx | 2→1 lines | ~20 |
+| 21:06 | Edited apps/web/components/shared/Sidebar.tsx | 6→6 lines | ~164 |
+| 21:06 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~27 |
+| 21:06 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~36 |
+| 21:06 | Created apps/web/app/(dashboard)/guest-requests/page.tsx | — | ~39 |
+| 21:07 | Edited apps/web/components/shared/GuestRequestsPanel.tsx | 2→2 lines | ~46 |
+| 21:07 | Edited apps/web/components/shared/GuestRequestsPanel.tsx | 6→6 lines | ~149 |
+| 21:08 | Session end: 14 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~29070 tok |
+| 21:22 | Session end: 14 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~29070 tok |
+| 21:25 | Session end: 14 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~29070 tok |
+| 21:27 | Session end: 14 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~29070 tok |
+| 21:32 | Created apps/web/app/(dashboard)/tasks/page.tsx | — | ~10123 |
+| 21:33 | Session end: 15 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~39193 tok |
+| 22:03 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 23→23 lines | ~570 |
+| 22:03 | Session end: 16 writes across 3 files (GuestRequestsPanel.tsx, page.tsx, Sidebar.tsx) | 3 reads | ~39763 tok |
+
+## Session: 2026-05-28 01:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:48 | Edited apps/api/routers/tasks.py | 5→6 lines | ~67 |
+| 01:48 | Edited apps/api/routers/work_orders.py | 8→10 lines | ~97 |
+| 01:48 | Edited apps/api/routers/guest_requests.py | 5→6 lines | ~56 |
+| 01:48 | Edited apps/api/routers/notifications.py | 5→6 lines | ~64 |
+| 01:48 | Edited apps/api/routers/staff.py | expanded (+8 lines) | ~151 |
+| 01:48 | Edited apps/web/next.config.mjs | modified headers() | ~307 |
+| 01:48 | Edited apps/api/routers/logbook.py | inline fix | ~22 |
+| 01:50 | Session end: 7 writes across 7 files (tasks.py, work_orders.py, guest_requests.py, notifications.py, staff.py) | 27 reads | ~18300 tok |
+
+## Session: 2026-05-28 01:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-28 01:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:55 | Edited apps/api/main.py | modified lifespan() | ~1160 |
+| 01:55 | Edited apps/api/main.py | modified _cors_headers_for() | ~191 |
+| 01:55 | Edited apps/web/next.config.mjs | added 1 condition(s) | ~541 |
+| 01:55 | Edited apps/web/proxy.ts | 5→9 lines | ~146 |
+| 01:56 | Session end: 4 writes across 3 files (main.py, next.config.mjs, proxy.ts) | 1 reads | ~4321 tok |
+## Session: 2026-05-28 02:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:02 | Implemented API input validation/sanitization and Supabase client lifecycle cleanup | apps/api/models/requests.py, apps/api/core/database.py, apps/api/core/config.py, apps/api/routers/lost_found.py, apps/api/routers/tasks.py, apps/api/routers/work_orders.py | Shared sanitized request base, query/upload bounds, singleton client options, and shutdown close added | ~2600 |
+| 02:02 | Added performance index migration and focused tests | supabase/migrations/043_input_validation_and_pooling_indexes.sql, apps/api/tests/smoke/test_input_validation.py, test_database_pooling.py, test_index_migration.py | 8 focused tests passed; full API test suite and static gates passed | ~900 |
+
+## Session: 2026-05-28 07:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-28 08:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:12 | Created supabase/migrations/044_fo_status.sql | — | ~47 |
+| 08:14 | Created apps/api/services/opera_pdf.py | — | ~3040 |
+| 08:14 | Edited apps/api/routers/housekeeping.py | added 1 import(s) | ~151 |
+| 08:14 | Edited apps/api/routers/housekeeping.py | modified delete_inspection_template() | ~1997 |
+| 08:15 | Edited apps/web/lib/api/housekeeping.ts | expanded (+18 lines) | ~212 |
+| 08:15 | Created apps/web/components/housekeeping/OccupancyImportModal.tsx | — | ~2623 |
+| 08:15 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | added 1 import(s) | ~131 |
+| 08:16 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 4→5 lines | ~92 |
+| 08:16 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | expanded (+16 lines) | ~393 |
+| 08:18 | Session end: 9 writes across 6 files (044_fo_status.sql, opera_pdf.py, housekeeping.py, housekeeping.ts, OccupancyImportModal.tsx) | 4 reads | ~26763 tok |
+| 08:57 | Edited apps/web/lib/api/housekeeping.ts | 17→13 lines | ~141 |
+| 08:57 | Session end: 10 writes across 6 files (044_fo_status.sql, opera_pdf.py, housekeeping.py, housekeeping.ts, OccupancyImportModal.tsx) | 5 reads | ~26904 tok |
+| 09:10 | Created apps/api/_reload_trigger.py | — | ~10 |
+| 09:11 | Session end: 11 writes across 7 files (044_fo_status.sql, opera_pdf.py, housekeeping.py, housekeeping.ts, OccupancyImportModal.tsx) | 7 reads | ~32290 tok |
+| 09:18 | Session end: 11 writes across 7 files (044_fo_status.sql, opera_pdf.py, housekeeping.py, housekeeping.ts, OccupancyImportModal.tsx) | 8 reads | ~32290 tok |
+| 09:27 | Created apps/api/services/opera_pdf.py | — | ~2368 |
+| 09:28 | Session end: 12 writes across 7 files (044_fo_status.sql, opera_pdf.py, housekeeping.py, housekeeping.ts, OccupancyImportModal.tsx) | 8 reads | ~34658 tok |
+
+## Session: 2026-05-28 09:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:37 | Edited apps/api/routers/housekeeping.py | 40→40 lines | ~371 |
+| 09:38 | Edited apps/api/routers/housekeeping.py | modified in() | ~698 |
+| 09:41 | Edited apps/api/routers/housekeeping.py | reduced (-6 lines) | ~117 |
+| 09:51 | Session end: 3 writes across 1 files (housekeeping.py) | 13 reads | ~24625 tok |
+| 09:54 | Session end: 3 writes across 1 files (housekeeping.py) | 13 reads | ~24625 tok |
+| 09:54 | Session end: 3 writes across 1 files (housekeeping.py) | 13 reads | ~24625 tok |
+
+## Session: 2026-05-28 09:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:02 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 4→5 lines | ~89 |
+| 10:02 | Session end: 1 writes across 1 files (RoomStatusBoard.tsx) | 3 reads | ~8387 tok |
+| 10:03 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~20 |
+| 10:03 | Session end: 2 writes across 1 files (RoomStatusBoard.tsx) | 3 reads | ~8407 tok |
+| 10:05 | Edited apps/api/routers/housekeeping.py | expanded (+6 lines) | ~103 |
+| 10:05 | Session end: 3 writes across 2 files (RoomStatusBoard.tsx, housekeeping.py) | 5 reads | ~23326 tok |
+| 10:08 | Session end: 3 writes across 2 files (RoomStatusBoard.tsx, housekeeping.py) | 5 reads | ~23326 tok |
+| 10:09 | Created supabase/migrations/045_occupied_dirty_status.sql | — | ~109 |
+| 10:09 | Session end: 4 writes across 3 files (RoomStatusBoard.tsx, housekeeping.py, 045_occupied_dirty_status.sql) | 6 reads | ~23853 tok |
+| 10:21 | Session end: 4 writes across 3 files (RoomStatusBoard.tsx, housekeeping.py, 045_occupied_dirty_status.sql) | 8 reads | ~23901 tok |
+
+## Session: 2026-05-28 10:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:41 | Answered checkout notification and departure checkout-time design questions | apps/api/services/opera/webhooks.py, apps/api/routers/housekeeping.py, supabase/migrations/004_rooms.sql | Found existing Opera checkout hooks, checkout_time field, realtime board, and push-token plumbing; recommended preserving scheduled checkout and adding actual checkout timestamp | ~2200 |
+| 10:48 | Reframed checkout notifications for manual-entry workflow while Opera API credentials are pending | product workflow | Recommended front desk/supervisor "Mark checked out" action as notification source of truth | ~600 |
+| 11:01 | Implemented manual checkout and departure checkout times | rooms.py, requests.py, housekeeping.py, RoomDetailDrawer.tsx, RoomCard.tsx, mobile my-rooms, migration 046 | Added POST /rooms/{room_id}/checkout, actual_checkout_at schema, assigned housekeeper notifications, due/out time display, and focused tests | ~5200 |
+| 10:49 | Added failing regression for room-card note filtering | apps/api/tests/smoke/test_housekeeping_assignments.py | Confirmed current board picked a next-day note before the fix | ~900 |
+| 10:50 | Scoped room-card notes to same-day staff note-only history | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_housekeeping_assignments.py | Focused test, full housekeeping assignment smoke tests, ruff, and full API pytest passed | ~1400 |
+| 10:50 | Fixed verification blockers found during final API suite | apps/api/routers/housekeeping.py, apps/api/routers/rooms.py | Replaced zoneinfo with dateutil for Windows tests and snapshot manual-checkout pre-update values; full API pytest passed 182/182 | ~900 |
+| 11:21 | Fixed remaining room-card status-note leak | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_housekeeping_assignments.py, apps/web/components/housekeeping/RoomCard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx | Added regression for malformed history rows and removed card fallback to maintenance_note; API tests/type-check/touched-file ESLint passed | ~1000 |
+| 11:35 | Verified local housekeeping room cards after restarting stale services | localhost:3000, localhost:8003 | Fresh authenticated check showed rooms 102 and 119 no longer display undo/realtime validation bottom-card notes; no API errors | ~600 |
+| 12:00 | Fixed Opera task-sheet departure and pickup board filters | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_housekeeping_assignments.py, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/stores/housekeepingStore.ts, apps/web/lib/utils/housekeepingBoardFilters.ts | DEP+OCC imports now stay Occupied Dirty, Departure/Full/Light chips added to room board, focused and full API/web checks passed except known unrelated full-lint blocker | ~1800 |
+| 12:25 | Fixed imported clean type display on room cards | apps/api/routers/housekeeping.py, apps/api/services/housekeeping_assignments.py, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/housekeeping/page.tsx, apps/web/lib/utils/cleanType.ts, supabase/migrations/047_room_status_clean_type.sql | Persisted Task Sheet clean_type on room_status for unassigned rooms; board cards now normalize OCC+DEP to Occupied with departure label and FULL/LIGHT to pickup labels; full API tests, web type-check/build, and scoped lint passed | ~1700 |
+| 12:50 | Checked local room-board deployment and added pre-migration compatibility | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_housekeeping_assignments.py, apps/web/lib/utils/housekeepingBoardFilters.ts, apps/web/lib/utils/housekeepingBoardFilters.test.ts | Local services restarted on 3000/8003; linked Supabase still lacks room_status.clean_type and needs migration 047 with SUPABASE_DB_PASSWORD, while API now retries missing-column writes and frontend infers legacy DIRTY+OCC as Departure/Occupied | ~1100 |
+| 13:05 | Reconfirmed local Task Sheet room-board fixes | localhost:3000, localhost:8003, focused API/web checks | Local services are live, schema migration remains blocked by missing SUPABASE_DB_PASSWORD, and behavior tests/build/type/scoped lint all pass | ~700 |
+| 13:45 | Completed PDF Full/Light persistence without room_status.clean_type migration | housekeeping.py, test_housekeeping_assignments.py, cleanType.ts, housekeepingBoardFilters.test.ts | Import now records task_sheet_clean_type markers in status history; board API returns Pickup rows with FULL/LIGHT from May 28 PDF; departure primary label restored; full API tests and web build passed | ~1200 |
+| 13:31 | Edited apps/api/routers/housekeeping.py | expanded (+11 lines) | ~307 |
+| 13:32 | Changed OOO/OOS away from orange/red-adjacent status styling | apps/web/app/globals.css, primitives.tsx, Badge.tsx, RoomCard.tsx, RoomDetailDrawer.tsx, housekeeping page, reports, dashboard tiles, roomStatus.ts | Added blocked status tokens and applied them across room board cards, pills, dots, drawers, reports, assignment badges, live ops bars, and mini-grid legends; type-check/build/scoped lint passed | ~900 |
+| 13:40 | Restored prominent orange OOO/OOS styling | apps/web/app/globals.css, apps/web/components/housekeeping/RoomCard.tsx, apps/web/lib/utils/roomStatus.ts | Kept OOO/OOS orange per user preference, using vivid orange tokens plus stronger card border, subtle ring, and thicker strip for differentiation from red | ~450 |
+| 13:50 | Reverted OOO/OOS to simple gray treatment | apps/web/app/globals.css, apps/web/components/housekeeping/RoomCard.tsx, apps/web/lib/utils/roomStatus.ts | OOO/OOS now uses gray/stone tokens with original simple border and 3px strip, no extra ring or orange emphasis | ~400 |
+| 13:32 | Edited apps/api/routers/housekeeping.py | modified str() | ~389 |
+| 13:32 | Edited apps/web/stores/housekeepingStore.ts | 4→3 lines | ~41 |
+| 13:32 | Edited apps/web/stores/housekeepingStore.ts | 5→3 lines | ~30 |
+| 13:32 | Edited apps/web/stores/housekeepingStore.ts | 6→5 lines | ~76 |
+| 13:32 | Edited apps/web/stores/housekeepingStore.ts | 5→3 lines | ~22 |
+| 13:32 | Edited apps/web/stores/housekeepingStore.ts | reduced (-9 lines) | ~218 |
+| 13:32 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 5→4 lines | ~30 |
+| 13:32 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | modified HousekeeperBar() | ~69 |
+| 13:32 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 12→11 lines | ~116 |
+| 13:32 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | — | ~0 |
+| 13:33 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 13→11 lines | ~62 |
+| 13:33 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 10→8 lines | ~78 |
+| 13:33 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 8→7 lines | ~37 |
+| 13:33 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 8→4 lines | ~37 |
+| 13:33 | Removed clean type picker from assignment sidebar | housekeepingStore.ts, housekeeping/page.tsx, RoomStatusBoard.tsx, housekeeping.py | Assignments now only pick housekeeper; clean_type preserved from PDF import | ~800 |
+| 13:34 | Session end: 15 writes across 4 files (housekeeping.py, housekeepingStore.ts, page.tsx, RoomStatusBoard.tsx) | 11 reads | ~42087 tok |
+| 13:35 | Session end: 15 writes across 4 files (housekeeping.py, housekeepingStore.ts, page.tsx, RoomStatusBoard.tsx) | 11 reads | ~43549 tok |
+| 13:37 | Session end: 15 writes across 4 files (housekeeping.py, housekeepingStore.ts, page.tsx, RoomStatusBoard.tsx) | 12 reads | ~45917 tok |
+| 13:40 | Edited apps/api/services/opera_pdf.py | 8→11 lines | ~75 |
+| 13:40 | Session end: 16 writes across 5 files (housekeeping.py, housekeepingStore.ts, page.tsx, RoomStatusBoard.tsx, opera_pdf.py) | 15 reads | ~50009 tok |
+| 13:44 | Session end: 16 writes across 5 files (housekeeping.py, housekeepingStore.ts, page.tsx, RoomStatusBoard.tsx, opera_pdf.py) | 15 reads | ~50009 tok |
+| 13:44 | Considered early-checkout add-on housekeeping flow using existing manual checkout preference and room status contract | product-lens, .wolf memory | proposed exception flow, no code changed | ~900 |
+
+## Session: 2026-05-28 13:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:56 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~26 |
+| 13:56 | Edited apps/web/components/housekeeping/RoomCard.tsx | 17→17 lines | ~254 |
+| 13:56 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 11→11 lines | ~169 |
+| 13:57 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | added 1 import(s) | ~201 |
+| 13:57 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 10→13 lines | ~255 |
+| 13:57 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 4→3 lines | ~54 |
+| 13:58 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 4→5 lines | ~38 |
+| 13:59 | Session end: 7 writes across 2 files (RoomCard.tsx, page.tsx) | 13 reads | ~43756 tok |
+| 14:16 | Session end: 7 writes across 2 files (RoomCard.tsx, page.tsx) | 20 reads | ~43756 tok |
+| 14:29 | Edited apps/api/routers/housekeeping.py | 10→11 lines | ~174 |
+| 14:29 | Edited apps/api/routers/housekeeping.py | 10→10 lines | ~139 |
+| 14:29 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_task_sheet_import_occ_stayover_with_light_task_becomes_pickup() | ~875 |
+
+## Session: 2026-05-28 14:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:47 | Edited apps/api/routers/housekeeping.py | 3→3 lines | ~42 |
+| 14:48 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_board_history_clean_type_overrides_stale_room_status_clean_type() | ~468 |
+| 14:49 | Edited apps/api/routers/housekeeping.py | 7→12 lines | ~186 |
+| 14:49 | Session end: 3 writes across 2 files (housekeeping.py, test_housekeeping_assignments.py) | 13 reads | ~46056 tok |
+
+## Session: 2026-05-28 15:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:17 | Edited apps/web/components/housekeeping/RoomCard.tsx | 17→21 lines | ~311 |
+| 15:17 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~18 |
+| 15:18 | Session end: 2 writes across 1 files (RoomCard.tsx) | 18 reads | ~28358 tok |
+
+## Session: 2026-05-28 16:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-28 16:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:12 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | modified StatusSummaryBar() | ~181 |
+| 16:12 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 10→8 lines | ~73 |
+| 16:13 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | removed 12 lines | ~1 |
+| 16:13 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | reduced (-7 lines) | ~24 |
+| 16:13 | Session end: 4 writes across 1 files (RoomStatusBoard.tsx) | 6 reads | ~25934 tok |
+| 16:21 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: hover | ~222 |
+| 16:21 | Session end: 5 writes across 1 files (RoomStatusBoard.tsx) | 6 reads | ~25606 tok |
+| 16:23 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 7→8 lines | ~90 |
+| 16:23 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: disabled, disabled | ~115 |
+| 16:23 | Session end: 7 writes across 1 files (RoomStatusBoard.tsx) | 6 reads | ~25998 tok |

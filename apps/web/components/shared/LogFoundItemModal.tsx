@@ -25,7 +25,6 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [description, setDescription] = useState('')
   const [locationFound, setLocationFound] = useState(roomNumber ? `Room ${roomNumber}` : '')
-  const [notes, setNotes] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +47,6 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
         description: description.trim(),
         room_id: roomId,
         location_found: locationFound.trim() || undefined,
-        notes: notes.trim() || undefined,
         photo_url: photoUrl,
       })
     },
@@ -62,7 +60,6 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
   function reset() {
     setDescription('')
     setLocationFound(roomNumber ? `Room ${roomNumber}` : '')
-    setNotes('')
     setPhotoFile(null)
     setPhotoPreview(null)
     setError(null)
@@ -139,6 +136,22 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
             )}
           </div>
 
+          {/* Location */}
+          {!compact && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location Found <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={locationFound}
+                onChange={(e) => setLocationFound(e.target.value)}
+                placeholder="e.g. Room 204, Pool area, Lobby..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              />
+            </div>
+          )}
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -153,38 +166,6 @@ export function LogFoundItemModal({ isOpen, roomId, roomNumber, compact, onClose
               autoFocus
             />
           </div>
-
-          {!compact && (
-            <>
-              {/* Location */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location Found <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={locationFound}
-                  onChange={(e) => setLocationFound(e.target.value)}
-                  placeholder="e.g. Room 204, Pool area, Lobby..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any additional details..."
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
-                />
-              </div>
-            </>
-          )}
 
           {error && (
             <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>
