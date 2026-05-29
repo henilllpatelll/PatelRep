@@ -244,7 +244,7 @@ export function RoomCard({
           <span className="text-[11px] font-mono text-ink3">{checkinTime}</span>
         </div>
       )}
-      {room.clean_type === 'DEP' && checkoutTime && (
+      {checkoutTime && (
         <div className="flex items-center gap-0.5">
           <Clock className="w-3 h-3 text-ink3" />
           <span className="text-[11px] font-mono text-ink3">{checkoutLabel} {checkoutTime}</span>

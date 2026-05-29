@@ -17,6 +17,7 @@ import {
   filterHousekeepingBoardRooms,
   getHousekeepingBoardFilterCounts,
   normalizeHousekeepingBoardRoom,
+  type CleanTypeFilter,
 } from '@/lib/utils/housekeepingBoardFilters'
 
 // -- Status chip config --------------------------------------------------------
@@ -46,8 +47,8 @@ function SkeletonGrid() {
 
 interface SummaryBarProps {
   rooms: any[]
-  cleanTypeFilter: CleanType | null
-  onCleanTypeFilter: (cleanType: CleanType | null) => void
+  cleanTypeFilter: CleanTypeFilter
+  onCleanTypeFilter: (cleanTypes: CleanTypeFilter) => void
   showRiskOnly?: boolean
   onToggleRisk?: () => void
   riskCount?: number
@@ -67,10 +68,10 @@ function StatusSummaryBar({
     <div className="relative mb-4">
       <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <button
-          onClick={() => onCleanTypeFilter(null)}
-          aria-pressed={cleanTypeFilter === null}
+          onClick={() => onCleanTypeFilter([])}
+          aria-pressed={cleanTypeFilter.length === 0}
           className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
-            cleanTypeFilter === null
+            cleanTypeFilter.length === 0
               ? 'bg-ink text-paper border-ink font-medium'
               : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
           }`}
@@ -81,11 +82,16 @@ function StatusSummaryBar({
         </button>
         {CLEAN_TYPE_CHIPS.map((chip) => {
           const count = cleanTypeCounts[chip.key] ?? 0
-          const isActive = cleanTypeFilter === chip.key
+          const isActive = cleanTypeFilter.includes(chip.key)
           return (
             <button
               key={chip.key}
-              onClick={() => onCleanTypeFilter(isActive ? null : chip.key)}
+              onClick={() => {
+                const next = isActive
+                  ? cleanTypeFilter.filter((k) => k !== chip.key)
+                  : [...cleanTypeFilter, chip.key]
+                onCleanTypeFilter(next)
+              }}
               aria-pressed={isActive}
               className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
                 isActive

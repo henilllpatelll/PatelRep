@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Building2, Layers, Sliders, ShieldCheck,
-  ClipboardList, Hotel, CreditCard, Link2,
+  ClipboardList, Hotel, CreditCard, Link2, MessageSquareWarning,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
@@ -47,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/settings/billing', label: 'Billing', icon: CreditCard, roles: ['gm'] },
       { href: '/settings/integrations', label: 'Integrations', icon: Link2, roles: ['gm'] },
+      { href: '/settings/feedback', label: 'Feedback', icon: MessageSquareWarning, roles: ['gm'] },
     ],
   },
 ]

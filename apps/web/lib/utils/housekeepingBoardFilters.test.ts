@@ -18,7 +18,7 @@ const rooms = [
 test('departure filter finds both occupied and vacant departure rooms', () => {
   const filtered = filterHousekeepingBoardRooms(rooms, {
     statusFilter: null,
-    cleanTypeFilter: 'DEP',
+    cleanTypeFilter: ['DEP'],
     showRiskOnly: false,
     predictions: {},
   })
@@ -29,19 +29,41 @@ test('departure filter finds both occupied and vacant departure rooms', () => {
 test('pickup filter can distinguish full service from light service', () => {
   const fullPickup = filterHousekeepingBoardRooms(rooms, {
     statusFilter: 'PICKUP',
-    cleanTypeFilter: 'FULL',
+    cleanTypeFilter: ['FULL'],
     showRiskOnly: false,
     predictions: {},
   })
   const lightPickup = filterHousekeepingBoardRooms(rooms, {
     statusFilter: 'PICKUP',
-    cleanTypeFilter: 'LIGHT',
+    cleanTypeFilter: ['LIGHT'],
     showRiskOnly: false,
     predictions: {},
   })
 
   assert.deepEqual(fullPickup.map((room) => room.room_id), ['full'])
   assert.deepEqual(lightPickup.map((room) => room.room_id), ['light'])
+})
+
+test('multi-select clean type filter returns rooms matching any selected type', () => {
+  const filtered = filterHousekeepingBoardRooms(rooms, {
+    statusFilter: null,
+    cleanTypeFilter: ['DEP', 'FULL'],
+    showRiskOnly: false,
+    predictions: {},
+  })
+
+  assert.deepEqual(filtered.map((room) => room.room_id), ['dep-occ', 'dep-vac', 'full'])
+})
+
+test('empty clean type filter returns all rooms', () => {
+  const filtered = filterHousekeepingBoardRooms(rooms, {
+    statusFilter: null,
+    cleanTypeFilter: [],
+    showRiskOnly: false,
+    predictions: {},
+  })
+
+  assert.equal(filtered.length, rooms.length)
 })
 
 test('filter counts include departure full and light clean types', () => {

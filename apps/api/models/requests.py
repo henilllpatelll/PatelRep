@@ -182,6 +182,10 @@ class ManualCheckoutRequest(SanitizedBaseModel):
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
+class UpdateCheckoutTimeRequest(SanitizedBaseModel):
+    checkout_time: Optional[datetime] = None
+
+
 class UndoRoomStatusRequest(SanitizedBaseModel):
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
@@ -301,6 +305,20 @@ class UpdateWorkOrderRequest(SanitizedBaseModel):
 
 class AddCommentRequest(SanitizedBaseModel):
     comment: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+# --- Feedback ---
+class CreateFeedbackRequest(SanitizedBaseModel):
+    category: Literal["bug", "confusing", "missing_feature", "too_slow", "other"] = "other"
+    severity: Literal["blocking", "annoying", "idea"] = "annoying"
+    message: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    page_url: Optional[str] = Field(default=None, max_length=2048)
+    pathname: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    user_agent: Optional[str] = Field(default=None, max_length=512)
+    browser_language: Optional[str] = Field(default=None, max_length=64)
+    viewport_width: Optional[int] = Field(default=None, ge=1, le=10000)
+    viewport_height: Optional[int] = Field(default=None, ge=1, le=10000)
+    client_context: dict[str, Any] = Field(default_factory=dict)
 
 
 # --- AI Copilot ---

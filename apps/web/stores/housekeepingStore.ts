@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { format } from 'date-fns'
-import type { CleanTypeFilter } from '@/lib/utils/housekeepingBoardFilters'
+import type { CleanType } from '@/lib/utils/cleanType'
 
 export interface RoomPrediction {
   room_id: string
@@ -21,7 +21,7 @@ export interface HousekeepingStore {
   activeAssigneeId: string | null
   activeAssigneeName: string | null
   statusFilter: string | null
-  cleanTypeFilter: CleanTypeFilter
+  cleanTypeFilter: CleanType[]
   showRiskOnly: boolean
   lastSyncedAt: Date | null
 
@@ -36,7 +36,7 @@ export interface HousekeepingStore {
   clearPendingAssignments: () => void
   setActiveAssignee: (id: string | null, name: string | null) => void
   setStatusFilter: (status: string | null) => void
-  setCleanTypeFilter: (cleanType: CleanTypeFilter) => void
+  setCleanTypeFilter: (cleanTypes: CleanType[]) => void
   toggleRiskOnly: () => void
   setLastSyncedAt: (date: Date) => void
 
@@ -58,7 +58,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   activeAssigneeId: null,
   activeAssigneeName: null,
   statusFilter: null,
-  cleanTypeFilter: null,
+  cleanTypeFilter: [],
   showRiskOnly: false,
   lastSyncedAt: null,
 
@@ -102,7 +102,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
 
   setStatusFilter: (status) => set({ statusFilter: status }),
 
-  setCleanTypeFilter: (cleanType) => set({ cleanTypeFilter: cleanType }),
+  setCleanTypeFilter: (cleanTypes) => set({ cleanTypeFilter: cleanTypes }),
 
   toggleRiskOnly: () => set((state) => ({ showRiskOnly: !state.showRiskOnly })),
 
@@ -116,8 +116,8 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
       result = result.filter((room) => room.status === statusFilter)
     }
 
-    if (cleanTypeFilter !== null) {
-      result = result.filter((room) => room.clean_type === cleanTypeFilter)
+    if (cleanTypeFilter.length > 0) {
+      result = result.filter((room) => cleanTypeFilter.includes(room.clean_type))
     }
 
     if (showRiskOnly) {

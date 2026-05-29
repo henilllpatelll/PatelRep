@@ -1,7 +1,7 @@
 import type { CleanType } from './cleanType'
 import { getEffectiveRoomStatusForCleanType } from './cleanType'
 
-export type CleanTypeFilter = CleanType | null
+export type CleanTypeFilter = CleanType[]
 
 export interface HousekeepingBoardFilterOptions {
   statusFilter: string | null
@@ -51,8 +51,8 @@ export function filterHousekeepingBoardRooms(
     result = result.filter((room: any) => room.status === statusFilter)
   }
 
-  if (cleanTypeFilter !== null) {
-    result = result.filter((room: any) => room.clean_type === cleanTypeFilter)
+  if (cleanTypeFilter.length > 0) {
+    result = result.filter((room: any) => cleanTypeFilter.includes(room.clean_type))
   }
 
   if (showRiskOnly) {

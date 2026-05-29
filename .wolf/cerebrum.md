@@ -8,6 +8,8 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **MVP feedback loop should be always available (2026-05-28):** User wants a floating feedback/report button available to hotel staff during the live hotel pilot, with a simple text box and automatic page/device/user context capture so even tiny staff complaints are easy to send.
+- **Feedback form should be text-only (2026-05-28):** User explicitly removed "What happened?" and "How bad?" controls from the feedback widget. Keep staff-facing feedback to a single text box plus send action; infer/default metadata in the backend instead of asking staff.
 - **Manual checkout workflow before Opera credentials (2026-05-28):** Until Opera API credentials arrive, departure checkout notifications should be designed around manual front-desk/supervisor entry, not automated Opera webhook assumptions.
 - **Full audit then fix all at once (2026-05-20):** When the user says "fix all of these" after an audit, implement every item in one pass rather than asking which to prioritize.
 - **Use test credentials via env only (2026-05-23):** The user may provide TEST_PASSWORD for Playwright verification. Use it as a shell/process environment variable, but do not hardcode it into repo files or long-lived docs.
@@ -15,6 +17,7 @@
 
 ## Key Learnings
 
+- **Feedback submissions storage/notification contract (2026-05-28):** Staff feedback is stored in `feedback_submissions` via `POST /v1/feedback`, scoped by `tenant_id`/`user_id` from auth. The route creates `notifications` rows for tenant GMs and can send an immediate external alert when API env `FEEDBACK_WEBHOOK_URL` is configured.
 - **Opera task sheet DEP+OCC status contract (2026-05-28):** When importing Task Sheet rows, `clean_type == "DEP"` with Opera `fo_status == "OCC"` must leave room_status as `OCCUPIED` so the board shows Occupied Dirty + Departure. `FULL`/`LIGHT` with `OCC` still maps to `PICKUP`. Task Sheet clean type must also be persisted on `room_status.clean_type`, because unassigned imported rooms do not have a `room_assignments` row yet and still need Departure/Full/Light labels on cards.
 - **Room-card notes are same-day staff-only activity (2026-05-28):** Housekeeping board/my-rooms card enrichment should only expose `room_status_history` rows from the selected board/assignment date where `changed_by` is present and `from_status == to_status`. Status-change notes and prior/next-day notes belong in history/detail surfaces, not the room card.
 - **Room cards must not fallback to `maintenance_note` for activity (2026-05-28):** `room_status.notes` can contain status/undo text such as "Undo CLEAN back to IN_PROGRESS". Card surfaces should render only backend-filtered `latest_note`; keep maintenance/status text for drawer/history contexts.

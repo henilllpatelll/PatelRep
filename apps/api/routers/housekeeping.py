@@ -524,6 +524,24 @@ async def create_assignments(
         row["room_id"]: row.get("clean_type") for row in (existing_clean.data or [])
     }
 
+    # Fallback: read clean_type + fo_status from room_status (set by task sheet import)
+    # This handles the first save after import when no room_assignments row exists yet
+    room_status_rows = supabase.table("room_status")\
+        .select("room_id, clean_type, fo_status")\
+        .eq("tenant_id", current_user.hotel_id)\
+        .in_("room_id", [str(a.room_id) for a in request.assignments])\
+        .execute()
+    room_status_map: dict[str, dict] = {
+        row["room_id"]: row for row in (room_status_rows.data or [])
+    }
+
+    def _resolve_clean_type(room_id: str, explicit: str | None) -> str | None:
+        return (
+            explicit
+            or existing_clean_map.get(room_id)
+            or (room_status_map.get(room_id) or {}).get("clean_type")
+        )
+
     assignments_data = [
         {
             "tenant_id": current_user.hotel_id,
@@ -532,7 +550,7 @@ async def create_assignments(
             "assigned_by": current_user.user_id,
             "shift_id": str(request.shift_id) if request.shift_id else None,
             "assignment_date": request.date.isoformat(),
-            "clean_type": a.clean_type or existing_clean_map.get(str(a.room_id)),
+            "clean_type": _resolve_clean_type(str(a.room_id), a.clean_type),
             "is_ai_suggested": request.is_ai_suggested,
         }
         for a in request.assignments
@@ -555,9 +573,10 @@ async def create_assignments(
     # Mirror assigned_to on room_status for quick lookups and keep Opera
     # stayover task types in the Pickup lane.
     for a in request.assignments:
-        clean_type = a.clean_type or existing_clean_map.get(str(a.room_id))
+        clean_type = _resolve_clean_type(str(a.room_id), a.clean_type)
         if clean_type:
-            room_status = room_status_for_clean_type(clean_type)
+            fo_status = (room_status_map.get(str(a.room_id)) or {}).get("fo_status")
+            room_status = room_status_for_clean_type(clean_type, fo_status)
             _execute_room_status_clean_type_write(
                 {"assigned_to": str(a.housekeeper_id), "clean_type": clean_type},
                 lambda payload, room_id=str(a.room_id): supabase.table("room_status")
@@ -1260,11 +1279,12 @@ async def import_task_sheet(
         # DEP stays OCCUPIED (guest still in room until actual checkout).
         new_status = current_status or "DIRTY"
         fo = row.fo_status or (current.data.get("fo_status") if current.data else None)
-        is_stayover = "stayover" in (row.reservation_status or "").lower()
+        res_lower = (row.reservation_status or "").lower()
+        is_stayover_or_arrived = "stayover" in res_lower or "arrived" in res_lower
 
         if row.clean_type == "DEP":
             new_status = "OCCUPIED" if fo == "OCC" else "DIRTY"
-        elif fo == "OCC" and is_stayover:
+        elif fo == "OCC" and is_stayover_or_arrived:
             new_status = "PICKUP"
 
         # Update clean_type on existing assignment if one exists; skip if not yet assigned

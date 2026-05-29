@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import ManualCheckoutRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
+from models.requests import ManualCheckoutRequest, UpdateCheckoutTimeRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
 
 logger = logging.getLogger(__name__)
@@ -437,6 +437,40 @@ async def manual_checkout_room(
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /rooms/{room_id}/checkout-time
+# ---------------------------------------------------------------------------
+
+@router.patch("/{room_id}/checkout-time")
+async def update_checkout_time(
+    room_id: str,
+    request: UpdateCheckoutTimeRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("id")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    update_payload: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if request.checkout_time is not None:
+        update_payload["checkout_time"] = request.checkout_time.isoformat()
+
+    supabase.table("room_status")\
+        .update(update_payload)\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    return {"data": {"ok": True}}
 
 
 # ---------------------------------------------------------------------------

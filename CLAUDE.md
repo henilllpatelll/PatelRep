@@ -189,3 +189,17 @@ Domain skills inject automatically by file path:
 - `apps/api/**` → `patelrep-api` skill (FastAPI patterns)
 - `apps/web/**` → `patelrep-web` skill (Next.js 14 patterns)
 - `apps/mobile/**` → `patelrep-mobile` skill (Expo React Native patterns)
+
+---
+
+## Self-Verification Policy (MANDATORY)
+
+After completing any implementation, fix, or feature:
+
+1. Start the relevant dev server(s) if not already running (`npm run dev:web` on :3000, `npm run dev:api` on :8000).
+2. Use the browser (Playwright or `playwright-cli` skill) to manually navigate to the affected route on `localhost`.
+3. Exercise the golden path: click through the feature, submit forms, check that data loads correctly.
+4. Verify no console errors, no broken UI, no failed API calls.
+5. Only after confirming it works on localhost may you report the task as complete.
+
+**Do NOT ask the user to test it themselves. Do NOT declare success after writing code alone. You must see it working yourself first.**

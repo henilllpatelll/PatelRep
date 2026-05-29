@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-28T21:23:26.793Z
-> Files: 101 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T13:39:35.080Z
+> Files: 110 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -18,6 +18,7 @@
 
 ## ./
 
+- `CLAUDE.md` — OpenWolf (~2617 tok)
 
 ## .claude/
 
@@ -441,16 +442,17 @@
 
 ## apps/api/models/
 
-- `requests.py` — --- Staff Role Schedules --- (~3174 tok)
+- `requests.py` — Pydantic: SanitizedBaseModel (~6351 tok)
 
 ## apps/api/routers/
 
+- `feedback.py` — API: authenticated staff feedback submission, GM listing, GM in-app notification rows, optional webhook alert. (~330 tok)
 - `guest_requests.py` — API: 4 endpoints (~1858 tok)
-- `housekeeping.py` — API: 2 endpoints (~14143 tok)
+- `housekeeping.py` — API: 2 endpoints (~14414 tok)
 - `logbook.py` — API: 6 endpoints (~2002 tok)
 - `lost_found.py` — API: 6 endpoints (~1546 tok)
 - `notifications.py` — API: 3 endpoints (~421 tok)
-- `rooms.py` — API: 4 endpoints (~6058 tok)
+- `rooms.py` — API: 3 endpoints (~7816 tok)
 - `staff.py` — API: 8 endpoints (~5263 tok)
 - `tasks.py` — API: 7 endpoints (~2706 tok)
 - `work_orders.py` — API: 7 endpoints (~3890 tok)
@@ -471,6 +473,7 @@
 ## apps/api/tests/smoke/
 
 - `test_database_pooling.py` — Unit coverage for Supabase singleton client options and close lifecycle. (~120 tok)
+- `test_feedback.py` — Unit coverage for feedback submission storage, tenant/user context, GM notification rows, and webhook-failure resilience. (~360 tok)
 - `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 12 more (~9447 tok)
 - `test_index_migration.py` — Migration-content check for API hot-path indexes and pg_trgm enablement. (~80 tok)
 - `test_input_validation.py` — Pydantic request sanitization, bounds, email/phone normalization, and shift-time validation tests. (~300 tok)
@@ -603,7 +606,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
-- `page.tsx` — todayISO — renders table (~2945 tok)
+- `page.tsx` — todayISO — renders table (~2865 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
@@ -640,6 +643,10 @@
 ## apps/web/app/(dashboard)/settings/departments/
 
 - `page.tsx` — DEPARTMENTS (~877 tok)
+
+## apps/web/app/(dashboard)/settings/feedback/
+
+- `page.tsx` — GM feedback inbox listing staff feedback submissions, context, severity/category badges, and notification status. (~900 tok)
 
 ## apps/web/app/(dashboard)/settings/front-desk/
 
@@ -693,9 +700,9 @@
 ## apps/web/components/housekeeping/
 
 - `OccupancyImportModal.tsx` — OccupancyImportModal (~2623 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3488 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~8443 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5103 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3480 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~10369 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5162 tok)
 
 ## apps/web/components/settings/
 
@@ -706,6 +713,7 @@
 ## apps/web/components/shared/
 
 - `DeleteConfirmDialog.tsx` — DeleteConfirmDialog (~526 tok)
+- `FeedbackButton.tsx` — Global floating feedback widget with category/severity chips, bottom message box, auto context capture, and submit state. (~950 tok)
 - `GuestRequestsPanel.tsx` — TABS — renders form (~7882 tok)
 - `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2222 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4416 tok)
@@ -718,7 +726,8 @@
 
 ## apps/web/lib/api/
 
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (19 endpoints) (~1394 tok)
+- `feedback.ts` — Typed feedback API client for POST/GET `/feedback`. (~130 tok)
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (21 endpoints) (~1511 tok)
 - `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (5 endpoints) (~527 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1304 tok)
 
@@ -731,8 +740,10 @@
 ## apps/web/lib/utils/
 
 - `cleanType.ts` — Exports CleanType, CLEAN_TYPE_LABELS, CLEAN_TYPE_SHORT_LABELS, CLEAN_TYPE_OPTIONS + 4 more (~411 tok)
-- `housekeepingBoardFilters.test.ts` — Node test coverage for housekeeping room-board status and clean-type filters. (~180 tok)
-- `housekeepingBoardFilters.ts` — Shared room-board filter/count helpers for status, clean type, AI risk chips, and legacy DIRTY+OCC departure inference. (~250 tok)
+- `feedbackContext.test.mjs` — Node test coverage for feedback page/device context capture. (~160 tok)
+- `feedbackContext.ts` — Captures current URL, pathname, user agent, browser language, viewport, referrer, and timezone for feedback submissions. (~120 tok)
+- `housekeepingBoardFilters.test.ts` — Declares rooms (~1007 tok)
+- `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~591 tok)
 - `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
@@ -741,7 +752,7 @@
 
 ## apps/web/stores/
 
-- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1116 tok)
+- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1110 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -772,3 +783,4 @@
 - `045_occupied_dirty_status.sql` — Add OCCUPIED to room_status.status CHECK constraint. (~109 tok)
 - `046_actual_checkout_at.sql` — Adds actual checkout timestamp for manual/Opera departure checkout while preserving scheduled checkout_time. (~70 tok)
 - `047_room_status_clean_type.sql` — Adds nullable room_status.clean_type for imported Opera task-sheet labels on unassigned room-board cards. (~70 tok)
+- `048_feedback_submissions.sql` — Creates feedback_submissions table, RLS, and tenant/status indexes for MVP staff feedback. (~220 tok)

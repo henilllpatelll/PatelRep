@@ -3885,6 +3885,279 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-05-28T21:13:18.204Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-05-28T17:12:00-05:00",
+      "error_message": "Feedback TDD test initially failed because CreateFeedbackRequest and routers.feedback did not exist",
+      "file": "apps/api/models/requests.py, apps/api/routers/feedback.py",
+      "root_cause": "The feedback API contract was written before the request model and router implementation, as intended by the TDD workflow.",
+      "fix": "Added CreateFeedbackRequest, feedback router, main router registration, Supabase migration, and tests for storage/context/notifications.",
+      "tags": [
+        "feedback",
+        "api",
+        "tdd",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T17:12:00-05:00"
+    },
+    {
+      "id": "bug-235",
+      "timestamp": "2026-05-28T17:18:00-05:00",
+      "error_message": "Feedback API tests failed with IndexError after insert(...).select(...).execute() returned empty data in the fake Supabase query",
+      "file": "apps/api/routers/feedback.py",
+      "root_cause": "The router used a chained Supabase select style while the local fake query objects reset the action on select(), unlike this repo's simpler insert/update execute pattern.",
+      "fix": "Changed feedback insert/update calls to use insert(...).execute() and update(...).execute(), matching existing router conventions.",
+      "tags": [
+        "feedback",
+        "supabase",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-234"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T17:18:00-05:00"
+    },
+    {
+      "id": "bug-236",
+      "timestamp": "2026-05-28T17:24:00-05:00",
+      "error_message": "Verification commands failed from the wrong working directory and root ESLint picked up the old ESLint 8 config",
+      "file": "terminal command",
+      "root_cause": "API commands were run from apps/api while still prefixed with apps/api, and the first frontend lint command used root npx instead of the web workspace ESLint 9 setup.",
+      "fix": "Reran API checks with .\\.venv\\Scripts\\python from apps/api and reran scoped lint from apps/web with the workspace-local eslint.",
+      "tags": [
+        "tooling",
+        "windows",
+        "eslint",
+        "pytest"
+      ],
+      "related_bugs": [
+        "bug-215",
+        "bug-222"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T17:24:00-05:00"
+    },
+    {
+      "id": "bug-237",
+      "timestamp": "2026-05-28T17:40:00-05:00",
+      "error_message": "Type-check failed: settings feedback loading skeleton rendered Card without required children",
+      "file": "apps/web/app/(dashboard)/settings/feedback/page.tsx",
+      "root_cause": "The shared Card component requires a children prop, and the skeleton placeholder used a self-closing Card.",
+      "fix": "Added an sr-only loading child inside each skeleton Card and reran scoped lint, type-check, and production build successfully.",
+      "tags": [
+        "feedback",
+        "web",
+        "type-check",
+        "card"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T17:40:00-05:00"
+    },
+    {
+      "id": "bug-238",
+      "timestamp": "2026-05-28T17:55:00-05:00",
+      "error_message": "Message-only feedback test failed because category and severity were still required",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "The UI was simplified to a single text box, but the API request model still required category and severity.",
+      "fix": "Defaulted feedback category to other and severity to annoying, then removed the controls from the widget and verified message-only submissions.",
+      "tags": [
+        "feedback",
+        "api",
+        "ui",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-234"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-28T17:55:00-05:00"
+    },
+    {
+      "id": "bug-239",
+      "timestamp": "2026-05-29T12:48:54.434Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T12:48:54.434Z"
+    },
+    {
+      "id": "bug-240",
+      "timestamp": "2026-05-29T12:49:13.020Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T12:49:13.020Z"
+    },
+    {
+      "id": "bug-241",
+      "timestamp": "2026-05-29T12:59:52.797Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/lib/utils/housekeepingBoardFilters.ts",
+      "root_cause": "Condition was: if (cleanTypeFilter !== null)",
+      "fix": "Changed to: if (cleanTypeFilter.length > 0)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T12:59:52.797Z"
+    },
+    {
+      "id": "bug-242",
+      "timestamp": "2026-05-29T12:59:56.604Z",
+      "error_message": "Wrong reference: CleanTypeFilter should be CleanType",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "Used \"CleanTypeFilter\" instead of \"CleanType\"",
+      "fix": "Changed CleanTypeFilter → CleanType",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T12:59:56.604Z"
+    },
+    {
+      "id": "bug-243",
+      "timestamp": "2026-05-29T13:00:13.099Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "Condition was: if (cleanTypeFilter !== null)",
+      "fix": "Changed to: if (cleanTypeFilter.length > 0)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:00:13.100Z"
+    },
+    {
+      "id": "bug-244",
+      "timestamp": "2026-05-29T13:00:17.354Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "Had '@/lib/utils/housekeepingBoardFilters'",
+      "fix": "Changed to '@/lib/utils/cleanType'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:00:17.354Z"
+    },
+    {
+      "id": "bug-245",
+      "timestamp": "2026-05-29T13:00:31.274Z",
+      "error_message": "CSS fix: cleanTypeFilter, onCleanTypeFilter",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "cleanTypeFilter: CleanType | null → CleanTypeFilter; onCleanTypeFilter: (cleanType: CleanType | null) => void → (cleanTypes: CleanTypeFilter) => void",
+      "fix": "Changed cleanTypeFilter: CleanType | null → CleanTypeFilter; onCleanTypeFilter: (cleanType: CleanType | null) => void → (cleanTypes: CleanTypeFilter) => void",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:00:31.274Z"
+    },
+    {
+      "id": "bug-246",
+      "timestamp": "2026-05-29T13:01:05.809Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/lib/utils/housekeepingBoardFilters.test.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 28→50 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:01:05.809Z"
+    },
+    {
+      "id": "bug-247",
+      "timestamp": "2026-05-29T00:00:00Z",
+      "error_message": "After saving housekeeper assignments, PICKUP rooms (FULL/LIGHT stayovers) displayed as OCCUPIED DEPARTURE",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "create_assignments only read existing room_assignments for clean_type fallback; when no prior assignment existed, clean_type was None. Also room_status_for_clean_type called without fo_status so DEP rooms got DIRTY.",
+      "fix": "Added room_status query as fallback clean_type source. Added _resolve_clean_type helper. Passed fo_status to room_status_for_clean_type.",
+      "tags": [
+        "housekeeping",
+        "assignments",
+        "clean_type",
+        "room_status",
+        "fo_status"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T00:00:00Z"
+    },
+    {
+      "id": "bug-248",
+      "timestamp": "2026-05-29T00:00:00Z",
+      "error_message": "Arrived reservation_status rooms with FULL/LIGHT stayed DIRTY after task sheet import",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "import_task_sheet is_stayover check did not include Arrived guests",
+      "fix": "Expanded to is_stayover_or_arrived checking for both stayover and arrived in reservation_status",
+      "tags": [
+        "housekeeping",
+        "import_task_sheet",
+        "arrived",
+        "stayover",
+        "PICKUP"
+      ],
+      "related_bugs": [
+        "bug-247"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T00:00:00Z"
+    },
+    {
+      "id": "bug-249",
+      "timestamp": "2026-05-29T13:37:29.079Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 13→10 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:37:29.079Z"
     }
   ]
 }

@@ -2636,3 +2636,74 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 16:23 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 7→8 lines | ~90 |
 | 16:23 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: disabled, disabled | ~115 |
 | 16:23 | Session end: 7 writes across 1 files (RoomStatusBoard.tsx) | 6 reads | ~25998 tok |
+| 16:42 | Session end: 7 writes across 1 files (RoomStatusBoard.tsx) | 23 reads | ~53054 tok |
+
+## Session: 2026-05-28 16:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:45 | Edited CLAUDE.md | expanded (+14 lines) | ~261 |
+| 16:45 | Session end: 1 writes across 1 files (CLAUDE.md) | 1 reads | ~279 tok |
+
+## Session: 2026-05-28 16:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:54 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: actual_checkout_at | ~90 |
+| 16:54 | Edited apps/web/components/housekeeping/RoomCard.tsx | 6→6 lines | ~71 |
+| 16:54 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~28 |
+
+| 16:54 | Fix checkout time save+display | RoomCard.tsx, RoomDetailDrawer.tsx | Two bugs fixed: (1) card now shows checkout time for any room with actual_checkout_at or checkout_time, not just DEP; (2) user-entered time now sent as actual_checkout_at so card reflects correct time | ~400 || 16:54 | Session end: 3 writes across 2 files (RoomDetailDrawer.tsx, RoomCard.tsx) | 6 reads | ~36889 tok |
+| 16:58 | Session end: 3 writes across 2 files (RoomDetailDrawer.tsx, RoomCard.tsx) | 6 reads | ~36889 tok |
+| 17:01 | Read OpenWolf, skills, app shell/API config, and test conventions | .wolf, apps/api, apps/web | Planned MVP feedback loop with DB/API/widget/notification path; noted one PowerShell path quoting miss | ~12000 |
+| 17:12 | Added feedback API contract and backend implementation | apps/api, supabase/migrations/048_feedback_submissions.sql | POST /v1/feedback saves context, notifies GMs, optional webhook; narrow pytest now passes | ~3500 |
+| 17:28 | Added global feedback widget and web client | apps/web/components/shared/FeedbackButton.tsx, DashboardShell.tsx, lib/api/feedback.ts, lib/utils/feedbackContext.ts | Floating bottom-left Report/Feedback UI submits auto-captured context; scoped lint/type-check/context tests pass | ~4200 |
+| 17:35 | Final verification | apps/api tests, apps/web build | API full pytest 194 passed; web production build passed; full web lint still blocked by unrelated tasks Date.now purity issue | ~1400 |
+| 17:43 | Added GM feedback inbox | apps/web/app/(dashboard)/settings/feedback/page.tsx, settings/layout.tsx | Settings nav now exposes Feedback for GMs; scoped lint/type-check/build passed with 37 routes | ~1800 |
+| 17:55 | Simplified feedback widget | FeedbackButton.tsx, feedback.ts, requests.py, test_feedback.py | Removed category/severity controls; API now accepts message-only feedback with defaults; narrow tests/lint/type-check/build passed | ~1300 |
+| 07:48 | Edited apps/api/models/requests.py | modified UpdateCheckoutTimeRequest() | ~64 |
+| 07:48 | Edited apps/api/routers/rooms.py | inline fix | ~42 |
+| 07:48 | Edited apps/api/routers/rooms.py | modified update_checkout_time() | ~389 |
+| 07:48 | Edited apps/web/lib/api/housekeeping.ts | 2→5 lines | ~81 |
+| 07:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→6 lines | ~113 |
+| 07:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~193 |
+| 07:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover, disabled | ~311 |
+| 07:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→5 lines | ~52 |
+
+| 07:49 | Add Save checkout time button | rooms.py, requests.py, housekeeping.ts, RoomDetailDrawer.tsx | New PATCH /rooms/{id}/checkout-time endpoint + Save button in drawer that persists checkout_time without full checkout | ~200 || 07:49 | Session end: 11 writes across 5 files (RoomDetailDrawer.tsx, RoomCard.tsx, requests.py, rooms.py, housekeeping.ts) | 6 reads | ~38134 tok |
+
+## Session: 2026-05-29 07:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:59 | Edited apps/web/lib/utils/housekeepingBoardFilters.ts | 11→11 lines | ~94 |
+| 07:59 | Edited apps/web/lib/utils/housekeepingBoardFilters.ts | modified if() | ~36 |
+| 07:59 | Edited apps/web/stores/housekeepingStore.ts | 2→2 lines | ~18 |
+| 08:00 | Edited apps/web/stores/housekeepingStore.ts | 2→2 lines | ~31 |
+| 08:00 | Edited apps/web/stores/housekeepingStore.ts | inline fix | ~7 |
+| 08:00 | Edited apps/web/stores/housekeepingStore.ts | inline fix | ~22 |
+| 08:00 | Edited apps/web/stores/housekeepingStore.ts | modified if() | ~36 |
+| 08:00 | Edited apps/web/stores/housekeepingStore.ts | "@/lib/utils/housekeepingB" → "@/lib/utils/cleanType" | ~16 |
+| 08:00 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→6 lines | ~52 |
+| 08:00 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: cleanTypes | ~61 |
+| 08:00 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 33→38 lines | ~483 |
+| 08:00 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→2 lines | ~48 |
+| 08:01 | Edited apps/web/lib/utils/housekeepingBoardFilters.test.ts | expanded (+22 lines) | ~431 |
+| 08:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~16 |
+
+| 08:01 | multi-select clean-type filter chips on room board | housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx | done | ~200 tok || 08:02 | Session end: 14 writes across 4 files (housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, housekeepingBoardFilters.test.ts) | 5 reads | ~16403 tok |
+
+## Session: 2026-05-29 08:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:25 | Edited apps/api/routers/housekeeping.py | modified _resolve_clean_type() | ~529 |
+| 08:25 | Edited apps/api/routers/housekeeping.py | modified str() | ~415 |
+| 08:25 | Edited apps/api/routers/housekeeping.py | 8→9 lines | ~133 |
+| 08:27 | fixed pickup→occupied departure bug in create_assignments + import_task_sheet | apps/api/routers/housekeeping.py | 195 API tests pass, 8 filter tests pass | ~4k |
+| 08:27 | Session end: 3 writes across 1 files (housekeeping.py) | 1 reads | ~15491 tok |
+| 08:37 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 13→10 lines | ~172 |
+| 08:37 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 6→5 lines | ~23 |
+| 08:37 | Session end: 5 writes across 2 files (housekeeping.py, page.tsx) | 2 reads | ~18631 tok |
+| 08:39 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | CSS: OCCUPIED | ~114 |
+| 08:39 | Session end: 6 writes across 2 files (housekeeping.py, page.tsx) | 3 reads | ~22225 tok |

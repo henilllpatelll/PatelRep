@@ -1,88 +1,68 @@
 {
-  "session_id": "session-2026-05-28-1609",
-  "started": "2026-05-28T21:09:54.685Z",
+  "session_id": "session-2026-05-29-0823",
+  "started": "2026-05-29T13:23:55.893Z",
   "files_read": {
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
+      "count": 3,
+      "tokens": 14414,
+      "first_read": "2026-05-29T13:24:02.845Z"
+    },
     "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx": {
       "count": 1,
       "tokens": 2945,
-      "first_read": "2026-05-28T21:10:49.671Z"
+      "first_read": "2026-05-29T13:37:13.319Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx": {
-      "count": 8,
-      "tokens": 5090,
-      "first_read": "2026-05-28T21:11:07.756Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/cleanType.ts": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx": {
       "count": 1,
-      "tokens": 411,
-      "first_read": "2026-05-28T21:11:08.066Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
-      "count": 1,
-      "tokens": 8443,
-      "first_read": "2026-05-28T21:11:28.323Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/AssignmentSidebar.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-05-28T21:11:41.043Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx": {
-      "count": 1,
-      "tokens": 8403,
-      "first_read": "2026-05-28T21:11:44.654Z"
+      "tokens": 3480,
+      "first_read": "2026-05-29T13:39:26.379Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 181,
-      "at": "2026-05-28T21:12:54.306Z"
+      "tokens": 529,
+      "at": "2026-05-29T13:25:08.031Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 73,
-      "at": "2026-05-28T21:12:59.869Z"
+      "tokens": 415,
+      "at": "2026-05-29T13:25:20.155Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 1,
-      "at": "2026-05-28T21:13:11.338Z"
+      "tokens": 133,
+      "at": "2026-05-29T13:25:28.937Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
       "action": "edit",
-      "tokens": 24,
-      "at": "2026-05-28T21:13:18.196Z"
+      "tokens": 172,
+      "at": "2026-05-29T13:37:29.072Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
       "action": "edit",
-      "tokens": 222,
-      "at": "2026-05-28T21:21:47.993Z"
+      "tokens": 23,
+      "at": "2026-05-29T13:37:33.446Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
       "action": "edit",
-      "tokens": 90,
-      "at": "2026-05-28T21:23:16.473Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 115,
-      "at": "2026-05-28T21:23:26.818Z"
+      "tokens": 114,
+      "at": "2026-05-29T13:39:35.103Z"
     }
   ],
   "edit_counts": {
-    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 7
+    "apps/api/routers/housekeeping.py": 3,
+    "apps/web/app/(dashboard)/housekeeping/assignments/page.tsx": 3
   },
-  "anatomy_hits": 4,
-  "anatomy_misses": 1,
-  "repeated_reads_warned": 7,
+  "anatomy_hits": 3,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 2,
   "cerebrum_warnings": 0,
   "stop_count": 3
 }

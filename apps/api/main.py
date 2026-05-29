@@ -33,6 +33,7 @@ from routers import (
     onboarding,
     staff,
     lost_found,
+    feedback,
 )
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,7 @@ app.include_router(reports.router, prefix=PREFIX)
 app.include_router(onboarding.router, prefix=PREFIX)
 app.include_router(staff.router, prefix=PREFIX)
 app.include_router(lost_found.router, prefix=PREFIX)
+app.include_router(feedback.router, prefix=PREFIX)
 
 
 def _cors_headers_for(request: Request) -> dict[str, str]:

@@ -15,7 +15,6 @@ interface RoomEntry {
   room_id: string
   room_number: string
   status: string
-  clean_type?: string | null
 }
 
 interface HousekeeperRow {
@@ -36,6 +35,7 @@ function todayISO(): string {
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     DIRTY: 'bg-red-100 text-red-700',
+    OCCUPIED: 'bg-red-100 text-red-700',
     IN_PROGRESS: 'bg-purple-100 text-purple-700',
     CLEAN: 'bg-blue-100 text-blue-700',
     INSPECTED: 'bg-green-100 text-green-700',
@@ -243,12 +243,9 @@ export default function AssignmentsPage() {
                             ).map((r) => (
                                 <span
                                   key={r.room_id}
-                                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${statusBadge(r.status)}`}
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge(r.status)}`}
                                 >
                                   {r.room_number}
-                                  {r.clean_type && r.status === 'PICKUP' && (r.clean_type === 'FULL' || r.clean_type === 'LIGHT') && (
-                                    <span className="opacity-80">· {r.clean_type === 'FULL' ? 'Full' : 'Light'}</span>
-                                  )}
                                 </span>
                               ))
                             )}

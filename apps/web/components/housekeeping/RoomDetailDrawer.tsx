@@ -178,6 +178,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [saveTimeLoading, setSaveTimeLoading] = useState(false)
+  const [saveTimeSuccess, setSaveTimeSuccess] = useState(false)
 
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
@@ -201,6 +203,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     setCheckoutTimeInput(formatTimeInput(room?.checkout_time))
     setCheckoutSuccess(false)
     setCheckoutError(null)
+    setSaveTimeLoading(false)
+    setSaveTimeSuccess(false)
     setWoOpen(false)
     setWoTitle('')
     setWoCategory('general')
@@ -260,14 +264,31 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     }
   }
 
+  async function handleSaveCheckoutTime() {
+    if (!roomId || !checkoutTimeInput) return
+    const timeIso = buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time)
+    if (!timeIso) return
+    setSaveTimeLoading(true)
+    try {
+      await housekeepingApi.updateCheckoutTime(roomId, timeIso)
+      setSaveTimeSuccess(true)
+      setTimeout(() => setSaveTimeSuccess(false), 3000)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
+    } catch {
+      // silent — button re-enables
+    } finally {
+      setSaveTimeLoading(false)
+    }
+  }
+
   async function handleManualCheckout() {
     if (!roomId) return
     setCheckoutLoading(true)
     setCheckoutError(null)
     try {
-      await housekeepingApi.markCheckedOut(roomId, {
-        checkout_time: buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time),
-      })
+      const timeIso = buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time)
+      await housekeepingApi.markCheckedOut(roomId, timeIso ? { actual_checkout_at: timeIso } : {})
       setCheckoutSuccess(true)
       setTimeout(() => setCheckoutSuccess(false), 5000)
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
@@ -454,14 +475,24 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
                         : 'No checkout time set'}
                     </p>
                   </div>
-                  <label className="sr-only" htmlFor="room-checkout-time">Scheduled checkout time</label>
-                  <input
-                    id="room-checkout-time"
-                    type="time"
-                    value={checkoutTimeInput}
-                    onChange={(event) => setCheckoutTimeInput(event.target.value)}
-                    className="h-8 w-[86px] rounded-md border border-white/80 bg-white/75 px-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
+                  <label className="sr-only" htmlFor="room-checkout-time">Checkout time</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="room-checkout-time"
+                      type="time"
+                      value={checkoutTimeInput}
+                      onChange={(event) => setCheckoutTimeInput(event.target.value)}
+                      className="h-8 w-[86px] rounded-md border border-white/80 bg-white/75 px-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveCheckoutTime}
+                      disabled={saveTimeLoading || !checkoutTimeInput}
+                      className="h-8 px-2 rounded-md border border-gray-200 bg-white/75 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      {saveTimeLoading ? '…' : saveTimeSuccess ? '✓' : 'Save'}
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                   <button

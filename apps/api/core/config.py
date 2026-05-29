@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     api_rate_limit_health_per_minute: int = 60
     supabase_http_timeout_seconds: float = 30.0
     supabase_storage_timeout_seconds: float = 30.0
+    feedback_webhook_url: str = ""
 
 
 @lru_cache()
