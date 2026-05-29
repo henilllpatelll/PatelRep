@@ -258,10 +258,6 @@ function HousekeeperRoomItem({
     ? new Date(checkoutIso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     : null
 
-  const isDeparture = room.clean_type === 'DEP' || !!room.checkout_time
-  const guestCheckedOut = !!room.actual_checkout_at || room.fo_status === 'VAC'
-  const blockedByCheckout = isDeparture && !guestCheckedOut && (status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED')
-
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
     OCCUPIED:   { label: 'Occupied Dirty',    pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
@@ -415,19 +411,13 @@ function HousekeeperRoomItem({
 
       <div className="shrink-0 text-right">
         {(status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED') && (
-          blockedByCheckout ? (
-            <div className="flex items-center gap-1.5 text-ink3 text-xs max-w-[120px] text-right">
-              <span>Waiting for front desk checkout</span>
-            </div>
-          ) : (
-            <button
-              disabled={loading}
-              onClick={(e) => handle('IN_PROGRESS', e)}
-              className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {loading ? '...' : 'Start'}
-            </button>
-          )
+          <button
+            disabled={loading}
+            onClick={(e) => handle('IN_PROGRESS', e)}
+            className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loading ? '...' : 'Start'}
+          </button>
         )}
         {status === 'IN_PROGRESS' && (
           <div className="flex flex-col gap-1.5 items-end">

@@ -201,9 +201,6 @@ export default function RoomDetailScreen() {
 
   const transitions = getTransitions(room.status);
   const canUndo = room.status === "IN_PROGRESS" || room.status === "CLEAN";
-  const isDeparture = room.clean_type === 'DEP' || !!room.checkout_time
-  const guestCheckedOut = !!room.actual_checkout_at || room.fo_status === 'VAC'
-  const blockedByCheckout = isDeparture && !guestCheckedOut && (room.status === 'DIRTY' || room.status === 'PICKUP' || room.status === 'OCCUPIED')
 
   return (
     <ScrollView style={styles.container}>
@@ -259,12 +256,7 @@ export default function RoomDetailScreen() {
       )}
 
       <View style={styles.actions}>
-        {blockedByCheckout ? (
-          <View style={styles.checkoutBlockedBox}>
-            <Ionicons name="lock-closed-outline" size={16} color="#807a70" />
-            <Text style={styles.checkoutBlockedText}>Waiting for front desk to check out guest</Text>
-          </View>
-        ) : transitions.map((tr) => (
+        {transitions.map((tr) => (
           <TouchableOpacity
             key={tr.status}
             style={[styles.actionBtn, { backgroundColor: tr.color }]}
@@ -383,15 +375,4 @@ const styles = StyleSheet.create({
     borderColor: "#d7cbbb",
   },
   foundItemText: { color: "#5c5040", fontSize: 16, fontWeight: "600" },
-  checkoutBlockedBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#f5f0e8",
-    borderWidth: 1,
-    borderColor: "#d7cbbb",
-    borderRadius: 10,
-    padding: 14,
-  },
-  checkoutBlockedText: { color: "#807a70", fontSize: 14, flex: 1 },
 });
