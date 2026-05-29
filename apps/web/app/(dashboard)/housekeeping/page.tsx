@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, MessageSquare, Wrench } from 'lucide-react'
+import { Clock, LogOut, MessageSquare, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
@@ -252,6 +252,12 @@ function HousekeeperRoomItem({
   )
   const readyLabel = isOccupiedRoom ? 'Ready Occupied' : 'Ready Vacant'
 
+  const checkoutIso: string | null = room.actual_checkout_at ?? room.checkout_time ?? null
+  const checkoutLabel = room.actual_checkout_at ? 'Checked out' : 'Due out'
+  const checkoutTime = checkoutIso
+    ? new Date(checkoutIso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    : null
+
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
     OCCUPIED:   { label: 'Occupied Dirty',    pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
@@ -378,6 +384,12 @@ function HousekeeperRoomItem({
             </span>
           )}
         </div>
+        {checkoutTime && (
+          <div className="flex items-center gap-1 mt-1.5">
+            <Clock className="h-3 w-3 text-ink3 shrink-0" />
+            <span className="text-xs font-mono text-ink2">{checkoutLabel} {checkoutTime}</span>
+          </div>
+        )}
         {showHint && <p className="text-xs text-ink3 mt-1">Tap for notes &amp; issues</p>}
         {(workOrderLabel || latestNote) && (
           <div className="mt-2 space-y-1">
