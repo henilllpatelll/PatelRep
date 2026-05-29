@@ -1,17 +1,19 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T13:39:35.080Z
-> Files: 110 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T13:49:29.279Z
+> Files: 112 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
-- `CLAUDE.md` — Claude Code Configuration (~831 tok)
+- `CLAUDE.md` — Claude Code Configuration (~1005 tok)
 
 ## ../../.claude/plans/
 
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `feedback_non_regression.md` (~179 tok)
+- `MEMORY.md` — PatelRep Project Memory (~247 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -452,7 +454,7 @@
 - `logbook.py` — API: 6 endpoints (~2002 tok)
 - `lost_found.py` — API: 6 endpoints (~1546 tok)
 - `notifications.py` — API: 3 endpoints (~421 tok)
-- `rooms.py` — API: 3 endpoints (~7816 tok)
+- `rooms.py` — API: 3 endpoints (~7828 tok)
 - `staff.py` — API: 8 endpoints (~5263 tok)
 - `tasks.py` — API: 7 endpoints (~2706 tok)
 - `work_orders.py` — API: 7 endpoints (~3890 tok)
@@ -602,7 +604,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8403 tok)
+- `page.tsx` — SHIFTS (~8458 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -748,7 +750,7 @@
 - `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
 - `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
 - `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~227 tok)
-- `roomStatus.ts` — Transition rules: (~1950 tok)
+- `roomStatus.ts` — Transition rules: (~1956 tok)
 
 ## apps/web/stores/
 

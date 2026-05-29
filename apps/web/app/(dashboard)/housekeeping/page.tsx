@@ -254,6 +254,7 @@ function HousekeeperRoomItem({
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
     DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    OCCUPIED:   { label: 'Occupied Dirty',    pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
     PICKUP:     { label: 'Pickup',            pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
     IN_PROGRESS:{ label: 'In Progress',       pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
     CLEAN:      { label: 'Clean',             pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
@@ -397,7 +398,7 @@ function HousekeeperRoomItem({
       </div>
 
       <div className="shrink-0 text-right">
-        {(status === 'DIRTY' || status === 'PICKUP') && (
+        {(status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED') && (
           <button
             disabled={loading}
             onClick={(e) => handle('IN_PROGRESS', e)}
@@ -550,7 +551,7 @@ function HousekeeperMyRoomsView() {
     }
   }
 
-  const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP').length
+  const todoCount = myRooms.filter((r: any) => r.status === 'DIRTY' || r.status === 'PICKUP' || r.status === 'OCCUPIED').length
   const inProgressCount = myRooms.filter((r: any) => r.status === 'IN_PROGRESS').length
   const doneCount = myRooms.filter((r: any) => r.status === 'INSPECTED').length
 

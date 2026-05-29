@@ -124,6 +124,7 @@ export const VALID_TRANSITIONS: Record<string, Record<string, string[]>> = {
     DIRTY: ['IN_PROGRESS', 'PICKUP'],
     IN_PROGRESS: ['CLEAN'],
     PICKUP: ['IN_PROGRESS', 'CLEAN'],
+    OCCUPIED: ['IN_PROGRESS'],
   },
   supervisor: {
     CLEAN: ['INSPECTED', 'DIRTY'],
