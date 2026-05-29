@@ -192,6 +192,18 @@ Domain skills inject automatically by file path:
 
 ---
 
+## Non-Regression Policy (MANDATORY)
+
+**When implementing or configuring any new feature, Claude MUST:**
+
+1. Before making changes, identify all existing features that share code paths, components, routes, or data with the new feature.
+2. Make changes in a targeted way — avoid modifying shared logic unless the task explicitly requires it.
+3. After implementing, verify that existing features adjacent to the change still work correctly (navigate to them, test their golden paths).
+4. If a change unavoidably touches shared code, explicitly test every feature that depends on it.
+5. Never declare a task complete if any previously working feature is now broken — fix regressions before finishing.
+
+---
+
 ## Self-Verification Policy (MANDATORY)
 
 After completing any implementation, fix, or feature:

@@ -1,30 +1,26 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T15:17:01.147Z
-> Files: 112 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T19:03:26.350Z
+> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
-- `CLAUDE.md` — Claude Code Configuration (~1005 tok)
 
 ## ../../.claude/plans/
 
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `feedback_non_regression.md` (~179 tok)
-- `MEMORY.md` — PatelRep Project Memory (~247 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
 
 ## ./
 
-- `CLAUDE.md` — OpenWolf (~2617 tok)
+- `CLAUDE.md` — OpenWolf (~2796 tok)
 
 ## .claude/
 
-- `settings.json` (~570 tok)
 
 ## .claude/rules/
 
@@ -34,14 +30,12 @@
 
 ## .claude/skills/patelrep-api/
 
-- `SKILL.md` — Project-specific FastAPI/Supabase API conventions for PatelRep routers, tenant scoping, auth, and tests. (~900 tok)
 
 ## .claude/skills/patelrep-mobile/
 
 
 ## .claude/skills/patelrep-web/
 
-- `SKILL.md` — Project-specific Next.js/Tailwind web conventions for PatelRep dashboards, room operations UI, auth state, and API hooks. (~800 tok)
 
 ## .claude/skills/ui-ux-pro-max/
 
@@ -423,18 +417,12 @@
 
 ## Session Additions 2026-05-24 Clean Type Pickup Display
 
-- `apps/api/services/housekeeping_assignments.py` — Shared API helper for persisted room assignment clean-type to status mapping. (~80 tok)
-- `apps/web/app/(dashboard)/housekeeping/page.tsx` — Role-gated housekeeping route; housekeeper my-rooms view, supervisor header/actions, assignment mode, and prediction panel. (~6900 tok)
-- `apps/web/components/housekeeping/RoomStatusBoard.tsx` — Supervisor room board with realtime merge, pending assignment state, status chips, filters, grouped room cards, and drawer handoff. (~4200 tok)
-- `apps/web/lib/utils/cleanType.ts` — Clean-type labels/options plus helpers mapping `FULL`/`LIGHT` stayover service to `PICKUP` display status. (~180 tok)
 
 ## Session Additions 2026-05-24 Room Status Contract
 
 
 ## apps/api/
 
-- `_reload_trigger.py` — reload trigger — safe to delete (~10 tok)
-- `main.py` — API: 1 endpoints (~2244 tok)
 
 ## apps/api/core/
 
@@ -444,24 +432,13 @@
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~6351 tok)
 
 ## apps/api/routers/
 
-- `feedback.py` — API: authenticated staff feedback submission, GM listing, GM in-app notification rows, optional webhook alert. (~330 tok)
-- `guest_requests.py` — API: 4 endpoints (~1858 tok)
-- `housekeeping.py` — API: 2 endpoints (~14414 tok)
-- `logbook.py` — API: 6 endpoints (~2002 tok)
-- `lost_found.py` — API: 6 endpoints (~1546 tok)
-- `notifications.py` — API: 3 endpoints (~421 tok)
-- `rooms.py` — API: 3 endpoints (~7834 tok)
-- `staff.py` — API: 8 endpoints (~5263 tok)
-- `tasks.py` — API: 7 endpoints (~2706 tok)
-- `work_orders.py` — API: 7 endpoints (~3890 tok)
+- `housekeeping.py` — API: 2 endpoints (~14346 tok)
 
 ## apps/api/services/
 
-- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2385 tok)
 
 ## apps/api/services/ai/
 
@@ -474,11 +451,6 @@
 
 ## apps/api/tests/smoke/
 
-- `test_database_pooling.py` — Unit coverage for Supabase singleton client options and close lifecycle. (~120 tok)
-- `test_feedback.py` — Unit coverage for feedback submission storage, tenant/user context, GM notification rows, and webhook-failure resilience. (~360 tok)
-- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 12 more (~9447 tok)
-- `test_index_migration.py` — Migration-content check for API hot-path indexes and pg_trgm enablement. (~80 tok)
-- `test_input_validation.py` — Pydantic request sanitization, bounds, email/phone normalization, and shift-time validation tests. (~300 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 
@@ -491,9 +463,6 @@
 
 ## apps/mobile/
 
-- `jest.config.js` — Expo/Jest config with workspace-local React mapping and module aliases. (~160 tok)
-- `jest.setup.js` — Mobile Jest setup with AsyncStorage mock and test Supabase env fallbacks. (~40 tok)
-- `package.json` — Node.js package manifest (~526 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -503,73 +472,56 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `RoomDetail.test.tsx` — Jest/React Native coverage for my-room detail undo action calling room status undo endpoint. (~220 tok)
 
 ## apps/mobile/app/
 
-- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~990 tok)
-- `index.tsx` — Index (~35 tok)
 
 ## apps/mobile/app/(app)/
 
-- `_layout.tsx` — getTabsForRole (~765 tok)
 
 ## apps/mobile/app/(app)/copilot/
 
-- `index.tsx` — mod (~2773 tok)
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — formatETA (~3643 tok)
-- `index.tsx` — STATUS_COLORS (~2198 tok)
+- `[roomId].tsx` — formatETA (~3889 tok)
 
 ## apps/mobile/app/(app)/profile/
 
-- `index.tsx` — ProfileScreen (~862 tok)
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — STATUS_COLORS (~709 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
-- `[woId].tsx` — WorkOrderDetailScreen (~2310 tok)
-- `index.tsx` — PRIORITY_COLORS (~1980 tok)
 
 ## apps/mobile/app/(auth)/
 
-- `_layout.tsx` — AuthLayout (~151 tok)
-- `login.tsx` — LoginScreen (~1024 tok)
 
 ## apps/mobile/components/housekeeping/
 
-- `FoundItemModal.tsx` — FoundItemModal — renders modal (~2035 tok)
 
 ## apps/mobile/i18n/
 
-- `index.ts` (~114 tok)
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~1136 tok)
-- `es.json` (~1216 tok)
 
 ## apps/mobile/lib/
 
-- `notifications.ts` — API routes: PATCH (1 endpoints) (~522 tok)
 
 ## apps/mobile/lib/api/
 
-- `lostFound.ts` — Exports CreateLostFoundPayload, createLostFoundItem, uploadLostFoundPhoto (~344 tok)
 
 ## apps/mobile/lib/offline/
 
 
+## apps/mobile/stores/
+
+- `appStore.ts` — Exports Room, useAppStore (~480 tok)
+
 ## apps/web/
 
-- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~549 tok)
-- `package.json` — Node.js package manifest (~449 tok)
-- `proxy.ts` — API routes: GET (1 endpoints) (~1721 tok)
 
 ## apps/web/app/
 
@@ -600,30 +552,25 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — GuestRequestsPage (~39 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8465 tok)
+- `page.tsx` — SHIFTS (~8618 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
-- `page.tsx` — todayISO — renders table (~2865 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
-- `page.tsx` — Housekeeping inspection queue/history page with date/result filters and responsive desktop/mobile layouts. (~2900 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
-- `page.tsx` — StatusBadge (~9420 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — STATUS_TONE — renders form (~4102 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
@@ -636,42 +583,33 @@
 
 ## apps/web/app/(dashboard)/settings/
 
-- `layout.tsx` — NAV_GROUPS (~1415 tok)
-- `page.tsx` — SettingsPage (~34 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
 
 ## apps/web/app/(dashboard)/settings/departments/
 
-- `page.tsx` — DEPARTMENTS (~877 tok)
 
 ## apps/web/app/(dashboard)/settings/feedback/
 
-- `page.tsx` — GM feedback inbox listing staff feedback submissions, context, severity/category badges, and notification status. (~900 tok)
 
 ## apps/web/app/(dashboard)/settings/front-desk/
 
-- `page.tsx` — FRONT_DESK_MODULES (~1770 tok)
 
 ## apps/web/app/(dashboard)/settings/general/
 
-- `page.tsx` — hotelProfileSchema — renders form (~2986 tok)
 
 ## apps/web/app/(dashboard)/settings/inspections/
 
-- `page.tsx` — InspectionsSettingsPage (~1929 tok)
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
 
 ## apps/web/app/(dashboard)/settings/roles/
 
-- `page.tsx` — RolesSettingsPage (~1686 tok)
 
 ## apps/web/app/(dashboard)/settings/rooms/
 
-- `page.tsx` — GM_STATUS_OPTIONS — renders table (~4116 tok)
 
 ## apps/web/app/(dashboard)/sop/
 
@@ -681,7 +619,6 @@
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — TASK_TYPES — renders form (~10123 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -691,34 +628,18 @@
 
 ## apps/web/components/dashboard/
 
-- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~3161 tok)
-- `HousekeeperDashboard.tsx` — STATUS_TONE (~2952 tok)
-- `LiveOpsGrid.tsx` — getHotelIdFromSession (~982 tok)
-- `SupervisorDashboard.tsx` — avatarColor (~6697 tok)
 
 ## apps/web/components/engineering/
 
 
 ## apps/web/components/housekeeping/
 
-- `OccupancyImportModal.tsx` — OccupancyImportModal (~2623 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~10468 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5644 tok)
 
 ## apps/web/components/settings/
 
-- `RoleForm.tsx` — EMPTY_ROLE_FORM (~2610 tok)
-- `RoomsImportModal.tsx` — EMPTY_IMPORT_ROW — renders table (~4514 tok)
-- `TemplateForm.tsx` — INSPECTION_SECTIONS (~2680 tok)
 
 ## apps/web/components/shared/
 
-- `DeleteConfirmDialog.tsx` — DeleteConfirmDialog (~526 tok)
-- `FeedbackButton.tsx` — Global floating feedback widget with category/severity chips, bottom message box, auto context capture, and submit state. (~950 tok)
-- `GuestRequestsPanel.tsx` — TABS — renders form (~7882 tok)
-- `LogFoundItemModal.tsx` — uploadItemPhoto — renders form (~2222 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4416 tok)
 
 ## apps/web/components/ui/
 
@@ -728,10 +649,6 @@
 
 ## apps/web/lib/api/
 
-- `feedback.ts` — Typed feedback API client for POST/GET `/feedback`. (~130 tok)
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (21 endpoints) (~1511 tok)
-- `lost_found.ts` — API routes: GET, POST, PATCH, DELETE (5 endpoints) (~527 tok)
-- `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1304 tok)
 
 ## apps/web/lib/hooks/
 
@@ -741,20 +658,9 @@
 
 ## apps/web/lib/utils/
 
-- `cleanType.ts` — Exports CleanType, CLEAN_TYPE_LABELS, CLEAN_TYPE_SHORT_LABELS, CLEAN_TYPE_OPTIONS + 4 more (~411 tok)
-- `feedbackContext.test.mjs` — Node test coverage for feedback page/device context capture. (~160 tok)
-- `feedbackContext.ts` — Captures current URL, pathname, user agent, browser language, viewport, referrer, and timezone for feedback submissions. (~120 tok)
-- `housekeepingBoardFilters.test.ts` — Declares rooms (~1007 tok)
-- `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~591 tok)
-- `housekeepingDashboardMetrics.test.ts` — Node test coverage for supervisor dashboard metric fallback and stale-zero summary regression. (~220 tok)
-- `housekeepingDashboardMetrics.ts` — Live housekeeping dashboard metric derivation from board rows with report fallback. (~260 tok)
-- `housekeepingNavigation.test.ts` — Node test coverage for housekeeping subnav visibility by role. (~130 tok)
-- `housekeepingNavigation.ts` — Exports HousekeepingSubNavItem, getHousekeepingSubNavItems (~227 tok)
-- `roomStatus.ts` — Transition rules: (~1956 tok)
 
 ## apps/web/stores/
 
-- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1175 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -773,16 +679,6 @@
 
 ## graphify-out/
 
-- `.graphify_chunk_01.json` (~15132 tok)
-- `.graphify_chunk_02.json` (~9905 tok)
-- `auto_update.py` (~1320 tok)
 
 ## supabase/migrations/
 
-- `042_lost_found_photos_bucket.sql` — Create storage bucket for lost and found item photos (~156 tok)
-- `043_input_validation_and_pooling_indexes.sql` — Adds pg_trgm and compound indexes for task, lost-found, inspection, and staff-invitation list paths. (~270 tok)
-- `044_fo_status.sql` — Add fo_status to room_status for Opera occupancy tracking (OCC/VAC) (~47 tok)
-- `045_occupied_dirty_status.sql` — Add OCCUPIED to room_status.status CHECK constraint. (~109 tok)
-- `046_actual_checkout_at.sql` — Adds actual checkout timestamp for manual/Opera departure checkout while preserving scheduled checkout_time. (~70 tok)
-- `047_room_status_clean_type.sql` — Adds nullable room_status.clean_type for imported Opera task-sheet labels on unassigned room-board cards. (~70 tok)
-- `048_feedback_submissions.sql` — Creates feedback_submissions table, RLS, and tenant/status indexes for MVP staff feedback. (~220 tok)
