@@ -17,7 +17,6 @@ import { useRole } from '@/lib/hooks/useRole'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
 import {
-  getCleanAwareStatusLabel,
   getEffectiveRoomStatusForCleanType,
   getCleanTypeShortLabel,
 } from '@/lib/utils/cleanType'
@@ -375,7 +374,7 @@ function HousekeeperRoomItem({
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
-            {getCleanAwareStatusLabel(cfg.label, room.clean_type, status)}
+            {cfg.label}
           </span>
           {cleanTypeLabel && (
             <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
