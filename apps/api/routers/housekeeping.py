@@ -139,11 +139,7 @@ def _attach_task_sheet_clean_types(rows: list[dict], hotel_id: str, activity_dat
             continue
         row["clean_type"] = clean_type
         row["clean_type_label"] = CLEAN_TYPE_LABELS.get(clean_type, clean_type)
-        if history_ct:
-            # Recompute directly from fo_status so stale room_status.clean_type can't corrupt the result
-            row["status"] = room_status_for_clean_type(clean_type, row.get("fo_status"))
-        else:
-            row["status"] = effective_room_status(row.get("status"), clean_type, row.get("fo_status"))
+        row["status"] = effective_room_status(row.get("status"), clean_type, row.get("fo_status"))
 
     return rows
 
