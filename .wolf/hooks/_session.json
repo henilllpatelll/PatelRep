@@ -1,93 +1,12 @@
 {
-  "session_id": "session-2026-05-29-0907",
-  "started": "2026-05-29T14:07:47.192Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx": {
-      "count": 2,
-      "tokens": 8458,
-      "first_read": "2026-05-29T14:09:29.911Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx": {
-      "count": 4,
-      "tokens": 5702,
-      "first_read": "2026-05-29T14:09:30.244Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx": {
-      "count": 1,
-      "tokens": 3480,
-      "first_read": "2026-05-29T14:09:36.001Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts": {
-      "count": 1,
-      "tokens": 1110,
-      "first_read": "2026-05-29T14:16:47.328Z"
-    }
-  },
-  "files_written": [
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
-      "action": "edit",
-      "tokens": 99,
-      "at": "2026-05-29T14:10:24.701Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
-      "action": "edit",
-      "tokens": 93,
-      "at": "2026-05-29T14:10:29.958Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 1443,
-      "at": "2026-05-29T14:16:32.171Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 116,
-      "at": "2026-05-29T14:16:38.116Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts",
-      "action": "edit",
-      "tokens": 114,
-      "at": "2026-05-29T14:16:52.877Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 9,
-      "at": "2026-05-29T14:21:09.896Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 103,
-      "at": "2026-05-29T14:25:29.477Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
-      "action": "edit",
-      "tokens": 1110,
-      "at": "2026-05-29T14:25:56.899Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts",
-      "action": "edit",
-      "tokens": 65,
-      "at": "2026-05-29T14:26:02.608Z"
-    }
-  ],
-  "edit_counts": {
-    "apps/web/components/housekeeping/RoomCard.tsx": 1,
-    "apps/web/app/(dashboard)/housekeeping/page.tsx": 1,
-    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 5,
-    "apps/web/stores/housekeepingStore.ts": 2
-  },
-  "anatomy_hits": 4,
+  "session_id": "session-2026-05-29-1251",
+  "started": "2026-05-29T17:51:54.735Z",
+  "files_read": {},
+  "files_written": [],
+  "edit_counts": {},
+  "anatomy_hits": 0,
   "anatomy_misses": 0,
-  "repeated_reads_warned": 4,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 5
+  "stop_count": 0
 }

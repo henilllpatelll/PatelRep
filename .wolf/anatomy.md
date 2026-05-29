@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T14:26:02.585Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T15:17:01.147Z
 > Files: 112 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -454,7 +454,7 @@
 - `logbook.py` — API: 6 endpoints (~2002 tok)
 - `lost_found.py` — API: 6 endpoints (~1546 tok)
 - `notifications.py` — API: 3 endpoints (~421 tok)
-- `rooms.py` — API: 3 endpoints (~7828 tok)
+- `rooms.py` — API: 3 endpoints (~7834 tok)
 - `staff.py` — API: 8 endpoints (~5263 tok)
 - `tasks.py` — API: 7 endpoints (~2706 tok)
 - `work_orders.py` — API: 7 endpoints (~3890 tok)
@@ -616,7 +616,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
-- `page.tsx` — All rooms management page with filters, CSV/manual import modal, delete confirmation, and room detail drawer. (~8200 tok)
+- `page.tsx` — StatusBadge (~9420 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
@@ -703,8 +703,8 @@
 
 - `OccupancyImportModal.tsx` — OccupancyImportModal (~2623 tok)
 - `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~10369 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5610 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~10468 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5644 tok)
 
 ## apps/web/components/settings/
 

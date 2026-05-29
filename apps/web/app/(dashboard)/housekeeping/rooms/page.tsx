@@ -812,6 +812,7 @@ export default function RoomsPage() {
         room={selectedRoom}
         isOpen={selectedRoom !== null}
         onClose={() => setSelectedRoom(null)}
+        onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => prev ? { ...prev, checkout_time: time } : prev)}
       />
     </div>
   )

@@ -4254,6 +4254,66 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-29T14:25:29.485Z"
+    },
+    {
+      "id": "bug-256",
+      "timestamp": "2026-05-29T14:53:44.007Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had 'DEP'",
+      "fix": "Changed to 'front_desk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T14:53:44.007Z"
+    },
+    {
+      "id": "bug-257",
+      "timestamp": "2026-05-29T15:09:23.887Z",
+      "error_message": "Wrong reference: Props should be onCheckoutTimeSaved",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Used \"Props\" instead of \"onCheckoutTimeSaved\"",
+      "fix": "Changed Props → onCheckoutTimeSaved",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T15:09:23.887Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-05-29T15:09:29.406Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T15:09:29.407Z"
+    },
+    {
+      "id": "bug-259",
+      "timestamp": "2026-05-29T00:00:00.000Z",
+      "error_message": "Unable to set and save a checkout time to a room",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "1) isDepartureRoom guard hid the checkout section for rooms without clean_type DEP, no existing checkout_time, and not OCCUPIED. 2) After saving, ['rooms'] query was not invalidated and rooms page had no onCheckoutTimeSaved callback to update selectedRoom, so drawer showed stale checkout_time on reopen. 3) Save errors were silently swallowed. 4) BACKEND BUG: update_checkout_time endpoint did .select('id') on room_status but room_status has no 'id' column — its PK is room_id. This caused a PostgREST error on every save, making the endpoint always fail.",
+      "fix": "Removed isDepartureRoom from canMarkCheckout so checkout section is always visible for authorized roles. Added onCheckoutTimeSaved callback prop to RoomDetailDrawer, called after successful save. Added queryClient.invalidateQueries(['rooms']) in handleSaveCheckoutTime. Passed onCheckoutTimeSaved to both RoomStatusBoard and rooms/page.tsx to update selectedRoom optimistically. Fixed API: changed .select('id') to .select('room_id') in update_checkout_time.",
+      "tags": ["checkout-time", "drawer", "housekeeping", "rooms", "cache-invalidation", "silent-error", "postgrest-column-error"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T00:00:00.000Z"
     }
   ]
 }

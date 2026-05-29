@@ -42,6 +42,7 @@ interface Props {
   room: any | null
   isOpen: boolean
   onClose: () => void
+  onCheckoutTimeSaved?: (checkoutTime: string) => void
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
@@ -157,7 +158,7 @@ function getStatusTextClass(status: string): string {
   }
 }
 
-export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
+export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }: Props) {
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -180,6 +181,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [saveTimeLoading, setSaveTimeLoading] = useState(false)
   const [saveTimeSuccess, setSaveTimeSuccess] = useState(false)
+  const [saveTimeError, setSaveTimeError] = useState<string | null>(null)
 
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
@@ -205,6 +207,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     setCheckoutError(null)
     setSaveTimeLoading(false)
     setSaveTimeSuccess(false)
+    setSaveTimeError(null)
     setWoOpen(false)
     setWoTitle('')
     setWoCategory('general')
@@ -269,14 +272,17 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
     const timeIso = buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time)
     if (!timeIso) return
     setSaveTimeLoading(true)
+    setSaveTimeError(null)
     try {
       await housekeepingApi.updateCheckoutTime(roomId, timeIso)
       setSaveTimeSuccess(true)
       setTimeout(() => setSaveTimeSuccess(false), 3000)
+      onCheckoutTimeSaved?.(timeIso)
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
       queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
     } catch {
-      // silent — button re-enables
+      setSaveTimeError('Failed to save. Please try again.')
     } finally {
       setSaveTimeLoading(false)
     }
@@ -347,8 +353,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
   const checkinTime = formatCheckinTime(prediction?.checkin_time ?? room?.checkin_time)
   const scheduledCheckoutTime = formatCheckinTime(room?.checkout_time)
   const actualCheckoutTime = formatCheckinTime(room?.actual_checkout_at)
-  const isDepartureRoom = room?.clean_type === 'DEP' || !!room?.checkout_time || status === 'OCCUPIED'
-  const canMarkCheckout = (canSupervise || role === 'front_desk') && !!roomId && isDepartureRoom
+  const canMarkCheckout = (canSupervise || role === 'front_desk') && !!roomId
   const isCheckedOut = !!room?.actual_checkout_at || (room?.fo_status === 'VAC' && room?.clean_type === 'DEP')
   const etaTime = formatCheckinTime(prediction?.predicted_ready_at)
   const delayMinutes: number | null = prediction?.delay_minutes ?? null
@@ -494,6 +499,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose }: Props) {
                     </button>
                   </div>
                 </div>
+                {saveTimeError && (
+                  <p className="mt-1 text-[11px] text-[var(--alert)]">{saveTimeError}</p>
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"

@@ -118,6 +118,12 @@
 
 - [2026-05-22] **Drawer selectedRoom must be updated optimistically in handleStatusChange / handleAction** — RoomStatusBoard.handleStatusChange and HousekeeperMyRoomsView.handleAction both update the React Query cache optimistically but NOT the `selectedRoom` state. This left the open drawer showing the old status, keeping the same transition button visible and clickable (double-click bug). Fix: call `setSelectedRoom(prev => prev?.room_id === roomId ? { ...prev, status } : prev)` at the start of both handlers.
 
+- [2026-05-29] **RoomDetailDrawer field saves must invalidate ALL parent query keys and call an onFieldSaved callback** — After saving checkout_time inside the drawer, the drawer invalidated `['housekeeping-board']` and `['my-rooms']` but not `['rooms']`. The rooms management page also had no mechanism to update `selectedRoom` after save, so re-opening the drawer showed the stale value. Pattern for any drawer field save: (1) invalidate every query key that shows the field on a parent page, (2) expose an `onFieldSaved?(value)` callback prop, (3) both parent pages pass the callback to do `setSelectedRoom(prev => prev ? { ...prev, field: value } : prev)`.
+
+- [2026-05-29] **room_status PK is room_id, not id — never .select("id") on room_status** — `room_status` uses `room_id UUID PRIMARY KEY`. PostgREST returns a PGRST204 error when you select a non-existent column, which the exception handler converts to a 422. The checkout-time endpoint had `.select("id")` which caused every save attempt to silently fail. Always use `.select("room_id")` for existence checks on room_status.
+
+- [2026-05-29] **canMarkCheckout / visibility gates must not depend on data that may be absent** — The checkout section was gated on `isDepartureRoom` (requires `clean_type === 'DEP'` OR existing `checkout_time` OR `OCCUPIED` status). Rooms without any of these never showed the checkout controls even for authorized roles. Visibility gates for action sections should be role-based only; data-presence conditions belong inside the section's copy/labels, not as a gate on the whole section.
+
 - [2026-05-22] **useEffect form-reset deps must include `isOpen` for drawers/modals** — If a useEffect only depends on entity ID (e.g. `[roomId]`, `[wo?.id]`), it won't fire when the same entity's drawer is closed and reopened (same ID, same effect — no re-run). Stale form values (note text, completion notes, WO fields) persist. Always add `isOpen` to the dep array so closing a drawer resets form state even for the same entity.
 
 

@@ -448,11 +448,11 @@ async def manual_checkout_room(
 async def update_checkout_time(
     room_id: str,
     request: UpdateCheckoutTimeRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer", "front_desk")),
 ):
     current_row = (
         supabase.table("room_status")
-        .select("id")
+        .select("room_id")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()

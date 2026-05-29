@@ -2757,3 +2757,41 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: mode | ~1110 |
 | 09:26 | Edited apps/web/stores/housekeepingStore.ts | 2→3 lines | ~65 |
 | 09:26 | Session end: 9 writes across 4 files (RoomCard.tsx, page.tsx, RoomStatusBoard.tsx, housekeepingStore.ts) | 4 reads | ~21902 tok |
+| 09:42 | Edited apps/api/routers/rooms.py | modified update_checkout_time() | ~73 |
+| 09:42 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→3 lines | ~58 |
+| 09:42 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→5 lines | ~41 |
+| 09:42 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified handleSaveCheckoutTime() | ~195 |
+| 09:43 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 8→12 lines | ~184 |
+| 09:43 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 7→7 lines | ~78 |
+| 09:44 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 62→61 lines | ~956 |
+| 09:44 | Session end: 16 writes across 6 files (RoomCard.tsx, page.tsx, RoomStatusBoard.tsx, housekeepingStore.ts, rooms.py) | 6 reads | ~41769 tok |
+| 09:53 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→1 lines | ~22 |
+| 09:53 | Session end: 17 writes across 6 files (RoomCard.tsx, page.tsx, RoomStatusBoard.tsx, housekeepingStore.ts, rooms.py) | 10 reads | ~56275 tok |
+
+## Session: 2026-05-29 09:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-29 10:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:09 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: checkoutTime | ~38 |
+| 10:09 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~26 |
+| 10:09 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added optional chaining | ~111 |
+| 10:09 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: prev, checkout_time | ~76 |
+| 10:09 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | CSS: prev, checkout_time | ~76 |
+| 10:15 | Bug-259: fixed checkout time save — removed isDepartureRoom gate, added onCheckoutTimeSaved callback, invalidated ['rooms'] | RoomDetailDrawer.tsx, RoomStatusBoard.tsx, rooms/page.tsx | complete | ~2k tok |
+| 10:11 | Session end: 5 writes across 3 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx, page.tsx) | 3 reads | ~24556 tok |
+| 10:17 | Edited apps/api/routers/rooms.py | 10→10 lines | ~95 |
+| 10:17 | Session end: 6 writes across 4 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx, page.tsx, rooms.py) | 9 reads | ~43894 tok |
+| 12:48 | Session end: 6 writes across 4 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx, page.tsx, rooms.py) | 12 reads | ~43894 tok |
+| 10:45 | Bug-259 backend: .select('id') on room_status fixed to .select('room_id') — verified room 116 checkout_time saves. Local :8003 is stale, :8004 has fixes. Changes uncommitted. | apps/api/routers/rooms.py | complete | ~3k tok |
+| 12:50 | Session end: 6 writes across 4 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx, page.tsx, rooms.py) | 12 reads | ~43894 tok |
+| 12:51 | Session end: 6 writes across 4 files (RoomDetailDrawer.tsx, RoomStatusBoard.tsx, page.tsx, rooms.py) | 12 reads | ~43894 tok |
+
+## Session: 2026-05-29 12:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
