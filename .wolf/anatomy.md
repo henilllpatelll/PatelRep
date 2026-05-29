@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T13:49:29.279Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T14:26:02.585Z
 > Files: 112 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -604,7 +604,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8458 tok)
+- `page.tsx` — SHIFTS (~8465 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -702,9 +702,9 @@
 ## apps/web/components/housekeeping/
 
 - `OccupancyImportModal.tsx` — OccupancyImportModal (~2623 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3480 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~10369 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5162 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~5610 tok)
 
 ## apps/web/components/settings/
 
@@ -754,7 +754,7 @@
 
 ## apps/web/stores/
 
-- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1110 tok)
+- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1175 tok)
 
 ## design_handoff_frontend_rework/
 

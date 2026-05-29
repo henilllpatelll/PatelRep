@@ -82,6 +82,9 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
       pendingAssignments: state.assignmentMode ? {} : state.pendingAssignments,
       activeAssigneeId: null,
       activeAssigneeName: null,
+      // clear filters when switching modes so rooms aren't inadvertently hidden
+      statusFilter: !state.assignmentMode ? null : state.statusFilter,
+      cleanTypeFilter: state.assignmentMode ? [] : state.cleanTypeFilter,
     })),
 
   setPendingAssignment: (roomId, housekeeperId) =>

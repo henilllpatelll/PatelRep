@@ -4174,6 +4174,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-29T13:49:06.086Z"
+    },
+    {
+      "id": "bug-251",
+      "timestamp": "2026-05-29T13:58:03.062Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "key: 'LIGHT', label: 'Light', dotTone: 'pickup' → 'INSPECTED',   label: 'Inspected',    dotTone: 'inspected'",
+      "fix": "Changed key: 'LIGHT', label: 'Light', dotTone: 'pickup' → 'INSPECTED',   label: 'Inspected',    dotTone: 'inspected'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-29T14:02:43.280Z"
+    },
+    {
+      "id": "bug-252",
+      "timestamp": "2026-05-29T13:58:29.923Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 88→117 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T13:58:29.923Z"
+    },
+    {
+      "id": "bug-253",
+      "timestamp": "2026-05-29T14:10:29.965Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T14:10:29.965Z"
+    },
+    {
+      "id": "bug-254",
+      "timestamp": "2026-05-29T14:21:09.905Z",
+      "error_message": "Wrong operator: === should be &&",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Used \"===\" instead of \"&&\"",
+      "fix": "Changed operator === → &&",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T14:21:09.905Z"
+    },
+    {
+      "id": "bug-255",
+      "timestamp": "2026-05-29T14:25:29.485Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "key: 'OOO',         label: 'OOO',          dotTone: 'ooo' → 'OOO',         label: 'OOO',         dotTone: 'ooo'",
+      "fix": "Changed key: 'OOO',         label: 'OOO',          dotTone: 'ooo' → 'OOO',         label: 'OOO',         dotTone: 'ooo'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T14:25:29.485Z"
     }
   ]
 }

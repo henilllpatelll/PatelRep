@@ -213,7 +213,7 @@ export function RoomCard({
           {statusLabel}
           {isOccupied && etaTime ? ` · ${etaTime}` : ''}
         </Pill>
-        {status === 'PICKUP' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
+        {status !== 'INSPECTED' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
           <span className={cn('text-[10px] font-semibold', CLEAN_TYPE_TEXT_COLOR[room.clean_type])}>
             {cleanTypeLabel}
           </span>

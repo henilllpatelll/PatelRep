@@ -28,6 +28,13 @@ const CLEAN_TYPE_CHIPS: Array<{ key: CleanType; label: string; dotTone: string }
   { key: 'LIGHT', label: 'Light', dotTone: 'pickup' },
 ]
 
+const STATUS_WORKFLOW_CHIPS: Array<{ key: string; label: string; dotTone: string }> = [
+  { key: 'IN_PROGRESS', label: 'In Progress', dotTone: 'progress' },
+  { key: 'CLEAN',       label: 'Clean',       dotTone: 'clean' },
+  { key: 'INSPECTED',   label: 'Inspected',   dotTone: 'inspected' },
+  { key: 'OOO',         label: 'OOO',         dotTone: 'ooo' },
+]
+
 // -- Skeleton loader -----------------------------------------------------------
 
 function SkeletonGrid() {
@@ -49,6 +56,9 @@ interface SummaryBarProps {
   rooms: any[]
   cleanTypeFilter: CleanTypeFilter
   onCleanTypeFilter: (cleanTypes: CleanTypeFilter) => void
+  statusFilter: string | null
+  onStatusFilter: (status: string | null) => void
+  assignmentMode?: boolean
   showRiskOnly?: boolean
   onToggleRisk?: () => void
   riskCount?: number
@@ -58,74 +68,104 @@ function StatusSummaryBar({
   rooms,
   cleanTypeFilter,
   onCleanTypeFilter,
+  statusFilter,
+  onStatusFilter,
+  assignmentMode,
   showRiskOnly,
   onToggleRisk,
   riskCount,
 }: SummaryBarProps) {
-  const { cleanTypeCounts } = getHousekeepingBoardFilterCounts(rooms)
+  const { cleanTypeCounts, statusCounts } = getHousekeepingBoardFilterCounts(rooms)
+  const allActive = assignmentMode
+    ? cleanTypeFilter.length === 0 && statusFilter === null
+    : statusFilter === null
+
+  const chipClass = (active: boolean) =>
+    `shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
+      active
+        ? 'bg-ink text-paper border-ink font-medium'
+        : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
+    }`
 
   return (
     <div className="relative mb-4">
       <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {/* All */}
         <button
-          onClick={() => onCleanTypeFilter([])}
-          aria-pressed={cleanTypeFilter.length === 0}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
-            cleanTypeFilter.length === 0
-              ? 'bg-ink text-paper border-ink font-medium'
-              : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
-          }`}
+          onClick={() => { onCleanTypeFilter([]); onStatusFilter(null) }}
+          aria-pressed={allActive}
+          className={chipClass(allActive)}
         >
           <StatusDot tone="neutral" size={7} />
           All
           <span className="font-mono font-semibold text-[11px] opacity-70">{rooms.length}</span>
         </button>
-        {CLEAN_TYPE_CHIPS.map((chip) => {
-          const count = cleanTypeCounts[chip.key] ?? 0
-          const isActive = cleanTypeFilter.includes(chip.key)
-          return (
-            <button
-              key={chip.key}
-              onClick={() => {
-                const next = isActive
-                  ? cleanTypeFilter.filter((k) => k !== chip.key)
-                  : [...cleanTypeFilter, chip.key]
-                onCleanTypeFilter(next)
-              }}
-              aria-pressed={isActive}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] rounded-full border transition-colors ${
-                isActive
-                  ? 'bg-ink text-paper border-ink font-medium'
-                  : 'bg-surface border border-line text-ink2 hover:bg-surface-2'
-              }`}
-            >
-              <StatusDot tone={chip.dotTone} size={7} />
-              {chip.label}
-              <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
-            </button>
-          )
-        })}
 
-        {/* At Risk toggle chip */}
-        {onToggleRisk && (
+        {assignmentMode ? (
+          /* Assignment mode: DEP / FULL / LIGHT only */
+          CLEAN_TYPE_CHIPS.map((chip) => {
+            const count = cleanTypeCounts[chip.key] ?? 0
+            const isActive = cleanTypeFilter.includes(chip.key)
+            return (
+              <button
+                key={chip.key}
+                onClick={() => {
+                  const next = isActive
+                    ? cleanTypeFilter.filter((k) => k !== chip.key)
+                    : [...cleanTypeFilter, chip.key]
+                  onCleanTypeFilter(next)
+                }}
+                aria-pressed={isActive}
+                className={chipClass(isActive)}
+              >
+                <StatusDot tone={chip.dotTone} size={7} />
+                {chip.label}
+                <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
+              </button>
+            )
+          })
+        ) : (
           <>
-            <span className="shrink-0 w-px h-5 bg-line self-center" aria-hidden="true" />
-            <button
-              onClick={onToggleRisk}
-              aria-pressed={showRiskOnly}
-              disabled={(riskCount ?? 0) === 0}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border disabled:opacity-40 disabled:cursor-default ${
-                showRiskOnly
-                  ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
-                  : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
-              }`}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-              </svg>
-              AI risk
-              <span className="font-mono font-bold text-[11px]">{riskCount}</span>
-            </button>
+            {/* Workflow status chips */}
+            {STATUS_WORKFLOW_CHIPS.map((chip) => {
+              const count = statusCounts[chip.key] ?? 0
+              const isActive = statusFilter === chip.key
+              return (
+                <button
+                  key={chip.key}
+                  onClick={() => onStatusFilter(isActive ? null : chip.key)}
+                  aria-pressed={isActive}
+                  className={chipClass(isActive)}
+                >
+                  <StatusDot tone={chip.dotTone} size={7} />
+                  {chip.label}
+                  <span className="font-mono font-semibold text-[11px] opacity-70">{count}</span>
+                </button>
+              )
+            })}
+
+            {/* AI Risk */}
+            {onToggleRisk && (
+              <>
+                <span className="shrink-0 w-px h-5 bg-line self-center" aria-hidden="true" />
+                <button
+                  onClick={onToggleRisk}
+                  aria-pressed={showRiskOnly}
+                  disabled={(riskCount ?? 0) === 0}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-[6px] rounded-full text-xs font-medium transition-colors border disabled:opacity-40 disabled:cursor-default ${
+                    showRiskOnly
+                      ? 'bg-[var(--ai)] text-white border-[var(--ai)]'
+                      : 'bg-[var(--ai-soft)] text-[var(--ai)] border-[var(--ai-line)] hover:opacity-90'
+                  }`}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
+                  </svg>
+                  AI risk
+                  <span className="font-mono font-bold text-[11px]">{riskCount}</span>
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
@@ -376,6 +416,9 @@ export function RoomStatusBoard() {
         rooms={displayRooms}
         cleanTypeFilter={cleanTypeFilter}
         onCleanTypeFilter={setCleanTypeFilter}
+        statusFilter={statusFilter}
+        onStatusFilter={setStatusFilter}
+        assignmentMode={assignmentMode}
         showRiskOnly={showRiskOnly}
         onToggleRisk={toggleRiskOnly}
         riskCount={riskCount}

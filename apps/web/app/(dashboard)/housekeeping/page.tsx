@@ -371,9 +371,9 @@ function HousekeeperRoomItem({
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.pillClass}`}>
             {getCleanAwareStatusLabel(cfg.label, room.clean_type, status)}
           </span>
-          {room.clean_type === 'DEP' && cleanTypeLabel && (
-            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR['DEP']}`}>
-              <LogOut className="h-2.5 w-2.5" />
+          {cleanTypeLabel && (
+            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${CLEAN_TYPE_TEXT_COLOR[room.clean_type] ?? 'text-ink3'}`}>
+              {room.clean_type === 'DEP' && <LogOut className="h-2.5 w-2.5" />}
               {cleanTypeLabel}
             </span>
           )}
