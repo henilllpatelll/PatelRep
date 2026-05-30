@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T22:52:41.808Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T23:04:03.356Z
 > Files: 10 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -435,7 +435,7 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 2 endpoints (~15232 tok)
+- `housekeeping.py` — API: 2 endpoints (~14968 tok)
 
 ## apps/api/services/
 

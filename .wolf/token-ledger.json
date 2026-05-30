@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 7898041,
-    "total_reads": 4147,
-    "total_writes": 3156,
+    "total_tokens_estimated": 7928803,
+    "total_reads": 4149,
+    "total_writes": 3164,
     "total_sessions": 167,
-    "anatomy_hits": 1467,
+    "anatomy_hits": 1469,
     "anatomy_misses": 2620,
     "repeated_reads_blocked": 1489,
-    "estimated_savings_vs_bare_cli": 6576835
+    "estimated_savings_vs_bare_cli": 6577235
   },
   "sessions": [
     {
@@ -47284,6 +47284,92 @@
         "writes_count": 16,
         "repeated_reads_blocked": 11,
         "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-05-30-1754",
+      "started": "2026-05-30T22:54:46.576Z",
+      "ended": "2026-05-30T23:04:22.321Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 15232,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 42,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 66,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 33,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15232,
+        "output_tokens_estimated": 149,
+        "reads_count": 1,
+        "writes_count": 4,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-30-1754",
+      "started": "2026-05-30T22:54:46.576Z",
+      "ended": "2026-05-30T23:05:33.940Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 15232,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 42,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 66,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 33,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15232,
+        "output_tokens_estimated": 149,
+        "reads_count": 1,
+        "writes_count": 4,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
       }
     }
   ],

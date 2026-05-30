@@ -4434,6 +4434,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-30T22:42:31.757Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-05-30T23:04:03.377Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-30T23:04:03.377Z"
     }
   ]
 }

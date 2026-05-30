@@ -1222,7 +1222,7 @@ async def import_hk_details(
 ):
     """
     Import an Opera HK Details PDF to reset room_status for the day.
-    Skips rooms currently IN_PROGRESS to protect active cleaning work.
+    Overrides any current room status including IN_PROGRESS.
     """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
@@ -1248,18 +1248,6 @@ async def import_hk_details(
         room_id = room_map.get(row.room_number)
         if not room_id:
             not_found.append(row.room_number)
-            continue
-
-        # Fetch current status to protect IN_PROGRESS rooms
-        current = supabase.table("room_status") \
-            .select("status") \
-            .eq("room_id", room_id) \
-            .eq("tenant_id", current_user.hotel_id) \
-            .maybe_single() \
-            .execute()
-
-        if current.data and current.data.get("status") == "IN_PROGRESS":
-            skipped_active += 1
             continue
 
         resolved_status = (
@@ -1306,7 +1294,7 @@ async def import_task_sheet(
 ):
     """
     Import an Opera Task Sheet PDF to set clean_type for rooms needing cleaning.
-    Skips rooms that are already IN_PROGRESS, CLEAN, or INSPECTED.
+    Overrides any current room status including IN_PROGRESS.
     Sets DIRTY+OCC+Stayover rooms with FULL/LIGHT task to PICKUP status.
     """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -1344,10 +1332,6 @@ async def import_task_sheet(
             .execute()
 
         current_status = current.data.get("status") if current.data else None
-
-        if current_status in ("IN_PROGRESS", "CLEAN", "INSPECTED"):
-            skipped_active += 1
-            continue
 
         # Determine the new status based on Opera occupancy + reservation status.
         # DI + OCC + Stayover = PICKUP regardless of task column.
