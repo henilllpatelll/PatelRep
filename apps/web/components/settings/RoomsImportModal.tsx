@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 
 interface RoomsImportResult {
   imported: number
-  skipped: number
+  reset: number
 }
 
 const EMPTY_IMPORT_ROW = (): ImportRoomPayload => ({
@@ -41,7 +41,7 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
       const d = data?.data ?? data
       setImportResult({
         imported: d?.imported_count ?? d?.imported ?? 0,
-        skipped: d?.skipped_count ?? d?.skipped ?? 0,
+        reset: d?.reset_count ?? d?.reset ?? 0,
       })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     },
@@ -54,7 +54,7 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
       const d = data?.data ?? data
       setImportResult({
         imported: d?.imported_count ?? d?.imported ?? 0,
-        skipped: d?.skipped_count ?? d?.skipped ?? 0,
+        reset: d?.reset_count ?? d?.reset ?? 0,
       })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     },
@@ -137,9 +137,9 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-start gap-3 p-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg">
               <CheckCircle2 size={18} className="text-[var(--ready)] mt-0.5 shrink-0" />
               <p className="text-sm text-green-800">
-                Imported <span className="font-semibold">{importResult.imported}</span> rooms
-                {importResult.skipped > 0 && (
-                  <>, <span className="font-semibold">{importResult.skipped}</span> skipped</>
+                Imported <span className="font-semibold">{importResult.imported}</span> new room{importResult.imported !== 1 ? 's' : ''}
+                {importResult.reset > 0 && (
+                  <>, <span className="font-semibold">{importResult.reset}</span> reset</>
                 )}.
               </p>
             </div>

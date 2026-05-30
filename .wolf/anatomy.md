@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T23:04:03.356Z
-> Files: 10 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T23:17:26.582Z
+> Files: 13 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -11,6 +11,7 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -436,6 +437,7 @@
 ## apps/api/routers/
 
 - `housekeeping.py` — API: 2 endpoints (~14968 tok)
+- `rooms.py` — API: 3 endpoints (~8070 tok)
 
 ## apps/api/services/
 
@@ -641,6 +643,7 @@
 
 ## apps/web/components/settings/
 
+- `RoomsImportModal.tsx` — EMPTY_IMPORT_ROW — renders table (~4520 tok)
 
 ## apps/web/components/shared/
 

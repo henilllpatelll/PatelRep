@@ -658,9 +658,30 @@ async def import_rooms(
         room_number (required), floor (required), room_type_code (required),
         room_type_name (optional), building (optional)
     """
+    _ROOM_STATUS_RESET = {
+        "status": "DIRTY",
+        "assigned_to": None,
+        "notes": None,
+        "dnd_flag": False,
+        "do_not_service": False,
+        "priority": 5,
+        "risk_level": None,
+        "predicted_ready_at": None,
+        "room_type_category": None,
+        "guest_name": None,
+        "vip_flag": False,
+        "checkin_time": None,
+        "checkout_time": None,
+        "actual_checkout_at": None,
+        "clean_type": None,
+        "last_cleaned_at": None,
+        "last_inspected_at": None,
+        "last_inspected_by": None,
+    }
+
     rooms_input = request.rooms or []
     imported_count = 0
-    skipped_count = 0
+    reset_count = 0
     errors: list[dict] = []
 
     for room_data in rooms_input:
@@ -728,7 +749,11 @@ async def import_rooms(
             .execute()
         )
         if existing.data:
-            skipped_count += 1
+            # Reset every status field; work orders (separate table) are untouched
+            supabase.table("room_status").update(_ROOM_STATUS_RESET).eq(
+                "room_id", existing.data[0]["id"]
+            ).execute()
+            reset_count += 1
             continue
 
         # --- Insert room ---
@@ -764,7 +789,7 @@ async def import_rooms(
     return {
         "data": {
             "imported_count": imported_count,
-            "skipped_count": skipped_count,
+            "reset_count": reset_count,
             "errors": errors,
         }
     }
