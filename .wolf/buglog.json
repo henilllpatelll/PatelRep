@@ -4370,6 +4370,70 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-29T18:13:17.816Z"
+    },
+    {
+      "id": "bug-263",
+      "timestamp": "2026-05-29T20:31:33.232Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T20:31:33.232Z"
+    },
+    {
+      "id": "bug-264",
+      "timestamp": "2026-05-29T20:32:20.190Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-29T20:32:20.190Z"
+    },
+    {
+      "id": "bug-265",
+      "timestamp": "2026-05-30T20:47:32.164Z",
+      "error_message": "CSS fix: onSuccess",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "onSuccess: () => void → (result: OverallResult) => void",
+      "fix": "Changed onSuccess: () => void → (result: OverallResult) => void",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-30T20:47:32.164Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-05-30T22:42:31.757Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 13→17 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-30T22:42:31.757Z"
     }
   ]
 }

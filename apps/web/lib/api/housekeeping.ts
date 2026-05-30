@@ -40,6 +40,16 @@ export interface InspectionRecord {
   completed_at: string
 }
 
+export interface ReadyForInspectionRoom {
+  room_id: string
+  room_number: string
+  floor: number | null
+  cleaned_by: string
+  cleaned_at: string | null
+  housekeeper_id: string | null
+  clean_type: string | null
+}
+
 export interface AssignmentPayload {
   date: string
   shift_id: string | null
@@ -108,6 +118,9 @@ export const housekeepingApi = {
 
   getInspections: (params?: { date_from?: string; date_to?: string; room_id?: string; result?: string }) =>
     apiClient.get('/housekeeping/inspections', { params }),
+
+  getReadyForInspection: (date?: string) =>
+    apiClient.get('/housekeeping/ready-for-inspection', { params: date ? { date } : undefined }),
 
   updateRoomStatus: (roomId: string, status: string, notes?: string) =>
     apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),

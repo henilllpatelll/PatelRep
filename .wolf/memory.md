@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-30 | Inspections tab rework: Live/History subtabs, full inspection modal with checklist, re-assign drawer after fail, housekeeper_id+clean_type in ready-for-inspection API | housekeeping.py, housekeeping.ts, InspectionModal.tsx, inspections/page.tsx | complete | ~8k tok |
 | 00:00 | Security hardening — IDOR/XSS/CSRF/SQLi audit: 7 fixes across tasks.py, work_orders.py, guest_requests.py, notifications.py, staff.py, logbook.py, next.config.mjs | bugs 197-200 | complete | ~4k tok |
 | 00:00 | Opera PDF import — 044_fo_status.sql, services/opera_pdf.py, two new housekeeping endpoints, TS client funcs, OccupancyImportModal, assignments page Import button | 6 files | complete | ~6k tok |
 | session | Task sheet display fix: RoomCard + HousekeeperRoomItem now show "Pickup - Full"/"Pickup - Light" in the primary pill; assignments page room chips show clean type; DEP treatment unchanged | RoomCard.tsx, housekeeping/page.tsx, assignments/page.tsx | complete | ~2k tok |
@@ -2818,3 +2819,39 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 13:57 | Session end: 1 writes across 1 files (CLAUDE.md) | 5 reads | ~8831 tok |
 | 14:03 | Edited apps/api/routers/housekeeping.py | 5→1 lines | ~28 |
 | 14:04 | Session end: 2 writes across 2 files (CLAUDE.md, housekeeping.py) | 7 reads | ~8859 tok |
+
+## Session: 2026-05-29 15:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:31 | Edited apps/api/routers/housekeeping.py | modified list_ready_for_inspection() | ~768 |
+| 15:31 | Edited apps/web/lib/api/housekeeping.ts | 2→5 lines | ~89 |
+| 15:31 | Edited apps/web/lib/api/housekeeping.ts | expanded (+8 lines) | ~102 |
+| 15:31 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | inline fix | ~28 |
+| 15:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | CSS: isLoading, refetchInterval | ~348 |
+| 15:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | CSS: h | ~825 |
+| 15:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | inline fix | ~18 |
+| 15:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | removed 36 lines | ~1 |
+
+| 15:32 | inspections queue fix: GET /ready-for-inspection endpoint + ReadyForInspectionRoom type + queue panel shows CLEAN rooms | housekeeping.py, housekeeping.ts, inspections/page.tsx | complete | ~2k tok || 15:33 | Session end: 8 writes across 3 files (housekeeping.py, housekeeping.ts, page.tsx) | 3 reads | ~19753 tok |
+| 15:38 | Session end: 8 writes across 3 files (housekeeping.py, housekeeping.ts, page.tsx) | 4 reads | ~19753 tok |
+| 15:43 | Session end: 8 writes across 3 files (housekeeping.py, housekeeping.ts, page.tsx) | 5 reads | ~19753 tok |
+
+## Session: 2026-05-29 16:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:47 | Edited apps/api/routers/housekeeping.py | modified in() | ~482 |
+| 15:47 | Edited apps/web/lib/api/housekeeping.ts | 7→9 lines | ~62 |
+| 15:47 | Edited apps/web/components/housekeeping/InspectionModal.tsx | CSS: result | ~178 |
+| 15:47 | Edited apps/web/components/housekeeping/InspectionModal.tsx | modified InspectionModal() | ~130 |
+| 15:47 | Edited apps/web/components/housekeeping/InspectionModal.tsx | 6→6 lines | ~68 |
+| 15:47 | Edited apps/web/components/housekeeping/InspectionModal.tsx | 11→12 lines | ~113 |
+| 15:47 | Edited apps/web/components/housekeeping/InspectionModal.tsx | CSS: h | ~206 |
+| 15:48 | Created apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | — | ~4954 |
+| 15:49 | Session end: 8 writes across 4 files (housekeeping.py, housekeeping.ts, InspectionModal.tsx, page.tsx) | 6 reads | ~26073 tok |
+
+## Session: 2026-05-30 17:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

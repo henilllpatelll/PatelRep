@@ -1,17 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import { X, Check, Minus, ClipboardCheck, Loader2 } from 'lucide-react'
 import { housekeepingApi, InspectionTemplate } from '@/lib/api/housekeeping'
+import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { Button } from '@/components/ui/Button'
 
 interface Props {
   roomId: string
   roomNumber: string
+  cleanedBy?: string
+  cleanedAt?: string | null
+  cleanType?: string | null
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (result: OverallResult) => void
 }
 
 type ItemResult = 'pass' | 'fail' | 'na'
@@ -54,11 +59,12 @@ function OverallResultBadge({ result }: { result: OverallResult }) {
   )
 }
 
-export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess }: Props) {
+export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, isOpen, onClose, onSuccess }: Props) {
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
   const [notes, setNotes] = useState('')
   const [manualOverall, setManualOverall] = useState<OverallResult>('passed')
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const pendingResultRef = useRef<OverallResult>('passed')
 
   // Fetch templates only when modal is open
   const { data: templatesData, isLoading: templatesLoading } = useQuery({
@@ -95,7 +101,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
     mutationFn: (payload: Parameters<typeof housekeepingApi.submitInspection>[0]) =>
       housekeepingApi.submitInspection(payload),
     onSuccess: () => {
-      onSuccess()
+      onSuccess(pendingResultRef.current)
     },
     onError: (err: any) => {
       setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Failed to submit inspection.')
@@ -155,6 +161,7 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
         result: itemResults[item.id ?? String(idx)] ?? 'na',
       })),
     }
+    pendingResultRef.current = calculatedResult
     mutation.mutate(payload as any)
   }
 
@@ -183,7 +190,18 @@ export function InspectionModal({ roomId, roomNumber, isOpen, onClose, onSuccess
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
               <ClipboardCheck className="w-5 h-5 text-[var(--ready)] shrink-0" />
-              <h2 className="text-base font-bold text-gray-900">Inspect Room {roomNumber}</h2>
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Inspect Room {roomNumber}</h2>
+                {(cleanedBy || cleanType) && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {[
+                      cleanedBy && `Cleaned by ${cleanedBy}`,
+                      cleanType && getCleanTypeLabel(cleanType),
+                      cleanedAt && format(new Date(cleanedAt), 'h:mm a'),
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
             </div>
             <Button
               variant="ghost"

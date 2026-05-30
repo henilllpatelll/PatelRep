@@ -821,6 +821,85 @@ async def get_predictions(
 
 
 # ---------------------------------------------------------------------------
+# GET /housekeeping/ready-for-inspection
+# ---------------------------------------------------------------------------
+
+@router.get("/ready-for-inspection")
+async def list_ready_for_inspection(
+    board_date: Optional[date] = Query(None, alias="date"),
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    """Return rooms currently in CLEAN status — waiting for supervisor inspection."""
+    today = board_date or date.today()
+
+    result = (
+        supabase.table("room_status")
+        .select("room_id, status, updated_at, rooms!inner(room_number, floor)")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("status", "CLEAN")
+        .execute()
+    )
+    clean_rooms = result.data or []
+
+    if not clean_rooms:
+        return {"data": []}
+
+    room_ids = [r["room_id"] for r in clean_rooms]
+
+    # Resolve assigned_to UUIDs from today's assignments
+    assignments_res = (
+        supabase.table("room_assignments")
+        .select("room_id, assigned_to, clean_type")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assignment_date", today.isoformat())
+        .in_("room_id", room_ids)
+        .execute()
+    )
+    assigned_map: dict[str, str] = {
+        a["room_id"]: a["assigned_to"]
+        for a in (assignments_res.data or [])
+        if a.get("assigned_to")
+    }
+    clean_type_map: dict[str, str | None] = {
+        a["room_id"]: a.get("clean_type")
+        for a in (assignments_res.data or [])
+    }
+
+    # Resolve housekeeper names
+    hk_ids = list(set(assigned_map.values()))
+    name_map: dict[str, str] = {}
+    if hk_ids:
+        profiles = (
+            supabase.table("user_profiles")
+            .select("id, preferred_name, full_name")
+            .in_("id", hk_ids)
+            .eq("tenant_id", current_user.hotel_id)
+            .execute()
+        )
+        for p in (profiles.data or []):
+            name_map[p["id"]] = p.get("preferred_name") or p.get("full_name") or p["id"]
+
+    output = []
+    for room in clean_rooms:
+        room_info = room.get("rooms") or {}
+        assigned_to = assigned_map.get(room["room_id"])
+        output.append({
+            "room_id": room["room_id"],
+            "room_number": room_info.get("room_number", ""),
+            "floor": room_info.get("floor"),
+            "cleaned_by": name_map.get(assigned_to, "") if assigned_to else "",
+            "cleaned_at": room.get("updated_at"),
+            "housekeeper_id": assigned_to,
+            "clean_type": clean_type_map.get(room["room_id"]),
+        })
+
+    output.sort(key=lambda r: (r["floor"] or 0, r["room_number"]))
+    return {"data": output}
+
+
+# ---------------------------------------------------------------------------
 # POST /housekeeping/inspections
 # ---------------------------------------------------------------------------
 

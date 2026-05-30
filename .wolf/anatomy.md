@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T19:03:26.350Z
-> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T22:52:41.808Z
+> Files: 10 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -435,7 +435,7 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 2 endpoints (~14346 tok)
+- `housekeeping.py` — API: 2 endpoints (~15232 tok)
 
 ## apps/api/services/
 
@@ -562,6 +562,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
+- `page.tsx` — todayISO — renders table (~4954 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
@@ -628,12 +629,15 @@
 
 ## apps/web/components/dashboard/
 
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~3078 tok)
 
 ## apps/web/components/engineering/
 
 
 ## apps/web/components/housekeeping/
 
+- `InspectionModal.tsx` — calcOverallResult (~4817 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3535 tok)
 
 ## apps/web/components/settings/
 
@@ -649,6 +653,7 @@
 
 ## apps/web/lib/api/
 
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (22 endpoints) (~1618 tok)
 
 ## apps/web/lib/hooks/
 
