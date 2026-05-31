@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T13:56:05.914Z
-> Files: 17 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T14:24:38.396Z
+> Files: 19 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -437,7 +437,7 @@
 ## apps/api/routers/
 
 - `housekeeping.py` — API: 2 endpoints (~15212 tok)
-- `rooms.py` — API: 3 endpoints (~8070 tok)
+- `rooms.py` — API: 3 endpoints (~8742 tok)
 
 ## apps/api/services/
 
@@ -454,6 +454,7 @@
 
 ## apps/api/tests/smoke/
 
+- `test_inspection_templates.py` — Regression tests for persisted/default inspection checklist templates returned by housekeeping API. (~1370 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 
@@ -643,6 +644,7 @@
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
 - `RoomCard.tsx` — STATUS_BORDER (~3535 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11216 tok)
 
 ## apps/web/components/settings/
 
@@ -659,7 +661,7 @@
 
 ## apps/web/lib/api/
 
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (22 endpoints) (~1618 tok)
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (23 endpoints) (~1644 tok)
 
 ## apps/web/lib/hooks/
 

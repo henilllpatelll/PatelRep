@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
+| 2026-05-31 | Checkout time override: manual_checkout_room now always sets checkout_time = actual_checkout_at, replacing any prior manual entry | apps/api/routers/rooms.py | complete | ~1k tok |
 | 2026-05-31 13:56 | Fixed inspection template edit/delete: PATCH returned 400 (FK 23503) because inspection_results.template_item_id was NOT NULL with no cascade. Migration 049 made it nullable with ON DELETE SET NULL. | supabase/migrations/049_inspection_results_nullable_template_item.sql | complete | ~2k tok |
 | 2026-05-31 | HK Details import: cleared actual_checkout_at always + checkout_time for non-departure rooms so stale times don't persist after morning import | apps/api/routers/housekeeping.py | complete | ~2k tok |
 | 2026-05-30 | Inspections tab rework: Live/History subtabs, full inspection modal with checklist, re-assign drawer after fail, housekeeper_id+clean_type in ready-for-inspection API | housekeeping.py, housekeeping.ts, InspectionModal.tsx, inspections/page.tsx | complete | ~8k tok |
@@ -2935,3 +2936,31 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 08:56 | Created supabase/migrations/049_inspection_results_nullable_template_item.sql | — | ~250 |
 | 08:57 | Session end: 1 writes across 1 files (049_inspection_results_nullable_template_item.sql) | 17 reads | ~17098 tok |
+
+## Session: 2026-05-31 09:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:09 | Edited apps/api/routers/rooms.py | 12→11 lines | ~100 |
+| 09:10 | Session end: 1 writes across 1 files (rooms.py) | 1 reads | ~8152 tok |
+
+## Session: 2026-05-31 09:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:18 | Edited apps/api/routers/rooms.py | modified undo_checkout() | ~757 |
+| 09:18 | Edited apps/web/lib/api/housekeeping.ts | 2→5 lines | ~62 |
+| 09:18 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 15→16 lines | ~55 |
+| 09:18 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→5 lines | ~102 |
+| 09:19 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~213 |
+| 09:19 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+18 lines) | ~594 |
+| 09:19 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→4 lines | ~34 |
+| 09:20 | Session end: 7 writes across 3 files (rooms.py, housekeeping.ts, RoomDetailDrawer.tsx) | 3 reads | ~11487 tok |
+
+## Session: 2026-05-31 09:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:21 | Fixed inspection template fallback | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_inspection_templates.py | Persisted/backfilled standard inspection checklist; focused tests pass | ~6200 |
+| 09:24 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→1 lines | ~16 |
+| 09:24 | Session end: 8 writes across 3 files (rooms.py, housekeeping.ts, RoomDetailDrawer.tsx) | 3 reads | ~22755 tok |

@@ -16,6 +16,7 @@ import {
   Send,
   Clock,
   LogOut,
+  RotateCcw,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -179,6 +180,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [undoCheckoutLoading, setUndoCheckoutLoading] = useState(false)
+  const [undoCheckoutError, setUndoCheckoutError] = useState<string | null>(null)
   const [saveTimeLoading, setSaveTimeLoading] = useState(false)
   const [saveTimeSuccess, setSaveTimeSuccess] = useState(false)
   const [saveTimeError, setSaveTimeError] = useState<string | null>(null)
@@ -205,6 +208,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     setCheckoutTimeInput(formatTimeInput(room?.checkout_time))
     setCheckoutSuccess(false)
     setCheckoutError(null)
+    setUndoCheckoutError(null)
     setSaveTimeLoading(false)
     setSaveTimeSuccess(false)
     setSaveTimeError(null)
@@ -293,8 +297,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     setCheckoutLoading(true)
     setCheckoutError(null)
     try {
-      const timeIso = buildCheckoutTimeIso(checkoutTimeInput, room?.checkout_time)
-      await housekeepingApi.markCheckedOut(roomId, timeIso ? { actual_checkout_at: timeIso } : {})
+      await housekeepingApi.markCheckedOut(roomId, {})
       setCheckoutSuccess(true)
       setTimeout(() => setCheckoutSuccess(false), 5000)
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
@@ -307,6 +310,24 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       setCheckoutLoading(false)
     }
   }
+  async function handleUndoCheckout() {
+    if (!roomId) return
+    setUndoCheckoutLoading(true)
+    setUndoCheckoutError(null)
+    try {
+      await housekeepingApi.undoCheckout(roomId)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    } catch {
+      setUndoCheckoutError('Failed to undo checkout. Please try again.')
+    } finally {
+      setUndoCheckoutLoading(false)
+    }
+  }
+
   const prediction = room?.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
 
@@ -502,7 +523,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 {saveTimeError && (
                   <p className="mt-1 text-[11px] text-[var(--alert)]">{saveTimeError}</p>
                 )}
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={handleManualCheckout}
@@ -516,11 +537,29 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     )}
                     {isCheckedOut ? 'Checked Out' : 'Mark Checked Out'}
                   </button>
+                  {isCheckedOut && (
+                    <button
+                      type="button"
+                      onClick={handleUndoCheckout}
+                      disabled={undoCheckoutLoading}
+                      title="Undo checkout"
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white/75 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      {undoCheckoutLoading ? (
+                        <span className="h-3 w-3 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  )}
                   {checkoutSuccess && (
                     <span className="text-xs text-[var(--ready)]">Housekeeping notified</span>
                   )}
                   {checkoutError && (
                     <span className="text-xs text-[var(--alert)]">{checkoutError}</span>
+                  )}
+                  {undoCheckoutError && (
+                    <span className="text-xs text-[var(--alert)]">{undoCheckoutError}</span>
                   )}
                 </div>
               </div>

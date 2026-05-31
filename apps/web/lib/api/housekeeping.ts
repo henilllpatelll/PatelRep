@@ -128,6 +128,9 @@ export const housekeepingApi = {
   markCheckedOut: (roomId: string, data?: ManualCheckoutPayload) =>
     apiClient.post(`/rooms/${roomId}/checkout`, data ?? {}),
 
+  undoCheckout: (roomId: string) =>
+    apiClient.delete(`/rooms/${roomId}/checkout`),
+
   updateCheckoutTime: (roomId: string, checkoutTime: string) =>
     apiClient.patch(`/rooms/${roomId}/checkout-time`, { checkout_time: checkoutTime }),
 

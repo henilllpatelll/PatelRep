@@ -389,14 +389,13 @@ async def manual_checkout_room(
         "status": to_status,
         "fo_status": "VAC",
         "actual_checkout_at": actual_checkout_at.isoformat(),
+        "checkout_time": actual_checkout_at.isoformat(),
         "guest_name": None,
         "vip_flag": False,
         "dnd_flag": False,
         "updated_at": now_iso,
         "notes": notes,
     }
-    if request and request.checkout_time:
-        update_payload["checkout_time"] = request.checkout_time.isoformat()
 
     update_result = (
         supabase.table("room_status")
@@ -438,6 +437,74 @@ async def manual_checkout_room(
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# DELETE /rooms/{room_id}/checkout  (undo checkout)
+# ---------------------------------------------------------------------------
+
+@router.delete("/{room_id}/checkout")
+async def undo_checkout(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+    if not current_row.data.get("actual_checkout_at"):
+        raise HTTPException(status_code=400, detail="Room has not been checked out")
+
+    # Find the from_status recorded at checkout time to restore it
+    history_result = (
+        supabase.table("room_status_history")
+        .select("from_status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("notes", "Guest checked out")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    history_rows = history_result.data or [] if history_result else []
+    restore_status = history_rows[0].get("from_status") if history_rows else None
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    from_status = current_row.data.get("status")
+
+    update_payload: dict = {
+        "actual_checkout_at": None,
+        "checkout_time": None,
+        "fo_status": "OCC",
+        "updated_at": now_iso,
+        "notes": "Checkout undone",
+    }
+    if restore_status:
+        update_payload["status"] = restore_status
+
+    supabase.table("room_status")\
+        .update(update_payload)\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": from_status,
+        "to_status": restore_status or from_status,
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": "Checkout undone",
+    }).execute()
+
+    return {"data": {"room_id": room_id, "undone": True}}
 
 
 # ---------------------------------------------------------------------------

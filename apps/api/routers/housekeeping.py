@@ -21,6 +21,14 @@ CLEAN_TYPE_LABELS = {
     "LIGHT": "Light Service",
 }
 TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX = "task_sheet_clean_type="
+STANDARD_INSPECTION_TEMPLATE_ITEMS = [
+    ("Bathroom", "Bathroom clean and sanitized", True),
+    ("Bathroom", "Towels fresh and folded", True),
+    ("Sleeping Area", "Bed made, linens fresh", True),
+    ("Sleeping Area", "Pillows properly arranged", False),
+    ("General", "Floors clean and vacuumed", True),
+    ("General", "Amenities restocked", True),
+]
 
 HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hours=-6))
 
@@ -89,6 +97,44 @@ def _clean_type_payload(clean_type: str | None) -> dict:
 
 def _task_sheet_clean_type_note(clean_type: str) -> str:
     return f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}{clean_type}"
+
+
+def _insert_standard_inspection_items(template_id: str, tenant_id: str) -> list[dict]:
+    items_data = [
+        {
+            "template_id": template_id,
+            "tenant_id": tenant_id,
+            "section": section,
+            "description": description,
+            "is_required": is_required,
+            "sort_order": idx,
+        }
+        for idx, (section, description, is_required) in enumerate(
+            STANDARD_INSPECTION_TEMPLATE_ITEMS,
+            start=1,
+        )
+    ]
+    items = supabase.table("inspection_template_items").insert(items_data).execute()
+    return items.data or []
+
+
+def _create_standard_inspection_template(tenant_id: str) -> dict:
+    tmpl = (
+        supabase.table("inspection_templates")
+        .insert({
+            "tenant_id": tenant_id,
+            "name": "Standard Room Inspection",
+            "room_type_id": None,
+            "is_default": True,
+            "is_active": True,
+        })
+        .execute()
+    )
+    template = tmpl.data[0]
+    return {
+        **template,
+        "items": _insert_standard_inspection_items(template["id"], tenant_id),
+    }
 
 
 def _clean_type_from_task_sheet_note(note: str | None) -> str | None:
@@ -1049,8 +1095,12 @@ async def list_inspection_templates(
         .execute()
     )
 
+    template_rows = templates.data or []
+    if not template_rows:
+        return {"data": [_create_standard_inspection_template(current_user.hotel_id)]}
+
     result = []
-    for tmpl in (templates.data or []):
+    for tmpl in template_rows:
         items = (
             supabase.table("inspection_template_items")
             .select("id, section, description, is_required, sort_order")
@@ -1059,25 +1109,13 @@ async def list_inspection_templates(
             .order("sort_order")
             .execute()
         )
-        result.append({**tmpl, "items": items.data or []})
+        item_rows = items.data or []
+        if not item_rows and tmpl.get("is_default"):
+            item_rows = _insert_standard_inspection_items(tmpl["id"], current_user.hotel_id)
+        result.append({**tmpl, "items": item_rows})
 
-    # If no templates exist, return a sensible default checklist
-    if not result:
-        result = [{
-            "id": None,
-            "name": "Standard Room Inspection",
-            "room_type_id": None,
-            "is_default": True,
-            "is_active": True,
-            "items": [
-                {"id": None, "section": "Bathroom", "description": "Bathroom clean and sanitized", "is_required": True, "sort_order": 1},
-                {"id": None, "section": "Bathroom", "description": "Towels fresh and folded", "is_required": True, "sort_order": 2},
-                {"id": None, "section": "Sleeping Area", "description": "Bed made, linens fresh", "is_required": True, "sort_order": 3},
-                {"id": None, "section": "Sleeping Area", "description": "Pillows properly arranged", "is_required": False, "sort_order": 4},
-                {"id": None, "section": "General", "description": "Floors clean and vacuumed", "is_required": True, "sort_order": 5},
-                {"id": None, "section": "General", "description": "Amenities restocked", "is_required": True, "sort_order": 6},
-            ]
-        }]
+    if not any(template.get("items") for template in result):
+        result.insert(0, _create_standard_inspection_template(current_user.hotel_id))
 
     return {"data": result}
 
