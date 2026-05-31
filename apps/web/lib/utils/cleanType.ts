@@ -52,7 +52,10 @@ export function getEffectiveRoomStatusForCleanType(
   cleanType?: string | null,
   foStatus?: string | null,
 ): string | null | undefined {
-  if ((status !== 'DIRTY' && status !== 'PICKUP') || !cleanType) return status
   if (cleanType === 'DEP' && foStatus === 'OCC') return 'OCCUPIED'
+  if ((cleanType === 'FULL' || cleanType === 'LIGHT') && (status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED')) {
+    return 'PICKUP'
+  }
+  if ((status !== 'DIRTY' && status !== 'PICKUP') || !cleanType) return status
   return getRoomStatusForCleanType(cleanType)
 }

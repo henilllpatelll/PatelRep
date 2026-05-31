@@ -17,10 +17,12 @@ import {
   Clock,
   LogOut,
   RotateCcw,
+  BedDouble,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { engineeringApi } from '@/lib/api/engineering'
+import { roomsApi } from '@/lib/api/rooms'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
@@ -182,6 +184,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [undoCheckoutLoading, setUndoCheckoutLoading] = useState(false)
   const [undoCheckoutError, setUndoCheckoutError] = useState<string | null>(null)
+  const [stayoverLoading, setStayoverLoading] = useState(false)
+  const [stayoverError, setStayoverError] = useState<string | null>(null)
+  const [stayoverSuccess, setStayoverSuccess] = useState(false)
   const [saveTimeLoading, setSaveTimeLoading] = useState(false)
   const [saveTimeSuccess, setSaveTimeSuccess] = useState(false)
   const [saveTimeError, setSaveTimeError] = useState<string | null>(null)
@@ -209,6 +214,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     setCheckoutSuccess(false)
     setCheckoutError(null)
     setUndoCheckoutError(null)
+    setStayoverLoading(false)
+    setStayoverError(null)
+    setStayoverSuccess(false)
     setSaveTimeLoading(false)
     setSaveTimeSuccess(false)
     setSaveTimeError(null)
@@ -260,7 +268,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       setWoPriority('normal')
       setWoOpen(false)
       const roomLabel = room?.rooms?.room_number ?? room?.room_number ?? roomId
-      setWoSuccess(`Work order submitted â€” engineering team notified for Room ${roomLabel}`)
+      setWoSuccess(`Work order submitted — engineering team notified for Room ${roomLabel}`)
       setTimeout(() => setWoSuccess(null), 6000)
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
@@ -328,6 +336,25 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     }
   }
 
+  async function handleMarkStayover() {
+    if (!roomId) return
+    setStayoverLoading(true)
+    setStayoverError(null)
+    try {
+      await roomsApi.markStayover(roomId)
+      setStayoverSuccess(true)
+      setTimeout(() => setStayoverSuccess(false), 5000)
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
+      queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
+    } catch {
+      setStayoverError('Failed to mark stayover. Please try again.')
+    } finally {
+      setStayoverLoading(false)
+    }
+  }
+
   const prediction = room?.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
 
@@ -361,7 +388,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     }
   }, [isOpen])
 
-  const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? 'â€”'
+  const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
   const roomTypeName = room?.rooms?.room_types?.name ?? room?.room_type_name ?? ''
   const vipFlag = !!room?.vip_flag
   const guestName: string | null = room?.guest_name ?? null
@@ -376,6 +403,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const actualCheckoutTime = formatCheckinTime(room?.actual_checkout_at)
   const canMarkCheckout = (canSupervise || role === 'front_desk') && !!roomId
   const isCheckedOut = !!room?.actual_checkout_at || (room?.fo_status === 'VAC' && room?.clean_type === 'DEP')
+  const canMarkStayover = canMarkCheckout && !isCheckedOut && room?.clean_type === 'DEP' && room?.fo_status === 'OCC' && !stayoverSuccess
   const etaTime = formatCheckinTime(prediction?.predicted_ready_at)
   const delayMinutes: number | null = prediction?.delay_minutes ?? null
   const riskFactors: string[] = prediction?.risk_factors ?? []
@@ -413,7 +441,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               Room {roomNumber}
               {roomTypeName && (
-                <span className="font-normal text-gray-500"> â€” {roomTypeName}</span>
+                <span className="font-normal text-gray-500"> — {roomTypeName}</span>
               )}
             </h2>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
@@ -472,7 +500,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
               </span>
               {assignedName && (
-                <span className="text-sm text-gray-500">â€” Assigned to {assignedName}</span>
+                <span className="text-sm text-gray-500">— Assigned to {assignedName}</span>
               )}
             </div>
             {lastAction && (
@@ -524,32 +552,33 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   <p className="mt-1 text-[11px] text-[var(--alert)]">{saveTimeError}</p>
                 )}
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handleManualCheckout}
-                    disabled={checkoutLoading || isCheckedOut}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                  >
-                    {checkoutLoading ? (
-                      <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                    ) : (
-                      <Clock className="h-3.5 w-3.5" />
-                    )}
-                    {isCheckedOut ? 'Checked Out' : 'Mark Checked Out'}
-                  </button>
-                  {isCheckedOut && (
+                  {!isCheckedOut ? (
+                    <button
+                      type="button"
+                      onClick={handleManualCheckout}
+                      disabled={checkoutLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      {checkoutLoading ? (
+                        <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5" />
+                      )}
+                      Mark Checked Out
+                    </button>
+                  ) : (
                     <button
                       type="button"
                       onClick={handleUndoCheckout}
                       disabled={undoCheckoutLoading}
-                      title="Undo checkout"
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white/75 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
                     >
                       {undoCheckoutLoading ? (
-                        <span className="h-3 w-3 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
+                        <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                       ) : (
                         <RotateCcw className="h-3.5 w-3.5" />
                       )}
+                      Undo Checkout
                     </button>
                   )}
                   {checkoutSuccess && (
@@ -562,6 +591,29 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     <span className="text-xs text-[var(--alert)]">{undoCheckoutError}</span>
                   )}
                 </div>
+                {canMarkStayover && (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap border-t border-white/40 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleMarkStayover}
+                      disabled={stayoverLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {stayoverLoading ? (
+                        <span className="h-3 w-3 rounded-full border-2 border-blue-300 border-t-blue-700 animate-spin" />
+                      ) : (
+                        <BedDouble className="h-3.5 w-3.5" />
+                      )}
+                      Stayover
+                    </button>
+                    {stayoverSuccess && (
+                      <span className="text-xs text-[var(--ready)]">Marked occupied — clean cancelled</span>
+                    )}
+                    {stayoverError && (
+                      <span className="text-xs text-[var(--alert)]">{stayoverError}</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             <div className="mb-3 flex flex-wrap gap-2">
@@ -622,7 +674,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 aria-label="Add room note"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Leave a note for your supervisor or teamâ€¦"
+                placeholder="Leave a note for your supervisor or team…"
                 rows={2}
                 className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
               />
@@ -638,7 +690,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   ) : (
                     <Send className="w-3 h-3" />
                   )}
-                  {noteLoading ? 'Savingâ€¦' : 'Save Note'}
+                  {noteLoading ? 'Saving…' : 'Save Note'}
                 </Button>
                 {noteError && (
                   <span className="text-xs text-[var(--alert)]">{noteError}</span>
@@ -701,7 +753,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   <textarea
                     value={woDescription}
                     onChange={(e) => setWoDescription(e.target.value)}
-                    placeholder="Describe what you foundâ€¦"
+                    placeholder="Describe what you found…"
                     rows={2}
                     className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
                   />
@@ -719,7 +771,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     ) : (
                       <Wrench className="w-3 h-3" />
                     )}
-                    {woLoading ? 'Submittingâ€¦' : 'Submit to Engineering'}
+                    {woLoading ? 'Submitting…' : 'Submit to Engineering'}
                   </Button>
                   <button
                     onClick={() => setWoOpen(false)}
@@ -763,7 +815,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     'text-[var(--ready)]'
                   }`}>
                     {riskLevel ?? 'LOW'} RISK
-                    {etaTime && ` â€” ETA ${etaTime}`}
+                    {etaTime && ` — ETA ${etaTime}`}
                   </span>
                 </div>
 
@@ -838,14 +890,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-1.5 flex-wrap">
                             <span className="text-xs text-gray-400 shrink-0">
-                              {timestamp ? formatHistoryTimestamp(timestamp) : 'â€”'}
+                              {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
                             </span>
                             {fromStatus ? (
                               <>
                                 <span className={`text-xs font-semibold ${getStatusTextClass(fromStatus)}`}>
                                   {STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')}
                                 </span>
-                                <span className="text-xs text-gray-400">â†’</span>
+                                <span className="text-xs text-gray-400">→</span>
                                 <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
                                   {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
                                 </span>
@@ -857,7 +909,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                             )}
                             {actor && (
                               <span className="text-xs text-gray-500 truncate">
-                                â€” {actor}
+                                — {actor}
                               </span>
                             )}
                           </div>

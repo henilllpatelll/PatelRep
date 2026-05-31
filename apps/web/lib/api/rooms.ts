@@ -80,6 +80,9 @@ export const roomsApi = {
   getHistory: (roomId: string) =>
     apiClient.get(`/rooms/${roomId}/history`),
 
+  markStayover: (roomId: string) =>
+    apiClient.post(`/rooms/${roomId}/stayover`, {}),
+
   deleteRoom: (roomId: string) =>
     apiClient.delete(`/rooms/${roomId}`),
 

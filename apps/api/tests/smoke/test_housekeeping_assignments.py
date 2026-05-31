@@ -8,7 +8,7 @@ from fastapi import UploadFile
 from middleware.auth import CurrentUser
 from models.requests import CreateAssignmentsRequest
 from routers import housekeeping as housekeeping_router
-from services.opera_pdf import TaskSheetRow
+from services.opera_pdf import HKDetailsRow, TaskSheetRow
 
 
 SUPERVISOR = CurrentUser(
@@ -42,6 +42,7 @@ class FakeQuery:
         self.in_filters = []
         self.gte_filters = []
         self.lt_filters = []
+        self.like_filters = []
         self.orders = []
         self.limit_count = None
         self.single = False
@@ -85,6 +86,10 @@ class FakeQuery:
 
     def lt(self, column, value):
         self.lt_filters.append((column, value))
+        return self
+
+    def like(self, column, pattern):
+        self.like_filters.append((column, pattern))
         return self
 
     def limit(self, count, *_args, **_kwargs):
@@ -178,6 +183,12 @@ class FakeQuery:
             matched = [row for row in matched if (row.get(column) or "") >= value]
         for column, value in self.lt_filters:
             matched = [row for row in matched if (row.get(column) or "") < value]
+        for column, pattern in self.like_filters:
+            if pattern.endswith("%"):
+                prefix = pattern[:-1]
+                matched = [row for row in matched if str(row.get(column) or "").startswith(prefix)]
+            else:
+                matched = [row for row in matched if row.get(column) == pattern]
         return matched
 
 
@@ -472,6 +483,52 @@ async def test_create_assignments_maps_clean_type_to_room_status(
 
 
 @pytest.mark.asyncio
+async def test_create_assignments_updates_occupied_full_clean_to_pickup(monkeypatch):
+    room_id = "23232323-2323-4232-8232-232323232323"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "123"}],
+        "user_roles": [{
+            "id": "role-123",
+            "user_id": hk_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "role": "housekeeper",
+            "is_active": True,
+        }],
+        "room_assignments": [],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": None,
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "clean_type": None,
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    def fake_create_task(coro):
+        coro.close()
+        return None
+
+    monkeypatch.setattr(housekeeping_router.asyncio, "create_task", fake_create_task)
+
+    request = CreateAssignmentsRequest(
+        date=date(2026, 5, 24),
+        shift_id=None,
+        assignments=[{"room_id": room_id, "housekeeper_id": hk_id, "clean_type": "FULL"}],
+        is_ai_suggested=False,
+    )
+
+    await housekeeping_router.create_assignments(request, current_user=SUPERVISOR)
+
+    assert db.rows["room_assignments"][0]["clean_type"] == "FULL"
+    assert db.rows["room_status"][0]["assigned_to"] == hk_id
+    assert db.rows["room_status"][0]["status"] == "PICKUP"
+    assert db.rows["room_status"][0]["clean_type"] == "FULL"
+
+
+@pytest.mark.asyncio
 async def test_create_assignments_keeps_working_before_room_status_clean_type_migration(monkeypatch):
     room_id = "99999999-9999-4999-8999-999999999999"
     hk_id = "44444444-4444-4444-8444-444444444444"
@@ -509,6 +566,78 @@ async def test_create_assignments_keeps_working_before_room_status_clean_type_mi
     assert db.rows["room_status"][0]["assigned_to"] == hk_id
     assert db.rows["room_status"][0]["status"] == "PICKUP"
     assert "clean_type" not in db.rows["room_status"][0]
+
+
+@pytest.mark.asyncio
+async def test_hk_details_import_resets_stale_card_fields_and_import_markers(monkeypatch):
+    room_id = "66666666-6666-4666-8666-666666666666"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "106"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "checkout_time": "2026-05-23T16:00:00+00:00",
+            "actual_checkout_at": "2026-05-23T15:10:00+00:00",
+            "checkin_time": "2026-05-23T21:00:00+00:00",
+            "clean_type": "DEP",
+            "guest_name": "Old Guest",
+            "vip_flag": True,
+            "dnd_flag": True,
+            "do_not_service": True,
+            "notes": "old room note",
+        }],
+        "room_status_history": [
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "task_sheet_clean_type=DEP",
+                "created_at": "2026-05-24T12:00:00+00:00",
+            },
+            {
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "stayover_override",
+                "created_at": "2026-05-24T12:05:00+00:00",
+            },
+        ],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_hk_details",
+        lambda _pdf: (
+            [HKDetailsRow(
+                room_number="106",
+                raw_status="Dirty",
+                our_status="DIRTY",
+                fo_status="OCC",
+                reservation_status="Due Out",
+            )],
+            [],
+        ),
+    )
+
+    response = await housekeeping_router.import_hk_details(
+        file=UploadFile(filename="hk-details.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    status = db.rows["room_status"][0]
+    assert response["data"]["applied"] == 1
+    assert status["status"] == "OCCUPIED"
+    assert status["checkout_time"] is None
+    assert status["actual_checkout_at"] is None
+    assert status["checkin_time"] is None
+    assert status["clean_type"] is None
+    assert status["guest_name"] is None
+    assert status["vip_flag"] is False
+    assert status["dnd_flag"] is False
+    assert status["do_not_service"] is False
+    assert status["notes"] is None
+    assert db.rows["room_status_history"] == []
 
 
 @pytest.mark.asyncio
@@ -692,6 +821,53 @@ async def test_task_sheet_import_stores_clean_type_without_assignment(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_task_sheet_import_clears_stale_stayover_override_marker(monkeypatch):
+    room_id = "78787878-7878-4878-8878-787878787878"
+    db = FakeDB({
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "178"}],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "clean_type": None,
+        }],
+        "room_assignments": [],
+        "room_status_history": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "notes": "stayover_override",
+            "created_at": "2026-05-24T12:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+    monkeypatch.setattr(
+        housekeeping_router,
+        "parse_task_sheet",
+        lambda _pdf: (
+            [TaskSheetRow(
+                room_number="178",
+                fo_status="OCC",
+                reservation_status="Due Out",
+                guest_name="Guest",
+                clean_type="DEP",
+            )],
+            [],
+        ),
+    )
+
+    await housekeeping_router.import_task_sheet(
+        file=UploadFile(filename="task-sheet.pdf", file=io.BytesIO(b"%PDF")),
+        assignment_date="2026-05-24",
+        current_user=SUPERVISOR,
+    )
+
+    notes = [row.get("notes") for row in db.rows["room_status_history"]]
+    assert "stayover_override" not in notes
+    assert db.rows["room_status"][0]["clean_type"] == "DEP"
+
+
+@pytest.mark.asyncio
 async def test_task_sheet_import_retries_room_status_without_clean_type_when_column_missing(monkeypatch):
     room_id = "88888888-8888-4888-8888-888888888888"
     db = FakeDB({
@@ -856,6 +1032,45 @@ async def test_delete_assignment_removes_row_and_clears_status_assignee(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_delete_assignment_clears_manual_occupied_clean_type(monkeypatch):
+    assignment_id = "assign-manual-clean"
+    room_id = "24242424-2424-4242-8242-242424242424"
+    hk_id = "44444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "room_assignments": [{
+            "id": assignment_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "room_id": room_id,
+            "assigned_to": hk_id,
+            "assigned_by": SUPERVISOR.user_id,
+            "assignment_date": "2026-05-24",
+            "clean_type": "FULL",
+        }],
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "assigned_to": hk_id,
+            "status": "PICKUP",
+            "fo_status": "OCC",
+            "clean_type": "FULL",
+        }],
+        "room_status_history": [],
+    })
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.delete_assignment(
+        assignment_id,
+        current_user=SUPERVISOR,
+    )
+
+    assert response == {"data": {"success": True, "deleted_id": assignment_id}}
+    assert db.rows["room_assignments"] == []
+    assert db.rows["room_status"][0]["assigned_to"] is None
+    assert db.rows["room_status"][0]["status"] == "OCCUPIED"
+    assert db.rows["room_status"][0]["clean_type"] is None
+
+
+@pytest.mark.asyncio
 async def test_delete_assignment_rejects_cross_tenant_assignment(monkeypatch):
     db = FakeDB({
         "room_assignments": [{
@@ -918,3 +1133,145 @@ async def test_board_history_clean_type_overrides_stale_room_status_clean_type(m
     assert room["status"] == "PICKUP", f"Expected PICKUP, got {room['status']}"
     assert room["clean_type"] == "FULL"
     assert room["clean_type_label"] == "Full Linen Change"
+
+
+@pytest.mark.asyncio
+async def test_manual_checkout_occupied_room_sets_dep_clean_type(monkeypatch):
+    from routers import rooms as rooms_router
+
+    room_id = "aa111111-1111-4111-8111-111111111111"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "clean_type": None,
+            "actual_checkout_at": None,
+            "assigned_to": None,
+        }],
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "201"}],
+        "room_status_history": [],
+        "notifications": [],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+    monkeypatch.setattr(rooms_router.asyncio, "create_task", lambda *_: None)
+
+    await rooms_router.manual_checkout_room(
+        room_id=room_id,
+        request=None,
+        current_user=SUPERVISOR,
+    )
+
+    rs = db.rows["room_status"][0]
+    assert rs["status"] == "DIRTY"
+    assert rs["fo_status"] == "VAC"
+    assert rs["clean_type"] == "DEP"
+    assert rs["actual_checkout_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_undo_checkout_occupied_room_restores_status_and_clears_clean_type(monkeypatch):
+    from routers import rooms as rooms_router
+
+    room_id = "bb222222-2222-4222-8222-222222222222"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "VAC",
+            "clean_type": "DEP",
+            "actual_checkout_at": "2026-05-31T10:00:00+00:00",
+        }],
+        "room_status_history": [{
+            "id": "hist-1",
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "from_status": "OCCUPIED",
+            "to_status": "DIRTY",
+            "notes": "Guest checked out",
+            "created_at": "2026-05-31T10:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.undo_checkout(
+        room_id=room_id,
+        current_user=SUPERVISOR,
+    )
+
+    rs = db.rows["room_status"][0]
+    assert rs["status"] == "OCCUPIED"
+    assert rs["fo_status"] == "OCC"
+    assert rs["clean_type"] is None
+    assert rs["actual_checkout_at"] is None
+    assert response["data"]["undone"] is True
+
+
+@pytest.mark.asyncio
+async def test_manual_checkout_pickup_room_sets_dep_and_encodes_prev_clean_type(monkeypatch):
+    from routers import rooms as rooms_router
+
+    room_id = "cc333333-3333-4333-8333-333333333333"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "PICKUP",
+            "fo_status": "OCC",
+            "clean_type": "FULL",
+            "actual_checkout_at": None,
+            "assigned_to": None,
+        }],
+        "rooms": [{"id": room_id, "tenant_id": SUPERVISOR.hotel_id, "room_number": "301"}],
+        "room_status_history": [],
+        "notifications": [],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+    monkeypatch.setattr(rooms_router.asyncio, "create_task", lambda *_: None)
+
+    await rooms_router.manual_checkout_room(room_id=room_id, request=None, current_user=SUPERVISOR)
+
+    rs = db.rows["room_status"][0]
+    assert rs["status"] == "DIRTY"
+    assert rs["fo_status"] == "VAC"
+    assert rs["clean_type"] == "DEP"
+    hist = db.rows["room_status_history"][0]
+    assert "|prev_clean_type=FULL" in hist["notes"]
+
+
+@pytest.mark.asyncio
+async def test_undo_checkout_pickup_room_restores_pickup_and_full_clean_type(monkeypatch):
+    from routers import rooms as rooms_router
+
+    room_id = "dd444444-4444-4444-8444-444444444444"
+    db = FakeDB({
+        "room_status": [{
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "status": "DIRTY",
+            "fo_status": "VAC",
+            "clean_type": "DEP",
+            "actual_checkout_at": "2026-05-31T10:00:00+00:00",
+        }],
+        "room_status_history": [{
+            "id": "hist-2",
+            "room_id": room_id,
+            "tenant_id": SUPERVISOR.hotel_id,
+            "from_status": "PICKUP",
+            "to_status": "DIRTY",
+            "notes": "Guest checked out|prev_clean_type=FULL",
+            "created_at": "2026-05-31T10:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+
+    response = await rooms_router.undo_checkout(room_id=room_id, current_user=SUPERVISOR)
+
+    rs = db.rows["room_status"][0]
+    assert rs["status"] == "PICKUP"
+    assert rs["fo_status"] == "OCC"
+    assert rs["clean_type"] == "FULL"
+    assert rs["actual_checkout_at"] is None
+    assert response["data"]["undone"] is True

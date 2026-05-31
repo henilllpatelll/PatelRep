@@ -178,7 +178,7 @@ function ConfirmDeactivateDialog({
             disabled={loading}
             className="flex-1"
           >
-            {loading ? 'Deactivatingâ€¦' : 'Deactivate'}
+            {loading ? 'Deactivating…' : 'Deactivate'}
           </Button>
         </div>
       </div>
@@ -242,7 +242,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
-          <p className="text-xs text-gray-500">Creates an account immediately â€” no email sent. You set the initial password to share with the staff member.</p>
+          <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
           {errors.root && (
             <div className="flex items-center gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
               <AlertTriangle size={15} className="shrink-0" />{errors.root.message}
@@ -272,7 +272,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="flex-1">Cancel</Button>
             <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1">
-              <UserPlus size={15} />{isSubmitting ? 'Addingâ€¦' : 'Add Staff'}
+              <UserPlus size={15} />{isSubmitting ? 'Adding…' : 'Add Staff'}
             </Button>
           </div>
         </form>
@@ -429,7 +429,7 @@ function InviteModal({
               className="flex-1"
             >
               <Mail size={15} />
-              {isSubmitting ? 'Sendingâ€¦' : 'Send Invite'}
+              {isSubmitting ? 'Sending…' : 'Send Invite'}
             </Button>
           </div>
         </form>
@@ -448,7 +448,7 @@ const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'c
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function formatScheduleDays(days: number[]): string {
-  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' Â· ')
+  return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(' · ')
 }
 
 // â”€â”€â”€ Edit Staff Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -571,7 +571,7 @@ function EditStaffModal({
                 onChange={(e) => setCustomRoleId(e.target.value || null)}
                 className="w-full px-3 py-2 text-sm border border-[var(--caution-line)]/40 rounded-lg bg-surface/70 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               >
-                <option value="">â€” None (use base role) â€”</option>
+                <option value="">— None (use base role) —</option>
                 {(customRolesQuery.data ?? []).map((cr: CustomRole) => (
                   <option key={cr.id} value={cr.id}>{cr.name}</option>
                 ))}
@@ -579,7 +579,7 @@ function EditStaffModal({
             </div>
           )}
 
-          {/* Role Schedule â€” only for housekeeper / engineer */}
+          {/* Role Schedule — only for housekeeper / engineer */}
           {overrideRole && (
             <div className="space-y-3 border-t border-white/60 pt-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -589,13 +589,13 @@ function EditStaffModal({
               <p className="text-xs text-gray-500">
                 On scheduled days,{' '}
                 <span className="font-medium">{staff.full_name.split(' ')[0]}</span> acts as{' '}
-                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> â€” full dashboard
+                <span className="font-medium">{ROLE_LABELS[overrideRole]}</span> — full dashboard
                 and feature access for that role.
               </p>
 
               {/* Existing schedules */}
               {schedulesQuery.isLoading ? (
-                <p className="text-xs text-gray-400">Loadingâ€¦</p>
+                <p className="text-xs text-gray-400">Loading…</p>
               ) : (schedulesQuery.data ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 italic">No schedule overrides set.</p>
               ) : (
@@ -608,7 +608,7 @@ function EditStaffModal({
                       <span className="text-xs font-medium text-gray-800">
                         {formatScheduleDays(s.days_of_week)}
                         <span className="text-gray-400 font-normal ml-2">
-                          â†’ {ROLE_LABELS[overrideRole]}
+                          → {ROLE_LABELS[overrideRole]}
                         </span>
                       </span>
                       <button
@@ -650,7 +650,7 @@ function EditStaffModal({
                   className="text-xs h-8"
                 >
                   <Plus size={13} />
-                  {createScheduleMutation.isPending ? 'Addingâ€¦' : 'Add Schedule'}
+                  {createScheduleMutation.isPending ? 'Adding…' : 'Add Schedule'}
                 </Button>
               </div>
             </div>
@@ -667,7 +667,7 @@ function EditStaffModal({
               disabled={updateMutation.isPending || (role === staff.role && customRoleId === (staff.custom_role_id ?? null))}
               className="flex-1"
             >
-              {updateMutation.isPending ? 'Savingâ€¦' : 'Save Role'}
+              {updateMutation.isPending ? 'Saving…' : 'Save Role'}
             </Button>
           </div>
         </div>
@@ -889,7 +889,7 @@ export default function StaffPage() {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name or emailâ€¦"
+            placeholder="Search by name or email…"
             className="pl-9 pr-4 py-2 text-sm border border-line rounded-lg bg-surface w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 hover:border-[var(--caution-line)] transition-colors"
           />
         </div>

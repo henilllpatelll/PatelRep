@@ -18,6 +18,7 @@ export interface HousekeepingStore {
   selectedShift: string | null
   assignmentMode: boolean
   pendingAssignments: Record<string, string>
+  pendingAssignmentCleanTypes: Record<string, CleanType>
   activeAssigneeId: string | null
   activeAssigneeName: string | null
   statusFilter: string | null
@@ -31,7 +32,7 @@ export interface HousekeepingStore {
   setSelectedDate: (date: string) => void
   setSelectedShift: (shiftId: string | null) => void
   toggleAssignmentMode: () => void
-  setPendingAssignment: (roomId: string, housekeeperId: string) => void
+  setPendingAssignment: (roomId: string, housekeeperId: string, cleanType?: CleanType) => void
   removePendingAssignment: (roomId: string) => void
   clearPendingAssignments: () => void
   setActiveAssignee: (id: string | null, name: string | null) => void
@@ -55,6 +56,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   selectedShift: null,
   assignmentMode: false,
   pendingAssignments: {},
+  pendingAssignmentCleanTypes: {},
   activeAssigneeId: null,
   activeAssigneeName: null,
   statusFilter: null,
@@ -80,6 +82,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
     set((state) => ({
       assignmentMode: !state.assignmentMode,
       pendingAssignments: state.assignmentMode ? {} : state.pendingAssignments,
+      pendingAssignmentCleanTypes: state.assignmentMode ? {} : state.pendingAssignmentCleanTypes,
       activeAssigneeId: null,
       activeAssigneeName: null,
       // clear filters when switching modes so rooms aren't inadvertently hidden
@@ -87,19 +90,27 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
       cleanTypeFilter: state.assignmentMode ? [] : state.cleanTypeFilter,
     })),
 
-  setPendingAssignment: (roomId, housekeeperId) =>
-    set((state) => ({
-      pendingAssignments: { ...state.pendingAssignments, [roomId]: housekeeperId },
-    })),
+  setPendingAssignment: (roomId, housekeeperId, cleanType) =>
+    set((state) => {
+      const nextCleanTypes = { ...state.pendingAssignmentCleanTypes }
+      if (cleanType) nextCleanTypes[roomId] = cleanType
+      else delete nextCleanTypes[roomId]
+      return {
+        pendingAssignments: { ...state.pendingAssignments, [roomId]: housekeeperId },
+        pendingAssignmentCleanTypes: nextCleanTypes,
+      }
+    }),
 
   removePendingAssignment: (roomId) =>
     set((state) => {
       const next = { ...state.pendingAssignments }
+      const nextCleanTypes = { ...state.pendingAssignmentCleanTypes }
       delete next[roomId]
-      return { pendingAssignments: next }
+      delete nextCleanTypes[roomId]
+      return { pendingAssignments: next, pendingAssignmentCleanTypes: nextCleanTypes }
     }),
 
-  clearPendingAssignments: () => set({ pendingAssignments: {} }),
+  clearPendingAssignments: () => set({ pendingAssignments: {}, pendingAssignmentCleanTypes: {} }),
 
   setActiveAssignee: (id, name) => set({ activeAssigneeId: id, activeAssigneeName: name }),
 

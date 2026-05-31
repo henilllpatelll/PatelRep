@@ -83,6 +83,10 @@ test('normalizes imported clean types for room card display', () => {
     normalizeHousekeepingBoardRoom({ room_id: 'full', status: 'DIRTY', fo_status: 'OCC', clean_type: 'FULL' }),
     { room_id: 'full', status: 'PICKUP', fo_status: 'OCC', clean_type: 'FULL' },
   )
+  assert.deepEqual(
+    normalizeHousekeepingBoardRoom({ room_id: 'occupied-full', status: 'OCCUPIED', fo_status: 'OCC', clean_type: 'FULL' }),
+    { room_id: 'occupied-full', status: 'PICKUP', fo_status: 'OCC', clean_type: 'FULL' },
+  )
 })
 
 test('infers occupied departure display for older local room status rows', () => {

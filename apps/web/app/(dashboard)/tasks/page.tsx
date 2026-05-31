@@ -84,8 +84,7 @@ function DueTime({ task, isOverdue }: { task: Task; isOverdue: boolean }) {
   )
 }
 
-function sortTasksFlat(tasks: Task[]): Task[] {
-  const now = Date.now()
+function sortTasksFlat(tasks: Task[], now: number | null): Task[] {
   const priorityOrder: Record<Priority, number> = { urgent: 0, normal: 1, low: 2 }
 
   return [...tasks].sort((a, b) => {
@@ -94,8 +93,8 @@ function sortTasksFlat(tasks: Task[]): Task[] {
     if (aDone !== bDone) return aDone ? 1 : -1
     if (aDone && bDone) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 
-    const aOverdue = !!(a.due_at && new Date(a.due_at).getTime() < now)
-    const bOverdue = !!(b.due_at && new Date(b.due_at).getTime() < now)
+    const aOverdue = !!(now && a.due_at && new Date(a.due_at).getTime() < now)
+    const bOverdue = !!(now && b.due_at && new Date(b.due_at).getTime() < now)
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
 
     const priDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
@@ -501,6 +500,7 @@ function TasksPageContent() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [drawerEditMode, setDrawerEditMode] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
+  const [now, setNow] = useState<number | null>(null)
 
   function handleTabChange(tab: 'all' | TaskStatus) {
     setStatusFilter(tab)
@@ -550,13 +550,20 @@ function TasksPageContent() {
     if (res?.data) setSelectedTask(res.data)
   }
 
-  const now = Date.now()
+  useEffect(() => {
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const activeTasks = tasks.filter((t) => t.status !== 'completed' && t.status !== 'cancelled')
   const urgentCount = activeTasks.filter((t) => t.priority === 'urgent').length
-  const overdueCount = activeTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < now).length
+  const overdueCount = now
+    ? activeTasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < now).length
+    : 0
   const inProgressCount = activeTasks.filter((t) => t.status === 'in_progress').length
 
-  const sortedTasks = sortTasksFlat(tasks)
+  const sortedTasks = sortTasksFlat(tasks, now)
 
   const STATUS_TABS = [
     { value: 'all' as const, label: 'All' },
@@ -657,7 +664,7 @@ function TasksPageContent() {
             <TaskRow
               key={task.id}
               task={task}
-              isOverdue={!!(task.due_at && new Date(task.due_at).getTime() < now && task.status !== 'completed' && task.status !== 'cancelled')}
+              isOverdue={!!(now && task.due_at && new Date(task.due_at).getTime() < now && task.status !== 'completed' && task.status !== 'cancelled')}
               onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
               onStatusChange={handleStatusChange}
               onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}

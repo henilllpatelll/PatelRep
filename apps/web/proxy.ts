@@ -18,7 +18,7 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/staff', roles: ['gm'] },
   { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
   { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
-  { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
+  { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk', 'housekeeper'] },
   { prefix: '/logbook', roles: ['housekeeping_supervisor', 'chief_engineer', 'front_desk', 'gm'] },
   { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T14:24:38.396Z
-> Files: 19 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T19:30:54.096Z
+> Files: 29 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -11,6 +11,8 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `feedback_platform_scope.md` (~185 tok)
+- `MEMORY.md` — PatelRep Project Memory (~277 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -19,6 +21,7 @@
 ## ./
 
 - `CLAUDE.md` — OpenWolf (~2796 tok)
+- `fix-encoding.ps1` — Fix mojibake encoding in TSX files (~546 tok)
 
 ## .claude/
 
@@ -422,6 +425,9 @@
 ## Session Additions 2026-05-24 Room Status Contract
 
 
+## Session Additions 2026-05-31 Occupied Assignment Clean Type
+
+
 ## apps/api/
 
 
@@ -436,8 +442,8 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 2 endpoints (~15212 tok)
-- `rooms.py` — API: 3 endpoints (~8742 tok)
+- `housekeeping.py` — Declares from (~16553 tok)
+- `rooms.py` — API: 3 endpoints (~9891 tok)
 
 ## apps/api/services/
 
@@ -454,6 +460,7 @@
 
 ## apps/api/tests/smoke/
 
+- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~12958 tok)
 - `test_inspection_templates.py` — Regression tests for persisted/default inspection checklist templates returned by housekeeping API. (~1370 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
@@ -489,6 +496,7 @@
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — formatETA (~3889 tok)
+- `index.tsx` — STATUS_COLORS (~2303 tok)
 
 ## apps/mobile/app/(app)/profile/
 
@@ -522,10 +530,11 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — Exports Room, useAppStore (~480 tok)
+- `appStore.ts` — Exports Room, useAppStore (~471 tok)
 
 ## apps/web/
 
+- `proxy.ts` — API routes: GET (1 endpoints) (~1725 tok)
 
 ## apps/web/app/
 
@@ -574,6 +583,7 @@
 
 ## apps/web/app/(dashboard)/logbook/
 
+- `page.tsx` — todayIso (~10783 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
@@ -622,6 +632,7 @@
 
 ## apps/web/app/(dashboard)/staff/
 
+- `page.tsx` — ROLE_OPTIONS (~14364 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
@@ -634,7 +645,7 @@
 
 ## apps/web/components/dashboard/
 
-- `HousekeeperDashboard.tsx` — STATUS_TONE (~3078 tok)
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~3019 tok)
 
 ## apps/web/components/engineering/
 
@@ -643,8 +654,8 @@
 ## apps/web/components/housekeeping/
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3535 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11216 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3548 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11919 tok)
 
 ## apps/web/components/settings/
 
@@ -652,6 +663,7 @@
 
 ## apps/web/components/shared/
 
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4450 tok)
 
 ## apps/web/components/ui/
 
@@ -662,6 +674,7 @@
 ## apps/web/lib/api/
 
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (23 endpoints) (~1644 tok)
+- `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1350 tok)
 
 ## apps/web/lib/hooks/
 

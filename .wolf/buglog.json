@@ -4567,6 +4567,333 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-05-31T09:21:00.9944513-05:00"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-05-31T09:35:00-05:00",
+      "error_message": "Regression tests failed: assigning an occupied room as FULL left status OCCUPIED; deleting that assignment left status PICKUP and clean_type FULL",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The assignment status mirror only updated status for DIRTY/PICKUP rows, so OCCUPIED rows kept the old status. Assignment deletion only cleared assigned_to and did not reset manual clean_type/status labels.",
+      "fix": "Included OCCUPIED in eligible assignment status updates and cleared manual assignment clean_type/status on deletion while preserving task-sheet markers.",
+      "tags": [
+        "housekeeping",
+        "assignment",
+        "clean-type",
+        "api",
+        "test-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T09:35:00-05:00"
+    },
+    {
+      "id": "bug-276",
+      "timestamp": "2026-05-31T09:40:00-05:00",
+      "error_message": "Full assignment test file failed: board returned clean_type null for today's LIGHT assignment and kept stale OCCUPIED after history FULL marker",
+      "file": "apps/api/routers/housekeeping.py; apps/api/services/housekeeping_assignments.py",
+      "root_cause": "The board row builder read clean_type only from room_status instead of today's assignment row. The shared effective_room_status helper did not remap OCCUPIED + FULL/LIGHT to PICKUP.",
+      "fix": "Use today's assignment clean_type as a fallback/source for board rows and map FULL/LIGHT occupied rows to PICKUP in the shared helper.",
+      "tags": [
+        "housekeeping",
+        "room-board",
+        "clean-type",
+        "api",
+        "test-failure"
+      ],
+      "related_bugs": [
+        "bug-275"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T09:40:00-05:00"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-05-31T14:39:15.550Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had '/tasks'",
+      "fix": "Changed to '/guest-requests'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-31T14:39:22.395Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-05-31T09:45:00-05:00",
+      "error_message": "npm run lint --workspace=@patelrep/web failed: Cannot call impure function during render at apps/web/app/(dashboard)/tasks/page.tsx:553 Date.now()",
+      "file": "apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "The Tasks page computed Date.now() during render for overdue counts and row state, which violates React purity lint rules.",
+      "fix": "Moved page-level now into state populated by a minute interval effect, passed it to sorting, and guarded overdue calculations while now is null.",
+      "tags": [
+        "frontend",
+        "lint",
+        "tasks",
+        "react-purity"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T09:45:00-05:00"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-05-31T09:52:00-05:00",
+      "error_message": "API smoke test failed: manual checkout overwrote checkout_time with actual_checkout_at",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "manual_checkout_room set both actual_checkout_at and checkout_time to the actual checkout timestamp, violating the scheduled-vs-actual checkout contract.",
+      "fix": "Stopped overwriting checkout_time during manual checkout unless an explicit checkout_time is provided in the request.",
+      "tags": [
+        "api",
+        "housekeeping",
+        "manual-checkout",
+        "test-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T09:52:00-05:00"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-05-31T15:25:45.682Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T15:25:45.682Z"
+    },
+    {
+      "id": "bug-281",
+      "timestamp": "2026-05-31T15:26:33.524Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T15:26:33.524Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-05-31T15:55:50.044Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 15→29 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T15:55:50.044Z"
+    },
+    {
+      "id": "bug-283",
+      "timestamp": "2026-05-31T16:46:28.532Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 11→6 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T16:46:28.532Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-05-31T17:00:09.142Z",
+      "error_message": "Wrong reference: continue should be or",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Used \"continue\" instead of \"or\"",
+      "fix": "Changed continue → or",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T17:00:09.142Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-05-31T17:00:15.146Z",
+      "error_message": "CSS fix: INSPECTED",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "INSPECTED: 'inspected', OOO: 'ooo', PICKUP: 'pickup', → 'inspected', OOO: 'ooo', PICKUP: 'pickup', OCCUPIED: 'neutral',",
+      "fix": "Changed INSPECTED: 'inspected', OOO: 'ooo', PICKUP: 'pickup', → 'inspected', OOO: 'ooo', PICKUP: 'pickup', OCCUPIED: 'neutral',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T17:00:15.146Z"
+    },
+    {
+      "id": "bug-286",
+      "timestamp": "2026-05-31T17:00:20.044Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T17:00:20.044Z"
+    },
+    {
+      "id": "bug-287",
+      "timestamp": "2026-05-31T18:05:10.703Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "hover: bg-gray-50 disabled:opacity-40\" → text-gray-800 disabled:opacity-40\"",
+      "fix": "Changed hover: bg-gray-50 disabled:opacity-40\" → text-gray-800 disabled:opacity-40\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-31T18:08:28.541Z"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-05-31T13:19:47.5399062-05:00",
+      "error_message": "New HK Details and Task Sheet imports still showed old room-card data like checkout time and stayover state",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "HK Details import preserved checkout_time for occupied departure rows and same-day generated stayover/task-sheet history markers survived re-imports, so board enrichment kept applying stale room-card state.",
+      "fix": "Clear generated import history markers on HK Details and Task Sheet imports, reset checkout/checkin/guest/VIP/DND/DNS/notes/clean_type transient room_status fields on HK Details import, and clear checkout timestamps on Task Sheet room updates. Added smoke regressions.",
+      "tags": [
+        "housekeeping",
+        "opera-import",
+        "room-card",
+        "checkout-time",
+        "stayover",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T13:19:47.5399062-05:00"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-05-31T18:42:54.836Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Had ' Â· '",
+      "fix": "Changed to ' · '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T18:42:54.836Z"
+    },
+    {
+      "id": "bug-290",
+      "timestamp": "2026-05-31T19:02:39.812Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:02:39.812Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-05-31T19:08:13.323Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 72→138 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:08:13.323Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-05-31T19:13:17.327Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 28→34 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:13:17.327Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-05-31T19:13:31.576Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:13:31.576Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-05-31T00:00:00.000Z",
+      "error_message": "PICKUP room stays as PICKUP on board after clicking Mark Checked Out",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Board endpoint used `(assignment or {}).get('clean_type') or room.get('clean_type')` — assignment's FULL/LIGHT clean_type took precedence over room_status.clean_type=DEP set during checkout, causing effective_room_status to return PICKUP instead of DIRTY",
+      "fix": "When room.actual_checkout_at is set, reverse the precedence: use room.clean_type first, then fall back to assignment.clean_type",
+      "tags": ["housekeeping", "board", "checkout", "pickup", "clean_type", "precedence", "py"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T00:00:00.000Z"
     }
   ]
 }

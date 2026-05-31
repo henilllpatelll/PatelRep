@@ -2,7 +2,10 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-31 | Fixed: PICKUP room staying PICKUP after checkout — board now uses room_status.clean_type (DEP) over assignment.clean_type (FULL/LIGHT) when actual_checkout_at is set | apps/api/routers/housekeeping.py | complete | ~1k tok |
 | 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
+| 2026-05-31 | Stayover feature: POST /rooms/{id}/stayover — deletes today's DEP assignment, sets room_status to OCCUPIED + clean_type null, notifies housekeeper | rooms.py, RoomDetailDrawer.tsx, rooms.ts | complete | ~4k tok |
+| 2026-05-31 | Housekeeping nav: replaced Tasks with Guest Requests for housekeeper role; added /guest-requests to ALL_NAV_ITEMS and OPERATIONS_HREFS | components/shared/Sidebar.tsx | complete | ~1k tok |
 | 2026-05-31 | Checkout time override: manual_checkout_room now always sets checkout_time = actual_checkout_at, replacing any prior manual entry | apps/api/routers/rooms.py | complete | ~1k tok |
 | 2026-05-31 13:56 | Fixed inspection template edit/delete: PATCH returned 400 (FK 23503) because inspection_results.template_item_id was NOT NULL with no cascade. Migration 049 made it nullable with ON DELETE SET NULL. | supabase/migrations/049_inspection_results_nullable_template_item.sql | complete | ~2k tok |
 | 2026-05-31 | HK Details import: cleared actual_checkout_at always + checkout_time for non-departure rooms so stale times don't persist after morning import | apps/api/routers/housekeeping.py | complete | ~2k tok |
@@ -2964,3 +2967,99 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:21 | Fixed inspection template fallback | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_inspection_templates.py | Persisted/backfilled standard inspection checklist; focused tests pass | ~6200 |
 | 09:24 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→1 lines | ~16 |
 | 09:24 | Session end: 8 writes across 3 files (rooms.py, housekeeping.ts, RoomDetailDrawer.tsx) | 3 reads | ~22755 tok |
+| 09:31 | Read OpenWolf, cerebrum, anatomy, and applicable frontend/TDD/PatelRep skills | .wolf/OPENWOLF.md; .wolf/cerebrum.md; .wolf/anatomy.md; .claude/skills/patelrep-web/SKILL.md; .claude/skills/patelrep-api/SKILL.md | Found clean-type assignment constraints and verification expectations | ~9000 |
+| 09:33 | Traced housekeeping assignment flow and tests | apps/web/components/housekeeping/RoomStatusBoard.tsx; apps/web/app/(dashboard)/housekeeping/page.tsx; apps/api/routers/housekeeping.py; apps/api/tests/smoke/test_housekeeping_assignments.py | Existing assignment API accepts clean_type; occupied status update/removal needs narrow fixes | ~14000 |
+| 09:35 | Added API regression tests and confirmed current failures | apps/api/tests/smoke/test_housekeeping_assignments.py; .wolf/buglog.json | Tests reproduce occupied assignment status and removal reset gaps | ~1200 |
+| 09:37 | Implemented backend occupied clean-type assignment/reset safeguards and reran narrow tests | apps/api/routers/housekeeping.py; apps/api/tests/smoke/test_housekeeping_assignments.py | New API regressions pass | ~1200 |
+| 09:40 | Fixed broader assignment-board clean-type regressions and reran smoke file | apps/api/routers/housekeeping.py; apps/api/services/housekeeping_assignments.py; apps/api/tests/smoke/test_housekeeping_assignments.py | All 20 housekeeping assignment smoke tests pass | ~1600 |
+| 09:45 | Wired web pending clean types and resolved lint gate failure | apps/web/components/housekeeping/RoomStatusBoard.tsx; apps/web/app/(dashboard)/housekeeping/page.tsx; apps/web/stores/housekeepingStore.ts; apps/web/app/(dashboard)/tasks/page.tsx | Web type-check and lint pass | ~2300 |
+| 09:52 | Fixed manual checkout smoke failure found during full API verification | apps/api/routers/rooms.py; apps/api/tests/smoke/test_webhooks_and_transitions.py | Manual checkout now preserves scheduled checkout_time unless explicitly supplied | ~900 |
+| 09:56 | Completed final build/API/browser checks and updated OpenWolf learning | apps/web; apps/api/tests/smoke; .wolf/cerebrum.md | Build/API/lint/typecheck pass; browser login route loads but local auth inputs remain disabled | ~1300 |
+
+## Session: 2026-05-31 09:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:39 | Edited apps/web/components/shared/Sidebar.tsx | 5→5 lines | ~53 |
+| 09:39 | Edited apps/web/components/shared/Sidebar.tsx | 2→3 lines | ~64 |
+| 09:39 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~20 |
+| 09:39 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~32 |
+| 09:39 | Session end: 4 writes across 1 files (Sidebar.tsx) | 3 reads | ~8787 tok |
+| 09:51 | Edited apps/web/proxy.ts | inline fix | ~30 |
+| 09:51 | Session end: 5 writes across 2 files (Sidebar.tsx, proxy.ts) | 4 reads | ~8817 tok |
+
+## Session: 2026-05-31 10:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:25 | Edited apps/api/routers/rooms.py | modified mark_stayover() | ~990 |
+| 10:25 | Edited apps/web/lib/api/rooms.ts | 2→5 lines | ~48 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 import(s) | ~44 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→5 lines | ~102 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→5 lines | ~42 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added error handling | ~214 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 2→3 lines | ~94 |
+| 10:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: hover, disabled | ~506 |
+| 10:27 | Session end: 8 writes across 3 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx) | 9 reads | ~37210 tok |
+| 10:49 | Session end: 8 writes across 3 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx) | 12 reads | ~37210 tok |
+| 10:55 | Edited apps/api/routers/housekeeping.py | 1→2 lines | ~30 |
+| 10:55 | Edited apps/api/routers/housekeeping.py | expanded (+14 lines) | ~347 |
+| 10:55 | Edited apps/api/routers/rooms.py | 9→9 lines | ~92 |
+| 10:56 | Session end: 11 writes across 4 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx, housekeeping.py) | 13 reads | ~41214 tok |
+| 13:05 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 37→41 lines | ~622 |
+| 13:05 | Session end: 30 writes across 10 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx, housekeeping.py, appStore.ts) | 20 reads | ~49887 tok |
+| 13:08 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 32→29 lines | ~430 |
+| 13:08 | Session end: 31 writes across 10 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx, housekeeping.py, appStore.ts) | 20 reads | ~50317 tok |
+| 13:19 | Fixed HK/Task Sheet import stale room-card state reset | apps/api/routers/housekeeping.py; apps/api/tests/smoke/test_housekeeping_assignments.py | 201 API tests passed; localhost API health OK on :8003 | ~19000 |
+| 13:25 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 4→5 lines | ~19 |
+| 13:25 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 6→6 lines | ~89 |
+| 13:26 | Session end: 33 writes across 10 files (rooms.py, rooms.ts, RoomDetailDrawer.tsx, housekeeping.py, appStore.ts) | 20 reads | ~50422 tok |
+
+## Session: 2026-05-31 13:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:34 | Created fix-encoding.ps1 | — | ~546 |
+| 13:34 | Session end: 1 writes across 1 files (fix-encoding.ps1) | 2 reads | ~12504 tok |
+
+## Session: 2026-05-31 13:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-31 13:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:42 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 7→7 lines | ~81 |
+| 13:42 | Edited apps/web/app/(dashboard)/logbook/page.tsx | inline fix | ~18 |
+| 13:42 | Edited apps/web/app/(dashboard)/staff/page.tsx | " Â· " → " · " | ~23 |
+| 13:44 | Session end: 3 writes across 1 files (page.tsx) | 3 reads | ~122 tok |
+
+## Session: 2026-05-31 13:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:02 | Edited apps/api/routers/rooms.py | 12→14 lines | ~143 |
+| 14:02 | Edited apps/api/routers/rooms.py | 9→11 lines | ~103 |
+| 14:02 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_manual_checkout_occupied_room_sets_dep_clean_type() | ~737 |
+
+| 14:02 | Occupied→checkout sets clean_type=DEP; undo restores OCCUPIED+clears clean_type | apps/api/routers/rooms.py, apps/api/tests/smoke/test_housekeeping_assignments.py | 24/24 tests pass | ~800 || 14:03 | Session end: 3 writes across 2 files (rooms.py, test_housekeeping_assignments.py) | 4 reads | ~22592 tok |
+| 14:07 | Edited apps/api/routers/rooms.py | 49→50 lines | ~550 |
+| 14:07 | Edited apps/api/routers/rooms.py | 28→32 lines | ~347 |
+| 14:08 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_manual_checkout_always_becomes_dirty_dep_regardless_of_status() | ~1473 |
+| 14:08 | Session end: 6 writes across 2 files (rooms.py, test_housekeeping_assignments.py) | 4 reads | ~25022 tok |
+| 14:13 | Edited apps/api/routers/rooms.py | 41→43 lines | ~502 |
+| 14:13 | Edited apps/api/routers/rooms.py | expanded (+6 lines) | ~369 |
+| 14:13 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified test_manual_checkout_pickup_room_sets_dep_and_encodes_prev_clean_type() | ~698 |
+| 14:13 | Session end: 9 writes across 2 files (rooms.py, test_housekeeping_assignments.py) | 4 reads | ~26685 tok |
+
+## Session: 2026-05-31 14:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:21 | Edited apps/api/routers/housekeeping.py | modified get() | ~166 |
+| 14:22 | Session end: 1 writes across 1 files (housekeeping.py) | 1 reads | ~16362 tok |
+| 14:30 | Edited apps/api/routers/housekeeping.py | modified get() | ~235 |
+| 14:31 | Session end: 2 writes across 1 files (housekeeping.py) | 3 reads | ~26778 tok |
+| 14:32 | Session end: 2 writes across 1 files (housekeeping.py) | 3 reads | ~26778 tok |

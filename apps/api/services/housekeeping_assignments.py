@@ -16,6 +16,8 @@ def effective_room_status(
     fo_status: str | None = None,
 ) -> str | None:
     """Return the room status users should see for an active assignment."""
+    if clean_type in {"FULL", "LIGHT"} and status in {"DIRTY", "PICKUP", "OCCUPIED"}:
+        return "PICKUP"
     if status not in {"DIRTY", "PICKUP"} or not clean_type:
         return status
     return room_status_for_clean_type(clean_type, fo_status)

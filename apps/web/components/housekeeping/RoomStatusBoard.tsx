@@ -11,7 +11,7 @@ import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
-import { getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
+import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
 import type { CleanType } from '@/lib/utils/cleanType'
 import {
   filterHousekeepingBoardRooms,
@@ -180,6 +180,13 @@ function getHotelIdFromToken(token: string | undefined): string {
   try { return JSON.parse(atob(token!.split('.')[1]))?.hotel_id ?? '' } catch { return '' }
 }
 
+function roomNeedsAssignmentCleanTypePrompt(room: any): boolean {
+  if (!room || room.clean_type) return false
+  const status = room.status
+  const foStatus = room.fo_status
+  return status === 'OCCUPIED' || (foStatus === 'OCC' && (status === 'DIRTY' || status === 'PICKUP'))
+}
+
 export function RoomStatusBoard() {
   const queryClient = useQueryClient()
   const supabase = useMemo(() => createClient(), [])
@@ -192,6 +199,7 @@ export function RoomStatusBoard() {
     setPredictions,
     setLastSyncedAt,
     pendingAssignments,
+    pendingAssignmentCleanTypes,
     assignmentMode,
     activeAssigneeId,
     setPendingAssignment,
@@ -245,6 +253,7 @@ export function RoomStatusBoard() {
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [removingAssignmentId, setRemovingAssignmentId] = useState<string | null>(null)
+  const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
 
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const applyRoomStatusPayload = useCallback((payload: any) => {
@@ -369,9 +378,23 @@ export function RoomStatusBoard() {
     if (roomData?.assigned_to === activeAssigneeId) {
       return
     }
+    if (roomNeedsAssignmentCleanTypePrompt(roomData)) {
+      setCleanTypePrompt({
+        roomId,
+        roomNumber: roomData.rooms?.room_number ?? roomData.room_number ?? 'room',
+      })
+      return
+    }
     setAssignError(null)
     setPendingAssignment(roomId, activeAssigneeId)
   }, [activeAssigneeId, pendingAssignments, allRooms, setPendingAssignment])
+
+  const handleCleanTypePromptSelect = useCallback((cleanType: CleanType) => {
+    if (!cleanTypePrompt || !activeAssigneeId) return
+    setAssignError(null)
+    setPendingAssignment(cleanTypePrompt.roomId, activeAssigneeId, cleanType)
+    setCleanTypePrompt(null)
+  }, [activeAssigneeId, cleanTypePrompt, setPendingAssignment])
 
   // -- Derived data ------------------------------------------------------------
   const roomAssignedNames = useMemo(() =>
@@ -459,24 +482,34 @@ export function RoomStatusBoard() {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
-                  {floorRooms.map((room) => (
-                    <RoomCard
-                      key={room.room_id}
-                      room={room}
-                      assignmentMode={assignmentMode}
-                      onStatusChange={(roomId: string, newStatus: string) =>
-                        handleStatusChange(roomId, newStatus)
-                      }
-                      onOpenDetail={() => setSelectedRoom(room)}
-                      onAssign={assignmentMode ? handleTapAssign : undefined}
-                      pendingAssignee={pendingAssignments[room.room_id] ?? null}
-                      assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
-                      assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
-                      savedAssignmentId={room.assignment_id ?? null}
-                      onRemoveSavedAssignment={handleRemoveSavedAssignment}
-                      isRemovingAssignment={!!room.assignment_id && removingAssignmentId === room.assignment_id}
-                    />
-                  ))}
+                  {floorRooms.map((room) => {
+                    const pendingCleanType = pendingAssignmentCleanTypes[room.room_id] ?? null
+                    const cardRoom = pendingCleanType
+                      ? {
+                          ...room,
+                          clean_type: pendingCleanType,
+                          status: getEffectiveRoomStatusForCleanType(room.status, pendingCleanType, room.fo_status),
+                        }
+                      : room
+                    return (
+                      <RoomCard
+                        key={room.room_id}
+                        room={cardRoom}
+                        assignmentMode={assignmentMode}
+                        onStatusChange={(roomId: string, newStatus: string) =>
+                          handleStatusChange(roomId, newStatus)
+                        }
+                        onOpenDetail={() => setSelectedRoom(room)}
+                        onAssign={assignmentMode ? handleTapAssign : undefined}
+                        pendingAssignee={pendingAssignments[room.room_id] ?? null}
+                        assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
+                        assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
+                        savedAssignmentId={room.assignment_id ?? null}
+                        onRemoveSavedAssignment={handleRemoveSavedAssignment}
+                        isRemovingAssignment={!!room.assignment_id && removingAssignmentId === room.assignment_id}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -491,6 +524,49 @@ export function RoomStatusBoard() {
         onClose={() => setSelectedRoom(null)}
         onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => prev ? { ...prev, checkout_time: time } : prev)}
       />
+
+      {cleanTypePrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assign-clean-type-title"
+        >
+          <div className="w-full max-w-sm rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="assign-clean-type-title" className="text-sm font-semibold text-ink">
+                  Room {cleanTypePrompt.roomNumber} needs a clean type
+                </h2>
+                <p className="mt-1 text-xs text-ink3">
+                  Pick what the housekeeper should handle before assigning it.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-sm text-ink3 hover:bg-surface-2"
+                onClick={() => setCleanTypePrompt(null)}
+                aria-label="Cancel clean type selection"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="mt-4 space-y-2">
+              {CLEAN_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleCleanTypePromptSelect(option.value)}
+                  className="w-full rounded-[var(--r-md)] border border-line bg-paper px-3 py-2 text-left transition-colors hover:border-amber-400 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                  <span className="block text-sm font-semibold text-ink">{option.label}</span>
+                  <span className="block text-xs text-ink3">{option.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

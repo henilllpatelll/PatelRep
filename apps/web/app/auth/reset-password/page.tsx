@@ -211,7 +211,7 @@ function ConfirmForm({ code }: { code: string }) {
   }
 
   if (error && exchanging === false && !password) {
-    // Exchange failed â€” link invalid or expired
+    // Exchange failed — link invalid or expired
     return (
       <div className="text-center space-y-4">
         <div className="w-12 h-12 rounded-full bg-[var(--alert-soft)] flex items-center justify-center mx-auto">

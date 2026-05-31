@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -60,13 +60,13 @@ function getWeekDays(weekStart: Date): Date[] {
 }
 
 function formatTimeRange(start: string, end: string): string {
-  // "07:00:00" â†’ "7:00"
+  // "07:00:00" → "7:00"
   const fmt = (t: string) => {
     const [h, m] = t.split(':')
     const hour = parseInt(h, 10)
     return m === '00' ? String(hour) : `${hour}:${m}`
   }
-  return `${fmt(start)}â€“${fmt(end)}`
+  return `${fmt(start)}–${fmt(end)}`
 }
 
 function getShiftColor(name: string): {
@@ -409,7 +409,7 @@ function AssignShiftModal({
             className="flex-1"
           >
             <Calendar size={14} />
-            {assignMutation.isPending ? 'Savingâ€¦' : 'Save'}
+            {assignMutation.isPending ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </div>
@@ -655,7 +655,7 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
             disabled={isPending}
             className="flex-1"
           >
-            {isPending ? 'Savingâ€¦' : isEdit ? 'Save Changes' : 'Create Shift'}
+            {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Shift'}
           </Button>
         </div>
       </div>
@@ -823,7 +823,7 @@ function WeekCalendar({
   const [viewMode, setViewMode] = useState<'by-staff' | 'by-shift'>('by-staff')
   const weekDays = getWeekDays(weekStart)
 
-  // Build lookup: user_id â†’ work_date â†’ assignment
+  // Build lookup: user_id → work_date → assignment
   const assignmentMap = useMemo(() => {
     const map: Record<string, Record<string, ShiftAssignment>> = {}
     for (const a of assignments) {
@@ -833,7 +833,7 @@ function WeekCalendar({
     return map
   }, [assignments])
 
-  // Build shift lookup: id â†’ Shift
+  // Build shift lookup: id → Shift
   const shiftMap = useMemo(() => {
     const map: Record<string, Shift> = {}
     for (const s of shifts) map[s.id] = s
@@ -850,7 +850,7 @@ function WeekCalendar({
     })
   }, [staff, departmentFilter])
 
-  // â”€â”€ By Shift view: group assignments by shift â†’ day
+  // â”€â”€ By Shift view: group assignments by shift → day
   const byShiftRows = useMemo(() => {
     if (viewMode !== 'by-shift') return []
     const rows: {
@@ -871,7 +871,7 @@ function WeekCalendar({
     return rows
   }, [viewMode, shifts, assignments, weekDays])
 
-  const weekLabel = `${format(weekDays[0], 'MMM d')} â€“ ${format(weekDays[6], 'MMM d, yyyy')}`
+  const weekLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
 
   return (
     <Card className="overflow-hidden p-0">
@@ -1117,7 +1117,7 @@ function WeekCalendar({
                                 className="inline-flex items-center justify-center w-full px-2 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-100 hover:text-gray-500 transition-colors"
                                 title={`Assign shift to ${member.full_name} on ${format(day, 'MMM d')}`}
                               >
-                                â€”
+                                —
                               </button>
                             )}
                           </td>
@@ -1190,7 +1190,7 @@ function WeekCalendar({
                             }`}
                           >
                             {dayAssignments.length === 0 ? (
-                              <span className="text-xs text-gray-300">â€”</span>
+                              <span className="text-xs text-gray-300">—</span>
                             ) : (
                               <div className="flex flex-wrap justify-center gap-1">
                                 {dayAssignments.map((a) => {
@@ -1299,7 +1299,7 @@ export default function SchedulingPage() {
   const staff = staffQuery.data ?? []
   const assignments = assignmentsQuery.data ?? []
 
-  // â”€â”€ Cell click â†’ open assign modal
+  // â”€â”€ Cell click → open assign modal
   const handleCellClick = useCallback((member: StaffMember, day: Date, existingAssignment?: ShiftAssignment) => {
     if (!isSupervisor) return
     setAssignModalDate(day)
@@ -1309,7 +1309,7 @@ export default function SchedulingPage() {
   }, [isSupervisor])
 
   // â”€â”€ Week label
-  const weekLabel = `${format(weekDays[0], 'MMM d')} â€“ ${format(weekDays[6], 'MMM d, yyyy')}`
+  const weekLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
 
   return (
     <div className="space-y-5">

@@ -75,6 +75,7 @@ function HousekeeperBar() {
     activeAssigneeId,
     setActiveAssignee,
     pendingAssignments,
+    pendingAssignmentCleanTypes,
     clearPendingAssignments,
   } = useHousekeepingStore()
 
@@ -104,6 +105,9 @@ function HousekeeperBar() {
           .map(([roomId, housekeeperId]) => ({
             room_id: roomId,
             housekeeper_id: housekeeperId,
+            ...(pendingAssignmentCleanTypes[roomId]
+              ? { clean_type: pendingAssignmentCleanTypes[roomId] }
+              : {}),
           })),
         is_ai_suggested: false,
       })

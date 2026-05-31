@@ -1,81 +1,43 @@
 {
-  "session_id": "session-2026-05-31-0912",
-  "started": "2026-05-31T14:12:22.806Z",
+  "session_id": "session-2026-05-31-1421",
+  "started": "2026-05-31T19:21:41.984Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
-      "count": 2,
-      "tokens": 11252,
-      "first_read": "2026-05-31T14:17:17.444Z"
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
+      "count": 3,
+      "tokens": 16486,
+      "first_read": "2026-05-31T19:21:48.141Z"
     },
     "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py": {
-      "count": 2,
-      "tokens": 8052,
-      "first_read": "2026-05-31T14:17:39.108Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts": {
       "count": 1,
-      "tokens": 1618,
-      "first_read": "2026-05-31T14:18:23.195Z"
+      "tokens": 9891,
+      "first_read": "2026-05-31T19:29:05.474Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/services/housekeeping_assignments.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-31T19:29:44.355Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 757,
-      "at": "2026-05-31T14:18:43.821Z"
+      "tokens": 166,
+      "at": "2026-05-31T19:21:59.233Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 62,
-      "at": "2026-05-31T14:18:48.822Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 55,
-      "at": "2026-05-31T14:18:54.258Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 102,
-      "at": "2026-05-31T14:18:59.976Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 213,
-      "at": "2026-05-31T14:19:09.277Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 594,
-      "at": "2026-05-31T14:19:22.914Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 34,
-      "at": "2026-05-31T14:19:28.894Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "action": "edit",
-      "tokens": 16,
-      "at": "2026-05-31T14:24:38.408Z"
+      "tokens": 235,
+      "at": "2026-05-31T19:30:54.108Z"
     }
   ],
   "edit_counts": {
-    "apps/api/routers/rooms.py": 1,
-    "apps/web/lib/api/housekeeping.ts": 1,
-    "apps/web/components/housekeeping/RoomDetailDrawer.tsx": 6
+    "apps/api/routers/housekeeping.py": 2
   },
   "anatomy_hits": 2,
   "anatomy_misses": 1,
   "repeated_reads_warned": 2,
   "cerebrum_warnings": 0,
-  "stop_count": 2
+  "stop_count": 3
 }

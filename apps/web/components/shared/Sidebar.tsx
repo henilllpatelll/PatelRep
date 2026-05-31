@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, ClipboardList,
-  Package, Sparkles, ChevronDown,
+  Package, Sparkles, ChevronDown, MessageSquare,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -30,6 +30,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     { href: '/engineering/predictions',  label: 'Predictions' },
   ]},
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
+  { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
   { href: '/tasks',          label: 'Tasks',          icon: ClipboardList },
   { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
   { href: '/sop',            label: 'SOP Library',    icon: Library },
@@ -42,7 +43,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
   gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeping_supervisor: ['/dashboard','/housekeeping','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeper:    ['/dashboard','/housekeeping','/tasks'],
+  housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
   chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   engineer:       ['/dashboard','/engineering','/tasks'],
   front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/lost-found'],
@@ -57,7 +58,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   front_desk:              'Front Desk',
 }
 
-const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/lost-found','/tasks']
+const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks']
 const INTELLIGENCE_HREFS = ['/ai','/sop','/reports']
 const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 

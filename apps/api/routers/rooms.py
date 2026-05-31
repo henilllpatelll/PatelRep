@@ -377,6 +377,7 @@ async def manual_checkout_room(
         raise HTTPException(status_code=404, detail="Room not found")
 
     from_status: str | None = current_row.data.get("status")
+    prev_clean_type: str | None = current_row.data.get("clean_type")
     assigned_to = current_row.data.get("assigned_to")
     was_already_checked_out = bool(current_row.data.get("actual_checkout_at"))
     prior_fo_status = current_row.data.get("fo_status")
@@ -389,13 +390,15 @@ async def manual_checkout_room(
         "status": to_status,
         "fo_status": "VAC",
         "actual_checkout_at": actual_checkout_at.isoformat(),
-        "checkout_time": actual_checkout_at.isoformat(),
+        "clean_type": "DEP",
         "guest_name": None,
         "vip_flag": False,
         "dnd_flag": False,
         "updated_at": now_iso,
         "notes": notes,
     }
+    if request and request.checkout_time is not None:
+        update_payload["checkout_time"] = request.checkout_time.isoformat()
 
     update_result = (
         supabase.table("room_status")
@@ -405,6 +408,8 @@ async def manual_checkout_room(
         .execute()
     )
 
+    # Encode prev_clean_type in notes so undo can restore it
+    history_notes = f"{notes}|prev_clean_type={prev_clean_type}" if prev_clean_type else notes
     supabase.table("room_status_history").insert({
         "room_id": room_id,
         "tenant_id": current_user.hotel_id,
@@ -412,7 +417,7 @@ async def manual_checkout_room(
         "to_status": to_status,
         "changed_by": current_user.user_id,
         "change_source": "app",
-        "notes": notes,
+        "notes": history_notes,
     }).execute()
 
     room_number = room_result.data.get("room_number") or ""
@@ -461,19 +466,26 @@ async def undo_checkout(
     if not current_row.data.get("actual_checkout_at"):
         raise HTTPException(status_code=400, detail="Room has not been checked out")
 
-    # Find the from_status recorded at checkout time to restore it
+    # Find the checkout history row to restore pre-checkout status and clean_type
     history_result = (
         supabase.table("room_status_history")
-        .select("from_status")
+        .select("from_status, notes")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
-        .eq("notes", "Guest checked out")
+        .like("notes", "Guest checked out%")
         .order("created_at", desc=True)
         .limit(1)
         .execute()
     )
-    history_rows = history_result.data or [] if history_result else []
+    history_rows = (history_result.data or []) if history_result else []
     restore_status = history_rows[0].get("from_status") if history_rows else None
+
+    # Parse the pre-checkout clean_type encoded in history notes
+    prev_clean_type: str | None = None
+    if history_rows:
+        history_notes = history_rows[0].get("notes") or ""
+        if "|prev_clean_type=" in history_notes:
+            prev_clean_type = history_notes.split("|prev_clean_type=", 1)[1].strip() or None
 
     now_iso = datetime.now(timezone.utc).isoformat()
     from_status = current_row.data.get("status")
@@ -482,6 +494,7 @@ async def undo_checkout(
         "actual_checkout_at": None,
         "checkout_time": None,
         "fo_status": "OCC",
+        "clean_type": prev_clean_type,
         "updated_at": now_iso,
         "notes": "Checkout undone",
     }
@@ -505,6 +518,99 @@ async def undo_checkout(
     }).execute()
 
     return {"data": {"room_id": room_id, "undone": True}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/stayover  (guest extended — flip DEP → OCCUPIED)
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/stayover")
+async def mark_stayover(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    room_result = (
+        supabase.table("rooms")
+        .select("room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not room_result or not room_result.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    from_status: str | None = current_row.data.get("status")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # Remove today's housekeeping assignment (was a DEP clean)
+    assignment_row = (
+        supabase.table("room_assignments")
+        .select("id, assigned_to")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assignment_date", today)
+        .maybe_single()
+        .execute()
+    )
+    assigned_to: str | None = None
+    if assignment_row and assignment_row.data:
+        assigned_to = assignment_row.data.get("assigned_to")
+        supabase.table("room_assignments")\
+            .delete()\
+            .eq("id", assignment_row.data["id"])\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
+
+    update_result = (
+        supabase.table("room_status")
+        .update({
+            "status": "OCCUPIED",
+            "clean_type": None,
+            "updated_at": now_iso,
+        })
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": from_status,
+        "to_status": "OCCUPIED",
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": "stayover_override",
+    }).execute()
+
+    if assigned_to:
+        room_number = room_result.data.get("room_number") or ""
+        supabase.table("notifications").insert({
+            "tenant_id": current_user.hotel_id,
+            "user_id": assigned_to,
+            "type": "room_stayover",
+            "title": f"Room {room_number} — guest extended",
+            "body": "Departure clean cancelled. Guest is staying.",
+            "data": {"room_id": room_id, "room_number": room_number},
+            "is_read": False,
+            "push_sent": False,
+        }).execute()
+
+    updated_rows = update_result.data or []
+    return {"data": updated_rows[0] if updated_rows else {}}
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useEffect, useRef } from 'react'
 import {
@@ -158,13 +158,13 @@ function EntryCard({ entry, canEdit, onEdit, onDelete }: EntryCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
             <Mono className="text-[11px] text-ink3">{time}</Mono>
-            <span aria-hidden="true">Â·</span>
+            <span aria-hidden="true">·</span>
             <span>{authorName}</span>
-            <span aria-hidden="true">Â·</span>
+            <span aria-hidden="true">·</span>
             <Pill tone="neutral">{deptName}</Pill>
             {entry.expires_at && (
               <>
-                <span aria-hidden="true">Â·</span>
+                <span aria-hidden="true">·</span>
                 <span className="flex items-center gap-1 text-[var(--caution)]">
                   <Clock className="w-3 h-3" />
                   expires {formatDistanceToNow(new Date(entry.expires_at), { addSuffix: true })}
@@ -255,11 +255,11 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
           {!isOpen && (
             summaryText ? (
               <span className="text-xs text-ink3 truncate hidden sm:inline">
-                {summaryText.slice(0, 80)}{summaryText.length > 80 ? 'â€¦' : ''}
+                {summaryText.slice(0, 80)}{summaryText.length > 80 ? '…' : ''}
               </span>
             ) : (
               <span className="text-xs text-ink3 hidden sm:inline">
-                Generates at shift end (7 AM Â· 3 PM Â· 11 PM)
+                Generates at shift end (7 AM · 3 PM · 11 PM)
               </span>
             )
           )}
@@ -322,7 +322,7 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                 {generateMutation.isPending ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Generatingâ€¦
+                    Generating…
                   </>
                 ) : (
                   <>
@@ -462,7 +462,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 rows={5}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Describe what happened during your shiftâ€¦"
+                placeholder="Describe what happened during your shift…"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none"
                 required
               />
@@ -498,7 +498,7 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? (
-                  <><Loader2 size={14} className="animate-spin" />Savingâ€¦</>
+                  <><Loader2 size={14} className="animate-spin" />Saving…</>
                 ) : (
                   <><Plus size={14} />Add Entry</>
                 )}
@@ -599,7 +599,7 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
               className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Savingâ€¦' : 'Save Changes'}
+              {isPending ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </form>

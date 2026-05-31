@@ -21,6 +21,7 @@ CLEAN_TYPE_LABELS = {
     "LIGHT": "Light Service",
 }
 TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX = "task_sheet_clean_type="
+STAYOVER_OVERRIDE_NOTE = "stayover_override"
 STANDARD_INSPECTION_TEMPLATE_ITEMS = [
     ("Bathroom", "Bathroom clean and sanitized", True),
     ("Bathroom", "Towels fresh and folded", True),
@@ -153,6 +154,33 @@ def _activity_day_window_utc(activity_date: date) -> tuple[str, str]:
     )
 
 
+def _clear_import_history_markers(hotel_id: str, assignment_date: str) -> None:
+    try:
+        activity_date = date.fromisoformat(assignment_date)
+    except ValueError:
+        logger.warning("Invalid assignment_date on import marker cleanup: %s", assignment_date)
+        return
+
+    activity_start, activity_end = _activity_day_window_utc(activity_date)
+    marker_queries = (
+        lambda: supabase.table("room_status_history")
+        .delete()
+        .eq("tenant_id", hotel_id)
+        .gte("created_at", activity_start)
+        .lt("created_at", activity_end)
+        .like("notes", f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}%"),
+        lambda: supabase.table("room_status_history")
+        .delete()
+        .eq("tenant_id", hotel_id)
+        .gte("created_at", activity_start)
+        .lt("created_at", activity_end)
+        .eq("notes", STAYOVER_OVERRIDE_NOTE),
+    )
+
+    for build_query in marker_queries:
+        build_query().execute()
+
+
 def _attach_task_sheet_clean_types(rows: list[dict], hotel_id: str, activity_date: date) -> list[dict]:
     room_ids = [row.get("room_id") for row in rows if row.get("room_id")]
     if not room_ids:
@@ -171,15 +199,33 @@ def _attach_task_sheet_clean_types(rows: list[dict], hotel_id: str, activity_dat
         .execute()
     )
 
+    stayover_rooms: set[str] = set()
     imported_clean_type_by_room: dict[str, str] = {}
     for history_row in history_result.data or []:
         room_id = history_row.get("room_id")
-        clean_type = _clean_type_from_task_sheet_note(history_row.get("notes"))
-        if room_id and clean_type and room_id not in imported_clean_type_by_room:
+        if not room_id:
+            continue
+        notes = history_row.get("notes") or ""
+        if notes == STAYOVER_OVERRIDE_NOTE:
+            stayover_rooms.add(room_id)
+            continue
+        if room_id in stayover_rooms or room_id in imported_clean_type_by_room:
+            continue
+        clean_type = _clean_type_from_task_sheet_note(notes)
+        if clean_type:
             imported_clean_type_by_room[room_id] = clean_type
 
     for row in rows:
-        history_ct = imported_clean_type_by_room.get(row.get("room_id"))
+        room_id = row.get("room_id")
+        if room_id in stayover_rooms:
+            row["clean_type"] = None
+            row.pop("clean_type_label", None)
+            continue
+        # Checked-out rooms already have their status/clean_type set by the checkout
+        # endpoint (DEP). Task-sheet imports from earlier today must not override them.
+        if row.get("actual_checkout_at"):
+            continue
+        history_ct = imported_clean_type_by_room.get(room_id)
         clean_type = history_ct or row.get("clean_type")
         if not clean_type:
             continue
@@ -256,6 +302,35 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
     return rows
 
 
+def _has_task_sheet_clean_type_marker(
+    room_id: str | None,
+    hotel_id: str,
+    assignment_date: str | None,
+    clean_type: str | None,
+) -> bool:
+    if not room_id or not assignment_date or not clean_type:
+        return False
+    try:
+        target_date = date.fromisoformat(assignment_date)
+    except ValueError:
+        return False
+
+    activity_start, activity_end = _activity_day_window_utc(target_date)
+    history_result = (
+        supabase.table("room_status_history")
+        .select("notes")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", room_id)
+        .gte("created_at", activity_start)
+        .lt("created_at", activity_end)
+        .execute()
+    )
+    return any(
+        _clean_type_from_task_sheet_note(row.get("notes")) == clean_type
+        for row in (history_result.data or [])
+    )
+
+
 # ---------------------------------------------------------------------------
 # GET /housekeeping/board
 # ---------------------------------------------------------------------------
@@ -326,7 +401,13 @@ async def get_housekeeping_board(
     rooms_with_predictions = []
     for room in rows:
         assignment = assignment_map.get(room.get("room_id"))
-        clean_type = room.get("clean_type")
+        # When a room is checked out, room_status.clean_type (DEP) takes precedence
+        # over any assignment clean_type (FULL/LIGHT), so the board shows Vacant Dirty
+        # rather than incorrectly keeping the room as PICKUP.
+        if room.get("actual_checkout_at"):
+            clean_type = room.get("clean_type") or (assignment or {}).get("clean_type")
+        else:
+            clean_type = (assignment or {}).get("clean_type") or room.get("clean_type")
         rooms_with_predictions.append({
             **room,
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
@@ -632,7 +713,7 @@ async def create_assignments(
                     .update(payload)
                     .eq("room_id", room_id)
                     .eq("tenant_id", current_user.hotel_id)
-                    .in_("status", ["DIRTY", "PICKUP"]),
+                    .in_("status", ["DIRTY", "PICKUP", "OCCUPIED"]),
             )
         else:
             supabase.table("room_status")\
@@ -667,7 +748,7 @@ async def delete_assignment(
 ):
     assignment_result = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to")
+        .select("id, room_id, assigned_to, assignment_date, clean_type")
         .eq("id", assignment_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -687,8 +768,36 @@ async def delete_assignment(
     if not (delete_result.data if delete_result else None):
         raise HTTPException(status_code=404, detail="Assignment not found")
 
+    status_result = (
+        supabase.table("room_status")
+        .select("room_id, status, fo_status, clean_type")
+        .eq("room_id", assignment.get("room_id"))
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_status = status_result.data if status_result else None
+    assignment_clean_type = assignment.get("clean_type")
+    clear_manual_clean_type = (
+        room_status
+        and assignment_clean_type
+        and room_status.get("clean_type") == assignment_clean_type
+        and not _has_task_sheet_clean_type_marker(
+            assignment.get("room_id"),
+            current_user.hotel_id,
+            assignment.get("assignment_date"),
+            assignment_clean_type,
+        )
+    )
+
+    status_update = {"assigned_to": None}
+    if clear_manual_clean_type:
+        status_update["clean_type"] = None
+        if room_status.get("status") in {"DIRTY", "PICKUP", "OCCUPIED"}:
+            status_update["status"] = "OCCUPIED" if room_status.get("fo_status") == "OCC" else "DIRTY"
+
     supabase.table("room_status")\
-        .update({"assigned_to": None})\
+        .update(status_update)\
         .eq("room_id", assignment.get("room_id"))\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("assigned_to", assignment.get("assigned_to"))\
@@ -1271,6 +1380,8 @@ async def import_hk_details(
     if not rows:
         raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
 
+    _clear_import_history_markers(current_user.hotel_id, assignment_date)
+
     # Fetch all rooms for this hotel to resolve room_number → room_id
     rooms_res = supabase.table("rooms") \
         .select("id, room_number") \
@@ -1294,22 +1405,26 @@ async def import_hk_details(
             else row.our_status
         )
 
-        is_departure = resolved_status == "OCCUPIED" and row.fo_status == "OCC"
-
         update_data: dict = {
             "room_id": room_id,
             "tenant_id": current_user.hotel_id,
             "status": resolved_status,
             "fo_status": row.fo_status,
             "actual_checkout_at": None,
+            "checkout_time": None,
+            "checkin_time": None,
             "clean_type": None,
+            "guest_name": None,
+            "vip_flag": False,
+            "dnd_flag": False,
+            "do_not_service": False,
+            "notes": None,
         }
-        if not is_departure:
-            update_data["checkout_time"] = None
 
-        supabase.table("room_status") \
-            .upsert(update_data, on_conflict="room_id") \
-            .execute()
+        _execute_room_status_clean_type_write(
+            update_data,
+            lambda payload: supabase.table("room_status").upsert(payload, on_conflict="room_id"),
+        )
         applied += 1
 
     if not_found:
@@ -1350,18 +1465,9 @@ async def import_task_sheet(
     if not rows:
         raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
 
-    # Purge stale task_sheet_clean_type history notes from any previous import today
-    # so rooms no longer in the new task sheet don't retain old clean_type badges.
+    # Purge generated same-day import markers so every Task Sheet import starts fresh.
     try:
-        _date = date.fromisoformat(assignment_date)
-        _start, _end = _activity_day_window_utc(_date)
-        supabase.table("room_status_history") \
-            .delete() \
-            .eq("tenant_id", current_user.hotel_id) \
-            .gte("created_at", _start) \
-            .lt("created_at", _end) \
-            .like("notes", f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}%") \
-            .execute()
+        _clear_import_history_markers(current_user.hotel_id, assignment_date)
     except Exception:
         pass  # non-fatal — stale notes will be overwritten by new ones below
 
@@ -1420,6 +1526,8 @@ async def import_task_sheet(
             "tenant_id": current_user.hotel_id,
             "status": new_status,
             "fo_status": fo,
+            "actual_checkout_at": None,
+            "checkout_time": None,
         }
         if row.clean_type:
             status_update["clean_type"] = row.clean_type
