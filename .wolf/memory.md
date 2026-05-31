@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-31 | Fixed: PICKUP room staying PICKUP after checkout — board now uses room_status.clean_type (DEP) over assignment.clean_type (FULL/LIGHT) when actual_checkout_at is set | apps/api/routers/housekeeping.py | complete | ~1k tok |
+| 2026-05-31 | Changed stayover card comment from "stayover_override" to "stayover" — updated constant, rooms.py insert, and test fixtures | housekeeping.py, rooms.py, test_housekeeping_assignments.py | complete | ~300 tok |
 | 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
 | 2026-05-31 | Stayover feature: POST /rooms/{id}/stayover — deletes today's DEP assignment, sets room_status to OCCUPIED + clean_type null, notifies housekeeper | rooms.py, RoomDetailDrawer.tsx, rooms.ts | complete | ~4k tok |
 | 2026-05-31 | Housekeeping nav: replaced Tasks with Guest Requests for housekeeper role; added /guest-requests to ALL_NAV_ITEMS and OPERATIONS_HREFS | components/shared/Sidebar.tsx | complete | ~1k tok |
@@ -3063,3 +3064,21 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:30 | Edited apps/api/routers/housekeeping.py | modified get() | ~235 |
 | 14:31 | Session end: 2 writes across 1 files (housekeeping.py) | 3 reads | ~26778 tok |
 | 14:32 | Session end: 2 writes across 1 files (housekeeping.py) | 3 reads | ~26778 tok |
+| 14:35 | Edited CLAUDE.md | expanded (+7 lines) | ~262 |
+| 14:35 | Session end: 3 writes across 2 files (housekeeping.py, CLAUDE.md) | 4 reads | ~29854 tok |
+
+## Session: 2026-05-31 14:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:45 | Edited apps/api/routers/housekeeping.py | "stayover_override" → "stayover" | ~10 |
+| 14:45 | Edited apps/api/routers/rooms.py | inline fix | ~8 |
+| 14:45 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | 6→6 lines | ~60 |
+| 14:45 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | 6→6 lines | ~61 |
+| 14:45 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | "stayover_override" → "stayover" | ~10 |
+| 14:46 | Session end: 5 writes across 3 files (housekeeping.py, rooms.py, test_housekeeping_assignments.py) | 3 reads | ~39551 tok |
+| 14:51 | Edited apps/api/routers/rooms.py | expanded (+7 lines) | ~210 |
+| 14:51 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | modified delete() | ~63 |
+| 14:51 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | 7→12 lines | ~143 |
+| 14:52 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | modified test_checkout_clears_stayover_note() | ~404 |
+| 14:52 | Session end: 9 writes across 4 files (housekeeping.py, rooms.py, test_housekeeping_assignments.py, test_webhooks_and_transitions.py) | 4 reads | ~45675 tok |

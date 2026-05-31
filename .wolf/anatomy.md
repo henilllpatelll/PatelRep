@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T19:30:54.096Z
-> Files: 29 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T19:52:14.350Z
+> Files: 30 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -20,7 +20,7 @@
 
 ## ./
 
-- `CLAUDE.md` — OpenWolf (~2796 tok)
+- `CLAUDE.md` — OpenWolf (~2969 tok)
 - `fix-encoding.ps1` — Fix mojibake encoding in TSX files (~546 tok)
 
 ## .claude/
@@ -442,8 +442,8 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — Declares from (~16553 tok)
-- `rooms.py` — API: 3 endpoints (~9891 tok)
+- `housekeeping.py` — Declares from (~16551 tok)
+- `rooms.py` — API: 3 endpoints (~9965 tok)
 
 ## apps/api/services/
 
@@ -460,8 +460,9 @@
 
 ## apps/api/tests/smoke/
 
-- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~12958 tok)
+- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~12950 tok)
 - `test_inspection_templates.py` — Regression tests for persisted/default inspection checklist templates returned by housekeeping API. (~1370 tok)
+- `test_webhooks_and_transitions.py` — FakeDB: table, select, delete, update + 22 more (~5701 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 

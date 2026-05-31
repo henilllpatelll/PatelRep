@@ -408,6 +408,13 @@ async def manual_checkout_room(
         .execute()
     )
 
+    # Clear stayover note so it doesn't linger on the card after checkout
+    supabase.table("room_status_history").delete()\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .eq("notes", "stayover")\
+        .execute()
+
     # Encode prev_clean_type in notes so undo can restore it
     history_notes = f"{notes}|prev_clean_type={prev_clean_type}" if prev_clean_type else notes
     supabase.table("room_status_history").insert({
@@ -593,7 +600,7 @@ async def mark_stayover(
         "to_status": "OCCUPIED",
         "changed_by": current_user.user_id,
         "change_source": "app",
-        "notes": "stayover_override",
+        "notes": "stayover",
     }).execute()
 
     if assigned_to:

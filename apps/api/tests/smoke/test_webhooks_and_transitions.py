@@ -55,6 +55,10 @@ class FakeQuery:
         self.action = "select"
         return self
 
+    def delete(self):
+        self.action = "delete"
+        return self
+
     def update(self, payload):
         self.action = "update"
         self.payload = payload
@@ -121,6 +125,11 @@ class FakeQuery:
             rows.append(row)
             self.db.inserts.append((self.table_name, row))
             return SimpleNamespace(data=[row])
+
+        if self.action == "delete":
+            deleted = list(matched)
+            self.db.rows[self.table_name] = [row for row in rows if row not in deleted]
+            return SimpleNamespace(data=deleted)
 
         return SimpleNamespace(data=[])
 
@@ -238,6 +247,46 @@ async def test_manual_checkout_preserves_active_cleaning_status(monkeypatch):
     assert db.inserts[0][1]["to_status"] == "IN_PROGRESS"
     assert db.rows["notifications"] == []
     assert push_calls == []
+
+
+@pytest.mark.asyncio
+async def test_checkout_clears_stayover_note(monkeypatch):
+    """Stayover note in history must not linger on the card after checkout."""
+    db = FakeDB({
+        "rooms": [{"id": "room-1", "tenant_id": "hotel-a", "room_number": "101"}],
+        "room_status": [{
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "clean_type": "DEP",
+            "assigned_to": None,
+            "actual_checkout_at": None,
+            "checkout_time": None,
+            "notes": None,
+        }],
+        "room_status_history": [{
+            "room_id": "room-1",
+            "tenant_id": "hotel-a",
+            "from_status": "OCCUPIED",
+            "to_status": "OCCUPIED",
+            "changed_by": "sup-1",
+            "change_source": "app",
+            "notes": "stayover",
+        }],
+        "notifications": [],
+    })
+    monkeypatch.setattr(rooms_router, "supabase", db)
+    monkeypatch.setattr(rooms_router, "_send_checkout_push", lambda *_: None)
+
+    await rooms_router.manual_checkout_room(
+        "room-1",
+        ManualCheckoutRequest(actual_checkout_at="2026-05-31T15:00:00+00:00"),
+        current_user=FRONT_DESK,
+    )
+
+    remaining_notes = [row.get("notes") for row in db.rows["room_status_history"]]
+    assert "stayover" not in remaining_notes
 
 
 def stripe_event(event_type, obj):

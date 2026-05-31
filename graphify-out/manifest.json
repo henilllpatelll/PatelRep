@@ -20,9 +20,9 @@
     "semantic_hash": "ee92342918af7b3bcc20aa4208517981"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1780254159.813696,
-    "ast_hash": "f97b070ec9d29238b65ee9571b45bfa8",
-    "semantic_hash": "f97b070ec9d29238b65ee9571b45bfa8"
+    "mtime": 1780256749.158494,
+    "ast_hash": "93220798c85f712f73c3c5bc25c366f1",
+    "semantic_hash": "93220798c85f712f73c3c5bc25c366f1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1780254183.9107695,
-    "ast_hash": "6b063e6b9f597b7e0e54f3ebe9ccd41d",
-    "semantic_hash": "6b063e6b9f597b7e0e54f3ebe9ccd41d"
+    "mtime": 1780256761.9190965,
+    "ast_hash": "32e475f3aed51d7f8cf2550a265d74a8",
+    "semantic_hash": "32e475f3aed51d7f8cf2550a265d74a8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1780006260.899577,
@@ -185,9 +185,9 @@
     "semantic_hash": "f99717751be0ca972e6bc309f35ed338"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\housekeeping.py": {
-    "mtime": 1780251530.1137881,
-    "ast_hash": "b32e1dad62b308d13d5aaf6591981119",
-    "semantic_hash": "b32e1dad62b308d13d5aaf6591981119"
+    "mtime": 1780256733.5293763,
+    "ast_hash": "d2096c9df36fb346c7468b46fe098b2e",
+    "semantic_hash": "d2096c9df36fb346c7468b46fe098b2e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\integrations.py": {
     "mtime": 1779031345.3450437,
@@ -225,9 +225,9 @@
     "semantic_hash": "c29131e07ce45ef78fed0258c070acf4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\rooms.py": {
-    "mtime": 1780254142.1980298,
-    "ast_hash": "1143651b869d867c2d54f85f9582f725",
-    "semantic_hash": "1143651b869d867c2d54f85f9582f725"
+    "mtime": 1780256736.3907912,
+    "ast_hash": "2c77805e88de3cdc459f61f0288d664a",
+    "semantic_hash": "2c77805e88de3cdc459f61f0288d664a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\scheduling.py": {
     "mtime": 1779031345.3504834,
@@ -390,9 +390,9 @@
     "semantic_hash": "6e42a8f150563c7217e6c69f1268e77e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_housekeeping_assignments.py": {
-    "mtime": 1780254159.5574079,
-    "ast_hash": "1138edcfad9003cfb48e28897370a60d",
-    "semantic_hash": "1138edcfad9003cfb48e28897370a60d"
+    "mtime": 1780256749.029447,
+    "ast_hash": "9b6fd02a27754dba068a4156f5882461",
+    "semantic_hash": "9b6fd02a27754dba068a4156f5882461"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_integrations_security.py": {
     "mtime": 1779585078.8984475,
@@ -1740,9 +1740,9 @@
     "semantic_hash": "f372858c5c34ecd7fb3f895a520db5d7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\CLAUDE.md": {
-    "mtime": 1780081025.7586124,
-    "ast_hash": "07a4fd8b0d53a1922b1f7552e2aea061",
-    "semantic_hash": "07a4fd8b0d53a1922b1f7552e2aea061"
+    "mtime": 1780256140.2928302,
+    "ast_hash": "a9a2930342da214d05844439771e36a3",
+    "semantic_hash": "a9a2930342da214d05844439771e36a3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\C\uf03aUsersHenilprojectsPatelRep.wolfmemory.md": {
     "mtime": 1779472488.2294724,
@@ -1790,9 +1790,9 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1780254159.8065293,
-    "ast_hash": "32d87abebe2d278b313ee5c0e5172180",
-    "semantic_hash": "32d87abebe2d278b313ee5c0e5172180"
+    "mtime": 1780256749.1515987,
+    "ast_hash": "349cbaa4c1ec374af5425613b08365f6",
+    "semantic_hash": "349cbaa4c1ec374af5425613b08365f6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
     "mtime": 1780251628.2751675,
@@ -1805,9 +1805,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1780254183.9107695,
-    "ast_hash": "07752c64d1edf63561d5d18cc64eb993",
-    "semantic_hash": "07752c64d1edf63561d5d18cc64eb993"
+    "mtime": 1780256761.9190965,
+    "ast_hash": "acd3b05becdc6d5d8d00fc5f13b67759",
+    "semantic_hash": "acd3b05becdc6d5d8d00fc5f13b67759"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -2384,46 +2384,6 @@
     "ast_hash": "db9f1758c5ccf080c3ac574fee8106a4",
     "semantic_hash": "db9f1758c5ccf080c3ac574fee8106a4"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_board2.png": {
-    "mtime": 1779999247.304858,
-    "ast_hash": "d049aa4c1a8e06eb03f8d54db4be8977",
-    "semantic_hash": "d049aa4c1a8e06eb03f8d54db4be8977"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_board3.png": {
-    "mtime": 1779999255.82141,
-    "ast_hash": "a8b0aebb1e7115253a14654d0b184461",
-    "semantic_hash": "a8b0aebb1e7115253a14654d0b184461"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_board_after.png": {
-    "mtime": 1779999227.5060985,
-    "ast_hash": "9b527d2747c603587e9a300b428034b0",
-    "semantic_hash": "9b527d2747c603587e9a300b428034b0"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_board_current.png": {
-    "mtime": 1779999089.3784118,
-    "ast_hash": "bc3127e5f6c62bdb4341c45859d2d375",
-    "semantic_hash": "bc3127e5f6c62bdb4341c45859d2d375"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_pickup.png": {
-    "mtime": 1779999296.9803267,
-    "ast_hash": "7ab8d1e5c97460f7fedeeb0f62018bef",
-    "semantic_hash": "7ab8d1e5c97460f7fedeeb0f62018bef"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_pickup2.png": {
-    "mtime": 1779999308.2870004,
-    "ast_hash": "16edc4ab9313d387e89c290254b502ca",
-    "semantic_hash": "16edc4ab9313d387e89c290254b502ca"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_pickup3.png": {
-    "mtime": 1779999315.8944836,
-    "ast_hash": "a3fa5bc10d28e4833a0141c51878817f",
-    "semantic_hash": "a3fa5bc10d28e4833a0141c51878817f"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_pickup_filter.png": {
-    "mtime": 1779999326.0044222,
-    "ast_hash": "991c460576ec4bf361fa2e0efe08c02b",
-    "semantic_hash": "991c460576ec4bf361fa2e0efe08c02b"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\board.png": {
     "mtime": 1779997162.1487806,
     "ast_hash": "d2f4e1aeefe1f4fbf65f067c51d8a70b",
@@ -2448,11 +2408,6 @@
     "mtime": 1779999505.5639696,
     "ast_hash": "cfdc4715076418ef2a4cddd9f0c4b51d",
     "semantic_hash": "cfdc4715076418ef2a4cddd9f0c4b51d"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\hk_final.png": {
-    "mtime": 1779999505.8171506,
-    "ast_hash": "22044a06b01fe19a0e60d9176504716a",
-    "semantic_hash": "22044a06b01fe19a0e60d9176504716a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\feedback.py": {
     "mtime": 1780006289.4456787,
@@ -2539,71 +2494,6 @@
     "ast_hash": "89dbc2eb953300b549cb3ab2e043f8fc",
     "semantic_hash": "89dbc2eb953300b549cb3ab2e043f8fc"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-fixed-top.png": {
-    "mtime": 1780232643.5882463,
-    "ast_hash": "20eb8b6be66e3c5f0794e567ff312be1",
-    "semantic_hash": "20eb8b6be66e3c5f0794e567ff312be1"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor1-bottom.png": {
-    "mtime": 1780232569.1246958,
-    "ast_hash": "63d4dc40eccb029419c7a6499d2253c3",
-    "semantic_hash": "63d4dc40eccb029419c7a6499d2253c3"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor2.png": {
-    "mtime": 1780232564.2639945,
-    "ast_hash": "63d4dc40eccb029419c7a6499d2253c3",
-    "semantic_hash": "63d4dc40eccb029419c7a6499d2253c3"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor3-check.png": {
-    "mtime": 1780232910.9715981,
-    "ast_hash": "84a2573556b2bf667e4b6c1bafbe078b",
-    "semantic_hash": "84a2573556b2bf667e4b6c1bafbe078b"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor3-v2.png": {
-    "mtime": 1780232916.296094,
-    "ast_hash": "cb1ee9744d9c81ca3978f33e83166a17",
-    "semantic_hash": "cb1ee9744d9c81ca3978f33e83166a17"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor3-v3.png": {
-    "mtime": 1780232927.5184102,
-    "ast_hash": "7eae6cf077336baba6839ff1cc0f6bfb",
-    "semantic_hash": "7eae6cf077336baba6839ff1cc0f6bfb"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-initial.png": {
-    "mtime": 1780232255.676446,
-    "ast_hash": "2550718db89ce418df16a2d09d6c6421",
-    "semantic_hash": "2550718db89ce418df16a2d09d6c6421"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-scroll1.png": {
-    "mtime": 1780232310.6487532,
-    "ast_hash": "943590e514aa10807125d634242287bb",
-    "semantic_hash": "943590e514aa10807125d634242287bb"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-scroll2.png": {
-    "mtime": 1780232342.6008642,
-    "ast_hash": "63d4dc40eccb029419c7a6499d2253c3",
-    "semantic_hash": "63d4dc40eccb029419c7a6499d2253c3"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-v3-final.png": {
-    "mtime": 1780232886.862306,
-    "ast_hash": "5d428ee246d6353f19e483af38e35a70",
-    "semantic_hash": "5d428ee246d6353f19e483af38e35a70"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-v3-floor3.png": {
-    "mtime": 1780232901.560856,
-    "ast_hash": "c81ecc7f06f55079fe7ddefe56108ec2",
-    "semantic_hash": "c81ecc7f06f55079fe7ddefe56108ec2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-v3-top.png": {
-    "mtime": 1780232858.1938195,
-    "ast_hash": "8f7b0ba72287c99408436377f525db81",
-    "semantic_hash": "8f7b0ba72287c99408436377f525db81"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-v3-top2.png": {
-    "mtime": 1780232869.4157114,
-    "ast_hash": "839e15484ddadfc5865eea028492a726",
-    "semantic_hash": "839e15484ddadfc5865eea028492a726"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-11-37-014Z.yml": {
     "mtime": 1780233097.015333,
     "ast_hash": "95cf79dbf9ec2c3407c1a9434882dfc1",
@@ -2613,16 +2503,6 @@
     "mtime": 1780233111.7768972,
     "ast_hash": "d1ab93242950e943b95fc2834a8be4d6",
     "semantic_hash": "d1ab93242950e943b95fc2834a8be4d6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-final.png": {
-    "mtime": 1780233097.3265586,
-    "ast_hash": "a5847903f21829f01baceefc61cbaf7b",
-    "semantic_hash": "a5847903f21829f01baceefc61cbaf7b"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-final2.png": {
-    "mtime": 1780233112.1299462,
-    "ast_hash": "8ffc59f138253773ec6631c33373de2b",
-    "semantic_hash": "8ffc59f138253773ec6631c33373de2b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\snap-current.yml": {
     "mtime": 1780234136.562803,
@@ -2653,101 +2533,6 @@
     "mtime": 1780234240.1257386,
     "ast_hash": "b1cfc8b9cc14f86ee35637c81bc8510d",
     "semantic_hash": "b1cfc8b9cc14f86ee35637c81bc8510d"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-123-final.png": {
-    "mtime": 1780233997.0866616,
-    "ast_hash": "bbfefa550d92890cf0f7ca5ced58fb93",
-    "semantic_hash": "bbfefa550d92890cf0f7ca5ced58fb93"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-123-final2.png": {
-    "mtime": 1780234005.949662,
-    "ast_hash": "861ce714d7844bc1f01647753740c3bd",
-    "semantic_hash": "861ce714d7844bc1f01647753740c3bd"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-123-fix.png": {
-    "mtime": 1780233576.1184602,
-    "ast_hash": "d46434ed7a579f6822279b8fb94655a6",
-    "semantic_hash": "d46434ed7a579f6822279b8fb94655a6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-final.png": {
-    "mtime": 1780234013.8968976,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-final2.png": {
-    "mtime": 1780234031.3403947,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-final3.png": {
-    "mtime": 1780234041.6673605,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-pos.png": {
-    "mtime": 1780234158.498662,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-room.png": {
-    "mtime": 1780234103.0936549,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-scroll.png": {
-    "mtime": 1780234097.9552982,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-214-visible.png": {
-    "mtime": 1780234240.4310553,
-    "ast_hash": "1dd1c6707c63cd35ab3cdfd4edbd16f7",
-    "semantic_hash": "1dd1c6707c63cd35ab3cdfd4edbd16f7"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-900.png": {
-    "mtime": 1780234173.682693,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-check-123.png": {
-    "mtime": 1780233396.8143108,
-    "ast_hash": "533089b8d8f73f77a1eddf5e85b12464",
-    "semantic_hash": "533089b8d8f73f77a1eddf5e85b12464"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor1-fix.png": {
-    "mtime": 1780233568.520354,
-    "ast_hash": "e0ef7b3f1f10bf7fe57bbc1d5b6892e0",
-    "semantic_hash": "e0ef7b3f1f10bf7fe57bbc1d5b6892e0"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor2-header.png": {
-    "mtime": 1780234071.2336538,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-floor2-top.png": {
-    "mtime": 1780234057.4992695,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-fresh-top.png": {
-    "mtime": 1780234216.858485,
-    "ast_hash": "5c1641be227f491762bbd244d01bc87b",
-    "semantic_hash": "5c1641be227f491762bbd244d01bc87b"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-home.png": {
-    "mtime": 1780234203.2131846,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-loaded.png": {
-    "mtime": 1780234226.5285025,
-    "ast_hash": "451e6a0bcb50cbb4920354a851572798",
-    "semantic_hash": "451e6a0bcb50cbb4920354a851572798"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\board-top.png": {
-    "mtime": 1780234189.1951902,
-    "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
-    "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\049_inspection_results_nullable_template_item.sql": {
     "mtime": 1780235765.8062758,

@@ -598,7 +598,7 @@ async def test_hk_details_import_resets_stale_card_fields_and_import_markers(mon
             {
                 "room_id": room_id,
                 "tenant_id": SUPERVISOR.hotel_id,
-                "notes": "stayover_override",
+                "notes": "stayover",
                 "created_at": "2026-05-24T12:05:00+00:00",
             },
         ],
@@ -836,7 +836,7 @@ async def test_task_sheet_import_clears_stale_stayover_override_marker(monkeypat
         "room_status_history": [{
             "room_id": room_id,
             "tenant_id": SUPERVISOR.hotel_id,
-            "notes": "stayover_override",
+            "notes": "stayover",
             "created_at": "2026-05-24T12:00:00+00:00",
         }],
     })
@@ -863,7 +863,7 @@ async def test_task_sheet_import_clears_stale_stayover_override_marker(monkeypat
     )
 
     notes = [row.get("notes") for row in db.rows["room_status_history"]]
-    assert "stayover_override" not in notes
+    assert "stayover" not in notes
     assert db.rows["room_status"][0]["clean_type"] == "DEP"
 
 

@@ -192,6 +192,13 @@ Domain skills inject automatically by file path:
 
 ---
 
+## Current Scope (MANDATORY — read before every session)
+
+- **Active surface: web app only.** All feature work targets `apps/web/` and `apps/api/`. Do not touch `apps/mobile/` unless explicitly asked.
+- **No live API credentials in the local environment.** There is no `.env` with `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or Stripe keys locally. All AI-credit and billing paths cannot be exercised end-to-end. Testing relies entirely on manual interaction against the running dev servers (`npm run dev:api` + `npm run dev:web`) and the Supabase backend. Do not assume automated credential-gated flows can be verified — flag when a feature requires credentials that aren't present.
+
+---
+
 ## Non-Regression Policy (MANDATORY)
 
 **When implementing or configuring any new feature, Claude MUST:**

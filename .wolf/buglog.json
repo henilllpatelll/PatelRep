@@ -4890,10 +4890,82 @@
       "file": "apps/api/routers/housekeeping.py",
       "root_cause": "Board endpoint used `(assignment or {}).get('clean_type') or room.get('clean_type')` — assignment's FULL/LIGHT clean_type took precedence over room_status.clean_type=DEP set during checkout, causing effective_room_status to return PICKUP instead of DIRTY",
       "fix": "When room.actual_checkout_at is set, reverse the precedence: use room.clean_type first, then fall back to assignment.clean_type",
-      "tags": ["housekeeping", "board", "checkout", "pickup", "clean_type", "precedence", "py"],
+      "tags": [
+        "housekeeping",
+        "board",
+        "checkout",
+        "pickup",
+        "clean_type",
+        "precedence",
+        "py"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-05-31T19:45:33.680Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"stayover_override\"",
+      "fix": "Changed to \"stayover\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:45:33.680Z"
+    },
+    {
+      "id": "bug-296",
+      "timestamp": "2026-05-31T19:45:36.554Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Had \"stayover_override\"",
+      "fix": "Changed to \"stayover\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:45:36.554Z"
+    },
+    {
+      "id": "bug-297",
+      "timestamp": "2026-05-31T19:45:49.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/smoke/test_housekeeping_assignments.py",
+      "root_cause": "Had \"stayover_override\"",
+      "fix": "Changed to \"stayover\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:45:49.156Z"
+    },
+    {
+      "id": "bug-298",
+      "timestamp": "2026-05-31T19:52:14.367Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/smoke/test_webhooks_and_transitions.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T19:52:14.367Z"
     }
   ]
 }

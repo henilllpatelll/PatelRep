@@ -21,7 +21,7 @@ CLEAN_TYPE_LABELS = {
     "LIGHT": "Light Service",
 }
 TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX = "task_sheet_clean_type="
-STAYOVER_OVERRIDE_NOTE = "stayover_override"
+STAYOVER_OVERRIDE_NOTE = "stayover"
 STANDARD_INSPECTION_TEMPLATE_ITEMS = [
     ("Bathroom", "Bathroom clean and sanitized", True),
     ("Bathroom", "Towels fresh and folded", True),

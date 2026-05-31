@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 8843246,
-    "total_reads": 4494,
-    "total_writes": 3505,
-    "total_sessions": 184,
-    "anatomy_hits": 1566,
-    "anatomy_misses": 2866,
-    "repeated_reads_blocked": 1692,
-    "estimated_savings_vs_bare_cli": 8411599
+    "total_tokens_estimated": 8958326,
+    "total_reads": 4505,
+    "total_writes": 3522,
+    "total_sessions": 185,
+    "anatomy_hits": 1575,
+    "anatomy_misses": 2868,
+    "repeated_reads_blocked": 1706,
+    "estimated_savings_vs_bare_cli": 8579503
   },
   "sessions": [
     {
@@ -51740,6 +51740,208 @@
         "writes_count": 2,
         "repeated_reads_blocked": 2,
         "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-05-31-1421",
+      "started": "2026-05-31T19:21:41.984Z",
+      "ended": "2026-05-31T19:35:43.313Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 16486,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 9891,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/housekeeping_assignments.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2796,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 166,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 235,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 280,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 29173,
+        "output_tokens_estimated": 681,
+        "reads_count": 4,
+        "writes_count": 3,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-05-31-1443",
+      "started": "2026-05-31T19:43:34.276Z",
+      "ended": "2026-05-31T19:46:01.904Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 9891,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 16553,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 12958,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 10,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 61,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 10,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 39402,
+        "output_tokens_estimated": 149,
+        "reads_count": 3,
+        "writes_count": 5,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-05-31-1443",
+      "started": "2026-05-31T19:43:34.276Z",
+      "ended": "2026-05-31T19:52:28.433Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 9888,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 16553,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 12958,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_webhooks_and_transitions.py",
+          "tokens_estimated": 5307,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 10,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 61,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_housekeeping_assignments.py",
+          "tokens_estimated": 10,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 210,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_webhooks_and_transitions.py",
+          "tokens_estimated": 63,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_webhooks_and_transitions.py",
+          "tokens_estimated": 143,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_webhooks_and_transitions.py",
+          "tokens_estimated": 404,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 44706,
+        "output_tokens_estimated": 969,
+        "reads_count": 4,
+        "writes_count": 9,
+        "repeated_reads_blocked": 9,
+        "anatomy_lookups": 3
       }
     }
   ],
