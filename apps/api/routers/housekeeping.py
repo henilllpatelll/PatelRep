@@ -280,7 +280,7 @@ async def get_housekeeping_board(
     rooms_with_predictions = []
     for room in rows:
         assignment = assignment_map.get(room.get("room_id"))
-        clean_type = (assignment.get("clean_type") if assignment else None) or room.get("clean_type")
+        clean_type = room.get("clean_type")
         rooms_with_predictions.append({
             **room,
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
@@ -1256,12 +1256,18 @@ async def import_hk_details(
             else row.our_status
         )
 
+        is_departure = resolved_status == "OCCUPIED" and row.fo_status == "OCC"
+
         update_data: dict = {
             "room_id": room_id,
             "tenant_id": current_user.hotel_id,
             "status": resolved_status,
             "fo_status": row.fo_status,
+            "actual_checkout_at": None,
+            "clean_type": None,
         }
+        if not is_departure:
+            update_data["checkout_time"] = None
 
         supabase.table("room_status") \
             .upsert(update_data, on_conflict="room_id") \
@@ -1305,6 +1311,21 @@ async def import_task_sheet(
 
     if not rows:
         raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
+
+    # Purge stale task_sheet_clean_type history notes from any previous import today
+    # so rooms no longer in the new task sheet don't retain old clean_type badges.
+    try:
+        _date = date.fromisoformat(assignment_date)
+        _start, _end = _activity_day_window_utc(_date)
+        supabase.table("room_status_history") \
+            .delete() \
+            .eq("tenant_id", current_user.hotel_id) \
+            .gte("created_at", _start) \
+            .lt("created_at", _end) \
+            .like("notes", f"{TASK_SHEET_CLEAN_TYPE_NOTE_PREFIX}%") \
+            .execute()
+    except Exception:
+        pass  # non-fatal — stale notes will be overwritten by new ones below
 
     # Fetch all rooms for this hotel
     rooms_res = supabase.table("rooms") \

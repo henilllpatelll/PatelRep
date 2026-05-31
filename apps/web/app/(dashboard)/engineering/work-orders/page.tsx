@@ -17,6 +17,7 @@ import { Pill } from '@/components/ui/primitives'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
+import { EngineeringRoomBoard } from '@/components/engineering/EngineeringRoomBoard'
 import { formatDistanceToNowStrict } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -242,6 +243,7 @@ export default function WorkOrdersPage() {
   const hotelId = getHotelIdFromToken(session?.access_token)
   const queryClient = useQueryClient()
 
+  const [activeTab, setActiveTab] = useState<'work-orders' | 'room-board'>('work-orders')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -357,6 +359,13 @@ export default function WorkOrdersPage() {
     queryClient.invalidateQueries({ queryKey: ['work-orders'] })
   }
 
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+      active
+        ? 'border-[var(--accent)] text-ink'
+        : 'border-transparent text-ink3 hover:text-ink2 hover:border-line'
+    }`
+
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       <div className="flex-1 min-w-0 space-y-5">
@@ -365,66 +374,90 @@ export default function WorkOrdersPage() {
           <div>
             <h1 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2.5">
               <Wrench className="w-5 h-5 text-[var(--caution)] shrink-0" />
-              Work Orders
+              Engineering
             </h1>
             <p className="text-sm text-ink3 mt-0.5">
               {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ai"
-              onClick={handleAITriage}
-              disabled={aiTriageLoading}
-              className="shrink-0"
-            >
-              {aiTriageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              AI triage
-            </Button>
-            {canManage && (
-              <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
-                <Plus className="w-4 h-4" />
-                New Work Order
+          {activeTab === 'work-orders' && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ai"
+                onClick={handleAITriage}
+                disabled={aiTriageLoading}
+                className="shrink-0"
+              >
+                {aiTriageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                AI triage
               </Button>
-            )}
-          </div>
+              {canManage && (
+                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
+                  <Plus className="w-4 h-4" />
+                  New Work Order
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Urgent alert */}
-        {urgentCount > 0 && (
-          <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="font-medium">
-              {urgentCount} urgent {urgentCount === 1 ? 'work order' : 'work orders'} require immediate attention
-            </span>
-          </div>
-        )}
+        {/* Tab bar */}
+        <div className="flex gap-0 border-b border-line -mb-1">
+          <button
+            onClick={() => setActiveTab('work-orders')}
+            className={tabClass(activeTab === 'work-orders')}
+          >
+            Work Orders
+          </button>
+          <button
+            onClick={() => setActiveTab('room-board')}
+            className={tabClass(activeTab === 'room-board')}
+          >
+            Room Board
+          </button>
+        </div>
 
-        {aiTriageNotice && (
-          <div className="flex items-start gap-2.5 px-4 py-3 bg-ai-soft border border-ai-line rounded-xl text-sm text-ai">
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="font-medium">{aiTriageNotice}</span>
-          </div>
-        )}
+        {activeTab === 'work-orders' ? (
+          <>
+            {/* Urgent alert */}
+            {urgentCount > 0 && (
+              <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="font-medium">
+                  {urgentCount} urgent {urgentCount === 1 ? 'work order' : 'work orders'} require immediate attention
+                </span>
+              </div>
+            )}
 
-        {/* Kanban board */}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {COLUMNS.map(({ status, label, tone }) => (
-              <KanbanColumn
-                key={status}
-                label={label}
-                tone={tone}
-                status={status}
-                workOrders={columnData[status]}
-                canAdd={canManage}
-                onAdd={() => setShowCreateModal(true)}
-                onCardClick={handleCardClick}
-                isLoading={columnLoading[status]}
-              />
-            ))}
-          </div>
-        </DndContext>
+            {aiTriageNotice && (
+              <div className="flex items-start gap-2.5 px-4 py-3 bg-ai-soft border border-ai-line rounded-xl text-sm text-ai">
+                <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="font-medium">{aiTriageNotice}</span>
+              </div>
+            )}
+
+            {/* Kanban board */}
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {COLUMNS.map(({ status, label, tone }) => (
+                  <KanbanColumn
+                    key={status}
+                    label={label}
+                    tone={tone}
+                    status={status}
+                    workOrders={columnData[status]}
+                    canAdd={canManage}
+                    onAdd={() => setShowCreateModal(true)}
+                    onCardClick={handleCardClick}
+                    isLoading={columnLoading[status]}
+                  />
+                ))}
+              </div>
+            </DndContext>
+          </>
+        ) : (
+          <EngineeringRoomBoard />
+        )}
 
         {/* Modals */}
         {showCreateModal && (
@@ -439,7 +472,7 @@ export default function WorkOrdersPage() {
         )}
       </div>
 
-      <FailurePredictionSidebar />
+      {activeTab === 'work-orders' && <FailurePredictionSidebar />}
 
       {/* Detail drawer */}
       <WorkOrderDetailDrawer

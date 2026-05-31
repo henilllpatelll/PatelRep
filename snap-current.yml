@@ -1,0 +1,742 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e159] [cursor=pointer]:
+        - generic [ref=e160]: S
+        - generic [ref=e161]:
+          - generic [ref=e162]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e163]: 114 rooms
+        - img [ref=e164]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e166]:
+                - link "Room Board" [ref=e167] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e168] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e169] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Tasks" [ref=e49] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e50]
+              - generic [ref=e53]: Tasks
+        - generic [ref=e54]:
+          - paragraph [ref=e56]: Intelligence
+          - generic [ref=e57]:
+            - link "AI Copilot AI" [ref=e60] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e61]
+              - generic [ref=e63]: AI Copilot
+              - generic [ref=e64]: AI
+            - link "SOP Library" [ref=e67] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e68]
+              - generic [ref=e70]: SOP Library
+            - link "Reports" [ref=e73] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e74]
+              - generic [ref=e77]: Reports
+        - generic [ref=e78]:
+          - paragraph [ref=e80]: Organization
+          - generic [ref=e81]:
+            - link "Logbook" [ref=e84] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e85]
+              - generic [ref=e88]: Logbook
+            - link "Staff" [ref=e91] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e92]
+              - generic [ref=e97]: Staff
+            - link "Schedule" [ref=e100] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e101]
+              - generic [ref=e103]: Schedule
+      - link "Settings" [ref=e172] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e173]
+        - text: Settings
+      - generic [ref=e105]:
+        - generic [ref=e106]: H
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: hp.patelrep@gmail.com
+          - paragraph [ref=e176]: General Manager
+    - generic [ref=e109]:
+      - banner [ref=e110]:
+        - generic [ref=e111]:
+          - img [ref=e112]
+          - textbox "Open command palette" [ref=e115]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e116]: ⌘K
+        - generic [ref=e119]: Sun, May 31 · Day shift
+        - button "Open AI Copilot (⌘J)" [ref=e121] [cursor=pointer]:
+          - img [ref=e122]
+          - generic [ref=e124]: Ask copilot
+          - generic [ref=e125]: ⌘J
+        - button "Notifications" [ref=e126] [cursor=pointer]:
+          - img [ref=e127]
+          - generic [ref=e130]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e177] [cursor=pointer]:
+          - generic [ref=e133]: H
+          - img [ref=e134]
+      - main [ref=e136]:
+        - generic [ref=e178]:
+          - generic [ref=e180]:
+            - generic [ref=e181]:
+              - paragraph [ref=e182]: Housekeeping
+              - heading "Room status board" [level=1] [ref=e183]
+              - generic [ref=e185]: Live · synced 2 min ago
+            - generic [ref=e187]:
+              - button "Previous day" [ref=e188] [cursor=pointer]: ← May 30
+              - generic [ref=e189]: May 31
+              - button "Next day" [ref=e190] [cursor=pointer]: Jun 1 →
+              - combobox [ref=e191]:
+                - option "All Shifts" [selected]
+                - option "Morning"
+                - option "Evening"
+                - option "Night"
+              - button "Assign mode" [ref=e192] [cursor=pointer]
+          - generic [ref=e195]:
+            - generic [ref=e197]:
+              - button "All 114" [pressed] [ref=e198] [cursor=pointer]:
+                - text: All
+                - generic [ref=e200]: "114"
+              - button "In Progress 0" [ref=e201] [cursor=pointer]:
+                - text: In Progress
+                - generic [ref=e203]: "0"
+              - button "Clean 0" [ref=e204] [cursor=pointer]:
+                - text: Clean
+                - generic [ref=e206]: "0"
+              - button "Inspected 10" [ref=e207] [cursor=pointer]:
+                - text: Inspected
+                - generic [ref=e209]: "10"
+              - button "OOO 1" [ref=e210] [cursor=pointer]:
+                - text: OOO
+                - generic [ref=e212]: "1"
+              - button "AI risk 0" [disabled] [ref=e214]:
+                - img [ref=e215]
+                - text: AI risk
+                - generic [ref=e217]: "0"
+            - generic [ref=e218]:
+              - generic [ref=e219]:
+                - generic [ref=e220]:
+                  - heading "Floor 1" [level=3] [ref=e221]
+                  - generic [ref=e222]: 38 rooms
+                - generic [ref=e223]:
+                  - button "101 Studio Suite - King Occupied Departure" [ref=e224] [cursor=pointer]:
+                    - generic [ref=e227]: "101"
+                    - generic [ref=e228]: Studio Suite - King
+                    - generic [ref=e229]:
+                      - generic [ref=e230]: Occupied
+                      - generic [ref=e231]:
+                        - img [ref=e232]
+                        - text: Departure
+                  - button "102 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e235] [cursor=pointer]:
+                    - generic [ref=e238]: "102"
+                    - generic [ref=e239]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e241]: Occupied
+                  - button "103 One Bedroom Suite 1BR King Occupied" [ref=e242] [cursor=pointer]:
+                    - generic [ref=e245]: "103"
+                    - generic [ref=e246]: One Bedroom Suite 1BR King
+                    - generic [ref=e248]: Occupied
+                  - button "104 One Bedroom Suite 1BR King Occupied Departure" [ref=e249] [cursor=pointer]:
+                    - generic [ref=e252]: "104"
+                    - generic [ref=e253]: One Bedroom Suite 1BR King
+                    - generic [ref=e254]:
+                      - generic [ref=e255]: Occupied
+                      - generic [ref=e256]:
+                        - img [ref=e257]
+                        - text: Departure
+                  - button "105 Two Bedroom Suite 2BR Two Queens OOO/OOS" [ref=e260] [cursor=pointer]:
+                    - generic [ref=e263]: "105"
+                    - generic [ref=e264]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e266]: OOO/OOS
+                  - button "106 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e267] [cursor=pointer]:
+                    - generic [ref=e270]: "106"
+                    - generic [ref=e271]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e272]:
+                      - generic [ref=e273]: Pickup
+                      - generic [ref=e274]: Full
+                  - button "107 One Bedroom Suite 1BR Queen Hearing Accessible Occupied" [ref=e275] [cursor=pointer]:
+                    - generic [ref=e278]: "107"
+                    - generic [ref=e279]: One Bedroom Suite 1BR Queen Hearing Accessible
+                    - generic [ref=e281]: Occupied
+                  - button "108 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Full" [ref=e282] [cursor=pointer]:
+                    - generic [ref=e285]: "108"
+                    - generic [ref=e286]: One Bedroom Suite 1BR Queen Hearing Accessible
+                    - generic [ref=e287]:
+                      - generic [ref=e288]: Pickup
+                      - generic [ref=e289]: Full
+                  - button "109 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e290] [cursor=pointer]:
+                    - generic [ref=e293]: "109"
+                    - generic [ref=e294]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e295]:
+                      - generic [ref=e296]: Pickup
+                      - generic [ref=e297]: Full
+                  - button "110 One Bedroom Suite 1BR King Occupied" [ref=e298] [cursor=pointer]:
+                    - generic [ref=e301]: "110"
+                    - generic [ref=e302]: One Bedroom Suite 1BR King
+                    - generic [ref=e304]: Occupied
+                  - button "111 One Bedroom Suite 1BR King Occupied" [ref=e305] [cursor=pointer]:
+                    - generic [ref=e308]: "111"
+                    - generic [ref=e309]: One Bedroom Suite 1BR King
+                    - generic [ref=e311]: Occupied
+                  - button "112 One Bedroom Suite 1BR King Occupied" [ref=e312] [cursor=pointer]:
+                    - generic [ref=e315]: "112"
+                    - generic [ref=e316]: One Bedroom Suite 1BR King
+                    - generic [ref=e318]: Occupied
+                  - button "113 One Bedroom Suite 1BR King Pickup Light" [ref=e319] [cursor=pointer]:
+                    - generic [ref=e322]: "113"
+                    - generic [ref=e323]: One Bedroom Suite 1BR King
+                    - generic [ref=e324]:
+                      - generic [ref=e325]: Pickup
+                      - generic [ref=e326]: Light
+                  - button "114 One Bedroom Suite 1BR King Occupied" [ref=e327] [cursor=pointer]:
+                    - generic [ref=e330]: "114"
+                    - generic [ref=e331]: One Bedroom Suite 1BR King
+                    - generic [ref=e333]: Occupied
+                  - button "115 Studio Suite - King Occupied" [ref=e334] [cursor=pointer]:
+                    - generic [ref=e337]: "115"
+                    - generic [ref=e338]: Studio Suite - King
+                    - generic [ref=e340]: Occupied
+                  - button "116 Studio Suite - King Occupied Due 12:00 PM" [ref=e341] [cursor=pointer]:
+                    - generic [ref=e344]: "116"
+                    - generic [ref=e345]: Studio Suite - King
+                    - generic [ref=e347]: Occupied
+                    - generic [ref=e348]:
+                      - img [ref=e349]
+                      - generic [ref=e352]: Due 12:00 PM
+                  - button "117 Studio Suite - King Vacant Dirty Departure" [ref=e353] [cursor=pointer]:
+                    - generic [ref=e356]: "117"
+                    - generic [ref=e357]: Studio Suite - King
+                    - generic [ref=e358]:
+                      - generic [ref=e359]: Vacant Dirty
+                      - generic [ref=e360]:
+                        - img [ref=e361]
+                        - text: Departure
+                  - button "118 Studio Suite Queen - STD Hearing Accessible Occupied Due 1:00 PM" [ref=e364] [cursor=pointer]:
+                    - generic [ref=e367]: "118"
+                    - generic [ref=e368]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e370]: Occupied
+                    - generic [ref=e371]:
+                      - img [ref=e372]
+                      - generic [ref=e375]: Due 1:00 PM
+                  - button "119 One Bedroom Suite 1BR King Occupied" [ref=e376] [cursor=pointer]:
+                    - generic [ref=e379]: "119"
+                    - generic [ref=e380]: One Bedroom Suite 1BR King
+                    - generic [ref=e382]: Occupied
+                  - button "120 One Bedroom Suite 1BR King Pickup Light" [ref=e383] [cursor=pointer]:
+                    - generic [ref=e386]: "120"
+                    - generic [ref=e387]: One Bedroom Suite 1BR King
+                    - generic [ref=e388]:
+                      - generic [ref=e389]: Pickup
+                      - generic [ref=e390]: Light
+                  - button "121 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e391] [cursor=pointer]:
+                    - generic [ref=e394]: "121"
+                    - generic [ref=e395]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e396]:
+                      - generic [ref=e397]: Pickup
+                      - generic [ref=e398]: Full
+                  - button "122 Two Bedroom Suite 2BR Two Queens Occupied" [ref=e399] [cursor=pointer]:
+                    - generic [ref=e402]: "122"
+                    - generic [ref=e403]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e405]: Occupied
+                  - button "123 Studio Suite - King Occupied" [ref=e406] [cursor=pointer]:
+                    - generic [ref=e409]: "123"
+                    - generic [ref=e410]: Studio Suite - King
+                    - generic [ref=e412]: Occupied
+                  - button "124 Studio Suite - King Occupied" [ref=e413] [cursor=pointer]:
+                    - generic [ref=e416]: "124"
+                    - generic [ref=e417]: Studio Suite - King
+                    - generic [ref=e419]: Occupied
+                  - button "125 Two Bedroom Suite 2BR Two Queens Occupied" [ref=e420] [cursor=pointer]:
+                    - generic [ref=e423]: "125"
+                    - generic [ref=e424]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e426]: Occupied
+                  - button "127 Two Bedroom Suite 2BR Two Queens Occupied Departure" [ref=e427] [cursor=pointer]:
+                    - generic [ref=e430]: "127"
+                    - generic [ref=e431]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e432]:
+                      - generic [ref=e433]: Occupied
+                      - generic [ref=e434]:
+                        - img [ref=e435]
+                        - text: Departure
+                  - button "128 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Light" [ref=e438] [cursor=pointer]:
+                    - generic [ref=e441]: "128"
+                    - generic [ref=e442]: One Bedroom Suite 1BR Queen Hearing Accessible
+                    - generic [ref=e443]:
+                      - generic [ref=e444]: Pickup
+                      - generic [ref=e445]: Light
+                  - button "129 One Bedroom Suite 1BR King Pickup Light" [ref=e446] [cursor=pointer]:
+                    - generic [ref=e449]: "129"
+                    - generic [ref=e450]: One Bedroom Suite 1BR King
+                    - generic [ref=e451]:
+                      - generic [ref=e452]: Pickup
+                      - generic [ref=e453]: Light
+                  - button "130 One Bedroom Suite 1BR King Occupied" [ref=e454] [cursor=pointer]:
+                    - generic [ref=e457]: "130"
+                    - generic [ref=e458]: One Bedroom Suite 1BR King
+                    - generic [ref=e460]: Occupied
+                  - button "131 One Bedroom Suite 1BR King Occupied" [ref=e461] [cursor=pointer]:
+                    - generic [ref=e464]: "131"
+                    - generic [ref=e465]: One Bedroom Suite 1BR King
+                    - generic [ref=e467]: Occupied
+                  - button "132 One Bedroom Suite 1BR King Pickup Light" [ref=e468] [cursor=pointer]:
+                    - generic [ref=e471]: "132"
+                    - generic [ref=e472]: One Bedroom Suite 1BR King
+                    - generic [ref=e473]:
+                      - generic [ref=e474]: Pickup
+                      - generic [ref=e475]: Light
+                  - button "133 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Light" [ref=e476] [cursor=pointer]:
+                    - generic [ref=e479]: "133"
+                    - generic [ref=e480]: One Bedroom Suite 1BR Queen Hearing Accessible
+                    - generic [ref=e481]:
+                      - generic [ref=e482]: Pickup
+                      - generic [ref=e483]: Light
+                  - button "134 One Bedroom Suite 1BR King Occupied" [ref=e484] [cursor=pointer]:
+                    - generic [ref=e487]: "134"
+                    - generic [ref=e488]: One Bedroom Suite 1BR King
+                    - generic [ref=e490]: Occupied
+                  - button "135 One Bedroom Suite 1BR King Pickup Light" [ref=e491] [cursor=pointer]:
+                    - generic [ref=e494]: "135"
+                    - generic [ref=e495]: One Bedroom Suite 1BR King
+                    - generic [ref=e496]:
+                      - generic [ref=e497]: Pickup
+                      - generic [ref=e498]: Light
+                  - button "136 One Bedroom Suite 1BR King Occupied" [ref=e499] [cursor=pointer]:
+                    - generic [ref=e502]: "136"
+                    - generic [ref=e503]: One Bedroom Suite 1BR King
+                    - generic [ref=e505]: Occupied
+                  - button "137 One Bedroom Suite 1BR King Inspected" [ref=e506] [cursor=pointer]:
+                    - generic [ref=e509]: "137"
+                    - generic [ref=e510]: One Bedroom Suite 1BR King
+                    - generic [ref=e512]: Inspected
+                  - button "138 Studio Suite - King Occupied Departure" [ref=e513] [cursor=pointer]:
+                    - generic [ref=e516]: "138"
+                    - generic [ref=e517]: Studio Suite - King
+                    - generic [ref=e518]:
+                      - generic [ref=e519]: Occupied
+                      - generic [ref=e520]:
+                        - img [ref=e521]
+                        - text: Departure
+                  - button "139 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e524] [cursor=pointer]:
+                    - generic [ref=e527]: "139"
+                    - generic [ref=e528]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e530]: Occupied
+              - generic [ref=e531]:
+                - generic [ref=e532]:
+                  - heading "Floor 2" [level=3] [ref=e533]
+                  - generic [ref=e534]: 38 rooms
+                - generic [ref=e535]:
+                  - button "201 Studio Suite - King Occupied Departure" [ref=e536] [cursor=pointer]:
+                    - generic [ref=e539]: "201"
+                    - generic [ref=e540]: Studio Suite - King
+                    - generic [ref=e541]:
+                      - generic [ref=e542]: Occupied
+                      - generic [ref=e543]:
+                        - img [ref=e544]
+                        - text: Departure
+                  - button "202 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e547] [cursor=pointer]:
+                    - generic [ref=e550]: "202"
+                    - generic [ref=e551]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e553]: Occupied
+                  - button "203 One Bedroom Suite 1BR King Occupied" [ref=e554] [cursor=pointer]:
+                    - generic [ref=e557]: "203"
+                    - generic [ref=e558]: One Bedroom Suite 1BR King
+                    - generic [ref=e560]: Occupied
+                  - button "204 One Bedroom Suite 1BR King Pickup Light" [ref=e561] [cursor=pointer]:
+                    - generic [ref=e564]: "204"
+                    - generic [ref=e565]: One Bedroom Suite 1BR King
+                    - generic [ref=e566]:
+                      - generic [ref=e567]: Pickup
+                      - generic [ref=e568]: Light
+                  - button "205 Two Bedroom Suite 2BR Two Queens Occupied" [ref=e569] [cursor=pointer]:
+                    - generic [ref=e572]: "205"
+                    - generic [ref=e573]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e575]: Occupied
+                  - button "206 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e576] [cursor=pointer]:
+                    - generic [ref=e579]: "206"
+                    - generic [ref=e580]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e582]: Inspected
+                  - button "207 One Bedroom Suite 1BR King Occupied" [ref=e583] [cursor=pointer]:
+                    - generic [ref=e586]: "207"
+                    - generic [ref=e587]: One Bedroom Suite 1BR King
+                    - generic [ref=e589]: Occupied
+                  - button "208 One Bedroom Suite 1BR King Occupied" [ref=e590] [cursor=pointer]:
+                    - generic [ref=e593]: "208"
+                    - generic [ref=e594]: One Bedroom Suite 1BR King
+                    - generic [ref=e596]: Occupied
+                  - button "209 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e597] [cursor=pointer]:
+                    - generic [ref=e600]: "209"
+                    - generic [ref=e601]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e602]:
+                      - generic [ref=e603]: Pickup
+                      - generic [ref=e604]: Full
+                  - button "210 One Bedroom Suite 1BR King Pickup Full" [ref=e605] [cursor=pointer]:
+                    - generic [ref=e608]: "210"
+                    - generic [ref=e609]: One Bedroom Suite 1BR King
+                    - generic [ref=e610]:
+                      - generic [ref=e611]: Pickup
+                      - generic [ref=e612]: Full
+                  - button "211 One Bedroom Suite 1BR King Occupied" [ref=e613] [cursor=pointer]:
+                    - generic [ref=e616]: "211"
+                    - generic [ref=e617]: One Bedroom Suite 1BR King
+                    - generic [ref=e619]: Occupied
+                  - button "212 One Bedroom Suite 1BR King Pickup Light" [ref=e620] [cursor=pointer]:
+                    - generic [ref=e623]: "212"
+                    - generic [ref=e624]: One Bedroom Suite 1BR King
+                    - generic [ref=e625]:
+                      - generic [ref=e626]: Pickup
+                      - generic [ref=e627]: Light
+                  - button "213 One Bedroom Suite 1BR King Occupied" [ref=e628] [cursor=pointer]:
+                    - generic [ref=e631]: "213"
+                    - generic [ref=e632]: One Bedroom Suite 1BR King
+                    - generic [ref=e634]: Occupied
+                  - button "214 One Bedroom Suite 1BR King Occupied" [ref=e635] [cursor=pointer]:
+                    - generic [ref=e638]: "214"
+                    - generic [ref=e639]: One Bedroom Suite 1BR King
+                    - generic [ref=e641]: Occupied
+                  - button "215 Studio Suite - King Pickup Full" [ref=e642] [cursor=pointer]:
+                    - generic [ref=e645]: "215"
+                    - generic [ref=e646]: Studio Suite - King
+                    - generic [ref=e647]:
+                      - generic [ref=e648]: Pickup
+                      - generic [ref=e649]: Full
+                  - button "216 Studio Suite - King Pickup Full" [ref=e650] [cursor=pointer]:
+                    - generic [ref=e653]: "216"
+                    - generic [ref=e654]: Studio Suite - King
+                    - generic [ref=e655]:
+                      - generic [ref=e656]: Pickup
+                      - generic [ref=e657]: Full
+                  - button "217 Studio Suite - King Vacant Dirty Departure" [ref=e658] [cursor=pointer]:
+                    - generic [ref=e661]: "217"
+                    - generic [ref=e662]: Studio Suite - King
+                    - generic [ref=e663]:
+                      - generic [ref=e664]: Vacant Dirty
+                      - generic [ref=e665]:
+                        - img [ref=e666]
+                        - text: Departure
+                  - button "218 Studio Suite - King Occupied" [ref=e669] [cursor=pointer]:
+                    - generic [ref=e672]: "218"
+                    - generic [ref=e673]: Studio Suite - King
+                    - generic [ref=e675]: Occupied
+                  - button "219 One Bedroom Suite 1BR King Pickup Full" [ref=e676] [cursor=pointer]:
+                    - generic [ref=e679]: "219"
+                    - generic [ref=e680]: One Bedroom Suite 1BR King
+                    - generic [ref=e681]:
+                      - generic [ref=e682]: Pickup
+                      - generic [ref=e683]: Full
+                  - button "220 One Bedroom Suite 1BR King Pickup Light" [ref=e684] [cursor=pointer]:
+                    - generic [ref=e687]: "220"
+                    - generic [ref=e688]: One Bedroom Suite 1BR King
+                    - generic [ref=e689]:
+                      - generic [ref=e690]: Pickup
+                      - generic [ref=e691]: Light
+                  - button "221 Two Bedroom Suite 2BR Two Queens Pickup Full" [ref=e692] [cursor=pointer]:
+                    - generic [ref=e695]: "221"
+                    - generic [ref=e696]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e697]:
+                      - generic [ref=e698]: Pickup
+                      - generic [ref=e699]: Full
+                  - button "222 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e700] [cursor=pointer]:
+                    - generic [ref=e703]: "222"
+                    - generic [ref=e704]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e706]: Inspected
+                  - button "223 Studio Suite - King Occupied" [ref=e707] [cursor=pointer]:
+                    - generic [ref=e710]: "223"
+                    - generic [ref=e711]: Studio Suite - King
+                    - generic [ref=e713]: Occupied
+                  - button "224 Studio Suite Queen - STD Hearing Accessible Occupied Departure" [ref=e714] [cursor=pointer]:
+                    - generic [ref=e717]: "224"
+                    - generic [ref=e718]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e719]:
+                      - generic [ref=e720]: Occupied
+                      - generic [ref=e721]:
+                        - img [ref=e722]
+                        - text: Departure
+                  - button "225 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e725] [cursor=pointer]:
+                    - generic [ref=e728]: "225"
+                    - generic [ref=e729]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e731]: Inspected
+                  - button "227 Two Bedroom Suite - 2BR Two Queens - Hearing Accessible Occupied" [ref=e732] [cursor=pointer]:
+                    - generic [ref=e735]: "227"
+                    - generic [ref=e736]: Two Bedroom Suite - 2BR Two Queens - Hearing Accessible
+                    - generic [ref=e738]: Occupied
+                  - button "228 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e739] [cursor=pointer]:
+                    - generic [ref=e742]: "228"
+                    - generic [ref=e743]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e745]: Occupied
+                  - button "229 One Bedroom Suite 1BR King Occupied" [ref=e746] [cursor=pointer]:
+                    - generic [ref=e749]: "229"
+                    - generic [ref=e750]: One Bedroom Suite 1BR King
+                    - generic [ref=e752]: Occupied
+                  - button "230 One Bedroom Suite 1BR King Pickup Light" [ref=e753] [cursor=pointer]:
+                    - generic [ref=e756]: "230"
+                    - generic [ref=e757]: One Bedroom Suite 1BR King
+                    - generic [ref=e758]:
+                      - generic [ref=e759]: Pickup
+                      - generic [ref=e760]: Light
+                  - button "231 One Bedroom Suite 1BR King Pickup Full" [ref=e761] [cursor=pointer]:
+                    - generic [ref=e764]: "231"
+                    - generic [ref=e765]: One Bedroom Suite 1BR King
+                    - generic [ref=e766]:
+                      - generic [ref=e767]: Pickup
+                      - generic [ref=e768]: Full
+                  - button "232 One Bedroom Suite 1BR King Occupied" [ref=e769] [cursor=pointer]:
+                    - generic [ref=e772]: "232"
+                    - generic [ref=e773]: One Bedroom Suite 1BR King
+                    - generic [ref=e775]: Occupied
+                  - button "233 One Bedroom Suite 1BR King Pickup Full" [ref=e776] [cursor=pointer]:
+                    - generic [ref=e779]: "233"
+                    - generic [ref=e780]: One Bedroom Suite 1BR King
+                    - generic [ref=e781]:
+                      - generic [ref=e782]: Pickup
+                      - generic [ref=e783]: Full
+                  - button "234 One Bedroom Suite 1BR King Pickup Light" [ref=e784] [cursor=pointer]:
+                    - generic [ref=e787]: "234"
+                    - generic [ref=e788]: One Bedroom Suite 1BR King
+                    - generic [ref=e789]:
+                      - generic [ref=e790]: Pickup
+                      - generic [ref=e791]: Light
+                  - button "235 One Bedroom Suite 1BR King Occupied" [ref=e792] [cursor=pointer]:
+                    - generic [ref=e795]: "235"
+                    - generic [ref=e796]: One Bedroom Suite 1BR King
+                    - generic [ref=e798]: Occupied
+                  - button "236 One Bedroom Suite 1BR King Pickup Light" [ref=e799] [cursor=pointer]:
+                    - generic [ref=e802]: "236"
+                    - generic [ref=e803]: One Bedroom Suite 1BR King
+                    - generic [ref=e804]:
+                      - generic [ref=e805]: Pickup
+                      - generic [ref=e806]: Light
+                  - button "237 One Bedroom Suite 1BR King Occupied" [ref=e807] [cursor=pointer]:
+                    - generic [ref=e810]: "237"
+                    - generic [ref=e811]: One Bedroom Suite 1BR King
+                    - generic [ref=e813]: Occupied
+                  - button "238 Studio Suite - King Occupied Departure" [ref=e814] [cursor=pointer]:
+                    - generic [ref=e817]: "238"
+                    - generic [ref=e818]: Studio Suite - King
+                    - generic [ref=e819]:
+                      - generic [ref=e820]: Occupied
+                      - generic [ref=e821]:
+                        - img [ref=e822]
+                        - text: Departure
+                  - button "239 Studio Suite - King Occupied" [ref=e825] [cursor=pointer]:
+                    - generic [ref=e828]: "239"
+                    - generic [ref=e829]: Studio Suite - King
+                    - generic [ref=e831]: Occupied
+              - generic [ref=e832]:
+                - generic [ref=e833]:
+                  - heading "Floor 3" [level=3] [ref=e834]
+                  - generic [ref=e835]: 38 rooms
+                - generic [ref=e836]:
+                  - button "301 Studio Suite - King Occupied" [ref=e837] [cursor=pointer]:
+                    - generic [ref=e840]: "301"
+                    - generic [ref=e841]: Studio Suite - King
+                    - generic [ref=e843]: Occupied
+                  - button "302 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e844] [cursor=pointer]:
+                    - generic [ref=e847]: "302"
+                    - generic [ref=e848]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e850]: Occupied
+                  - button "303 One Bedroom Suite 1BR King Occupied" [ref=e851] [cursor=pointer]:
+                    - generic [ref=e854]: "303"
+                    - generic [ref=e855]: One Bedroom Suite 1BR King
+                    - generic [ref=e857]: Occupied
+                  - button "304 One Bedroom Suite 1BR King Occupied" [ref=e858] [cursor=pointer]:
+                    - generic [ref=e861]: "304"
+                    - generic [ref=e862]: One Bedroom Suite 1BR King
+                    - generic [ref=e864]: Occupied
+                  - button "305 Two Bedroom Suite 2BR Two Queens Occupied Departure" [ref=e865] [cursor=pointer]:
+                    - generic [ref=e868]: "305"
+                    - generic [ref=e869]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e870]:
+                      - generic [ref=e871]: Occupied
+                      - generic [ref=e872]:
+                        - img [ref=e873]
+                        - text: Departure
+                  - button "306 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e876] [cursor=pointer]:
+                    - generic [ref=e879]: "306"
+                    - generic [ref=e880]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e882]: Inspected
+                  - button "307 One Bedroom Suite 1BR King Occupied" [ref=e883] [cursor=pointer]:
+                    - generic [ref=e886]: "307"
+                    - generic [ref=e887]: One Bedroom Suite 1BR King
+                    - generic [ref=e889]: Occupied
+                  - button "308 One Bedroom Suite 1BR King Occupied" [ref=e890] [cursor=pointer]:
+                    - generic [ref=e893]: "308"
+                    - generic [ref=e894]: One Bedroom Suite 1BR King
+                    - generic [ref=e896]: Occupied
+                  - button "309 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e897] [cursor=pointer]:
+                    - generic [ref=e900]: "309"
+                    - generic [ref=e901]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e903]: Inspected
+                  - button "310 One Bedroom Suite 1BR King Occupied" [ref=e904] [cursor=pointer]:
+                    - generic [ref=e907]: "310"
+                    - generic [ref=e908]: One Bedroom Suite 1BR King
+                    - generic [ref=e910]: Occupied
+                  - button "311 One Bedroom Suite 1BR King Occupied" [ref=e911] [cursor=pointer]:
+                    - generic [ref=e914]: "311"
+                    - generic [ref=e915]: One Bedroom Suite 1BR King
+                    - generic [ref=e917]: Occupied
+                  - button "312 One Bedroom Suite 1BR King Occupied" [ref=e918] [cursor=pointer]:
+                    - generic [ref=e921]: "312"
+                    - generic [ref=e922]: One Bedroom Suite 1BR King
+                    - generic [ref=e924]: Occupied
+                  - button "313 One Bedroom Suite 1BR King Pickup Light" [ref=e925] [cursor=pointer]:
+                    - generic [ref=e928]: "313"
+                    - generic [ref=e929]: One Bedroom Suite 1BR King
+                    - generic [ref=e930]:
+                      - generic [ref=e931]: Pickup
+                      - generic [ref=e932]: Light
+                  - button "314 One Bedroom Suite 1BR King Pickup Light" [ref=e933] [cursor=pointer]:
+                    - generic [ref=e936]: "314"
+                    - generic [ref=e937]: One Bedroom Suite 1BR King
+                    - generic [ref=e938]:
+                      - generic [ref=e939]: Pickup
+                      - generic [ref=e940]: Light
+                  - button "315 Studio Suite - King Pickup Full" [ref=e941] [cursor=pointer]:
+                    - generic [ref=e944]: "315"
+                    - generic [ref=e945]: Studio Suite - King
+                    - generic [ref=e946]:
+                      - generic [ref=e947]: Pickup
+                      - generic [ref=e948]: Full
+                  - button "316 Studio Suite - King Pickup Full" [ref=e949] [cursor=pointer]:
+                    - generic [ref=e952]: "316"
+                    - generic [ref=e953]: Studio Suite - King
+                    - generic [ref=e954]:
+                      - generic [ref=e955]: Pickup
+                      - generic [ref=e956]: Full
+                  - button "317 Studio Suite - King Occupied" [ref=e957] [cursor=pointer]:
+                    - generic [ref=e960]: "317"
+                    - generic [ref=e961]: Studio Suite - King
+                    - generic [ref=e963]: Occupied
+                  - button "318 Studio Suite - King Pickup Full" [ref=e964] [cursor=pointer]:
+                    - generic [ref=e967]: "318"
+                    - generic [ref=e968]: Studio Suite - King
+                    - generic [ref=e969]:
+                      - generic [ref=e970]: Pickup
+                      - generic [ref=e971]: Full
+                  - button "319 One Bedroom Suite 1BR King Occupied" [ref=e972] [cursor=pointer]:
+                    - generic [ref=e975]: "319"
+                    - generic [ref=e976]: One Bedroom Suite 1BR King
+                    - generic [ref=e978]: Occupied
+                  - button "320 One Bedroom Suite 1BR King Occupied" [ref=e979] [cursor=pointer]:
+                    - generic [ref=e982]: "320"
+                    - generic [ref=e983]: One Bedroom Suite 1BR King
+                    - generic [ref=e985]: Occupied
+                  - button "321 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e986] [cursor=pointer]:
+                    - generic [ref=e989]: "321"
+                    - generic [ref=e990]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e992]: Inspected
+                  - button "322 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e993] [cursor=pointer]:
+                    - generic [ref=e996]: "322"
+                    - generic [ref=e997]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e999]: Inspected
+                  - button "323 Studio Suite - King Occupied Departure" [ref=e1000] [cursor=pointer]:
+                    - generic [ref=e1003]: "323"
+                    - generic [ref=e1004]: Studio Suite - King
+                    - generic [ref=e1005]:
+                      - generic [ref=e1006]: Occupied
+                      - generic [ref=e1007]:
+                        - img [ref=e1008]
+                        - text: Departure
+                  - button "324 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e1011] [cursor=pointer]:
+                    - generic [ref=e1014]: "324"
+                    - generic [ref=e1015]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e1017]: Occupied
+                  - button "325 Two Bedroom Suite 2BR Two Queens Inspected" [ref=e1018] [cursor=pointer]:
+                    - generic [ref=e1021]: "325"
+                    - generic [ref=e1022]: Two Bedroom Suite 2BR Two Queens
+                    - generic [ref=e1024]: Inspected
+                  - button "327 Two Bedroom Suite - 2BR Two Queens - Hearing Accessible Occupied" [ref=e1025] [cursor=pointer]:
+                    - generic [ref=e1028]: "327"
+                    - generic [ref=e1029]: Two Bedroom Suite - 2BR Two Queens - Hearing Accessible
+                    - generic [ref=e1031]: Occupied
+                  - button "328 Studio Suite Queen - STD Hearing Accessible Occupied" [ref=e1032] [cursor=pointer]:
+                    - generic [ref=e1035]: "328"
+                    - generic [ref=e1036]: Studio Suite Queen - STD Hearing Accessible
+                    - generic [ref=e1038]: Occupied
+                  - button "329 One Bedroom Suite 1BR King Occupied" [ref=e1039] [cursor=pointer]:
+                    - generic [ref=e1042]: "329"
+                    - generic [ref=e1043]: One Bedroom Suite 1BR King
+                    - generic [ref=e1045]: Occupied
+                  - button "330 One Bedroom Suite 1BR King Pickup Light" [ref=e1046] [cursor=pointer]:
+                    - generic [ref=e1049]: "330"
+                    - generic [ref=e1050]: One Bedroom Suite 1BR King
+                    - generic [ref=e1051]:
+                      - generic [ref=e1052]: Pickup
+                      - generic [ref=e1053]: Light
+                  - button "331 One Bedroom Suite 1BR King Occupied" [ref=e1054] [cursor=pointer]:
+                    - generic [ref=e1057]: "331"
+                    - generic [ref=e1058]: One Bedroom Suite 1BR King
+                    - generic [ref=e1060]: Occupied
+                  - button "332 One Bedroom Suite 1BR King Occupied" [ref=e1061] [cursor=pointer]:
+                    - generic [ref=e1064]: "332"
+                    - generic [ref=e1065]: One Bedroom Suite 1BR King
+                    - generic [ref=e1067]: Occupied
+                  - button "333 One Bedroom Suite 1BR King Occupied" [ref=e1068] [cursor=pointer]:
+                    - generic [ref=e1071]: "333"
+                    - generic [ref=e1072]: One Bedroom Suite 1BR King
+                    - generic [ref=e1074]: Occupied
+                  - button "334 One Bedroom Suite 1BR King Pickup Light" [ref=e1075] [cursor=pointer]:
+                    - generic [ref=e1078]: "334"
+                    - generic [ref=e1079]: One Bedroom Suite 1BR King
+                    - generic [ref=e1080]:
+                      - generic [ref=e1081]: Pickup
+                      - generic [ref=e1082]: Light
+                  - button "335 One Bedroom Suite 1BR King Occupied" [ref=e1083] [cursor=pointer]:
+                    - generic [ref=e1086]: "335"
+                    - generic [ref=e1087]: One Bedroom Suite 1BR King
+                    - generic [ref=e1089]: Occupied
+                  - button "336 One Bedroom Suite 1BR King Occupied" [ref=e1090] [cursor=pointer]:
+                    - generic [ref=e1093]: "336"
+                    - generic [ref=e1094]: One Bedroom Suite 1BR King
+                    - generic [ref=e1096]: Occupied
+                  - button "337 One Bedroom Suite 1BR King Inspected" [ref=e1097] [cursor=pointer]:
+                    - generic [ref=e1100]: "337"
+                    - generic [ref=e1101]: One Bedroom Suite 1BR King
+                    - generic [ref=e1103]: Inspected
+                  - button "338 Studio Suite - King Occupied" [ref=e1104] [cursor=pointer]:
+                    - generic [ref=e1107]: "338"
+                    - generic [ref=e1108]: Studio Suite - King
+                    - generic [ref=e1110]: Occupied
+                  - button "339 Studio Suite - King Pickup Full" [ref=e1111] [cursor=pointer]:
+                    - generic [ref=e1114]: "339"
+                    - generic [ref=e1115]: Studio Suite - King
+                    - generic [ref=e1116]:
+                      - generic [ref=e1117]: Pickup
+                      - generic [ref=e1118]: Full
+    - button "Open AI Copilot" [ref=e143] [cursor=pointer]:
+      - img [ref=e144]
+      - generic [ref=e146]: Ask copilot
+      - generic [ref=e147]: ⌘J
+    - button "Open feedback" [ref=e149] [cursor=pointer]:
+      - img [ref=e150]
+      - generic [ref=e152]: Feedback
+    - button "Display preferences" [ref=e154] [cursor=pointer]:
+      - img [ref=e155]
+  - button "Open Next.js Dev Tools" [ref=e1124] [cursor=pointer]:
+    - img [ref=e1125]
+  - alert [ref=e1128]

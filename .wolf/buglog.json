@@ -4450,6 +4450,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-30T23:04:03.377Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-05-31T13:10:58.489Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/services/opera_pdf.py",
+      "root_cause": "Had \"CLEAN\"",
+      "fix": "Changed to \"OOO\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T13:10:58.489Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-05-31T13:25:48.845Z",
+      "error_message": "Wrong reference: assignment should be room",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Used \"assignment\" instead of \"room\"",
+      "fix": "Changed assignment → room",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T13:25:48.845Z"
     }
   ]
 }

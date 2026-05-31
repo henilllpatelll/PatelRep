@@ -2,6 +2,8 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
+| 2026-05-31 | HK Details import: cleared actual_checkout_at always + checkout_time for non-departure rooms so stale times don't persist after morning import | apps/api/routers/housekeeping.py | complete | ~2k tok |
 | 2026-05-30 | Inspections tab rework: Live/History subtabs, full inspection modal with checklist, re-assign drawer after fail, housekeeper_id+clean_type in ready-for-inspection API | housekeeping.py, housekeeping.ts, InspectionModal.tsx, inspections/page.tsx | complete | ~8k tok |
 | 00:00 | Security hardening — IDOR/XSS/CSRF/SQLi audit: 7 fixes across tasks.py, work_orders.py, guest_requests.py, notifications.py, staff.py, logbook.py, next.config.mjs | bugs 197-200 | complete | ~4k tok |
 | 00:00 | Opera PDF import — 044_fo_status.sql, services/opera_pdf.py, two new housekeeping endpoints, TS client funcs, OccupancyImportModal, assignments page Import button | 6 files | complete | ~6k tok |
@@ -2887,3 +2889,41 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-05-30 18:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:31 | Created apps/web/components/engineering/EngineeringRoomBoard.tsx | — | ~1838 |
+| 18:31 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added 1 import(s) | ~217 |
+| 18:31 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 4→5 lines | ~98 |
+| 18:32 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | CSS: active, hover, hover | ~1284 |
+| 18:32 | Session end: 4 writes across 2 files (EngineeringRoomBoard.tsx, page.tsx) | 7 reads | ~17208 tok |
+
+## Session: 2026-05-31 07:41
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:42 | Edited apps/api/routers/housekeeping.py | 11→16 lines | ~154 |
+| 07:43 | Session end: 1 writes across 1 files (housekeeping.py) | 4 reads | ~31247 tok |
+
+## Session: 2026-05-31 07:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:03 | Edited apps/api/services/opera_pdf.py | 8→8 lines | ~64 |
+| 08:03 | Edited apps/api/routers/housekeeping.py | 9→10 lines | ~100 |
+| 08:07 | Edited apps/api/routers/housekeeping.py | expanded (+15 lines) | ~276 |
+| 08:09 | Session end: 3 writes across 2 files (opera_pdf.py, housekeeping.py) | 16 reads | ~15473 tok |
+| 08:10 | Edited apps/api/services/opera_pdf.py | inline fix | ~8 |
+| 08:12 | Session end: 4 writes across 2 files (opera_pdf.py, housekeeping.py) | 18 reads | ~15481 tok |
+
+## Session: 2026-05-31 08:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:18 | Edited apps/api/routers/housekeeping.py | expanded (+11 lines) | ~207 |
+| 08:25 | Edited apps/api/routers/housekeeping.py | inline fix | ~13 |
+| 08:25 | Edited apps/api/routers/housekeeping.py | removed 12 lines | ~11 |
+
+| 08:30 | Fixed Departure badge on rooms not in task sheet (123/124/125/214) by using room_status.clean_type as authoritative source on board instead of room_assignments.clean_type | apps/api/routers/housekeeping.py | fixed | ~200 || 08:31 | Session end: 3 writes across 1 files (housekeeping.py) | 17 reads | ~15582 tok |

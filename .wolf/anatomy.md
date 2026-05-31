@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-30T23:17:26.582Z
-> Files: 13 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T13:25:55.050Z
+> Files: 16 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -436,11 +436,12 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — API: 2 endpoints (~14968 tok)
+- `housekeeping.py` — API: 2 endpoints (~15212 tok)
 - `rooms.py` — API: 3 endpoints (~8070 tok)
 
 ## apps/api/services/
 
+- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2385 tok)
 
 ## apps/api/services/ai/
 
@@ -551,6 +552,7 @@
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
+- `page.tsx` — dynamic (~5105 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
@@ -635,6 +637,7 @@
 
 ## apps/web/components/engineering/
 
+- `EngineeringRoomBoard.tsx` — filterRooms (~1838 tok)
 
 ## apps/web/components/housekeeping/
 

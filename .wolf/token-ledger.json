@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 7934055,
-    "total_reads": 4169,
-    "total_writes": 3179,
-    "total_sessions": 170,
-    "anatomy_hits": 1470,
-    "anatomy_misses": 2639,
-    "repeated_reads_blocked": 1492,
-    "estimated_savings_vs_bare_cli": 6577435
+    "total_tokens_estimated": 8029046,
+    "total_reads": 4231,
+    "total_writes": 3194,
+    "total_sessions": 174,
+    "anatomy_hits": 1480,
+    "anatomy_misses": 2689,
+    "repeated_reads_blocked": 1508,
+    "estimated_savings_vs_bare_cli": 6780242
   },
   "sessions": [
     {
@@ -47615,6 +47615,538 @@
         "reads_count": 8,
         "writes_count": 7,
         "repeated_reads_blocked": 1,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-30-1828",
+      "started": "2026-05-30T23:28:08.418Z",
+      "ended": "2026-05-30T23:32:39.513Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 8618,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3535,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 1618,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/housekeepingBoardFilters.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/EngineeringRoomBoard.tsx",
+          "tokens_estimated": 1838,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+          "tokens_estimated": 217,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+          "tokens_estimated": 98,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/engineering/work-orders/page.tsx",
+          "tokens_estimated": 1284,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 13771,
+        "output_tokens_estimated": 3437,
+        "reads_count": 7,
+        "writes_count": 4,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-05-31-0741",
+      "started": "2026-05-31T12:41:08.881Z",
+      "ended": "2026-05-31T12:43:14.325Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3535,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/settings/RoomsImportModal.tsx",
+          "tokens_estimated": 4520,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py",
+          "tokens_estimated": 8070,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 14968,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 154,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 31093,
+        "output_tokens_estimated": 154,
+        "reads_count": 4,
+        "writes_count": 1,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-05-31-0752",
+      "started": "2026-05-31T12:52:22.587Z",
+      "ended": "2026-05-31T13:09:05.215Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/hk_details_196227385.PDF",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/task_sheet_report_196227527.PDF",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-initial.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-scroll1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-scroll2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 15033,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor1-bottom.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-fixed-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-top2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-final.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-floor3.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor3-v2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor3-v3.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 64,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 100,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 276,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15033,
+        "output_tokens_estimated": 440,
+        "reads_count": 16,
+        "writes_count": 3,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-31-0752",
+      "started": "2026-05-31T12:52:22.587Z",
+      "ended": "2026-05-31T13:12:05.034Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/hk_details_196227385.PDF",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/task_sheet_report_196227527.PDF",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-initial.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-scroll1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-scroll2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 15033,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor1-bottom.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-fixed-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-top2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-final.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-v3-floor3.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor3-v2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor3-v3.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-final.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-final2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 64,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 100,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 276,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 8,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15033,
+        "output_tokens_estimated": 448,
+        "reads_count": 18,
+        "writes_count": 4,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-31-0817",
+      "started": "2026-05-31T13:17:54.845Z",
+      "ended": "2026-05-31T13:31:01.442Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 15351,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor1-fix.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-123-fix.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-123-final.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-123-final2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-214-final.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-214-final2.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-214-final3.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor2-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-floor2-header.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-214-pos.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-900.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-home.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-fresh-top.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-loaded.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/board-214-visible.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 207,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 13,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 11,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 15351,
+        "output_tokens_estimated": 231,
+        "reads_count": 17,
+        "writes_count": 3,
+        "repeated_reads_blocked": 6,
         "anatomy_lookups": 1
       }
     }
