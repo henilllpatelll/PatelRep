@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-31 | Golden path e2e tests: wrote hk-assignment, engineering, tasks specs in e2e/golden-paths/. 5/6 pass; HK skips when all rooms assigned (correct). Fixed bugs: clean_type NOT NULL 500, NaN badge, silent save error. | apps/api/routers/housekeeping.py, housekeeping page.tsx, e2e/golden-paths/ | complete | ~5k tok |
 | 2026-05-31 | Fixed: PICKUP room staying PICKUP after checkout — board now uses room_status.clean_type (DEP) over assignment.clean_type (FULL/LIGHT) when actual_checkout_at is set | apps/api/routers/housekeeping.py | complete | ~1k tok |
 | 2026-05-31 | Changed stayover card comment from "stayover_override" to "stayover" — updated constant, rooms.py insert, and test fixtures | housekeeping.py, rooms.py, test_housekeeping_assignments.py | complete | ~300 tok |
 | 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
@@ -3082,3 +3083,53 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:51 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | 7→12 lines | ~143 |
 | 14:52 | Edited apps/api/tests/smoke/test_webhooks_and_transitions.py | modified test_checkout_clears_stayover_note() | ~404 |
 | 14:52 | Session end: 9 writes across 4 files (housekeeping.py, rooms.py, test_housekeeping_assignments.py, test_webhooks_and_transitions.py) | 4 reads | ~45675 tok |
+
+## Session: 2026-05-31 16:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-05-31 16:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:44 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~17 |
+| 16:44 | Edited apps/web/components/housekeeping/RoomCard.tsx | 2→1 lines | ~22 |
+| 16:44 | Edited apps/web/components/housekeeping/RoomCard.tsx | reduced (-8 lines) | ~87 |
+| 16:44 | Session end: 3 writes across 1 files (RoomCard.tsx) | 3 reads | ~12292 tok |
+| 16:47 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified handleMarkStayover() | ~217 |
+| 16:47 | Session end: 4 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 4 reads | ~24428 tok |
+| 16:54 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~21 |
+| 16:55 | Edited apps/web/components/housekeeping/RoomCard.tsx | CSS: latestNote | ~39 |
+| 16:55 | Edited apps/web/components/housekeeping/RoomCard.tsx | expanded (+8 lines) | ~186 |
+| 16:55 | Session end: 7 writes across 2 files (RoomCard.tsx, RoomDetailDrawer.tsx) | 4 reads | ~24674 tok |
+
+## Session: 2026-05-31 17:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:56 | Edited apps/api/routers/housekeeping.py | modified _build_assignment_row() | ~200 |
+| 17:56 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 2→3 lines | ~51 |
+| 17:56 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added optional chaining | ~46 |
+| 17:56 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 5→8 lines | ~94 |
+| 17:56 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 7→7 lines | ~94 |
+| 17:59 | Session end: 5 writes across 2 files (housekeeping.py, page.tsx) | 9 reads | ~29267 tok |
+| 18:09 | Session end: 5 writes across 2 files (housekeeping.py, page.tsx) | 9 reads | ~29267 tok |
+
+## Session: 2026-05-31 18:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:31 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 3→3 lines | ~56 |
+| 18:31 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 2→2 lines | ~38 |
+| 18:31 | Created e2e/golden-paths/hk-assignment.spec.ts | — | ~724 |
+| 18:31 | Created e2e/golden-paths/engineering.spec.ts | — | ~780 |
+| 18:31 | Created e2e/golden-paths/tasks.spec.ts | — | ~728 |
+| 18:33 | Edited e2e/golden-paths/engineering.spec.ts | 3→3 lines | ~48 |
+| 18:34 | Edited e2e/golden-paths/engineering.spec.ts | 9→10 lines | ~88 |
+| 18:36 | Session end: 7 writes across 4 files (page.tsx, hk-assignment.spec.ts, engineering.spec.ts, tasks.spec.ts) | 10 reads | ~19784 tok |
+
+## Session: 2026-05-31 18:46
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

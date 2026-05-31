@@ -4966,6 +4966,91 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-31T19:52:14.367Z"
+    },
+    {
+      "id": "bug-299",
+      "timestamp": "2026-05-31T21:44:51.939Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 16→8 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T21:44:51.939Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-05-31T22:56:25.848Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T22:56:25.848Z"
+    },
+    {
+      "id": "bug-301",
+      "timestamp": "2026-05-31T22:53:00.000Z",
+      "error_message": "POST /housekeeping/assignments => 500 Internal Server Error: Failed to save assignments",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "assignments_data always included clean_type: None, which violates the NOT NULL constraint added by migration 042 (room_assignments.clean_type TEXT NOT NULL DEFAULT 'DEP'). On upsert, passing null explicitly overrides the column default and triggers a constraint violation.",
+      "fix": "Extracted _build_assignment_row() helper that only adds clean_type to the dict when _resolve_clean_type() returns a non-None value. Omitting the key lets the DB DEFAULT kick in on INSERT and preserves the existing value on conflict UPDATE.",
+      "tags": [
+        "api",
+        "upsert",
+        "not-null",
+        "room-assignments",
+        "clean-type",
+        "500"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T22:53:00.000Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-05-31T22:53:00.000Z",
+      "error_message": "Housekeeper badge shows NaN instead of room count in assignment mode",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "HousekeeperBar computed badge value as hk.rooms_assigned + assignedCount. The staff list API does not return rooms_assigned, so hk.rooms_assigned is undefined. undefined + number = NaN.",
+      "fix": "Removed hk.rooms_assigned from the badge; badge now shows only assignedCount (pending rooms tapped for that housekeeper this session). Condition changed from (hk.rooms_assigned > 0 || assignedCount > 0) to (assignedCount > 0).",
+      "tags": [
+        "frontend",
+        "nan",
+        "assignment-mode",
+        "badge",
+        "housekeeping"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T22:53:00.000Z"
+    },
+    {
+      "id": "bug-303",
+      "timestamp": "2026-05-31T23:31:06.781Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Had \"rounded-[var(--r-lg)] bg-surface border border-li",
+      "fix": "Changed to \"hk-bar\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-31T23:31:11.633Z"
     }
   ]
 }

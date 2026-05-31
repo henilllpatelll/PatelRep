@@ -81,6 +81,7 @@ function HousekeeperBar() {
 
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['staff-list'],
@@ -117,8 +118,9 @@ function HousekeeperBar() {
       queryClient.invalidateQueries({ queryKey: ['staff-list'] })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2500)
-    } catch {
-      // noop - sidebar shows error on desktop
+    } catch (err: any) {
+      setSaveError(err?.message || 'Failed to save. Please try again.')
+      setTimeout(() => setSaveError(null), 4000)
     } finally {
       setSaveLoading(false)
     }
@@ -129,7 +131,7 @@ function HousekeeperBar() {
   }
 
   return (
-    <div className="rounded-[var(--r-lg)] bg-surface border border-line shadow-sm p-3 space-y-2.5">
+    <div data-testid="hk-bar" className="rounded-[var(--r-lg)] bg-surface border border-line shadow-sm p-3 space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold text-ink2">
           {activeAssigneeId
@@ -139,6 +141,9 @@ function HousekeeperBar() {
         <div className="flex items-center gap-2">
           {saveSuccess && (
             <span className="text-xs text-[var(--ready)] font-medium">Saved</span>
+          )}
+          {saveError && (
+            <span className="text-xs text-[var(--alert)] font-medium">{saveError}</span>
           )}
           {hasPending && (
             <button
@@ -168,7 +173,7 @@ function HousekeeperBar() {
           <Link href="/staff" prefetch={false} className="text-accent underline">Add staff</Link>
         </p>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
+        <div data-testid="hk-chip-list" className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
           {housekeepers.map((hk) => {
             const isActive = activeAssigneeId === hk.housekeeper_id
             const initials = getInitials(hk.name)
@@ -197,11 +202,11 @@ function HousekeeperBar() {
                   {initials}
                 </span>
                 <span>{hk.name.split(' ')[0]}</span>
-                {(hk.rooms_assigned > 0 || assignedCount > 0) && (
+                {assignedCount > 0 && (
                   <span className={`text-[10px] px-1 py-0.5 rounded-full min-w-[18px] text-center ${
                     isActive ? 'bg-white/20 text-paper' : 'bg-surface-3 text-ink3'
                   }`}>
-                    {hk.rooms_assigned + assignedCount}
+                    {assignedCount}
                   </span>
                 )}
               </button>

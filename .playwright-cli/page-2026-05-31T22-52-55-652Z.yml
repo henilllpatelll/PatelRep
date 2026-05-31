@@ -1,0 +1,952 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e175] [cursor=pointer]:
+        - generic [ref=e176]: S
+        - generic [ref=e177]:
+          - generic [ref=e178]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e179]: 114 rooms
+        - img [ref=e180]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e182]:
+                - link "Room Board" [ref=e183] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e184] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e185] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Tasks" [ref=e55] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e56]
+              - generic [ref=e59]: Tasks
+        - generic [ref=e60]:
+          - paragraph [ref=e62]: Intelligence
+          - generic [ref=e63]:
+            - link "AI Copilot AI" [ref=e66] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e67]
+              - generic [ref=e69]: AI Copilot
+              - generic [ref=e70]: AI
+            - link "SOP Library" [ref=e73] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e74]
+              - generic [ref=e76]: SOP Library
+            - link "Reports" [ref=e79] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e80]
+              - generic [ref=e83]: Reports
+        - generic [ref=e84]:
+          - paragraph [ref=e86]: Organization
+          - generic [ref=e87]:
+            - link "Logbook" [ref=e90] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e91]
+              - generic [ref=e94]: Logbook
+            - link "Staff" [ref=e97] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e98]
+              - generic [ref=e103]: Staff
+            - link "Schedule" [ref=e106] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e107]
+              - generic [ref=e109]: Schedule
+      - link "Settings" [ref=e188] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e189]
+        - text: Settings
+      - generic [ref=e111]:
+        - generic [ref=e112]: H
+        - generic [ref=e113]:
+          - paragraph [ref=e114]: hp.patelrep@gmail.com
+          - paragraph [ref=e192]: General Manager
+    - generic [ref=e115]:
+      - banner [ref=e116]:
+        - generic [ref=e117]:
+          - img [ref=e118]
+          - textbox "Open command palette" [ref=e121]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e122]: ⌘K
+        - generic [ref=e125]: Sun, May 31 · Evening shift
+        - button "Open AI Copilot (⌘J)" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - generic [ref=e130]: Ask copilot
+          - generic [ref=e131]: ⌘J
+        - button "Notifications" [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+          - generic [ref=e136]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e138] [cursor=pointer]:
+          - generic [ref=e139]: H
+          - img [ref=e140]
+      - main [ref=e142]:
+        - generic [ref=e193]:
+          - generic [ref=e195]:
+            - generic [ref=e196]:
+              - paragraph [ref=e197]: Housekeeping
+              - heading "Room status board" [level=1] [ref=e198]
+              - generic [ref=e200]: Live · synced 1 min ago
+            - generic [ref=e202]:
+              - button "Previous day" [ref=e203] [cursor=pointer]: ← May 30
+              - generic [ref=e204]: May 31
+              - button "Next day" [ref=e205] [cursor=pointer]: Jun 1 →
+              - combobox [ref=e206]:
+                - option "All Shifts" [selected]
+                - option "Morning"
+                - option "Evening"
+                - option "Night"
+              - button "Exit assign" [ref=e1124] [cursor=pointer]
+          - generic [ref=e1125]:
+            - generic [ref=e1126]:
+              - paragraph [ref=e1127]: Tap rooms to assign
+              - button "Save 2" [ref=e1555] [cursor=pointer]:
+                - text: Save
+                - generic [ref=e1536]: "2"
+            - generic [ref=e1128]:
+              - button "C Claudia NaN" [ref=e1537] [cursor=pointer]:
+                - generic [ref=e1130]: C
+                - generic [ref=e1131]: Claudia
+                - generic [ref=e1538]: NaN
+              - button "E Elisa" [ref=e1132] [cursor=pointer]:
+                - generic [ref=e1133]: E
+                - generic [ref=e1134]: Elisa
+              - button "S Sandra" [ref=e1135] [cursor=pointer]:
+                - generic [ref=e1136]: S
+                - generic [ref=e1137]: Sandra
+          - generic [ref=e208]:
+            - generic [ref=e210]:
+              - generic [ref=e212]:
+                - button "All 114" [pressed] [ref=e213] [cursor=pointer]:
+                  - text: All
+                  - generic [ref=e215]: "114"
+                - button "Departure 11" [ref=e1138] [cursor=pointer]:
+                  - text: Departure
+                  - generic [ref=e1140]: "11"
+                - button "Full 16" [ref=e1141] [cursor=pointer]:
+                  - text: Full
+                  - generic [ref=e1143]: "16"
+                - button "Light 17" [ref=e1144] [cursor=pointer]:
+                  - text: Light
+                  - generic [ref=e1146]: "17"
+              - generic [ref=e233]:
+                - generic [ref=e234]:
+                  - generic [ref=e235]:
+                    - heading "Floor 1" [level=3] [ref=e236]
+                    - generic [ref=e237]: 38 rooms
+                  - generic [ref=e238]:
+                    - button "101 Studio Suite - King Occupied Departure Assigned Remove" [ref=e1539] [cursor=pointer]:
+                      - generic [ref=e242]: "101"
+                      - generic [ref=e243]: Studio Suite - King
+                      - generic [ref=e244]:
+                        - generic [ref=e245]: Occupied
+                        - generic [ref=e246]:
+                          - img [ref=e247]
+                          - text: Departure
+                      - generic [ref=e1540]:
+                        - img [ref=e1541]
+                        - generic [ref=e1544]: Assigned
+                      - button "Remove" [ref=e1545]
+                    - button "102 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1149] [cursor=pointer]:
+                      - generic [ref=e253]: "102"
+                      - generic [ref=e254]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e256]: Occupied
+                      - paragraph [ref=e1150]: Tap to assign
+                    - button "103 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1151] [cursor=pointer]:
+                      - generic [ref=e260]: "103"
+                      - generic [ref=e261]: One Bedroom Suite 1BR King
+                      - generic [ref=e263]: Occupied
+                      - paragraph [ref=e1152]: Tap to assign
+                    - button "104 One Bedroom Suite 1BR King Occupied Departure Assigned Remove" [active] [ref=e1556] [cursor=pointer]:
+                      - generic [ref=e267]: "104"
+                      - generic [ref=e268]: One Bedroom Suite 1BR King
+                      - generic [ref=e269]:
+                        - generic [ref=e270]: Occupied
+                        - generic [ref=e271]:
+                          - img [ref=e272]
+                          - text: Departure
+                      - generic [ref=e1557]:
+                        - img [ref=e1558]
+                        - generic [ref=e1561]: Assigned
+                      - button "Remove" [ref=e1562]
+                    - button "105 Two Bedroom Suite 2BR Two Queens OOO/OOS Tap to assign" [ref=e1155] [cursor=pointer]:
+                      - generic [ref=e278]: "105"
+                      - generic [ref=e279]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e281]: OOO/OOS
+                      - paragraph [ref=e1156]: Tap to assign
+                    - button "106 Two Bedroom Suite 2BR Two Queens Pickup Full Assigned Remove" [ref=e1394] [cursor=pointer]:
+                      - generic [ref=e285]: "106"
+                      - generic [ref=e286]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e287]:
+                        - generic [ref=e288]: Pickup
+                        - generic [ref=e289]: Full
+                      - generic [ref=e1395]:
+                        - img [ref=e1396]
+                        - generic [ref=e1399]: Assigned
+                      - button "Remove" [ref=e1400]
+                    - button "107 One Bedroom Suite 1BR Queen Hearing Accessible Occupied Tap to assign" [ref=e1159] [cursor=pointer]:
+                      - generic [ref=e293]: "107"
+                      - generic [ref=e294]: One Bedroom Suite 1BR Queen Hearing Accessible
+                      - generic [ref=e296]: Occupied
+                      - paragraph [ref=e1160]: Tap to assign
+                    - button "108 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Full Assigned Remove" [ref=e1401] [cursor=pointer]:
+                      - generic [ref=e300]: "108"
+                      - generic [ref=e301]: One Bedroom Suite 1BR Queen Hearing Accessible
+                      - generic [ref=e302]:
+                        - generic [ref=e303]: Pickup
+                        - generic [ref=e304]: Full
+                      - generic [ref=e1402]:
+                        - img [ref=e1403]
+                        - generic [ref=e1406]: Assigned
+                      - button "Remove" [ref=e1407]
+                    - button "109 Two Bedroom Suite 2BR Two Queens Pickup Full Assigned Remove" [ref=e1408] [cursor=pointer]:
+                      - generic [ref=e308]: "109"
+                      - generic [ref=e309]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e310]:
+                        - generic [ref=e311]: Pickup
+                        - generic [ref=e312]: Full
+                      - generic [ref=e1409]:
+                        - img [ref=e1410]
+                        - generic [ref=e1413]: Assigned
+                      - button "Remove" [ref=e1414]
+                    - button "110 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1165] [cursor=pointer]:
+                      - generic [ref=e316]: "110"
+                      - generic [ref=e317]: One Bedroom Suite 1BR King
+                      - generic [ref=e319]: Occupied
+                      - paragraph [ref=e1166]: Tap to assign
+                    - button "111 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1167] [cursor=pointer]:
+                      - generic [ref=e323]: "111"
+                      - generic [ref=e324]: One Bedroom Suite 1BR King
+                      - generic [ref=e326]: Occupied
+                      - paragraph [ref=e1168]: Tap to assign
+                    - button "112 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1169] [cursor=pointer]:
+                      - generic [ref=e330]: "112"
+                      - generic [ref=e331]: One Bedroom Suite 1BR King
+                      - generic [ref=e333]: Occupied
+                      - paragraph [ref=e1170]: Tap to assign
+                    - button "113 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1415] [cursor=pointer]:
+                      - generic [ref=e337]: "113"
+                      - generic [ref=e338]: One Bedroom Suite 1BR King
+                      - generic [ref=e339]:
+                        - generic [ref=e340]: Pickup
+                        - generic [ref=e341]: Light
+                      - generic [ref=e1416]:
+                        - img [ref=e1417]
+                        - generic [ref=e1420]: Assigned
+                      - button "Remove" [ref=e1421]
+                    - button "114 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1173] [cursor=pointer]:
+                      - generic [ref=e345]: "114"
+                      - generic [ref=e346]: One Bedroom Suite 1BR King
+                      - generic [ref=e348]: Occupied
+                      - paragraph [ref=e1174]: Tap to assign
+                    - button "115 Studio Suite - King Occupied Tap to assign" [ref=e1175] [cursor=pointer]:
+                      - generic [ref=e352]: "115"
+                      - generic [ref=e353]: Studio Suite - King
+                      - generic [ref=e355]: Occupied
+                      - paragraph [ref=e1176]: Tap to assign
+                    - button "116 Studio Suite - King Occupied Tap to assign" [ref=e1177] [cursor=pointer]:
+                      - generic [ref=e359]: "116"
+                      - generic [ref=e360]: Studio Suite - King
+                      - generic [ref=e362]: Occupied
+                      - paragraph [ref=e1178]: Tap to assign
+                    - button "117 Studio Suite - King Vacant Dirty Departure Assigned Remove" [ref=e1422] [cursor=pointer]:
+                      - generic [ref=e366]: "117"
+                      - generic [ref=e367]: Studio Suite - King
+                      - generic [ref=e368]:
+                        - generic [ref=e369]: Vacant Dirty
+                        - generic [ref=e370]:
+                          - img [ref=e371]
+                          - text: Departure
+                      - generic [ref=e1423]:
+                        - img [ref=e1424]
+                        - generic [ref=e1427]: Assigned
+                      - button "Remove" [ref=e1428]
+                    - button "118 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1181] [cursor=pointer]:
+                      - generic [ref=e377]: "118"
+                      - generic [ref=e378]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e380]: Occupied
+                      - paragraph [ref=e1182]: Tap to assign
+                    - button "119 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1183] [cursor=pointer]:
+                      - generic [ref=e384]: "119"
+                      - generic [ref=e385]: One Bedroom Suite 1BR King
+                      - generic [ref=e387]: Occupied
+                      - paragraph [ref=e1184]: Tap to assign
+                    - button "120 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1429] [cursor=pointer]:
+                      - generic [ref=e391]: "120"
+                      - generic [ref=e392]: One Bedroom Suite 1BR King
+                      - generic [ref=e393]:
+                        - generic [ref=e394]: Pickup
+                        - generic [ref=e395]: Light
+                      - generic [ref=e1430]:
+                        - img [ref=e1431]
+                        - generic [ref=e1434]: Assigned
+                      - button "Remove" [ref=e1435]
+                    - button "121 Two Bedroom Suite 2BR Two Queens Pickup Full Assigned Remove" [ref=e1436] [cursor=pointer]:
+                      - generic [ref=e399]: "121"
+                      - generic [ref=e400]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e401]:
+                        - generic [ref=e402]: Pickup
+                        - generic [ref=e403]: Full
+                      - generic [ref=e1437]:
+                        - img [ref=e1438]
+                        - generic [ref=e1441]: Assigned
+                      - button "Remove" [ref=e1442]
+                    - button "122 Two Bedroom Suite 2BR Two Queens Occupied Tap to assign" [ref=e1189] [cursor=pointer]:
+                      - generic [ref=e407]: "122"
+                      - generic [ref=e408]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e410]: Occupied
+                      - paragraph [ref=e1190]: Tap to assign
+                    - button "123 Studio Suite - King Occupied Tap to assign" [ref=e1191] [cursor=pointer]:
+                      - generic [ref=e414]: "123"
+                      - generic [ref=e415]: Studio Suite - King
+                      - generic [ref=e417]: Occupied
+                      - paragraph [ref=e1192]: Tap to assign
+                    - button "124 Studio Suite - King Occupied Tap to assign" [ref=e1193] [cursor=pointer]:
+                      - generic [ref=e421]: "124"
+                      - generic [ref=e422]: Studio Suite - King
+                      - generic [ref=e424]: Occupied
+                      - paragraph [ref=e1194]: Tap to assign
+                    - button "125 Two Bedroom Suite 2BR Two Queens Occupied Tap to assign" [ref=e1195] [cursor=pointer]:
+                      - generic [ref=e428]: "125"
+                      - generic [ref=e429]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e431]: Occupied
+                      - paragraph [ref=e1196]: Tap to assign
+                    - button "127 Two Bedroom Suite 2BR Two Queens Occupied Departure Assigned Remove" [ref=e1443] [cursor=pointer]:
+                      - generic [ref=e435]: "127"
+                      - generic [ref=e436]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e437]:
+                        - generic [ref=e438]: Occupied
+                        - generic [ref=e439]:
+                          - img [ref=e440]
+                          - text: Departure
+                      - generic [ref=e1444]:
+                        - img [ref=e1445]
+                        - generic [ref=e1448]: Assigned
+                      - button "Remove" [ref=e1449]
+                    - button "128 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Light Assigned Remove" [ref=e1450] [cursor=pointer]:
+                      - generic [ref=e446]: "128"
+                      - generic [ref=e447]: One Bedroom Suite 1BR Queen Hearing Accessible
+                      - generic [ref=e448]:
+                        - generic [ref=e449]: Pickup
+                        - generic [ref=e450]: Light
+                      - generic [ref=e1451]:
+                        - img [ref=e1452]
+                        - generic [ref=e1455]: Assigned
+                      - button "Remove" [ref=e1456]
+                    - button "129 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1457] [cursor=pointer]:
+                      - generic [ref=e454]: "129"
+                      - generic [ref=e455]: One Bedroom Suite 1BR King
+                      - generic [ref=e456]:
+                        - generic [ref=e457]: Pickup
+                        - generic [ref=e458]: Light
+                      - generic [ref=e1458]:
+                        - img [ref=e1459]
+                        - generic [ref=e1462]: Assigned
+                      - button "Remove" [ref=e1463]
+                    - button "130 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1203] [cursor=pointer]:
+                      - generic [ref=e462]: "130"
+                      - generic [ref=e463]: One Bedroom Suite 1BR King
+                      - generic [ref=e465]: Occupied
+                      - paragraph [ref=e1204]: Tap to assign
+                    - button "131 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1205] [cursor=pointer]:
+                      - generic [ref=e469]: "131"
+                      - generic [ref=e470]: One Bedroom Suite 1BR King
+                      - generic [ref=e472]: Occupied
+                      - paragraph [ref=e1206]: Tap to assign
+                    - button "132 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1464] [cursor=pointer]:
+                      - generic [ref=e476]: "132"
+                      - generic [ref=e477]: One Bedroom Suite 1BR King
+                      - generic [ref=e478]:
+                        - generic [ref=e479]: Pickup
+                        - generic [ref=e480]: Light
+                      - generic [ref=e1465]:
+                        - img [ref=e1466]
+                        - generic [ref=e1469]: Assigned
+                      - button "Remove" [ref=e1470]
+                    - button "133 One Bedroom Suite 1BR Queen Hearing Accessible Pickup Light Assigned Remove" [ref=e1471] [cursor=pointer]:
+                      - generic [ref=e484]: "133"
+                      - generic [ref=e485]: One Bedroom Suite 1BR Queen Hearing Accessible
+                      - generic [ref=e486]:
+                        - generic [ref=e487]: Pickup
+                        - generic [ref=e488]: Light
+                      - generic [ref=e1472]:
+                        - img [ref=e1473]
+                        - generic [ref=e1476]: Assigned
+                      - button "Remove" [ref=e1477]
+                    - button "134 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1211] [cursor=pointer]:
+                      - generic [ref=e492]: "134"
+                      - generic [ref=e493]: One Bedroom Suite 1BR King
+                      - generic [ref=e495]: Occupied
+                      - paragraph [ref=e1212]: Tap to assign
+                    - button "135 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1478] [cursor=pointer]:
+                      - generic [ref=e499]: "135"
+                      - generic [ref=e500]: One Bedroom Suite 1BR King
+                      - generic [ref=e501]:
+                        - generic [ref=e502]: Pickup
+                        - generic [ref=e503]: Light
+                      - generic [ref=e1479]:
+                        - img [ref=e1480]
+                        - generic [ref=e1483]: Assigned
+                      - button "Remove" [ref=e1484]
+                    - button "136 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1215] [cursor=pointer]:
+                      - generic [ref=e507]: "136"
+                      - generic [ref=e508]: One Bedroom Suite 1BR King
+                      - generic [ref=e510]: Occupied
+                      - paragraph [ref=e1216]: Tap to assign
+                    - button "137 One Bedroom Suite 1BR King Inspected Tap to assign" [ref=e1217] [cursor=pointer]:
+                      - generic [ref=e514]: "137"
+                      - generic [ref=e515]: One Bedroom Suite 1BR King
+                      - generic [ref=e517]: Inspected
+                      - paragraph [ref=e1218]: Tap to assign
+                    - button "138 Studio Suite - King Occupied Departure Assigned Remove" [ref=e1485] [cursor=pointer]:
+                      - generic [ref=e521]: "138"
+                      - generic [ref=e522]: Studio Suite - King
+                      - generic [ref=e523]:
+                        - generic [ref=e524]: Occupied
+                        - generic [ref=e525]:
+                          - img [ref=e526]
+                          - text: Departure
+                      - generic [ref=e1486]:
+                        - img [ref=e1487]
+                        - generic [ref=e1490]: Assigned
+                      - button "Remove" [ref=e1491]
+                    - button "139 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1221] [cursor=pointer]:
+                      - generic [ref=e532]: "139"
+                      - generic [ref=e533]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e535]: Occupied
+                      - paragraph [ref=e1222]: Tap to assign
+                - generic [ref=e536]:
+                  - generic [ref=e537]:
+                    - heading "Floor 2" [level=3] [ref=e538]
+                    - generic [ref=e539]: 38 rooms
+                  - generic [ref=e540]:
+                    - button "201 Studio Suite - King Occupied Departure Assigned Remove" [ref=e1492] [cursor=pointer]:
+                      - generic [ref=e544]: "201"
+                      - generic [ref=e545]: Studio Suite - King
+                      - generic [ref=e546]:
+                        - generic [ref=e547]: Occupied
+                        - generic [ref=e548]:
+                          - img [ref=e549]
+                          - text: Departure
+                      - generic [ref=e1493]:
+                        - img [ref=e1494]
+                        - generic [ref=e1497]: Assigned
+                      - button "Remove" [ref=e1498]
+                    - button "202 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1225] [cursor=pointer]:
+                      - generic [ref=e555]: "202"
+                      - generic [ref=e556]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e558]: Occupied
+                      - paragraph [ref=e1226]: Tap to assign
+                    - button "203 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1227] [cursor=pointer]:
+                      - generic [ref=e562]: "203"
+                      - generic [ref=e563]: One Bedroom Suite 1BR King
+                      - generic [ref=e565]: Occupied
+                      - paragraph [ref=e1228]: Tap to assign
+                    - button "204 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1499] [cursor=pointer]:
+                      - generic [ref=e569]: "204"
+                      - generic [ref=e570]: One Bedroom Suite 1BR King
+                      - generic [ref=e571]:
+                        - generic [ref=e572]: Pickup
+                        - generic [ref=e573]: Light
+                      - generic [ref=e1500]:
+                        - img [ref=e1501]
+                        - generic [ref=e1504]: Assigned
+                      - button "Remove" [ref=e1505]
+                    - button "205 Two Bedroom Suite 2BR Two Queens Occupied Tap to assign" [ref=e1231] [cursor=pointer]:
+                      - generic [ref=e577]: "205"
+                      - generic [ref=e578]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e580]: Occupied
+                      - paragraph [ref=e1232]: Tap to assign
+                    - button "206 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1233] [cursor=pointer]:
+                      - generic [ref=e584]: "206"
+                      - generic [ref=e585]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e587]: Inspected
+                      - paragraph [ref=e1234]: Tap to assign
+                    - button "207 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1235] [cursor=pointer]:
+                      - generic [ref=e591]: "207"
+                      - generic [ref=e592]: One Bedroom Suite 1BR King
+                      - generic [ref=e594]: Occupied
+                      - paragraph [ref=e1236]: Tap to assign
+                    - button "208 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1237] [cursor=pointer]:
+                      - generic [ref=e598]: "208"
+                      - generic [ref=e599]: One Bedroom Suite 1BR King
+                      - generic [ref=e601]: Occupied
+                      - paragraph [ref=e1238]: Tap to assign
+                    - button "209 Two Bedroom Suite 2BR Two Queens Pickup Full Assigned Remove" [ref=e1506] [cursor=pointer]:
+                      - generic [ref=e605]: "209"
+                      - generic [ref=e606]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e607]:
+                        - generic [ref=e608]: Pickup
+                        - generic [ref=e609]: Full
+                      - generic [ref=e1507]:
+                        - img [ref=e1508]
+                        - generic [ref=e1511]: Assigned
+                      - button "Remove" [ref=e1512]
+                    - button "210 One Bedroom Suite 1BR King Pickup Full Assigned Remove" [ref=e1513] [cursor=pointer]:
+                      - generic [ref=e613]: "210"
+                      - generic [ref=e614]: One Bedroom Suite 1BR King
+                      - generic [ref=e615]:
+                        - generic [ref=e616]: Pickup
+                        - generic [ref=e617]: Full
+                      - generic [ref=e1514]:
+                        - img [ref=e1515]
+                        - generic [ref=e1518]: Assigned
+                      - button "Remove" [ref=e1519]
+                    - button "211 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1243] [cursor=pointer]:
+                      - generic [ref=e621]: "211"
+                      - generic [ref=e622]: One Bedroom Suite 1BR King
+                      - generic [ref=e624]: Occupied
+                      - paragraph [ref=e1244]: Tap to assign
+                    - button "212 One Bedroom Suite 1BR King Pickup Light Assigned Remove" [ref=e1520] [cursor=pointer]:
+                      - generic [ref=e628]: "212"
+                      - generic [ref=e629]: One Bedroom Suite 1BR King
+                      - generic [ref=e630]:
+                        - generic [ref=e631]: Pickup
+                        - generic [ref=e632]: Light
+                      - generic [ref=e1521]:
+                        - img [ref=e1522]
+                        - generic [ref=e1525]: Assigned
+                      - button "Remove" [ref=e1526]
+                    - button "213 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1247] [cursor=pointer]:
+                      - generic [ref=e636]: "213"
+                      - generic [ref=e637]: One Bedroom Suite 1BR King
+                      - generic [ref=e639]: Occupied
+                      - paragraph [ref=e1248]: Tap to assign
+                    - button "214 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1249] [cursor=pointer]:
+                      - generic [ref=e643]: "214"
+                      - generic [ref=e644]: One Bedroom Suite 1BR King
+                      - generic [ref=e646]: Occupied
+                      - paragraph [ref=e1250]: Tap to assign
+                    - button "215 Studio Suite - King Pickup Full Assigned Remove" [ref=e1527] [cursor=pointer]:
+                      - generic [ref=e650]: "215"
+                      - generic [ref=e651]: Studio Suite - King
+                      - generic [ref=e652]:
+                        - generic [ref=e653]: Pickup
+                        - generic [ref=e654]: Full
+                      - generic [ref=e1528]:
+                        - img [ref=e1529]
+                        - generic [ref=e1532]: Assigned
+                      - button "Remove" [ref=e1533]
+                    - button "216 Studio Suite - King Pickup Full Elisa · tap to reassign" [ref=e1253] [cursor=pointer]:
+                      - generic [ref=e658]: "216"
+                      - generic [ref=e659]: Studio Suite - King
+                      - generic [ref=e660]:
+                        - generic [ref=e661]: Pickup
+                        - generic [ref=e662]: Full
+                      - paragraph [ref=e1254]: Elisa · tap to reassign
+                    - button "217 Studio Suite - King Vacant Dirty Departure Elisa · tap to reassign" [ref=e1255] [cursor=pointer]:
+                      - generic [ref=e666]: "217"
+                      - generic [ref=e667]: Studio Suite - King
+                      - generic [ref=e668]:
+                        - generic [ref=e669]: Vacant Dirty
+                        - generic [ref=e670]:
+                          - img [ref=e671]
+                          - text: Departure
+                      - paragraph [ref=e1256]: Elisa · tap to reassign
+                    - button "218 Studio Suite - King Occupied Tap to assign" [ref=e1257] [cursor=pointer]:
+                      - generic [ref=e677]: "218"
+                      - generic [ref=e678]: Studio Suite - King
+                      - generic [ref=e680]: Occupied
+                      - paragraph [ref=e1258]: Tap to assign
+                    - button "219 One Bedroom Suite 1BR King Pickup Full Elisa · tap to reassign" [ref=e1259] [cursor=pointer]:
+                      - generic [ref=e684]: "219"
+                      - generic [ref=e685]: One Bedroom Suite 1BR King
+                      - generic [ref=e686]:
+                        - generic [ref=e687]: Pickup
+                        - generic [ref=e688]: Full
+                      - paragraph [ref=e1260]: Elisa · tap to reassign
+                    - button "220 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1261] [cursor=pointer]:
+                      - generic [ref=e692]: "220"
+                      - generic [ref=e693]: One Bedroom Suite 1BR King
+                      - generic [ref=e694]:
+                        - generic [ref=e695]: Pickup
+                        - generic [ref=e696]: Light
+                      - paragraph [ref=e1262]: Elisa · tap to reassign
+                    - button "221 Two Bedroom Suite 2BR Two Queens Pickup Full Elisa · tap to reassign" [ref=e1263] [cursor=pointer]:
+                      - generic [ref=e700]: "221"
+                      - generic [ref=e701]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e702]:
+                        - generic [ref=e703]: Pickup
+                        - generic [ref=e704]: Full
+                      - paragraph [ref=e1264]: Elisa · tap to reassign
+                    - button "222 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1265] [cursor=pointer]:
+                      - generic [ref=e708]: "222"
+                      - generic [ref=e709]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e711]: Inspected
+                      - paragraph [ref=e1266]: Tap to assign
+                    - button "223 Studio Suite - King Occupied Tap to assign" [ref=e1267] [cursor=pointer]:
+                      - generic [ref=e715]: "223"
+                      - generic [ref=e716]: Studio Suite - King
+                      - generic [ref=e718]: Occupied
+                      - paragraph [ref=e1268]: Tap to assign
+                    - button "224 Studio Suite Queen - STD Hearing Accessible Occupied Departure Elisa · tap to reassign" [ref=e1269] [cursor=pointer]:
+                      - generic [ref=e722]: "224"
+                      - generic [ref=e723]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e724]:
+                        - generic [ref=e725]: Occupied
+                        - generic [ref=e726]:
+                          - img [ref=e727]
+                          - text: Departure
+                      - paragraph [ref=e1270]: Elisa · tap to reassign
+                    - button "225 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1271] [cursor=pointer]:
+                      - generic [ref=e733]: "225"
+                      - generic [ref=e734]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e736]: Inspected
+                      - paragraph [ref=e1272]: Tap to assign
+                    - button "227 Two Bedroom Suite - 2BR Two Queens - Hearing Accessible Occupied Tap to assign" [ref=e1273] [cursor=pointer]:
+                      - generic [ref=e740]: "227"
+                      - generic [ref=e741]: Two Bedroom Suite - 2BR Two Queens - Hearing Accessible
+                      - generic [ref=e743]: Occupied
+                      - paragraph [ref=e1274]: Tap to assign
+                    - button "228 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1275] [cursor=pointer]:
+                      - generic [ref=e747]: "228"
+                      - generic [ref=e748]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e750]: Occupied
+                      - paragraph [ref=e1276]: Tap to assign
+                    - button "229 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1277] [cursor=pointer]:
+                      - generic [ref=e754]: "229"
+                      - generic [ref=e755]: One Bedroom Suite 1BR King
+                      - generic [ref=e757]: Occupied
+                      - paragraph [ref=e1278]: Tap to assign
+                    - button "230 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1279] [cursor=pointer]:
+                      - generic [ref=e761]: "230"
+                      - generic [ref=e762]: One Bedroom Suite 1BR King
+                      - generic [ref=e763]:
+                        - generic [ref=e764]: Pickup
+                        - generic [ref=e765]: Light
+                      - paragraph [ref=e1280]: Elisa · tap to reassign
+                    - button "231 One Bedroom Suite 1BR King Pickup Full Elisa · tap to reassign" [ref=e1281] [cursor=pointer]:
+                      - generic [ref=e769]: "231"
+                      - generic [ref=e770]: One Bedroom Suite 1BR King
+                      - generic [ref=e771]:
+                        - generic [ref=e772]: Pickup
+                        - generic [ref=e773]: Full
+                      - paragraph [ref=e1282]: Elisa · tap to reassign
+                    - button "232 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1283] [cursor=pointer]:
+                      - generic [ref=e777]: "232"
+                      - generic [ref=e778]: One Bedroom Suite 1BR King
+                      - generic [ref=e780]: Occupied
+                      - paragraph [ref=e1284]: Tap to assign
+                    - button "233 One Bedroom Suite 1BR King Pickup Full Elisa · tap to reassign" [ref=e1285] [cursor=pointer]:
+                      - generic [ref=e784]: "233"
+                      - generic [ref=e785]: One Bedroom Suite 1BR King
+                      - generic [ref=e786]:
+                        - generic [ref=e787]: Pickup
+                        - generic [ref=e788]: Full
+                      - paragraph [ref=e1286]: Elisa · tap to reassign
+                    - button "234 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1287] [cursor=pointer]:
+                      - generic [ref=e792]: "234"
+                      - generic [ref=e793]: One Bedroom Suite 1BR King
+                      - generic [ref=e794]:
+                        - generic [ref=e795]: Pickup
+                        - generic [ref=e796]: Light
+                      - paragraph [ref=e1288]: Elisa · tap to reassign
+                    - button "235 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1289] [cursor=pointer]:
+                      - generic [ref=e800]: "235"
+                      - generic [ref=e801]: One Bedroom Suite 1BR King
+                      - generic [ref=e803]: Occupied
+                      - paragraph [ref=e1290]: Tap to assign
+                    - button "236 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1291] [cursor=pointer]:
+                      - generic [ref=e807]: "236"
+                      - generic [ref=e808]: One Bedroom Suite 1BR King
+                      - generic [ref=e809]:
+                        - generic [ref=e810]: Pickup
+                        - generic [ref=e811]: Light
+                      - paragraph [ref=e1292]: Elisa · tap to reassign
+                    - button "237 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1293] [cursor=pointer]:
+                      - generic [ref=e815]: "237"
+                      - generic [ref=e816]: One Bedroom Suite 1BR King
+                      - generic [ref=e818]: Occupied
+                      - paragraph [ref=e1294]: Tap to assign
+                    - button "238 Studio Suite - King Occupied Departure Elisa · tap to reassign" [ref=e1295] [cursor=pointer]:
+                      - generic [ref=e822]: "238"
+                      - generic [ref=e823]: Studio Suite - King
+                      - generic [ref=e824]:
+                        - generic [ref=e825]: Occupied
+                        - generic [ref=e826]:
+                          - img [ref=e827]
+                          - text: Departure
+                      - paragraph [ref=e1296]: Elisa · tap to reassign
+                    - button "239 Studio Suite - King Occupied Tap to assign" [ref=e1297] [cursor=pointer]:
+                      - generic [ref=e833]: "239"
+                      - generic [ref=e834]: Studio Suite - King
+                      - generic [ref=e836]: Occupied
+                      - paragraph [ref=e1298]: Tap to assign
+                - generic [ref=e837]:
+                  - generic [ref=e838]:
+                    - heading "Floor 3" [level=3] [ref=e839]
+                    - generic [ref=e840]: 38 rooms
+                  - generic [ref=e841]:
+                    - button "301 Studio Suite - King Occupied Tap to assign" [ref=e1299] [cursor=pointer]:
+                      - generic [ref=e845]: "301"
+                      - generic [ref=e846]: Studio Suite - King
+                      - generic [ref=e848]: Occupied
+                      - paragraph [ref=e1300]: Tap to assign
+                    - button "302 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1301] [cursor=pointer]:
+                      - generic [ref=e852]: "302"
+                      - generic [ref=e853]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e855]: Occupied
+                      - paragraph [ref=e1302]: Tap to assign
+                    - button "303 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1303] [cursor=pointer]:
+                      - generic [ref=e859]: "303"
+                      - generic [ref=e860]: One Bedroom Suite 1BR King
+                      - generic [ref=e862]: Occupied
+                      - paragraph [ref=e1304]: Tap to assign
+                    - button "304 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1305] [cursor=pointer]:
+                      - generic [ref=e866]: "304"
+                      - generic [ref=e867]: One Bedroom Suite 1BR King
+                      - generic [ref=e869]: Occupied
+                      - paragraph [ref=e1306]: Tap to assign
+                    - button "305 Two Bedroom Suite 2BR Two Queens Occupied Departure Elisa · tap to reassign" [ref=e1307] [cursor=pointer]:
+                      - generic [ref=e873]: "305"
+                      - generic [ref=e874]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e875]:
+                        - generic [ref=e876]: Occupied
+                        - generic [ref=e877]:
+                          - img [ref=e878]
+                          - text: Departure
+                      - paragraph [ref=e1308]: Elisa · tap to reassign
+                    - button "306 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1309] [cursor=pointer]:
+                      - generic [ref=e884]: "306"
+                      - generic [ref=e885]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e887]: Inspected
+                      - paragraph [ref=e1310]: Tap to assign
+                    - button "307 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1311] [cursor=pointer]:
+                      - generic [ref=e891]: "307"
+                      - generic [ref=e892]: One Bedroom Suite 1BR King
+                      - generic [ref=e894]: Occupied
+                      - paragraph [ref=e1312]: Tap to assign
+                    - button "308 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1313] [cursor=pointer]:
+                      - generic [ref=e898]: "308"
+                      - generic [ref=e899]: One Bedroom Suite 1BR King
+                      - generic [ref=e901]: Occupied
+                      - paragraph [ref=e1314]: Tap to assign
+                    - button "309 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1315] [cursor=pointer]:
+                      - generic [ref=e905]: "309"
+                      - generic [ref=e906]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e908]: Inspected
+                      - paragraph [ref=e1316]: Tap to assign
+                    - button "310 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1317] [cursor=pointer]:
+                      - generic [ref=e912]: "310"
+                      - generic [ref=e913]: One Bedroom Suite 1BR King
+                      - generic [ref=e915]: Occupied
+                      - paragraph [ref=e1318]: Tap to assign
+                    - button "311 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1319] [cursor=pointer]:
+                      - generic [ref=e919]: "311"
+                      - generic [ref=e920]: One Bedroom Suite 1BR King
+                      - generic [ref=e922]: Occupied
+                      - paragraph [ref=e1320]: Tap to assign
+                    - button "312 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1321] [cursor=pointer]:
+                      - generic [ref=e926]: "312"
+                      - generic [ref=e927]: One Bedroom Suite 1BR King
+                      - generic [ref=e929]: Occupied
+                      - paragraph [ref=e1322]: Tap to assign
+                    - button "313 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1323] [cursor=pointer]:
+                      - generic [ref=e933]: "313"
+                      - generic [ref=e934]: One Bedroom Suite 1BR King
+                      - generic [ref=e935]:
+                        - generic [ref=e936]: Pickup
+                        - generic [ref=e937]: Light
+                      - paragraph [ref=e1324]: Elisa · tap to reassign
+                    - button "314 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1325] [cursor=pointer]:
+                      - generic [ref=e941]: "314"
+                      - generic [ref=e942]: One Bedroom Suite 1BR King
+                      - generic [ref=e943]:
+                        - generic [ref=e944]: Pickup
+                        - generic [ref=e945]: Light
+                      - paragraph [ref=e1326]: Elisa · tap to reassign
+                    - button "315 Studio Suite - King Pickup Full Elisa · tap to reassign" [ref=e1327] [cursor=pointer]:
+                      - generic [ref=e949]: "315"
+                      - generic [ref=e950]: Studio Suite - King
+                      - generic [ref=e951]:
+                        - generic [ref=e952]: Pickup
+                        - generic [ref=e953]: Full
+                      - paragraph [ref=e1328]: Elisa · tap to reassign
+                    - button "316 Studio Suite - King Pickup Full Elisa · tap to reassign" [ref=e1329] [cursor=pointer]:
+                      - generic [ref=e957]: "316"
+                      - generic [ref=e958]: Studio Suite - King
+                      - generic [ref=e959]:
+                        - generic [ref=e960]: Pickup
+                        - generic [ref=e961]: Full
+                      - paragraph [ref=e1330]: Elisa · tap to reassign
+                    - button "317 Studio Suite - King Occupied Tap to assign" [ref=e1331] [cursor=pointer]:
+                      - generic [ref=e965]: "317"
+                      - generic [ref=e966]: Studio Suite - King
+                      - generic [ref=e968]: Occupied
+                      - paragraph [ref=e1332]: Tap to assign
+                    - button "318 Studio Suite - King Pickup Full Elisa · tap to reassign" [ref=e1333] [cursor=pointer]:
+                      - generic [ref=e972]: "318"
+                      - generic [ref=e973]: Studio Suite - King
+                      - generic [ref=e974]:
+                        - generic [ref=e975]: Pickup
+                        - generic [ref=e976]: Full
+                      - paragraph [ref=e1334]: Elisa · tap to reassign
+                    - button "319 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1335] [cursor=pointer]:
+                      - generic [ref=e980]: "319"
+                      - generic [ref=e981]: One Bedroom Suite 1BR King
+                      - generic [ref=e983]: Occupied
+                      - paragraph [ref=e1336]: Tap to assign
+                    - button "320 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1337] [cursor=pointer]:
+                      - generic [ref=e987]: "320"
+                      - generic [ref=e988]: One Bedroom Suite 1BR King
+                      - generic [ref=e990]: Occupied
+                      - paragraph [ref=e1338]: Tap to assign
+                    - button "321 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1339] [cursor=pointer]:
+                      - generic [ref=e994]: "321"
+                      - generic [ref=e995]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e997]: Inspected
+                      - paragraph [ref=e1340]: Tap to assign
+                    - button "322 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1341] [cursor=pointer]:
+                      - generic [ref=e1001]: "322"
+                      - generic [ref=e1002]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e1004]: Inspected
+                      - paragraph [ref=e1342]: Tap to assign
+                    - button "323 Studio Suite - King Occupied Departure Elisa · tap to reassign" [ref=e1343] [cursor=pointer]:
+                      - generic [ref=e1008]: "323"
+                      - generic [ref=e1009]: Studio Suite - King
+                      - generic [ref=e1010]:
+                        - generic [ref=e1011]: Occupied
+                        - generic [ref=e1012]:
+                          - img [ref=e1013]
+                          - text: Departure
+                      - paragraph [ref=e1344]: Elisa · tap to reassign
+                    - button "324 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1345] [cursor=pointer]:
+                      - generic [ref=e1019]: "324"
+                      - generic [ref=e1020]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e1022]: Occupied
+                      - paragraph [ref=e1346]: Tap to assign
+                    - button "325 Two Bedroom Suite 2BR Two Queens Inspected Tap to assign" [ref=e1347] [cursor=pointer]:
+                      - generic [ref=e1026]: "325"
+                      - generic [ref=e1027]: Two Bedroom Suite 2BR Two Queens
+                      - generic [ref=e1029]: Inspected
+                      - paragraph [ref=e1348]: Tap to assign
+                    - button "327 Two Bedroom Suite - 2BR Two Queens - Hearing Accessible Occupied Tap to assign" [ref=e1349] [cursor=pointer]:
+                      - generic [ref=e1033]: "327"
+                      - generic [ref=e1034]: Two Bedroom Suite - 2BR Two Queens - Hearing Accessible
+                      - generic [ref=e1036]: Occupied
+                      - paragraph [ref=e1350]: Tap to assign
+                    - button "328 Studio Suite Queen - STD Hearing Accessible Occupied Tap to assign" [ref=e1351] [cursor=pointer]:
+                      - generic [ref=e1040]: "328"
+                      - generic [ref=e1041]: Studio Suite Queen - STD Hearing Accessible
+                      - generic [ref=e1043]: Occupied
+                      - paragraph [ref=e1352]: Tap to assign
+                    - button "329 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1353] [cursor=pointer]:
+                      - generic [ref=e1047]: "329"
+                      - generic [ref=e1048]: One Bedroom Suite 1BR King
+                      - generic [ref=e1050]: Occupied
+                      - paragraph [ref=e1354]: Tap to assign
+                    - button "330 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1355] [cursor=pointer]:
+                      - generic [ref=e1054]: "330"
+                      - generic [ref=e1055]: One Bedroom Suite 1BR King
+                      - generic [ref=e1056]:
+                        - generic [ref=e1057]: Pickup
+                        - generic [ref=e1058]: Light
+                      - paragraph [ref=e1356]: Elisa · tap to reassign
+                    - button "331 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1357] [cursor=pointer]:
+                      - generic [ref=e1062]: "331"
+                      - generic [ref=e1063]: One Bedroom Suite 1BR King
+                      - generic [ref=e1065]: Occupied
+                      - paragraph [ref=e1358]: Tap to assign
+                    - button "332 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1359] [cursor=pointer]:
+                      - generic [ref=e1069]: "332"
+                      - generic [ref=e1070]: One Bedroom Suite 1BR King
+                      - generic [ref=e1072]: Occupied
+                      - paragraph [ref=e1360]: Tap to assign
+                    - button "333 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1361] [cursor=pointer]:
+                      - generic [ref=e1076]: "333"
+                      - generic [ref=e1077]: One Bedroom Suite 1BR King
+                      - generic [ref=e1079]: Occupied
+                      - paragraph [ref=e1362]: Tap to assign
+                    - button "334 One Bedroom Suite 1BR King Pickup Light Elisa · tap to reassign" [ref=e1363] [cursor=pointer]:
+                      - generic [ref=e1083]: "334"
+                      - generic [ref=e1084]: One Bedroom Suite 1BR King
+                      - generic [ref=e1085]:
+                        - generic [ref=e1086]: Pickup
+                        - generic [ref=e1087]: Light
+                      - paragraph [ref=e1364]: Elisa · tap to reassign
+                    - button "335 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1365] [cursor=pointer]:
+                      - generic [ref=e1091]: "335"
+                      - generic [ref=e1092]: One Bedroom Suite 1BR King
+                      - generic [ref=e1094]: Occupied
+                      - paragraph [ref=e1366]: Tap to assign
+                    - button "336 One Bedroom Suite 1BR King Occupied Tap to assign" [ref=e1367] [cursor=pointer]:
+                      - generic [ref=e1098]: "336"
+                      - generic [ref=e1099]: One Bedroom Suite 1BR King
+                      - generic [ref=e1101]: Occupied
+                      - paragraph [ref=e1368]: Tap to assign
+                    - button "337 One Bedroom Suite 1BR King Inspected Tap to assign" [ref=e1369] [cursor=pointer]:
+                      - generic [ref=e1105]: "337"
+                      - generic [ref=e1106]: One Bedroom Suite 1BR King
+                      - generic [ref=e1108]: Inspected
+                      - paragraph [ref=e1370]: Tap to assign
+                    - button "338 Studio Suite - King Occupied Tap to assign" [ref=e1371] [cursor=pointer]:
+                      - generic [ref=e1112]: "338"
+                      - generic [ref=e1113]: Studio Suite - King
+                      - generic [ref=e1115]: Occupied
+                      - paragraph [ref=e1372]: Tap to assign
+                    - button "339 Studio Suite - King Pickup Full Elisa · tap to reassign" [ref=e1373] [cursor=pointer]:
+                      - generic [ref=e1119]: "339"
+                      - generic [ref=e1120]: Studio Suite - King
+                      - generic [ref=e1121]:
+                        - generic [ref=e1122]: Pickup
+                        - generic [ref=e1123]: Full
+                      - paragraph [ref=e1374]: Elisa · tap to reassign
+            - generic [ref=e1376]:
+              - generic [ref=e1377]:
+                - img [ref=e1379]
+                - generic [ref=e1381]:
+                  - heading "AI Assignments" [level=3] [ref=e1382]
+                  - paragraph [ref=e1383]: Balance today's open rooms across the team.
+              - generic [ref=e1384]:
+                - generic [ref=e1385]:
+                  - paragraph [ref=e1386]: Unassigned
+                  - paragraph [ref=e1387]: "72"
+                - generic [ref=e1388]:
+                  - paragraph [ref=e1389]: Needs work
+                  - paragraph [ref=e1390]: "35"
+              - button "Auto-Assign with AI" [ref=e1391] [cursor=pointer]:
+                - img [ref=e1392]
+                - text: Auto-Assign with AI
+    - button "Open AI Copilot" [ref=e149] [cursor=pointer]:
+      - img [ref=e150]
+      - generic [ref=e152]: Ask copilot
+      - generic [ref=e153]: ⌘J
+    - button "Open feedback" [ref=e155] [cursor=pointer]:
+      - img [ref=e156]
+      - generic [ref=e158]: Feedback
+    - button "Display preferences" [ref=e160] [cursor=pointer]:
+      - img [ref=e161]
+  - generic [ref=e168] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e169]:
+      - img [ref=e170]
+    - generic [ref=e1546]:
+      - button "Open issues overlay" [ref=e1547]:
+        - generic [ref=e1548]:
+          - generic [ref=e1549]: "0"
+          - generic [ref=e1550]: "1"
+        - generic [ref=e1551]: Issue
+      - button "Collapse issues badge" [ref=e1552]:
+        - img [ref=e1553]
+  - alert [ref=e173]

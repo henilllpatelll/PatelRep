@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, LogOut, MessageSquare, User, Wrench } from 'lucide-react'
+import { Clock, LogOut, User, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
@@ -117,7 +117,6 @@ export function RoomCard({
   const vipFlag: boolean = !!room.vip_flag
   const openWorkOrder: string | number | null = room.open_work_order_number ?? null
   const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
-  const latestNote: string | null = room.latest_note ?? null
   const roomTypeName: string | null = room.rooms?.room_types?.name ?? null
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
   const workOrderLabel = openWorkOrder
@@ -250,20 +249,12 @@ export function RoomCard({
           <span className="text-[11px] font-mono text-ink3">{checkoutLabel} {checkoutTime}</span>
         </div>
       )}
-      {(workOrderLabel || latestNote) && (
-        <div className="mt-0.5 space-y-0.5">
-          {workOrderLabel && (
-            <div className="flex items-center gap-1 min-w-0 text-[11px] text-orange-700">
-              <Wrench className="w-3 h-3 shrink-0" />
-              <span className="truncate">{workOrderLabel}</span>
-            </div>
-          )}
-          {latestNote && (
-            <div className="flex items-center gap-1 min-w-0 text-[11px] text-ink3">
-              <MessageSquare className="w-3 h-3 shrink-0" />
-              <span className="truncate">{latestNote}</span>
-            </div>
-          )}
+      {workOrderLabel && (
+        <div className="mt-0.5">
+          <div className="flex items-center gap-1 min-w-0 text-[11px] text-orange-700">
+            <Wrench className="w-3 h-3 shrink-0" />
+            <span className="truncate">{workOrderLabel}</span>
+          </div>
         </div>
       )}
 

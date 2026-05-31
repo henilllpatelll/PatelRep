@@ -665,19 +665,22 @@ async def create_assignments(
             or (room_status_map.get(room_id) or {}).get("clean_type")
         )
 
-    assignments_data = [
-        {
+    def _build_assignment_row(a) -> dict:
+        row: dict = {
             "tenant_id": current_user.hotel_id,
             "room_id": str(a.room_id),
             "assigned_to": str(a.housekeeper_id),
             "assigned_by": current_user.user_id,
             "shift_id": str(request.shift_id) if request.shift_id else None,
             "assignment_date": request.date.isoformat(),
-            "clean_type": _resolve_clean_type(str(a.room_id), a.clean_type),
             "is_ai_suggested": request.is_ai_suggested,
         }
-        for a in request.assignments
-    ]
+        clean_type = _resolve_clean_type(str(a.room_id), a.clean_type)
+        if clean_type is not None:
+            row["clean_type"] = clean_type
+        return row
+
+    assignments_data = [_build_assignment_row(a) for a in request.assignments]
 
     try:
         result = supabase.table("room_assignments").upsert(

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T19:52:14.350Z
-> Files: 30 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T23:34:46.802Z
+> Files: 33 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -442,7 +442,7 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — Declares from (~16551 tok)
+- `housekeeping.py` — Declares from (~16596 tok)
 - `rooms.py` — API: 3 endpoints (~9965 tok)
 
 ## apps/api/services/
@@ -570,7 +570,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8618 tok)
+- `page.tsx` — SHIFTS (~8750 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -655,8 +655,8 @@
 ## apps/web/components/housekeeping/
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3548 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11919 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11928 tok)
 
 ## apps/web/components/settings/
 
@@ -700,6 +700,12 @@
 
 ## e2e/agent-browser/scripts/
 
+
+## e2e/golden-paths/
+
+- `engineering.spec.ts` — Golden path: Engineering — work order create, then claim (~783 tok)
+- `hk-assignment.spec.ts` — Golden path: Housekeeping — room assignment save (~724 tok)
+- `tasks.spec.ts` — Golden path: Tasks — create, then advance status (~728 tok)
 
 ## e2e/helpers/
 
