@@ -4482,6 +4482,23 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-31T13:25:48.845Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-05-31T13:57:08.925Z",
+      "error_message": "PATCH /v1/housekeeping/inspections/templates/{id} returns 400 with PostgreSQL error 23503 (FK violation)",
+      "file": "supabase/migrations/049_inspection_results_nullable_template_item.sql",
+      "root_cause": "inspection_results.template_item_id had a NOT NULL FK to inspection_template_items(id) with no ON DELETE action. The update endpoint deletes all items then re-inserts, which fails when existing inspections reference those items.",
+      "fix": "Migration 049: made template_item_id nullable and changed FK to ON DELETE SET NULL. Historical inspection results are preserved with null template_item_id when items are deleted.",
+      "tags": [
+        "fk-violation",
+        "inspection-template",
+        "migration",
+        "settings"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-31T13:57:08.926Z"
     }
   ]
 }

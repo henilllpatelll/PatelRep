@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-05-30 18:32 | Engineering Room Board tab: added EngineeringRoomBoard component (All/Vacant/AI filters) + Work Orders / Room Board tab switcher to work-orders page | components/engineering/EngineeringRoomBoard.tsx, engineering/work-orders/page.tsx | complete | ~3k tok |
+| 2026-05-31 13:56 | Fixed inspection template edit/delete: PATCH returned 400 (FK 23503) because inspection_results.template_item_id was NOT NULL with no cascade. Migration 049 made it nullable with ON DELETE SET NULL. | supabase/migrations/049_inspection_results_nullable_template_item.sql | complete | ~2k tok |
 | 2026-05-31 | HK Details import: cleared actual_checkout_at always + checkout_time for non-departure rooms so stale times don't persist after morning import | apps/api/routers/housekeeping.py | complete | ~2k tok |
 | 2026-05-30 | Inspections tab rework: Live/History subtabs, full inspection modal with checklist, re-assign drawer after fail, housekeeper_id+clean_type in ready-for-inspection API | housekeeping.py, housekeeping.ts, InspectionModal.tsx, inspections/page.tsx | complete | ~8k tok |
 | 00:00 | Security hardening — IDOR/XSS/CSRF/SQLi audit: 7 fixes across tasks.py, work_orders.py, guest_requests.py, notifications.py, staff.py, logbook.py, next.config.mjs | bugs 197-200 | complete | ~4k tok |
@@ -2927,3 +2928,10 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 08:25 | Edited apps/api/routers/housekeeping.py | removed 12 lines | ~11 |
 
 | 08:30 | Fixed Departure badge on rooms not in task sheet (123/124/125/214) by using room_status.clean_type as authoritative source on board instead of room_assignments.clean_type | apps/api/routers/housekeeping.py | fixed | ~200 || 08:31 | Session end: 3 writes across 1 files (housekeeping.py) | 17 reads | ~15582 tok |
+
+## Session: 2026-05-31 08:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:56 | Created supabase/migrations/049_inspection_results_nullable_template_item.sql | — | ~250 |
+| 08:57 | Session end: 1 writes across 1 files (049_inspection_results_nullable_template_item.sql) | 17 reads | ~17098 tok |

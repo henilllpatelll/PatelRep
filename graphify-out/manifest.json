@@ -20,9 +20,9 @@
     "semantic_hash": "ee92342918af7b3bcc20aa4208517981"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1780233948.847676,
-    "ast_hash": "bc96068ce71a5df56478f769d5105bd8",
-    "semantic_hash": "bc96068ce71a5df56478f769d5105bd8"
+    "mtime": 1780235828.9268937,
+    "ast_hash": "48355f2b6ae367f72f2e4e957bc9ee49",
+    "semantic_hash": "48355f2b6ae367f72f2e4e957bc9ee49"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1780234261.4576173,
-    "ast_hash": "b8131e30008d4d1e4cc4b716c739e1f6",
-    "semantic_hash": "b8131e30008d4d1e4cc4b716c739e1f6"
+    "mtime": 1780235860.502642,
+    "ast_hash": "8b986b94e3598c332a6f0f93bec3748c",
+    "semantic_hash": "8b986b94e3598c332a6f0f93bec3748c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1780006260.899577,
@@ -1790,14 +1790,14 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1780233955.0568085,
-    "ast_hash": "2a26807fcc43357130c22fd709070c44",
-    "semantic_hash": "2a26807fcc43357130c22fd709070c44"
+    "mtime": 1780235765.9318376,
+    "ast_hash": "b3d611698301f613c38fe8f54aa3d093",
+    "semantic_hash": "b3d611698301f613c38fe8f54aa3d093"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
-    "mtime": 1780182258.5460753,
-    "ast_hash": "7f10cb1499b1f3faecf9b891318f84ee",
-    "semantic_hash": "7f10cb1499b1f3faecf9b891318f84ee"
+    "mtime": 1780235854.8949869,
+    "ast_hash": "360502339222cde419d0752b3329e156",
+    "semantic_hash": "360502339222cde419d0752b3329e156"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\identity.md": {
     "mtime": 1779031345.3155138,
@@ -1805,9 +1805,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1780234261.4566197,
-    "ast_hash": "ecf967b026ff9019b840b59307f3a6ea",
-    "semantic_hash": "ecf967b026ff9019b840b59307f3a6ea"
+    "mtime": 1780235860.5008364,
+    "ast_hash": "c701a698f8ef165bf8c5c91955970239",
+    "semantic_hash": "c701a698f8ef165bf8c5c91955970239"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -2748,5 +2748,70 @@
     "mtime": 1780234189.1951902,
     "ast_hash": "e842f0ae34f1a722ad15b56d788b2c19",
     "semantic_hash": "e842f0ae34f1a722ad15b56d788b2c19"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\049_inspection_results_nullable_template_item.sql": {
+    "mtime": 1780235765.8062758,
+    "ast_hash": "cc5b8f75e51e003614ce3f0c2e4b2a32",
+    "semantic_hash": "cc5b8f75e51e003614ce3f0c2e4b2a32"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-07-950Z.yml": {
+    "mtime": 1780235647.952175,
+    "ast_hash": "c56d30b6b84bd203352d09f693848c25",
+    "semantic_hash": "c56d30b6b84bd203352d09f693848c25"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-13-707Z.yml": {
+    "mtime": 1780235653.7085721,
+    "ast_hash": "0d2bb35878eb4396082e6b887362611e",
+    "semantic_hash": "0d2bb35878eb4396082e6b887362611e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-28-803Z.yml": {
+    "mtime": 1780235668.8043208,
+    "ast_hash": "b00d152fc092ca61945adba94de5f137",
+    "semantic_hash": "b00d152fc092ca61945adba94de5f137"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-41-192Z.yml": {
+    "mtime": 1780235681.1936457,
+    "ast_hash": "44bdcb621ac9e0d3c75d867efd3a6150",
+    "semantic_hash": "44bdcb621ac9e0d3c75d867efd3a6150"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-56-28-704Z.yml": {
+    "mtime": 1780235788.7060575,
+    "ast_hash": "c56d30b6b84bd203352d09f693848c25",
+    "semantic_hash": "c56d30b6b84bd203352d09f693848c25"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-56-35-967Z.yml": {
+    "mtime": 1780235795.9686494,
+    "ast_hash": "bc3e093ce0040dbabf5b025ae91f6b8a",
+    "semantic_hash": "bc3e093ce0040dbabf5b025ae91f6b8a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-56-40-336Z.yml": {
+    "mtime": 1780235800.3369524,
+    "ast_hash": "026aa1979548358bfbbe9cef7bf1dcdc",
+    "semantic_hash": "026aa1979548358bfbbe9cef7bf1dcdc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-56-42-727Z.yml": {
+    "mtime": 1780235802.7301998,
+    "ast_hash": "e450fbad32ae0a50de90ca8d3f18b223",
+    "semantic_hash": "e450fbad32ae0a50de90ca8d3f18b223"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-16-391Z.png": {
+    "mtime": 1780235656.3929255,
+    "ast_hash": "00c2bc89cd0294c23890be8f2b5cf16c",
+    "semantic_hash": "00c2bc89cd0294c23890be8f2b5cf16c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-31-867Z.png": {
+    "mtime": 1780235671.868451,
+    "ast_hash": "5887e236d26bfea9cb04907cf5d21cdc",
+    "semantic_hash": "5887e236d26bfea9cb04907cf5d21cdc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-54-45-969Z.png": {
+    "mtime": 1780235685.970583,
+    "ast_hash": "9290da9b88c2737bf3fcb982dc2db759",
+    "semantic_hash": "9290da9b88c2737bf3fcb982dc2db759"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-05-31T13-56-46-171Z.png": {
+    "mtime": 1780235806.1732788,
+    "ast_hash": "00c2bc89cd0294c23890be8f2b5cf16c",
+    "semantic_hash": "00c2bc89cd0294c23890be8f2b5cf16c"
   }
 }

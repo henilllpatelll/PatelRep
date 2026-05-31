@@ -1,0 +1,183 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e186] [cursor=pointer]:
+        - generic [ref=e187]: S
+        - generic [ref=e188]:
+          - generic [ref=e189]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e190]: 114 rooms
+        - img [ref=e191]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - link "Housekeeping" [ref=e28] [cursor=pointer]:
+              - /url: /housekeeping
+              - img [ref=e29]
+              - generic [ref=e31]: Housekeeping
+            - link "Engineering" [ref=e34] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e35]
+              - generic [ref=e37]: Engineering
+            - link "Lost & Found" [ref=e40] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e41]
+              - generic [ref=e45]: Lost & Found
+            - link "Tasks" [ref=e48] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e49]
+              - generic [ref=e52]: Tasks
+        - generic [ref=e53]:
+          - paragraph [ref=e55]: Intelligence
+          - generic [ref=e56]:
+            - link "AI Copilot AI" [ref=e59] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e60]
+              - generic [ref=e62]: AI Copilot
+              - generic [ref=e63]: AI
+            - link "SOP Library" [ref=e66] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e67]
+              - generic [ref=e69]: SOP Library
+            - link "Reports" [ref=e72] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e73]
+              - generic [ref=e76]: Reports
+        - generic [ref=e77]:
+          - paragraph [ref=e79]: Organization
+          - generic [ref=e80]:
+            - link "Logbook" [ref=e83] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e84]
+              - generic [ref=e87]: Logbook
+            - link "Staff" [ref=e90] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e91]
+              - generic [ref=e96]: Staff
+            - link "Schedule" [ref=e99] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e100]
+              - generic [ref=e102]: Schedule
+      - link "Settings" [ref=e195] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e196]
+        - text: Settings
+      - generic [ref=e104]:
+        - generic [ref=e105]: H
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: hp.patelrep@gmail.com
+          - paragraph [ref=e199]: General Manager
+    - generic [ref=e108]:
+      - banner [ref=e109]:
+        - generic [ref=e110]:
+          - img [ref=e111]
+          - textbox "Open command palette" [ref=e114]:
+            - /placeholder: Search rooms, work orders, guests…
+          - generic [ref=e115]: ⌘K
+        - generic [ref=e118]: Sun, May 31 · Day shift
+        - button "Open AI Copilot (⌘J)" [ref=e120] [cursor=pointer]:
+          - img [ref=e121]
+          - generic [ref=e123]: Ask copilot
+          - generic [ref=e124]: ⌘J
+        - button "Notifications" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - generic [ref=e129]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e131] [cursor=pointer]:
+          - generic [ref=e132]: H
+          - img [ref=e133]
+      - main [ref=e135]:
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - heading "Settings" [level=1] [ref=e139]
+            - paragraph [ref=e140]: Manage your hotel profile and configuration.
+          - generic [ref=e141]:
+            - navigation "Settings navigation" [ref=e142]:
+              - generic [ref=e143]:
+                - link "General" [ref=e144] [cursor=pointer]:
+                  - /url: /settings/general
+                  - img [ref=e145]
+                  - text: General
+                - link "Departments" [ref=e149] [cursor=pointer]:
+                  - /url: /settings/departments
+                  - img [ref=e150]
+                  - text: Departments
+              - generic [ref=e200]:
+                - paragraph [ref=e201]: Configuration
+                - link "Front Desk" [ref=e202] [cursor=pointer]:
+                  - /url: /settings/front-desk
+                  - img [ref=e203]
+                  - text: Front Desk
+                - link "Roles" [ref=e204] [cursor=pointer]:
+                  - /url: /settings/roles
+                  - img [ref=e205]
+                  - text: Roles
+                - link "Inspections" [ref=e208] [cursor=pointer]:
+                  - /url: /settings/inspections
+                  - img [ref=e209]
+                  - text: Inspections
+                - link "Rooms" [ref=e212] [cursor=pointer]:
+                  - /url: /settings/rooms
+                  - img [ref=e213]
+                  - text: Rooms
+              - generic [ref=e216]:
+                - paragraph [ref=e217]: Account
+                - link "Billing" [ref=e218] [cursor=pointer]:
+                  - /url: /settings/billing
+                  - img [ref=e219]
+                  - text: Billing
+                - link "Integrations" [ref=e221] [cursor=pointer]:
+                  - /url: /settings/integrations
+                  - img [ref=e222]
+                  - text: Integrations
+                - link "Feedback" [ref=e225] [cursor=pointer]:
+                  - /url: /settings/feedback
+                  - img [ref=e226]
+                  - text: Feedback
+            - generic [ref=e155]:
+              - alert [ref=e277]:
+                - img [ref=e278]
+                - text: Template updated.
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - heading "Inspection Templates" [level=2] [ref=e158]
+                  - paragraph [ref=e159]: Define inspection checklists used when supervisors inspect cleaned rooms. The default template is pre-selected when starting an inspection.
+                - button "New Template" [ref=e160] [cursor=pointer]:
+                  - img [ref=e161]
+                  - text: New Template
+              - generic [ref=e282]:
+                - generic [ref=e283]:
+                  - generic [ref=e284]:
+                    - generic [ref=e285]: Inspection
+                    - generic [ref=e286]: Default
+                    - generic [ref=e287]: 3 items
+                  - generic [ref=e288]:
+                    - generic [ref=e289]: Bathroom
+                    - generic [ref=e290]: Toilet and Shower
+                  - generic [ref=e291]:
+                    - generic [ref=e292]: Sleeping Area
+                    - generic [ref=e293]: Bed Made
+                  - paragraph [ref=e294]: +1 more section
+                - generic [ref=e295]:
+                  - button "Edit template" [ref=e296] [cursor=pointer]:
+                    - img [ref=e297]
+                  - button "Delete template" [ref=e300] [cursor=pointer]:
+                    - img [ref=e301]
+    - button "Open AI Copilot" [ref=e169] [cursor=pointer]:
+      - img [ref=e170]
+      - generic [ref=e172]: Ask copilot
+      - generic [ref=e173]: ⌘J
+    - button "Open feedback" [ref=e175] [cursor=pointer]:
+      - img [ref=e176]
+      - generic [ref=e178]: Feedback
+    - button "Display preferences" [ref=e180] [cursor=pointer]:
+      - img [ref=e181]
+  - alert [ref=e184]
