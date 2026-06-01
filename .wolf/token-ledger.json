@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 9098038,
-    "total_reads": 4545,
-    "total_writes": 3553,
+    "total_tokens_estimated": 9219400,
+    "total_reads": 4596,
+    "total_writes": 3602,
     "total_sessions": 190,
-    "anatomy_hits": 1592,
-    "anatomy_misses": 2890,
-    "repeated_reads_blocked": 1723,
-    "estimated_savings_vs_bare_cli": 8760945
+    "anatomy_hits": 1613,
+    "anatomy_misses": 2920,
+    "repeated_reads_blocked": 1730,
+    "estimated_savings_vs_bare_cli": 8765145
   },
   "sessions": [
     {
@@ -52455,6 +52455,608 @@
         "writes_count": 7,
         "repeated_reads_blocked": 3,
         "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-05-31-1846",
+      "started": "2026-05-31T23:46:44.473Z",
+      "ended": "2026-05-31T23:54:35.683Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-assignment.spec.ts",
+          "tokens_estimated": 724,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/tasks.spec.ts",
+          "tokens_estimated": 728,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering.spec.ts",
+          "tokens_estimated": 783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/03-housekeeping.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/00-smoke.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/playwright.config.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 8750,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/logbook/page.tsx",
+          "tokens_estimated": 10783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/scheduling/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+          "tokens_estimated": 4954,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3481,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-room-status.spec.ts",
+          "tokens_estimated": 981,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-inspection.spec.ts",
+          "tokens_estimated": 871,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/lost-found.spec.ts",
+          "tokens_estimated": 1155,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/logbook.spec.ts",
+          "tokens_estimated": 745,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 932,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/sop.spec.ts",
+          "tokens_estimated": 704,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/reports.spec.ts",
+          "tokens_estimated": 552,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-rooms-management.spec.ts",
+          "tokens_estimated": 688,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/staff.spec.ts",
+          "tokens_estimated": 686,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering-assets.spec.ts",
+          "tokens_estimated": 775,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/settings.spec.ts",
+          "tokens_estimated": 659,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/dashboard.spec.ts",
+          "tokens_estimated": 542,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 30203,
+        "output_tokens_estimated": 9290,
+        "reads_count": 14,
+        "writes_count": 12,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 7
+      }
+    },
+    {
+      "id": "session-2026-05-31-1846",
+      "started": "2026-05-31T23:46:44.473Z",
+      "ended": "2026-06-01T00:01:16.404Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-assignment.spec.ts",
+          "tokens_estimated": 724,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/tasks.spec.ts",
+          "tokens_estimated": 728,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering.spec.ts",
+          "tokens_estimated": 783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/03-housekeeping.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/00-smoke.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/playwright.config.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 8750,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/logbook/page.tsx",
+          "tokens_estimated": 10783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/scheduling/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+          "tokens_estimated": 4954,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3481,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-room-status.spec.ts",
+          "tokens_estimated": 981,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-inspection.spec.ts",
+          "tokens_estimated": 871,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/lost-found.spec.ts",
+          "tokens_estimated": 1155,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/logbook.spec.ts",
+          "tokens_estimated": 745,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 932,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/sop.spec.ts",
+          "tokens_estimated": 704,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/reports.spec.ts",
+          "tokens_estimated": 552,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-rooms-management.spec.ts",
+          "tokens_estimated": 688,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/staff.spec.ts",
+          "tokens_estimated": 686,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering-assets.spec.ts",
+          "tokens_estimated": 775,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/settings.spec.ts",
+          "tokens_estimated": 659,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/dashboard.spec.ts",
+          "tokens_estimated": 542,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 30203,
+        "output_tokens_estimated": 9290,
+        "reads_count": 14,
+        "writes_count": 12,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 7
+      }
+    },
+    {
+      "id": "session-2026-05-31-1846",
+      "started": "2026-05-31T23:46:44.473Z",
+      "ended": "2026-06-01T00:27:31.947Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-assignment.spec.ts",
+          "tokens_estimated": 724,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/tasks.spec.ts",
+          "tokens_estimated": 728,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering.spec.ts",
+          "tokens_estimated": 783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/03-housekeeping.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/00-smoke.spec.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/playwright.config.ts",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 8750,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/guest-requests/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/lost-found/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/logbook/page.tsx",
+          "tokens_estimated": 10783,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/scheduling/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+          "tokens_estimated": 4954,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+          "tokens_estimated": 3481,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-logbook-Logbook-—-b2df3-golden-path-creates-a-logbook-entry-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-lost-found-Lost-Found-—-9fa1b-golden-path-logs-a-found-item-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-scheduling-Sc-f68c3-golden-path-creates-a-shift-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-logbook-Logbo-56352-ath-creates-a-logbook-entry-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-lost-found-Lo-fe10e-lden-path-logs-a-found-item-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-staff-Staff-—-9afd0-taff-card-opens-detail-view-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-engineering-a-420e6-olden-path-creates-an-asset-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-hk-rooms-mana-929ee-row-opens-the-detail-drawer-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/test-results/golden-paths-settings-Sett-ebf0e-es-hotel-name-without-error-chromium/test-failed-1.png",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-room-status.spec.ts",
+          "tokens_estimated": 981,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-inspection.spec.ts",
+          "tokens_estimated": 871,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/lost-found.spec.ts",
+          "tokens_estimated": 1155,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/logbook.spec.ts",
+          "tokens_estimated": 745,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 932,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/sop.spec.ts",
+          "tokens_estimated": 704,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/reports.spec.ts",
+          "tokens_estimated": 552,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-rooms-management.spec.ts",
+          "tokens_estimated": 688,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/staff.spec.ts",
+          "tokens_estimated": 686,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering-assets.spec.ts",
+          "tokens_estimated": 775,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/settings.spec.ts",
+          "tokens_estimated": 659,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/dashboard.spec.ts",
+          "tokens_estimated": 542,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/logbook.spec.ts",
+          "tokens_estimated": 91,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/lost-found.spec.ts",
+          "tokens_estimated": 152,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/staff.spec.ts",
+          "tokens_estimated": 198,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 198,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 357,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/hk-rooms-management.spec.ts",
+          "tokens_estimated": 224,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/settings.spec.ts",
+          "tokens_estimated": 38,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/engineering-assets.spec.ts",
+          "tokens_estimated": 295,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/sop.spec.ts",
+          "tokens_estimated": 78,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/logbook.spec.ts",
+          "tokens_estimated": 29,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 343,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/settings.spec.ts",
+          "tokens_estimated": 422,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/e2e/golden-paths/scheduling.spec.ts",
+          "tokens_estimated": 458,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 30203,
+        "output_tokens_estimated": 12173,
+        "reads_count": 23,
+        "writes_count": 25,
+        "repeated_reads_blocked": 7,
+        "anatomy_lookups": 7
       }
     }
   ],

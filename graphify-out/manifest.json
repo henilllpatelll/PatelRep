@@ -20,9 +20,9 @@
     "semantic_hash": "ee92342918af7b3bcc20aa4208517981"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1780270271.638203,
-    "ast_hash": "417ef8cbcbcb20d89ed28c0e600f5172",
-    "semantic_hash": "417ef8cbcbcb20d89ed28c0e600f5172"
+    "mtime": 1780273387.1184595,
+    "ast_hash": "0a833db8f273e86569fad7f79de5df3a",
+    "semantic_hash": "0a833db8f273e86569fad7f79de5df3a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1780270618.545723,
-    "ast_hash": "094b48a5f13be8da4e0b0e9ff7de1224",
-    "semantic_hash": "094b48a5f13be8da4e0b0e9ff7de1224"
+    "mtime": 1780273651.9859607,
+    "ast_hash": "fc7f5d105eb53053428e731a98f895ef",
+    "semantic_hash": "fc7f5d105eb53053428e731a98f895ef"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1780006260.899577,
@@ -1790,9 +1790,9 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1780270486.8462703,
-    "ast_hash": "8fc7d37b4dd944f1e94450c718970e3a",
-    "semantic_hash": "8fc7d37b4dd944f1e94450c718970e3a"
+    "mtime": 1780273387.1029246,
+    "ast_hash": "74aaaeaedd0f27c728b4b4c0895c3c1c",
+    "semantic_hash": "74aaaeaedd0f27c728b4b4c0895c3c1c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
     "mtime": 1780251628.2751675,
@@ -1805,9 +1805,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1780270618.544815,
-    "ast_hash": "e48f87c831ab844ea00cec4684678fc6",
-    "semantic_hash": "e48f87c831ab844ea00cec4684678fc6"
+    "mtime": 1780273651.985411,
+    "ast_hash": "f82ccf699baff58964f914b375dc69d3",
+    "semantic_hash": "f82ccf699baff58964f914b375dc69d3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -4728,5 +4728,65 @@
     "mtime": 1780270310.423046,
     "ast_hash": "bb7833b43a3848f203cc9497c747433e",
     "semantic_hash": "bb7833b43a3848f203cc9497c747433e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\dashboard.spec.ts": {
+    "mtime": 1780271646.7563655,
+    "ast_hash": "2efd3a6fe79e62711c86db6359f8b191",
+    "semantic_hash": "2efd3a6fe79e62711c86db6359f8b191"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\engineering-assets.spec.ts": {
+    "mtime": 1780272924.246694,
+    "ast_hash": "f4b6ecf10010061c442b0432dabc27b8",
+    "semantic_hash": "f4b6ecf10010061c442b0432dabc27b8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\hk-inspection.spec.ts": {
+    "mtime": 1780271525.246021,
+    "ast_hash": "dd6cbbd08217eca318a89a3a680b8b09",
+    "semantic_hash": "dd6cbbd08217eca318a89a3a680b8b09"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\hk-room-status.spec.ts": {
+    "mtime": 1780271509.8327808,
+    "ast_hash": "0d5c1dfb93de81220b2dc89bc4392a72",
+    "semantic_hash": "0d5c1dfb93de81220b2dc89bc4392a72"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\hk-rooms-management.spec.ts": {
+    "mtime": 1780272909.382271,
+    "ast_hash": "73e5a80eeba478c68c8b7ec8447c4fda",
+    "semantic_hash": "73e5a80eeba478c68c8b7ec8447c4fda"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\logbook.spec.ts": {
+    "mtime": 1780273220.5237372,
+    "ast_hash": "5f94584488138e72540cb11b7fae3b2f",
+    "semantic_hash": "5f94584488138e72540cb11b7fae3b2f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\lost-found.spec.ts": {
+    "mtime": 1780272870.4100695,
+    "ast_hash": "19747f495aee129fbe8c5d732a1e7276",
+    "semantic_hash": "19747f495aee129fbe8c5d732a1e7276"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\reports.spec.ts": {
+    "mtime": 1780271591.92018,
+    "ast_hash": "e38903279ff694f5dfc2efab57feccee",
+    "semantic_hash": "e38903279ff694f5dfc2efab57feccee"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\scheduling.spec.ts": {
+    "mtime": 1780273386.8174267,
+    "ast_hash": "233caeeb4784504d951b797fa9d7f031",
+    "semantic_hash": "233caeeb4784504d951b797fa9d7f031"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\settings.spec.ts": {
+    "mtime": 1780273247.9647748,
+    "ast_hash": "1304c13869fd62acd49ed3162e2b4c45",
+    "semantic_hash": "1304c13869fd62acd49ed3162e2b4c45"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\sop.spec.ts": {
+    "mtime": 1780272930.2495964,
+    "ast_hash": "f4c455c109487fc41ded5e1dd5f6757f",
+    "semantic_hash": "f4c455c109487fc41ded5e1dd5f6757f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\golden-paths\\staff.spec.ts": {
+    "mtime": 1780272879.8985786,
+    "ast_hash": "29aac4bebcee42421eb11d26542b3318",
+    "semantic_hash": "29aac4bebcee42421eb11d26542b3318"
   }
 }

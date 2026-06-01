@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-05-31 | Added comprehensive golden path suite: 9 new spec files covering HK board status transitions, inspection, lost-found, logbook, scheduling, SOP, reports, all-rooms management, staff, engineering assets/PM, settings sub-pages, and dashboard | e2e/golden-paths/ | complete | ~3k tok |
 | 2026-05-31 | Golden path e2e tests: wrote hk-assignment, engineering, tasks specs in e2e/golden-paths/. 5/6 pass; HK skips when all rooms assigned (correct). Fixed bugs: clean_type NOT NULL 500, NaN badge, silent save error. | apps/api/routers/housekeeping.py, housekeeping page.tsx, e2e/golden-paths/ | complete | ~5k tok |
 | 2026-05-31 | Fixed: PICKUP room staying PICKUP after checkout — board now uses room_status.clean_type (DEP) over assignment.clean_type (FULL/LIGHT) when actual_checkout_at is set | apps/api/routers/housekeeping.py | complete | ~1k tok |
 | 2026-05-31 | Changed stayover card comment from "stayover_override" to "stayover" — updated constant, rooms.py insert, and test fixtures | housekeeping.py, rooms.py, test_housekeeping_assignments.py | complete | ~300 tok |
@@ -3133,3 +3134,31 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 18:51 | Created e2e/golden-paths/hk-room-status.spec.ts | — | ~981 |
+| 18:52 | Created e2e/golden-paths/hk-inspection.spec.ts | — | ~871 |
+| 18:52 | Created e2e/golden-paths/lost-found.spec.ts | — | ~1155 |
+| 18:52 | Created e2e/golden-paths/logbook.spec.ts | — | ~745 |
+| 18:52 | Created e2e/golden-paths/scheduling.spec.ts | — | ~932 |
+| 18:53 | Created e2e/golden-paths/sop.spec.ts | — | ~704 |
+| 18:53 | Created e2e/golden-paths/reports.spec.ts | — | ~552 |
+| 18:53 | Created e2e/golden-paths/hk-rooms-management.spec.ts | — | ~688 |
+| 18:53 | Created e2e/golden-paths/staff.spec.ts | — | ~686 |
+| 18:53 | Created e2e/golden-paths/engineering-assets.spec.ts | — | ~775 |
+| 18:53 | Created e2e/golden-paths/settings.spec.ts | — | ~659 |
+| 18:54 | Created e2e/golden-paths/dashboard.spec.ts | — | ~542 |
+| 18:54 | Session end: 12 writes across 12 files (hk-room-status.spec.ts, hk-inspection.spec.ts, lost-found.spec.ts, logbook.spec.ts, scheduling.spec.ts) | 14 reads | ~39493 tok |
+| 19:01 | Session end: 12 writes across 12 files (hk-room-status.spec.ts, hk-inspection.spec.ts, lost-found.spec.ts, logbook.spec.ts, scheduling.spec.ts) | 14 reads | ~39493 tok |
+| 19:14 | Edited e2e/golden-paths/logbook.spec.ts | 9→9 lines | ~91 |
+| 19:14 | Edited e2e/golden-paths/lost-found.spec.ts | 9→11 lines | ~152 |
+| 19:14 | Edited e2e/golden-paths/staff.spec.ts | reduced (-6 lines) | ~198 |
+| 19:14 | Edited e2e/golden-paths/scheduling.spec.ts | 13→16 lines | ~198 |
+| 19:14 | Edited e2e/golden-paths/scheduling.spec.ts | added 1 condition(s) | ~357 |
+| 19:15 | Edited e2e/golden-paths/hk-rooms-management.spec.ts | 24→20 lines | ~224 |
+| 19:15 | Edited e2e/golden-paths/settings.spec.ts | 2→2 lines | ~38 |
+| 19:15 | Edited e2e/golden-paths/engineering-assets.spec.ts | 34→30 lines | ~295 |
+| 19:15 | Edited e2e/golden-paths/sop.spec.ts | modified if() | ~78 |
+| 19:20 | Edited e2e/golden-paths/logbook.spec.ts | 5→2 lines | ~29 |
+| 19:20 | Edited e2e/golden-paths/scheduling.spec.ts | 37→32 lines | ~343 |
+| 19:20 | Edited e2e/golden-paths/settings.spec.ts | expanded (+7 lines) | ~422 |
+| 19:23 | Edited e2e/golden-paths/scheduling.spec.ts | modified if() | ~458 |
+| 19:27 | Session end: 25 writes across 12 files (hk-room-status.spec.ts, hk-inspection.spec.ts, lost-found.spec.ts, logbook.spec.ts, scheduling.spec.ts) | 23 reads | ~42376 tok |

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-31T23:34:46.802Z
-> Files: 33 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T00:23:07.083Z
+> Files: 45 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -703,8 +703,20 @@
 
 ## e2e/golden-paths/
 
+- `dashboard.spec.ts` — Golden path: Dashboard — role-specific dashboards load correctly (~542 tok)
+- `engineering-assets.spec.ts` — Golden path: Engineering — assets + PM schedules (~780 tok)
 - `engineering.spec.ts` — Golden path: Engineering — work order create, then claim (~783 tok)
 - `hk-assignment.spec.ts` — Golden path: Housekeeping — room assignment save (~724 tok)
+- `hk-inspection.spec.ts` — Golden path: Housekeeping — room inspection (~871 tok)
+- `hk-room-status.spec.ts` — Golden path: Housekeeping — room status transitions (~981 tok)
+- `hk-rooms-management.spec.ts` — Golden path: Housekeeping — All Rooms management (~657 tok)
+- `logbook.spec.ts` — Golden path: Logbook — create an entry (~715 tok)
+- `lost-found.spec.ts` — Golden path: Lost & Found — log item + claim it (~1201 tok)
+- `reports.spec.ts` — Golden path: Reports — daily summary + tab navigation (~552 tok)
+- `scheduling.spec.ts` — Golden path: Scheduling — create a shift + assign staff (~1088 tok)
+- `settings.spec.ts` — Golden path: Settings — all settings sub-pages load + general save (~732 tok)
+- `sop.spec.ts` — Golden path: SOP Library — list documents + AI query (~737 tok)
+- `staff.spec.ts` — Golden path: Staff — list, view profile, invite (~648 tok)
 - `tasks.spec.ts` — Golden path: Tasks — create, then advance status (~728 tok)
 
 ## e2e/helpers/
