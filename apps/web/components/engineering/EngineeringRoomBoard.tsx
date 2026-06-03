@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { housekeepingApi } from '@/lib/api/housekeeping'
+import { guestRequestsApi } from '@/lib/api/guest_requests'
+import { tasksApi } from '@/lib/api/tasks'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { StatusDot } from '@/components/ui/primitives'
@@ -31,6 +33,40 @@ export function EngineeringRoomBoard() {
     queryFn: () => housekeepingApi.getBoard(today, undefined, true),
     refetchInterval: 60_000,
   })
+
+  const { data: guestRequestsData } = useQuery({
+    queryKey: ['guest-requests-board'],
+    queryFn: () => guestRequestsApi.listRequests({ per_page: 200 }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks-board'],
+    queryFn: () => tasksApi.list({ per_page: 200 }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const guestRequestsByRoom = useMemo<Record<string, number>>(() => {
+    const all: any[] = (guestRequestsData as any)?.data ?? []
+    return all
+      .filter((r: any) => r.status === 'open' || r.status === 'in_progress')
+      .reduce<Record<string, number>>((acc, r) => {
+        if (r.room_id) acc[r.room_id] = (acc[r.room_id] ?? 0) + 1
+        return acc
+      }, {})
+  }, [guestRequestsData])
+
+  const openTasksByRoom = useMemo<Record<string, number>>(() => {
+    const all: any[] = (tasksData as any)?.data ?? []
+    return all
+      .filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')
+      .reduce<Record<string, number>>((acc, t) => {
+        if (t.room_id) acc[t.room_id] = (acc[t.room_id] ?? 0) + 1
+        return acc
+      }, {})
+  }, [tasksData])
 
   const allRooms = useMemo(() => {
     const raw = (data as any)?.data ?? []
@@ -147,6 +183,8 @@ export function EngineeringRoomBoard() {
                       key={room.room_id}
                       room={room}
                       assignmentMode={false}
+                      guestRequestCount={guestRequestsByRoom[room.room_id] ?? 0}
+                      openTaskCount={openTasksByRoom[room.room_id] ?? 0}
                       onOpenDetail={() => setSelectedRoom(room)}
                     />
                   ))}

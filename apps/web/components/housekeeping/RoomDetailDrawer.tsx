@@ -10,6 +10,7 @@ import {
   Wrench,
   Circle,
   MessageSquare,
+  ClipboardList,
   Package,
   ChevronDown,
   ChevronUp,
@@ -23,6 +24,8 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { engineeringApi } from '@/lib/api/engineering'
 import { roomsApi } from '@/lib/api/rooms'
+import { guestRequestsApi } from '@/lib/api/guest_requests'
+import { tasksApi } from '@/lib/api/tasks'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
@@ -372,6 +375,29 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     enabled: !!roomId && isOpen && canViewStatusHistory && showStatusHistory,
     staleTime: 30_000,
   })
+
+  const { data: roomGuestRequestsData } = useQuery({
+    queryKey: ['room-guest-requests', roomId],
+    queryFn: () => guestRequestsApi.listRequests({ room_id: roomId! }),
+    enabled: !!roomId && isOpen,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const { data: roomTasksData } = useQuery({
+    queryKey: ['room-tasks', roomId],
+    queryFn: () => tasksApi.list({ room_id: roomId! }),
+    enabled: !!roomId && isOpen,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const activeGuestRequests: any[] = ((roomGuestRequestsData as any)?.data ?? []).filter(
+    (r: any) => r.status === 'open' || r.status === 'in_progress',
+  )
+  const openTasks: any[] = ((roomTasksData as any)?.data ?? []).filter(
+    (t: any) => t.status !== 'completed' && t.status !== 'cancelled',
+  )
 
   // Close on Escape key
   useEffect(() => {
@@ -785,6 +811,54 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   <p className="text-xs text-[var(--alert)]">{woError}</p>
                 )}
               </div>
+          )}
+
+          {/* Active guest requests for this room */}
+          {activeGuestRequests.length > 0 && (
+            <div className="p-4 border-b border-white/60">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Active Guest Requests
+              </h3>
+              <div className="space-y-1.5">
+                {activeGuestRequests.map((req: any) => (
+                  <div key={req.id} className="flex items-start gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--info)]" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-ink truncate">{req.title}</p>
+                      <p className="text-[11px] text-ink3">
+                        {req.status === 'in_progress' ? 'In progress' : 'Open'}
+                        {req.guest_name ? ` · ${req.guest_name}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Open tasks for this room */}
+          {openTasks.length > 0 && (
+            <div className="p-4 border-b border-white/60">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Open Tasks
+              </h3>
+              <div className="space-y-1.5">
+                {openTasks.map((task: any) => (
+                  <div key={task.id} className="flex items-start gap-2">
+                    <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--caution)]" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-ink truncate">{task.title}</p>
+                      <p className="text-[11px] text-ink3">
+                        {task.status.replace(/_/g, ' ')}
+                        {(task.user_profiles?.preferred_name || task.user_profiles?.full_name)
+                          ? ` · ${task.user_profiles?.preferred_name ?? task.user_profiles?.full_name}`
+                          : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* AI Prediction and Status History — supervisors/GMs/front_desk only */}

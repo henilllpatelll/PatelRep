@@ -15,6 +15,7 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "room_id",
     "guest_name",
     "status",
+    "priority",
     "resolved_at",
     "resolved_by",
 }
@@ -35,6 +36,7 @@ async def create_guest_request(
         "guest_name": request.guest_name,
         "created_by": current_user.user_id,
         "status": "open",
+        "priority": request.priority or "normal",
     }
     result = supabase.table("guest_requests").insert(gr_data).execute()
 
@@ -46,7 +48,7 @@ async def create_guest_request(
             "title": request.title,
             "description": request.description,
             "task_type": "guest_request",
-            "priority": "normal",
+            "priority": request.priority or "normal",
             "room_id": str(request.room_id) if request.room_id else None,
             "created_by": current_user.user_id,
             "sla_minutes": 240,

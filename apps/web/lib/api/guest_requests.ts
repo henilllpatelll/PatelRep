@@ -12,6 +12,7 @@ export interface GuestRequest {
   task_id?: string
   assigned_to?: string
   status: GuestRequestStatus
+  priority: 'normal' | 'urgent'
   resolved_at?: string
   satisfaction_score?: number
   created_by: string
@@ -38,6 +39,7 @@ export const guestRequestsApi = {
     room_id?: string
     guest_name?: string
     description?: string
+    priority?: 'normal' | 'urgent'
   }) =>
     apiClient.post('/guest-requests', payload) as Promise<{ data: GuestRequest }>,
 

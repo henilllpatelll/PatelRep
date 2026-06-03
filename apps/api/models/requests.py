@@ -447,6 +447,7 @@ class CreateGuestRequestRequest(SanitizedBaseModel):
     room_id: Optional[UUID4] = None
     guest_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    priority: Optional[Literal["normal", "urgent"]] = "normal"
 
 
 # --- Lost & Found ---

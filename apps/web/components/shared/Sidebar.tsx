@@ -41,12 +41,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
 ]
 
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
+  housekeeping_supervisor: ['/dashboard','/housekeeping','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
   chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   engineer:       ['/dashboard','/engineering','/tasks'],
-  front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/lost-found'],
+  front_desk:     ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found'],
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {

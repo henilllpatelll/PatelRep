@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { GuestRequestsPage } from '@/components/guest-requests/GuestRequestsPage'
 
-export default function GuestRequestsPage() {
-  redirect('/tasks?source=guest-requests')
+export default function Page() {
+  return <GuestRequestsPage />
 }

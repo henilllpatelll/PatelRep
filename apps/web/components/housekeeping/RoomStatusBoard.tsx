@@ -7,6 +7,8 @@ import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
+import { guestRequestsApi } from '@/lib/api/guest_requests'
+import { tasksApi } from '@/lib/api/tasks'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
@@ -242,6 +244,40 @@ export function RoomStatusBoard() {
     queryKey: ['staff-list'],
     queryFn: () => staffApi.list(),
   })
+  const { data: guestRequestsData } = useQuery({
+    queryKey: ['guest-requests-board'],
+    queryFn: () => guestRequestsApi.listRequests({ per_page: 200 }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const guestRequestsByRoom = useMemo<Record<string, number>>(() => {
+    const all: any[] = (guestRequestsData as any)?.data ?? []
+    return all
+      .filter((r: any) => r.status === 'open' || r.status === 'in_progress')
+      .reduce<Record<string, number>>((acc, r) => {
+        if (r.room_id) acc[r.room_id] = (acc[r.room_id] ?? 0) + 1
+        return acc
+      }, {})
+  }, [guestRequestsData])
+
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks-board'],
+    queryFn: () => tasksApi.list({ per_page: 200 }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  const openTasksByRoom = useMemo<Record<string, number>>(() => {
+    const all: any[] = (tasksData as any)?.data ?? []
+    return all
+      .filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')
+      .reduce<Record<string, number>>((acc, t) => {
+        if (t.room_id) acc[t.room_id] = (acc[t.room_id] ?? 0) + 1
+        return acc
+      }, {})
+  }, [tasksData])
+
   const hkNameById = useMemo(() =>
     ((staffData?.data?.staff ?? []) as any[]).reduce<Record<string, string>>(
       (acc, s) => { acc[s.user_id] = s.full_name; return acc },
@@ -496,6 +532,8 @@ export function RoomStatusBoard() {
                         key={room.room_id}
                         room={cardRoom}
                         assignmentMode={assignmentMode}
+                        guestRequestCount={guestRequestsByRoom[room.room_id] ?? 0}
+                        openTaskCount={openTasksByRoom[room.room_id] ?? 0}
                         onStatusChange={(roomId: string, newStatus: string) =>
                           handleStatusChange(roomId, newStatus)
                         }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T23:49:53.463Z
-> Files: 47 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T02:26:28.468Z
+> Files: 58 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -12,7 +12,8 @@
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
 - `feedback_platform_scope.md` (~185 tok)
-- `MEMORY.md` — PatelRep Project Memory (~277 tok)
+- `MEMORY.md` — PatelRep Project Memory (~281 tok)
+- `project_guest_requests_spec.md` — Guest Requests Redesign Spec (~451 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -440,9 +441,11 @@
 
 ## apps/api/models/
 
+- `requests.py` — Pydantic: SanitizedBaseModel (~6369 tok)
 
 ## apps/api/routers/
 
+- `guest_requests.py` — API: 4 endpoints (~1884 tok)
 - `housekeeping.py` — Declares from (~16596 tok)
 - `rooms.py` — API: 3 endpoints (~9965 tok)
 
@@ -568,6 +571,7 @@
 
 ## apps/web/app/(dashboard)/guest-requests/
 
+- `page.tsx` — Page (~43 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
@@ -651,13 +655,21 @@
 
 ## apps/web/components/engineering/
 
-- `EngineeringRoomBoard.tsx` — filterRooms (~1838 tok)
+- `EngineeringRoomBoard.tsx` — filterRooms (~2250 tok)
+
+## apps/web/components/guest-requests/
+
+- `GuestRequestDrawer.tsx` — GuestRequestDrawer (~1078 tok)
+- `GuestRequestsPage.tsx` — timeAgo (~3193 tok)
+- `HistoryTab.tsx` — HistoryTab (~1177 tok)
+- `NewRequestModal.tsx` — NewRequestModal (~2166 tok)
 
 ## apps/web/components/housekeeping/
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11978 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3562 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~12904 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~7070 tok)
 
 ## apps/web/components/settings/
 
@@ -666,7 +678,7 @@
 ## apps/web/components/shared/
 
 - `Providers.tsx` — SUPABASE_DB_ROLES (~2206 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4450 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4466 tok)
 
 ## apps/web/components/ui/
 
@@ -676,6 +688,7 @@
 
 ## apps/web/lib/api/
 
+- `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~460 tok)
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (23 endpoints) (~1644 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1350 tok)
 
@@ -729,4 +742,5 @@
 
 ## supabase/migrations/
 
+- `042_guest_requests_priority.sql` (~37 tok)
 - `049_inspection_results_nullable_template_item.sql` — ============================================================================= (~250 tok)

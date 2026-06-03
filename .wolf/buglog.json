@@ -5251,6 +5251,118 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-02T23:49:44.410Z"
+    },
+    {
+      "id": "bug-316",
+      "timestamp": "2026-06-03T01:51:44.254Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had '/tasks'",
+      "fix": "Changed to '/guest-requests'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-03T01:51:53.821Z"
+    },
+    {
+      "id": "bug-317",
+      "timestamp": "2026-06-03T01:58:33.210Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Had \"fixed inset-0 bg-black/20 z-40\"",
+      "fix": "Changed to \"fixed inset-0 z-50 flex justify-end\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T01:58:33.210Z"
+    },
+    {
+      "id": "bug-318",
+      "timestamp": "2026-06-03T02:09:09.802Z",
+      "error_message": "Wrong return value",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Was returning: acc },",
+      "fix": "Now returns: all",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T02:09:09.802Z"
+    },
+    {
+      "id": "bug-319",
+      "timestamp": "2026-06-03T02:09:14.041Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T02:09:14.042Z"
+    },
+    {
+      "id": "bug-320",
+      "timestamp": "2026-06-03T02:25:45.559Z",
+      "error_message": "CSS fix: all",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "all: any[] = (guestRequestsData as any)?.data ?? [] → any[] = (tasksData as any)?.data ?? []",
+      "fix": "Changed all: any[] = (guestRequestsData as any)?.data ?? [] → any[] = (tasksData as any)?.data ?? []",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T02:25:45.559Z"
+    },
+    {
+      "id": "bug-321",
+      "timestamp": "2026-06-03T02:25:58.496Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Active guest requests for this room */}; {activeGuestRequests.length > 0 && (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-03T02:26:09.514Z"
+    },
+    {
+      "id": "bug-322",
+      "timestamp": "2026-06-03T02:26:23.393Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: guestRequestCount={guestRequestsByRoom[room.room_id] ?? 0}; openTaskCount={openTasksByRoom[room.room_id] ?? 0}",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-03T02:26:28.486Z"
     }
   ]
 }

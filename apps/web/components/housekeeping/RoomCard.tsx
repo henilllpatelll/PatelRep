@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, LogOut, User, Wrench } from 'lucide-react'
+import { Clock, LogOut, User, Wrench, MessageSquare, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
@@ -75,6 +75,8 @@ interface Props {
   savedAssignmentId?: string | null
   onRemoveSavedAssignment?: (assignmentId: string) => void
   isRemovingAssignment?: boolean
+  guestRequestCount?: number
+  openTaskCount?: number
 }
 
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'DO_NOT_DISTURB' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
@@ -102,6 +104,8 @@ export function RoomCard({
   savedAssignmentId,
   onRemoveSavedAssignment,
   isRemovingAssignment,
+  guestRequestCount = 0,
+  openTaskCount = 0,
 }: Props) {
   const status: RoomStatus = (room.status || 'DIRTY') as RoomStatus
   const prediction = room.prediction ?? null
@@ -255,6 +259,18 @@ export function RoomCard({
             <Wrench className="w-3 h-3 shrink-0" />
             <span className="truncate">{workOrderLabel}</span>
           </div>
+        </div>
+      )}
+      {guestRequestCount > 0 && (
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--info)]">
+          <MessageSquare className="w-3 h-3 shrink-0" />
+          <span>{guestRequestCount} guest request{guestRequestCount > 1 ? 's' : ''}</span>
+        </div>
+      )}
+      {openTaskCount > 0 && (
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--caution)]">
+          <ClipboardList className="w-3 h-3 shrink-0" />
+          <span>{openTaskCount} task{openTaskCount > 1 ? 's' : ''}</span>
         </div>
       )}
 

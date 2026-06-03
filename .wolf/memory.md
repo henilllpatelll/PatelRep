@@ -2,6 +2,8 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-06-02 21:26 | Room interconnectivity: openTaskCount indicator on RoomCard (ClipboardList icon), tasks query+map in RoomStatusBoard and EngineeringRoomBoard, guest requests + open tasks sections in RoomDetailDrawer before AI Prediction | RoomCard.tsx, RoomStatusBoard.tsx, RoomDetailDrawer.tsx, EngineeringRoomBoard.tsx | complete | ~2k tok |
+| 2026-06-02 | Built guest requests kanban redesign: 3-column kanban (open/in-progress/resolved today), right drawer, new request modal, history tab, priority field (migration 042) | components/guest-requests/*, app/(dashboard)/guest-requests/page.tsx, lib/api/guest_requests.ts, api/routers/guest_requests.py, api/models/requests.py | complete | ~4k tok |
 | 2026-06-01 | Strip |prev_clean_type= encoding from displayed notes in history timeline and actionable note helper | RoomDetailDrawer.tsx | complete | ~50 tok |
 | 2026-05-31 | Added comprehensive golden path suite: 9 new spec files covering HK board status transitions, inspection, lost-found, logbook, scheduling, SOP, reports, all-rooms management, staff, engineering assets/PM, settings sub-pages, and dashboard | e2e/golden-paths/ | complete | ~3k tok |
 | 2026-05-31 | Golden path e2e tests: wrote hk-assignment, engineering, tasks specs in e2e/golden-paths/. 5/6 pass; HK skips when all rooms assigned (correct). Fixed bugs: clean_type NOT NULL 500, NaN badge, silent save error. | apps/api/routers/housekeeping.py, housekeeping page.tsx, e2e/golden-paths/ | complete | ~5k tok |
@@ -3229,3 +3231,61 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 20:19 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_guest_requests_spec.md | — | ~467 |
+| 20:19 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~39 |
+| 20:24 | Created supabase/migrations/042_guest_requests_priority.sql | — | ~37 |
+| 20:25 | Created apps/web/components/guest-requests/GuestRequestDrawer.tsx | — | ~1064 |
+| 20:25 | Created apps/web/components/guest-requests/HistoryTab.tsx | — | ~1177 |
+| 20:25 | Created apps/web/components/guest-requests/NewRequestModal.tsx | — | ~2132 |
+| 20:26 | Created apps/web/components/guest-requests/GuestRequestsPage.tsx | — | ~3194 |
+| 20:26 | Created apps/web/app/(dashboard)/guest-requests/page.tsx | — | ~43 |
+| 20:26 | Edited apps/web/lib/api/guest_requests.ts | 18→19 lines | ~120 |
+| 20:26 | Edited apps/web/lib/api/guest_requests.ts | 6→7 lines | ~46 |
+| 20:26 | Edited apps/api/models/requests.py | modified CreateGuestRequestRequest() | ~107 |
+| 20:26 | Edited apps/api/routers/guest_requests.py | 9→10 lines | ~48 |
+| 20:27 | Edited apps/api/routers/guest_requests.py | 9→10 lines | ~107 |
+| 20:27 | Edited apps/api/routers/guest_requests.py | 11→11 lines | ~156 |
+| 20:28 | Session end: 14 writes across 11 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 16 reads | ~35088 tok |
+| 20:29 | Session end: 14 writes across 11 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 16 reads | ~35088 tok |
+| 20:51 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~44 |
+| 20:51 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~43 |
+| 20:51 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~29 |
+| 20:51 | Session end: 17 writes across 12 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 17 reads | ~39654 tok |
+| 20:58 | Created apps/web/components/guest-requests/NewRequestModal.tsx | — | ~2166 |
+| 20:58 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 3→3 lines | ~70 |
+| 20:58 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 3→3 lines | ~8 |
+| 20:58 | Session end: 20 writes across 12 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 20 reads | ~44030 tok |
+| 21:02 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | inline fix | ~26 |
+| 21:02 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | inline fix | ~29 |
+| 21:02 | Session end: 22 writes across 12 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 20 reads | ~44085 tok |
+| 21:09 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~30 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 condition(s) | ~227 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added nullish coalescing | ~73 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~21 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→4 lines | ~35 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→4 lines | ~25 |
+| 21:09 | Edited apps/web/components/housekeeping/RoomCard.tsx | expanded (+6 lines) | ~171 |
+| 21:09 | Session end: 29 writes across 14 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 21 reads | ~48148 tok |
+| 21:18 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 2 import(s) | ~74 |
+| 21:18 | Session end: 30 writes across 15 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 25 reads | ~50060 tok |
+| 21:22 | Session end: 30 writes across 15 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 25 reads | ~50060 tok |
+| 21:22 | Session end: 30 writes across 15 files (project_guest_requests_spec.md, MEMORY.md, 042_guest_requests_priority.sql, GuestRequestDrawer.tsx, HistoryTab.tsx) | 25 reads | ~50060 tok |
+
+## Session: 2026-06-03 21:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | inline fix | ~26 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 16→17 lines | ~61 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | 2→3 lines | ~16 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→4 lines | ~24 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomCard.tsx | expanded (+6 lines) | ~163 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~30 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 condition(s) | ~276 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 5→6 lines | ~94 |
+| 21:25 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added optional chaining | ~309 |
+| 21:26 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added optional chaining | ~676 |
+| 21:26 | Edited apps/web/components/engineering/EngineeringRoomBoard.tsx | added 2 import(s) | ~64 |
+| 21:26 | Edited apps/web/components/engineering/EngineeringRoomBoard.tsx | added optional chaining | ~396 |
+| 21:26 | Edited apps/web/components/engineering/EngineeringRoomBoard.tsx | added nullish coalescing | ~112 |
+| 21:27 | Session end: 13 writes across 4 files (RoomCard.tsx, RoomDetailDrawer.tsx, RoomStatusBoard.tsx, EngineeringRoomBoard.tsx) | 6 reads | ~26885 tok |
