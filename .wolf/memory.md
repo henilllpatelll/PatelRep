@@ -2,6 +2,7 @@
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
+| 2026-06-01 | Strip |prev_clean_type= encoding from displayed notes in history timeline and actionable note helper | RoomDetailDrawer.tsx | complete | ~50 tok |
 | 2026-05-31 | Added comprehensive golden path suite: 9 new spec files covering HK board status transitions, inspection, lost-found, logbook, scheduling, SOP, reports, all-rooms management, staff, engineering assets/PM, settings sub-pages, and dashboard | e2e/golden-paths/ | complete | ~3k tok |
 | 2026-05-31 | Golden path e2e tests: wrote hk-assignment, engineering, tasks specs in e2e/golden-paths/. 5/6 pass; HK skips when all rooms assigned (correct). Fixed bugs: clean_type NOT NULL 500, NaN badge, silent save error. | apps/api/routers/housekeeping.py, housekeeping page.tsx, e2e/golden-paths/ | complete | ~5k tok |
 | 2026-05-31 | Fixed: PICKUP room staying PICKUP after checkout — board now uses room_status.clean_type (DEP) over assignment.clean_type (FULL/LIGHT) when actual_checkout_at is set | apps/api/routers/housekeeping.py | complete | ~1k tok |
@@ -3162,3 +3163,69 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 19:20 | Edited e2e/golden-paths/settings.spec.ts | expanded (+7 lines) | ~422 |
 | 19:23 | Edited e2e/golden-paths/scheduling.spec.ts | modified if() | ~458 |
 | 19:27 | Session end: 25 writes across 12 files (hk-room-status.spec.ts, hk-inspection.spec.ts, lost-found.spec.ts, logbook.spec.ts, scheduling.spec.ts) | 23 reads | ~42376 tok |
+
+## Session: 2026-06-01 19:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-01 19:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:49 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | added 1 import(s) | ~172 |
+| 19:49 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | modified QueueCard() | ~489 |
+| 19:49 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 1→2 lines | ~50 |
+| 19:49 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 6→7 lines | ~78 |
+| 19:49 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | CSS: status | ~86 |
+| 19:50 | Added RoomDetailDrawer to inspections page — room/info area clickable to open drawer with Notes/Work Order/Lost & Found | apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | done | ~200 |
+| 19:50 | Session end: 5 writes across 1 files (page.tsx) | 4 reads | ~23138 tok |
+| 20:03 | Edited apps/web/components/shared/Providers.tsx | CSS: user | ~183 |
+| 20:03 | Edited apps/web/components/shared/Providers.tsx | removed 4 lines | ~10 |
+| 20:03 | Edited apps/web/components/shared/Providers.tsx | 4→1 lines | ~12 |
+| 20:03 | Session end: 8 writes across 2 files (page.tsx, Providers.tsx) | 16 reads | ~27793 tok |
+| 20:26 | Session end: 8 writes across 2 files (page.tsx, Providers.tsx) | 17 reads | ~29651 tok |
+| 20:34 | Session end: 8 writes across 2 files (page.tsx, Providers.tsx) | 33 reads | ~31376 tok |
+
+## Session: 2026-06-02 21:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:44 | Edited apps/api/middleware/auth.py | modified _fetch_jwks() | ~209 |
+| 21:44 | Edited apps/api/middleware/auth.py | modified _decode_token() | ~206 |
+| 21:45 | Edited apps/api/middleware/auth.py | modified get_current_user_no_hotel() | ~358 |
+| 21:45 | Edited apps/web/components/shared/Providers.tsx | added error handling | ~349 |
+| 21:45 | Edited apps/web/components/shared/Providers.tsx | modified if() | ~136 |
+| 21:45 | Edited apps/web/components/shared/Providers.tsx | modified if() | ~293 |
+| 02:50 | Fixed dashboard not loading: async JWKS fetch in auth.py + JWT role decode in Providers.tsx | auth.py, Providers.tsx | dashboard now renders GM view | ~3500 |
+| 21:49 | Session end: 6 writes across 2 files (auth.py, Providers.tsx) | 18 reads | ~5134 tok |
+
+## Session: 2026-06-02 22:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-02 22:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-02 22:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:17 | Verified local PatelRep web/API dev servers and opened browser for user testing | localhost:3000, localhost:8000, .wolf/cerebrum.md | web login and FastAPI OpenAPI responded; browser visible | ~900 |
+| 22:33 | Fixed housekeeping board local load failure | apps/api/middleware/rate_limit.py, .wolf/buglog.json, .wolf/cerebrum.md | awaited async JWT decode in rate limiter; board visible in browser | ~2600 |
+| 18:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: rawNote, null | ~69 |
+| 18:49 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: null | ~92 |
+| 18:50 | Session end: 2 writes across 1 files (RoomDetailDrawer.tsx) | 1 reads | ~12119 tok |
+
+## Session: 2026-06-03 19:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-03 19:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

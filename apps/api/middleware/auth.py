@@ -16,18 +16,18 @@ _jwks_cache: dict | None = None
 _jwks_cache_time: float = 0.0
 
 
-def _fetch_jwks() -> dict:
+async def _fetch_jwks() -> dict:
     """Fetch and cache Supabase JWKS for ES256 token verification."""
     global _jwks_cache, _jwks_cache_time
     now = time.time()
     if _jwks_cache is None or (now - _jwks_cache_time) > 3600:
         try:
-            r = httpx.get(
-                f"{settings.supabase_url}/auth/v1/.well-known/jwks.json",
-                timeout=5.0
-            )
-            _jwks_cache = r.json()
-            _jwks_cache_time = now
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(
+                    f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
+                )
+                _jwks_cache = r.json()
+                _jwks_cache_time = now
         except Exception as e:
             logger.warning("JWKS fetch failed, tokens may not verify: %s", e)
     return _jwks_cache or {"keys": []}
@@ -41,7 +41,7 @@ class CurrentUser:
     email: str = ""
 
 
-def _decode_token(token: str) -> dict:
+async def _decode_token(token: str) -> dict:
     # Try HS256 first (smoke tests + older Supabase projects)
     try:
         return jwt.decode(
@@ -54,7 +54,7 @@ def _decode_token(token: str) -> dict:
         pass
     # Fall back to ES256 via JWKS (newer Supabase projects)
     try:
-        jwks = _fetch_jwks()
+        jwks = await _fetch_jwks()
         return jwt.decode(
             token,
             jwks,
@@ -75,7 +75,7 @@ async def get_current_user(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = _decode_token(credentials.credentials)
+    payload = await _decode_token(credentials.credentials)
     user_id = payload.get("sub")
     hotel_id = payload.get("hotel_id")
     role = payload.get("role", "none")
@@ -109,7 +109,7 @@ async def get_current_user_no_hotel(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = _decode_token(credentials.credentials)
+    payload = await _decode_token(credentials.credentials)
     user_id = payload.get("sub")
 
     if not user_id:

@@ -17,6 +17,8 @@
 
 ## Key Learnings
 
+- **Local dev servers may already be running long-lived (2026-06-02):** Before starting PatelRep locally, probe ports 3000 and 8000 first. In this session Next.js was already serving from `apps/web` on 3000 and FastAPI docs/openapi were responding on 8000, so reusing the live processes avoided unnecessary restarts.
+- **Rate-limit middleware must await async JWT decode (2026-06-01):** `middleware.auth._decode_token()` is async. Any middleware helper that inspects bearer claims, especially `middleware/rate_limit.py`, must await it or every authenticated HTTP request crashes before route handlers run.
 - **Opera imports must reset generated room-card state (2026-05-31):** HK Details import should clear transient room_status fields shown on cards (checkout/checkin, actual checkout, clean_type, guest/VIP/DND/DNS flags, notes) and purge same-day generated import markers. Task Sheet import should also purge task_sheet_clean_type and stayover_override markers before writing new task truth, otherwise same-day re-imports keep old checkout/stayover labels on room cards.
 - **Assign-mode occupied clean-type exception (2026-05-31):** Assignment UI still should not show a general clean-type picker. The exception is assigning an occupied room with no clean_type label: prompt for DEP/FULL/LIGHT, save that clean_type with the pending assignment, map FULL/LIGHT occupied rows to PICKUP, and clear the manual clean_type/status on assignment removal unless a same-day Task Sheet marker exists.
 - **Inspection templates must be persisted for room inspections (2026-05-31):** `/housekeeping/inspections/templates` should return a real template id with checklist item ids. Returning an `id: null` fallback or a blank default template makes the inspection modal non-submittable or appear empty, because `inspections.template_id` is NOT NULL and the UI disables submit without a template id.
@@ -110,6 +112,10 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-06-02] **Never use synchronous httpx.get() inside async FastAPI middleware** — `_fetch_jwks()` in `auth.py` used `httpx.get()` (blocking) inside an async function. This blocks the entire asyncio event loop, freezing all request processing until the HTTP call completes. Always use `async with httpx.AsyncClient() as client: await client.get(...)` for any HTTP calls in async Python code.
+
+- [2026-06-02] **extractRole in Providers.tsx must decode the JWT access token for the custom role** — The Supabase JWT hook adds `role` as a top-level JWT payload claim (not inside `app_metadata` or `user_metadata`). The Supabase JS SDK's `User` object returns `user.role = "authenticated"` (the DB role), not the custom app role. Always decode the access token with `atob(payload)` and read `claims.role` directly. Without this, role is null until `/auth/me` responds, leaving the dashboard stuck on a loading skeleton.
 
 - [2026-05-24] **GET /housekeeping/my-rooms must accept client date, not use date.today()** — Railway server runs UTC; `date.today()` rolls to tomorrow after 7 PM CDT. Assignments are stored with the client's local Texas date. Always accept `?date=YYYY-MM-DD` from the client and fall back to `date.today()` only as a last resort. Web client must pass `format(new Date(), 'yyyy-MM-dd')`, mobile must build the local date string manually (no date-fns on mobile).
 

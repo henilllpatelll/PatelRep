@@ -39,7 +39,30 @@ interface MeResponse {
   }
 }
 
-function extractRole(appMeta: Record<string, unknown>, userMeta: Record<string, unknown>): UserRole | null {
+// Standard Supabase/Postgres DB roles — never our app roles
+const SUPABASE_DB_ROLES = new Set(['authenticated', 'anon', 'service_role', 'postgres'])
+
+function decodeJwtRole(accessToken: string | undefined): UserRole | null {
+  if (!accessToken) return null
+  try {
+    const payload = accessToken.split('.')[1]
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const claims = JSON.parse(atob(padded)) as Record<string, unknown>
+    const role = claims.role as string | undefined
+    if (role && !SUPABASE_DB_ROLES.has(role)) return role as UserRole
+  } catch {
+    // Ignore malformed JWT
+  }
+  return null
+}
+
+function extractRole(session: Session | null, appMeta: Record<string, unknown>, userMeta: Record<string, unknown>): UserRole | null {
+  // Primary: decode JWT access token — role is a top-level custom claim from the JWT hook
+  const jwtRole = decodeJwtRole(session?.access_token)
+  if (jwtRole) return jwtRole
+  // Fallback: app_metadata / user_metadata (older hook format)
   const role = appMeta?.role ?? userMeta?.role
   return (role as UserRole) ?? null
 }
@@ -119,6 +142,7 @@ function AuthListener() {
         setSession(session)
         setRole(
           extractRole(
+            session,
             session.user.app_metadata as Record<string, unknown>,
             session.user.user_metadata as Record<string, unknown>,
           ),
@@ -136,6 +160,7 @@ function AuthListener() {
         setSession(session)
         setRole(
           extractRole(
+            session,
             session.user.app_metadata as Record<string, unknown>,
             session.user.user_metadata as Record<string, unknown>,
           ),
@@ -147,6 +172,7 @@ function AuthListener() {
         setSession(session)
         setRole(
           extractRole(
+            session,
             session.user.app_metadata as Record<string, unknown>,
             session.user.user_metadata as Record<string, unknown>,
           ),
@@ -155,6 +181,7 @@ function AuthListener() {
         setUser(session.user)
         setSession(session)
         setRole(extractRole(
+          session,
           session.user.app_metadata as Record<string, unknown>,
           session.user.user_metadata as Record<string, unknown>,
         ))

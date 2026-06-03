@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-01T00:23:07.083Z
-> Files: 45 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-02T23:49:53.463Z
+> Files: 47 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -436,6 +436,7 @@
 
 ## apps/api/middleware/
 
+- `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~1251 tok)
 
 ## apps/api/models/
 
@@ -577,7 +578,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
-- `page.tsx` — todayISO — renders table (~4954 tok)
+- `page.tsx` — todayISO — renders table (~5210 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
@@ -656,7 +657,7 @@
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
 - `RoomCard.tsx` — STATUS_BORDER (~3481 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11928 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~11978 tok)
 
 ## apps/web/components/settings/
 
@@ -664,6 +665,7 @@
 
 ## apps/web/components/shared/
 
+- `Providers.tsx` — SUPABASE_DB_ROLES (~2206 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4450 tok)
 
 ## apps/web/components/ui/

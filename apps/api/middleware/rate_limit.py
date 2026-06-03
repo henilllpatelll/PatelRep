@@ -3,7 +3,7 @@ import math
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import Deque, Iterable
+from typing import Deque
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -61,7 +61,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         now = time.monotonic()
-        buckets = list(self._buckets_for(request))
+        buckets = await self._buckets_for(request)
         async with self._lock:
             exceeded = self._first_exceeded_bucket(buckets, now)
             if exceeded:
@@ -78,16 +78,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             response.headers["X-RateLimit-Reset"] = str(math.ceil(time.time() + reset_after))
         return response
 
-    def _buckets_for(self, request: Request) -> Iterable[_Bucket]:
+    async def _buckets_for(self, request: Request) -> list[_Bucket]:
         path = request.url.path
         client_ip = _client_ip(request)
-        user_id = _bearer_subject(request)
+        user_id = await _bearer_subject(request)
         route_rule = self._route_rule(path)
         ip_rule = self.per_ip_authenticated_rule if user_id else min_rule(self.anonymous_rule, route_rule)
 
-        yield _Bucket(key=f"ip:{client_ip}:{path_tier(path)}", rule=ip_rule)
+        buckets = [_Bucket(key=f"ip:{client_ip}:{path_tier(path)}", rule=ip_rule)]
         if user_id:
-            yield _Bucket(key=f"user:{user_id}:{path_tier(path)}", rule=route_rule)
+            buckets.append(_Bucket(key=f"user:{user_id}:{path_tier(path)}", rule=route_rule))
+        return buckets
 
     def _route_rule(self, path: str) -> RateLimitRule:
         if path == "/health":
@@ -154,7 +155,7 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _bearer_subject(request: Request) -> str | None:
+async def _bearer_subject(request: Request) -> str | None:
     authorization = request.headers.get("authorization", "")
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
@@ -162,7 +163,7 @@ def _bearer_subject(request: Request) -> str | None:
     if token.count(".") != 2:
         return None
     try:
-        claims = _decode_token(token)
+        claims = await _decode_token(token)
     except Exception:
         return None
     subject = claims.get("sub")

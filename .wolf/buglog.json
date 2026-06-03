@@ -5115,6 +5115,142 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-01T00:23:07.116Z"
+    },
+    {
+      "id": "bug-308",
+      "timestamp": "2026-06-01T00:49:23.251Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 26→44 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T00:49:23.251Z"
+    },
+    {
+      "id": "bug-309",
+      "timestamp": "2026-06-01T00:49:42.733Z",
+      "error_message": "Type error",
+      "file": "apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T00:49:42.733Z"
+    },
+    {
+      "id": "bug-310",
+      "timestamp": "2026-06-01T01:03:10.254Z",
+      "error_message": "Wrong return value",
+      "file": "apps/web/components/shared/Providers.tsx",
+      "root_cause": "Was returning: (role as UserRole) ?? null",
+      "fix": "Now returns: jwtRole as UserRole",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T01:03:10.254Z"
+    },
+    {
+      "id": "bug-311",
+      "timestamp": "2026-06-02T02:44:50.432Z",
+      "error_message": "Missing await",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: async def _decode_token(token: str) -> dict:; jwks = await _fetch_jwks() | Also: payload = await _decode_token(credentials.credentials); payload = await _decode_token(credentials.credentials)",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-02T02:45:12.985Z"
+    },
+    {
+      "id": "bug-312",
+      "timestamp": "2026-06-02T02:45:23.246Z",
+      "error_message": "Missing error handling in decodeJwtRole",
+      "file": "apps/web/components/shared/Providers.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T02:45:23.246Z"
+    },
+    {
+      "id": "bug-313",
+      "timestamp": "2026-06-02T02:50:00.000Z",
+      "error_message": "http://localhost:3000/dashboard not loading anything — stuck on loading skeleton",
+      "file": "apps/api/middleware/auth.py, apps/web/components/shared/Providers.tsx",
+      "root_cause": "Two-part: (1) _fetch_jwks() used synchronous httpx.get() which blocked the entire asyncio event loop, causing all API requests to hang. (2) extractRole() only read app_metadata.role/user_metadata.role, but the Supabase JWT hook puts role at the top-level JWT payload — so role was always null without a successful /auth/me response.",
+      "fix": "(1) Made _fetch_jwks() and _decode_token() async in auth.py, using httpx.AsyncClient. (2) Added decodeJwtRole() in Providers.tsx to decode the JWT access token and read the custom role claim directly, bypassing the need for /auth/me to set the role.",
+      "tags": [
+        "auth",
+        "dashboard",
+        "asyncio",
+        "jwt",
+        "role",
+        "blocking"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T02:50:00.000Z"
+    },
+    {
+      "id": "bug-314",
+      "timestamp": "2026-06-01T22:33:59.3521123-05:00",
+      "error_message": "http://localhost:3000/housekeeping room status board showed Failed to load rooms",
+      "file": "apps/api/middleware/rate_limit.py",
+      "root_cause": "The rate-limit middleware still called middleware.auth._decode_token() synchronously after that decoder became async, so authenticated HTTP requests crashed with AttributeError: 'coroutine' object has no attribute 'get' before reaching /auth/me or /housekeeping/board.",
+      "fix": "Made RateLimitMiddleware._buckets_for() and _bearer_subject() async, awaited _decode_token(), and kept invalid-token fallback behavior as anonymous rate limiting. Verified the existing authenticated bucket smoke test catches this regression.",
+      "tags": [
+        "api",
+        "rate-limit",
+        "auth",
+        "asyncio",
+        "housekeeping",
+        "500"
+      ],
+      "related_bugs": [
+        "bug-313"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T22:33:59.3521123-05:00"
+    },
+    {
+      "id": "bug-315",
+      "timestamp": "2026-06-02T23:49:44.410Z",
+      "error_message": "CSS fix: note",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "note: string | null = entry.notes ?? entry.note ?? null → string | null = rawNote",
+      "fix": "Changed note: string | null = entry.notes ?? entry.note ?? null → string | null = rawNote",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T23:49:44.410Z"
     }
   ]
 }

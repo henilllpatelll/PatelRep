@@ -125,7 +125,8 @@ function formatLastAction(entry: any | null, room: any | null, currentUserId?: s
 }
 
 function getActionableNote(entry: any | null): string | null {
-  const note = entry?.notes ?? entry?.note ?? null
+  const raw = entry?.notes ?? entry?.note ?? null
+  const note = raw ? raw.split('|prev_clean_type=')[0] || null : null
   const status = entry?.to_status ?? ''
   if (!note || !['DIRTY', 'PICKUP', 'IN_PROGRESS'].includes(status)) return null
   return note
@@ -878,7 +879,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     const timestamp: string = entry.created_at ?? entry.changed_at ?? ''
                     const actor: string | null =
                       entry.actor_name ?? entry.user_profiles?.preferred_name ?? null
-                    const note: string | null = entry.notes ?? entry.note ?? null
+                    const rawNote: string | null = entry.notes ?? entry.note ?? null
+                    const note: string | null = rawNote
+                      ? rawNote.split('|prev_clean_type=')[0] || null
+                      : null
 
                     return (
                       <div key={index} className="flex items-start gap-3 pl-1">
