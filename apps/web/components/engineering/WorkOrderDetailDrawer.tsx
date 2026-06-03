@@ -9,6 +9,7 @@ import {
   Wrench,
   MessageSquare,
   Image as ImageIcon,
+  ImagePlus,
   Loader2,
   CheckCircle,
   PauseCircle,
@@ -90,10 +91,18 @@ function slaDisplay(dueAt: string, status: string): { text: string; overdue: boo
   return { text, overdue }
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+
+function getPhotoUrl(storagePath: string, photoUrl?: string): string {
+  if (photoUrl) return photoUrl
+  return `${SUPABASE_URL}/storage/v1/object/public/work-order-photos/${storagePath}`
+}
+
 export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEditMode }: Props) {
   const { role, isGM } = useRole()
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const isEngineer = role === 'engineer'
   const isChief = role === 'chief_engineer'
@@ -106,6 +115,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
   // Comment state
   const [commentText, setCommentText] = useState('')
+
+  // Photo upload state
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoType, setPhotoType] = useState<'before' | 'after' | 'progress'>('progress')
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   // Push to Housekeeping state
   const [hkTaskNote, setHkTaskNote] = useState('')
@@ -182,6 +197,18 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     },
   })
 
+  const uploadPhotoMutation = useMutation({
+    mutationFn: () => engineeringApi.uploadWorkOrderPhoto(wo!.id, photoFile!, photoType),
+    onSuccess: () => {
+      setPhotoFile(null)
+      setPhotoPreview(null)
+      setPhotoType('progress')
+      setPhotoError(null)
+      refetchDetail()
+    },
+    onError: () => setPhotoError('Upload failed — please try again.'),
+  })
+
   const hkTaskMutation = useMutation({
     mutationFn: () =>
       tasksApi.create({
@@ -229,6 +256,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     setLaborHours('')
     setPartsUsed('')
     setCommentText('')
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setPhotoType('progress')
+    setPhotoError(null)
     setHkTaskNote('')
     setHkTaskPriority('normal')
     setHkTaskSuccess(false)
@@ -726,17 +757,110 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           )}
 
           {/* Section: Photos */}
-          {photos.length > 0 && (
+          {(isEngineer || isChief || isGM) && (
             <div className="p-5">
               <SectionLabel>Photos</SectionLabel>
-              <div className="flex items-center gap-2 text-sm text-ink2">
-                <ImageIcon className="w-4 h-4 text-ink3" />
-                <span>{photos.length} photo{photos.length !== 1 ? 's' : ''} attached</span>
-                <span className="font-mono text-[11px] text-ink3">
-                  ({photos.filter((p) => p.photo_type === 'before').length} before,{' '}
-                  {photos.filter((p) => p.photo_type === 'after').length} after)
-                </span>
-              </div>
+
+              {/* Photo grid */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {photos.map((photo) => {
+                    const url = getPhotoUrl(photo.storage_path, photo.photo_url)
+                    const typeLabel = photo.photo_type.charAt(0).toUpperCase() + photo.photo_type.slice(1)
+                    return (
+                      <a
+                        key={photo.id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative group block rounded-lg overflow-hidden border border-line bg-surface-3"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`${typeLabel} photo`}
+                          className="w-full h-28 object-cover group-hover:opacity-90 transition-opacity"
+                        />
+                        <span className="absolute bottom-1 left-1 font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-black/50 text-white">
+                          {typeLabel}
+                        </span>
+                      </a>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Upload area */}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  setPhotoFile(f)
+                  setPhotoPreview(f ? URL.createObjectURL(f) : null)
+                  setPhotoError(null)
+                  e.target.value = ''
+                }}
+              />
+
+              {photoPreview ? (
+                <div className="space-y-2">
+                  <div className="relative rounded-lg overflow-hidden border border-line bg-surface-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoPreview} alt="Preview" className="w-full max-h-40 object-contain" />
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
+                      className="absolute top-1.5 right-1.5 p-1 bg-white/90 rounded-full shadow-sm text-gray-600 hover:text-gray-900 border border-gray-200 transition-colors"
+                      aria-label="Remove photo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="wo-photo-type" className="sr-only">Photo type</label>
+                    <select
+                      id="wo-photo-type"
+                      value={photoType}
+                      onChange={(e) => setPhotoType(e.target.value as 'before' | 'after' | 'progress')}
+                      className="text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    >
+                      <option value="before">Before</option>
+                      <option value="progress">Progress</option>
+                      <option value="after">After</option>
+                    </select>
+                    <Button
+                      variant="primary"
+                      onClick={() => uploadPhotoMutation.mutate()}
+                      disabled={uploadPhotoMutation.isPending}
+                      className="flex-1"
+                    >
+                      {uploadPhotoMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="w-3.5 h-3.5" />
+                      )}
+                      Upload Photo
+                    </Button>
+                  </div>
+                  {photoError && (
+                    <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
+                      {photoError}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="w-full h-16 border border-dashed border-line rounded-lg flex items-center justify-center gap-2 text-sm text-ink3 hover:bg-surface-3 hover:border-line-2 transition-colors"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  Add photo
+                </button>
+              )}
             </div>
           )}
 

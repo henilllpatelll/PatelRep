@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Sparkles, ClipboardList } from 'lucide-react'
+import { X, Loader2, Sparkles, ClipboardList, ImagePlus } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -32,15 +32,24 @@ const PRIORITIES = [
 
 export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   const queryClient = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('general')
   const [priority, setPriority] = useState<string>('normal')
   const [locationText, setLocationText] = useState('')
-  const [description, setDescription] = useState('')
   const [useAI, setUseAI] = useState(false)
   const [nlInput, setNlInput] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [guestReported, setGuestReported] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setPhotoFile(file)
+    setPhotoPreview(file ? URL.createObjectURL(file) : null)
+  }
 
   // Reset form on open/close
   useEffect(() => {
@@ -49,10 +58,12 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
       setCategory('general')
       setPriority('normal')
       setLocationText('')
-      setDescription('')
       setUseAI(false)
       setNlInput('')
       setValidationError(null)
+      setGuestReported(false)
+      setPhotoFile(null)
+      setPhotoPreview(null)
     }
   }, [isOpen])
 
@@ -66,19 +77,23 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   }, [isOpen, onClose])
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const payload: Parameters<typeof engineeringApi.createWorkOrder>[0] = {
         category,
         priority,
         location_text: locationText.trim() || undefined,
-        description: description.trim() || undefined,
+        guest_reported: guestReported,
       }
       if (useAI) {
         payload.nl_input = nlInput.trim()
       } else {
         payload.title = title.trim()
       }
-      return engineeringApi.createWorkOrder(payload)
+      const res = await engineeringApi.createWorkOrder(payload)
+      if (photoFile) {
+        await engineeringApi.uploadWorkOrderPhoto(res.data.id, photoFile, 'before')
+      }
+      return res
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
@@ -272,21 +287,63 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               </div>
             </div>
 
-            {/* Description */}
-            {!useAI && (
-              <div>
-                <label className="block text-sm font-medium text-ink2 mb-1">
-                  Description <span className="text-ink4 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Additional details about the issue…"
-                  className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors resize-none"
+            {/* Guest reported */}
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <span className="text-sm font-medium text-ink2">Guest reported</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={guestReported}
+                onClick={() => setGuestReported((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  guestReported ? 'bg-[var(--accent)]' : 'bg-surface-3'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-surface shadow transition-transform ${
+                    guestReported ? 'translate-x-6' : 'translate-x-1'
+                  }`}
                 />
-              </div>
-            )}
+              </button>
+            </label>
+
+            {/* Photo */}
+            <div>
+              <label className="block text-sm font-medium text-ink2 mb-1">
+                Photo <span className="text-ink4 font-normal">(optional)</span>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {photoPreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-line bg-surface-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoPreview} alt="Preview" className="w-full max-h-48 object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-surface/90 rounded-full text-xs font-medium text-ink2 hover:bg-surface shadow-sm transition-colors border border-line"
+                    aria-label="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-20 border border-dashed border-line rounded-[var(--r-md)] flex items-center justify-center gap-2 text-sm text-ink3 hover:bg-surface-2 hover:border-line-2 transition-colors"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  Add photo
+                </button>
+              )}
+            </div>
 
             {/* Validation / API error */}
             {validationError && (

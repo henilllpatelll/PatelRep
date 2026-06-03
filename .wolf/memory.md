@@ -3,6 +3,7 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 | 2026-06-03 | Fixed Railway build failures: added missing Session import to Providers.tsx (tsc error), applied missing migrations 043 (indexes) and 048 (feedback_submissions table) to production Supabase | apps/web/components/shared/Providers.tsx | complete | ~1k tok |
+| 2026-06-03 | Added photo upload to CreateWorkOrderModal — same pattern as LogFoundItemModal; WO is created first then photo uploaded with type 'before' to /work-orders/{id}/photos | apps/web/components/engineering/CreateWorkOrderModal.tsx | complete | ~500 tok |
 | 2026-06-02 21:26 | Room interconnectivity: openTaskCount indicator on RoomCard (ClipboardList icon), tasks query+map in RoomStatusBoard and EngineeringRoomBoard, guest requests + open tasks sections in RoomDetailDrawer before AI Prediction | RoomCard.tsx, RoomStatusBoard.tsx, RoomDetailDrawer.tsx, EngineeringRoomBoard.tsx | complete | ~2k tok |
 | 2026-06-02 | Built guest requests kanban redesign: 3-column kanban (open/in-progress/resolved today), right drawer, new request modal, history tab, priority field (migration 042) | components/guest-requests/*, app/(dashboard)/guest-requests/page.tsx, lib/api/guest_requests.ts, api/routers/guest_requests.py, api/models/requests.py | complete | ~4k tok |
 | 2026-06-01 | Strip |prev_clean_type= encoding from displayed notes in history timeline and actionable note helper | RoomDetailDrawer.tsx | complete | ~50 tok |
@@ -3297,3 +3298,57 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 21:41 | Edited apps/web/components/shared/Providers.tsx | added 1 import(s) | ~79 |
 | 21:44 | Session end: 1 writes across 1 files (Providers.tsx) | 12 reads | ~18649 tok |
+
+## Session: 2026-06-03 00:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:47 | Created supabase/migrations/050_work_order_photos_bucket.sql | — | ~154 |
+| 00:48 | Edited apps/api/routers/work_orders.py | expanded (+9 lines) | ~176 |
+| 00:48 | Edited apps/api/routers/work_orders.py | modified upload_work_order_photo() | ~656 |
+| 00:48 | Edited apps/web/lib/api/engineering.ts | 8→9 lines | ~58 |
+| 00:48 | Edited apps/web/lib/api/engineering.ts | expanded (+11 lines) | ~135 |
+| 00:48 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 15→16 lines | ~60 |
+| 00:48 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added nullish coalescing | ~152 |
+| 00:48 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | expanded (+6 lines) | ~112 |
+| 00:48 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | CSS: onError | ~164 |
+| 00:49 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 9→13 lines | ~100 |
+| 00:49 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | added optional chaining | ~1450 |
+
+| 00:50 | Added photo upload to work orders | apps/api/routers/work_orders.py, apps/web/lib/api/engineering.ts, apps/web/components/engineering/WorkOrderDetailDrawer.tsx, supabase/migrations/050_work_order_photos_bucket.sql | Success | ~2500 || 00:50 | Session end: 11 writes across 4 files (050_work_order_photos_bucket.sql, work_orders.py, engineering.ts, WorkOrderDetailDrawer.tsx) | 10 reads | ~25366 tok |
+
+## Session: 2026-06-03 00:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 8→8 lines | ~106 |
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added optional chaining | ~370 |
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added 1 condition(s) | ~244 |
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added optional chaining | ~750 |
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 8→8 lines | ~92 |
+| 01:00 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | inline fix | ~16 |
+| 01:01 | Session end: 6 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25584 tok |
+| 01:03 | Session end: 6 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25584 tok |
+| 01:04 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 2→1 lines | ~13 |
+| 01:04 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 2→1 lines | ~6 |
+| 01:04 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 3→2 lines | ~19 |
+| 01:04 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | removed 17 lines | ~8 |
+| 01:04 | Session end: 10 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25630 tok |
+| 01:05 | Session end: 10 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25630 tok |
+| 01:11 | Session end: 10 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25630 tok |
+| 01:12 | Session end: 10 writes across 1 files (CreateWorkOrderModal.tsx) | 9 reads | ~25630 tok |
+| 01:16 | Created supabase/migrations/051_work_order_guest_reported.sql | — | ~27 |
+| 01:16 | Edited apps/api/models/requests.py | modified CompleteWorkOrderRequest() | ~54 |
+| 01:16 | Edited apps/api/routers/work_orders.py | 4→5 lines | ~48 |
+| 01:17 | Edited apps/api/routers/reports.py | 6→6 lines | ~92 |
+| 01:17 | Edited apps/api/routers/reports.py | modified get() | ~453 |
+| 01:17 | Edited apps/api/routers/reports.py | 3→6 lines | ~86 |
+| 01:17 | Edited apps/web/lib/api/engineering.ts | 2→3 lines | ~22 |
+| 01:17 | Edited apps/web/lib/api/engineering.ts | 11→12 lines | ~99 |
+| 01:17 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 2→3 lines | ~56 |
+| 01:18 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 3→4 lines | ~33 |
+| 01:18 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | CSS: guest_reported | ~30 |
+| 01:18 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | expanded (+20 lines) | ~265 |
+| 01:18 | Edited apps/web/lib/api/reports.ts | 6→9 lines | ~73 |
+| 01:18 | Edited apps/web/app/(dashboard)/reports/page.tsx | expanded (+15 lines) | ~282 |
+| 01:19 | Session end: 24 writes across 8 files (CreateWorkOrderModal.tsx, 051_work_order_guest_reported.sql, requests.py, work_orders.py, reports.py) | 14 reads | ~38618 tok |

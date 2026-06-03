@@ -1,6 +1,6 @@
 import asyncio
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
@@ -10,7 +10,16 @@ from models.requests import (
     AddCommentRequest,
 )
 from core.database import supabase
+from core.config import settings
 from datetime import datetime, timedelta, timezone
+
+ALLOWED_PHOTO_TYPES = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
@@ -120,6 +129,7 @@ async def create_work_order(
         "created_by": current_user.user_id,
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
+        "guest_reported": request.guest_reported,
     }
     result = supabase.table("work_orders").insert(wo_data).execute()
     return {"data": result.data[0] if result.data else None}
@@ -415,6 +425,75 @@ async def delete_work_order(
     supabase.table("work_orders").delete().eq("id", wo_id).eq(
         "tenant_id", current_user.hotel_id
     ).execute()
+
+
+@router.post("/{wo_id}/photos")
+async def upload_work_order_photo(
+    wo_id: str,
+    file: UploadFile = File(...),
+    photo_type: str = Form("progress"),
+    caption: Optional[str] = Form(None),
+    current_user: CurrentUser = Depends(
+        require_role("engineer", "chief_engineer", "gm")
+    ),
+):
+    if file.content_type not in ALLOWED_PHOTO_TYPES:
+        raise HTTPException(
+            status_code=400, detail="Only JPEG, PNG, or WebP images are allowed"
+        )
+    if photo_type not in ("before", "after", "progress"):
+        raise HTTPException(
+            status_code=400, detail="photo_type must be before, after, or progress"
+        )
+
+    wo_check = (
+        supabase.table("work_orders")
+        .select("id")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not wo_check or not wo_check.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    contents = await file.read(MAX_PHOTO_BYTES + 1)
+    if len(contents) > MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
+
+    ext = ALLOWED_PHOTO_TYPES[file.content_type]
+    ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+    storage_path = f"{current_user.hotel_id}/{wo_id}/{ts}.{ext}"
+
+    try:
+        supabase.storage.from_("work-order-photos").upload(
+            storage_path,
+            contents,
+            {"content-type": file.content_type, "upsert": "false"},
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+    result = (
+        supabase.table("work_order_photos")
+        .insert(
+            {
+                "work_order_id": wo_id,
+                "tenant_id": current_user.hotel_id,
+                "uploaded_by": current_user.user_id,
+                "storage_path": storage_path,
+                "photo_type": photo_type,
+                "caption": caption,
+            }
+        )
+        .execute()
+    )
+
+    photo = result.data[0] if result.data else {}
+    photo["photo_url"] = (
+        f"{settings.supabase_url}/storage/v1/object/public/work-order-photos/{storage_path}"
+    )
+    return {"data": photo}
 
 
 @router.post("/{wo_id}/comments")

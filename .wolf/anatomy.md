@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T02:41:14.041Z
-> Files: 58 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T06:18:39.193Z
+> Files: 67 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -441,13 +441,15 @@
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~6369 tok)
+- `requests.py` — Pydantic: SanitizedBaseModel (~6378 tok)
 
 ## apps/api/routers/
 
 - `guest_requests.py` — API: 4 endpoints (~1884 tok)
 - `housekeeping.py` — Declares from (~16596 tok)
+- `reports.py` — API: 3 endpoints (~4126 tok)
 - `rooms.py` — API: 3 endpoints (~9965 tok)
+- `work_orders.py` — API: 6 endpoints (~5005 tok)
 
 ## apps/api/services/
 
@@ -599,6 +601,7 @@
 
 ## apps/web/app/(dashboard)/reports/
 
+- `page.tsx` — dynamic — renders table (~7764 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
@@ -655,7 +658,9 @@
 
 ## apps/web/components/engineering/
 
+- `CreateWorkOrderModal.tsx` — CATEGORIES (~4286 tok)
 - `EngineeringRoomBoard.tsx` — filterRooms (~2250 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~12043 tok)
 
 ## apps/web/components/guest-requests/
 
@@ -688,8 +693,10 @@
 
 ## apps/web/lib/api/
 
+- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~2477 tok)
 - `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~460 tok)
 - `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (23 endpoints) (~1644 tok)
+- `reports.ts` — API routes: GET (4 endpoints) (~539 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1350 tok)
 
 ## apps/web/lib/hooks/
@@ -744,3 +751,5 @@
 
 - `042_guest_requests_priority.sql` (~37 tok)
 - `049_inspection_results_nullable_template_item.sql` — ============================================================================= (~250 tok)
+- `050_work_order_photos_bucket.sql` — Create storage bucket for work order photos (~154 tok)
+- `051_work_order_guest_reported.sql` (~27 tok)

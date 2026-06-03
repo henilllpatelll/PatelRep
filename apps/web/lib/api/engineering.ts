@@ -18,6 +18,7 @@ export interface WorkOrderPhoto {
   photo_type: 'before' | 'after' | 'progress'
   caption?: string
   created_at: string
+  photo_url?: string
 }
 
 export interface Asset {
@@ -62,6 +63,7 @@ export interface WorkOrder {
   created_by: string
   is_ai_created: boolean
   is_pm_generated: boolean
+  guest_reported: boolean
   sla_minutes: number
   due_at?: string
   started_at?: string
@@ -139,6 +141,7 @@ export const engineeringApi = {
     location_text?: string
     asset_id?: string
     assigned_to?: string
+    guest_reported?: boolean
   }) => apiClient.post('/work-orders', payload) as Promise<{ data: WorkOrder }>,
 
   getWorkOrder: (id: string) =>
@@ -168,6 +171,17 @@ export const engineeringApi = {
 
   addComment: (id: string, comment: string) =>
     apiClient.post(`/work-orders/${id}/comments`, { comment }) as Promise<{ data: WorkOrderComment }>,
+
+  uploadWorkOrderPhoto: (
+    id: string,
+    file: File,
+    photoType: 'before' | 'after' | 'progress',
+  ) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('photo_type', photoType)
+    return apiClient.post(`/work-orders/${id}/photos`, form) as Promise<{ data: WorkOrderPhoto }>
+  },
 
   // ── Assets ───────────────────────────────────────────────────────────────────
 

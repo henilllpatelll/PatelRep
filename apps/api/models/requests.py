@@ -266,6 +266,7 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     assigned_to: Optional[UUID4] = None
     nl_input: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     use_ai: bool = False
+    guest_reported: bool = False
 
 
 class CompleteWorkOrderRequest(SanitizedBaseModel):

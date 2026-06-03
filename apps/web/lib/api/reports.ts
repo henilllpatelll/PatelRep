@@ -32,8 +32,11 @@ export interface MaintenanceReport {
   completion_rate_pct: number
   sla_compliance_pct: number
   avg_resolution_hours: number
+  avg_response_hours: number
+  avg_repair_hours: number
   total_labor_hours: number
   active_sla_breaches: number
+  guest_reported_count: number
   by_category: Record<string, number>
   by_priority: Record<string, number>
 }

@@ -427,6 +427,21 @@ function MaintenanceTab() {
               ) : undefined
             }
           />
+          <KpiCard
+            label="Avg Response Time"
+            value={report.avg_response_hours > 0 ? `${report.avg_response_hours} hrs` : '—'}
+            colorClass="text-[var(--info)]"
+          />
+          <KpiCard
+            label="Avg Repair Time"
+            value={report.avg_repair_hours > 0 ? `${report.avg_repair_hours} hrs` : '—'}
+            colorClass="text-[var(--caution)]"
+          />
+          <KpiCard
+            label="Guest Reported"
+            value={report.guest_reported_count}
+            colorClass="text-[var(--alert)]"
+          />
         </div>
       ) : null}
 

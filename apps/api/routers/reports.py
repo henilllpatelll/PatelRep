@@ -220,7 +220,7 @@ async def get_maintenance_report(
     e_str = e.isoformat()
 
     wo_result = supabase.table("work_orders")\
-        .select("category, priority, status, due_at, completed_at, labor_hours, sla_minutes, created_at")\
+        .select("category, priority, status, due_at, started_at, completed_at, labor_hours, sla_minutes, created_at, guest_reported")\
         .eq("tenant_id", current_user.hotel_id)\
         .gte("created_at", s_str)\
         .lte("created_at", e_str)\
@@ -259,6 +259,34 @@ async def get_maintenance_report(
     avg_resolution_hours = round(sum(resolution_times) / len(resolution_times), 1) if resolution_times else 0
     total_labor_hours = sum(float(wo.get("labor_hours") or 0) for wo in completed)
 
+    # Avg response time: created_at → started_at (time to claim)
+    response_times = []
+    for wo in work_orders:
+        if wo.get("started_at") and wo.get("created_at"):
+            try:
+                from datetime import datetime as dt
+                created = dt.fromisoformat(str(wo["created_at"]).replace("Z", "+00:00"))
+                started = dt.fromisoformat(str(wo["started_at"]).replace("Z", "+00:00"))
+                response_times.append((started - created).total_seconds() / 3600)
+            except Exception:
+                pass
+    avg_response_hours = round(sum(response_times) / len(response_times), 1) if response_times else 0
+
+    # Avg repair time: started_at → completed_at (time actively working)
+    repair_times = []
+    for wo in completed:
+        if wo.get("started_at") and wo.get("completed_at"):
+            try:
+                from datetime import datetime as dt
+                started = dt.fromisoformat(str(wo["started_at"]).replace("Z", "+00:00"))
+                done = dt.fromisoformat(str(wo["completed_at"]).replace("Z", "+00:00"))
+                repair_times.append((done - started).total_seconds() / 3600)
+            except Exception:
+                pass
+    avg_repair_hours = round(sum(repair_times) / len(repair_times), 1) if repair_times else 0
+
+    guest_reported_count = sum(1 for wo in work_orders if wo.get("guest_reported"))
+
     # Priority breakdown
     priority_counts: dict = {"urgent": 0, "normal": 0, "low": 0}
     for wo in work_orders:
@@ -284,6 +312,9 @@ async def get_maintenance_report(
             "avg_resolution_hours": avg_resolution_hours,
             "total_labor_hours": round(total_labor_hours, 1),
             "active_sla_breaches": sla_breaches,
+            "avg_response_hours": avg_response_hours,
+            "avg_repair_hours": avg_repair_hours,
+            "guest_reported_count": guest_reported_count,
             "by_category": category_counts,
             "by_priority": priority_counts,
         }
