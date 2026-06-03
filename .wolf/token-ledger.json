@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 9771769,
-    "total_reads": 4878,
-    "total_writes": 3858,
-    "total_sessions": 199,
-    "anatomy_hits": 1697,
-    "anatomy_misses": 3108,
-    "repeated_reads_blocked": 1860,
-    "estimated_savings_vs_bare_cli": 9428586
+    "total_tokens_estimated": 9790418,
+    "total_reads": 4890,
+    "total_writes": 3859,
+    "total_sessions": 200,
+    "anatomy_hits": 1706,
+    "anatomy_misses": 3111,
+    "repeated_reads_blocked": 1861,
+    "estimated_savings_vs_bare_cli": 9436755
   },
   "sessions": [
     {
@@ -56317,6 +56317,100 @@
         "writes_count": 13,
         "repeated_reads_blocked": 5,
         "anatomy_lookups": 5
+      }
+    },
+    {
+      "id": "session-2026-06-03-2140",
+      "started": "2026-06-03T02:40:07.872Z",
+      "ended": "2026-06-03T02:44:41.258Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/guest_requests.py",
+          "tokens_estimated": 1884,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/guest_requests.ts",
+          "tokens_estimated": 460,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/042_guest_requests_priority.sql",
+          "tokens_estimated": 37,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/guest-requests/GuestRequestsPage.tsx",
+          "tokens_estimated": 3193,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+          "tokens_estimated": 1078,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/guest-requests/NewRequestModal.tsx",
+          "tokens_estimated": 2166,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
+          "tokens_estimated": 6369,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/guest-requests/HistoryTab.tsx",
+          "tokens_estimated": 1177,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 2206,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/supabase/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/043_input_validation_and_pooling_indexes.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/048_feedback_submissions.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx",
+          "tokens_estimated": 79,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18570,
+        "output_tokens_estimated": 79,
+        "reads_count": 12,
+        "writes_count": 1,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 9
       }
     }
   ],

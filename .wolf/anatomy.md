@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T02:26:28.468Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T02:41:14.041Z
 > Files: 58 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -677,7 +677,7 @@
 
 ## apps/web/components/shared/
 
-- `Providers.tsx` — SUPABASE_DB_ROLES (~2206 tok)
+- `Providers.tsx` — SUPABASE_DB_ROLES (~2221 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4466 tok)
 
 ## apps/web/components/ui/
