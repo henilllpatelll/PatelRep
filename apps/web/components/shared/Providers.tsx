@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
