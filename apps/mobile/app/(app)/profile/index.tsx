@@ -13,12 +13,12 @@ export default function ProfileScreen() {
   const [hotelName, setHotelName] = useState<string>("");
 
   useEffect(() => {
-    if (user?.hotel_id) {
-      api.get<{ data: { name: string } }>(`/hotels/${user.hotel_id}`)
+    if (user?.tenant_id) {
+      api.get<{ data: { name: string } }>(`/hotels/${user.tenant_id}`)
         .then(res => setHotelName(res.data.name))
         .catch(() => {});  // silent — display only
     }
-  }, [user?.hotel_id]);
+  }, [user?.tenant_id]);
 
   async function toggleLanguage(value: boolean) {
     const lang = value ? "es" : "en";
@@ -27,7 +27,7 @@ export default function ProfileScreen() {
     if (user) {
       await supabase
         .from("user_profiles")
-        .update({ preferred_language: lang })
+        .update({ language_pref: lang })
         .eq("id", user.id);
     }
   }

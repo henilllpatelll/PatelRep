@@ -24,16 +24,34 @@ export default function RootLayout() {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
         if (session?.user) {
+          // Decode JWT to get hotel_id and role from custom claims (migration 019 hook)
+          let jwtHotelId: string | undefined;
+          let jwtRole: string | undefined;
+          try {
+            const payload = JSON.parse(atob(session.access_token.split(".")[1]));
+            jwtHotelId = payload.hotel_id;
+            jwtRole = payload.role;
+          } catch { /* malformed JWT — unlikely */ }
+
           const { data: profile } = await supabase
             .from("user_profiles")
             .select("*")
             .eq("id", session.user.id)
-            .single();
+            .maybeSingle();
 
           if (profile) {
-            setUser(profile as UserProfile);
-            try { await setupPushNotifications(); } catch { /* unavailable in Expo Go */ }
+            setUser({ ...profile, role: (jwtRole ?? profile.role) } as UserProfile);
+          } else if (jwtHotelId && jwtRole) {
+            // Fallback for accounts without a user_profiles row (e.g. GM accounts)
+            setUser({
+              id: session.user.id,
+              tenant_id: jwtHotelId,
+              role: jwtRole as UserProfile["role"],
+              full_name: session.user.email?.split("@")[0] ?? "User",
+              language_pref: "en",
+            });
           }
+          try { await setupPushNotifications(); } catch { /* unavailable in Expo Go */ }
         } else {
           setUser(null);
         }

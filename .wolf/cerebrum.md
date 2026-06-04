@@ -18,6 +18,7 @@
 
 ## Key Learnings
 
+- **Claude Design handoff endpoint shape (2026-06-04):** Anthropic design URLs like `https://api.anthropic.com/v1/design/h/...` can return a public `application/gzip` tarball named as a design handoff; inspect the top-level README plus nested project README, then check `project/app.jsx` and screen files such as `screen-mobile.jsx` for available artboards before implementing.
 - **Housekeeper dashboard Spanish date/label fallback (2026-06-03):** The DOM translator needs explicit long-date coverage for strings like `Wednesday, June 3`, because glossary month replacements are not enough. Adjacent section label + hint text can appear in audits as combined phrases such as `Heads upNext 24h`, so add combined exact phrases when auditing visible text concatenation.
 - **Housekeeping board local API port (2026-06-03):** The web app's current `apps/web/.env.local` points `NEXT_PUBLIC_API_URL` to `http://localhost:8003/v1`. If `/housekeeping` shows `Failed to load rooms`, first check that FastAPI is actually running on port 8003; a different process on 8000 can return `/docs` 200 while still returning 404 for PatelRep `/v1/housekeeping/board`.
 - **Localhost startup status (2026-06-03):** PatelRep may already have long-lived local servers running: FastAPI on `http://localhost:8000/docs` and Next on `http://localhost:3000`. The web app loads and redirects to `/login`, but a persisted client language can trigger a Next dev hydration warning in `LanguageToggle`; use `localhost` rather than `127.0.0.1` for this active dev server.

@@ -33,9 +33,11 @@ export type UserRole =
 
 export interface UserProfile {
   id: string;
-  hotel_id: string;
+  tenant_id: string;
   role: UserRole;
   full_name: string;
-  preferred_language: "en" | "es";
+  language_pref: "en" | "es";
+  preferred_name?: string;
   expo_push_token?: string;
+  is_active?: boolean;
 }

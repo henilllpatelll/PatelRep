@@ -78,7 +78,7 @@ async def get_current_user(
     payload = await _decode_token(credentials.credentials)
     user_id = payload.get("sub")
     hotel_id = payload.get("hotel_id")
-    role = payload.get("role", "none")
+    role = payload.get("user_role") or payload.get("role", "none")
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token claims")
@@ -118,7 +118,7 @@ async def get_current_user_no_hotel(
     return CurrentUser(
         user_id=user_id,
         hotel_id=payload.get("hotel_id", ""),
-        role=payload.get("role", "none"),
+        role=payload.get("user_role") or payload.get("role", "none"),
         email=payload.get("email", "")
     )
 

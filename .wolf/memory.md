@@ -1,4 +1,6 @@
 # Memory
+| 2026-06-04 | Bulk anatomy update: read 100+ files across api routers, core, middleware, services (AI + Opera), web lib/api, lib/hooks, lib/supabase, lib/utils, lib/ai, stores, all dashboard pages, all settings pages; wrote full descriptions into .wolf/anatomy.md | .wolf/anatomy.md | complete | ~8k tok |
+| 2026-06-04 | Mobile login bounce fix: applied DB migration to fix user_profiles+user_roles SELECT RLS (added id=auth.uid() fallback), fixed UserProfile interface (hotel_id→tenant_id, preferred_language→language_pref), fixed _layout.tsx to fetch role from user_roles via maybeSingle(), fixed profile screen field refs | apps/mobile/lib/supabase.ts, apps/mobile/app/_layout.tsx, apps/mobile/app/(app)/profile/index.tsx, supabase/migrations | complete | ~2k tok |
 | 2026-06-04 | EAS build fix: removed apps/web from root workspaces, removed workspaces field entirely, added apps/mobile/node_modules/ to root .easignore, added .npmrc with legacy-peer-deps=true at root and apps/mobile/ | package.json, .easignore, .npmrc, apps/mobile/.npmrc | in-progress | ~1k tok |
 
 > Chronological action log. Hooks and AI append to this file automatically.
@@ -3450,3 +3452,110 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:13 | Session end: 2 writes across 2 files (babel.config.js, project_eas_build_status.md) | 2 reads | ~1072 tok |
 | 00:21 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md | — | ~375 |
 | 00:21 | Session end: 3 writes across 2 files (babel.config.js, project_eas_build_status.md) | 2 reads | ~1474 tok |
+| 00:24 | Session end: 3 writes across 2 files (babel.config.js, project_eas_build_status.md) | 5 reads | ~2096 tok |
+| 00:27 | Session end: 3 writes across 2 files (babel.config.js, project_eas_build_status.md) | 5 reads | ~2096 tok |
+| 00:28 | Session end: 3 writes across 2 files (babel.config.js, project_eas_build_status.md) | 5 reads | ~2096 tok |
+| 00:29 | Edited apps/mobile/eas.json | 5→8 lines | ~62 |
+| 00:30 | Session end: 4 writes across 3 files (babel.config.js, project_eas_build_status.md, eas.json) | 6 reads | ~2732 tok |
+| 00:31 | Session end: 4 writes across 3 files (babel.config.js, project_eas_build_status.md, eas.json) | 6 reads | ~2732 tok |
+| 00:39 | Session end: 4 writes across 3 files (babel.config.js, project_eas_build_status.md, eas.json) | 6 reads | ~2732 tok |
+| 00:56 | Session end: 4 writes across 3 files (babel.config.js, project_eas_build_status.md, eas.json) | 6 reads | ~2732 tok |
+| 01:05 | Edited apps/mobile/android/gradle.properties | inline fix | ~6 |
+| 01:05 | Edited apps/mobile/android/gradle.properties | inline fix | ~11 |
+| 01:05 | Session end: 6 writes across 4 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties) | 7 reads | ~3501 tok |
+| 01:16 | Session end: 6 writes across 4 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties) | 7 reads | ~3501 tok |
+| 01:30 | Session end: 6 writes across 4 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties) | 16 reads | ~6275 tok |
+| 01:33 | Edited apps/mobile/app/_layout.tsx | added 1 condition(s) | ~172 |
+| 01:33 | Session end: 7 writes across 5 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties, _layout.tsx) | 16 reads | ~6447 tok |
+| 01:38 | Created supabase/migrations/053_fix_jwt_role_claim.sql | — | ~406 |
+| 01:38 | Edited apps/api/middleware/auth.py | "role" → "user_role" | ~19 |
+| 01:38 | Edited apps/api/middleware/auth.py | modified require_role() | ~52 |
+| 01:39 | Edited apps/mobile/app/_layout.tsx | modified if() | ~57 |
+| 01:39 | Session end: 11 writes across 7 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties, _layout.tsx) | 18 reads | ~8268 tok |
+| 01:40 | Session end: 11 writes across 7 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties, _layout.tsx) | 18 reads | ~8268 tok |
+| 01:47 | Session end: 11 writes across 7 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties, _layout.tsx) | 18 reads | ~8268 tok |
+| 01:49 | Session end: 11 writes across 7 files (babel.config.js, project_eas_build_status.md, eas.json, gradle.properties, _layout.tsx) | 18 reads | ~8268 tok |
+
+## Session: 2026-06-04 01:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:06 | Edited apps/mobile/lib/supabase.ts | 8→10 lines | ~62 |
+| 02:07 | Edited apps/mobile/app/_layout.tsx | CSS: role | ~249 |
+| 02:07 | Edited apps/mobile/app/(app)/profile/index.tsx | modified if() | ~72 |
+| 02:07 | Edited apps/mobile/app/(app)/profile/index.tsx | CSS: language_pref | ~35 |
+| 02:07 | Session end: 4 writes across 3 files (supabase.ts, _layout.tsx, index.tsx) | 14 reads | ~6780 tok |
+| 07:37 | Session end: 4 writes across 3 files (supabase.ts, _layout.tsx, index.tsx) | 14 reads | ~6780 tok |
+| 07:38 | Session end: 4 writes across 3 files (supabase.ts, _layout.tsx, index.tsx) | 14 reads | ~6780 tok |
+
+## Session: 2026-06-04 07:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:13 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:18 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:19 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:24 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:24 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:25 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:25 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:26 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+| 08:27 | Session end: 1 writes across 1 files (eas.json) | 2 reads | ~799 tok |
+
+## Session: 2026-06-04 08:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:44 | Edited .claude/settings.json | expanded (+32 lines) | ~277 |
+| 08:45 | Created .planning/STATE.md | — | ~596 |
+
+## Session: 2026-06-04 08:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-04 08:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-04 08:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:12 | Edited apps/mobile/android/gradle.properties | inline fix | ~36 |
+| 09:12 | Edited apps/mobile/android/gradle.properties | inline fix | ~9 |
+| 09:13 | Session end: 2 writes across 1 files (gradle.properties) | 4 reads | ~799 tok |
+| 09:13 | Session end: 2 writes across 1 files (gradle.properties) | 5 reads | ~799 tok |
+| 09:15 | Session end: 2 writes across 1 files (gradle.properties) | 5 reads | ~799 tok |
+| 09:17 | Session end: 2 writes across 1 files (gradle.properties) | 6 reads | ~799 tok |
+| 09:19 | Edited apps/mobile/android/gradle.properties | inline fix | ~6 |
+| 09:19 | Session end: 3 writes across 1 files (gradle.properties) | 6 reads | ~805 tok |
+| 09:20 | Session end: 3 writes across 1 files (gradle.properties) | 6 reads | ~805 tok |
+| 09:22 | Session end: 3 writes across 1 files (gradle.properties) | 7 reads | ~805 tok |
+
+## Session: 2026-06-04 09:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:34 | Edited apps/mobile/package.json | 13→13 lines | ~133 |
+| 09:35 | Edited apps/mobile/package.json | inline fix | ~8 |
+| 09:56 | Session end: 2 writes across 1 files (package.json) | 10 reads | ~475 tok |
+| 10:01 | Session end: 2 writes across 1 files (package.json) | 11 reads | ~475 tok |
+| 10:12 | Session end: 2 writes across 1 files (package.json) | 12 reads | ~475 tok |
+| 10:41 | Session end: 2 writes across 1 files (package.json) | 12 reads | ~475 tok |
+| 10:41 | Session end: 2 writes across 1 files (package.json) | 13 reads | ~475 tok |
+| 10:55 | Session end: 2 writes across 1 files (package.json) | 13 reads | ~475 tok |
+| 10:55 | Session end: 2 writes across 1 files (package.json) | 13 reads | ~475 tok |
+| 11:20 | Edited apps/mobile/android/gradle.properties | inline fix | ~8 |
+| 11:22 | Session end: 3 writes across 2 files (package.json, gradle.properties) | 13 reads | ~483 tok |
+| 11:28 | Edited apps/mobile/app/_layout.tsx | modified if() | ~269 |
+| 11:28 | Session end: 4 writes across 3 files (package.json, gradle.properties, _layout.tsx) | 17 reads | ~1830 tok |
+| 11:30 | Edited apps/mobile/app/_layout.tsx | added nullish coalescing | ~354 |
+| 11:30 | Session end: 5 writes across 3 files (package.json, gradle.properties, _layout.tsx) | 18 reads | ~2499 tok |
+
+## Session: 2026-06-04 11:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:04 | Fetched Anthropic Claude Design handoff and inspected README/mobile artboards | temp design handoff, .wolf/cerebrum.md | mobile designs confirmed in prototype source | ~2k |

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-04T05:21:21.808Z
-> Files: 78 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-04T16:30:30.721Z
+> Files: 181 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -30,6 +30,7 @@
 
 ## .claude/
 
+- `settings.json` (~831 tok)
 
 ## .claude/rules/
 
@@ -417,6 +418,7 @@
 
 ## .planning/
 
+- `STATE.md` — GSD State (~559 tok)
 
 ## .wolf/
 
@@ -444,10 +446,14 @@
 
 ## apps/api/core/
 
+- `config.py` — Pydantic Settings with all env vars (Supabase, AI keys, Stripe, Opera, rate-limit tuning, feedback_webhook_url); `get_settings()` lru_cached (~590 tok)
+- `database.py` — Process-wide Supabase client singleton via `_LazySupabase` proxy; exports `supabase`, `get_supabase()`, `get_supabase_user_client(jwt)`, `close_supabase()` (~670 tok)
 
 ## apps/api/middleware/
 
-- `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~1251 tok)
+- `auth.py` — JWT decode (HS256 first, ES256/JWKS fallback with 1h cache); `CurrentUser` dataclass; `get_current_user`, `get_current_user_no_hotel`, `require_role(*roles)` dependencies (~1360 tok)
+- `credits.py` — `check_and_deduct_credits(hotel_id, interaction_type)` checks cap, calls `increment_credits_used` RPC; `log_ai_interaction(...)` writes to ai_interactions table; `CREDIT_COSTS` dict (~1170 tok)
+- `rate_limit.py` — `RateLimitMiddleware`: sliding-window in-process limiter; IP bucket always + per-user bucket for authenticated; route tiers: AI=20/min, auth=10/min, webhook=120/min, default=180/min (~1950 tok)
 
 ## apps/api/models/
 
@@ -455,21 +461,54 @@
 
 ## apps/api/routers/
 
-- `guest_requests.py` — API: 4 endpoints (~1884 tok)
-- `housekeeping.py` — Declares from (~17694 tok)
-- `reports.py` — API: 3 endpoints (~4126 tok)
-- `rooms.py` — API: 3 endpoints (~10450 tok)
-- `work_orders.py` — API: 6 endpoints (~5005 tok)
+- `__init__.py` — package init (~5 tok)
+- `ai_copilot.py` — 9 endpoints: POST /copilot/chat (intent-detected routing to task/WO/GR/assignment/SOP/insight), confirm tasks/WOs/GRs/assignments, GET risk-alerts, GET insights; uses GPT-4o-mini + claude-sonnet-4-6 (~5880 tok)
+- `assets.py` — 16 endpoints: CRUD assets, failure-predictions (list/history/acknowledge/create-WO), PM schedules (CRUD + complete), asset categories CRUD, on-demand run-prediction (~4100 tok)
+- `auth.py` — 2 endpoints: GET /me (user+hotel+subscription context), POST /hotel-context (validates hotel access) (~570 tok)
+- `billing.py` — 5 endpoints: GET subscription/credits, POST portal/checkout (Stripe), GET invoices; GM-only (~1430 tok)
+- `feedback.py` — 2 endpoints: POST (submit + GM notifications + webhook), GET (GM-only list); sends to feedback_webhook_url (~1420 tok)
+- `guest_requests.py` — 4 endpoints: create (auto-creates linked task), list, update (cascades to task), delete (cascades to task comments) (~1880 tok)
+- `hotels.py` — 6 endpoints: create hotel with Stripe customer + trial subscription, GET/PATCH hotel, GET stats, GET departments; seeds default departments on creation (~2160 tok)
+- `housekeeping.py` — 20+ endpoints: GET board, GET my-rooms, GET/POST/DELETE assignments, POST ai-suggest-assignments, GET predictions, ready-for-inspection, ready-to-strip, POST inspections, GET/POST/PATCH/DELETE inspection templates, POST import/hk-details and import/task-sheet (Opera PDF parsing) (~16650 tok)
+- `integrations.py` — 5 endpoints: POST opera/connect (OHIP token test + bootstrap), GET opera/status, POST opera/sync, POST opera/test, DELETE opera/disconnect (~1410 tok)
+- `internal.py` — 9 cron endpoints (X-Cron-Secret guarded): predictions/run, pm/check-due, ai/failure-predictions, billing/monthly-trueup, logbook/shift-summary, reports/daily-summary-email, opera/sync-reservations, escalations/check (3-tier ladder), logbook/cleanup-expired (~4510 tok)
+- `logbook.py` — 6 endpoints: CRUD logbook entries (with expires_at), GET/POST shift-summary (AI-generated) (~2010 tok)
+- `lost_found.py` — 6 endpoints: POST upload-photo, CRUD items (status transitions unclaimed→claimed/donated/discarded) (~1750 tok)
+- `notifications.py` — 3 endpoints: GET list (unread filter), PATCH /{id}/read, POST mark-all-read (~470 tok)
+- `onboarding.py` — 4 endpoints: GET /status (checklist), POST rooms/import-csv, POST ai-assistant (GPT-4o-mini step-aware guide); shared `_import_rooms_batch` helper (~3070 tok)
+- `reports.py` — 4 endpoints: daily-summary (room breakdown + task/WO counts), staff-performance (CSV export), maintenance (KPIs + category/priority breakdown), ai-usage; all role-gated (~3760 tok)
+- `rooms.py` — 12 endpoints: list/get rooms, PATCH status (with transition rules + housekeeper profile update), POST/DELETE checkout, stayover, strip, PATCH checkout-time, POST status/undo, GET history, POST notes, DELETE, POST import/reset (~10220 tok)
+- `scheduling.py` — 13 endpoints: shifts CRUD, assignments CRUD + bulk, clock-in/out, my-schedule, today-roster (~3580 tok)
+- `sop.py` — 5 endpoints: GET/POST/GET/{id}/DELETE documents (PDF upload → background indexing), POST /query (RAG) (~2290 tok)
+- `staff.py` — 14 endpoints: push-token update, effective-role (with day-of-week schedule), list staff, invitations, invite, onboarding-invite, add-direct (with duplicate-user recovery), custom roles CRUD, role schedules CRUD, update/deactivate staff (~4930 tok)
+- `tasks.py` — 8 endpoints: CRUD, add comment, batch create; housekeeper sees only own tasks (~2980 tok)
+- `webhooks.py` — 2 endpoints: POST /opera (handles checkout/checkin/modified/DND/make-up-room events), POST /stripe (subscription lifecycle + invoice paid) (~1700 tok)
+- `work_orders.py` — 10 endpoints: CRUD + claim, complete, upload photos, add comments; engineer-scoped visibility filter (~5300 tok)
 
 ## apps/api/services/
 
-- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2385 tok)
+- `housekeeping_assignments.py` — `room_status_for_clean_type` and `effective_room_status` shared helpers for PICKUP/DEP/FULL/LIGHT clean type logic (~240 tok)
+- `opera_pdf.py` — `parse_hk_details(pdf_bytes)` and `parse_task_sheet(pdf_bytes)` using pdfplumber; column x-ratio parsing; returns `HKDetailsRow`/`TaskSheetRow` dataclasses + warnings list (~2350 tok)
+- `policy.py` — `check_action_permitted(action, role)` deterministic RBAC gate; `_ROLE_RANK` dict; no LLM involved (~440 tok)
 
 ## apps/api/services/ai/
 
+- `assignment_parser.py` — `parse_assignments(message)` GPT-4o-mini function-calling with `_ASSIGN_SCHEMA` (staff name + room ranges + clean_type) (~680 tok)
+- `failure_predictions.py` — `run_asset_failure_predictions(hotel_id)`, `run_all_hotels_failure_predictions()`, `run_single_asset_prediction(hotel_id, asset_id)`; calls claude-sonnet-4-6 with asset profile prompt; `_rule_based_fallback` when Claude unavailable (~5590 tok)
+- `guest_request_parser.py` — `parse_guest_requests(message)` GPT-4o-mini function-calling with `_GR_SCHEMA` (~620 tok)
+- `insights.py` — `generate_gm_insights(hotel_id, query)` aggregates 7-day stats from DB, calls claude-sonnet-4-6 for 3-5 JSON insights with type/severity/title/detail/action (~1420 tok)
+- `predictions.py` — `run_room_predictions(hotel_id)` and `run_all_hotel_predictions()`; heuristic ETA from housekeeper speed profiles + queue depth; upserts `room_readiness_predictions`; notifies supervisors on new HIGH escalations (~4920 tok)
+- `shift_summary.py` — `generate_shift_summary(hotel_id, shift_id, shift_date)` collects logbook entries + tasks + open WOs, calls claude-sonnet-4-6, stores in shift_summaries table (~1380 tok)
+- `sop_rag.py` — `index_sop_document(doc_id, path, hotel_id)` full pipeline (download→pdfplumber→chunk→embed via text-embedding-3-small→store); `query_sop(query, hotel_id, user_id)` similarity search via `match_sop_chunks` RPC + claude-sonnet-4-6 answer (~4180 tok)
+- `task_parser.py` — `parse_nl_tasks(message, ...)` GPT-4o-mini function-calling with `CREATE_TASKS_SCHEMA`; `try_fast_path(message)` regex-only fast path; `ParsedTaskOutput` Pydantic model (~1880 tok)
+- `work_order_parser.py` — `parse_work_orders(message)` GPT-4o-mini function-calling with `_WO_SCHEMA`; returns `{work_orders, prompt_tokens, completion_tokens}` (~680 tok)
 
 ## apps/api/services/opera/
 
+- `auth.py` — `get_opera_credentials(hotel_id)`, `get_valid_access_token(hotel_id)` (auto-refresh 2min before expiry), `_refresh_token`, `acquire_new_token`; supports password grant and client_credentials (~1380 tok)
+- `crypto.py` — Fernet-based `encrypt_secret`/`decrypt_secret` with `enc:v1:` envelope prefix; `encrypt_opera_secrets`/`decrypt_opera_secrets` for integration_password, access_token, refresh_token fields (~600 tok)
+- `sync.py` — `ohip_request` OHIP gateway helper; `map_opera_reservation`/`upsert_opera_reservation`; `sync_reservations(hotel_id)` fetches today+tomorrow arrivals; `bootstrap_opera_data` pulls 90-day history; `push_room_status_to_opera` bidirectional sync (~2440 tok)
+- `webhooks.py` — `handle_checkout`, `handle_checkin`, `handle_reservation_modified`, `handle_dnd`, `handle_make_up_room`; each resolves room by room_number, updates room_status, inserts history/notifications (~1610 tok)
 
 ## apps/api/tests/load/
 
@@ -495,7 +534,8 @@
 - `.npmrc` (~6 tok)
 - `app.json` (~622 tok)
 - `babel.config.js` (~44 tok)
-- `eas.json` (~574 tok)
+- `eas.json` (~772 tok)
+- `package.json` — Node.js package manifest (~550 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -508,10 +548,11 @@
 
 ## apps/mobile/android/
 
-- `gradle.properties` — Project-wide Gradle settings. (~751 tok)
+- `gradle.properties` — Project-wide Gradle settings. (~771 tok)
 
 ## apps/mobile/app/
 
+- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~1238 tok)
 
 ## apps/mobile/app/(app)/
 
@@ -526,6 +567,7 @@
 
 ## apps/mobile/app/(app)/profile/
 
+- `index.tsx` — ProfileScreen (~861 tok)
 
 ## apps/mobile/app/(app)/tasks/
 
@@ -547,6 +589,7 @@
 
 ## apps/mobile/lib/
 
+- `supabase.ts` — Exports supabase, UserRole, UserProfile (~315 tok)
 
 ## apps/mobile/lib/api/
 
@@ -568,102 +611,135 @@
 ## apps/web/app/(auth)/login/
 
 
+## apps/web/app/(dashboard)/
+
+- `error.tsx` — `DashboardError` boundary with AlertTriangle icon, Retry button (calls reset), and Home link (~384 tok)
+- `layout.tsx` — Wraps children in `DashboardShell` component (~40 tok)
+
 ## apps/web/app/(dashboard)/ai/
 
+- `page.tsx` — AI Copilot chat page: message thread, clientFastPath + isOffTopic guards, confirm views per response type, quick actions sidebar, credit usage card; persists daily history to localStorage (~3744 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
+- `page.tsx` — Billing page (subscription status + credit usage bar + pricing table); GM-only; no Stripe portal button (disabled/coming-soon) (~2624 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
 
+- `page.tsx` — Role-switched dashboard: GM (greeting + ROI strip + AI alerts + live ops + trend charts), Housekeeper, Supervisor, Engineer, ChiefEngineer, FrontDesk role-specific views (~760 tok)
+
+## apps/web/app/(dashboard)/engineering/
+
+- `page.tsx` — Redirect to /engineering/work-orders (~40 tok)
 
 ## apps/web/app/(dashboard)/engineering/assets/
 
+- `page.tsx` — `AssetRegisterPage`: asset table with risk bar + badge, stat cards (total/high-risk/warranty/value), risk/search filters, AssetDetailModal (read/edit + PM schedules), CreateAssetModal (~8864 tok)
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
+- `page.tsx` — `PMSchedulesPage`: PM schedule table (mobile cards + desktop table), stat cards (total/due-this-week/overdue), CompletePMModal (auto-advances next_due_at), CreatePMScheduleModal, deactivate confirm, create-WO from overdue (~8600 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
+- `page.tsx` — `PredictionsPage`: failure prediction cards with RiskRing SVG (circumference-based progress), AI reasoning expandable, acknowledge + create WO buttons, risk/status filters, stat cards (~4872 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~5105 tok)
+- `page.tsx` — `WorkOrdersPage`: 4-column kanban (open/in_progress/on_hold/completed) with DnD (dnd-kit), AI triage button, urgent alert, realtime subscription, Room Board tab, WorkOrderDetailDrawer, CreateWorkOrderModal, FailurePredictionSidebar (~3896 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
-- `page.tsx` — Page (~43 tok)
+- `page.tsx` — Thin wrapper delegating to `GuestRequestsPage` component (~40 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8750 tok)
+- `page.tsx` — Dual-mode: `HousekeeperMyRoomsView` (my rooms with Start/Done/Undo buttons, realtime subscription) + `SupervisorHousekeepingPage` (full board with HousekeeperBar, PredictionPanel, AssignmentSidebar, date nav, shift filter, assign mode) (~6248 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
+- `page.tsx` — `AssignmentsPage`: date picker, expandable housekeeper rows with room chips, AI auto-assign button, Opera import modal button (~2120 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
-- `page.tsx` — todayISO (~6259 tok)
+- `page.tsx` — `InspectionsPage`: Live tab (strip queue + inspection queue with QueueCard) + History tab (date range + result filter); InspectionModal; re-assign drawer after fail (~4472 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — `RoomsPage`: filterable room table (floor/status/search), ImportModal (CSV+manual tabs with preview), RoomDetailDrawer edit, delete confirm (~6560 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
-- `page.tsx` — todayIso (~10783 tok)
+- `page.tsx` — Shift logbook with date navigation, dept filter tabs, AI summary panel (collapsible), create/edit/delete entry modals with expiry picker (~7552 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
+- `page.tsx` — Lost & found grid with ItemCard (photo, status, location, staff), LogFoundItemModal, EditItemModal, claim/delete confirms (~2960 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
+- `page.tsx` — 6-step onboarding wizard: hotel profile, import rooms, invite staff, Opera Cloud (optional), upload SOPs (optional), done; AI sidebar with GPT-4o-mini chat per step; progress header; supports standalone mode via ?step= param (~15200 tok)
 
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~7764 tok)
+- `page.tsx` — Reports with role-filtered tabs: Daily Summary (room breakdown + task/WO counts), Staff Performance (table + CSV), Maintenance (9 KPIs + category/priority charts), AI Usage (credit breakdown table) (~5728 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
+- `page.tsx` — Weekly schedule: TodayRoster (collapsible), department filter, week navigation, WeekCalendar (by-staff/by-shift toggle), ShiftManagement section, AssignShiftModal + CreateShiftModal via portals (~11360 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
+- `layout.tsx` — `SettingsLayout`: role-filtered sidebar nav (desktop) + horizontal scroll nav (mobile) across General/Departments/Front Desk/Roles/Inspections/Rooms/Billing/Integrations/Feedback (~1232 tok)
+- `page.tsx` — Redirect to /settings/general (~40 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
+- `page.tsx` — Full billing settings: subscription card (with trial upgrade CTA + Stripe portal button), credit usage bar, invoices table, pricing details card; uses billingApi mutations for portal/checkout (~3928 tok)
 
 ## apps/web/app/(dashboard)/settings/departments/
 
+- `page.tsx` — Static department list (4 depts) with staff count per role group (~816 tok)
 
 ## apps/web/app/(dashboard)/settings/feedback/
 
+- `page.tsx` — Feedback submissions list: FeedbackRow cards with severity Badge, category Badge, notification status icon, pathname/role/viewport meta (~936 tok)
 
 ## apps/web/app/(dashboard)/settings/front-desk/
 
+- `page.tsx` — Front desk module access: 11 module toggles (switch UI), save to hotel.front_desk_modules via hotelsApi.update (~1152 tok)
 
 ## apps/web/app/(dashboard)/settings/general/
 
+- `page.tsx` — Hotel profile form (zod + react-hook-form): name/address/city/state/zip/phone/room_count/timezone; one-time hydration guard; save/discard with toast (~2400 tok)
 
 ## apps/web/app/(dashboard)/settings/inspections/
 
+- `page.tsx` — Inspection templates CRUD: list with TemplateCard, create/edit with TemplateFormCard (imported from components/settings/); default template support (~1536 tok)
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
+- `page.tsx` — Opera Cloud card (connect form with advanced credentials toggle, connected state with sync/test/disconnect), SOP Library shortcut card; ConfirmDisconnectDialog (~3712 tok)
 
 ## apps/web/app/(dashboard)/settings/roles/
 
+- `page.tsx` — Custom roles CRUD: list with RoleCard, create/edit with RoleFormCard (imported from components/settings/), delete; toast feedback (~1424 tok)
 
 ## apps/web/app/(dashboard)/settings/rooms/
 
+- `page.tsx` — Rooms management: table with GM status override dropdown (force=true), delete confirm, floor/status/search filters, RoomsImportModal button (~2640 tok)
 
 ## apps/web/app/(dashboard)/sop/
 
+- `page.tsx` — SOP Library: document grid with category/search filter, DocumentCard (stale indicator, status badge), UploadModal, SOPQueryModal, ConfirmDeleteDialog; polls every 15s for pending/processing docs (~4296 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS (~14364 tok)
+- `page.tsx` — Staff page (GM only): filterable table, InviteModal (email invite), AddDirectModal (direct create with temp password), EditStaffModal (role + custom role + schedule override), ConfirmDeactivateDialog (~8704 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
+- `page.tsx` — Tasks list: status tabs with URL sync, type/priority filters, TaskRow (checkbox, priority pill, overdue indicator), CreateTaskModal, TaskDetailDrawer (inline edit + complete form + comments) (~5728 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -715,26 +791,58 @@
 
 ## apps/web/lib/ai/
 
+- `clientFastPath.ts` — `clientFastPath(message)` regex-pattern matching returning task_preview response without API call; `isOffTopic(message)` keyword filter; `OFF_TOPIC_RESPONSE` constant (~760 tok)
 
 ## apps/web/lib/api/
 
-- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~2477 tok)
-- `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~460 tok)
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (25 endpoints) (~1769 tok)
-- `reports.ts` — API routes: GET (4 endpoints) (~539 tok)
-- `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1350 tok)
+- `ai.ts` — `aiApi`: chat, confirmTasks/WOs/GuestRequests/Assignments, batchCreateTasks, getRiskAlerts, getInsights; full type definitions for all response variants (~1320 tok)
+- `billing.ts` — `billingApi`: getSubscription, getCredits, createPortalSession, createCheckoutSession, listInvoices (~400 tok)
+- `client.ts` — `apiClient` (get/post/patch/delete), `ApiClientError`, `toFriendlyError` (maps DB error codes to English), `getToken` (authStore → Supabase session fallback); handles 401 auto-signout (~1008 tok)
+- `engineering.ts` — `engineeringApi`: work orders (CRUD + claim/complete/comment/photo), assets (CRUD), failure predictions (list/history/acknowledge/createWO/runPrediction), PM schedules (CRUD + complete/update/deactivate), asset categories (~2176 tok)
+- `feedback.ts` — `feedbackApi`: submit, list; `CreateFeedbackPayload` and `FeedbackSubmission` types (~288 tok)
+- `guest_requests.ts` — `guestRequestsApi`: listRequests, createRequest, updateRequest, deleteRequest (~512 tok)
+- `hotels.ts` — `hotelsApi`: create, get, update, getStats (~520 tok)
+- `housekeeping.ts` — `housekeepingApi`: 20+ methods covering board, assignments CRUD, AI suggest, predictions, inspections CRUD, inspection templates CRUD, strip/checkout/undo, room history, my-rooms, Opera PDF import (~1544 tok)
+- `integrations.ts` — `integrationsApi`: getOperaStatus, connectOpera, syncOpera, testOpera, disconnectOpera (~472 tok)
+- `logbook.ts` — `logbookApi`: listEntries, createEntry, updateEntry, deleteEntry, listDepartments, generateShiftSummary, getShiftSummary (~472 tok)
+- `lost_found.ts` — `lostFoundApi`: listItems, createItem, updateItem, deleteItem, uploadPhoto (~568 tok)
+- `reports.ts` — `reportsApi`: getDailySummary, getStaffPerformance, getMaintenance, getAIUsage; typed response interfaces (~512 tok)
+- `rooms.ts` — `roomsApi`: list, get, updateStatus, getHistory, markStayover, deleteRoom, importRooms, importFromCSV, parseCSVPreview (client-side CSV parse, no network) (~1152 tok)
+- `scheduling.ts` — `schedulingApi`: shifts CRUD, assignments (list/mySchedule/create/bulkUpsert/delete/clockIn/clockOut), todayRoster (~1088 tok)
+- `sop.ts` — `sopApi`: listDocuments, getDocument, uploadDocument (FormData), deleteDocument, query (~472 tok)
+- `staff.ts` — `staffApi`: list, invite, update, deactivate, listInvitations, resendInvitation, addDirect, getEffectiveRole, getRoleSchedules/create/delete, listCustomRoles/create/update/delete (~1240 tok)
+- `tasks.ts` — `tasksApi`: list, get, create, update, addComment, delete (~784 tok)
 
 ## apps/web/lib/hooks/
 
+- `useAuth.ts` — `useAuth()` returns `{user, session, loading, signOut}` from authStore + Supabase signOut (~200 tok)
+- `useCountUp.ts` — `useCountUp(target, duration)` animates number from 0 to target with ease-out cubic via requestAnimationFrame (~232 tok)
+- `useModalFocusTrap.ts` — `useModalFocusTrap(ref, active, onClose)` traps Tab focus within modal, Escape fires onClose, restores focus on unmount (~608 tok)
+- `useRole.ts` — `useRole()` returns `{role, isGM, isSupervisor, canAssignRooms, canViewBilling, canManageStaff, canViewEngineering}`; reads `effectiveRole` (schedule override) from authStore (~320 tok)
 
 ## apps/web/lib/supabase/
 
+- `client.ts` — `createClient()` browser Supabase client via `createBrowserClient` from `@supabase/ssr` (~64 tok)
+- `server.ts` — `createClient()` async server Supabase client via `createServerClient` with Next.js cookies() adapter (~192 tok)
 
 ## apps/web/lib/utils/
 
+- `avatar.ts` — `getInitials(name)`, `getAvatarColor(name)` (deterministic hash → one of 6 Tailwind color classes) (~208 tok)
+- `cleanType.ts` — `CleanType` type, `CLEAN_TYPE_LABELS/SHORT_LABELS/OPTIONS`, `getCleanTypeLabel`, `getCleanTypeShortLabel`, `getCleanAwareStatusLabel`, `getRoomStatusForCleanType`, `getEffectiveRoomStatusForCleanType` (~496 tok)
+- `feedbackContext.ts` — `getFeedbackRuntimeContext(win)` captures page URL, user agent, language, viewport, timezone for feedback submissions (~216 tok)
+- `housekeepingBoardFilters.ts` — `getHousekeepingBoardFilterCounts`, `normalizeHousekeepingBoardRoom`, `filterHousekeepingBoardRooms(rooms, options)` with status/cleanType/risk filters (~536 tok)
+- `housekeepingDashboardMetrics.ts` — `getSupervisorHousekeepingMetrics`, `getHousekeeperDashboardRooms` (sorted by priority), `getHousekeeperDashboardMetrics`; `HousekeepingDashboardMetrics` interface (~816 tok)
+- `housekeepingNavigation.ts` — `getHousekeepingSubNavItems(role)` returns role-appropriate sub-nav tabs for housekeeping section (~232 tok)
+- `index.ts` — `cn(...inputs)` Tailwind class merge using clsx + tailwind-merge (~56 tok)
+- `roomStatus.ts` — `STATUS_LABELS`, `STATUS_SHORT_LABELS`, `STATUS_COLORS`, `STATUS_BG`, `STATUS_TEXT`, `VALID_TRANSITIONS`, `getValidTransitions(status, role)`, `getRiskColorClass`, `formatCheckinTime`, `getTimeSinceSync` (~1960 tok)
 
 ## apps/web/stores/
 
+- `authStore.ts` — `useAuthStore` Zustand persist store: `user`, `session`, `role`, `effectiveRole` (not persisted), `customRoleModules` (not persisted), `isLoading`; `UserRole` type export (~440 tok)
+- `engineeringStore.ts` — `useEngineeringStore` Zustand store: workOrders, selectedWO, predictions, statusFilter, categoryFilter, priorityFilter, isDrawerOpen; `openDrawer/closeDrawer`, `updateWorkOrder` (~432 tok)
+- `hotelStore.ts` — `useHotelStore` Zustand store: `hotel`, `hotels`, `subscription`; `setHotel` deduplicates hotels array (~344 tok)
+- `housekeepingStore.ts` — `useHousekeepingStore` Zustand store: rooms, predictions, selectedDate, selectedShift, assignmentMode, pendingAssignments + cleanTypes, filters (status/cleanType/riskOnly), lastSyncedAt; `filteredRooms()` derived selector (~1176 tok)
+- `uiPreferencesStore.ts` — `useUIPreferencesStore` Zustand persist store: density (comfortable/balanced/dense), theme (light/dark), accent (terracotta/teal/blue/rose); `toggleTheme` (~256 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -779,3 +887,4 @@
 - `050_work_order_photos_bucket.sql` — Create storage bucket for work order photos (~154 tok)
 - `051_work_order_guest_reported.sql` (~27 tok)
 - `052_strip_room.sql` (~55 tok)
+- `053_fix_jwt_role_claim.sql` — Migration 053: Fix JWT role claim for PostgREST compatibility (~406 tok)

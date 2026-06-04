@@ -2,6 +2,38 @@
   "enabledPlugins": {
     "railway@claude-plugins-official": true
   },
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm run build*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run type-check*)",
+      "Bash(npm run test*)",
+      "Bash(npm ci)",
+      "Bash(npm install*)",
+      "Bash(npx playwright test*)",
+      "Bash(npx supabase*)",
+      "Bash(cd apps/api && python*)",
+      "Bash(cd apps/api && pip*)",
+      "Bash(cd apps/api && ruff*)",
+      "Bash(cd apps/api && pyright*)",
+      "Bash(cd apps/mobile && npm*)",
+      "Bash(cd apps/mobile && eas*)",
+      "Bash(eas build*)",
+      "Bash(eas update*)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push)",
+      "Bash(git branch*)",
+      "Bash(git stash*)",
+      "Bash(railway logs*)",
+      "Bash(railway status)",
+      "Bash(node .wolf/hooks/*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

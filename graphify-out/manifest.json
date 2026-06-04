@@ -1,8 +1,8 @@
 {
   "C:\\Users\\Henil\\projects\\PatelRep\\package.json": {
-    "mtime": 1779422001.4531524,
-    "ast_hash": "9d69ba3a0960d2f199d9f3c2e78e9c92",
-    "semantic_hash": "9d69ba3a0960d2f199d9f3c2e78e9c92"
+    "mtime": 1780544046.011815,
+    "ast_hash": "5ae845e77328a702987269baa4ed1500",
+    "semantic_hash": "5ae845e77328a702987269baa4ed1500"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\playwright.config.ts": {
     "mtime": 1779031345.7242286,
@@ -15,14 +15,14 @@
     "semantic_hash": "2384ed1cb15c44d2399377c2069bf5a3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.claude\\settings.json": {
-    "mtime": 1779849371.0527835,
-    "ast_hash": "ee92342918af7b3bcc20aa4208517981",
-    "semantic_hash": "ee92342918af7b3bcc20aa4208517981"
+    "mtime": 1780580660.5946443,
+    "ast_hash": "d97c974a79ee8ef52e67cd71b1716ee9",
+    "semantic_hash": "d97c974a79ee8ef52e67cd71b1716ee9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1780539956.2616563,
-    "ast_hash": "3bc60408ee74be9507a3fb7110fd9a88",
-    "semantic_hash": "3bc60408ee74be9507a3fb7110fd9a88"
+    "mtime": 1780590630.7944536,
+    "ast_hash": "f1eabb8e23a746339413631c416fa288",
+    "semantic_hash": "f1eabb8e23a746339413631c416fa288"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1780539997.339503,
-    "ast_hash": "1bf6e96d6255fe24bce3e08b24bb58f2",
-    "semantic_hash": "1bf6e96d6255fe24bce3e08b24bb58f2"
+    "mtime": 1780590986.6111047,
+    "ast_hash": "52ece19a287be5e5d76d74bf4fce4598",
+    "semantic_hash": "52ece19a287be5e5d76d74bf4fce4598"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1780006260.899577,
@@ -120,9 +120,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\auth.py": {
-    "mtime": 1780368312.716869,
-    "ast_hash": "9355b3640aab15868506d705e2316a7e",
-    "semantic_hash": "9355b3640aab15868506d705e2316a7e"
+    "mtime": 1780555137.59528,
+    "ast_hash": "89dfddd360ae1e1d0ae969763404447c",
+    "semantic_hash": "89dfddd360ae1e1d0ae969763404447c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\credits.py": {
     "mtime": 1779031345.3298113,
@@ -440,17 +440,17 @@
     "semantic_hash": "3dce28a3b22f7db68036fcaf7c5e7293"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\babel.config.js": {
-    "mtime": 1779031345.391539,
-    "ast_hash": "09a3872274aa5d98aca7ba1b442ca908",
-    "semantic_hash": "09a3872274aa5d98aca7ba1b442ca908"
+    "mtime": 1780549995.622401,
+    "ast_hash": "229a63878072efdb417bc1f2cf5b9503",
+    "semantic_hash": "229a63878072efdb417bc1f2cf5b9503"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\eas.json": {
-    "mtime": 1780539968.154793,
-    "ast_hash": "5943e22c238f24b15942ec467cf9545c",
-    "semantic_hash": "5943e22c238f24b15942ec467cf9545c"
+    "mtime": 1780550991.2942295,
+    "ast_hash": "b53672c1b6593e986e98e190387763af",
+    "semantic_hash": "b53672c1b6593e986e98e190387763af"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\expo-env.d.ts": {
-    "mtime": 1779648686.0740695,
+    "mtime": 1780587668.6089432,
     "ast_hash": "0dd9dccdb4b08595bc83df70d6a154d3",
     "semantic_hash": "0dd9dccdb4b08595bc83df70d6a154d3"
   },
@@ -465,9 +465,9 @@
     "semantic_hash": "4e4f5a8f893d3b03faa96f4a5723030a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\package.json": {
-    "mtime": 1779646735.192072,
-    "ast_hash": "2bdb20857c58effa1ee438df05685882",
-    "semantic_hash": "2bdb20857c58effa1ee438df05685882"
+    "mtime": 1780583701.2146752,
+    "ast_hash": "456faf18ac9e18678c63886933281b9b",
+    "semantic_hash": "456faf18ac9e18678c63886933281b9b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\tsconfig.json": {
     "mtime": 1779645864.4808602,
@@ -475,79 +475,49 @@
     "semantic_hash": "fcdea7446824f1f058d64f8bdb7c5c93"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\devices.json": {
-    "mtime": 1779645863.8944254,
-    "ast_hash": "e5f6eb13c875f326cfd5915d3364614f",
-    "semantic_hash": "e5f6eb13c875f326cfd5915d3364614f"
+    "mtime": 1780590211.1073158,
+    "ast_hash": "15584335d7b54df16c571f273ea58dfa",
+    "semantic_hash": "15584335d7b54df16c571f273ea58dfa"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\types\\router.d.ts": {
-    "mtime": 1779650123.59898,
+    "mtime": 1780587669.5271142,
     "ast_hash": "aa09b6aee043b6ce37bc259fa4755230",
     "semantic_hash": "aa09b6aee043b6ce37bc259fa4755230"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\build.gradle": {
-    "mtime": 1779463336.833747,
-    "ast_hash": "d3f8462f0d162c83c84698106dea4197",
-    "semantic_hash": "d3f8462f0d162c83c84698106dea4197"
+    "mtime": 1780544984.7287216,
+    "ast_hash": "c1e50c7ff1340048f86481dd340ad736",
+    "semantic_hash": "c1e50c7ff1340048f86481dd340ad736"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\gradlew": {
     "mtime": 499162500.0,
-    "ast_hash": "1db6d150e9a9442ca929c1fa8b2fd25e",
-    "semantic_hash": "1db6d150e9a9442ca929c1fa8b2fd25e"
+    "ast_hash": "ff1ddbebbc9b4d04f2e9f8cab50d6595",
+    "semantic_hash": "ff1ddbebbc9b4d04f2e9f8cab50d6595"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\settings.gradle": {
-    "mtime": 1779463336.8372736,
-    "ast_hash": "f8d9e345a86d83fe140b913fdba973b2",
-    "semantic_hash": "f8d9e345a86d83fe140b913fdba973b2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\.gradle\\8.8\\dependencies-accessors\\423f0288fa7dffe069445ffa4b72952b4629a15a\\sources\\org\\gradle\\accessors\\dm\\LibrariesForLibs.java": {
-    "mtime": 1779572442.5520616,
-    "ast_hash": "a8b583b2572d091b2f906deeb5229fef",
-    "semantic_hash": "a8b583b2572d091b2f906deeb5229fef"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\.gradle\\8.8\\dependencies-accessors\\423f0288fa7dffe069445ffa4b72952b4629a15a\\sources\\org\\gradle\\accessors\\dm\\LibrariesForLibsInPluginsBlock.java": {
-    "mtime": 1779572442.560965,
-    "ast_hash": "0d568d83c8e9b49d8199f83927ddf5b4",
-    "semantic_hash": "0d568d83c8e9b49d8199f83927ddf5b4"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\.gradle\\8.8\\dependencies-accessors\\63bfea9ebd7ffa1cdafd0ae8ce62aa3c210042bd\\sources\\org\\gradle\\accessors\\dm\\LibrariesForReactAndroidLibs.java": {
-    "mtime": 1779572569.414814,
-    "ast_hash": "0e5543abe9ae32fd6233fc4a2ca738fc",
-    "semantic_hash": "0e5543abe9ae32fd6233fc4a2ca738fc"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\.gradle\\8.8\\dependencies-accessors\\63bfea9ebd7ffa1cdafd0ae8ce62aa3c210042bd\\sources\\org\\gradle\\accessors\\dm\\LibrariesForReactAndroidLibsInPluginsBlock.java": {
-    "mtime": 1779572569.426892,
-    "ast_hash": "d5aff6726e58841977791f903ee2e83f",
-    "semantic_hash": "d5aff6726e58841977791f903ee2e83f"
+    "mtime": 1780544984.7225168,
+    "ast_hash": "01b839b3afed1891c008d663a38e4ccc",
+    "semantic_hash": "01b839b3afed1891c008d663a38e4ccc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\build.gradle": {
-    "mtime": 1779463336.8392682,
-    "ast_hash": "941727644e6fab52a5187c7e165ddbf8",
-    "semantic_hash": "941727644e6fab52a5187c7e165ddbf8"
+    "mtime": 1780544984.7356017,
+    "ast_hash": "3aa5909ffbcf889251e1c22063d5b56c",
+    "semantic_hash": "3aa5909ffbcf889251e1c22063d5b56c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\google-services.json": {
-    "mtime": 1779463334.0568168,
+    "mtime": 1780544980.1924398,
     "ast_hash": "4f8e16a88eb4d2a20d508b4fa2ebac5b",
     "semantic_hash": "4f8e16a88eb4d2a20d508b4fa2ebac5b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\java\\com\\patelrep\\app\\MainActivity.kt": {
-    "mtime": 1779463332.4885979,
-    "ast_hash": "95ddd90406e8a5b46daae5336b0e85cc",
-    "semantic_hash": "95ddd90406e8a5b46daae5336b0e85cc"
+    "mtime": 1780544984.7214255,
+    "ast_hash": "50447467022ce3cacde527cb21122854",
+    "semantic_hash": "50447467022ce3cacde527cb21122854"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\java\\com\\patelrep\\app\\MainApplication.kt": {
-    "mtime": 1779463332.4885979,
-    "ast_hash": "10f66c6929197ae25ca272d08a87395b",
-    "semantic_hash": "10f66c6929197ae25ca272d08a87395b"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\react-settings-plugin\\build.gradle.kts": {
-    "mtime": 499162500.0,
-    "ast_hash": "2b632c4ec639e238835602be329daae9",
-    "semantic_hash": "2b632c4ec639e238835602be329daae9"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\react-settings-plugin\\src\\main\\kotlin\\expo\\plugins\\ReactSettingsPlugin.kt": {
-    "mtime": 499162500.0,
-    "ast_hash": "8985acacd8da0db15aa7806db468749e",
-    "semantic_hash": "8985acacd8da0db15aa7806db468749e"
+    "mtime": 1780544978.774125,
+    "ast_hash": "e2439dd50895d37fdef8ff8bfd856e89",
+    "semantic_hash": "e2439dd50895d37fdef8ff8bfd856e89"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\+native-intent.ts": {
     "mtime": 1779031345.391539,
@@ -560,9 +530,9 @@
     "semantic_hash": "548a8ebdefe809a524046c27ce24e234"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\_layout.tsx": {
-    "mtime": 1779648241.4875486,
-    "ast_hash": "5ac86fedfb3d73ca5b31e341c7606c59",
-    "semantic_hash": "5ac86fedfb3d73ca5b31e341c7606c59"
+    "mtime": 1780590630.4229698,
+    "ast_hash": "40f91b725b76c723428ad0dfb57fc950",
+    "semantic_hash": "40f91b725b76c723428ad0dfb57fc950"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\_layout.tsx": {
     "mtime": 1779644608.7188888,
@@ -585,9 +555,9 @@
     "semantic_hash": "a97660bbfd6029c2813cb5075b466c1c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\profile\\index.tsx": {
-    "mtime": 1779645143.5288217,
-    "ast_hash": "90c26093812ddca5a09220562445393d",
-    "semantic_hash": "90c26093812ddca5a09220562445393d"
+    "mtime": 1780556832.914003,
+    "ast_hash": "83f367d3d341ae2cc86c8b4873370cf6",
+    "semantic_hash": "83f367d3d341ae2cc86c8b4873370cf6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\tasks\\index.tsx": {
     "mtime": 1779645155.877251,
@@ -650,9 +620,9 @@
     "semantic_hash": "dcf9f41ec80ee9ea39233aca86a438fd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\supabase.ts": {
-    "mtime": 1779031345.4086697,
-    "ast_hash": "37adbe435cce946ca31b6729d149ec87",
-    "semantic_hash": "37adbe435cce946ca31b6729d149ec87"
+    "mtime": 1780556811.9318354,
+    "ast_hash": "35842e882a07c73c7a0d5376744387bd",
+    "semantic_hash": "35842e882a07c73c7a0d5376744387bd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\client.ts": {
     "mtime": 1779031345.4047635,
@@ -1790,9 +1760,9 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1780539972.5127368,
-    "ast_hash": "57917e6b94ce4458754cda7fff02125d",
-    "semantic_hash": "57917e6b94ce4458754cda7fff02125d"
+    "mtime": 1780590630.7828796,
+    "ast_hash": "0e4226472802b866dac19d61eaa607a0",
+    "semantic_hash": "0e4226472802b866dac19d61eaa607a0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
     "mtime": 1780538177.4627793,
@@ -1805,9 +1775,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1780539997.337488,
-    "ast_hash": "d6626dfc04067c85c167b752e7431ac4",
-    "semantic_hash": "d6626dfc04067c85c167b752e7431ac4"
+    "mtime": 1780590952.4753456,
+    "ast_hash": "b910311e4a7ca8a08390f60b565ad2bd",
+    "semantic_hash": "b910311e4a7ca8a08390f60b565ad2bd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -1965,129 +1935,29 @@
     "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-hdpi\\notification_icon.png": {
-    "mtime": 1779463336.785928,
+    "mtime": 1780544984.629923,
     "ast_hash": "1a3303ca2a51025bfe9def4ccf5c032b",
     "semantic_hash": "1a3303ca2a51025bfe9def4ccf5c032b"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-hdpi\\splashscreen_image.png": {
-    "mtime": 1779463336.6153123,
-    "ast_hash": "3803854b3a324060a32d27ee2270c15a",
-    "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-mdpi\\notification_icon.png": {
-    "mtime": 1779463336.785928,
+    "mtime": 1780544984.629923,
     "ast_hash": "7fe2776675d352d9ca221d24147587d6",
     "semantic_hash": "7fe2776675d352d9ca221d24147587d6"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-mdpi\\splashscreen_image.png": {
-    "mtime": 1779463336.6163146,
-    "ast_hash": "3803854b3a324060a32d27ee2270c15a",
-    "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xhdpi\\notification_icon.png": {
-    "mtime": 1779463336.785928,
+    "mtime": 1780544984.6312125,
     "ast_hash": "7647bee6c9beaa2ad8923e74f8e952c3",
     "semantic_hash": "7647bee6c9beaa2ad8923e74f8e952c3"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xhdpi\\splashscreen_image.png": {
-    "mtime": 1779463336.6163146,
-    "ast_hash": "3803854b3a324060a32d27ee2270c15a",
-    "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxhdpi\\notification_icon.png": {
-    "mtime": 1779463336.785928,
+    "mtime": 1780544984.6319475,
     "ast_hash": "d5ce1427234a1c4e265b3d395a06caa9",
     "semantic_hash": "d5ce1427234a1c4e265b3d395a06caa9"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxhdpi\\splashscreen_image.png": {
-    "mtime": 1779463336.6163146,
-    "ast_hash": "3803854b3a324060a32d27ee2270c15a",
-    "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxxhdpi\\notification_icon.png": {
-    "mtime": 1779463336.796479,
+    "mtime": 1780544984.6327643,
     "ast_hash": "bb09cb0142cc32d4f265ca5d02c20409",
     "semantic_hash": "bb09cb0142cc32d4f265ca5d02c20409"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxxhdpi\\splashscreen_image.png": {
-    "mtime": 1779463336.6163146,
-    "ast_hash": "3803854b3a324060a32d27ee2270c15a",
-    "semantic_hash": "3803854b3a324060a32d27ee2270c15a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.png": {
-    "mtime": 1779463333.1052403,
-    "ast_hash": "6de958e273673ec9f8cf72fd99573e85",
-    "semantic_hash": "6de958e273673ec9f8cf72fd99573e85"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_foreground.png": {
-    "mtime": 1779463334.0508192,
-    "ast_hash": "6de958e273673ec9f8cf72fd99573e85",
-    "semantic_hash": "6de958e273673ec9f8cf72fd99573e85"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.png": {
-    "mtime": 1779463333.6395876,
-    "ast_hash": "8771b1ba2a7c796a544feb7a4c45798e",
-    "semantic_hash": "8771b1ba2a7c796a544feb7a4c45798e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png": {
-    "mtime": 1779463333.1052403,
-    "ast_hash": "bbab26a0e16c227ace8ace0e845aa063",
-    "semantic_hash": "bbab26a0e16c227ace8ace0e845aa063"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_foreground.png": {
-    "mtime": 1779463334.04975,
-    "ast_hash": "bbab26a0e16c227ace8ace0e845aa063",
-    "semantic_hash": "bbab26a0e16c227ace8ace0e845aa063"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.png": {
-    "mtime": 1779463333.6395876,
-    "ast_hash": "3ed10b45385db28c5d88a0ea5d77c377",
-    "semantic_hash": "3ed10b45385db28c5d88a0ea5d77c377"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.png": {
-    "mtime": 1779463333.1052403,
-    "ast_hash": "379b22e0015ce811570021ec23fa6bd3",
-    "semantic_hash": "379b22e0015ce811570021ec23fa6bd3"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_foreground.png": {
-    "mtime": 1779463334.0518188,
-    "ast_hash": "379b22e0015ce811570021ec23fa6bd3",
-    "semantic_hash": "379b22e0015ce811570021ec23fa6bd3"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.png": {
-    "mtime": 1779463333.6395876,
-    "ast_hash": "aa5aebe30d077b175c7043a50da01f0e",
-    "semantic_hash": "aa5aebe30d077b175c7043a50da01f0e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png": {
-    "mtime": 1779463333.1052403,
-    "ast_hash": "3bc7e3b8961727b9e9020042e3a1f55e",
-    "semantic_hash": "3bc7e3b8961727b9e9020042e3a1f55e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_foreground.png": {
-    "mtime": 1779463334.0518188,
-    "ast_hash": "3bc7e3b8961727b9e9020042e3a1f55e",
-    "semantic_hash": "3bc7e3b8961727b9e9020042e3a1f55e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.png": {
-    "mtime": 1779463333.6395876,
-    "ast_hash": "a81048e9a905b9fb3e2599a7ff291f43",
-    "semantic_hash": "a81048e9a905b9fb3e2599a7ff291f43"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.png": {
-    "mtime": 1779463333.1052403,
-    "ast_hash": "b99bde61ae131c94baf5498eaf8f779a",
-    "semantic_hash": "b99bde61ae131c94baf5498eaf8f779a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_foreground.png": {
-    "mtime": 1779463334.0518188,
-    "ast_hash": "b99bde61ae131c94baf5498eaf8f779a",
-    "semantic_hash": "b99bde61ae131c94baf5498eaf8f779a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.png": {
-    "mtime": 1779463333.6395876,
-    "ast_hash": "7379c60a924a8fafd42e056e816b1762",
-    "semantic_hash": "7379c60a924a8fafd42e056e816b1762"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\assets\\adaptive-icon.png": {
     "mtime": 1779031345.391539,
@@ -4893,5 +4763,190 @@
     "mtime": 1780525744.5455544,
     "ast_hash": "813345ee7692b2097f1f9a8069f72323",
     "semantic_hash": "813345ee7692b2097f1f9a8069f72323"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\053_fix_jwt_role_claim.sql": {
+    "mtime": 1780555115.2765207,
+    "ast_hash": "46c20ac0484fd6c5b327218bc4ca235c",
+    "semantic_hash": "46c20ac0484fd6c5b327218bc4ca235c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-circle\\android-standard-circle-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_144.png": {
+    "mtime": 1780544980.0806243,
+    "ast_hash": "ec99330e8f7a30fca666269b995ecd07",
+    "semantic_hash": "ec99330e8f7a30fca666269b995ecd07"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-circle\\android-standard-circle-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_192.png": {
+    "mtime": 1780544980.1720214,
+    "ast_hash": "ac956b3c95de8f738b996ace0d16ccdc",
+    "semantic_hash": "ac956b3c95de8f738b996ace0d16ccdc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-circle\\android-standard-circle-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_48.png": {
+    "mtime": 1780544980.0806243,
+    "ast_hash": "2ca233d64df03f272729a27e570b8510",
+    "semantic_hash": "2ca233d64df03f272729a27e570b8510"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-circle\\android-standard-circle-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_72.png": {
+    "mtime": 1780544980.1102526,
+    "ast_hash": "2a5c303dbe1f2a79e620f7394c6030df",
+    "semantic_hash": "2a5c303dbe1f2a79e620f7394c6030df"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-circle\\android-standard-circle-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_96.png": {
+    "mtime": 1780544979.9888253,
+    "ast_hash": "c45501712ec8ac96710e38b9f3a06051",
+    "semantic_hash": "c45501712ec8ac96710e38b9f3a06051"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-square\\android-standard-square-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_144.png": {
+    "mtime": 1780544979.4493344,
+    "ast_hash": "f837f2e948749927f11de450b75376bd",
+    "semantic_hash": "f837f2e948749927f11de450b75376bd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-square\\android-standard-square-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_192.png": {
+    "mtime": 1780544979.4980786,
+    "ast_hash": "9ce2bb0544542ba4da00f2e80c1697f2",
+    "semantic_hash": "9ce2bb0544542ba4da00f2e80c1697f2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-square\\android-standard-square-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_48.png": {
+    "mtime": 1780544979.34621,
+    "ast_hash": "605b34fdb2566bea76a5a7c94f4c8e56",
+    "semantic_hash": "605b34fdb2566bea76a5a7c94f4c8e56"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-square\\android-standard-square-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_72.png": {
+    "mtime": 1780544979.34621,
+    "ast_hash": "578c12488e2020997eeb4bf059ff85a1",
+    "semantic_hash": "578c12488e2020997eeb4bf059ff85a1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\android-standard-square\\android-standard-square-f20efcebad160ad1b38634851051b76d28496c5c94fe443af4ab4dd7c79cf394-cover-#1a1815\\icon_96.png": {
+    "mtime": 1780544979.4231791,
+    "ast_hash": "d51a0925b896b9acbf00d38603ddbeec",
+    "semantic_hash": "d51a0925b896b9acbf00d38603ddbeec"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\splash-android\\splash-android-96ffb0a0a6a6c20a11d358b9fe2d47eb05b3933c4a148f78eaf1b8dec0919d90-contain\\icon_200.png": {
+    "mtime": 1780544982.3435194,
+    "ast_hash": "84a161b3fde532b990f41abfed13fbc2",
+    "semantic_hash": "84a161b3fde532b990f41abfed13fbc2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\splash-android\\splash-android-96ffb0a0a6a6c20a11d358b9fe2d47eb05b3933c4a148f78eaf1b8dec0919d90-contain\\icon_300.png": {
+    "mtime": 1780544982.4334846,
+    "ast_hash": "c41c20cc22af3dcea8f0f0046a6587c0",
+    "semantic_hash": "c41c20cc22af3dcea8f0f0046a6587c0"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\splash-android\\splash-android-96ffb0a0a6a6c20a11d358b9fe2d47eb05b3933c4a148f78eaf1b8dec0919d90-contain\\icon_400.png": {
+    "mtime": 1780544982.3435194,
+    "ast_hash": "e001ee6d66911615634ded88aa0973bd",
+    "semantic_hash": "e001ee6d66911615634ded88aa0973bd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\splash-android\\splash-android-96ffb0a0a6a6c20a11d358b9fe2d47eb05b3933c4a148f78eaf1b8dec0919d90-contain\\icon_600.png": {
+    "mtime": 1780544983.1168523,
+    "ast_hash": "e4182a0b71e22abafbc3d500df5dbba3",
+    "semantic_hash": "e4182a0b71e22abafbc3d500df5dbba3"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\web\\cache\\production\\images\\splash-android\\splash-android-96ffb0a0a6a6c20a11d358b9fe2d47eb05b3933c4a148f78eaf1b8dec0919d90-contain\\icon_800.png": {
+    "mtime": 1780544983.7504225,
+    "ast_hash": "cce308ada6133bd0ce36c6a8b01235eb",
+    "semantic_hash": "cce308ada6133bd0ce36c6a8b01235eb"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-hdpi\\splashscreen_logo.png": {
+    "mtime": 1780544984.3603992,
+    "ast_hash": "0d78dc85f3c78eebf3ae43cb140e2a20",
+    "semantic_hash": "0d78dc85f3c78eebf3ae43cb140e2a20"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-mdpi\\splashscreen_logo.png": {
+    "mtime": 1780544984.3274584,
+    "ast_hash": "e4fb1526b93ee3c63b56290584d75bfe",
+    "semantic_hash": "e4fb1526b93ee3c63b56290584d75bfe"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xhdpi\\splashscreen_logo.png": {
+    "mtime": 1780544984.0789883,
+    "ast_hash": "b5b6018f0654d568a5547ed8db2f3d06",
+    "semantic_hash": "b5b6018f0654d568a5547ed8db2f3d06"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxhdpi\\splashscreen_logo.png": {
+    "mtime": 1780544984.6208565,
+    "ast_hash": "30576c8338043fc0fa3b4f8851d30e6b",
+    "semantic_hash": "30576c8338043fc0fa3b4f8851d30e6b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\drawable-xxxhdpi\\splashscreen_logo.png": {
+    "mtime": 1780544984.6208565,
+    "ast_hash": "ca848a636df16ec35eec46303e9b202a",
+    "semantic_hash": "ca848a636df16ec35eec46303e9b202a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.webp": {
+    "mtime": 1780544979.4980786,
+    "ast_hash": "578c12488e2020997eeb4bf059ff85a1",
+    "semantic_hash": "578c12488e2020997eeb4bf059ff85a1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1780544980.1841202,
+    "ast_hash": "6de958e273673ec9f8cf72fd99573e85",
+    "semantic_hash": "6de958e273673ec9f8cf72fd99573e85"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.webp": {
+    "mtime": 1780544980.1740322,
+    "ast_hash": "2a5c303dbe1f2a79e620f7394c6030df",
+    "semantic_hash": "2a5c303dbe1f2a79e620f7394c6030df"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.webp": {
+    "mtime": 1780544979.4980786,
+    "ast_hash": "605b34fdb2566bea76a5a7c94f4c8e56",
+    "semantic_hash": "605b34fdb2566bea76a5a7c94f4c8e56"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1780544980.1841202,
+    "ast_hash": "bbab26a0e16c227ace8ace0e845aa063",
+    "semantic_hash": "bbab26a0e16c227ace8ace0e845aa063"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.webp": {
+    "mtime": 1780544980.1720214,
+    "ast_hash": "2ca233d64df03f272729a27e570b8510",
+    "semantic_hash": "2ca233d64df03f272729a27e570b8510"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.webp": {
+    "mtime": 1780544979.4980786,
+    "ast_hash": "d51a0925b896b9acbf00d38603ddbeec",
+    "semantic_hash": "d51a0925b896b9acbf00d38603ddbeec"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1780544980.1841202,
+    "ast_hash": "379b22e0015ce811570021ec23fa6bd3",
+    "semantic_hash": "379b22e0015ce811570021ec23fa6bd3"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.webp": {
+    "mtime": 1780544980.1700132,
+    "ast_hash": "c45501712ec8ac96710e38b9f3a06051",
+    "semantic_hash": "c45501712ec8ac96710e38b9f3a06051"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.webp": {
+    "mtime": 1780544979.4980786,
+    "ast_hash": "f837f2e948749927f11de450b75376bd",
+    "semantic_hash": "f837f2e948749927f11de450b75376bd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1780544980.1841202,
+    "ast_hash": "3bc7e3b8961727b9e9020042e3a1f55e",
+    "semantic_hash": "3bc7e3b8961727b9e9020042e3a1f55e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.webp": {
+    "mtime": 1780544980.1720214,
+    "ast_hash": "ec99330e8f7a30fca666269b995ecd07",
+    "semantic_hash": "ec99330e8f7a30fca666269b995ecd07"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.webp": {
+    "mtime": 1780544979.4990513,
+    "ast_hash": "9ce2bb0544542ba4da00f2e80c1697f2",
+    "semantic_hash": "9ce2bb0544542ba4da00f2e80c1697f2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1780544980.1841202,
+    "ast_hash": "b99bde61ae131c94baf5498eaf8f779a",
+    "semantic_hash": "b99bde61ae131c94baf5498eaf8f779a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.webp": {
+    "mtime": 1780544980.1750412,
+    "ast_hash": "ac956b3c95de8f738b996ace0d16ccdc",
+    "semantic_hash": "ac956b3c95de8f738b996ace0d16ccdc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\STATE.md": {
+    "mtime": 1780580722.3364599,
+    "ast_hash": "5bec095f2952e46f59579576b79f0544",
+    "semantic_hash": "5bec095f2952e46f59579576b79f0544"
   }
 }
