@@ -3352,3 +3352,48 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:18 | Edited apps/web/lib/api/reports.ts | 6→9 lines | ~73 |
 | 01:18 | Edited apps/web/app/(dashboard)/reports/page.tsx | expanded (+15 lines) | ~282 |
 | 01:19 | Session end: 24 writes across 8 files (CreateWorkOrderModal.tsx, 051_work_order_guest_reported.sql, requests.py, work_orders.py, reports.py) | 14 reads | ~38618 tok |
+
+## Session: 2026-06-03 01:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:58 | Verified existing local dev servers | localhost:3000, localhost:8000/docs | Web and API returned 200; browser opened login on localhost with one i18n hydration warning | ~9000 |
+| 19:44 | Finished Spanish-mode no-English pass for login, AI/dynamic placeholders, and authenticated route audit. | apps/web/i18n/domTranslations.ts, apps/web/i18n/locales/es.ts, apps/web/app/(auth)/login/page.tsx, e2e/i18n-language-toggle.spec.ts | focused Playwright, route audit, type-check, lint, and build passed | ~20k |
+
+## Session: 2026-06-03 15:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:59 | Created supabase/migrations/052_strip_room.sql | — | ~55 |
+| 16:00 | Edited apps/api/routers/rooms.py | modified strip_room() | ~503 |
+| 16:00 | Edited apps/api/routers/rooms.py | 11→14 lines | ~116 |
+| 16:00 | Edited apps/api/routers/housekeeping.py | modified _is_missing_clean_type_column_error() | ~504 |
+| 16:00 | Edited apps/api/routers/housekeeping.py | 15→18 lines | ~170 |
+| 16:01 | Edited apps/api/routers/housekeeping.py | modified list_ready_to_strip() | ~856 |
+| 16:01 | Edited apps/web/lib/api/housekeeping.ts | expanded (+9 lines) | ~119 |
+| 16:01 | Edited apps/web/lib/api/housekeeping.ts | expanded (+6 lines) | ~104 |
+| 16:01 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 13→13 lines | ~224 |
+| 16:01 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | modified StripQueueCard() | ~425 |
+| 16:01 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 1→2 lines | ~48 |
+| 21:00 | Reviewed web/mobile i18n setup and found mobile i18n exists while web only has dependencies. | apps/web, apps/mobile/i18n | proceeding with web i18n implementation | ~22000 |
+| 16:01 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | expanded (+6 lines) | ~155 |
+| 16:02 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | added error handling | ~178 |
+| 16:02 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 3→6 lines | ~66 |
+| 16:02 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | expanded (+47 lines) | ~931 |
+
+| 16:03 | Add Ready to Strip section to Inspections page | housekeeping.py, rooms.py, housekeeping.ts, inspections/page.tsx, 052_strip_room.sql | stripped column + endpoint + UI section added | ~800 || 16:03 | Session end: 15 writes across 5 files (052_strip_room.sql, rooms.py, housekeeping.py, housekeeping.ts, page.tsx) | 7 reads | ~54689 tok |
+| 21:00 | Added web i18n resources, LanguageToggle, provider sync, and translated login/header/sidebar. | apps/web/i18n, apps/web/components/shared, apps/web/app/(auth)/login/page.tsx | type-check and lint passed | ~18000 |
+| 21:00 | Session summary: implemented English/Spanish web toggle for login and shared shell, added focused E2E coverage, and verified type-check/lint/build/local Playwright. | apps/web, e2e/i18n-language-toggle.spec.ts | complete | ~1000 |
+| 21:00 | Extended web Spanish coverage with a broad DOM phrase translator for existing hardcoded UI text and dynamic content. | apps/web/i18n/domTranslations.ts, apps/web/components/shared/LanguageSync.tsx, e2e/i18n-language-toggle.spec.ts | type-check/lint/build/focused Playwright passed | ~9000 |
+| 17:14 | Expanded Spanish i18n coverage, fixed composite DOM phrase translation, localized login hero/footer chips, and verified locally | apps/web/i18n/*, apps/web/app/(auth)/login/page.tsx, e2e/i18n-language-toggle.spec.ts | focused Playwright, type-check, lint, build, and browser check passed | ~12k |
+| 17:39 | Removed remaining Spanish-mode English leaks across authenticated web routes, including AI page copy and attributes | apps/web/i18n/domTranslations.ts, apps/web/i18n/locales/es.ts, e2e/i18n-language-toggle.spec.ts | authenticated route audit clean; focused Playwright/type-check/lint/build passed | ~16k |
+| 19:03 | Session end: 15 writes across 5 files (052_strip_room.sql, rooms.py, housekeeping.py, housekeeping.ts, page.tsx) | 8 reads | ~54689 tok |
+| 19:07 | Session end: 15 writes across 5 files (052_strip_room.sql, rooms.py, housekeeping.py, housekeeping.ts, page.tsx) | 8 reads | ~54689 tok |
+| 19:11 | Session end: 15 writes across 5 files (052_strip_room.sql, rooms.py, housekeeping.py, housekeeping.ts, page.tsx) | 8 reads | ~54689 tok |
+
+## Session: 2026-06-04 19:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:18 | Started matching local API for web room board | apps/web/.env.local, .wolf/runtime-logs/api-8003.*.log | FastAPI now runs on localhost:8003; browser reload shows 114 housekeeping rooms | ~12000 |
+| 20:55 | Fixed remaining English strings in housekeeper dashboard Spanish mode | apps/web/i18n/domTranslations.ts, e2e/i18n-language-toggle.spec.ts | focused Playwright, browser sanity, type-check, lint, and build passed | ~9000 |

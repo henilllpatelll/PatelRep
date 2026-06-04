@@ -394,6 +394,9 @@ async def manual_checkout_room(
         "guest_name": None,
         "vip_flag": False,
         "dnd_flag": False,
+        "stripped": False,
+        "stripped_by": None,
+        "stripped_at": None,
         "updated_at": now_iso,
         "notes": notes,
     }
@@ -618,6 +621,49 @@ async def mark_stayover(
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/strip
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/strip")
+async def strip_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Mark a DIRTY departure room as stripped (linens removed) by a supervisor."""
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if current_row.data.get("status") != "DIRTY":
+        raise HTTPException(status_code=400, detail="Room must be DIRTY to be stripped")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    supabase.table("room_status").update({
+        "stripped": True,
+        "stripped_by": current_user.user_id,
+        "stripped_at": now_iso,
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": "DIRTY",
+        "to_status": "DIRTY",
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": "Stripped",
+    }).execute()
+
+    return {"data": {"room_id": room_id, "stripped": True}}
 
 
 # ---------------------------------------------------------------------------

@@ -50,6 +50,15 @@ export interface ReadyForInspectionRoom {
   clean_type: string | null
 }
 
+export interface ReadyToStripRoom {
+  room_id: string
+  room_number: string
+  floor: number | null
+  checkout_time: string | null
+  fo_status: string | null
+  assigned_housekeeper_id: string | null
+}
+
 export interface AssignmentPayload {
   date: string
   shift_id: string | null
@@ -121,6 +130,12 @@ export const housekeepingApi = {
 
   getReadyForInspection: (date?: string) =>
     apiClient.get('/housekeeping/ready-for-inspection', { params: date ? { date } : undefined }),
+
+  getReadyToStrip: (date?: string) =>
+    apiClient.get('/housekeeping/ready-to-strip', { params: date ? { date } : undefined }),
+
+  markRoomStripped: (roomId: string) =>
+    apiClient.post(`/rooms/${roomId}/strip`, {}),
 
   updateRoomStatus: (roomId: string, status: string, notes?: string) =>
     apiClient.patch(`/rooms/${roomId}/status`, { status, notes }),

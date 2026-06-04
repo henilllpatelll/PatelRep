@@ -39,8 +39,17 @@ def _is_missing_clean_type_column_error(exc: Exception) -> bool:
     return ("42703" in err or "PGRST204" in err) and "clean_type" in err
 
 
+def _is_missing_stripped_column_error(exc: Exception) -> bool:
+    err = str(exc)
+    return ("42703" in err or "PGRST204" in err) and "stripped" in err
+
+
 def _without_clean_type(payload: dict) -> dict:
     return {key: value for key, value in payload.items() if key != "clean_type"}
+
+
+def _without_stripped(payload: dict) -> dict:
+    return {k: v for k, v in payload.items() if k not in ("stripped", "stripped_by", "stripped_at")}
 
 
 def _execute_room_status_clean_type_write(payload: dict, build_query):
@@ -49,7 +58,17 @@ def _execute_room_status_clean_type_write(payload: dict, build_query):
     except Exception as exc:
         if "clean_type" in payload and _is_missing_clean_type_column_error(exc):
             logger.warning("room_status.clean_type column missing; retrying room_status write without clean_type")
-            return build_query(_without_clean_type(payload)).execute()
+            fallback = _without_clean_type(payload)
+            try:
+                return build_query(fallback).execute()
+            except Exception as exc2:
+                if _is_missing_stripped_column_error(exc2) and any(k in fallback for k in ("stripped", "stripped_by", "stripped_at")):
+                    logger.warning("room_status.stripped column missing; retrying without stripped")
+                    return build_query(_without_stripped(fallback)).execute()
+                raise
+        if _is_missing_stripped_column_error(exc) and any(k in payload for k in ("stripped", "stripped_by", "stripped_at")):
+            logger.warning("room_status.stripped column missing; retrying room_status write without stripped")
+            return build_query(_without_stripped(payload)).execute()
         raise
 
 
@@ -1058,6 +1077,81 @@ async def list_ready_for_inspection(
 
 
 # ---------------------------------------------------------------------------
+# GET /housekeeping/ready-to-strip
+# ---------------------------------------------------------------------------
+
+@router.get("/ready-to-strip")
+async def list_ready_to_strip(
+    board_date: Optional[date] = Query(None, alias="date"),
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    """Return DIRTY departure rooms that have not yet been stripped by a supervisor."""
+    today = board_date or date.today()
+
+    try:
+        result = (
+            supabase.table("room_status")
+            .select("room_id, status, clean_type, fo_status, checkout_time, rooms!inner(room_number, floor)")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("status", "DIRTY")
+            .eq("clean_type", "DEP")
+            .eq("stripped", False)
+            .execute()
+        )
+        dirty_dep_rooms = result.data or []
+    except Exception as exc:
+        if _is_missing_clean_type_column_error(exc) or _is_missing_stripped_column_error(exc):
+            # Fall back: use fo_status=VAC as departure proxy if columns are absent
+            fallback = (
+                supabase.table("room_status")
+                .select("room_id, status, fo_status, checkout_time, rooms!inner(room_number, floor)")
+                .eq("tenant_id", current_user.hotel_id)
+                .eq("status", "DIRTY")
+                .eq("fo_status", "VAC")
+                .execute()
+            )
+            dirty_dep_rooms = fallback.data or []
+        else:
+            raise
+
+    if not dirty_dep_rooms:
+        return {"data": []}
+
+    room_ids = [r["room_id"] for r in dirty_dep_rooms]
+
+    assignments_res = (
+        supabase.table("room_assignments")
+        .select("room_id, assigned_to")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assignment_date", today.isoformat())
+        .in_("room_id", room_ids)
+        .execute()
+    )
+    assigned_map: dict[str, str] = {
+        a["room_id"]: a["assigned_to"]
+        for a in (assignments_res.data or [])
+        if a.get("assigned_to")
+    }
+
+    output = []
+    for room in dirty_dep_rooms:
+        room_info = room.get("rooms") or {}
+        output.append({
+            "room_id": room["room_id"],
+            "room_number": room_info.get("room_number", ""),
+            "floor": room_info.get("floor"),
+            "checkout_time": room.get("checkout_time"),
+            "fo_status": room.get("fo_status"),
+            "assigned_housekeeper_id": assigned_map.get(room["room_id"]),
+        })
+
+    output.sort(key=lambda r: (r["floor"] is None, r["floor"] or 0, r["room_number"]))
+    return {"data": output}
+
+
+# ---------------------------------------------------------------------------
 # POST /housekeeping/inspections
 # ---------------------------------------------------------------------------
 
@@ -1422,6 +1516,9 @@ async def import_hk_details(
             "dnd_flag": False,
             "do_not_service": False,
             "notes": None,
+            "stripped": False,
+            "stripped_by": None,
+            "stripped_at": None,
         }
 
         _execute_room_status_clean_type_write(

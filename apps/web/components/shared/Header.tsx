@@ -5,30 +5,22 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, ArrowRight, X } from 'lucide-react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
-import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/stores/authStore'
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  gm: 'General Manager',
-  housekeeping_supervisor: 'Housekeeping Supervisor',
-  chief_engineer: 'Chief Engineer',
-  housekeeper: 'Housekeeper',
-  engineer: 'Engineer',
-  front_desk: 'Front Desk',
-}
+import { LanguageToggle } from '@/components/shared/LanguageToggle'
+import { useTranslation } from 'react-i18next'
 
 const COMMANDS = [
-  { label: 'Dashboard', href: '/dashboard', hint: 'Today overview' },
-  { label: 'Room Board', href: '/housekeeping', hint: 'Housekeeping status' },
-  { label: 'Work Orders', href: '/engineering/work-orders', hint: 'Maintenance kanban' },
-  { label: 'Guest Requests', href: '/guest-requests', hint: 'Service recovery' },
-  { label: 'Tasks', href: '/tasks', hint: 'Open task list' },
-  { label: 'Staff', href: '/staff', hint: 'Team directory' },
-  { label: 'Schedule', href: '/scheduling', hint: '7-day matrix' },
-  { label: 'SOP Library', href: '/sop', hint: 'Search procedures' },
-  { label: 'Reports', href: '/reports', hint: 'KPI reports' },
-  { label: 'Settings', href: '/settings', hint: 'Hotel profile' },
+  { labelKey: 'nav.dashboard', href: '/dashboard', hintKey: 'commands.todayOverview' },
+  { labelKey: 'nav.roomBoard', href: '/housekeeping', hintKey: 'commands.housekeepingStatus' },
+  { labelKey: 'nav.workOrders', href: '/engineering/work-orders', hintKey: 'commands.maintenanceKanban' },
+  { labelKey: 'nav.guestRequests', href: '/guest-requests', hintKey: 'commands.serviceRecovery' },
+  { labelKey: 'nav.tasks', href: '/tasks', hintKey: 'commands.openTaskList' },
+  { labelKey: 'nav.staff', href: '/staff', hintKey: 'commands.teamDirectory' },
+  { labelKey: 'nav.schedule', href: '/scheduling', hintKey: 'commands.sevenDayMatrix' },
+  { labelKey: 'nav.sopLibrary', href: '/sop', hintKey: 'commands.searchProcedures' },
+  { labelKey: 'nav.reports', href: '/reports', hintKey: 'commands.kpiReports' },
+  { labelKey: 'nav.settings', href: '/settings', hintKey: 'commands.hotelProfile' },
 ]
 
 interface HeaderProps {
@@ -38,6 +30,7 @@ interface HeaderProps {
 export function Header({ onMenuToggle }: HeaderProps) {
   const router = useRouter()
   const { user, signOut } = useAuth()
+  const { t, i18n } = useTranslation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
@@ -58,7 +51,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
   const initials = getInitials(fullName)
   const avatarBg = getAvatarColor(fullName)
-  const roleLabel = role ? ROLE_LABELS[role] : null
+  const roleLabel = role ? t(`roles.${role}`) : null
 
   const handleSignOut = async () => {
     setDropdownOpen(false)
@@ -136,13 +129,17 @@ export function Header({ onMenuToggle }: HeaderProps) {
     }
   }, [dropdownOpen])
 
-  const today = format(new Date(), 'EEE, MMM d')
+  const today = new Intl.DateTimeFormat(i18n.language === 'es' ? 'es-US' : 'en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date())
   const hour = new Date().getHours()
-  const shift = hour < 15 ? 'Day shift' : hour < 23 ? 'Evening shift' : 'Night shift'
+  const shift = hour < 15 ? t('header.dayShift') : hour < 23 ? t('header.eveningShift') : t('header.nightShift')
   const filteredCommands = COMMANDS.filter((command) => {
     const q = commandQuery.toLowerCase().trim()
     if (!q) return true
-    return `${command.label} ${command.hint}`.toLowerCase().includes(q)
+    return `${t(command.labelKey)} ${t(command.hintKey)}`.toLowerCase().includes(q)
   }).slice(0, 7)
 
   return (
@@ -151,7 +148,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       <button
         onClick={onMenuToggle}
         className="md:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-2 transition-colors text-ink3 hover:text-ink shrink-0"
-        aria-label="Open menu"
+        aria-label={t('header.openMenu')}
       >
         <Menu size={16} />
       </button>
@@ -165,13 +162,13 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <input
           id="topbar-search"
           type="text"
-          placeholder="Search rooms, work orders, guests…"
+          placeholder={t('header.searchPlaceholder')}
           value=""
           onFocus={() => { setSearchFocused(true); openCommandPalette() }}
           onBlur={() => setSearchFocused(false)}
           onChange={() => undefined}
           className="text-[13px] text-ink placeholder:text-ink3 bg-transparent outline-none flex-1 min-w-0"
-          aria-label="Open command palette"
+          aria-label={t('header.openCommandPalette')}
         />
         <kbd className="hidden lg:inline-flex font-mono text-[10px] text-ink3 bg-surface-3 border border-line px-[5px] py-px rounded shrink-0">
           ⌘K
@@ -183,7 +180,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Command palette"
+            aria-label={t('header.commandPalette')}
             className="mx-auto w-full max-w-xl overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop"
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -199,20 +196,20 @@ export function Header({ onMenuToggle }: HeaderProps) {
                     runCommand(filteredCommands[0].href)
                   }
                 }}
-                placeholder="Search rooms, work orders, guests..."
+                placeholder={t('header.searchPlaceholder')}
                 className="flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink4"
               />
               <button
                 onClick={() => setCommandOpen(false)}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-ink3 hover:bg-surface-2 hover:text-ink"
-                aria-label="Close command palette"
+                aria-label={t('header.closeCommandPalette')}
               >
                 <X size={14} />
               </button>
             </div>
             <div className="max-h-[360px] overflow-y-auto p-2">
               {filteredCommands.length === 0 ? (
-                <p className="px-3 py-6 text-center text-[13px] text-ink3">No matching command</p>
+                <p className="px-3 py-6 text-center text-[13px] text-ink3">{t('header.noMatchingCommand')}</p>
               ) : (
                 filteredCommands.map((command) => (
                   <button
@@ -224,8 +221,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
                       <ArrowRight size={14} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-medium text-ink">{command.label}</span>
-                      <span className="block text-[11px] text-ink3">{command.hint}</span>
+                      <span className="block text-[13px] font-medium text-ink">{t(command.labelKey)}</span>
+                      <span className="block text-[11px] text-ink3">{t(command.hintKey)}</span>
                     </span>
                     <span className="font-mono text-[10px] text-ink4">{command.href}</span>
                   </button>
@@ -247,21 +244,23 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
       <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
 
+      <LanguageToggle className="hidden sm:inline-flex shrink-0" />
+
       {/* Ask copilot */}
       <button
         onClick={handleCopilotOpen}
         className="hidden md:inline-flex items-center gap-1.5 bg-[var(--ai-soft)] text-[var(--ai)] border border-[var(--ai-line)] px-2.5 h-8 rounded-lg text-[12px] font-medium hover:opacity-90 transition-opacity shrink-0"
-        aria-label="Open AI Copilot (⌘J)"
+        aria-label={`${t('header.openCopilot')} (Cmd+J)`}
       >
         <Sparkles size={13} />
-        <span>Ask copilot</span>
+        <span>{t('header.askCopilot')}</span>
         <span className="font-mono text-[10px] opacity-60 ml-1">⌘J</span>
       </button>
 
       {/* Notification bell */}
       <button
         className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0"
-        aria-label="Notifications"
+        aria-label={t('header.notifications')}
       >
         <Bell size={14} />
         <span className="absolute -top-[3px] -right-[3px] w-[14px] h-[14px] rounded-full bg-accent text-white text-[9px] font-bold font-mono flex items-center justify-center border-2 border-paper">
@@ -276,7 +275,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           className="flex min-h-[32px] min-w-[32px] items-center justify-center gap-1.5 rounded-lg hover:bg-surface-2 transition-colors px-1"
           aria-haspopup="true"
           aria-expanded={dropdownOpen}
-          aria-label={`User menu for ${fullName}`}
+          aria-label={t('header.userMenuFor', { name: fullName })}
         >
           <div className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
             {initials}
@@ -300,7 +299,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                 className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-ink2 hover:bg-surface-2 hover:text-ink transition-colors"
               >
                 <Settings size={13} className="text-ink3 shrink-0" />
-                Settings
+                {t('header.settings')}
               </button>
             </div>
             <div className="border-t border-line-2 py-1">
@@ -310,7 +309,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                 className="w-full min-h-[38px] flex items-center gap-2.5 px-4 py-2 text-[13px] text-alert hover:bg-[var(--alert-soft)] transition-colors"
               >
                 <LogOut size={13} className="shrink-0" />
-                Sign Out
+                {t('header.signOut')}
               </button>
             </div>
           </div>

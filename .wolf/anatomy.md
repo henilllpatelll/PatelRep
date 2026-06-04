@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T06:18:39.193Z
-> Files: 67 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T21:02:29.088Z
+> Files: 68 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -410,6 +410,17 @@
 
 ## .claude/worktrees/agent-ad340f5a/apps/api/routers/
 
+## .wolf/
+
+- `buglog.json` - OpenWolf bug ledger; append runtime/test/build failures and fixes. (~90000 tok)
+- `cerebrum.md` - OpenWolf project memory for user preferences, key learnings, gotchas, and decisions. (~14000 tok)
+- `memory.md` - Session action ledger; append one-line entries after significant actions. (~500 tok)
+
+## .wolf/runtime-logs/
+
+- `api-8003.err.log` - Local FastAPI stderr/startup log for the uvicorn process serving the web app's configured API URL. (~200 tok)
+- `api-8003.out.log` - Local FastAPI stdout log for the uvicorn process serving the web app's configured API URL. (~50 tok)
+
 
 ## .planning/
 
@@ -446,9 +457,9 @@
 ## apps/api/routers/
 
 - `guest_requests.py` — API: 4 endpoints (~1884 tok)
-- `housekeeping.py` — Declares from (~16596 tok)
+- `housekeeping.py` — Declares from (~17694 tok)
 - `reports.py` — API: 3 endpoints (~4126 tok)
-- `rooms.py` — API: 3 endpoints (~9965 tok)
+- `rooms.py` — API: 3 endpoints (~10450 tok)
 - `work_orders.py` — API: 6 endpoints (~5005 tok)
 
 ## apps/api/services/
@@ -584,7 +595,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
-- `page.tsx` — todayISO — renders table (~5210 tok)
+- `page.tsx` — todayISO (~6259 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
@@ -682,6 +693,8 @@
 
 ## apps/web/components/shared/
 
+- `LanguageSync.tsx` - Keeps document lang/localStorage synchronized with i18next language. (~160 tok)
+- `LanguageToggle.tsx` - Compact English/Spanish toggle backed by i18next/localStorage. (~230 tok)
 - `Providers.tsx` — SUPABASE_DB_ROLES (~2221 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4466 tok)
 
@@ -691,11 +704,22 @@
 ## apps/web/lib/ai/
 
 
+## apps/web/i18n/
+
+- `domTranslations.ts` - Broad DOM phrase translator for existing hardcoded UI text and dynamic attributes. (~2500 tok)
+- `index.ts` - Initializes web i18next resources and persisted language selection. (~260 tok)
+
+## apps/web/i18n/locales/
+
+- `en.ts` - English web translation dictionary for login, shell nav, roles, commands. (~1010 tok)
+- `es.ts` - Spanish web translation dictionary for login, shell nav, roles, commands. (~1010 tok)
+
+
 ## apps/web/lib/api/
 
 - `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~2477 tok)
 - `guest_requests.ts` — API routes: GET, POST, PATCH, DELETE (4 endpoints) (~460 tok)
-- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (23 endpoints) (~1644 tok)
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (25 endpoints) (~1769 tok)
 - `reports.ts` — API routes: GET (4 endpoints) (~539 tok)
 - `rooms.ts` — Parse CSV text into a preview array — no network call — for pre-submit previews (~1350 tok)
 
@@ -715,6 +739,8 @@
 
 
 ## e2e/
+
+- `i18n-language-toggle.spec.ts` - Playwright coverage for unauthenticated English/Spanish language toggle, persistence, and DOM fallback phrase translation. (~520 tok)
 
 
 ## e2e/agent-browser/
@@ -753,3 +779,4 @@
 - `049_inspection_results_nullable_template_item.sql` — ============================================================================= (~250 tok)
 - `050_work_order_photos_bucket.sql` — Create storage bucket for work order photos (~154 tok)
 - `051_work_order_guest_reported.sql` (~27 tok)
+- `052_strip_room.sql` (~55 tok)

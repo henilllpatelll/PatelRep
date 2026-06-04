@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, ClipboardCheck } from 'lucide-react'
-import { housekeepingApi, InspectionRecord, ReadyForInspectionRoom } from '@/lib/api/housekeeping'
+import { CheckCircle2, ClipboardCheck, Clock, Scissors } from 'lucide-react'
+import { housekeepingApi, InspectionRecord, ReadyForInspectionRoom, ReadyToStripRoom } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -37,6 +37,48 @@ function resultLabel(result: InspectionResult): string {
   if (result === 'passed') return 'Passed'
   if (result === 'failed') return 'Failed'
   return 'Conditional'
+}
+
+function StripQueueCard({
+  room,
+  onStrip,
+  isBusy,
+}: {
+  room: ReadyToStripRoom
+  onStrip: () => void
+  isBusy: boolean
+}) {
+  const checkoutLabel = room.checkout_time
+    ? format(new Date(room.checkout_time), 'h:mm a')
+    : null
+  return (
+    <div className="flex items-center gap-4 px-4 py-3.5 border-b border-line last:border-b-0">
+      <div className="w-12 h-12 rounded-[10px] bg-[var(--alert-soft)] border border-[var(--alert-line)] flex items-center justify-center shrink-0">
+        <span className="font-mono text-[14px] font-semibold text-ink">{room.room_number}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-ink">Departure</span>
+          {room.floor != null && <span className="text-xs text-ink4">Floor {room.floor}</span>}
+        </div>
+        {checkoutLabel && (
+          <p className="text-xs text-ink3 mt-0.5 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Due out {checkoutLabel}
+          </p>
+        )}
+      </div>
+      <Button
+        variant="secondary"
+        onClick={onStrip}
+        disabled={isBusy}
+        className="shrink-0 text-sm px-3 py-1.5"
+      >
+        <Scissors className="w-4 h-4 mr-1.5" />
+        {isBusy ? 'Marking…' : 'Mark Stripped'}
+      </Button>
+    </div>
+  )
 }
 
 function QueueCard({ room, onInspect }: { room: ReadyForInspectionRoom; onInspect: () => void }) {
@@ -76,6 +118,7 @@ export default function InspectionsPage() {
   const [reassignNote, setReassignNote] = useState('')
   const [reassignBusy, setReassignBusy] = useState(false)
 
+  const [strippingId, setStrippingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const [dateFrom, setDateFrom] = useState(sevenDaysAgoISO())
@@ -93,6 +136,12 @@ export default function InspectionsPage() {
   const { data: readyRooms = [], isLoading: isLoadingReady } = useQuery<ReadyForInspectionRoom[]>({
     queryKey: ['ready-for-inspection', todayISO()],
     queryFn: () => housekeepingApi.getReadyForInspection(todayISO()).then((res) => res.data),
+    refetchInterval: 60_000,
+  })
+
+  const { data: stripRooms = [], isLoading: isLoadingStrip } = useQuery<ReadyToStripRoom[]>({
+    queryKey: ['ready-to-strip', todayISO()],
+    queryFn: () => housekeepingApi.getReadyToStrip(todayISO()).then((res) => res.data),
     refetchInterval: 60_000,
   })
 
@@ -115,6 +164,20 @@ export default function InspectionsPage() {
     staleTime: 300_000,
   })
   const housekeepers = (staffData?.data?.staff ?? []).filter((s) => s.role === 'housekeeper')
+
+  async function handleMarkStripped(room: ReadyToStripRoom) {
+    setStrippingId(room.room_id)
+    try {
+      await housekeepingApi.markRoomStripped(room.room_id)
+      queryClient.invalidateQueries({ queryKey: ['ready-to-strip'] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
+      setToast({ type: 'success', message: `Room ${room.room_number} marked stripped.` })
+    } catch {
+      setToast({ type: 'error', message: `Failed to mark room ${room.room_number} stripped.` })
+    } finally {
+      setStrippingId(null)
+    }
+  }
 
   function handleInspectionSuccess(result: OverallResult) {
     const room = inspectingRoom!
@@ -213,7 +276,10 @@ export default function InspectionsPage() {
             }`}
           >
             {t === 'live'
-              ? `Live${readyRooms.length > 0 ? ` · ${readyRooms.length}` : ''}`
+              ? (() => {
+                  const total = readyRooms.length + stripRooms.length
+                  return `Live${total > 0 ? ` · ${total}` : ''}`
+                })()
               : 'History'}
           </button>
         ))}
@@ -221,32 +287,79 @@ export default function InspectionsPage() {
 
       {/* LIVE TAB */}
       {tab === 'live' && (
-        <div className="space-y-4">
-          {isLoadingReady ? (
+        <div className="space-y-6">
+          {/* Ready to Strip */}
+          {(isLoadingStrip || stripRooms.length > 0) && (
             <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-[72px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
-              ))}
+              <div className="flex items-center gap-2">
+                <Scissors className="w-4 h-4 text-[var(--alert)]" />
+                <h2 className="text-sm font-semibold text-ink">Ready to Strip</h2>
+                {stripRooms.length > 0 && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]">
+                    {stripRooms.length}
+                  </span>
+                )}
+              </div>
+              {isLoadingStrip ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-[72px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-0 overflow-hidden">
+                  {stripRooms.map((room) => (
+                    <StripQueueCard
+                      key={room.room_id}
+                      room={room}
+                      onStrip={() => handleMarkStripped(room)}
+                      isBusy={strippingId === room.room_id}
+                    />
+                  ))}
+                </Card>
+              )}
             </div>
-          ) : readyRooms.length === 0 ? (
-            <Card className="p-10 text-center">
-              <ClipboardCheck className="w-10 h-10 text-ink4 mx-auto mb-3" />
-              <p className="text-sm font-medium text-ink2">No rooms waiting for inspection</p>
-              <p className="text-xs text-ink3 mt-1">
-                Rooms appear here when a housekeeper marks them clean.
-              </p>
-            </Card>
-          ) : (
-            <Card className="p-0 overflow-hidden">
-              {readyRooms.map((room) => (
-                <QueueCard
-                  key={room.room_id}
-                  room={room}
-                  onInspect={() => setInspectingRoom(room)}
-                />
-              ))}
-            </Card>
           )}
+
+          {/* Inspection Queue */}
+          <div className="space-y-3">
+            {stripRooms.length > 0 || isLoadingStrip ? (
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="w-4 h-4 text-[var(--info)]" />
+                <h2 className="text-sm font-semibold text-ink">Inspection Queue</h2>
+                {readyRooms.length > 0 && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]">
+                    {readyRooms.length}
+                  </span>
+                )}
+              </div>
+            ) : null}
+            {isLoadingReady ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-[72px] bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
+                ))}
+              </div>
+            ) : readyRooms.length === 0 ? (
+              <Card className="p-10 text-center">
+                <ClipboardCheck className="w-10 h-10 text-ink4 mx-auto mb-3" />
+                <p className="text-sm font-medium text-ink2">No rooms waiting for inspection</p>
+                <p className="text-xs text-ink3 mt-1">
+                  Rooms appear here when a housekeeper marks them clean.
+                </p>
+              </Card>
+            ) : (
+              <Card className="p-0 overflow-hidden">
+                {readyRooms.map((room) => (
+                  <QueueCard
+                    key={room.room_id}
+                    room={room}
+                    onInspect={() => setInspectingRoom(room)}
+                  />
+                ))}
+              </Card>
+            )}
+          </div>
         </div>
       )}
 

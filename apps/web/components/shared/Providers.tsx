@@ -9,6 +9,7 @@ import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { ApiClientError, apiClient } from '@/lib/api/client'
 import { staffApi } from '@/lib/api/staff'
+import { LanguageSync } from '@/components/shared/LanguageSync'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MeResponse {
@@ -228,8 +229,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthListener />
-      {children}
+      <LanguageSync>
+        <AuthListener />
+        {children}
+      </LanguageSync>
     </QueryClientProvider>
   )
 }

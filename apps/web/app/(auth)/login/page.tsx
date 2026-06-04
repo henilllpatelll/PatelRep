@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { LanguageToggle } from '@/components/shared/LanguageToggle'
+import { useTranslation } from 'react-i18next'
 
 type Tab = 'password' | 'magic'
 
@@ -16,6 +18,7 @@ function Spinner({ className = '' }: { className?: string }) {
 }
 
 function LoginContent() {
+  const { t } = useTranslation()
   const [isHydrated, setIsHydrated] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('password')
   const [email, setEmail] = useState('')
@@ -80,13 +83,13 @@ function LoginContent() {
               </svg>
             </div>
             <div>
-              <h2 className="font-display text-2xl italic text-ink">Check your email</h2>
+              <h2 className="font-display text-2xl italic text-ink">{t('login.checkEmailTitle')}</h2>
               <p className="text-[13px] text-ink-3 mt-2 leading-relaxed">
-                We sent a magic link to <strong className="text-ink font-medium">{email}</strong>. Click it to sign in &mdash; expires in 1 hour.
+                {t('login.checkEmailBody', { email })}
               </p>
             </div>
             <button type="button" onClick={() => { setMagicLinkSent(false); setError('') }} className="text-[13px] text-accent font-medium hover:opacity-80 transition-opacity">
-              &larr; Back to login
+              &larr; {t('login.backToLogin')}
             </button>
           </div>
         </div>
@@ -100,18 +103,21 @@ function LoginContent() {
       {/* Left — form pane */}
       <div className="flex flex-col p-10 lg:p-16">
         {/* Logo */}
-        <div className="mb-auto">
-          <span className="text-accent font-mono text-lg font-bold tracking-tight">&#10022; PatelRep</span>
-          <span className="ml-2 text-[11px] text-ink-4 font-mono uppercase tracking-widest">Hotel AI</span>
+        <div className="mb-auto flex items-center justify-between gap-3">
+          <div>
+            <span className="text-accent font-mono text-lg font-bold tracking-tight">&#10022; PatelRep</span>
+            <span className="ml-2 text-[11px] text-ink-4 font-mono uppercase tracking-widest">{t('login.brandTag')}</span>
+          </div>
+          <LanguageToggle />
         </div>
 
         <div className="flex-1 flex flex-col justify-center max-w-[380px] w-full mx-auto lg:mx-0 py-12">
-          <p className="text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-3 mb-4">Operator sign in</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-3 mb-4">{t('login.eyebrow')}</p>
           <h1 className="font-display text-[42px] leading-[1.05] tracking-[-0.8px] text-ink mb-3">
-            Welcome back to <em>your hotel</em>.
+            {t('login.title')}
           </h1>
           <p className="text-[14px] text-ink-2 leading-relaxed mb-8">
-            Sign in to keep the floor running smoothly. The AI has prepared your morning briefing.
+            {t('login.subtitle')}
           </p>
 
           {/* Tab switcher */}
@@ -127,7 +133,7 @@ function LoginContent() {
                   activeTab === tab ? 'bg-surface text-accent shadow-sm font-semibold' : 'text-ink-3'
                 }`}
               >
-                {tab === 'password' ? 'Sign In' : 'Magic Link'}
+                {tab === 'password' ? t('login.passwordTab') : t('login.magicTab')}
               </button>
             ))}
           </div>
@@ -141,38 +147,38 @@ function LoginContent() {
           {activeTab === 'password' && (
             <form onSubmit={handlePasswordLogin} className="space-y-4" noValidate>
               <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-pw">Email</label>
+                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-pw">{t('login.email')}</label>
                 <input id="email-pw" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[12px] font-medium text-ink-2" htmlFor="password-pw">Password</label>
-                  <a href="/auth/reset-password" className="text-[12px] text-accent hover:opacity-80 transition-opacity">Forgot password?</a>
+                  <label className="block text-[12px] font-medium text-ink-2" htmlFor="password-pw">{t('login.password')}</label>
+                  <a href="/auth/reset-password" className="text-[12px] text-accent hover:opacity-80 transition-opacity">{t('login.forgotPassword')}</a>
                 </div>
                 <input id="password-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••••" disabled={!isHydrated || loading} autoComplete="current-password" className={`${inputCls} font-mono`} />
               </div>
               <button type="submit" disabled={!isHydrated || loading || !email || !password} className={`${primaryBtn} mt-2`}>
-                {loading ? <><Spinner className="text-white" /> Signing in&hellip;</> : 'Sign In'}
+                {loading ? <><Spinner className="text-white" /> {t('login.signingIn')}</> : t('login.passwordTab')}
               </button>
             </form>
           )}
 
           {activeTab === 'magic' && (
             <form onSubmit={handleMagicLink} className="space-y-4" noValidate>
-              <p className="text-[13px] text-ink-3 leading-relaxed">Enter your email and we&apos;ll send you a one-click sign-in link. No password required.</p>
+              <p className="text-[13px] text-ink-3 leading-relaxed">{t('login.magicIntro')}</p>
               <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-ml">Email</label>
+                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-ml">{t('login.email')}</label>
                 <input id="email-ml" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={inputCls} />
               </div>
               <button type="submit" disabled={!isHydrated || loading || !email} className={`${primaryBtn} mt-2`}>
-                {loading ? <><Spinner className="text-white" /> Sending&hellip;</> : 'Send Magic Link'}
+                {loading ? <><Spinner className="text-white" /> {t('login.sending')}</> : t('login.sendMagicLink')}
               </button>
             </form>
           )}
         </div>
 
         <div className="font-mono text-[11px] text-ink-4 mt-auto">
-          v2.1.0 &middot; status: <span className="text-[var(--ready)]">operational</span>
+          v2.1.0 &middot; {t('login.statusLabel')}: <span className="text-[var(--ready)]">{t('login.operational')}</span>
         </div>
       </div>
 
@@ -183,25 +189,30 @@ function LoginContent() {
           {/* Top label */}
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[1.4px] text-white/60">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Lone Star Inn &middot; Austin TX
+            {t('login.heroLocation')}
           </div>
 
           {/* Dashboard preview */}
           <div className="my-10 rounded-[var(--r-lg)] p-6" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="text-[11px] text-white/50 uppercase tracking-[1.2px] mb-3 font-mono">This morning &middot; 9:42</div>
+            <div className="text-[11px] text-white/50 uppercase tracking-[1.2px] mb-3 font-mono">{t('login.heroTime')}</div>
             <div className="mb-4">
-              <div className="font-mono text-[11px] text-white/50 mb-1">Rooms ready by 3pm</div>
+              <div className="font-mono text-[11px] text-white/50 mb-1">{t('login.roomsReady')}</div>
               <div className="flex items-baseline gap-2">
                 <span className="font-display text-[52px] leading-none text-white">52</span>
                 <span className="text-lg text-white/40">/ 87</span>
-                <span className="ml-auto font-mono text-[12px] text-[var(--ready)]">+6 vs forecast</span>
+                <span className="ml-auto font-mono text-[12px] text-[var(--ready)]">{t('login.forecast')}</span>
               </div>
               <div className="h-1 mt-3 rounded-full overflow-hidden bg-white/10">
                 <div className="h-full bg-accent rounded-full" style={{ width: '60%' }} />
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {['78% occ', '24m clean', '6 WOs', '3 VIPs'].map((s) => (
+              {[
+                t('login.occupancyChip'),
+                t('login.cleanTimeChip'),
+                t('login.workOrdersChip'),
+                t('login.vipChip'),
+              ].map((s) => (
                 <span key={s} className="font-mono text-[11px] px-2.5 py-1 rounded-full text-white/80" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>{s}</span>
               ))}
             </div>
@@ -209,9 +220,9 @@ function LoginContent() {
 
           {/* Testimonial */}
           <blockquote className="font-display italic text-[21px] leading-[1.4] text-white max-w-sm">
-            &ldquo;It&rsquo;s like having a second supervisor on the floor &mdash; quietly catching the things we&rsquo;d miss.&rdquo;
+            &ldquo;{t('login.testimonial')}&rdquo;
             <footer className="mt-4 not-italic font-sans text-[12px] text-white/50 uppercase tracking-[1.2px]">
-              Sandeep R. &middot; GM, Bluebonnet Suites
+              {t('login.testimonialByline')}
             </footer>
           </blockquote>
         </div>

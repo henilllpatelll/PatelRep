@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/stores/authStore'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
+import { LanguageToggle } from '@/components/shared/LanguageToggle'
+import { useTranslation } from 'react-i18next'
 
 interface SubNavItem { href: string; label: string }
 interface NavItem { href: string; label: string; icon: React.ElementType; subNav?: SubNavItem[]; count?: number; tag?: string }
@@ -50,12 +52,36 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  gm:                      'General Manager',
-  housekeeping_supervisor: 'Housekeeping Supervisor',
-  chief_engineer:          'Chief of Maintenance',
-  housekeeper:             'Housekeeper',
-  engineer:                'Maintenance Tech',
-  front_desk:              'Front Desk',
+  gm:                      'roles.gm',
+  housekeeping_supervisor: 'roles.housekeeping_supervisor',
+  chief_engineer:          'roles.chief_of_maintenance',
+  housekeeper:             'roles.housekeeper',
+  engineer:                'roles.maintenance_tech',
+  front_desk:              'roles.front_desk',
+}
+
+const NAV_LABEL_KEYS: Record<string, string> = {
+  Dashboard: 'nav.dashboard',
+  Housekeeping: 'nav.housekeeping',
+  'My Rooms': 'nav.myRooms',
+  Engineering: 'nav.engineering',
+  'Work Orders': 'nav.workOrders',
+  Assets: 'nav.assets',
+  'PM Schedules': 'nav.pmSchedules',
+  Predictions: 'nav.predictions',
+  'Lost & Found': 'nav.lostFound',
+  'Guest Requests': 'nav.guestRequests',
+  Tasks: 'nav.tasks',
+  'AI Copilot': 'nav.aiCopilot',
+  'SOP Library': 'nav.sopLibrary',
+  Reports: 'nav.reports',
+  Logbook: 'nav.logbook',
+  Staff: 'nav.staff',
+  Schedule: 'nav.schedule',
+  Settings: 'nav.settings',
+  'Room Board': 'nav.roomBoard',
+  Assignments: 'nav.assignments',
+  Inspections: 'nav.inspections',
 }
 
 const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks']
@@ -70,6 +96,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useTranslation()
   const { role } = useRole()
   const { user } = useAuth()
   const { hotel, hotels, setHotel } = useHotelStore()
@@ -84,7 +111,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   const initials  = getInitials(fullName)
   const avatarBg  = getAvatarColor(fullName)
-  const roleLabel = role ? ROLE_LABELS[role] : null
+  const roleLabel = role ? t(ROLE_LABELS[role]) : null
+  const navLabel = (label: string) => t(NAV_LABEL_KEYS[label] ?? label)
 
   const allowedHrefs: string[] =
     customRoleModules
@@ -155,7 +183,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             )}
           >
             <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? 'text-accent' : 'text-ink3')} />
-            <span className="flex-1">{label}</span>
+            <span className="flex-1">{navLabel(label)}</span>
             {tag && (
               <span className="text-[9px] font-bold tracking-wide px-1.5 py-px rounded bg-ai-soft text-ai border border-ai-line">
                 {tag}
@@ -178,7 +206,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     subActive ? 'bg-accent-soft text-accent font-medium' : 'text-ink3 hover:bg-surface-2 hover:text-ink2'
                   )}
                 >
-                  {subLabel}
+                  {navLabel(subLabel)}
                 </Link>
               )
             })}
@@ -209,7 +237,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </div>
           <div className="leading-none">
             <div className="text-sm font-semibold tracking-tight text-ink">PatelRep</div>
-            <div className="text-[10px] text-ink3 font-mono mt-0.5">Hotel Operations AI</div>
+            <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('nav.hotelOperationsAI')}</div>
           </div>
         </div>
       </div>
@@ -232,7 +260,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </div>
           <div className="flex-1 min-w-0 leading-none">
             <div className="text-xs font-semibold text-ink truncate">{hotel.name}</div>
-            <div className="text-[10px] text-ink3 font-mono mt-0.5">{hotel.room_count ?? '—'} rooms</div>
+            <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('common.rooms', { count: hotel.room_count ?? 0 })}</div>
           </div>
           <ChevronDown className={cn('w-3 h-3 text-ink3 shrink-0 transition-transform', hotelDropdownOpen && 'rotate-180')} />
           </button>
@@ -262,7 +290,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-medium">{item.name}</span>
-                      <span className="block font-mono text-[10px] text-ink3">{item.room_count ?? '—'} rooms</span>
+                      <span className="block font-mono text-[10px] text-ink3">{t('common.rooms', { count: item.room_count ?? 0 })}</span>
                     </span>
                   </button>
                 )
@@ -276,7 +304,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 }}
                 className="mt-1 flex w-full items-center justify-center rounded-lg border border-line px-2.5 py-2 text-[12px] font-medium text-ink2 hover:bg-surface-2"
               >
-                Manage hotel profile
+                {t('nav.manageHotelProfile')}
               </button>
             </div>
           )}
@@ -287,21 +315,21 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <nav className="flex-1 px-3 overflow-y-auto space-y-3">
         {opsItems.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pt-1 pb-1.5">Operations</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pt-1 pb-1.5">{t('nav.operations')}</p>
             <div className="space-y-px">{opsItems.map(renderNavItem)}</div>
           </div>
         )}
         {intelItems.length > 0 && (
           <div>
             <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">Intelligence</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">{t('nav.intelligence')}</p>
             <div className="space-y-px">{intelItems.map(renderNavItem)}</div>
           </div>
         )}
         {peopleItems.length > 0 && (
           <div>
             <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">Organization</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">{t('nav.organization')}</p>
             <div className="space-y-px">{peopleItems.map(renderNavItem)}</div>
           </div>
         )}
@@ -325,7 +353,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   )}
                 >
                   <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? 'text-accent' : 'text-ink3')} />
-                  {label}
+                  {navLabel(label)}
                 </Link>
               </div>
             )
@@ -335,6 +363,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* User identity */}
       <div className="px-3 pb-4 pt-2 border-t border-line-2">
+        <LanguageToggle className="mb-2 flex w-full justify-center sm:hidden" />
         <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-surface border border-line">
           <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0', avatarBg)}>
             {initials}
