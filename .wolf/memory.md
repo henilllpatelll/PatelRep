@@ -1,4 +1,5 @@
 # Memory
+| 2026-06-04 | EAS build fix: removed apps/web from root workspaces, removed workspaces field entirely, added apps/mobile/node_modules/ to root .easignore, added .npmrc with legacy-peer-deps=true at root and apps/mobile/ | package.json, .easignore, .npmrc, apps/mobile/.npmrc | in-progress | ~1k tok |
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
@@ -3397,3 +3398,55 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 20:18 | Started matching local API for web room board | apps/web/.env.local, .wolf/runtime-logs/api-8003.*.log | FastAPI now runs on localhost:8003; browser reload shows 114 housekeeping rooms | ~12000 |
 | 20:55 | Fixed remaining English strings in housekeeper dashboard Spanish mode | apps/web/i18n/domTranslations.ts, e2e/i18n-language-toggle.spec.ts | focused Playwright, browser sanity, type-check, lint, and build passed | ~9000 |
+
+## Session: 2026-06-04 21:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:25 | Edited apps/mobile/app.json | 15→17 lines | ~130 |
+| 21:25 | Edited apps/mobile/app.json | inline fix | ~9 |
+| 21:26 | Edited apps/mobile/eas.json | 6→5 lines | ~30 |
+| 21:26 | Edited apps/mobile/eas.json | 13→13 lines | ~99 |
+| 21:26 | Created apps/mobile/.easignore | — | ~25 |
+| 21:26 | EAS build config fixes | apps/mobile/app.json, eas.json, .easignore | brand colors fixed, credentialsSource removed, .easignore added | ~400 |
+| 21:26 | Session end: 5 writes across 3 files (app.json, eas.json, .easignore) | 18 reads | ~7052 tok |
+| 21:32 | Session end: 5 writes across 3 files (app.json, eas.json, .easignore) | 18 reads | ~7052 tok |
+| 21:34 | Edited apps/mobile/eas.json | 3→4 lines | ~22 |
+| 21:44 | Edited package.json | 3→4 lines | ~16 |
+| 21:44 | Created .easignore | — | ~55 |
+| 21:46 | Session end: 8 writes across 4 files (app.json, eas.json, .easignore, package.json) | 19 reads | ~7149 tok |
+| 21:47 | Session end: 8 writes across 4 files (app.json, eas.json, .easignore, package.json) | 19 reads | ~7149 tok |
+| 21:47 | Session end: 8 writes across 4 files (app.json, eas.json, .easignore, package.json) | 19 reads | ~7149 tok |
+| 21:49 | Session end: 8 writes across 4 files (app.json, eas.json, .easignore, package.json) | 19 reads | ~7149 tok |
+| 22:23 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md | — | ~633 |
+| 22:23 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~36 |
+| 22:23 | Session end: 10 writes across 6 files (app.json, eas.json, .easignore, package.json, project_eas_build_status.md) | 20 reads | ~7865 tok |
+| 22:26 | Session end: 10 writes across 6 files (app.json, eas.json, .easignore, package.json, project_eas_build_status.md) | 20 reads | ~7865 tok |
+
+## Session: 2026-06-04 22:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:29 | Edited package.json | 9→8 lines | ~68 |
+| 22:29 | Edited .easignore | 2→2 lines | ~6 |
+| 22:30 | Created .npmrc | — | ~6 |
+| 22:34 | Edited package.json | 4→1 lines | ~4 |
+| 22:39 | Edited .easignore | 3→4 lines | ~16 |
+| 22:39 | Created apps/mobile/.npmrc | — | ~6 |
+| 23:03 | Edited apps/mobile/android/gradle.properties | inline fix | ~10 |
+| 23:03 | Edited apps/mobile/android/gradle.properties | inline fix | ~15 |
+| 23:13 | Edited .easignore | 3→6 lines | ~43 |
+| 23:14 | Edited .easignore | removed 6 lines | ~8 |
+| 23:23 | Edited apps/mobile/android/gradle.properties | inline fix | ~6 |
+| 23:30 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md | — | ~883 |
+| 23:30 | Session end: 12 writes across 5 files (package.json, .easignore, .npmrc, gradle.properties, project_eas_build_status.md) | 17 reads | ~3144 tok |
+
+## Session: 2026-06-04 00:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:13 | Edited apps/mobile/babel.config.js | 2→3 lines | ~23 |
+| 00:13 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md | — | ~979 |
+| 00:13 | Session end: 2 writes across 2 files (babel.config.js, project_eas_build_status.md) | 2 reads | ~1072 tok |
+| 00:21 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md | — | ~375 |
+| 00:21 | Session end: 3 writes across 2 files (babel.config.js, project_eas_build_status.md) | 2 reads | ~1474 tok |

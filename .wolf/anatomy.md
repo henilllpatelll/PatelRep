@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-03T21:02:29.088Z
-> Files: 68 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-04T05:21:21.808Z
+> Files: 78 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -12,7 +12,8 @@
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
 - `feedback_platform_scope.md` (~185 tok)
-- `MEMORY.md` — PatelRep Project Memory (~281 tok)
+- `MEMORY.md` — PatelRep Project Memory (~312 tok)
+- `project_eas_build_status.md` (~352 tok)
 - `project_guest_requests_spec.md` — Guest Requests Redesign Spec (~451 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
@@ -21,8 +22,11 @@
 
 ## ./
 
+- `.easignore` (~59 tok)
+- `.npmrc` (~6 tok)
 - `CLAUDE.md` — OpenWolf (~2969 tok)
 - `fix-encoding.ps1` — Fix mojibake encoding in TSX files (~546 tok)
+- `package.json` — Node.js package manifest (~334 tok)
 
 ## .claude/
 
@@ -410,19 +414,14 @@
 
 ## .claude/worktrees/agent-ad340f5a/apps/api/routers/
 
-## .wolf/
-
-- `buglog.json` - OpenWolf bug ledger; append runtime/test/build failures and fixes. (~90000 tok)
-- `cerebrum.md` - OpenWolf project memory for user preferences, key learnings, gotchas, and decisions. (~14000 tok)
-- `memory.md` - Session action ledger; append one-line entries after significant actions. (~500 tok)
-
-## .wolf/runtime-logs/
-
-- `api-8003.err.log` - Local FastAPI stderr/startup log for the uvicorn process serving the web app's configured API URL. (~200 tok)
-- `api-8003.out.log` - Local FastAPI stdout log for the uvicorn process serving the web app's configured API URL. (~50 tok)
-
 
 ## .planning/
+
+
+## .wolf/
+
+
+## .wolf/runtime-logs/
 
 
 ## Docker Context Additions
@@ -492,6 +491,11 @@
 
 ## apps/mobile/
 
+- `.easignore` (~25 tok)
+- `.npmrc` (~6 tok)
+- `app.json` (~622 tok)
+- `babel.config.js` (~44 tok)
+- `eas.json` (~574 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -501,6 +505,10 @@
 
 ## apps/mobile/__tests__/screens/
 
+
+## apps/mobile/android/
+
+- `gradle.properties` — Project-wide Gradle settings. (~751 tok)
 
 ## apps/mobile/app/
 
@@ -693,26 +701,19 @@
 
 ## apps/web/components/shared/
 
-- `LanguageSync.tsx` - Keeps document lang/localStorage synchronized with i18next language. (~160 tok)
-- `LanguageToggle.tsx` - Compact English/Spanish toggle backed by i18next/localStorage. (~230 tok)
 - `Providers.tsx` — SUPABASE_DB_ROLES (~2221 tok)
 - `Sidebar.tsx` — ALL_NAV_ITEMS (~4466 tok)
 
 ## apps/web/components/ui/
 
 
-## apps/web/lib/ai/
-
-
 ## apps/web/i18n/
 
-- `domTranslations.ts` - Broad DOM phrase translator for existing hardcoded UI text and dynamic attributes. (~2500 tok)
-- `index.ts` - Initializes web i18next resources and persisted language selection. (~260 tok)
 
 ## apps/web/i18n/locales/
 
-- `en.ts` - English web translation dictionary for login, shell nav, roles, commands. (~1010 tok)
-- `es.ts` - Spanish web translation dictionary for login, shell nav, roles, commands. (~1010 tok)
+
+## apps/web/lib/ai/
 
 
 ## apps/web/lib/api/
@@ -739,8 +740,6 @@
 
 
 ## e2e/
-
-- `i18n-language-toggle.spec.ts` - Playwright coverage for unauthenticated English/Spanish language toggle, persistence, and DOM fallback phrase translation. (~520 tok)
 
 
 ## e2e/agent-browser/

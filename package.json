@@ -1,14 +1,11 @@
 {
   "name": "patelrep",
   "private": true,
-  "workspaces": [
-    "apps/web"
-  ],
   "scripts": {
     "postinstall": "npx patch-package || true",
-    "build": "npm run build --workspace=apps/web",
-    "start": "npm run start --workspace=apps/web",
-    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "cd apps/web && npm run build",
+    "start": "cd apps/web && npm run start",
+    "dev:web": "cd apps/web && npm run dev",
     "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn main:app --reload --port 8000",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

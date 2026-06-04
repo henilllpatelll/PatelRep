@@ -1,0 +1,15 @@
+apps/api/
+apps/web/
+node_modules/
+apps/mobile/node_modules/
+.git/
+e2e/
+playwright-report/
+test-results/
+mobile-report/
+mobile-test-screenshots/
+design_handoff_frontend_rework/
+graphify-out/
+*.PDF
+dashboard*.png
+/*.png
