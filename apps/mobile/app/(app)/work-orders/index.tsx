@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
+import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { C, displayFont } from "@/components/shared/tokens";
@@ -54,7 +55,7 @@ function locationText(wo: WorkOrder) {
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
-  const { isOnline } = useAppStore();
+  const { isOnline, user } = useAppStore();
   const [tab, setTab] = useState<Tab>("open");
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,19 @@ export default function WorkOrdersScreen() {
     setLoading(true);
     loadWorkOrders();
   }, [loadWorkOrders]);
+
+  useEffect(() => {
+    if (!user?.tenant_id) return;
+    const channel = supabase
+      .channel("work-orders-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "work_orders", filter: `tenant_id=eq.${user.tenant_id}` },
+        () => { loadWorkOrders(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.tenant_id, loadWorkOrders]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

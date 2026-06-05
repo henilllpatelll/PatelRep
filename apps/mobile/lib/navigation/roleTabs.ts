@@ -18,7 +18,8 @@ export type RoleTabKey =
   | "room-status"
   | "lost"
   | "alerts"
-  | "staff";
+  | "staff"
+  | "logbook";
 
 export type RoleTabDef = {
   key: RoleTabKey;
@@ -56,6 +57,7 @@ const SUPERVISOR_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "board", name: "room-board/index", titleKey: "tabs.roomBoard", icon: "grid-outline" },
   { key: "assignments", name: "assignments/index", titleKey: "tabs.assignments", icon: "people-outline" },
+  { key: "inspect", name: "inspect/index", titleKey: "tabs.inspect", icon: "shield-checkmark-outline" },
   { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
@@ -63,6 +65,7 @@ const SUPERVISOR_TABS: RoleTabDef[] = [
 const CHIEF_ENGINEER_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "orders", name: "work-orders/index", titleKey: "tabs.workOrders", icon: "construct-outline" },
+  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
   { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
   { key: "pm", name: "pm-schedules/index", titleKey: "tabs.pmSchedules", icon: "calendar-outline" },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
@@ -72,6 +75,7 @@ const FRONT_DESK_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "requests", name: "guest-requests/index", titleKey: "tabs.guestRequests", icon: "chatbubble-ellipses-outline" },
   { key: "room-status", name: "room-status/index", titleKey: "tabs.roomStatus", icon: "bed-outline" },
+  { key: "logbook", name: "logbook/index", titleKey: "tabs.logbook", icon: "book-outline" },
   { key: "lost", name: "lost-found/index", titleKey: "tabs.lostFound", icon: "search-outline" },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
@@ -104,12 +108,13 @@ export const HIDDEN_APP_ROUTES = [
   "my-rooms/[roomId]",
   "work-orders/[woId]",
   "guest-requests/[requestId]",
-  "logbook/index",
   "logbook/new",
 ];
 
 export function getTabsForRole(role: UserRole): RoleTabDef[] {
   switch (role) {
+    case "inspector":
+      return INSPECTOR_TABS;
     case "engineer":
       return ENGINEER_TABS;
     case "chief_engineer":

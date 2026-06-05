@@ -1,5 +1,6 @@
 import NetInfo from "@react-native-community/netinfo";
 import { api } from "@/lib/api/client";
+import { useAppStore } from "@/stores/appStore";
 import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
@@ -14,6 +15,8 @@ let _syncInProgress = false;
 export async function syncOnConnect(): Promise<void> {
   const state = await NetInfo.fetch();
   if (!state.isConnected) return;
+  // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
+  await useAppStore.getState().flushQueue();
   await flushSyncQueue();
   await refreshRooms();
 }

@@ -33,11 +33,12 @@
     "roomStatus": "Rooms",
     "lostFound": "Lost & Found",
     "alerts": "Alerts",
-    "staff": "Staff"
+    "staff": "Staff",
+    "logbook": "Logbook"
   },
   "home": {
     "greeting": "Morning, {{name}}.",
-    "shiftMeta": "Tue · May 26 · Day shift",
+    "shiftSuffix": "Day shift",
     "copilotKicker": "Your smart order",
     "startWith": "Start with {{room}}",
     "seePlan": "See the plan",
@@ -47,6 +48,10 @@
     "onPace": "on pace",
     "seeAll": "See all",
     "upNext": "Up next",
+    "roomsLeft": "{{count}} rooms left.",
+    "copilotPlanBefore": "I'd clean ",
+    "copilotPlanAfter": " first, then keep your VIP room fresh for check-in.",
+    "boardClear": "Your board is clear for now.",
     "allDone": "All assigned rooms are done.",
     "pullToRefresh": "Pull to refresh if your supervisor adds more.",
     "engineer": {
@@ -63,6 +68,33 @@
       "workOrders": "Work orders",
       "allOrders": "All orders",
       "coilsTrending": "3 zone-B coils trending - same vibration signature"
+    },
+    "supervisor": {
+      "shiftMeta": "Housekeeping Supervisor",
+      "greeting": "Morning, {{name}}.",
+      "roomsAssigned": "Rooms assigned",
+      "inProgress": "In progress",
+      "inspected": "Inspected",
+      "boardTitle": "Room Board",
+      "boardHint": "Open the Board tab to see live room status and manage assignments."
+    },
+    "frontDesk": {
+      "shiftMeta": "Front Desk",
+      "greeting": "Morning, {{name}}.",
+      "newRequests": "New requests",
+      "inProgress": "In progress",
+      "resolvedToday": "Resolved today",
+      "requestsTitle": "Guest Requests",
+      "requestsHint": "Open the Requests tab to view and manage incoming guest requests."
+    },
+    "gm": {
+      "shiftMeta": "General Manager",
+      "greeting": "Morning, {{name}}.",
+      "roomsClean": "Rooms clean %",
+      "openWOs": "Open WOs",
+      "guestRequests": "Guest requests",
+      "alertsTitle": "AI Alerts",
+      "alertsHint": "Open the Alerts tab to see AI-powered risk alerts for your property."
     }
   },
   "rooms": {
@@ -168,7 +200,11 @@
     "title": "My tasks",
     "headerMeta": "{{count}} tasks",
     "copilotKicker": "Heads up",
-    "reorderBtn": "Reorder for me"
+    "reorderBtn": "Reorder for me",
+    "groupNow": "Now",
+    "groupBeforeNoon": "Before 12:00",
+    "groupAfternoon": "This afternoon",
+    "footerHint": "Copilot keeps this ordered around your route."
   },
   "profile": {
     "title": "Profile",
@@ -202,10 +238,18 @@
       "reportIssue": "Report Issue",
       "requestSupplies": "Request Supplies",
       "roomStatus": "Room Status",
-      "guestRequest": "Guest Request"
+      "guestRequest": "Guest Request",
+      "searchSOPs": "Search SOPs"
     },
     "thinking": "Thinking...",
     "taskCreated": "Task created!",
+    "workOrderCreated": "Work order created",
+    "guestRequestCreated": "Guest request created",
+    "createTask": "Create Task",
+    "createWorkOrder": "Create Work Order",
+    "createGuestRequest": "Create Guest Request",
+    "create": "Create",
+    "dismiss": "Dismiss",
     "confirmTask": "Create this task?",
     "confirm": "Yes, Create",
     "edit": "Edit"

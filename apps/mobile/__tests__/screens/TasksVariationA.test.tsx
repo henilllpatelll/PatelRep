@@ -6,6 +6,10 @@ const EN: Record<string, string> = {
   "tasks.headerMeta": "{{count}} tasks",
   "tasks.copilotKicker": "Heads up",
   "tasks.reorderBtn": "Reorder for me",
+  "tasks.groupNow": "Now",
+  "tasks.groupBeforeNoon": "Before 12:00",
+  "tasks.groupAfternoon": "This afternoon",
+  "tasks.footerHint": "Copilot keeps this ordered around your route.",
 };
 
 jest.mock("react-i18next", () => ({

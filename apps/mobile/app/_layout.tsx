@@ -6,10 +6,10 @@ import * as Notifications from "expo-notifications";
 import NetInfo from "@react-native-community/netinfo";
 import "@/i18n";
 import { useAppStore } from "@/stores/appStore";
-import { setupPushNotifications } from "@/lib/notifications";
 import { syncOnConnect } from "@/lib/offline/sync";
 import { supabase } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
+import { api } from "@/lib/api/client";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
@@ -39,19 +39,28 @@ export default function RootLayout() {
             .eq("id", session.user.id)
             .maybeSingle();
 
-          if (profile) {
-            setUser({ ...profile, role: (jwtRole ?? profile.role) } as UserProfile);
-          } else if (jwtHotelId && jwtRole) {
-            // Fallback for accounts without a user_profiles row (e.g. GM accounts)
-            setUser({
-              id: session.user.id,
-              tenant_id: jwtHotelId,
-              role: jwtRole as UserProfile["role"],
-              full_name: session.user.email?.split("@")[0] ?? "User",
-              language_pref: "en",
-            });
+          const baseUser: UserProfile = profile
+            ? ({ ...profile, role: (jwtRole ?? profile.role) } as UserProfile)
+            : jwtHotelId && jwtRole
+              ? {
+                  id: session.user.id,
+                  tenant_id: jwtHotelId,
+                  role: jwtRole as UserProfile["role"],
+                  full_name: session.user.email?.split("@")[0] ?? "User",
+                  language_pref: "en",
+                }
+              : null as unknown as UserProfile;
+
+          if (baseUser) {
+            // Fetch effective_role for schedule overrides (non-blocking)
+            try {
+              const me = await api.get<{ data?: { effective_role?: string } }>("/auth/me");
+              const effectiveRole = me?.data?.effective_role;
+              setUser(effectiveRole ? { ...baseUser, effective_role: effectiveRole as UserProfile["role"] } : baseUser);
+            } catch {
+              setUser(baseUser);
+            }
           }
-          try { await setupPushNotifications(); } catch { /* unavailable in Expo Go */ }
         } else {
           setUser(null);
         }

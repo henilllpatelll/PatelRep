@@ -47,13 +47,13 @@ export default function AssignmentsScreen() {
     if (!isOnline) { setLoading(false); return; }
     try {
       const [boardRes, staffRes] = await Promise.all([
-        api.get<{ data: { rooms: (AssignedRoom & { assigned_to: string | null; assigned_to_name: string | null })[] } }>(
+        api.get<{ data: (AssignedRoom & { assigned_to: string | null; assigned_to_name: string | null })[] }>(
           `/housekeeping/board?date=${localDate()}`
         ),
         api.get<{ data: StaffMember[] }>("/staff?role=housekeeper"),
       ]);
 
-      const rooms = boardRes.data?.rooms ?? [];
+      const rooms = boardRes.data ?? [];
       const staffList: StaffMember[] = staffRes.data ?? [];
       setStaff(staffList);
 

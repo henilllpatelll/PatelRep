@@ -9,20 +9,11 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "@/lib/api/client";
+import { getStaff, type StaffMember } from "@/lib/api/staff";
 import { useAppStore } from "@/stores/appStore";
 import { C, R } from "@/components/shared/tokens";
 import { Avatar, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 
-type StaffMember = {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  rooms_today?: number;
-  orders_today?: number;
-};
 
 const ROLE_LABEL_KEYS: Record<string, string> = {
   housekeeper: "staff.roles.housekeeper",
@@ -54,8 +45,8 @@ export default function StaffScreen() {
   const loadStaff = useCallback(async () => {
     if (!isOnline) { setLoading(false); return; }
     try {
-      const res = await api.get<{ data: StaffMember[] }>("/staff");
-      setStaff(res.data ?? []);
+      const res = await getStaff();
+      setStaff(res.data?.staff ?? []);
     } catch {
       setStaff([]);
     } finally {

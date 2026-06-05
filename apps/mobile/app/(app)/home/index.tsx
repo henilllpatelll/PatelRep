@@ -77,10 +77,19 @@ function sortNextRooms(rooms: Room[]) {
     .sort((a, b) => score(a) - score(b) || a.room_number.localeCompare(b.room_number, undefined, { numeric: true }));
 }
 
+function dynamicShiftMeta(languagePref: string, suffix: string): string {
+  const now = new Date();
+  const locale = languagePref === "es" ? "es-MX" : "en-US";
+  const weekday = now.toLocaleDateString(locale, { weekday: "short" });
+  const month = now.toLocaleDateString(locale, { month: "short" });
+  return `${weekday} · ${month} ${now.getDate()} · ${suffix}`;
+}
+
 export default function HousekeeperHomeScreen() {
   const { t } = useTranslation();
   const { user, isOnline, myRooms, setMyRooms } = useAppStore();
-  const isEngineer = user?.role === "engineer" || user?.role === "chief_engineer";
+  const effectiveRole = user?.effective_role ?? user?.role;
+  const isEngineer = effectiveRole === "engineer" || effectiveRole === "chief_engineer";
   const [loading, setLoading] = useState(myRooms.length === 0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -128,16 +137,16 @@ export default function HousekeeperHomeScreen() {
     return <EngineerHomeScreen name={user?.full_name ?? "Engineer"} />;
   }
 
-  if (user?.role === "housekeeping_supervisor") {
-    return <SupervisorHomeScreen name={user.full_name ?? "Supervisor"} />;
+  if (effectiveRole === "housekeeping_supervisor") {
+    return <SupervisorHomeScreen name={user?.full_name ?? "Supervisor"} />;
   }
 
-  if (user?.role === "front_desk") {
-    return <FrontDeskHomeScreen name={user.full_name ?? "Front Desk"} />;
+  if (effectiveRole === "front_desk") {
+    return <FrontDeskHomeScreen name={user?.full_name ?? "Front Desk"} />;
   }
 
-  if (user?.role === "gm") {
-    return <GMHomeScreen name={user.full_name ?? "GM"} />;
+  if (effectiveRole === "gm") {
+    return <GMHomeScreen name={user?.full_name ?? "GM"} />;
   }
 
   if (loading) {
@@ -155,7 +164,7 @@ export default function HousekeeperHomeScreen() {
           <Avatar name={user?.full_name ?? "Staff"} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>{t("home.shiftMeta")}</Text>
+        <Text style={styles.headerMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
         <Text style={styles.title}>{t("home.greeting", { name: firstName(user?.full_name) })}</Text>
       </View>
 
@@ -184,14 +193,16 @@ export default function HousekeeperHomeScreen() {
             </>
           }
         >
-          <Text style={styles.heroSentence}>{remainingCount} rooms left.</Text>
+          <Text style={styles.heroSentence}>{t("home.roomsLeft", { count: remainingCount })}</Text>
           {firstRoom ? (
             <Text>
               {" "}
-              I'd clean <Text style={styles.heroStrong}>{planRooms}</Text> first, then keep your VIP room fresh for check-in.
+              {t("home.copilotPlanBefore")}
+              <Text style={styles.heroStrong}>{planRooms}</Text>
+              {t("home.copilotPlanAfter")}
             </Text>
           ) : (
-            <Text> Your board is clear for now.</Text>
+            <Text>{t("home.boardClear")}</Text>
           )}
         </CopilotHero>
 
@@ -379,15 +390,15 @@ function SupervisorHomeScreen({ name }: { name: string }) {
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>Housekeeping Supervisor</Text>
-        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+        <Text style={styles.headerMeta}>{t("home.supervisor.shiftMeta")}</Text>
+        <Text style={styles.title}>{t("home.supervisor.greeting", { name: firstName(name) })}</Text>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.engineerStats}>
           {[
-            { value: stats.assigned, label: "Rooms assigned" },
-            { value: stats.inProgress, label: "In progress", color: C.caution },
-            { value: stats.inspected, label: "Inspected", color: C.ready },
+            { value: stats.assigned, label: t("home.supervisor.roomsAssigned") },
+            { value: stats.inProgress, label: t("home.supervisor.inProgress"), color: C.caution },
+            { value: stats.inspected, label: t("home.supervisor.inspected"), color: C.ready },
           ].map((stat) => (
             <View key={stat.label} style={styles.engineerStat}>
               <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
@@ -396,8 +407,8 @@ function SupervisorHomeScreen({ name }: { name: string }) {
           ))}
         </View>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Room Board</Text>
-          <Text style={styles.emptyText}>Open the Board tab to see live room status and manage assignments.</Text>
+          <Text style={styles.emptyTitle}>{t("home.supervisor.boardTitle")}</Text>
+          <Text style={styles.emptyText}>{t("home.supervisor.boardHint")}</Text>
         </View>
       </ScrollView>
     </View>
@@ -416,7 +427,7 @@ function FrontDeskHomeScreen({ name }: { name: string }) {
       .then((res) => {
         const requests = res.data;
         setStats({
-          newReq: String(requests.filter((r) => r.status === "new").length),
+          newReq: String(requests.filter((r) => r.status === "open").length),
           inProgress: String(requests.filter((r) => r.status === "in_progress").length),
           resolved: String(requests.filter((r) => r.status === "resolved").length),
         });
@@ -431,15 +442,15 @@ function FrontDeskHomeScreen({ name }: { name: string }) {
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>Front Desk</Text>
-        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+        <Text style={styles.headerMeta}>{t("home.frontDesk.shiftMeta")}</Text>
+        <Text style={styles.title}>{t("home.frontDesk.greeting", { name: firstName(name) })}</Text>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.engineerStats}>
           {[
-            { value: stats.newReq, label: "New requests", color: C.info },
-            { value: stats.inProgress, label: "In progress", color: C.caution },
-            { value: stats.resolved, label: "Resolved today", color: C.ready },
+            { value: stats.newReq, label: t("home.frontDesk.newRequests"), color: C.info },
+            { value: stats.inProgress, label: t("home.frontDesk.inProgress"), color: C.caution },
+            { value: stats.resolved, label: t("home.frontDesk.resolvedToday"), color: C.ready },
           ].map((stat) => (
             <View key={stat.label} style={styles.engineerStat}>
               <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
@@ -448,8 +459,8 @@ function FrontDeskHomeScreen({ name }: { name: string }) {
           ))}
         </View>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Guest Requests</Text>
-          <Text style={styles.emptyText}>Open the Requests tab to view and manage incoming guest requests.</Text>
+          <Text style={styles.emptyTitle}>{t("home.frontDesk.requestsTitle")}</Text>
+          <Text style={styles.emptyText}>{t("home.frontDesk.requestsHint")}</Text>
         </View>
       </ScrollView>
     </View>
@@ -466,7 +477,7 @@ function GMHomeScreen({ name }: { name: string }) {
     Promise.all([
       api.get<{ data: Array<{ status: string }> }>(`/housekeeping/board?date=${localDate()}`),
       api.get<{ data: Array<{ status: string }> }>("/work-orders?status=open&per_page=200"),
-      api.get<{ data: Array<{ status: string }> }>("/guest-requests?status=new&per_page=200"),
+      api.get<{ data: Array<{ status: string }> }>("/guest-requests?status=open&per_page=200"),
     ])
       .then(([boardRes, woRes, grRes]) => {
         const rooms = boardRes.data;
@@ -488,15 +499,15 @@ function GMHomeScreen({ name }: { name: string }) {
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>General Manager</Text>
-        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+        <Text style={styles.headerMeta}>{t("home.gm.shiftMeta")}</Text>
+        <Text style={styles.title}>{t("home.gm.greeting", { name: firstName(name) })}</Text>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.engineerStats}>
           {[
-            { value: stats.cleanPct, label: "Rooms clean %" },
-            { value: stats.openWOs, label: "Open WOs", color: C.caution },
-            { value: stats.newRequests, label: "Guest requests", color: C.info },
+            { value: stats.cleanPct, label: t("home.gm.roomsClean") },
+            { value: stats.openWOs, label: t("home.gm.openWOs"), color: C.caution },
+            { value: stats.newRequests, label: t("home.gm.guestRequests"), color: C.info },
           ].map((stat) => (
             <View key={stat.label} style={styles.engineerStat}>
               <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
@@ -505,8 +516,8 @@ function GMHomeScreen({ name }: { name: string }) {
           ))}
         </View>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>AI Alerts</Text>
-          <Text style={styles.emptyText}>Open the Alerts tab to see AI-powered risk alerts for your property.</Text>
+          <Text style={styles.emptyTitle}>{t("home.gm.alertsTitle")}</Text>
+          <Text style={styles.emptyText}>{t("home.gm.alertsHint")}</Text>
         </View>
       </ScrollView>
     </View>

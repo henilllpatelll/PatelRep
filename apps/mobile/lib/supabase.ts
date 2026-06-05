@@ -25,6 +25,7 @@ AppState.addEventListener('change', (state) => {
 
 export type UserRole =
   | "housekeeper"
+  | "inspector"
   | "engineer"
   | "housekeeping_supervisor"
   | "chief_engineer"
@@ -35,6 +36,7 @@ export interface UserProfile {
   id: string;
   tenant_id: string;
   role: UserRole;
+  effective_role?: UserRole;
   full_name: string;
   language_pref: "en" | "es";
   preferred_name?: string;

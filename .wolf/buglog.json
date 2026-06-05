@@ -975,6 +975,294 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T18:40:59.850Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-06-05T19:17:45.037Z",
+      "error_message": "CSS fix: name, value",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "name: string → firstName(name); value: stats.inspected, label: \"Inspected\", color: C.ready → stats.inspected, label: t(\"home.supervisor.inspected\"), color: C.ready",
+      "fix": "Changed name: string → firstName(name); value: stats.inspected, label: \"Inspected\", color: C.ready → stats.inspected, label: t(\"home.supervisor.inspected\"), color: C.ready",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-06-05T19:18:36.842Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-06-05T19:24:52.780Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/staff/index.tsx",
+      "root_cause": "Had \"@/lib/api/client\"",
+      "fix": "Changed to \"@/lib/api/staff\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T19:24:54.827Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-06-05T19:25:27.416Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:25:27.416Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-06-05T19:25:32.781Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "key: \"guestRequest\", icon: \"person\" as const → \"searchSOPs\", icon: \"book-outline\" as const",
+      "fix": "Changed key: \"guestRequest\", icon: \"person\" as const → \"searchSOPs\", icon: \"book-outline\" as const",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:25:32.781Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-06-05T19:40:47.389Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Had \"done\"",
+      "fix": "Changed to \"completed\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-05T19:41:10.239Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-06-05T19:40:50.095Z",
+      "error_message": "Wrong reference: hotel_id should be tenant_id",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "Used \"hotel_id\" instead of \"tenant_id\"",
+      "fix": "Changed hotel_id → tenant_id",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:40:50.095Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-06-05T19:41:12.002Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/api/guestRequests.ts",
+      "root_cause": "Had \"new\"",
+      "fix": "Changed to \"open\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:12.002Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-06-05T19:41:13.414Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/lib/api/staff.ts",
+      "root_cause": "Was returning: api.get<{ data: StaffMember[] }>(\"/staff\");",
+      "fix": "Now returns: api.get<{ data: { staff: StaffMember[]; total: num",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:13.414Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-06-05T19:41:17.643Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/staff/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:17.643Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-06-05T19:41:19.927Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/lib/api/housekeeping.ts",
+      "root_cause": "Was returning: api.get<{ data: { rooms: BoardRoom[] } }>(`/housek",
+      "fix": "Now returns: api.get<{ data: BoardRoom[] }>(`/housekeeping/boar",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:19.927Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-06-05T19:41:23.355Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/mobile/app/(app)/assignments/index.tsx",
+      "root_cause": "data: { rooms: (AssignedRoom & { assigned_to: string | null → (AssignedRoom & { assigned_to: string | null",
+      "fix": "Changed data: { rooms: (AssignedRoom & { assigned_to: string | null → (AssignedRoom & { assigned_to: string | null",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:23.355Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-06-05T19:41:50.132Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/inspect/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:41:50.132Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-06-05T19:51:37.922Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→22 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:51:37.922Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-06-05T19:51:42.678Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const effectiveRole = user?.effective_role ?? user?.role;; const visibleTabs = effectiveRole ? getTabsForRole(effective",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T19:51:51.416Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-06-05T19:51:58.965Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <Text style={styles.headerMeta}>{dynamicShiftMeta(user?.lang",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T19:52:08.444Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-06-05T19:52:21.047Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Had \", \"",
+      "fix": "Changed to \", t(\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T19:52:24.586Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-06-05T19:53:10.718Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Had \"shiftMeta\"",
+      "fix": "Changed to \"shiftSuffix\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:53:10.718Z"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-06-05T19:53:29.471Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "Had \"shiftMeta\"",
+      "fix": "Changed to \"shiftSuffix\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T19:53:29.471Z"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T19:05:17.026Z
-> Files: 246 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T19:53:39.324Z
+> Files: 247 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -16,7 +16,7 @@
 - `MEMORY.md` — PatelRep Project Memory (~312 tok)
 - `project_eas_build_status.md` (~352 tok)
 - `project_guest_requests_spec.md` — Guest Requests Redesign Spec (~451 tok)
-- `project_i18n_handoff.md` — What was done (~2125 tok)
+- `project_i18n_handoff.md` — Status: COMPLETE (2026-06-05) (~222 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -560,7 +560,7 @@
 - `HousekeeperHome.test.tsx` — mockSetMyRooms (~978 tok)
 - `InspectorQueue.test.tsx` — EN (~889 tok)
 - `ProfileHandoff.test.tsx` — EN (~715 tok)
-- `TasksVariationA.test.tsx` — EN (~400 tok)
+- `TasksVariationA.test.tsx` — EN (~452 tok)
 - `WorkOrdersList.test.tsx` — mockApiGet (~524 tok)
 
 ## apps/mobile/android/
@@ -569,11 +569,11 @@
 
 ## apps/mobile/app/
 
-- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~1238 tok)
+- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~1338 tok)
 
 ## apps/mobile/app/(app)/
 
-- `_layout.tsx` — AppLayout (~1384 tok)
+- `_layout.tsx` — AppLayout (~1404 tok)
 
 ## apps/mobile/app/(app)/alerts/
 
@@ -585,11 +585,11 @@
 
 ## apps/mobile/app/(app)/assignments/
 
-- `index.tsx` — statusPillTone — renders modal (~3260 tok)
+- `index.tsx` — statusPillTone — renders modal (~3255 tok)
 
 ## apps/mobile/app/(app)/copilot/
 
-- `index.tsx` — HISTORY_KEY (~4128 tok)
+- `index.tsx` — HISTORY_KEY (~4190 tok)
 
 ## apps/mobile/app/(app)/guest-requests/
 
@@ -598,11 +598,11 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~6452 tok)
+- `index.tsx` — ENGINEER_ORDERS (~6665 tok)
 
 ## apps/mobile/app/(app)/inspect/
 
-- `index.tsx` — timeSince — renders modal (~4052 tok)
+- `index.tsx` — timeSince — renders modal (~4079 tok)
 
 ## apps/mobile/app/(app)/logbook/
 
@@ -649,16 +649,16 @@
 
 ## apps/mobile/app/(app)/staff/
 
-- `index.tsx` — ROLE_LABEL_KEYS (~1676 tok)
+- `index.tsx` — ROLE_LABEL_KEYS (~1629 tok)
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — FALLBACK_GROUPS (~2915 tok)
+- `index.tsx` — FALLBACK_GROUPS (~2926 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
 - `[woId].tsx` — STEPS (~2914 tok)
-- `index.tsx` — priorityTone (~2308 tok)
+- `index.tsx` — priorityTone (~2444 tok)
 
 ## apps/mobile/app/(auth)/
 
@@ -677,33 +677,34 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~3165 tok)
-- `es.json` (~3394 tok)
+- `en.json` (~3656 tok)
+- `es.json` (~3927 tok)
 
 ## apps/mobile/lib/
 
-- `supabase.ts` — Exports supabase, UserRole, UserProfile (~315 tok)
+- `supabase.ts` — Exports supabase, UserRole, UserProfile (~328 tok)
 
 ## apps/mobile/lib/api/
 
 - `assets.ts` — Exports Asset, FailurePrediction, listAssets, getFailurePredictions + 2 more (~368 tok)
-- `guestRequests.ts` — Exports GuestRequest, getGuestRequests, getGuestRequest, updateGuestRequest (~254 tok)
-- `housekeeping.ts` — Exports BoardRoom, HousekeepingStaff, getBoard, createAssignment, getStaff (~248 tok)
-- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~226 tok)
+- `guestRequests.ts` — Exports GuestRequest, getGuestRequests, getGuestRequest, updateGuestRequest (~248 tok)
+- `housekeeping.ts` — Exports BoardRoom, HousekeepingStaff, getBoard, createAssignment, getStaff (~242 tok)
+- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~232 tok)
 - `logbook.ts` — Exports LogbookEntry, ShiftSummary, getLogbookEntries, getShiftSummary, createLogbookEntry (~238 tok)
 - `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~568 tok)
 - `notifications.ts` — Exports AppNotification, listNotifications, markAllRead, markRead (~182 tok)
 - `scheduling.ts` — Exports ShiftAssignment, mySchedule (~146 tok)
 - `sop.ts` — Exports SOPDocument, SOPQueryResult, listDocuments, getDocument, querySOPs (~282 tok)
+- `staff.ts` — Exports StaffMember, getStaff (~110 tok)
 
 ## apps/mobile/lib/navigation/
 
-- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1460 tok)
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1562 tok)
 
 ## apps/mobile/lib/offline/
 
 - `db.ts` — Exports getDb, upsertRooms, getRooms, enqueueAction + 3 more (~1537 tok)
-- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~685 tok)
+- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~737 tok)
 
 ## apps/mobile/lib/utils/
 

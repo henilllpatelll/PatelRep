@@ -13,7 +13,8 @@ import { listNotifications } from "@/lib/api/notifications";
 export default function AppLayout() {
   const { t } = useTranslation();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
-  const visibleTabs = user ? getTabsForRole(user.role) : [];
+  const effectiveRole = user?.effective_role ?? user?.role;
+  const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
 
   useEffect(() => {

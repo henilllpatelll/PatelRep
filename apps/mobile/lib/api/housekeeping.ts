@@ -16,8 +16,8 @@ export interface HousekeepingStaff {
   role: string;
 }
 
-export async function getBoard(date: string): Promise<{ data: { rooms: BoardRoom[] } }> {
-  return api.get<{ data: { rooms: BoardRoom[] } }>(`/housekeeping/board?date=${date}`);
+export async function getBoard(date: string): Promise<{ data: BoardRoom[] }> {
+  return api.get<{ data: BoardRoom[] }>(`/housekeeping/board?date=${date}`);
 }
 
 export async function createAssignment(data: {

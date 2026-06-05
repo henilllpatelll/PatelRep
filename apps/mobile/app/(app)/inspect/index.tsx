@@ -88,9 +88,10 @@ export default function InspectScreen() {
     if (!confirm || submitting) return;
     setSubmitting(true);
     try {
+      const itemResult = confirm.result === "passed" ? "pass" : "fail";
       const items = (template?.items ?? []).map((item) => ({
         template_item_id: item.id,
-        result: confirm.result,
+        result: itemResult as "pass" | "fail" | "na",
       }));
       await submitInspection({
         room_id: confirm.room.room_id,

@@ -33,11 +33,12 @@
     "roomStatus": "Cuartos",
     "lostFound": "Objetos",
     "alerts": "Alertas",
-    "staff": "Personal"
+    "staff": "Personal",
+    "logbook": "Bitácora"
   },
   "home": {
     "greeting": "Buenos días, {{name}}.",
-    "shiftMeta": "Mar · 26 de mayo · Turno de día",
+    "shiftSuffix": "Turno de día",
     "copilotKicker": "Tu orden inteligente",
     "startWith": "Empezar con {{room}}",
     "seePlan": "Ver el plan",
@@ -47,6 +48,10 @@
     "onPace": "a tiempo",
     "seeAll": "Ver todo",
     "upNext": "Próximos",
+    "roomsLeft": "{{count}} cuartos restantes.",
+    "copilotPlanBefore": "Te recomiendo limpiar ",
+    "copilotPlanAfter": " primero, para tener tu cuarto VIP listo para el check-in.",
+    "boardClear": "Tu tablero está despejado por ahora.",
     "allDone": "Todos los cuartos asignados están listos.",
     "pullToRefresh": "Jala para actualizar si tu supervisora agrega más.",
     "engineer": {
@@ -63,6 +68,33 @@
       "workOrders": "Órdenes de trabajo",
       "allOrders": "Todas las órdenes",
       "coilsTrending": "3 serpentines zona B en tendencia - misma firma de vibración"
+    },
+    "supervisor": {
+      "shiftMeta": "Supervisora de Housekeeping",
+      "greeting": "Buenos días, {{name}}.",
+      "roomsAssigned": "Cuartos asignados",
+      "inProgress": "En progreso",
+      "inspected": "Inspeccionados",
+      "boardTitle": "Tablero de Cuartos",
+      "boardHint": "Abre la pestaña Tablero para ver el estado en vivo y gestionar asignaciones."
+    },
+    "frontDesk": {
+      "shiftMeta": "Recepción",
+      "greeting": "Buenos días, {{name}}.",
+      "newRequests": "Solicitudes nuevas",
+      "inProgress": "En progreso",
+      "resolvedToday": "Resueltas hoy",
+      "requestsTitle": "Solicitudes de Huéspedes",
+      "requestsHint": "Abre la pestaña Solicitudes para ver y gestionar las solicitudes entrantes."
+    },
+    "gm": {
+      "shiftMeta": "Gerente General",
+      "greeting": "Buenos días, {{name}}.",
+      "roomsClean": "Cuartos limpios %",
+      "openWOs": "OT abiertas",
+      "guestRequests": "Solicitudes de huéspedes",
+      "alertsTitle": "Alertas IA",
+      "alertsHint": "Abre la pestaña Alertas para ver las alertas de riesgo generadas por IA."
     }
   },
   "rooms": {
@@ -168,7 +200,11 @@
     "title": "Mis tareas",
     "headerMeta": "{{count}} tareas",
     "copilotKicker": "Aviso",
-    "reorderBtn": "Reordenar para mí"
+    "reorderBtn": "Reordenar para mí",
+    "groupNow": "Ahora",
+    "groupBeforeNoon": "Antes del mediodía",
+    "groupAfternoon": "Esta tarde",
+    "footerHint": "El Copiloto mantiene el orden según tu recorrido."
   },
   "profile": {
     "title": "Perfil",
@@ -202,10 +238,18 @@
       "reportIssue": "Reportar Problema",
       "requestSupplies": "Pedir Suministros",
       "roomStatus": "Estado del Cuarto",
-      "guestRequest": "Solicitud del Huésped"
+      "guestRequest": "Solicitud del Huésped",
+      "searchSOPs": "Buscar SOPs"
     },
     "thinking": "Pensando...",
     "taskCreated": "¡Tarea creada!",
+    "workOrderCreated": "Orden de trabajo creada",
+    "guestRequestCreated": "Solicitud de huésped creada",
+    "createTask": "Crear Tarea",
+    "createWorkOrder": "Crear Orden de Trabajo",
+    "createGuestRequest": "Crear Solicitud de Huésped",
+    "create": "Crear",
+    "dismiss": "Ignorar",
     "confirmTask": "¿Crear esta tarea?",
     "confirm": "Sí, Crear",
     "edit": "Editar"

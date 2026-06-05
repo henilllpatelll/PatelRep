@@ -41,7 +41,7 @@ type TaskGroup = {
 
 const FALLBACK_GROUPS: TaskGroup[] = [
   {
-    when: "Now",
+    when: "tasks.groupNow",
     tone: "accent",
     items: [
       {
@@ -54,7 +54,7 @@ const FALLBACK_GROUPS: TaskGroup[] = [
     ],
   },
   {
-    when: "Before 12:00",
+    when: "tasks.groupBeforeNoon",
     tone: "caution",
     items: [
       {
@@ -74,7 +74,7 @@ const FALLBACK_GROUPS: TaskGroup[] = [
     ],
   },
   {
-    when: "This afternoon",
+    when: "tasks.groupAfternoon",
     tone: "info",
     items: [
       {
@@ -121,9 +121,9 @@ function groupTasks(tasks: Task[]): TaskGroup[] {
   const afternoon = tasks.filter((task) => !now.includes(task) && !midday.includes(task));
 
   return [
-    { when: "Now", tone: "accent" as const, items: now.map(normalizeTask) },
-    { when: "Before 12:00", tone: "caution" as const, items: midday.map(normalizeTask) },
-    { when: "This afternoon", tone: "info" as const, items: afternoon.map(normalizeTask) },
+    { when: "tasks.groupNow", tone: "accent" as const, items: now.map(normalizeTask) },
+    { when: "tasks.groupBeforeNoon", tone: "caution" as const, items: midday.map(normalizeTask) },
+    { when: "tasks.groupAfternoon", tone: "info" as const, items: afternoon.map(normalizeTask) },
   ].filter((group) => group.items.length > 0);
 }
 
@@ -157,7 +157,7 @@ export default function TasksScreen() {
     if (taskId.startsWith("fallback-")) return;
     setCompleting((prev) => new Set(prev).add(taskId));
     api
-      .patch(`/tasks/${taskId}`, { status: "done", completed_at: new Date().toISOString() })
+      .patch(`/tasks/${taskId}`, { status: "completed", completed_at: new Date().toISOString() })
       .then(() => {
         setTasks((prev) => prev.filter((t) => t.id !== taskId));
       })
@@ -208,7 +208,7 @@ export default function TasksScreen() {
           <View key={group.when}>
             <View style={styles.groupHeader}>
               <View style={[styles.groupDot, { backgroundColor: C[group.tone] }]} />
-              <Text style={styles.groupTitle}>{group.when}</Text>
+              <Text style={styles.groupTitle}>{t(group.when)}</Text>
               <View style={styles.groupLine} />
             </View>
 
@@ -241,7 +241,7 @@ export default function TasksScreen() {
 
         <View style={styles.footerHint}>
           <Ionicons name="sparkles-outline" size={13} color={C.ink4} />
-          <Text style={styles.footerText}>Copilot keeps this ordered around your route.</Text>
+          <Text style={styles.footerText}>{t("tasks.footerHint")}</Text>
         </View>
       </ScrollView>
     </View>

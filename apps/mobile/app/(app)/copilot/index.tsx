@@ -58,6 +58,7 @@ const QUICK_ACTIONS = [
   { key: "requestSupplies", icon: "cube" as const },
   { key: "roomStatus", icon: "bed" as const },
   { key: "guestRequest", icon: "person" as const },
+  { key: "searchSOPs", icon: "book-outline" as const },
 ];
 
 export default function CopilotScreen() {
@@ -162,7 +163,7 @@ export default function CopilotScreen() {
     try {
       await api.post("/work-orders", { ...preview });
       setPendingWOMsgId(null);
-      Alert.alert("", "Work order created");
+      Alert.alert("", t("copilot.workOrderCreated"));
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
     }
@@ -172,7 +173,7 @@ export default function CopilotScreen() {
     try {
       await api.post("/ai/guest-requests/confirm", { ...preview });
       setPendingGRMsgId(null);
-      Alert.alert("", "Guest request created");
+      Alert.alert("", t("copilot.guestRequestCreated"));
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
     }
@@ -197,42 +198,42 @@ export default function CopilotScreen() {
             </View>
             {item.task_preview && pendingTaskMsgId === item.id ? (
               <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>Create Task</Text>
+                <Text style={styles.confirmCardLabel}>{t("copilot.createTask")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.task_preview.title}</Text>
                 <View style={styles.confirmCardActions}>
                   <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmTask(item.task_preview!)}>
-                    <Text style={styles.confirmText}>Create</Text>
+                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingTaskMsgId(null)}>
-                    <Text style={styles.dismissText}>Dismiss</Text>
+                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : null}
             {item.work_order_preview && pendingWOMsgId === item.id ? (
               <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>Create Work Order</Text>
+                <Text style={styles.confirmCardLabel}>{t("copilot.createWorkOrder")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.work_order_preview.title}</Text>
                 <View style={styles.confirmCardActions}>
                   <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmWorkOrder(item.work_order_preview!)}>
-                    <Text style={styles.confirmText}>Create</Text>
+                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingWOMsgId(null)}>
-                    <Text style={styles.dismissText}>Dismiss</Text>
+                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : null}
             {item.guest_request_preview && pendingGRMsgId === item.id ? (
               <View style={styles.confirmCard}>
-                <Text style={styles.confirmCardLabel}>Create Guest Request</Text>
+                <Text style={styles.confirmCardLabel}>{t("copilot.createGuestRequest")}</Text>
                 <Text style={styles.confirmCardTitle}>{item.guest_request_preview.description}</Text>
                 <View style={styles.confirmCardActions}>
                   <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmGuestRequest(item.guest_request_preview!)}>
-                    <Text style={styles.confirmText}>Create</Text>
+                    <Text style={styles.confirmText}>{t("copilot.create")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingGRMsgId(null)}>
-                    <Text style={styles.dismissText}>Dismiss</Text>
+                    <Text style={styles.dismissText}>{t("copilot.dismiss")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -265,7 +266,7 @@ export default function CopilotScreen() {
       {loading ? (
         <View style={styles.typingRow}>
           <ActivityIndicator color="#c8b8e3" size="small" />
-          <Text style={styles.typingText}>Thinking…</Text>
+          <Text style={styles.typingText}>{t("copilot.thinking")}</Text>
         </View>
       ) : null}
 

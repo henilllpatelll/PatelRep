@@ -12,13 +12,13 @@ export async function listInspectionTemplates(): Promise<{ data: InspectionTempl
 
 export interface InspectionItem {
   template_item_id: string;
-  result: "passed" | "failed";
+  result: "pass" | "fail" | "na";
 }
 
 export async function submitInspection(payload: {
   room_id: string;
   template_id?: string;
-  overall_result: "passed" | "failed";
+  overall_result: "passed" | "failed" | "conditional";
   notes?: string;
   items?: InspectionItem[];
 }): Promise<void> {

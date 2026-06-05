@@ -1,43 +1,12 @@
 {
-  "session_id": "session-2026-06-05-1411",
-  "started": "2026-06-05T19:11:14.067Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/.planning/STATE.md": {
-      "count": 2,
-      "tokens": 559,
-      "first_read": "2026-06-05T19:11:27.012Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/REMAINING_WORK.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-05T19:11:32.445Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-05T19:11:40.963Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-05T19:11:41.345Z"
-    },
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-05T19:11:43.726Z"
-    },
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-05T19:11:44.426Z"
-    }
-  },
+  "session_id": "session-2026-06-05-1456",
+  "started": "2026-06-05T19:56:39.475Z",
+  "files_read": {},
   "files_written": [],
   "edit_counts": {},
-  "anatomy_hits": 1,
-  "anatomy_misses": 5,
-  "repeated_reads_warned": 1,
+  "anatomy_hits": 0,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 0
 }

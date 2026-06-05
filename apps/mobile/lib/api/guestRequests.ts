@@ -4,9 +4,8 @@ export interface GuestRequest {
   id: string;
   room_number: string;
   guest_name: string | null;
-  request_type: string;
   description: string;
-  status: "new" | "in_progress" | "resolved" | "escalated";
+  status: "open" | "in_progress" | "resolved" | "escalated";
   priority: "low" | "normal" | "urgent" | "emergency";
   assigned_to_name: string | null;
   created_at: string;
