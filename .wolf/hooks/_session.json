@@ -1,23 +1,12 @@
 {
-  "session_id": "session-2026-06-04-1135",
-  "started": "2026-06-04T16:35:52.470Z",
-  "files_read": {
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-04T16:36:10.715Z"
-    },
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-04T16:36:18.535Z"
-    }
-  },
+  "session_id": "session-2026-06-05-0842",
+  "started": "2026-06-05T13:42:33.978Z",
+  "files_read": {},
   "files_written": [],
   "edit_counts": {},
   "anatomy_hits": 0,
-  "anatomy_misses": 2,
+  "anatomy_misses": 0,
   "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 0
 }

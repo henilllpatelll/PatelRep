@@ -1,97 +1,51 @@
-import { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-} from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
-import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { useAppStore, type Room } from "@/stores/appStore";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
+import { useAppStore, type Room } from "@/stores/appStore";
+import { C, displayFont } from "@/components/shared/tokens";
+import { HandoffRow, Mono, Pill, RoomNumberTile, Segmented } from "@/components/shared/mobileHandoff";
 
-const STATUS_COLORS: Record<string, string> = {
-  DIRTY: "#a6263c",
-  IN_PROGRESS: "#7c3aed",
-  CLEAN: "#265d8a",
-  INSPECTED: "#0c6e63",
-  OOO: "#807a70",
-  OUT_OF_ORDER: "#807a70",
-  OUT_OF_SERVICE: "#807a70",
-  PICKUP: "#a16207",
-};
+const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
-function formatETA(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+type Filter = "all" | "todo" | "done" | "vip";
+
+function localDate() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
-function RoomCard({ room, onPress }: { room: Room; onPress: () => void }) {
-  const { t } = useTranslation();
-  const statusColor = STATUS_COLORS[room.status] ?? "#6B7280";
-  const isOccupied = room.status === "OCCUPIED";
+function dayLabel() {
+  return new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
 
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-      <View style={[styles.statusBar, { backgroundColor: statusColor }]}>
-        {isOccupied && Array.from({ length: 8 }).map((_, i) => (
-          <View key={i} style={[styles.statusStripe, { top: i * 18 }]} />
-        ))}
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.roomNumber}>{room.room_number}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {t(`rooms.status.${room.status}`)}
-            </Text>
-          </View>
-        </View>
+function roomTitle(room: Room) {
+  if (room.vip_flag) return "VIP guest";
+  if (room.status === "IN_PROGRESS") return "Stay-over · in progress";
+  if (room.status === "PICKUP") return "Stay-over · pickup";
+  if (room.status === "CLEAN") return "Done · awaiting inspection";
+  if (room.status === "INSPECTED") return "Done · inspected";
+  if (DONE_STATUSES.has(room.status)) return "Out of service";
+  return "Checkout";
+}
 
-        <Text style={styles.floorText}>{t("rooms.floor", { floor: room.floor })}</Text>
+function roomMeta(room: Room, index: number) {
+  if (room.status === "IN_PROGRESS") return "active";
+  if (room.status === "CLEAN") return "await";
+  if (room.status === "INSPECTED") return "done";
+  if (room.vip_flag && room.checkin_time) return "by 3pm";
+  if (index === 0) return "next";
+  return `${index + 1}th`;
+}
 
-        {room.vip_flag && (
-          <View style={styles.vipBadge}>
-            <Ionicons name="star" size={11} color="#92400E" />
-            <Text style={styles.vipBadgeText}>{t("rooms.vipGuest")}</Text>
-          </View>
-        )}
-
-        {room.dnd_flag && (
-          <View style={styles.flag}>
-            <Ionicons name="moon" size={12} color="#6B7280" />
-            <Text style={styles.flagText}>{t("rooms.dndAlert")}</Text>
-          </View>
-        )}
-
-        {room.guest_name && (
-          <Text style={styles.guestName}>{room.guest_name}</Text>
-        )}
-
-        {(room.actual_checkout_at || room.checkout_time) && (
-          <Text style={styles.checkoutText}>
-            {room.actual_checkout_at ? "Checked out " : "Due "}
-            {formatETA(room.actual_checkout_at ?? room.checkout_time!)}
-          </Text>
-        )}
-
-        {room.risk_level === "HIGH" && (
-          <View style={styles.riskBadge}>
-            <Ionicons name="warning" size={12} color="#EF4444" />
-            <Text style={styles.riskText}>{t("rooms.risk.HIGH")}</Text>
-          </View>
-        )}
-
-        {room.predicted_ready_at != null && (
-          <Text style={styles.etaText}>{t("rooms.eta", { time: formatETA(room.predicted_ready_at) })}</Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-    </TouchableOpacity>
-  );
+function roomSub(room: Room) {
+  if (room.vip_flag) return "VIP arrival — extra pillows, still water";
+  if (room.dnd_flag) return "Do not disturb — check before knocking";
+  if (room.risk_level === "HIGH") return "High risk — allow a few extra minutes";
+  return `Floor ${room.floor}`;
 }
 
 export default function MyRoomsScreen() {
@@ -99,13 +53,12 @@ export default function MyRoomsScreen() {
   const { isOnline, myRooms, setMyRooms } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
       try {
-        const today = new Date()
-        const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-        const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate}`);
+        const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
         setMyRooms(result.data);
         await upsertRooms(result.data);
       } catch {
@@ -117,7 +70,7 @@ export default function MyRoomsScreen() {
       setMyRooms(cached);
     }
     setLoading(false);
-  }, [isOnline]);
+  }, [isOnline, setMyRooms]);
 
   useEffect(() => {
     loadRooms();
@@ -129,118 +82,112 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
+  const counts = useMemo(() => {
+    const done = myRooms.filter((room) => DONE_STATUSES.has(room.status)).length;
+    const vip = myRooms.filter((room) => room.vip_flag).length;
+    return { done, todo: myRooms.length - done, vip };
+  }, [myRooms]);
+
+  const displayRooms = useMemo(() => {
+    switch (filter) {
+      case "todo": return myRooms.filter((r) => !DONE_STATUSES.has(r.status));
+      case "done": return myRooms.filter((r) => DONE_STATUSES.has(r.status));
+      case "vip":  return myRooms.filter((r) => r.vip_flag);
+      default:     return myRooms;
+    }
+  }, [myRooms, filter]);
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>{t("common.loading")}</Text>
+        <ActivityIndicator color={C.accent} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {!isOnline && (
+      {!isOnline ? (
         <View style={styles.offlineBanner}>
-          <Ionicons name="cloud-offline" size={14} color="#fff" />
+          <Ionicons name="cloud-offline-outline" size={14} color="#fff" />
           <Text style={styles.offlineText}>{t("common.offline")}</Text>
         </View>
-      )}
-      <FlatList
-        data={myRooms}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <RoomCard
-            room={item}
-            onPress={() => router.push(`/(app)/my-rooms/${item.id}`)}
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>{t("rooms.noRooms")}</Text>
+      ) : null}
+
+      <View style={styles.header}>
+        <Text style={styles.headerMeta}>{dayLabel()} — {myRooms.length} rooms today</Text>
+        <Text style={styles.title}>My rooms</Text>
+      </View>
+
+      <View style={styles.filters}>
+        <Segmented
+          items={[
+            { label: "All",   count: myRooms.length, active: filter === "all",  onPress: () => setFilter("all") },
+            { label: "To do", count: counts.todo,     active: filter === "todo", onPress: () => setFilter("todo") },
+            { label: "Done",  count: counts.done,     active: filter === "done", onPress: () => setFilter("done") },
+            { label: "VIPs",  count: counts.vip,      active: filter === "vip",  onPress: () => setFilter("vip") },
+          ]}
+        />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={myRooms.length === 0 ? styles.emptyContent : styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+      >
+        {displayRooms.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>{myRooms.length === 0 ? t("rooms.noRooms") : "No rooms in this filter."}</Text>
+            <Text style={styles.emptyText}>{myRooms.length === 0 ? "Pull to refresh if your supervisor adds assignments." : "Try another tab."}</Text>
           </View>
-        }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={myRooms.length === 0 ? styles.emptyContainer : undefined}
-      />
+        ) : (
+          displayRooms.map((room, index) => (
+            <HandoffRow
+              key={room.id}
+              onPress={() => router.push(`/(app)/my-rooms/${room.id}`)}
+              style={DONE_STATUSES.has(room.status) ? styles.dimRow : undefined}
+              lead={<RoomNumberTile roomNumber={room.room_number} status={room.status} size={50} />}
+              title={
+                <>
+                  <Text style={styles.rowTitle}>{roomTitle(room)}</Text>
+                  {room.vip_flag ? (
+                    <Pill tone="accent" icon="star">
+                      VIP
+                    </Pill>
+                  ) : null}
+                  {room.risk_level === "HIGH" ? (
+                    <Pill tone="ai" icon="sparkles">
+                      AI
+                    </Pill>
+                  ) : null}
+                </>
+              }
+              sub={roomSub(room)}
+              right={<Mono style={styles.meta}>{roomMeta(room, index)}</Mono>}
+            />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f4ee" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyContainer: { flex: 1 },
-  offlineBanner: {
-    backgroundColor: "#EF4444",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  offlineText: { color: "#fff", fontSize: 12, flex: 1 },
-  card: {
-    backgroundColor: "#fff",
-    margin: 8,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  statusBar: { width: 6, alignSelf: "stretch", position: "relative", overflow: "hidden" },
-  statusStripe: {
-    position: "absolute",
-    left: -5,
-    width: 16,
-    height: 4,
-    backgroundColor: "#f5d8de",
-    transform: [{ rotate: "-35deg" }],
-  },
-  cardContent: { flex: 1, padding: 14 },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  roomNumber: { fontSize: 18, fontWeight: "700", color: "#1a1815" },
-  statusBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  statusText: { fontSize: 12, fontWeight: "600" },
-  floorText: { fontSize: 12, color: "#807a70", marginBottom: 2 },
-  vipBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-    backgroundColor: "#f5e9cf",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: "flex-start",
-  },
-  vipBadgeText: { fontSize: 11, color: "#a16207", fontWeight: "600" },
-  guestName: { fontSize: 13, color: "#4a4640", marginTop: 2 },
-  checkoutText: { fontSize: 12, color: "#92400E", marginTop: 4, fontWeight: "600" },
-  flag: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  flagText: { fontSize: 12, color: "#807a70" },
-  riskBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 6,
-    backgroundColor: "#f5d8de",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: "flex-start",
-  },
-  riskText: { fontSize: 11, color: "#a6263c", fontWeight: "600" },
-  etaText: { fontSize: 12, color: "#265d8a", marginTop: 4 },
-  emptyText: { color: "#a8a195", fontSize: 16 },
+  container: { flex: 1, backgroundColor: C.paper },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  offlineBanner: { backgroundColor: C.alert, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8 },
+  offlineText: { flex: 1, color: "#fff", fontSize: 12 },
+  header: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: C.line2 },
+  headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 },
+  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
+  filters: { paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.line2 },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 24, gap: 8 },
+  emptyContent: { flex: 1, padding: 18, justifyContent: "center" },
+  emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
+  emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },
+  emptyText: { color: C.ink3, fontSize: 12, marginTop: 4 },
+  rowTitle: { color: C.ink, fontSize: 13.5, fontWeight: "600" },
+  meta: { color: C.ink3, fontSize: 10.5 },
+  dimRow: { opacity: 0.58 },
 });

@@ -3,91 +3,91 @@
   "bugs": [
     {
       "id": "bug-001",
-      "timestamp": "2026-06-04T02:25:56.263Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app.json",
-      "root_cause": "Had \"#1E40AF\"",
-      "fix": "Changed to \"#b8431c\"",
+      "timestamp": "2026-06-05T02:16:01.988Z",
+      "error_message": "Function not marked async",
+      "file": "apps/mobile/lib/api/lostFound.ts",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
       "tags": [
         "auto-detected",
-        "wrong-value",
-        "json"
+        "async-fix",
+        "ts"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T02:25:56.263Z"
+      "last_seen": "2026-06-05T02:16:01.988Z"
     },
     {
       "id": "bug-002",
-      "timestamp": "2026-06-04T04:03:50.986Z",
-      "error_message": "Wrong reference: Xmx2048m should be Xmx4096m",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"Xmx2048m\" instead of \"Xmx4096m\"",
-      "fix": "Changed Xmx2048m → Xmx4096m",
+      "timestamp": "2026-06-05T12:45:38.139Z",
+      "error_message": "Missing await",
+      "file": "apps/mobile/lib/api/assets.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
       "tags": [
         "auto-detected",
-        "wrong-reference",
-        "properties"
+        "async-fix",
+        "ts"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T04:03:50.986Z"
+      "last_seen": "2026-06-05T12:45:38.139Z"
     },
     {
       "id": "bug-003",
-      "timestamp": "2026-06-04T04:14:05.534Z",
-      "error_message": "Significant refactor of ",
-      "file": ".easignore",
-      "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 6→3 lines (4 removed)",
+      "timestamp": "2026-06-05T12:45:43.774Z",
+      "error_message": "Function not marked async",
+      "file": "apps/mobile/lib/api/lostFound.ts",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
       "tags": [
         "auto-detected",
-        "refactor",
-        "unknown"
+        "async-fix",
+        "ts"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T04:14:05.534Z"
+      "last_seen": "2026-06-05T12:45:43.774Z"
     },
     {
       "id": "bug-004",
-      "timestamp": "2026-06-04T04:23:27.433Z",
-      "error_message": "Wrong reference: true should be false",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"true\" instead of \"false\"",
-      "fix": "Changed true → false",
+      "timestamp": "2026-06-05T12:46:17.069Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/assets/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
       "tags": [
         "auto-detected",
-        "wrong-reference",
-        "properties"
+        "error-handling",
+        "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T04:23:27.433Z"
+      "last_seen": "2026-06-05T12:46:17.069Z"
     },
     {
       "id": "bug-005",
-      "timestamp": "2026-06-04T06:05:39.395Z",
-      "error_message": "Wrong reference: false should be true",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"false\" instead of \"true\"",
-      "fix": "Changed false → true",
+      "timestamp": "2026-06-05T12:46:23.209Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/assets/index.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
       "tags": [
         "auto-detected",
-        "wrong-reference",
-        "properties"
+        "refactor",
+        "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T06:05:39.395Z"
+      "last_seen": "2026-06-05T12:46:23.209Z"
     },
     {
       "id": "bug-006",
-      "timestamp": "2026-06-04T06:33:44.570Z",
-      "error_message": "CSS fix: data",
-      "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "data: profile → profile, error: profileError",
-      "fix": "Changed data: profile → profile, error: profileError",
+      "timestamp": "2026-06-05T13:10:43.244Z",
+      "error_message": "CSS fix: label",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "label: \"VIPs\", count: counts.vip → \"VIPs\",  count: counts.vip,      active: filter === \"vip\",  onPress: () => setFilter(\"vip\")",
+      "fix": "Changed label: \"VIPs\", count: counts.vip → \"VIPs\",  count: counts.vip,      active: filter === \"vip\",  onPress: () => setFilter(\"vip\")",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -95,157 +95,23 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T06:33:44.570Z"
+      "last_seen": "2026-06-05T13:10:43.244Z"
     },
     {
       "id": "bug-007",
-      "timestamp": "2026-06-04T06:38:40.795Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/api/middleware/auth.py",
-      "root_cause": "Had \"role\"",
-      "fix": "Changed to \"user_role\"",
+      "timestamp": "2026-06-05T13:10:49.924Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→7 lines (4 removed)",
       "tags": [
         "auto-detected",
-        "wrong-value",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T06:38:40.796Z"
-    },
-    {
-      "id": "bug-008",
-      "timestamp": "2026-06-04T06:39:04.786Z",
-      "error_message": "CSS fix: data",
-      "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "data: profile, error: profileError → profile",
-      "fix": "Changed data: profile, error: profileError → profile",
-      "tags": [
-        "auto-detected",
-        "style-fix",
+        "refactor",
         "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-04T06:39:04.786Z"
-    },
-    {
-      "id": "bug-009",
-      "timestamp": "2026-06-04T07:07:01.408Z",
-      "error_message": "Mobile login spins then goes right back to login screen",
-      "file": "apps/mobile/app/_layout.tsx, apps/mobile/lib/supabase.ts, apps/mobile/app/(app)/profile/index.tsx",
-      "root_cause": "user_profiles and user_roles SELECT RLS used tenant_id = jwt('hotel_id')::uuid exclusively — if JWT hook not registered or hotel_id absent from JWT, RLS returns 0 rows, profile=null, setUser never called, isAuthenticated stays false. Also: UserProfile interface had wrong field names (hotel_id/preferred_language, no role column) vs actual DB columns (tenant_id/language_pref, role not on table).",
-      "fix": "1) DB migration: added id=auth.uid() OR to SELECT RLS on user_profiles and user_roles. 2) UserProfile interface corrected to match actual columns. 3) _layout.tsx now fetches user_roles.role in parallel via maybeSingle(). 4) profile/index.tsx: hotel_id→tenant_id, preferred_language→language_pref.",
-      "tags": [
-        "auth",
-        "rls",
-        "mobile",
-        "login",
-        "supabase",
-        "jwt",
-        "type-mismatch"
-      ],
-      "related_bugs": [
-        "bug-007"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T07:07:01.408Z"
-    },
-    {
-      "id": "bug-010",
-      "timestamp": "2026-06-04T14:12:58.522Z",
-      "error_message": "Wrong reference: arm64 should be x86_64",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"arm64\" instead of \"x86_64\"",
-      "fix": "Changed arm64 → x86_64",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "properties"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T14:12:58.522Z"
-    },
-    {
-      "id": "bug-011",
-      "timestamp": "2026-06-04T14:19:27.797Z",
-      "error_message": "Wrong reference: true should be false",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"true\" instead of \"false\"",
-      "fix": "Changed true → false",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "properties"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T14:19:27.797Z"
-    },
-    {
-      "id": "bug-012",
-      "timestamp": "2026-06-04T14:35:01.911Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/package.json",
-      "root_cause": "Had \"^56.0.4\"",
-      "fix": "Changed to \"~54.0.0\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "json"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T14:35:01.911Z"
-    },
-    {
-      "id": "bug-013",
-      "timestamp": "2026-06-04T16:20:34.574Z",
-      "error_message": "Wrong reference: false should be true",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "Used \"false\" instead of \"true\"",
-      "fix": "Changed false → true",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "properties"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T16:20:34.574Z"
-    },
-    {
-      "id": "bug-014",
-      "timestamp": "2026-06-04T16:28:14.957Z",
-      "error_message": "CSS fix: data",
-      "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "data: roleRow → roleRow, error: roleErr",
-      "fix": "Changed data: roleRow → roleRow, error: roleErr",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T16:28:14.957Z"
-    },
-    {
-      "id": "bug-015",
-      "timestamp": "2026-06-04T16:30:30.793Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-04T16:30:30.793Z"
+      "last_seen": "2026-06-05T13:10:49.924Z"
     }
   ]
 }

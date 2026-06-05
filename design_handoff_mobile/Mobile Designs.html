@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PatelRep · Mobile Designs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+
+    .page-header {
+      padding: 44px 48px 28px;
+      display: flex; align-items: flex-end; gap: 18px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .page-header h1 {
+      margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+      font-size: 38px; letter-spacing: -0.6px; line-height: 1; color: #1a1815;
+    }
+    .page-header .meta { font-size: 13px; color: #807a70; font-family: 'IBM Plex Mono', monospace; padding-bottom: 4px; }
+    .page-header .legend { margin-left: auto; display: flex; gap: 16px; padding-bottom: 3px; }
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #4a4640; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* Role band */
+    .role-band {
+      padding: 40px 48px 0;
+      display: flex; align-items: baseline; gap: 14px;
+    }
+    .role-band .num {
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+      color: #b8431c; letter-spacing: 1px;
+    }
+    .role-band h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; color: #1a1815; }
+    .role-band p { margin: 0; font-size: 13px; color: #807a70; }
+
+    .section { padding: 22px 48px 0; }
+    .section-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.4px;
+      color: #807a70; margin: 0 0 18px;
+    }
+    .screens-row { display: flex; flex-wrap: wrap; gap: 36px 32px; padding-bottom: 40px; }
+    .screen-col { display: flex; flex-direction: column; align-items: center; gap: 11px; }
+    .screen-cap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .screen-label { font-size: 12px; font-weight: 500; color: #4a4640; text-align: center; }
+    .variant-tag {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase;
+      color: #807a70; background: rgba(0,0,0,0.045); border: 1px solid rgba(0,0,0,0.06);
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .variant-tag.b { color: #b8431c; background: #fbe9df; border-color: #f0c8b3; }
+    hr.divider { border: none; border-top: 1px solid rgba(0,0,0,0.07); margin: 30px 48px 0; }
+
+    /* Phone scroll areas are flex-columns; stop their children from being
+       compressed when content overflows — let the area scroll instead. */
+    #root [style*="overflow-y: auto"] > * { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Mobile Designs</h1>
+  <div class="meta">PatelRep · native floor-staff app · iOS / Android</div>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#1a1815"></span> AI hero moment</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#b8431c"></span> Action</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#0c6e63"></span> Ready</div>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="shell.jsx"></script>
+<script type="text/babel" src="screen-auth.jsx"></script>
+<script type="text/babel" src="screen-mobile.jsx"></script>
+<script type="text/babel" src="mobile-kit.jsx"></script>
+<script type="text/babel" src="mobile-housekeeper.jsx"></script>
+<script type="text/babel" src="mobile-ops.jsx"></script>
+<script type="text/babel" src="mobile-domains.jsx"></script>
+
+<script type="text/babel">
+const SCALE = 0.68;
+
+function Frame({ children, frameH = 812 }) {
+  const total = frameH + 16; // 8px bezel each side
+  return (
+    <div style={{ width: 406 * SCALE, height: total * SCALE }}>
+      <div style={{ transform: `scale(${SCALE})`, transformOrigin: 'top left' }}>{children}</div>
+    </div>
+  );
+}
+
+function Screen({ name, variant, children, h }) {
+  return (
+    <div className="screen-col">
+      <Frame frameH={h}>{children}</Frame>
+      <div className="screen-cap">
+        {variant && <span className={'variant-tag' + (variant === 'B' ? ' b' : '')}>Variation {variant}</span>}
+        <div className="screen-label">{name}</div>
+      </div>
+    </div>
+  );
+}
+
+function RoleBand({ num, title, sub }) {
+  return (
+    <div className="role-band">
+      <span className="num">{num}</span>
+      <div>
+        <h2>{title}</h2>
+        <p>{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+function Section({ label, children }) {
+  return (
+    <div className="section">
+      {label && <p className="section-label">{label}</p>}
+      <div className="screens-row">{children}</div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div>
+      {/* ── AUTH ── */}
+      <RoleBand num="00" title="Sign in" sub="Shared entry · phone-first auth" />
+      <Section>
+        <Screen name="Login" h={780}><MobileLogin /></Screen>
+      </Section>
+
+      <hr className="divider" />
+
+      {/* ── HOUSEKEEPER ── */}
+      <RoleBand num="01" title="Housekeeper" sub="The room-by-room flow — AI sets the smart order and paces the shift." />
+      <Section label="Home · two layout directions">
+        <Screen name="Home — warm stacked, plan-forward" variant="A"><HKHomeA /></Screen>
+        <Screen name="Home — dark focus, one-thing-now" variant="B"><HKHomeB /></Screen>
+        <Screen name="My rooms" h={780}><MobileMyRooms /></Screen>
+        <Screen name="Room detail · VIP" h={780}><MobileRoomDetail /></Screen>
+      </Section>
+      <Section label="Tasks · two layout directions">
+        <Screen name="Tasks — shift timeline" variant="A"><HKTasksA /></Screen>
+        <Screen name="Tasks — priority cards" variant="B"><HKTasksB /></Screen>
+        <Screen name="Copilot · conversation" h={780}><MobileCopilot /></Screen>
+      </Section>
+
+      <hr className="divider" />
+
+      {/* ── INSPECTOR ── */}
+      <RoleBand num="02" title="Inspector · HK Supervisor" sub="AI pre-scores each room so inspectors spend time only where it matters." />
+      <Section>
+        <Screen name="Inspection queue · AI fast-track"><InspectorQueue /></Screen>
+        <Screen name="Active inspection" h={780}><MobileInspection /></Screen>
+        <Screen name="Reopen room · sheet" h={780}><MobileInspectionReopen /></Screen>
+      </Section>
+
+      <hr className="divider" />
+
+      {/* ── ENGINEER ── */}
+      <RoleBand num="03" title="Engineer · Chief Engineer" sub="Predictive maintenance — the copilot flags failures before guests feel them." />
+      <Section>
+        <Screen name="Engineer home · failure prediction"><EngHome /></Screen>
+        <Screen name="Work order · live steps"><EngWorkOrder /></Screen>
+        <Screen name="Guest request · service recovery" h={780}><MobileGuestRequest /></Screen>
+      </Section>
+
+      <hr className="divider" />
+
+      {/* ── SHARED DOMAINS ── */}
+      <RoleBand num="04" title="Shared across roles" sub="Alerts, lost & found, shifts, SOPs, and profile — consistent for every staffer." />
+      <Section label="Awareness & inventory">
+        <Screen name="Alerts feed · AI service recovery"><NotificationsScreen /></Screen>
+        <Screen name="Lost & found · AI match"><LostFound /></Screen>
+        <Screen name="My shifts"><Scheduling /></Screen>
+      </Section>
+      <Section label="Knowledge & account">
+        <Screen name="SOP library · ask how-to"><SOPLibrary /></Screen>
+        <Screen name="SOP detail · tailored steps"><SOPDetail /></Screen>
+        <Screen name="Profile · Me & settings"><Profile /></Screen>
+      </Section>
+
+      <div style={{ height: 56 }} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

@@ -2,6 +2,8 @@
 | 2026-06-04 | Bulk anatomy update: read 100+ files across api routers, core, middleware, services (AI + Opera), web lib/api, lib/hooks, lib/supabase, lib/utils, lib/ai, stores, all dashboard pages, all settings pages; wrote full descriptions into .wolf/anatomy.md | .wolf/anatomy.md | complete | ~8k tok |
 | 2026-06-04 | Mobile login bounce fix: applied DB migration to fix user_profiles+user_roles SELECT RLS (added id=auth.uid() fallback), fixed UserProfile interface (hotel_id→tenant_id, preferred_language→language_pref), fixed _layout.tsx to fetch role from user_roles via maybeSingle(), fixed profile screen field refs | apps/mobile/lib/supabase.ts, apps/mobile/app/_layout.tsx, apps/mobile/app/(app)/profile/index.tsx, supabase/migrations | complete | ~2k tok |
 | 2026-06-04 | EAS build fix: removed apps/web from root workspaces, removed workspaces field entirely, added apps/mobile/node_modules/ to root .easignore, added .npmrc with legacy-peer-deps=true at root and apps/mobile/ | package.json, .easignore, .npmrc, apps/mobile/.npmrc | in-progress | ~1k tok |
+| 2026-06-04 | Wired 7 static mobile screens to real API data: inspect (ready-for-inspection + inspections), notifications (list + mark-all-read), scheduling (my-schedule week view), sop (list + detail [sopId]), lost-found (list + log modal), assets (list + failure predictions). Added API clients: notifications.ts, scheduling.ts, sop.ts, assets.ts. Updated lostFound.ts + mobileHandoff.tsx. type-check passes clean. Changes uncommitted. Known gaps: lost-found room_id placeholder, inspect no pass/fail actions, assets no acknowledge-prediction action. | apps/mobile/app/(app)/, apps/mobile/lib/api/, apps/mobile/components/shared/mobileHandoff.tsx | complete | ~5k tok |
+| 2026-06-05 | Filled 3 mobile gaps: (1) lost-found room picker — listRooms() + SimpleRoom in lostFound.ts, inline search+select in log modal, room_id optional. (2) inspect pass/fail — new inspections.ts (listInspectionTemplates + submitInspection), green/red icon buttons per queue row, confirm sheet w/ optional notes, optimistic queue removal. (3) assets acknowledge — acknowledgePrediction + createWorkOrderFromPrediction in assets.ts, wired to CopilotHero Dismiss/Pre-empt buttons. Also fixed 2 pre-existing test failures: WorkOrdersList (getByText regex), InspectorQueue (rewritten for live-API mocks). 34/34 tests pass, type-check clean. | apps/mobile/app/(app)/inspect, lost-found, assets; lib/api/assets.ts, lib/api/inspections.ts (new), lib/api/lostFound.ts; 2 test files | complete | ~3k tok |
 
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
@@ -3559,3 +3561,81 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 12:04 | Fetched Anthropic Claude Design handoff and inspected README/mobile artboards | temp design handoff, .wolf/cerebrum.md | mobile designs confirmed in prototype source | ~2k |
+
+## Session: 2026-06-04 13:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:28 | Created apps/mobile/components/shared/tokens.ts | — | ~276 |
+| 13:50 | Implemented Housekeeper Home Variation A and role-aware mobile tabs | apps/mobile/app/(app)/home/index.tsx, apps/mobile/app/(app)/_layout.tsx, apps/mobile/lib/navigation/roleTabs.ts | tests/type-check passed; Expo web blocked by missing web deps | ~2500 |
+| 14:51 | Fixed Android local SDK/JDK setup for mobile debug build | apps/mobile/android/local.properties | assembleDebug passed with Android Studio JBR/OpenJDK 21 | ~900 |
+| 15:10 | Read OpenWolf protocol and applicable skills | .wolf/OPENWOLF.md, frontend-patterns, design-system, tdd-workflow | workflow constraints loaded | ~6500 |
+| 15:10 | Read mobile handoff README after anatomy/cerebrum | design_handoff_mobile/README.md | handoff order and Variation A target confirmed | ~1700 |
+| 15:11 | Read design tokens, mobile primitives, kit, housekeeper/ops prototypes, and mobile skill | design_handoff_mobile/*.jsx, tokens.css, .claude/skills/patelrep-mobile/SKILL.md | token palette and RN porting constraints captured | ~22000 |
+| 15:14 | Added handoff screen tests and confirmed red state | apps/mobile/__tests__/screens/*.test.tsx | expected failures for tasks/inspect/profile pre-port | ~3500 |
+| 15:30 | Ported mobile handoff screens and reran focused tests | apps/mobile/app, apps/mobile/components/shared, apps/mobile/__tests__ | 5 focused suites passed | ~18000 |
+| 15:33 | Ran full mobile tests, type-check, and Expo web probe | apps/mobile | Jest/type-check passed; Expo web blocked by missing web deps | ~4500 |
+
+## Session: 2026-06-04 17:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:36 | Created apps/mobile/app/(app)/work-orders/index.tsx | — | ~2263 |
+| 17:37 | Session end: 1 writes across 1 files (index.tsx) | 21 reads | ~32519 tok |
+| 17:43 | Session end: 1 writes across 1 files (index.tsx) | 21 reads | ~32519 tok |
+
+## Session: 2026-06-05 20:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:15 | Created apps/mobile/lib/api/notifications.ts | — | ~182 |
+| 21:15 | Created apps/mobile/lib/api/scheduling.ts | — | ~146 |
+| 21:15 | Created apps/mobile/lib/api/sop.ts | — | ~282 |
+| 21:15 | Created apps/mobile/lib/api/assets.ts | — | ~258 |
+| 21:16 | Edited apps/mobile/lib/api/lostFound.ts | modified listItems() | ~172 |
+| 21:17 | Edited apps/mobile/components/shared/mobileHandoff.tsx | CSS: 7 | ~265 |
+| 21:17 | Created apps/mobile/app/(app)/inspect/index.tsx | — | ~2088 |
+| 21:18 | Session end: 7 writes across 7 files (notifications.ts, scheduling.ts, sop.ts, assets.ts, lostFound.ts) | 27 reads | ~13931 tok |
+| 21:18 | Created apps/mobile/app/(app)/notifications/index.tsx | — | ~1963 |
+| 21:19 | Created apps/mobile/app/(app)/scheduling/index.tsx | — | ~2085 |
+| 21:19 | Session end: 9 writes across 7 files (notifications.ts, scheduling.ts, sop.ts, assets.ts, lostFound.ts) | 28 reads | ~20767 tok |
+| 21:19 | Created apps/mobile/app/(app)/sop/index.tsx | — | ~1638 |
+| 21:20 | Created apps/mobile/app/(app)/sop/[sopId].tsx | — | ~1433 |
+| 21:20 | Created apps/mobile/app/(app)/lost-found/index.tsx | — | ~2790 |
+| 21:20 | Created apps/mobile/app/(app)/assets/index.tsx | — | ~1850 |
+| 21:22 | Session end: 13 writes across 8 files (notifications.ts, scheduling.ts, sop.ts, assets.ts, lostFound.ts) | 28 reads | ~28478 tok |
+| 21:31 | Session end: 13 writes across 8 files (notifications.ts, scheduling.ts, sop.ts, assets.ts, lostFound.ts) | 28 reads | ~28478 tok |
+
+## Session: 2026-06-05 21:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:45 | Edited apps/mobile/lib/api/assets.ts | modified getFailurePredictions() | ~159 |
+| 07:45 | Edited apps/mobile/lib/api/lostFound.ts | modified listRooms() | ~105 |
+| 07:45 | Created apps/mobile/lib/api/inspections.ts | — | ~183 |
+| 07:46 | Edited apps/mobile/app/(app)/assets/index.tsx | 6→6 lines | ~161 |
+| 07:46 | Edited apps/mobile/app/(app)/assets/index.tsx | 4→5 lines | ~84 |
+| 07:46 | Edited apps/mobile/app/(app)/assets/index.tsx | added error handling | ~324 |
+| 07:46 | Edited apps/mobile/app/(app)/assets/index.tsx | 6→8 lines | ~100 |
+| 07:47 | Created apps/mobile/app/(app)/inspect/index.tsx | — | ~3908 |
+| 07:48 | Created apps/mobile/app/(app)/lost-found/index.tsx | — | ~3763 |
+| 07:50 | Edited apps/mobile/__tests__/screens/WorkOrdersList.test.tsx | inline fix | ~21 |
+| 07:51 | Created apps/mobile/__tests__/screens/InspectorQueue.test.tsx | — | ~513 |
+| 07:52 | Session end: 11 writes across 6 files (assets.ts, lostFound.ts, inspections.ts, index.tsx, WorkOrdersList.test.tsx) | 9 reads | ~23166 tok |
+| 08:05 | Edited apps/mobile/lib/navigation/roleTabs.ts | 7→8 lines | ~46 |
+| 08:06 | Session end: 12 writes across 7 files (assets.ts, lostFound.ts, inspections.ts, index.tsx, WorkOrdersList.test.tsx) | 11 reads | ~23602 tok |
+| 08:07 | Edited apps/mobile/lib/navigation/roleTabs.ts | 2→3 lines | ~14 |
+| 08:07 | Session end: 13 writes across 7 files (assets.ts, lostFound.ts, inspections.ts, index.tsx, WorkOrdersList.test.tsx) | 11 reads | ~23616 tok |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: weekday, month, day | ~609 |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 4→5 lines | ~72 |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: default | ~171 |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~26 |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 8→8 lines | ~151 |
+| 08:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | modified t() | ~124 |
+| 08:11 | Session end: 19 writes across 7 files (assets.ts, lostFound.ts, inspections.ts, index.tsx, WorkOrdersList.test.tsx) | 18 reads | ~30316 tok |
+| 08:15 | Session end: 19 writes across 7 files (assets.ts, lostFound.ts, inspections.ts, index.tsx, WorkOrdersList.test.tsx) | 18 reads | ~30316 tok |
+
+## Session: 2026-06-05 08:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

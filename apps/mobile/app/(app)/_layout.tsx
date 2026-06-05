@@ -4,42 +4,14 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
-import type { UserRole } from "@/lib/supabase";
-
-type TabDef = { name: string; title: string; icon: string };
-
-function getTabsForRole(role: UserRole): TabDef[] {
-  const common: TabDef[] = [
-    { name: "copilot/index", title: "tabs.copilot", icon: "chatbubble-ellipses" },
-    { name: "profile/index", title: "tabs.profile", icon: "person" },
-  ];
-
-  switch (role) {
-    case "housekeeper":
-      return [
-        { name: "my-rooms/index", title: "tabs.myRooms", icon: "bed" },
-        { name: "tasks/index", title: "tabs.tasks", icon: "checkmark-circle" },
-        ...common,
-      ];
-    case "engineer":
-      return [
-        { name: "work-orders/index", title: "tabs.workOrders", icon: "construct" },
-        { name: "tasks/index", title: "tabs.tasks", icon: "checkmark-circle" },
-        ...common,
-      ];
-    default:
-      return [
-        { name: "my-rooms/index", title: "tabs.myRooms", icon: "bed" },
-        { name: "work-orders/index", title: "tabs.workOrders", icon: "construct" },
-        { name: "tasks/index", title: "tabs.tasks", icon: "checkmark-circle" },
-        ...common,
-      ];
-  }
-}
+import { C } from "@/components/shared/tokens";
+import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 
 export default function AppLayout() {
   const { t } = useTranslation();
   const { user, isAuthenticated, isLoading } = useAppStore();
+  const visibleTabs = user ? getTabsForRole(user.role) : [];
+  const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -54,26 +26,58 @@ export default function AppLayout() {
       <OfflineBanner />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#b8431c",
-          tabBarInactiveTintColor: "#a8a195",
-          tabBarStyle: { backgroundColor: "#f7f4ee", borderTopColor: "#e6dfd1" },
-          headerStyle: { backgroundColor: "#f7f4ee" },
-          headerTintColor: "#1a1815",
-          headerTitleStyle: { fontWeight: "600", color: "#1a1815" },
+          tabBarActiveTintColor: C.accent,
+          tabBarInactiveTintColor: C.ink4,
+          tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+          tabBarStyle: {
+            backgroundColor: C.surface,
+            borderTopColor: C.line,
+            height: 72,
+            paddingTop: 8,
+            paddingBottom: 12,
+          },
+          headerStyle: { backgroundColor: C.paper },
+          headerTintColor: C.ink,
+          headerTitleStyle: { fontWeight: "600", color: C.ink },
           headerShadowVisible: false,
         }}
       >
-        {getTabsForRole(user.role).map((tab) => (
+        {visibleTabs.map((tab) => (
           <Tabs.Screen
             key={tab.name}
             name={tab.name}
             options={{
-              title: t(tab.title),
+              title: t(tab.titleKey),
+              headerShown: false,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name={tab.icon as "bed"} size={size} color={color} />
+                <Ionicons
+                  name={tab.icon}
+                  size={tab.special ? size + 2 : size}
+                  color={tab.special ? C.accent : color}
+                  style={
+                    tab.special
+                      ? {
+                          backgroundColor: C.ink,
+                          borderRadius: 20,
+                          marginTop: -18,
+                          width: 40,
+                          height: 40,
+                          padding: 10,
+                          borderWidth: 3,
+                          borderColor: C.surface,
+                        }
+                      : undefined
+                  }
+                />
               ),
             }}
           />
+        ))}
+        {ALL_ROLE_TAB_ROUTES.filter((name) => !visibleNames.has(name)).map((name) => (
+          <Tabs.Screen key={name} name={name} options={{ href: null }} />
+        ))}
+        {HIDDEN_APP_ROUTES.map((name) => (
+          <Tabs.Screen key={name} name={name} options={{ href: null }} />
         ))}
       </Tabs>
     </>

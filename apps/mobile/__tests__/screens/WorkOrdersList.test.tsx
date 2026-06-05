@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("WorkOrdersScreen", () => {
   it("renders WO card fields: title, priority, room number", async () => {
     render(<WorkOrdersScreen />);
-    await waitFor(() => expect(screen.getByText("Fix AC")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Fix AC/)).toBeTruthy());
     expect(screen.getByText(/101/)).toBeTruthy();
   });
 

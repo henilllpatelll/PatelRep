@@ -18,11 +18,18 @@
     "signInWith": "Iniciar sesión con correo/contraseña"
   },
   "tabs": {
+    "home": "Inicio",
     "myRooms": "Mis Cuartos",
+    "inspect": "Inspeccionar",
     "workOrders": "Órdenes de Trabajo",
     "tasks": "Tareas",
+    "assets": "Activos",
     "copilot": "Copiloto",
     "profile": "Perfil"
+  },
+  "home": {
+    "greeting": "Buenos días, {{name}}.",
+    "shiftMeta": "Mar · 26 de mayo · Turno de día"
   },
   "rooms": {
     "title": "Mis Cuartos",

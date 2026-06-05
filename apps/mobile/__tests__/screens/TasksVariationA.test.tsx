@@ -1,0 +1,45 @@
+import React from "react";
+import { render, waitFor } from "@testing-library/react-native";
+
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: () => null,
+}));
+
+jest.mock("@/lib/api/client", () => ({
+  api: {
+    get: jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: "task-1",
+          title: "Restock cart - floor 2",
+          task_type: "supplies",
+          status: "open",
+          priority: "urgent",
+          due_label: "now",
+          room_number: null,
+        },
+      ],
+    }),
+  },
+}));
+
+import TasksScreen from "@/app/(app)/tasks";
+
+describe("TasksScreen handoff", () => {
+  it("renders Tasks variation A as a shift timeline with the AI reorder nudge", async () => {
+    const { getByText } = render(<TasksScreen />);
+
+    await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
+
+    expect(getByText("Heads up")).toBeTruthy();
+    expect(getByText("Reorder for me")).toBeTruthy();
+    expect(getByText("Now")).toBeTruthy();
+    expect(getByText("Before 12:00")).toBeTruthy();
+    expect(getByText("This afternoon")).toBeTruthy();
+    expect(getByText("Restock cart - floor 2")).toBeTruthy();
+  });
+});

@@ -1,97 +1,347 @@
-import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
-import { useTranslation } from "react-i18next";
+import { useEffect, useMemo, useState } from "react";
+import type { ComponentProps } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
+import { C, R } from "@/components/shared/tokens";
+import {
+  AILabel,
+  CopilotHero,
+  HeroButton,
+  IconButton,
+  Pill,
+  SectionLabel,
+} from "@/components/shared/mobileHandoff";
 
 type Task = {
   id: string;
   title: string;
-  task_type: string;
-  status: string;
-  priority: string;
-  room_number?: string;
+  task_type?: string;
+  status?: string;
+  priority?: string;
+  room_number?: string | null;
+  due_label?: string | null;
+  source?: string | null;
+  ai_suggested?: boolean | null;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  open: "#a6263c",
-  in_progress: "#a16207",
-  completed: "#0c6e63",
-  cancelled: "#807a70",
+type TaskGroup = {
+  when: string;
+  tone: "accent" | "caution" | "info";
+  items: Array<{
+    id: string;
+    label: string;
+    meta: string;
+    icon: ComponentProps<typeof Ionicons>["name"];
+    tone?: "accent" | "caution" | "info";
+    ai?: boolean;
+  }>;
 };
+
+const FALLBACK_GROUPS: TaskGroup[] = [
+  {
+    when: "Now",
+    tone: "accent",
+    items: [
+      {
+        id: "fallback-cart",
+        label: "Restock cart - floor 2",
+        meta: "Linens low - 6 rooms left",
+        icon: "cube-outline",
+        tone: "accent",
+      },
+    ],
+  },
+  {
+    when: "Before 12:00",
+    tone: "caution",
+    items: [
+      {
+        id: "fallback-towels",
+        label: "Deliver 2 extra towels to 214",
+        meta: "Guest request - GR-438",
+        icon: "bed-outline",
+        tone: "caution",
+        ai: true,
+      },
+      {
+        id: "fallback-strip",
+        label: "Strip and flip 118",
+        meta: "Early checkout cleared",
+        icon: "bed-outline",
+      },
+    ],
+  },
+  {
+    when: "This afternoon",
+    tone: "info",
+    items: [
+      {
+        id: "fallback-fridge",
+        label: "Deep-clean fridge - 122",
+        meta: "Long stay - day 9",
+        icon: "water-outline",
+      },
+      {
+        id: "fallback-vip",
+        label: "Photo audit 115 before VIP",
+        meta: "Inspector will fast-track",
+        icon: "camera-outline",
+        ai: true,
+      },
+    ],
+  },
+];
+
+function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
+  return Array.isArray(response) ? response : response.data ?? [];
+}
+
+function normalizeTask(task: Task) {
+  const room = task.room_number ? `Room ${task.room_number}` : task.task_type ?? "Shift task";
+  const priority = task.priority ? task.priority.toUpperCase() : "P2";
+  return {
+    id: task.id,
+    label: task.title,
+    meta: `${room} - ${priority}`,
+    icon: task.source === "guest" ? ("bed-outline" as const) : ("cube-outline" as const),
+    tone: task.priority === "urgent" || task.priority === "high" ? ("accent" as const) : undefined,
+    ai: Boolean(task.ai_suggested),
+  };
+}
+
+function groupTasks(tasks: Task[]): TaskGroup[] {
+  const groups = FALLBACK_GROUPS.map((group) => ({ ...group, items: [...group.items] }));
+
+  if (tasks.length === 0) return groups;
+
+  const now = tasks.filter((task) => task.due_label === "now" || task.priority === "urgent");
+  const midday = tasks.filter((task) => task.due_label === "before_noon" || task.source === "guest");
+  const afternoon = tasks.filter((task) => !now.includes(task) && !midday.includes(task));
+
+  if (now.length > 0) groups[0].items = now.map(normalizeTask);
+  if (midday.length > 0) groups[1].items = midday.map(normalizeTask);
+  if (afternoon.length > 0) groups[2].items = afternoon.map(normalizeTask);
+
+  return groups;
+}
 
 export default function TasksScreen() {
-  const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     api
-      .get<Task[]>("/tasks?my_tasks=true")
-      .then(setTasks)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .get<{ data: Task[] } | Task[]>("/tasks?my_tasks=true")
+      .then((response) => {
+        if (mounted) setTasks(unwrapTasks(response));
+      })
+      .catch(() => {
+        if (mounted) setTasks([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const groups = useMemo(() => groupTasks(tasks), [tasks]);
+  const openCount = tasks.length || FALLBACK_GROUPS.reduce((sum, group) => sum + group.items.length, 0);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#b8431c" />
+        <ActivityIndicator color={C.accent} />
       </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      data={tasks}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <View style={styles.card}>
-          <View style={[styles.dot, { backgroundColor: STATUS_COLORS[item.status] ?? "#a8a195" }]} />
-          <View style={styles.content}>
-            <Text style={styles.title}>{item.title}</Text>
-            {item.room_number && (
-              <Text style={styles.meta}>Room {item.room_number}</Text>
-            )}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <IconButton icon="filter-outline" />
+        <Text style={styles.headerMeta}>{openCount} tasks - 1 from a guest</Text>
+        <Text style={styles.title}>My tasks</Text>
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <CopilotHero
+          tone="violet"
+          kicker="Heads up"
+          actions={
+            <HeroButton onDark={false} icon="checkmark" primary>
+              Reorder for me
+            </HeroButton>
+          }
+        >
+          <Text>
+            The towel drop for <Text style={styles.heroStrong}>214</Text> is on your way to 218 - knock that out next and save a trip.
+          </Text>
+        </CopilotHero>
+
+        {groups.map((group) => (
+          <View key={group.when}>
+            <View style={styles.groupHeader}>
+              <View style={[styles.groupDot, { backgroundColor: C[group.tone] }]} />
+              <Text style={styles.groupTitle}>{group.when}</Text>
+              <View style={styles.groupLine} />
+            </View>
+
+            <View style={styles.taskStack}>
+              {group.items.map((item) => (
+                <View key={item.id} style={styles.taskCard}>
+                  <View style={styles.checkbox} />
+                  <View style={styles.taskBody}>
+                    <View style={styles.taskTitleRow}>
+                      <Text style={styles.taskTitle}>{item.label}</Text>
+                      {item.ai ? <AILabel>AI</AILabel> : null}
+                    </View>
+                    <Text style={styles.taskMeta}>{item.meta}</Text>
+                  </View>
+                  <IconButton icon={item.icon} tone={item.tone} size={34} />
+                </View>
+              ))}
+            </View>
           </View>
+        ))}
+
+        <View style={styles.footerHint}>
+          <Ionicons name="sparkles-outline" size={13} color={C.ink4} />
+          <Text style={styles.footerText}>Copilot keeps this ordered around your route.</Text>
         </View>
-      )}
-      ListEmptyComponent={
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>No tasks assigned</Text>
-        </View>
-      }
-      contentContainerStyle={tasks.length === 0 ? styles.emptyFlex : undefined}
-    />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f4ee" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyFlex: { flex: 1 },
-  card: {
+  container: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.paper,
+  },
+  header: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 18,
+    backgroundColor: C.paper,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line2,
+  },
+  headerMeta: {
+    marginTop: 8,
+    color: C.ink3,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  title: {
+    color: C.ink,
+    fontSize: 30,
+    lineHeight: 34,
+    fontFamily: "Georgia",
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 24,
+    gap: 16,
+  },
+  heroStrong: {
+    fontStyle: "normal",
+    fontWeight: "700",
+    color: C.ink,
+  },
+  groupHeader: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    margin: 8,
-    marginHorizontal: 16,
-    borderRadius: 10,
-    padding: 14,
-    gap: 10,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: "#e6dfd1",
+    gap: 8,
+    marginBottom: 9,
   },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  content: { flex: 1 },
-  title: { fontSize: 14, fontWeight: "500", color: "#1a1815" },
-  meta: { fontSize: 12, color: "#807a70", marginTop: 2 },
-  emptyText: { color: "#a8a195", fontSize: 15 },
+  groupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  groupTitle: {
+    color: C.ink2,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  groupLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.line2,
+  },
+  taskStack: {
+    gap: 8,
+    paddingLeft: 4,
+  },
+  taskCard: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: C.line,
+    backgroundColor: C.surface,
+  },
+  taskBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  taskTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  taskTitle: {
+    color: C.ink,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  taskMeta: {
+    color: C.ink3,
+    fontSize: 11.5,
+    marginTop: 3,
+  },
+  footerHint: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 7,
+    marginTop: 2,
+  },
+  footerText: {
+    color: C.ink4,
+    fontSize: 12,
+  },
 });

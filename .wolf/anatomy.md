@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-04T16:30:30.721Z
-> Files: 181 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T13:10:49.893Z
+> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -43,6 +43,7 @@
 
 ## .claude/skills/patelrep-mobile/
 
+- `SKILL.md` — Project-local Expo mobile conventions: API/auth boundaries, offline mutation pattern, i18n, push notifications, Expo Router navigation, Zustand store, and EAS notes. (~1200 tok)
 
 ## .claude/skills/patelrep-web/
 
@@ -441,6 +442,9 @@
 ## Session Additions 2026-05-31 Occupied Assignment Clean Type
 
 
+## Session Additions 2026-06-04 Mobile Handoff Port
+
+
 ## apps/api/
 
 
@@ -540,11 +544,18 @@
 ## apps/mobile/__tests__/components/
 
 
+## apps/mobile/__tests__/lib/
+
+- `roleTabs.test.ts` — Verifies role-aware mobile tab order: housekeeper Home/Rooms/Copilot/Tasks/Me, supervisor Inspect set, engineer Orders/Assets set. (~170 tok)
+
 ## apps/mobile/__tests__/lib/offline/
 
 
 ## apps/mobile/__tests__/screens/
 
+- `HousekeeperHome.test.tsx` — React Native Testing Library coverage for Housekeeper Home Variation A: greeting, Copilot smart-order CTA, pace card, up-next room rows, VIP chip. (~520 tok)
+- `InspectorQueue.test.tsx` — mockGet (~513 tok)
+- `WorkOrdersList.test.tsx` — mockApiGet (~524 tok)
 
 ## apps/mobile/android/
 
@@ -557,29 +568,64 @@
 ## apps/mobile/app/(app)/
 
 
+## apps/mobile/app/(app)/assets/
+
+- `index.tsx` — riskTone (~2214 tok)
+
 ## apps/mobile/app/(app)/copilot/
 
+
+## apps/mobile/app/(app)/home/
+
+- `index.tsx` — Housekeeper Home Variation A port: warm header, dark CopilotHero smart order, derived pace card, up-next rooms from my-rooms API/offline cache. (~1220 tok)
+
+## apps/mobile/app/(app)/inspect/
+
+- `index.tsx` — localDate — renders modal (~3908 tok)
+
+## apps/mobile/app/(app)/lost-found/
+
+- `index.tsx` — TAB_STATUS — renders modal (~3763 tok)
 
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — formatETA (~3889 tok)
-- `index.tsx` — STATUS_COLORS (~2303 tok)
+- `index.tsx` — DONE_STATUSES (~2287 tok)
+
+## apps/mobile/app/(app)/notifications/
+
+- `index.tsx` — timeLabel (~1963 tok)
 
 ## apps/mobile/app/(app)/profile/
 
 - `index.tsx` — ProfileScreen (~861 tok)
+
+## apps/mobile/app/(app)/scheduling/
+
+- `index.tsx` — DAY_LABELS (~2085 tok)
+
+## apps/mobile/app/(app)/sop/
+
+- `[sopId].tsx` — formatDate (~1433 tok)
+- `index.tsx` — CATEGORY_ICONS (~1638 tok)
 
 ## apps/mobile/app/(app)/tasks/
 
 
 ## apps/mobile/app/(app)/work-orders/
 
+- `index.tsx` — priorityTone (~2263 tok)
 
 ## apps/mobile/app/(auth)/
 
 
 ## apps/mobile/components/housekeeping/
 
+
+## apps/mobile/components/shared/
+
+- `mobileHandoff.tsx` — toneColors (~4092 tok)
+- `tokens.ts` — Exports C, R, monoFont, displayFont (~276 tok)
 
 ## apps/mobile/i18n/
 
@@ -593,6 +639,16 @@
 
 ## apps/mobile/lib/api/
 
+- `assets.ts` — Exports Asset, FailurePrediction, listAssets, getFailurePredictions + 2 more (~368 tok)
+- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, submitInspection (~183 tok)
+- `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~570 tok)
+- `notifications.ts` — Exports AppNotification, listNotifications, markAllRead, markRead (~182 tok)
+- `scheduling.ts` — Exports ShiftAssignment, mySchedule (~146 tok)
+- `sop.ts` — Exports SOPDocument, SOPQueryResult, listDocuments, getDocument, querySOPs (~282 tok)
+
+## apps/mobile/lib/navigation/
+
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~751 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -846,6 +902,19 @@
 
 ## design_handoff_frontend_rework/
 
+
+## design_handoff_mobile/
+
+- `mobile-domains.jsx` — Prototype shared mobile screens: notifications, lost and found, scheduling, SOP library/detail, profile. (~5200 tok)
+- `mobile-housekeeper.jsx` — Prototype housekeeper screens: HKHomeA/HKHomeB and HKTasksA/HKTasksB; HKHomeA is selected for implementation. (~3200 tok)
+- `mobile-kit.jsx` — Prototype mobile building blocks: CopilotHero, HeroBtn, Segmented, ROLE_NAV/RoleTabBar, Row, Ring, Sheet, IconBtn. (~1750 tok)
+- `mobile-ops.jsx` — Prototype engineer home/work-order and inspector queue screens. (~2500 tok)
+- `primitives.jsx` — Web prototype primitives and SVG icon paths: Icon, Pill, StatusDot, Btn, Card, SectionLabel, AILabel, Mono, Bar, Stat, RoomNumberTile. (~2600 tok)
+- `README.md` — Mobile handoff instructions: high-fidelity React Native port, file map, roles/screens, CopilotHero pattern, role-aware tab bar, state/data expectations. (~1680 tok)
+- `screen-auth.jsx` — Prototype auth/onboarding/settings helpers including Input and desktop login/onboarding/settings mockups. (~6100 tok)
+- `screen-mobile.jsx` — Prototype phone frame/header/tab bar plus mobile login, rooms, room detail, copilot, guest request, work order, inspection screens. (~10000 tok)
+- `shell.jsx` — Prototype desktop shell helpers reused by mobile login: Logo, Avatar, sidebar/topbar, Copilot bubble. (~4600 tok)
+- `tokens.css` — Warm operational design tokens: paper/surface/ink/accent/status/AI colors, radii, shadows, type stacks, dark theme, status classes. (~900 tok)
 
 ## e2e/
 

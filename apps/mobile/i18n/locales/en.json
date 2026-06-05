@@ -18,11 +18,18 @@
     "signInWith": "Sign in with email/password"
   },
   "tabs": {
+    "home": "Home",
     "myRooms": "My Rooms",
+    "inspect": "Inspect",
     "workOrders": "Work Orders",
     "tasks": "Tasks",
+    "assets": "Assets",
     "copilot": "Copilot",
     "profile": "Profile"
+  },
+  "home": {
+    "greeting": "Morning, {{name}}.",
+    "shiftMeta": "Tue · May 26 · Day shift"
   },
   "rooms": {
     "title": "My Rooms",

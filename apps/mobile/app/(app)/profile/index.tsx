@@ -1,42 +1,72 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from "react-native";
-import { useTranslation } from "react-i18next";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/i18n";
+import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { api } from "@/lib/api/client";
+import { C, displayFont, monoFont } from "@/components/shared/tokens";
+import { Avatar, IconButton, Pill } from "@/components/shared/mobileHandoff";
+
+function roleLabel(role?: string | null) {
+  if (!role) return "Staff";
+  return role
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 export default function ProfileScreen() {
-  const { t } = useTranslation();
   const { user } = useAppStore();
-  const isSpanish = i18n.language === "es";
-  const [hotelName, setHotelName] = useState<string>("");
+  const [hotelName, setHotelName] = useState("Lone Star Inn");
+  const [language, setLanguage] = useState(i18n.language);
 
   useEffect(() => {
-    if (user?.tenant_id) {
-      api.get<{ data: { name: string } }>(`/hotels/${user.tenant_id}`)
-        .then(res => setHotelName(res.data.name))
-        .catch(() => {});  // silent — display only
-    }
+    if (!user?.tenant_id) return;
+    let mounted = true;
+
+    api
+      .get<{ data: { name: string } }>(`/hotels/${user.tenant_id}`)
+      .then((res) => {
+        if (mounted && res.data?.name) setHotelName(res.data.name);
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
   }, [user?.tenant_id]);
 
+  const rows = useMemo(
+    () => [
+      { icon: "calendar-outline" as const, label: "My schedule", value: "Day - 7-3" },
+      { icon: "trending-up-outline" as const, label: "My stats", value: "22m avg" },
+      { icon: "document-text-outline" as const, label: "Pay & hours", value: "32h this wk" },
+      { icon: "notifications-outline" as const, label: "Notifications", value: "On" },
+      { icon: "settings-outline" as const, label: "Language", value: language === "es" ? "Spanish" : "English" },
+      { icon: "shield-checkmark-outline" as const, label: "Help & safety", value: null },
+    ],
+    [language]
+  );
+
   async function toggleLanguage(value: boolean) {
-    const lang = value ? "es" : "en";
-    await i18n.changeLanguage(lang);
+    const next = value ? "es" : "en";
+    setLanguage(next);
+    await i18n.changeLanguage(next);
 
     if (user) {
       await supabase
         .from("user_profiles")
-        .update({ language_pref: lang })
+        .update({ language_pref: next })
         .eq("id", user.id);
     }
   }
 
-  async function handleSignOut() {
-    Alert.alert("Sign Out", "Are you sure?", [
+  async function signOut() {
+    Alert.alert("Sign out", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Sign Out",
+        text: "Sign out",
         style: "destructive",
         onPress: async () => {
           await supabase.auth.signOut();
@@ -45,42 +75,197 @@ export default function ProfileScreen() {
     ]);
   }
 
+  const name = user?.full_name ?? "Staff";
+
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.name}>{user?.full_name ?? "Staff"}</Text>
-        <Text style={styles.role}>{user?.role?.replace(/_/g, " ").toUpperCase()}</Text>
-        {hotelName ? (
-          <Text style={styles.hotel}>{t("profile.hotel")}: {hotelName}</Text>
-        ) : null}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Me</Text>
+        <IconButton icon="settings-outline" />
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Español</Text>
-          <Switch
-            value={isSpanish}
-            onValueChange={toggleLanguage}
-            trackColor={{ true: "#b8431c" }}
-          />
+      <View style={styles.identity}>
+        <Avatar name={name} size={58} />
+        <View style={styles.identityBody}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.role}>
+            {roleLabel(user?.role)} - {hotelName}
+          </Text>
+          <View style={styles.badges}>
+            <Pill tone="ready" icon="checkmark">
+              94 quality
+            </Pill>
+            <Pill tone="accent" icon="star">
+              Top pace
+            </Pill>
+          </View>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+      <View style={styles.stats}>
+        {[
+          { value: "128", label: "rooms this month" },
+          { value: "96%", label: "first-pass", tone: C.ready },
+          { value: "21d", label: "streak", tone: C.accent },
+        ].map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <Text style={[styles.statValue, stat.tone ? { color: stat.tone } : undefined]}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.settingsList}>
+        {rows.map((row, index) => (
+          <View key={row.label} style={[styles.row, index > 0 && styles.rowBorder]}>
+            <Ionicons name={row.icon} size={17} color={C.ink3} />
+            <Text style={styles.rowLabel}>{row.label}</Text>
+            {row.label === "Language" ? (
+              <Switch
+                value={language === "es"}
+                onValueChange={toggleLanguage}
+                trackColor={{ true: C.accent, false: C.line }}
+                thumbColor="#fff"
+              />
+            ) : row.value ? (
+              <Text style={styles.rowValue}>{row.value}</Text>
+            ) : null}
+            <Ionicons name="chevron-forward" size={15} color={C.ink4} />
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity activeOpacity={0.84} style={styles.signOutButton} onPress={signOut}>
+        <Ionicons name="log-out-outline" size={18} color={C.ink2} />
+        <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
-    </View>
+
+      <Text style={styles.version}>PatelRep v2.4 - build 1182</Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f4ee", padding: 16 },
-  card: { backgroundColor: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#e6dfd1" },
-  name: { fontSize: 20, fontWeight: "700", color: "#1a1815" },
-  role: { fontSize: 13, color: "#807a70", marginTop: 4 },
-  hotel: { fontSize: 13, color: "#a8a195", marginTop: 2 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  label: { fontSize: 15, color: "#1a1815" },
-  signOutBtn: { backgroundColor: "#f5d8de", borderRadius: 12, padding: 14, alignItems: "center" },
-  signOutText: { color: "#a6263c", fontWeight: "600" },
+  container: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  content: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 24,
+    gap: 14,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: C.ink,
+  },
+  identity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+  },
+  identityBody: {
+    flex: 1,
+  },
+  name: {
+    fontFamily: displayFont,
+    fontSize: 24,
+    lineHeight: 28,
+    color: C.ink,
+  },
+  role: {
+    color: C.ink3,
+    fontSize: 12.5,
+    marginTop: 3,
+  },
+  badges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  stats: {
+    flexDirection: "row",
+    gap: 9,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 13,
+  },
+  statValue: {
+    fontFamily: displayFont,
+    fontSize: 24,
+    lineHeight: 26,
+    color: C.ink,
+  },
+  statLabel: {
+    color: C.ink3,
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginTop: 5,
+  },
+  settingsList: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  row: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  rowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: C.line2,
+  },
+  rowLabel: {
+    flex: 1,
+    color: C.ink,
+    fontSize: 14,
+  },
+  rowValue: {
+    color: C.ink3,
+    fontSize: 12.5,
+  },
+  signOutButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  signOutText: {
+    color: C.ink2,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  version: {
+    textAlign: "center",
+    color: C.ink4,
+    fontFamily: monoFont,
+    fontSize: 11,
+  },
 });
