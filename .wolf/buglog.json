@@ -434,6 +434,34 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T09:32:59.6100817-05:00"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-06-05T15:01:39.728Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T15:01:39.728Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-06-05T00:00:00.000Z",
+      "error_message": "Call to function 'NativeDatabase.execAsync' has been rejected. → Caused by: near \"EXISTS\": syntax error",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "ALTER TABLE ... ADD COLUMN IF NOT EXISTS is PostgreSQL syntax; SQLite does not support IF NOT EXISTS on ALTER TABLE. execAsync passed this invalid syntax inside a multi-statement string.",
+      "fix": "Moved ALTER TABLE statements out of execAsync into individual db.runAsync calls wrapped in try/catch so duplicate-column errors (column already exists) are silently ignored — the SQLite-compatible migration pattern.",
+      "tags": ["sqlite", "mobile", "migration", "sql-syntax"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T00:00:00.000Z"
     }
   ]
 }

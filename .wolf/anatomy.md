@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T14:23:23.631Z
-> Files: 226 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T15:01:39.681Z
+> Files: 228 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -661,7 +661,7 @@
 
 ## apps/mobile/lib/offline/
 
-- `db.ts` — Exports getDb, upsertRooms, getRooms, enqueueAction + 3 more (~1486 tok)
+- `db.ts` — Exports getDb, upsertRooms, getRooms, enqueueAction + 3 more (~1537 tok)
 - `sync.ts` — API routes: PATCH, POST (6 endpoints) (~685 tok)
 
 ## apps/mobile/lib/utils/
@@ -905,9 +905,9 @@
 - `housekeepingDashboardMetrics.ts` — `getSupervisorHousekeepingMetrics`, `getHousekeeperDashboardRooms` (sorted by priority), `getHousekeeperDashboardMetrics`; `HousekeepingDashboardMetrics` interface (~816 tok)
 - `housekeepingNavigation.ts` — `getHousekeepingSubNavItems(role)` returns role-appropriate sub-nav tabs for housekeeping section (~232 tok)
 - `index.ts` — `cn(...inputs)` Tailwind class merge using clsx + tailwind-merge (~56 tok)
-- `routeGuard.ts` — Pure proxy route-decision helper: public routes, hotel onboarding gate, RBAC matrix, dashboard fallback for unresolved roles. (~720 tok)
-- `routeGuard.test.mjs` — Node test regression for auth redirect decisions, including missing-role dashboard loop prevention. (~220 tok)
 - `roomStatus.ts` — `STATUS_LABELS`, `STATUS_SHORT_LABELS`, `STATUS_COLORS`, `STATUS_BG`, `STATUS_TEXT`, `VALID_TRANSITIONS`, `getValidTransitions(status, role)`, `getRiskColorClass`, `formatCheckinTime`, `getTimeSinceSync` (~1960 tok)
+- `routeGuard.test.mjs` — Node test regression for auth redirect decisions, including missing-role dashboard loop prevention. (~220 tok)
+- `routeGuard.ts` — Pure proxy route-decision helper: public routes, hotel onboarding gate, RBAC matrix, dashboard fallback for unresolved roles. (~720 tok)
 
 ## apps/web/stores/
 

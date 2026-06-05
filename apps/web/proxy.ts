@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getRouteAccessDecision, type RouteAccessDecision, type UserRole } from '@/lib/utils/routeGuard'
+import { getRouteAccessDecision, toAppRole, type RouteAccessDecision } from '@/lib/utils/routeGuard'
 
 function decodeJwtClaims(accessToken: string | undefined): Record<string, unknown> {
   if (!accessToken) return {}
@@ -61,9 +61,9 @@ export async function proxy(request: NextRequest) {
     (user?.user_metadata as Record<string, unknown> | undefined)?.hotel_id ??
     request.cookies.get('pr_hotel_id')?.value
   const role =
-    (jwtClaims.role as UserRole | undefined) ??
-    ((user?.app_metadata as Record<string, unknown> | undefined)?.role as UserRole | undefined) ??
-    ((user?.user_metadata as Record<string, unknown> | undefined)?.role as UserRole | undefined)
+    toAppRole(jwtClaims.role) ??
+    toAppRole((user?.app_metadata as Record<string, unknown> | undefined)?.role) ??
+    toAppRole((user?.user_metadata as Record<string, unknown> | undefined)?.role)
 
   const decision = getRouteAccessDecision({
     pathname,

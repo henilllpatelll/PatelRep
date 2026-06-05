@@ -1,4 +1,5 @@
 # Memory
+| 2026-06-05 | Fixed SQLite crash on startup: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is invalid SQLite syntax (PostgreSQL only). Moved migration statements out of execAsync into individual runAsync calls with try/catch. | apps/mobile/lib/offline/db.ts | complete | ~300 tok |
 | 2026-06-05 | Full E2E mobile audit + 10 fixes: P1: sync.ts missing date param, lostFound.ts orphan API_BASE, auth redirect to /my-rooms for engineers; P2: db.ts missing room fields, [woId].tsx hardcoded fallback, sync retry limit; P3: localDate() extracted to lib/utils/date.ts, tasks Georgia font. All 34 tests pass, type-check clean. | apps/mobile/lib/offline/sync.ts, apps/mobile/lib/offline/db.ts, apps/mobile/lib/api/lostFound.ts, apps/mobile/app/(auth)/_layout.tsx, apps/mobile/app/(app)/work-orders/[woId].tsx, apps/mobile/app/(app)/tasks/index.tsx, apps/mobile/app/(app)/home/index.tsx, apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/inspect/index.tsx, apps/mobile/lib/utils/date.ts | complete | ~3k tok |
 | 2026-06-04 | Bulk anatomy update: read 100+ files across api routers, core, middleware, services (AI + Opera), web lib/api, lib/hooks, lib/supabase, lib/utils, lib/ai, stores, all dashboard pages, all settings pages; wrote full descriptions into .wolf/anatomy.md | .wolf/anatomy.md | complete | ~8k tok |
 | 2026-06-04 | Mobile login bounce fix: applied DB migration to fix user_profiles+user_roles SELECT RLS (added id=auth.uid() fallback), fixed UserProfile interface (hotel_id→tenant_id, preferred_language→language_pref), fixed _layout.tsx to fetch role from user_roles via maybeSingle(), fixed profile screen field refs | apps/mobile/lib/supabase.ts, apps/mobile/app/_layout.tsx, apps/mobile/app/(app)/profile/index.tsx, supabase/migrations | complete | ~2k tok |
@@ -3726,3 +3727,10 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | 09:24 | i18n+inspections handoff complete: wired t() in home/tasks/work-orders/inspect/profile, InspectionItem items passed, all 34 tests pass | 7 screen files + inspections.ts + 4 test files | success | ~8000 || 09:24 | Session end: 47 writes across 7 files (inspections.ts, index.tsx, [woId].tsx, HousekeeperHome.test.tsx, TasksVariationA.test.tsx) | 14 reads | ~19399 tok |
 | 09:32 | Fixed web dashboard redirect loop by extracting route guard and allowing /dashboard fallback for unresolved roles | apps/web/proxy.ts, apps/web/lib/utils/routeGuard.ts, routeGuard.test.mjs | tests/build/browser pass | ~5200 |
+
+## Session: 2026-06-05 10:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:01 | Edited apps/mobile/lib/offline/db.ts | added error handling | ~688 |
+| 10:02 | Session end: 1 writes across 1 files (db.ts) | 1 reads | ~2174 tok |

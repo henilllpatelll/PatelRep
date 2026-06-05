@@ -3,6 +3,8 @@ export const ALL_ROLES = ['housekeeper', 'engineer', 'housekeeping_supervisor', 
 
 export type UserRole = (typeof ALL_ROLES)[number]
 
+const APP_ROLES = new Set<string>(ALL_ROLES)
+
 const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/dashboard', roles: [...ALL_ROLES] },
   { prefix: '/housekeeping/assignments', roles: ['gm', 'housekeeping_supervisor'] },
@@ -29,6 +31,10 @@ export type RouteAccessDecision =
 
 export function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))
+}
+
+export function toAppRole(role: unknown): UserRole | null {
+  return typeof role === 'string' && APP_ROLES.has(role) ? (role as UserRole) : null
 }
 
 function getRouteRoles(pathname: string): UserRole[] | null {

@@ -70,17 +70,27 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
       created_at TEXT NOT NULL,
       attempts INTEGER DEFAULT 0
     );
-
-    -- Migrate existing rooms table to add new columns (safe on existing dbs)
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS vip_flag INTEGER DEFAULT 0;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS checkin_time TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS checkout_time TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS actual_checkout_at TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS fo_status TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS last_cleaned_at TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS last_inspected_at TEXT;
-    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS updated_at TEXT;
   `);
+
+  // Migrate existing rooms table — SQLite doesn't support IF NOT EXISTS on ALTER TABLE,
+  // so attempt each column individually and swallow duplicate-column errors.
+  const roomsMigrations = [
+    "ALTER TABLE rooms ADD COLUMN vip_flag INTEGER DEFAULT 0",
+    "ALTER TABLE rooms ADD COLUMN checkin_time TEXT",
+    "ALTER TABLE rooms ADD COLUMN checkout_time TEXT",
+    "ALTER TABLE rooms ADD COLUMN actual_checkout_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN fo_status TEXT",
+    "ALTER TABLE rooms ADD COLUMN last_cleaned_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN last_inspected_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN updated_at TEXT",
+  ];
+  for (const sql of roomsMigrations) {
+    try {
+      await db.runAsync(sql);
+    } catch {
+      // column already exists — safe to ignore
+    }
+  }
 }
 
 // Room operations
