@@ -25,7 +25,15 @@
     "tasks": "Tasks",
     "assets": "Assets",
     "copilot": "Copilot",
-    "profile": "Profile"
+    "profile": "Profile",
+    "roomBoard": "Room Board",
+    "assignments": "Assign",
+    "pmSchedules": "PM",
+    "guestRequests": "Requests",
+    "roomStatus": "Rooms",
+    "lostFound": "Lost & Found",
+    "alerts": "Alerts",
+    "staff": "Staff"
   },
   "home": {
     "greeting": "Morning, {{name}}.",
@@ -220,5 +228,124 @@
     "offlineError": "Connect to the internet to report a found item.",
     "cameraPermissionTitle": "Camera Access",
     "cameraPermissionMessage": "Allow camera access to photograph the item."
+  },
+  "alerts": {
+    "subtitle": "AI-powered risk alerts for your property",
+    "needsAttention": "Needs Attention",
+    "watchList": "Watch List",
+    "allClear": "All clear",
+    "noAlerts": "No risk alerts at this time.",
+    "items": "items",
+    "minsAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "pmSchedules": {
+    "title": "PM Schedules",
+    "overdue": "Overdue",
+    "dueToday": "Due Today",
+    "total": "Total",
+    "all": "All",
+    "due": "Due",
+    "allTasks": "All PM Tasks",
+    "schedules": "schedules",
+    "noSchedules": "No schedules",
+    "noSchedulesConfigured": "No PM schedules configured.",
+    "noItemsFound": "No {{filter}} items found.",
+    "done": "Done",
+    "upcoming": "Upcoming"
+  },
+  "roomBoard": {
+    "dirty": "Dirty",
+    "inProgress": "In Progress",
+    "ready": "Ready",
+    "total": "Total",
+    "rooms": "rooms",
+    "unassigned": "Unassigned",
+    "noRoomsLoaded": "No rooms loaded",
+    "pullToRefresh": "Pull down to refresh the board.",
+    "statusLabels": {
+      "DIRTY": "Vacant Dirty",
+      "IN_PROGRESS": "In Progress",
+      "PICKUP": "Pickup",
+      "CLEAN": "Clean",
+      "INSPECTED": "Inspected",
+      "OCCUPIED": "Occupied",
+      "OOO": "Out of Order",
+      "OUT_OF_ORDER": "Out of Order",
+      "OUT_OF_SERVICE": "Out of Service"
+    }
+  },
+  "roomStatus": {
+    "vacantDirty": "Vacant Dirty",
+    "occupied": "Occupied",
+    "ready": "Ready",
+    "searchPlaceholder": "Room number or guest name...",
+    "all": "All",
+    "floorSuffix": "floor",
+    "checkout": "Checkout {{time}}",
+    "noRoomsMatch": "No rooms match",
+    "noRoomsMatchHint": "Try a different filter or search term.",
+    "statusLabels": {
+      "DIRTY": "Dirty",
+      "IN_PROGRESS": "In Progress",
+      "PICKUP": "Pickup",
+      "CLEAN": "Clean",
+      "INSPECTED": "Ready",
+      "OCCUPIED": "Occupied",
+      "OOO": "OOO",
+      "OUT_OF_ORDER": "OOO",
+      "OUT_OF_SERVICE": "OOS"
+    }
+  },
+  "staff": {
+    "activeCount": "{{count}} active staff members",
+    "roles": {
+      "housekeeper": "Housekeeper",
+      "inspector": "Inspector",
+      "engineer": "Engineer",
+      "housekeeping_supervisor": "HK Supervisor",
+      "chief_engineer": "Chief Engineer",
+      "front_desk": "Front Desk",
+      "gm": "GM"
+    },
+    "rooms": "rooms",
+    "orders": "orders",
+    "active": "Active",
+    "noStaff": "No staff loaded",
+    "pullToRefresh": "Pull down to refresh."
+  },
+  "assignments": {
+    "autoAssign": "Auto-Assign",
+    "assigning": "Assigning…",
+    "assigned": "assigned",
+    "unassigned": "unassigned",
+    "unassignedSection": "Unassigned",
+    "floor": "Floor {{floor}}",
+    "noAssignments": "No assignments yet",
+    "noAssignmentsHint": "Pull to refresh or check back after morning setup.",
+    "assignRoom": "Assign Room {{room}}",
+    "chooseHousekeeper": "Choose a housekeeper",
+    "saving": "Saving...",
+    "rooms": "rooms"
+  },
+  "logbook": {
+    "title": "Shift Logbook",
+    "newEntry": "New Entry",
+    "aiSummary": "AI Shift Summary",
+    "entries": "entries",
+    "urgent": "Urgent",
+    "noEntries": "No log entries yet",
+    "noEntriesHint": "Tap \"New Entry\" to write the first shift note.",
+    "newEntryTitle": "New Log Entry",
+    "fieldTitle": "Title",
+    "titlePlaceholder": "Brief summary of what happened...",
+    "fieldDetails": "Details",
+    "detailsPlaceholder": "Describe the situation, actions taken, follow-up needed...",
+    "markUrgent": "Mark as urgent",
+    "markUrgentSub": "Will be highlighted for incoming shift",
+    "offlineWarning": "You're offline. Connect to save this entry.",
+    "saveError": "Could not save entry. Try again.",
+    "save": "Save Entry"
   }
 }

@@ -591,6 +591,390 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T10:25:07.5483678-05:00"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-06-05T16:24:04.242Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/lib/navigation/roleTabs.ts",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 71→128 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:24:04.242Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-06-05T16:30:09.619Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: onPress={() => router.push(`/(app)/guest-requests/${req.id}`",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T16:31:28.415Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-06-05T16:30:47.504Z",
+      "error_message": "Wrong reference: case should be default",
+      "file": "apps/mobile/lib/navigation/roleTabs.ts",
+      "root_cause": "Used \"case\" instead of \"default\"",
+      "fix": "Changed case → default",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:30:47.504Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-06-05T16:42:36.578Z",
+      "error_message": "Missing error handling in SupervisorHomeScreen",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: const { isOnline } = useAppStore();; const [stats, setStats] = useState({ newReq: \"—\", inProgress | Also: const { isOnline } = useAppStore();; const [stats, setStats] = useState({ cleanPct: \"—\", openWOs:",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-05T16:43:02.463Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-06-05T16:43:35.969Z",
+      "error_message": "Missing error handling in AppLayout",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:43:35.969Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-06-05T16:44:06.677Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→17 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:44:06.677Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-06-05T16:53:17.435Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/guest-requests/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:53:17.435Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-06-05T16:53:31.522Z",
+      "error_message": "Wrong reference: useState should be useEffect",
+      "file": "apps/mobile/app/(app)/guest-requests/[requestId].tsx",
+      "root_cause": "Used \"useState\" instead of \"useEffect\"",
+      "fix": "Changed useState → useEffect",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:53:31.522Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-06-05T16:53:38.987Z",
+      "error_message": "Wrong reference: useState should be useEffect",
+      "file": "apps/mobile/app/(app)/logbook/index.tsx",
+      "root_cause": "Used \"useState\" instead of \"useEffect\"",
+      "fix": "Changed useState → useEffect",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T16:53:38.987Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-06-05T17:59:15.640Z",
+      "error_message": "Wrong reference: useState should be useEffect",
+      "file": "apps/mobile/app/(app)/assignments/index.tsx",
+      "root_cause": "Used \"useState\" instead of \"useEffect\"",
+      "fix": "Changed useState → useEffect",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T17:59:15.640Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-06-05T17:59:21.062Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/assignments/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T17:59:21.062Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-06-05T17:59:35.957Z",
+      "error_message": "CSS fix: paddingHorizontal, backgroundColor, gap",
+      "file": "apps/mobile/app/(app)/assignments/index.tsx",
+      "root_cause": "paddingHorizontal: 18, → 10,; backgroundColor: C.paper, → C.accent,; gap: 4, → 5,",
+      "fix": "Changed paddingHorizontal: 18, → 10,; backgroundColor: C.paper, → C.accent,; gap: 4, → 5,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T17:59:35.957Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-06-05T18:10:03.546Z",
+      "error_message": "Wrong reference: useState should be useEffect",
+      "file": "apps/mobile/app/(app)/alerts/index.tsx",
+      "root_cause": "Used \"useState\" instead of \"useEffect\"",
+      "fix": "Changed useState → useEffect",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-06-05T18:10:34.171Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-06-05T18:10:14.201Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "Had \"@/stores/appStore\"",
+      "fix": "Changed to \"@/lib/supabase\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T18:10:14.201Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-06-05T18:10:22.736Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: useEffect(() => {; if (!user?.tenant_id) return;",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T18:10:39.250Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-06-05T18:23:30.539Z",
+      "error_message": "CSS fix: iso",
+      "file": "apps/mobile/app/(app)/alerts/index.tsx",
+      "root_cause": "iso: string) { → string) => {",
+      "fix": "Changed iso: string) { → string) => {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-05T18:23:59.770Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-06-05T18:23:42.243Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/alerts/index.tsx",
+      "root_cause": "Had `${critical.length} items`",
+      "fix": "Changed to `${critical.length} ${t(\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 12,
+      "last_seen": "2026-06-05T18:30:26.192Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-06-05T18:24:56.287Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 11→11 lines (10 removed) | Also: const STATUS_LABELS: Record<string, string> = {; DIRTY: \"Dirty\", | Also: const ROLE_LABELS: Record<string, string> = {; housekeeper: \"Housekeeper\",",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-05T18:26:07.540Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-06-05T18:25:52.686Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Text style={styles.subtitle}>{t(\"staff.activeCount\", { coun | Also: <Text style={styles.floorLabel}>{t(\"assignments.floor\", { fl | Also: <Text style={styles.sheetTitle}>{t(\"assignments.assignRoom\",; <Text style={styles.sheetSub}>{t(\"assignments.chooseHousekee",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-05T18:29:50.924Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-06-05T18:30:31.927Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/logbook/new.tsx",
+      "root_cause": "Had \"@expo/vector-icons\"",
+      "fix": "Changed to \"react-i18next\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-05T18:31:13.057Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-06-05T18:31:24.941Z",
+      "error_message": "Wrong reference: useAppStore should be unreadCount",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Used \"useAppStore\" instead of \"unreadCount\"",
+      "fix": "Changed useAppStore → unreadCount",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T18:31:24.941Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-06-05T18:31:30.446Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T18:31:30.446Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-06-05T18:31:35.832Z",
+      "error_message": "CSS fix: href",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "href: null → null,",
+      "fix": "Changed href: null → null,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T18:31:35.833Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-06-05T18:40:59.850Z",
+      "error_message": "CSS fix: get",
+      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
+      "root_cause": "get: jest.fn().mockResolvedValue({ → jest.fn().mockResolvedValue({ data: []",
+      "fix": "Changed get: jest.fn().mockResolvedValue({ → jest.fn().mockResolvedValue({ data: []",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T18:40:59.850Z"
     }
   ]
 }

@@ -24,19 +24,7 @@ jest.mock("@expo/vector-icons", () => ({
 
 jest.mock("@/lib/api/client", () => ({
   api: {
-    get: jest.fn().mockResolvedValue({
-      data: [
-        {
-          id: "task-1",
-          title: "Restock cart - floor 2",
-          task_type: "supplies",
-          status: "open",
-          priority: "urgent",
-          due_label: "now",
-          room_number: null,
-        },
-      ],
-    }),
+    get: jest.fn().mockResolvedValue({ data: [] }),
   },
 }));
 

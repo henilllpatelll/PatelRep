@@ -1,22 +1,26 @@
-import { useState, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
+  View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
+import { useAppStore } from "@/stores/appStore";
+
+const HISTORY_KEY = "@patelrep/copilot_history";
+const MAX_HISTORY = 20;
 
 // expo-speech-recognition is a native module — unavailable in Expo Go.
-// Provide no-op stubs so the screen loads without crashing.
 type SpeechEventHandler = (e: { results: Array<{ transcript: string }> }) => void;
 let _speechModule: { start: (opts: Record<string, unknown>) => void; stop: () => void } | null = null;
 let useSpeechRecognitionEvent: (event: string, handler: SpeechEventHandler | (() => void)) => void = () => {};
@@ -28,22 +32,25 @@ try {
   // Not available in Expo Go — mic button will be hidden
 }
 
+type TaskPreview = { title: string; task_type: string; priority: string; room_number?: string };
+type WorkOrderPreview = { title: string; category: string; priority: string; room_number?: string };
+type GuestRequestPreview = { request_type: string; description: string; room_number?: string };
+
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  task_preview?: {
-    title: string;
-    task_type: string;
-    priority: string;
-    room_number?: string;
-  };
+  task_preview?: TaskPreview;
+  work_order_preview?: WorkOrderPreview;
+  guest_request_preview?: GuestRequestPreview;
 };
 
 type CopilotResponse = {
   message: string;
   intent: string;
-  task_preview?: Message["task_preview"];
+  task_preview?: TaskPreview;
+  work_order_preview?: WorkOrderPreview;
+  guest_request_preview?: GuestRequestPreview;
 };
 
 const QUICK_ACTIONS = [
@@ -55,19 +62,43 @@ const QUICK_ACTIONS = [
 
 export default function CopilotScreen() {
   const { t } = useTranslation();
+  const { user } = useAppStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pendingTask, setPendingTask] = useState<Message["task_preview"] | null>(null);
+  const [pendingTaskMsgId, setPendingTaskMsgId] = useState<string | null>(null);
+  const [pendingWOMsgId, setPendingWOMsgId] = useState<string | null>(null);
+  const [pendingGRMsgId, setPendingGRMsgId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const [isRecording, setIsRecording] = useState(false);
+
+  // Load persisted history on mount
+  useEffect(() => {
+    AsyncStorage.getItem(HISTORY_KEY)
+      .then((stored) => {
+        if (stored) {
+          try {
+            setMessages(JSON.parse(stored) as Message[]);
+          } catch {
+            // ignore corrupt storage
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Persist last MAX_HISTORY messages whenever they change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const trimmed = messages.slice(-MAX_HISTORY);
+    AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed)).catch(() => {});
+  }, [messages]);
 
   useSpeechRecognitionEvent("result", (event) => {
     const transcript = event.results[0]?.transcript ?? "";
     setInput(transcript);
     setIsRecording(false);
   });
-
   useSpeechRecognitionEvent("error", () => setIsRecording(false));
 
   const handleMicPressIn = () => {
@@ -75,10 +106,7 @@ export default function CopilotScreen() {
     setIsRecording(true);
     _speechModule.start({ lang: "en-US", continuous: false, interimResults: false });
   };
-
-  const handleMicPressOut = () => {
-    _speechModule?.stop();
-  };
+  const handleMicPressOut = () => { _speechModule?.stop(); };
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
@@ -91,20 +119,24 @@ export default function CopilotScreen() {
     try {
       const response = await api.post<CopilotResponse>("/ai/copilot/chat", {
         message: text,
-        context: { platform: "mobile" },
+        role: user?.role,
+        context: "mobile",
       });
 
+      const msgId = (Date.now() + 1).toString();
       const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: msgId,
         role: "assistant",
         content: response.message,
         task_preview: response.task_preview,
+        work_order_preview: response.work_order_preview,
+        guest_request_preview: response.guest_request_preview,
       };
       setMessages((prev) => [...prev, assistantMsg]);
 
-      if (response.task_preview) {
-        setPendingTask(response.task_preview);
-      }
+      if (response.task_preview) setPendingTaskMsgId(msgId);
+      if (response.work_order_preview) setPendingWOMsgId(msgId);
+      if (response.guest_request_preview) setPendingGRMsgId(msgId);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -116,12 +148,31 @@ export default function CopilotScreen() {
     }
   }
 
-  async function confirmTask() {
-    if (!pendingTask) return;
+  async function confirmTask(preview: TaskPreview) {
     try {
-      await api.post("/tasks", { ...pendingTask, use_ai: true });
-      setPendingTask(null);
+      await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
+      setPendingTaskMsgId(null);
       Alert.alert("", t("copilot.taskCreated"));
+    } catch (err: unknown) {
+      Alert.alert("Error", (err as Error).message);
+    }
+  }
+
+  async function confirmWorkOrder(preview: WorkOrderPreview) {
+    try {
+      await api.post("/work-orders", { ...preview });
+      setPendingWOMsgId(null);
+      Alert.alert("", "Work order created");
+    } catch (err: unknown) {
+      Alert.alert("Error", (err as Error).message);
+    }
+  }
+
+  async function confirmGuestRequest(preview: GuestRequestPreview) {
+    try {
+      await api.post("/ai/guest-requests/confirm", { ...preview });
+      setPendingGRMsgId(null);
+      Alert.alert("", "Guest request created");
     } catch (err: unknown) {
       Alert.alert("Error", (err as Error).message);
     }
@@ -138,10 +189,54 @@ export default function CopilotScreen() {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
-            <Text style={[styles.bubbleText, item.role === "user" ? styles.userText : styles.aiText]}>
-              {item.content}
-            </Text>
+          <View>
+            <View style={[styles.bubble, item.role === "user" ? styles.userBubble : styles.aiBubble]}>
+              <Text style={[styles.bubbleText, item.role === "user" ? styles.userText : styles.aiText]}>
+                {item.content}
+              </Text>
+            </View>
+            {item.task_preview && pendingTaskMsgId === item.id ? (
+              <View style={styles.confirmCard}>
+                <Text style={styles.confirmCardLabel}>Create Task</Text>
+                <Text style={styles.confirmCardTitle}>{item.task_preview.title}</Text>
+                <View style={styles.confirmCardActions}>
+                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmTask(item.task_preview!)}>
+                    <Text style={styles.confirmText}>Create</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingTaskMsgId(null)}>
+                    <Text style={styles.dismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+            {item.work_order_preview && pendingWOMsgId === item.id ? (
+              <View style={styles.confirmCard}>
+                <Text style={styles.confirmCardLabel}>Create Work Order</Text>
+                <Text style={styles.confirmCardTitle}>{item.work_order_preview.title}</Text>
+                <View style={styles.confirmCardActions}>
+                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmWorkOrder(item.work_order_preview!)}>
+                    <Text style={styles.confirmText}>Create</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingWOMsgId(null)}>
+                    <Text style={styles.dismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+            {item.guest_request_preview && pendingGRMsgId === item.id ? (
+              <View style={styles.confirmCard}>
+                <Text style={styles.confirmCardLabel}>Create Guest Request</Text>
+                <Text style={styles.confirmCardTitle}>{item.guest_request_preview.description}</Text>
+                <View style={styles.confirmCardActions}>
+                  <TouchableOpacity style={styles.confirmBtn} onPress={() => confirmGuestRequest(item.guest_request_preview!)}>
+                    <Text style={styles.confirmText}>Create</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.dismissBtn} onPress={() => setPendingGRMsgId(null)}>
+                    <Text style={styles.dismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
           </View>
         )}
         ListEmptyComponent={
@@ -167,23 +262,15 @@ export default function CopilotScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
 
-      {pendingTask && (
-        <View style={styles.taskPreview}>
-          <Text style={styles.taskPreviewTitle}>{t("copilot.confirmTask")}</Text>
-          <Text style={styles.taskPreviewName}>{pendingTask.title}</Text>
-          <View style={styles.taskPreviewActions}>
-            <TouchableOpacity style={styles.confirmBtn} onPress={confirmTask}>
-              <Text style={styles.confirmText}>{t("copilot.confirm")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.editBtn} onPress={() => setPendingTask(null)}>
-              <Text style={styles.editText}>{t("copilot.edit")}</Text>
-            </TouchableOpacity>
-          </View>
+      {loading ? (
+        <View style={styles.typingRow}>
+          <ActivityIndicator color="#c8b8e3" size="small" />
+          <Text style={styles.typingText}>Thinking…</Text>
         </View>
-      )}
+      ) : null}
 
       <View style={styles.inputRow}>
-        {_speechModule && (
+        {_speechModule ? (
           <TouchableOpacity
             onPressIn={handleMicPressIn}
             onPressOut={handleMicPressOut}
@@ -191,25 +278,22 @@ export default function CopilotScreen() {
           >
             <Ionicons name="mic" size={20} color={isRecording ? "#a6263c" : "#807a70"} />
           </TouchableOpacity>
-        )}
+        ) : null}
         <TextInput
           style={styles.input}
           placeholder={t("copilot.placeholder")}
+          placeholderTextColor="#807a70"
           value={input}
           onChangeText={setInput}
           multiline
           maxLength={500}
         />
         <TouchableOpacity
-          style={styles.sendBtn}
+          style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
           onPress={() => sendMessage(input)}
           disabled={loading || !input.trim()}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Ionicons name="send" size={18} color="#fff" />
-          )}
+          <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -240,34 +324,47 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: 14, lineHeight: 20 },
   userText: { color: "#f1ede4" },
   aiText: { color: "#c5beaf" },
-  taskPreview: {
+  confirmCard: {
+    marginHorizontal: 12,
+    marginTop: 4,
+    marginBottom: 8,
     backgroundColor: "#221f1b",
-    margin: 12,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
     borderColor: "#c8b8e3",
+    alignSelf: "flex-start",
+    maxWidth: "85%",
   },
-  taskPreviewTitle: { fontSize: 12, color: "#918a7e", marginBottom: 4 },
-  taskPreviewName: { fontSize: 15, fontWeight: "600", color: "#f1ede4" },
-  taskPreviewActions: { flexDirection: "row", gap: 10, marginTop: 10 },
+  confirmCardLabel: { fontSize: 11, color: "#918a7e", marginBottom: 4, fontWeight: "600", textTransform: "uppercase" },
+  confirmCardTitle: { fontSize: 15, fontWeight: "600", color: "#f1ede4", marginBottom: 10 },
+  confirmCardActions: { flexDirection: "row", gap: 8 },
   confirmBtn: {
     flex: 1,
     backgroundColor: "#b8431c",
     borderRadius: 8,
-    padding: 10,
+    paddingVertical: 9,
     alignItems: "center",
   },
-  confirmText: { color: "#fff", fontWeight: "600" },
-  editBtn: {
+  confirmText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  dismissBtn: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#322d26",
     borderRadius: 8,
-    padding: 10,
+    paddingVertical: 9,
     alignItems: "center",
   },
-  editText: { color: "#c5beaf" },
+  dismissText: { color: "#c5beaf", fontSize: 13 },
+  typingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#0f0e0c",
+  },
+  typingText: { fontSize: 12, color: "#807a70", fontStyle: "italic" },
   inputRow: {
     flexDirection: "row",
     padding: 10,
@@ -296,6 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  sendBtnDisabled: { opacity: 0.4 },
   micBtn: {
     width: 40,
     height: 40,
@@ -306,7 +404,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#322d26",
   },
-  micBtnActive: {
-    backgroundColor: "#2e1e16",
-  },
+  micBtnActive: { backgroundColor: "#2e1e16" },
 });

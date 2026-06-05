@@ -1,4 +1,8 @@
 # Memory
+| 2026-06-05 | AI Copilot extended actions: verified backend (ai_copilot.py detect_intent + 4 confirm endpoints + parsers) and frontend (AICopilotBubble response handlers + ambiguity chips + localStorage history) were already fully implemented; added missing 2c post-action close — `setTimeout(() => setOpen(false), 1200)` in all 4 confirm handlers. 206 API tests pass, web type-check clean. | apps/web/components/ai/AICopilotBubble.tsx | complete | ~300 tok |
+| 2026-06-05 | Fix 1: useState→useEffect on 5 screens (alerts, pm-schedules, room-board, room-status, staff). Fix 2: Supabase Realtime on room-board (room_status table). Fix 3: Supabase Realtime on assignments (room_assignments table). Phase 8: Copilot enhanced — AsyncStorage persistence (last 20 msgs @patelrep/copilot_history), role in every POST, work_order_preview + guest_request_preview inline confirm cards, typing indicator. type-check clean. | apps/mobile/app/(app)/alerts/index.tsx, pm-schedules/index.tsx, room-board/index.tsx, room-status/index.tsx, staff/index.tsx, assignments/index.tsx, copilot/index.tsx | complete | ~900 tok |
+| 2026-06-05 | Phase 3/4/5 mobile API modules + screen fixes: created guestRequests.ts, logbook.ts, housekeeping.ts; fixed useState→useEffect on 4 screens; added Supabase Realtime+setUnreadCount to guest-requests; added department_id:null to logbook POST; added auto-assign button to assignments screen. type-check clean. | apps/mobile/lib/api/guestRequests.ts, apps/mobile/lib/api/logbook.ts, apps/mobile/lib/api/housekeeping.ts, apps/mobile/app/(app)/guest-requests/index.tsx, apps/mobile/app/(app)/guest-requests/[requestId].tsx, apps/mobile/app/(app)/logbook/index.tsx, apps/mobile/app/(app)/logbook/new.tsx, apps/mobile/app/(app)/assignments/index.tsx | complete | ~1.2k tok |
+| 2026-06-05 | Phases 2–4 mobile: (P2) wired live API data into SupervisorHomeScreen (board→assigned/in-progress/inspected), FrontDeskHomeScreen (guest-requests→new/in_progress/resolved), GMHomeScreen (board+WOs+GRs→clean%/openWOs/newReqs); (P3) added OfflineAction queue to appStore.ts with AsyncStorage persistence + auto-flush on isOnline; (P4) push token registration + deep-link routing (task_assigned/guest_request/room_inspection) in _layout.tsx. type-check clean. | apps/mobile/app/(app)/home/index.tsx, apps/mobile/stores/appStore.ts, apps/mobile/app/(app)/_layout.tsx | complete | ~1.5k tok |
 | 2026-06-05 | Fixed 3 tasks-screen bugs: (1) phantom fallback tasks bleeding into real data — groupTasks now only shows FALLBACK_GROUPS when tasks array is empty; (2) task cards were plain View, not tappable — replaced with Pressable + completeTask (PATCH /tasks/:id) with visual checkbox feedback; (3) POST /tasks API had no role guard — added require_role() excluding housekeepers. | apps/mobile/app/(app)/tasks/index.tsx, apps/api/routers/tasks.py | complete | ~800 tok |
 | 2026-06-05 | Fixed SQLite crash on startup: ALTER TABLE ... ADD COLUMN IF NOT EXISTS is invalid SQLite syntax (PostgreSQL only). Moved migration statements out of execAsync into individual runAsync calls with try/catch. | apps/mobile/lib/offline/db.ts | complete | ~300 tok |
 | 2026-06-05 | Full E2E mobile audit + 10 fixes: P1: sync.ts missing date param, lostFound.ts orphan API_BASE, auth redirect to /my-rooms for engineers; P2: db.ts missing room fields, [woId].tsx hardcoded fallback, sync retry limit; P3: localDate() extracted to lib/utils/date.ts, tasks Georgia font. All 34 tests pass, type-check clean. | apps/mobile/lib/offline/sync.ts, apps/mobile/lib/offline/db.ts, apps/mobile/lib/api/lostFound.ts, apps/mobile/app/(auth)/_layout.tsx, apps/mobile/app/(app)/work-orders/[woId].tsx, apps/mobile/app/(app)/tasks/index.tsx, apps/mobile/app/(app)/home/index.tsx, apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/inspect/index.tsx, apps/mobile/lib/utils/date.ts | complete | ~3k tok |
@@ -3757,3 +3761,203 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
 | 11:14 | Created ../../.claude/plans/lets-discuss-fully-building-dreamy-sloth.md | — | ~3064 |
+| 11:24 | Edited apps/mobile/lib/navigation/roleTabs.ts | modified getTabsForRole() | ~1475 |
+| 11:24 | Edited apps/mobile/i18n/locales/en.json | expanded (+8 lines) | ~127 |
+| 11:24 | Edited apps/mobile/i18n/locales/es.json | expanded (+8 lines) | ~133 |
+| 11:25 | Created apps/mobile/app/(app)/room-board/index.tsx | — | ~2168 |
+| 11:25 | Created apps/mobile/app/(app)/assignments/index.tsx | — | ~2703 |
+| 11:26 | Created apps/mobile/app/(app)/pm-schedules/index.tsx | — | ~2431 |
+| 11:26 | Created apps/mobile/app/(app)/guest-requests/index.tsx | — | ~2574 |
+| 11:27 | Created apps/mobile/app/(app)/guest-requests/[requestId].tsx | — | ~2991 |
+| 11:28 | Created apps/mobile/app/(app)/room-status/index.tsx | — | ~2627 |
+| 11:28 | Created apps/mobile/app/(app)/alerts/index.tsx | — | ~1789 |
+| 11:28 | Created apps/mobile/app/(app)/staff/index.tsx | — | ~1621 |
+| 11:29 | Created apps/mobile/app/(app)/logbook/index.tsx | — | ~2096 |
+| 11:29 | Created apps/mobile/app/(app)/logbook/new.tsx | — | ~1477 |
+| 11:29 | Edited apps/mobile/app/(app)/home/index.tsx | added 3 condition(s) | ~124 |
+| 11:30 | Edited apps/mobile/app/(app)/home/index.tsx | modified SupervisorHomeScreen() | ~1221 |
+| 11:30 | Edited apps/mobile/lib/navigation/roleTabs.ts | removed 3 lines | ~4 |
+| 11:30 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~22 |
+| 11:30 | Edited apps/mobile/app/(app)/assignments/index.tsx | removed 2 lines | ~1 |
+| 11:31 | Edited apps/mobile/app/(app)/guest-requests/[requestId].tsx | inline fix | ~18 |
+| 11:31 | Edited apps/mobile/app/(app)/guest-requests/[requestId].tsx | removed 2 lines | ~1 |
+| 11:31 | Edited apps/mobile/app/(app)/logbook/new.tsx | 5→4 lines | ~22 |
+| 11:31 | Edited apps/mobile/app/(app)/room-board/index.tsx | inline fix | ~19 |
+| 11:31 | Edited apps/mobile/app/(app)/room-board/index.tsx | removed 2 lines | ~1 |
+| 11:31 | Edited apps/mobile/app/(app)/guest-requests/index.tsx | inline fix | ~24 |
+| 11:31 | Session end: 25 writes across 7 files (lets-discuss-fully-building-dreamy-sloth.md, roleTabs.ts, en.json, es.json, index.tsx) | 46 reads | ~156185 tok |
+| 11:36 | Session end: 25 writes across 7 files (lets-discuss-fully-building-dreamy-sloth.md, roleTabs.ts, en.json, es.json, index.tsx) | 46 reads | ~156185 tok |
+
+## Session: 2026-06-05 11:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:42 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~617 |
+| 11:42 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~603 |
+| 11:43 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~691 |
+| 11:43 | Created apps/mobile/stores/appStore.ts | — | ~1190 |
+| 11:43 | Edited apps/mobile/app/(app)/_layout.tsx | added 5 condition(s) | ~535 |
+| 11:44 | Edited apps/mobile/app/(app)/_layout.tsx | CSS: pathname, params, requestId | ~183 |
+| 11:44 | Session end: 6 writes across 3 files (index.tsx, appStore.ts, _layout.tsx) | 10 reads | ~15902 tok |
+| 11:46 | Session end: 6 writes across 3 files (index.tsx, appStore.ts, _layout.tsx) | 13 reads | ~15902 tok |
+| 11:48 | Session end: 6 writes across 3 files (index.tsx, appStore.ts, _layout.tsx) | 13 reads | ~15902 tok |
+
+## Session: 2026-06-05 11:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:52 | Created apps/mobile/lib/api/guestRequests.ts | — | ~254 |
+| 11:52 | Created apps/mobile/lib/api/logbook.ts | — | ~238 |
+| 11:52 | Created apps/mobile/lib/api/housekeeping.ts | — | ~248 |
+| 11:53 | Edited apps/mobile/app/(app)/guest-requests/index.tsx | added 1 import(s) | ~169 |
+| 11:53 | Edited apps/mobile/app/(app)/guest-requests/index.tsx | added optional chaining | ~425 |
+| 11:53 | Edited apps/mobile/app/(app)/guest-requests/[requestId].tsx | inline fix | ~17 |
+| 11:53 | Edited apps/mobile/app/(app)/guest-requests/[requestId].tsx | inline fix | ~16 |
+| 11:53 | Edited apps/mobile/app/(app)/logbook/index.tsx | inline fix | ~17 |
+| 11:53 | Edited apps/mobile/app/(app)/logbook/index.tsx | inline fix | ~16 |
+| 11:53 | Edited apps/mobile/app/(app)/logbook/new.tsx | CSS: department_id | ~48 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~17 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | 3→4 lines | ~71 |
+| 11:58 | Loaded OpenWolf and selected mobile/frontend/TDD skills | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .claude/skills/patelrep-mobile/SKILL.md | ready for mobile phase work | ~2000 |
+| 12:59 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~14 |
+| 12:59 | Edited apps/mobile/app/(app)/assignments/index.tsx | added error handling | ~110 |
+| 12:59 | Edited apps/mobile/app/(app)/assignments/index.tsx | expanded (+11 lines) | ~216 |
+| 12:59 | Edited apps/mobile/app/(app)/assignments/index.tsx | expanded (+12 lines) | ~195 |
+| 13:00 | Session end: 16 writes across 6 files (guestRequests.ts, logbook.ts, housekeeping.ts, index.tsx, [requestId].tsx) | 9 reads | ~15948 tok |
+| 13:06 | Session end: 16 writes across 6 files (guestRequests.ts, logbook.ts, housekeeping.ts, index.tsx, [requestId].tsx) | 12 reads | ~20406 tok |
+
+## Session: 2026-06-05 13:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:09 | Edited apps/mobile/app/(app)/alerts/index.tsx | inline fix | ~17 |
+| 13:09 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | inline fix | ~17 |
+| 13:09 | Edited apps/mobile/app/(app)/room-status/index.tsx | inline fix | ~17 |
+| 13:09 | Edited apps/mobile/app/(app)/staff/index.tsx | inline fix | ~17 |
+| 13:10 | Edited apps/mobile/app/(app)/alerts/index.tsx | inline fix | ~15 |
+| 13:10 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | inline fix | ~17 |
+| 13:10 | Edited apps/mobile/app/(app)/room-status/index.tsx | inline fix | ~14 |
+| 13:10 | Edited apps/mobile/app/(app)/staff/index.tsx | inline fix | ~14 |
+| 13:10 | Edited apps/mobile/app/(app)/room-board/index.tsx | inline fix | ~17 |
+| 13:10 | Edited apps/mobile/app/(app)/room-board/index.tsx | added 1 import(s) | ~38 |
+| 13:10 | Edited apps/mobile/app/(app)/room-board/index.tsx | modified RoomBoardScreen() | ~35 |
+| 13:10 | Edited apps/mobile/app/(app)/room-board/index.tsx | added optional chaining | ~139 |
+| 13:10 | Edited apps/mobile/app/(app)/assignments/index.tsx | added 1 import(s) | ~51 |
+| 13:10 | Edited apps/mobile/app/(app)/assignments/index.tsx | modified AssignmentsScreen() | ~36 |
+| 13:10 | Edited apps/mobile/app/(app)/assignments/index.tsx | added optional chaining | ~139 |
+| 13:11 | Created apps/mobile/app/(app)/copilot/index.tsx | — | ~4128 |
+| 13:12 | Session end: 16 writes across 1 files (index.tsx) | 9 reads | ~19892 tok |
+| 13:17 | Session end: 16 writes across 1 files (index.tsx) | 10 reads | ~19892 tok |
+
+## Session: 2026-06-05 13:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:23 | Edited apps/mobile/i18n/locales/en.json | expanded (+119 lines) | ~1098 |
+| 13:23 | Edited apps/mobile/i18n/locales/es.json | expanded (+119 lines) | ~1177 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | CSS: count, count, count | ~121 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | modified AlertsScreen() | ~42 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | inline fix | ~20 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | "${critical.length} items" → "${critical.length} ${t(" | ~34 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | "${other.length} items" → "${other.length} ${t(" | ~32 |
+| 13:23 | Edited apps/mobile/app/(app)/alerts/index.tsx | 2→2 lines | ~42 |
+| 13:23 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified useDueLabel() | ~98 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | 2→3 lines | ~30 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified t() | ~472 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified t() | ~68 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | inline fix | ~36 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | "pmSchedules.dueToday" → "pmSchedules.due" | ~27 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | inline fix | ~36 |
+| 13:24 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified t() | ~76 |
+| 13:24 | Edited apps/mobile/app/(app)/room-board/index.tsx | CSS: STATUS_LABEL_KEYS | ~137 |
+| 13:25 | Edited apps/mobile/app/(app)/room-board/index.tsx | 16→16 lines | ~260 |
+| 13:25 | Edited apps/mobile/app/(app)/room-board/index.tsx | 3→3 lines | ~48 |
+| 13:25 | Edited apps/mobile/app/(app)/room-board/index.tsx | 8→8 lines | ~129 |
+| 13:25 | Edited apps/mobile/app/(app)/room-board/index.tsx | 2→2 lines | ~47 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: STATUS_LABEL_KEYS | ~140 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | 12→12 lines | ~231 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | "Room number or guest name" → "roomStatus.searchPlacehol" | ~17 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | modified t() | ~58 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | inline fix | ~31 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | inline fix | ~33 |
+| 13:25 | Edited apps/mobile/app/(app)/room-status/index.tsx | 3→3 lines | ~43 |
+| 13:26 | Edited apps/mobile/app/(app)/room-status/index.tsx | 2→2 lines | ~48 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | CSS: ROLE_LABEL_KEYS | ~99 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | inline fix | ~35 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | inline fix | ~31 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | 6→6 lines | ~103 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | inline fix | ~18 |
+| 13:26 | Edited apps/mobile/app/(app)/staff/index.tsx | 2→2 lines | ~43 |
+| 13:26 | Session end: 35 writes across 3 files (en.json, es.json, index.tsx) | 14 reads | ~30768 tok |
+| 13:28 | Session end: 35 writes across 3 files (en.json, es.json, index.tsx) | 14 reads | ~30768 tok |
+
+## Session: 2026-06-05 13:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | "Assigning…" → "assignments.assigning" | ~37 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~56 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | "${unassigned.length} room" → "${unassigned.length} ${t(" | ~38 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~31 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | 2→2 lines | ~49 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | CSS: room | ~57 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | "Saving..." → "assignments.saving" | ~20 |
+| 13:29 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~21 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/index.tsx | 9→9 lines | ~110 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/index.tsx | inline fix | ~23 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/index.tsx | "${grouped[day].length} en" → "${grouped[day].length} ${" | ~24 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/index.tsx | inline fix | ~27 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/index.tsx | 2→2 lines | ~44 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/new.tsx | added 1 import(s) | ~38 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/new.tsx | modified NewLogbookEntryScreen() | ~35 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/new.tsx | "Could not save entry. Try" → "logbook.saveError" | ~12 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/new.tsx | inline fix | ~22 |
+| 13:30 | Edited apps/mobile/app/(app)/logbook/new.tsx | 6→6 lines | ~67 |
+| 13:31 | Edited apps/mobile/app/(app)/logbook/new.tsx | 6→6 lines | ~74 |
+| 13:31 | Edited apps/mobile/app/(app)/logbook/new.tsx | 2→2 lines | ~45 |
+| 13:31 | Edited apps/mobile/app/(app)/logbook/new.tsx | inline fix | ~24 |
+| 13:31 | Edited apps/mobile/app/(app)/logbook/new.tsx | 3→3 lines | ~17 |
+| 13:31 | Edited apps/mobile/app/(app)/_layout.tsx | added 1 import(s) | ~176 |
+| 13:31 | Edited apps/mobile/app/(app)/_layout.tsx | inline fix | ~32 |
+| 13:31 | Edited apps/mobile/app/(app)/_layout.tsx | added optional chaining | ~108 |
+| 13:31 | Edited apps/mobile/app/(app)/_layout.tsx | CSS: tabBarBadge, unreadCount, focus | ~117 |
+
+| 13:32 | i18n wiring: assignments/index, logbook/index, logbook/new + notifications badge in _layout | apps/mobile/app/(app)/assignments/index.tsx, logbook/index.tsx, logbook/new.tsx, _layout.tsx | done | ~500 || 13:32 | Session end: 26 writes across 3 files (index.tsx, new.tsx, _layout.tsx) | 7 reads | ~13696 tok |
+| 13:33 | Session end: 26 writes across 3 files (index.tsx, new.tsx, _layout.tsx) | 14 reads | ~14255 tok |
+| 13:35 | Session end: 26 writes across 3 files (index.tsx, new.tsx, _layout.tsx) | 14 reads | ~14255 tok |
+
+## Session: 2026-06-05 13:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:40 | Edited apps/mobile/__tests__/lib/roleTabs.test.ts | 19→19 lines | ~134 |
+| 13:40 | Edited apps/mobile/__tests__/screens/TasksVariationA.test.tsx | reduced (-12 lines) | ~32 |
+
+| 13:41 | mobile i18n wiring complete — all 6 screens + inspections.ts already wired; fixed stale roleTabs + TasksVariationA tests | multiple | clean | ~800 || 13:41 | Session end: 2 writes across 2 files (roleTabs.test.ts, TasksVariationA.test.tsx) | 10 reads | ~23283 tok |
+
+## Session: 2026-06-05 13:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-05 13:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-05 14:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:05 | Edited apps/web/components/ai/AICopilotBubble.tsx | expanded (+16 lines) | ~258 |
+| 14:06 | Session end: 1 writes across 1 files (AICopilotBubble.tsx) | 7 reads | ~11536 tok |
+
+## Session: 2026-06-05 14:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-05 14:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

@@ -128,6 +128,18 @@ export default function HousekeeperHomeScreen() {
     return <EngineerHomeScreen name={user?.full_name ?? "Engineer"} />;
   }
 
+  if (user?.role === "housekeeping_supervisor") {
+    return <SupervisorHomeScreen name={user.full_name ?? "Supervisor"} />;
+  }
+
+  if (user?.role === "front_desk") {
+    return <FrontDeskHomeScreen name={user.full_name ?? "Front Desk"} />;
+  }
+
+  if (user?.role === "gm") {
+    return <GMHomeScreen name={user.full_name ?? "GM"} />;
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -332,6 +344,169 @@ function EngineerHomeScreen({ name }: { name: string }) {
               />
             ))}
           </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function SupervisorHomeScreen({ name }: { name: string }) {
+  const { t } = useTranslation();
+  const { isOnline } = useAppStore();
+  const [stats, setStats] = useState({ assigned: "—", inProgress: "—", inspected: "—" });
+
+  useEffect(() => {
+    if (!isOnline) return;
+    api
+      .get<{ data: Array<{ status: string; assigned_to: string | null }> }>(
+        `/housekeeping/board?date=${localDate()}`
+      )
+      .then((res) => {
+        const rooms = res.data;
+        setStats({
+          assigned: String(rooms.filter((r) => r.assigned_to != null).length),
+          inProgress: String(rooms.filter((r) => r.status === "IN_PROGRESS").length),
+          inspected: String(rooms.filter((r) => r.status === "INSPECTED").length),
+        });
+      })
+      .catch(console.warn);
+  }, [isOnline]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Avatar name={name} size={34} />
+          <IconButton icon="notifications-outline" />
+        </View>
+        <Text style={styles.headerMeta}>Housekeeping Supervisor</Text>
+        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.engineerStats}>
+          {[
+            { value: stats.assigned, label: "Rooms assigned" },
+            { value: stats.inProgress, label: "In progress", color: C.caution },
+            { value: stats.inspected, label: "Inspected", color: C.ready },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.engineerStat}>
+              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
+              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Room Board</Text>
+          <Text style={styles.emptyText}>Open the Board tab to see live room status and manage assignments.</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function FrontDeskHomeScreen({ name }: { name: string }) {
+  const { t } = useTranslation();
+  const { isOnline } = useAppStore();
+  const [stats, setStats] = useState({ newReq: "—", inProgress: "—", resolved: "—" });
+
+  useEffect(() => {
+    if (!isOnline) return;
+    api
+      .get<{ data: Array<{ status: string }> }>("/guest-requests?per_page=200")
+      .then((res) => {
+        const requests = res.data;
+        setStats({
+          newReq: String(requests.filter((r) => r.status === "new").length),
+          inProgress: String(requests.filter((r) => r.status === "in_progress").length),
+          resolved: String(requests.filter((r) => r.status === "resolved").length),
+        });
+      })
+      .catch(console.warn);
+  }, [isOnline]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Avatar name={name} size={34} />
+          <IconButton icon="notifications-outline" />
+        </View>
+        <Text style={styles.headerMeta}>Front Desk</Text>
+        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.engineerStats}>
+          {[
+            { value: stats.newReq, label: "New requests", color: C.info },
+            { value: stats.inProgress, label: "In progress", color: C.caution },
+            { value: stats.resolved, label: "Resolved today", color: C.ready },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.engineerStat}>
+              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
+              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Guest Requests</Text>
+          <Text style={styles.emptyText}>Open the Requests tab to view and manage incoming guest requests.</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function GMHomeScreen({ name }: { name: string }) {
+  const { t } = useTranslation();
+  const { isOnline } = useAppStore();
+  const [stats, setStats] = useState({ cleanPct: "—", openWOs: "—", newRequests: "—" });
+
+  useEffect(() => {
+    if (!isOnline) return;
+    Promise.all([
+      api.get<{ data: Array<{ status: string }> }>(`/housekeeping/board?date=${localDate()}`),
+      api.get<{ data: Array<{ status: string }> }>("/work-orders?status=open&per_page=200"),
+      api.get<{ data: Array<{ status: string }> }>("/guest-requests?status=new&per_page=200"),
+    ])
+      .then(([boardRes, woRes, grRes]) => {
+        const rooms = boardRes.data;
+        const cleanCount = rooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").length;
+        const cleanPct = rooms.length > 0 ? Math.round((cleanCount / rooms.length) * 100) : 0;
+        setStats({
+          cleanPct: `${cleanPct}%`,
+          openWOs: String(woRes.data.length),
+          newRequests: String(grRes.data.length),
+        });
+      })
+      .catch(console.warn);
+  }, [isOnline]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Avatar name={name} size={34} />
+          <IconButton icon="notifications-outline" />
+        </View>
+        <Text style={styles.headerMeta}>General Manager</Text>
+        <Text style={styles.title}>Morning, {firstName(name)}.</Text>
+      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.engineerStats}>
+          {[
+            { value: stats.cleanPct, label: "Rooms clean %" },
+            { value: stats.openWOs, label: "Open WOs", color: C.caution },
+            { value: stats.newRequests, label: "Guest requests", color: C.info },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.engineerStat}>
+              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
+              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>AI Alerts</Text>
+          <Text style={styles.emptyText}>Open the Alerts tab to see AI-powered risk alerts for your property.</Text>
         </View>
       </ScrollView>
     </View>

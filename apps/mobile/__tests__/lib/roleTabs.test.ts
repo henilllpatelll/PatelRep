@@ -15,12 +15,12 @@ describe("getTabsForRole", () => {
     });
   });
 
-  it("maps inspection roles to the inspection tab set", () => {
+  it("maps inspection roles to the supervisor tab set", () => {
     expect(getTabsForRole("housekeeping_supervisor").map((tab) => tab.key)).toEqual([
       "home",
-      "inspect",
+      "board",
+      "assignments",
       "copilot",
-      "tasks",
       "me",
     ]);
   });
@@ -29,8 +29,8 @@ describe("getTabsForRole", () => {
     expect(getTabsForRole("chief_engineer").map((tab) => tab.key)).toEqual([
       "home",
       "orders",
-      "copilot",
       "assets",
+      "pm",
       "me",
     ]);
   });

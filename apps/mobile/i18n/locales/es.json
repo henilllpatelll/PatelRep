@@ -25,7 +25,15 @@
     "tasks": "Tareas",
     "assets": "Activos",
     "copilot": "Copiloto",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "roomBoard": "Tablero",
+    "assignments": "Asignar",
+    "pmSchedules": "MP",
+    "guestRequests": "Solicitudes",
+    "roomStatus": "Cuartos",
+    "lostFound": "Objetos",
+    "alerts": "Alertas",
+    "staff": "Personal"
   },
   "home": {
     "greeting": "Buenos días, {{name}}.",
@@ -220,5 +228,124 @@
     "offlineError": "Conéctate a internet para reportar un objeto encontrado.",
     "cameraPermissionTitle": "Acceso a la Cámara",
     "cameraPermissionMessage": "Permite el acceso a la cámara para fotografiar el objeto."
+  },
+  "alerts": {
+    "subtitle": "Alertas de riesgo generadas por IA para tu propiedad",
+    "needsAttention": "Requiere Atención",
+    "watchList": "Lista de Seguimiento",
+    "allClear": "Todo en orden",
+    "noAlerts": "Sin alertas de riesgo en este momento.",
+    "items": "elementos",
+    "minsAgo": "hace {{count}}m",
+    "hoursAgo": "hace {{count}}h",
+    "daysAgo": "hace {{count}}d"
+  },
+  "pmSchedules": {
+    "title": "Programas de MP",
+    "overdue": "Vencido",
+    "dueToday": "Vence Hoy",
+    "total": "Total",
+    "all": "Todo",
+    "due": "Vence",
+    "allTasks": "Todas las Tareas de MP",
+    "schedules": "programas",
+    "noSchedules": "Sin programas",
+    "noSchedulesConfigured": "Sin programas de MP configurados.",
+    "noItemsFound": "Sin elementos {{filter}} encontrados.",
+    "done": "Listo",
+    "upcoming": "Próximo"
+  },
+  "roomBoard": {
+    "dirty": "Sucio",
+    "inProgress": "En Progreso",
+    "ready": "Listo",
+    "total": "Total",
+    "rooms": "cuartos",
+    "unassigned": "Sin asignar",
+    "noRoomsLoaded": "Sin cuartos cargados",
+    "pullToRefresh": "Jala para actualizar el tablero.",
+    "statusLabels": {
+      "DIRTY": "Vacante Sucio",
+      "IN_PROGRESS": "En Progreso",
+      "PICKUP": "Recogida",
+      "CLEAN": "Limpio",
+      "INSPECTED": "Inspeccionado",
+      "OCCUPIED": "Ocupado",
+      "OOO": "Fuera de Orden",
+      "OUT_OF_ORDER": "Fuera de Orden",
+      "OUT_OF_SERVICE": "Fuera de Servicio"
+    }
+  },
+  "roomStatus": {
+    "vacantDirty": "Vacante Sucio",
+    "occupied": "Ocupado",
+    "ready": "Listo",
+    "searchPlaceholder": "Número de cuarto o nombre del huésped...",
+    "all": "Todo",
+    "floorSuffix": "piso",
+    "checkout": "Salida {{time}}",
+    "noRoomsMatch": "Sin cuartos que coincidan",
+    "noRoomsMatchHint": "Prueba otro filtro o término de búsqueda.",
+    "statusLabels": {
+      "DIRTY": "Sucio",
+      "IN_PROGRESS": "En Progreso",
+      "PICKUP": "Recogida",
+      "CLEAN": "Limpio",
+      "INSPECTED": "Listo",
+      "OCCUPIED": "Ocupado",
+      "OOO": "FdO",
+      "OUT_OF_ORDER": "FdO",
+      "OUT_OF_SERVICE": "FdS"
+    }
+  },
+  "staff": {
+    "activeCount": "{{count}} miembros del personal activos",
+    "roles": {
+      "housekeeper": "Camarera",
+      "inspector": "Inspector",
+      "engineer": "Técnico",
+      "housekeeping_supervisor": "Supervisora HK",
+      "chief_engineer": "Jefe de Mantenimiento",
+      "front_desk": "Recepcionista",
+      "gm": "Gerente"
+    },
+    "rooms": "cuartos",
+    "orders": "órdenes",
+    "active": "Activo",
+    "noStaff": "Sin personal cargado",
+    "pullToRefresh": "Jala para actualizar."
+  },
+  "assignments": {
+    "autoAssign": "Auto-Asignar",
+    "assigning": "Asignando…",
+    "assigned": "asignados",
+    "unassigned": "sin asignar",
+    "unassignedSection": "Sin asignar",
+    "floor": "Piso {{floor}}",
+    "noAssignments": "Sin asignaciones aún",
+    "noAssignmentsHint": "Jala para actualizar o vuelve después de la preparación matutina.",
+    "assignRoom": "Asignar Cuarto {{room}}",
+    "chooseHousekeeper": "Elige una camarera",
+    "saving": "Guardando...",
+    "rooms": "cuartos"
+  },
+  "logbook": {
+    "title": "Bitácora de Turno",
+    "newEntry": "Nueva Entrada",
+    "aiSummary": "Resumen de Turno IA",
+    "entries": "entradas",
+    "urgent": "Urgente",
+    "noEntries": "Sin entradas aún",
+    "noEntriesHint": "Toca \"Nueva Entrada\" para escribir la primera nota del turno.",
+    "newEntryTitle": "Nueva Entrada en Bitácora",
+    "fieldTitle": "Título",
+    "titlePlaceholder": "Breve resumen de lo que pasó...",
+    "fieldDetails": "Detalles",
+    "detailsPlaceholder": "Describe la situación, acciones tomadas, seguimiento necesario...",
+    "markUrgent": "Marcar como urgente",
+    "markUrgentSub": "Se destacará para el turno entrante",
+    "offlineWarning": "Sin conexión. Conéctate para guardar esta entrada.",
+    "saveError": "No se pudo guardar la entrada. Intenta de nuevo.",
+    "save": "Guardar Entrada"
   }
 }

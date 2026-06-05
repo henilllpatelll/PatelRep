@@ -280,10 +280,26 @@ export function AICopilotBubble() {
     }
   }
 
-  const handleConfirmTasks = async (tasks: ParsedTask[]) => { await aiApi.confirmTasks(tasks); queryClient.invalidateQueries({ queryKey: ['tasks'] }) }
-  const handleConfirmWorkOrders = async (wos: WorkOrderPreview[]) => { await aiApi.confirmWorkOrders(wos); queryClient.invalidateQueries({ queryKey: ['work-orders'] }) }
-  const handleConfirmGuestRequests = async (reqs: GuestRequestPreview[]) => { await aiApi.confirmGuestRequests(reqs); queryClient.invalidateQueries({ queryKey: ['guest-requests'] }) }
-  const handleConfirmAssignments = async (assignments: AssignmentPreview[]) => { await aiApi.confirmAssignments(assignments); queryClient.invalidateQueries({ queryKey: ['assignments'] }) }
+  const handleConfirmTasks = async (tasks: ParsedTask[]) => {
+    await aiApi.confirmTasks(tasks)
+    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    setTimeout(() => setOpen(false), 1200)
+  }
+  const handleConfirmWorkOrders = async (wos: WorkOrderPreview[]) => {
+    await aiApi.confirmWorkOrders(wos)
+    queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+    setTimeout(() => setOpen(false), 1200)
+  }
+  const handleConfirmGuestRequests = async (reqs: GuestRequestPreview[]) => {
+    await aiApi.confirmGuestRequests(reqs)
+    queryClient.invalidateQueries({ queryKey: ['guest-requests'] })
+    setTimeout(() => setOpen(false), 1200)
+  }
+  const handleConfirmAssignments = async (assignments: AssignmentPreview[]) => {
+    await aiApi.confirmAssignments(assignments)
+    queryClient.invalidateQueries({ queryKey: ['assignments'] })
+    setTimeout(() => setOpen(false), 1200)
+  }
 
   const handleCancel = (messageId: string) =>
     setMessages((prev) => [

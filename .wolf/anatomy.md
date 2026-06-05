@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T16:14:25.236Z
-> Files: 230 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T19:05:17.026Z
+> Files: 246 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -549,7 +549,7 @@
 
 ## apps/mobile/__tests__/lib/
 
-- `roleTabs.test.ts` — Verifies role-aware mobile tab order: housekeeper Home/Rooms/Copilot/Tasks/Me, supervisor Inspect set, engineer Orders/Assets set. (~170 tok)
+- `roleTabs.test.ts` (~263 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -560,7 +560,7 @@
 - `HousekeeperHome.test.tsx` — mockSetMyRooms (~978 tok)
 - `InspectorQueue.test.tsx` — EN (~889 tok)
 - `ProfileHandoff.test.tsx` — EN (~715 tok)
-- `TasksVariationA.test.tsx` — EN (~472 tok)
+- `TasksVariationA.test.tsx` — EN (~400 tok)
 - `WorkOrdersList.test.tsx` — mockApiGet (~524 tok)
 
 ## apps/mobile/android/
@@ -573,21 +573,41 @@
 
 ## apps/mobile/app/(app)/
 
+- `_layout.tsx` — AppLayout (~1384 tok)
+
+## apps/mobile/app/(app)/alerts/
+
+- `index.tsx` — SEVERITY_TONES (~1858 tok)
 
 ## apps/mobile/app/(app)/assets/
 
 - `index.tsx` — riskTone (~2214 tok)
 
+## apps/mobile/app/(app)/assignments/
+
+- `index.tsx` — statusPillTone — renders modal (~3260 tok)
+
 ## apps/mobile/app/(app)/copilot/
 
+- `index.tsx` — HISTORY_KEY (~4128 tok)
+
+## apps/mobile/app/(app)/guest-requests/
+
+- `[requestId].tsx` — STATUS_OPTIONS (~2984 tok)
+- `index.tsx` — STATUS_TONES (~2759 tok)
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~4444 tok)
+- `index.tsx` — ENGINEER_ORDERS (~6452 tok)
 
 ## apps/mobile/app/(app)/inspect/
 
 - `index.tsx` — timeSince — renders modal (~4052 tok)
+
+## apps/mobile/app/(app)/logbook/
+
+- `index.tsx` — formatDate (~2117 tok)
+- `new.tsx` — NewLogbookEntryScreen (~1500 tok)
 
 ## apps/mobile/app/(app)/lost-found/
 
@@ -602,9 +622,21 @@
 
 - `index.tsx` — timeLabel (~1963 tok)
 
+## apps/mobile/app/(app)/pm-schedules/
+
+- `index.tsx` — dueTone (~2551 tok)
+
 ## apps/mobile/app/(app)/profile/
 
 - `index.tsx` — roleLabel (~2148 tok)
+
+## apps/mobile/app/(app)/room-board/
+
+- `index.tsx` — STATUS_ORDER (~2377 tok)
+
+## apps/mobile/app/(app)/room-status/
+
+- `index.tsx` — STATUS_TONES (~2746 tok)
 
 ## apps/mobile/app/(app)/scheduling/
 
@@ -614,6 +646,10 @@
 
 - `[sopId].tsx` — formatDate (~1433 tok)
 - `index.tsx` — CATEGORY_ICONS (~1638 tok)
+
+## apps/mobile/app/(app)/staff/
+
+- `index.tsx` — ROLE_LABEL_KEYS (~1676 tok)
 
 ## apps/mobile/app/(app)/tasks/
 
@@ -641,8 +677,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~2040 tok)
-- `es.json` (~2195 tok)
+- `en.json` (~3165 tok)
+- `es.json` (~3394 tok)
 
 ## apps/mobile/lib/
 
@@ -651,7 +687,10 @@
 ## apps/mobile/lib/api/
 
 - `assets.ts` — Exports Asset, FailurePrediction, listAssets, getFailurePredictions + 2 more (~368 tok)
+- `guestRequests.ts` — Exports GuestRequest, getGuestRequests, getGuestRequest, updateGuestRequest (~254 tok)
+- `housekeeping.ts` — Exports BoardRoom, HousekeepingStaff, getBoard, createAssignment, getStaff (~248 tok)
 - `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~226 tok)
+- `logbook.ts` — Exports LogbookEntry, ShiftSummary, getLogbookEntries, getShiftSummary, createLogbookEntry (~238 tok)
 - `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~568 tok)
 - `notifications.ts` — Exports AppNotification, listNotifications, markAllRead, markRead (~182 tok)
 - `scheduling.ts` — Exports ShiftAssignment, mySchedule (~146 tok)
@@ -659,7 +698,7 @@
 
 ## apps/mobile/lib/navigation/
 
-- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~751 tok)
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1460 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -672,7 +711,7 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — Exports Room, useAppStore (~471 tok)
+- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1190 tok)
 
 ## apps/web/
 
@@ -819,6 +858,7 @@
 
 ## apps/web/components/ai/
 
+- `AICopilotBubble.tsx` — generateId (~5542 tok)
 
 ## apps/web/components/dashboard/
 

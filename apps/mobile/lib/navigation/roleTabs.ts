@@ -10,7 +10,15 @@ export type RoleTabKey =
   | "copilot"
   | "tasks"
   | "assets"
-  | "me";
+  | "me"
+  | "board"
+  | "assignments"
+  | "pm"
+  | "requests"
+  | "room-status"
+  | "lost"
+  | "alerts"
+  | "staff";
 
 export type RoleTabDef = {
   key: RoleTabKey;
@@ -44,28 +52,75 @@ const ENGINEER_TABS: RoleTabDef[] = [
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
-export const ALL_ROLE_TAB_ROUTES = Array.from(
-  new Set([...HOUSEKEEPER_TABS, ...INSPECTOR_TABS, ...ENGINEER_TABS].map((tab) => tab.name))
-);
+const SUPERVISOR_TABS: RoleTabDef[] = [
+  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
+  { key: "board", name: "room-board/index", titleKey: "tabs.roomBoard", icon: "grid-outline" },
+  { key: "assignments", name: "assignments/index", titleKey: "tabs.assignments", icon: "people-outline" },
+  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
+  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+];
+
+const CHIEF_ENGINEER_TABS: RoleTabDef[] = [
+  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
+  { key: "orders", name: "work-orders/index", titleKey: "tabs.workOrders", icon: "construct-outline" },
+  { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
+  { key: "pm", name: "pm-schedules/index", titleKey: "tabs.pmSchedules", icon: "calendar-outline" },
+  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+];
+
+const FRONT_DESK_TABS: RoleTabDef[] = [
+  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
+  { key: "requests", name: "guest-requests/index", titleKey: "tabs.guestRequests", icon: "chatbubble-ellipses-outline" },
+  { key: "room-status", name: "room-status/index", titleKey: "tabs.roomStatus", icon: "bed-outline" },
+  { key: "lost", name: "lost-found/index", titleKey: "tabs.lostFound", icon: "search-outline" },
+  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+];
+
+const GM_TABS: RoleTabDef[] = [
+  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
+  { key: "alerts", name: "alerts/index", titleKey: "tabs.alerts", icon: "warning-outline" },
+  { key: "staff", name: "staff/index", titleKey: "tabs.staff", icon: "people-circle-outline" },
+  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
+  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+];
+
+const ALL_TAB_ARRAYS = [
+  ...HOUSEKEEPER_TABS,
+  ...INSPECTOR_TABS,
+  ...ENGINEER_TABS,
+  ...SUPERVISOR_TABS,
+  ...CHIEF_ENGINEER_TABS,
+  ...FRONT_DESK_TABS,
+  ...GM_TABS,
+];
+
+export const ALL_ROLE_TAB_ROUTES = Array.from(new Set(ALL_TAB_ARRAYS.map((tab) => tab.name)));
 
 export const HIDDEN_APP_ROUTES = [
   "notifications/index",
-  "lost-found/index",
   "scheduling/index",
   "sop/index",
   "sop/[sopId]",
   "my-rooms/[roomId]",
   "work-orders/[woId]",
+  "guest-requests/[requestId]",
+  "logbook/index",
+  "logbook/new",
 ];
 
 export function getTabsForRole(role: UserRole): RoleTabDef[] {
-  if (role === "engineer" || role === "chief_engineer") {
-    return ENGINEER_TABS;
+  switch (role) {
+    case "engineer":
+      return ENGINEER_TABS;
+    case "chief_engineer":
+      return CHIEF_ENGINEER_TABS;
+    case "housekeeping_supervisor":
+      return SUPERVISOR_TABS;
+    case "front_desk":
+      return FRONT_DESK_TABS;
+    case "gm":
+      return GM_TABS;
+    default:
+      return HOUSEKEEPER_TABS;
   }
-
-  if (role === "housekeeping_supervisor" || role === "gm" || role === "front_desk") {
-    return INSPECTOR_TABS;
-  }
-
-  return HOUSEKEEPER_TABS;
 }

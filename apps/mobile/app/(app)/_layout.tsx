@@ -1,15 +1,18 @@
 import { useEffect } from "react";
 import { Tabs, router } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { C } from "@/components/shared/tokens";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
+import { setupPushNotifications } from "@/lib/notifications";
+import { listNotifications } from "@/lib/api/notifications";
 
 export default function AppLayout() {
   const { t } = useTranslation();
-  const { user, isAuthenticated, isLoading } = useAppStore();
+  const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
   const visibleTabs = user ? getTabsForRole(user.role) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
 
@@ -18,6 +21,53 @@ export default function AppLayout() {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    setupPushNotifications().catch(console.warn);
+    loadPendingActions().catch(console.warn);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as {
+        type?: string;
+        url?: string;
+        requestId?: string;
+      };
+
+      if (data.url) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push(data.url as any);
+        return;
+      }
+
+      if (data.type === "task_assigned") {
+        router.push("/(app)/tasks" as never);
+      } else if (data.type === "guest_request" && data.requestId) {
+        router.push({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          pathname: "/(app)/guest-requests/[requestId]" as any,
+          params: { requestId: data.requestId },
+        });
+      } else if (data.type === "room_inspection") {
+        router.push("/(app)/inspect" as never);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated, loadPendingActions]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const poll = () => {
+      listNotifications(false)
+        .then((res) => setUnreadCount(res.data?.length ?? 0))
+        .catch(() => {});
+    };
+    poll();
+    const id = setInterval(poll, 60_000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, setUnreadCount]);
 
   if (isLoading || !user) return null;
 
@@ -77,7 +127,15 @@ export default function AppLayout() {
           <Tabs.Screen key={name} name={name} options={{ href: null }} />
         ))}
         {HIDDEN_APP_ROUTES.map((name) => (
-          <Tabs.Screen key={name} name={name} options={{ href: null }} />
+          <Tabs.Screen
+            key={name}
+            name={name}
+            options={{
+              href: null,
+              tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
+            }}
+            listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}
+          />
         ))}
       </Tabs>
     </>
