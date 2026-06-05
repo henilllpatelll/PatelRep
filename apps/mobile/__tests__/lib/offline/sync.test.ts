@@ -7,6 +7,7 @@ jest.mock("@/lib/api/client", () => ({
 jest.mock("@/lib/offline/db", () => ({
   getPendingSyncQueue: jest.fn(),
   deleteSyncQueueItem: jest.fn(),
+  incrementSyncQueueAttempts: jest.fn(),
   upsertRooms: jest.fn(),
 }));
 jest.mock("@react-native-community/netinfo", () => ({
@@ -14,7 +15,7 @@ jest.mock("@react-native-community/netinfo", () => ({
 }));
 
 import { api } from "@/lib/api/client";
-import { getPendingSyncQueue, deleteSyncQueueItem, upsertRooms } from "@/lib/offline/db";
+import { getPendingSyncQueue, deleteSyncQueueItem, incrementSyncQueueAttempts, upsertRooms } from "@/lib/offline/db";
 
 const mockApi = api as unknown as {
   get: jest.Mock;
@@ -23,11 +24,13 @@ const mockApi = api as unknown as {
 };
 const mockGetPendingSyncQueue = getPendingSyncQueue as jest.Mock;
 const mockDeleteSyncQueueItem = deleteSyncQueueItem as jest.Mock;
+const mockIncrementSyncQueueAttempts = incrementSyncQueueAttempts as jest.Mock;
 const mockUpsertRooms = upsertRooms as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockDeleteSyncQueueItem.mockResolvedValue(undefined);
+  mockIncrementSyncQueueAttempts.mockResolvedValue(undefined);
   mockUpsertRooms.mockResolvedValue(undefined);
 });
 
@@ -50,7 +53,7 @@ describe("flushSyncQueue", () => {
     expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith(1);
   });
 
-  it("leaves a failed item in the queue (does not delete on error)", async () => {
+  it("leaves a failed item in the queue (does not delete on error) and increments attempts", async () => {
     mockGetPendingSyncQueue.mockResolvedValue([
       {
         id: 2,
@@ -65,6 +68,7 @@ describe("flushSyncQueue", () => {
     await flushSyncQueue();
 
     expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
+    expect(mockIncrementSyncQueueAttempts).toHaveBeenCalledWith(2);
   });
 
   it("processes work_order/create items and calls POST /work-orders", async () => {
@@ -112,14 +116,14 @@ describe("flushSyncQueue", () => {
 });
 
 describe("refreshRooms", () => {
-  it("calls GET /housekeeping/my-rooms (not /rooms?my_rooms=true)", async () => {
+  it("calls GET /housekeeping/my-rooms with a local date param (not /rooms?my_rooms=true)", async () => {
     mockApi.get.mockResolvedValue({ data: [] });
 
     await refreshRooms();
 
-    expect(mockApi.get).toHaveBeenCalledWith("/housekeeping/my-rooms");
+    expect(mockApi.get).toHaveBeenCalledWith(expect.stringContaining("/housekeeping/my-rooms?date="));
     // Ensure the old endpoint is NOT used
-    expect(mockApi.get).not.toHaveBeenCalledWith("/rooms?my_rooms=true");
+    expect(mockApi.get).not.toHaveBeenCalledWith(expect.stringContaining("/rooms?my_rooms=true"));
   });
 
   it("unwraps response.data before passing to upsertRooms", async () => {

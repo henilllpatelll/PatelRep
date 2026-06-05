@@ -57,17 +57,7 @@ export default function WorkOrderDetailScreen() {
         if (mounted) setWorkOrder(wo);
       })
       .catch(() => {
-        if (mounted) {
-          setWorkOrder({
-            id: String(woId),
-            title: "Replace fan-coil belt",
-            status: "in_progress",
-            priority: "urgent",
-            room_number: "209",
-            location_detail: "zone B",
-            photos: [],
-          });
-        }
+        if (mounted) setWorkOrder(null);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -88,7 +78,7 @@ export default function WorkOrderDetailScreen() {
           completion_notes: completionNotes,
           photo_urls: photos,
         });
-        Alert.alert("Done!", "Work order completed.", [{ text: "OK", onPress: () => router.back() }]);
+        Alert.alert(t("workOrders.completedTitle"), t("workOrders.completedMessage"), [{ text: "OK", onPress: () => router.back() }]);
       } else {
         await enqueueAction("work_order", "complete", { completion_notes: completionNotes }, workOrder.id);
         setWorkOrder({ ...workOrder, status: "completed" });
@@ -130,7 +120,7 @@ export default function WorkOrderDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerBody}>
           <Text style={styles.headerTitle}>{workOrder.id}</Text>
-          <Text style={styles.headerSub}>In progress - 22m</Text>
+          <Text style={styles.headerSub}>{t("workOrders.inProgressTime", { time: "22m" })}</Text>
         </View>
         <Pill tone={priorityTone}>{workOrder.priority.toUpperCase()}</Pill>
       </View>
@@ -149,7 +139,7 @@ export default function WorkOrderDetailScreen() {
 
         <CopilotHero
           tone="violet"
-          kicker="Insight"
+          kicker={t("workOrders.insight")}
           confidence={88}
           actions={
             <HeroButton onDark={false} primary icon="add">
@@ -163,7 +153,7 @@ export default function WorkOrderDetailScreen() {
         </CopilotHero>
 
         <View>
-          <SectionLabel hint="3 of 6 done">Steps</SectionLabel>
+          <SectionLabel hint={t("workOrders.stepsHint", { done: 3, total: 6 })}>{t("workOrders.steps")}</SectionLabel>
           <View style={styles.steps}>
             {STEPS.map((step, index) => (
               <View key={step.label} style={[styles.step, index > 0 && styles.stepBorder, step.now && styles.nowStep]}>
@@ -178,7 +168,7 @@ export default function WorkOrderDetailScreen() {
         </View>
 
         <View>
-          <SectionLabel>Parts used</SectionLabel>
+          <SectionLabel>{t("workOrders.partsUsed")}</SectionLabel>
           <View style={styles.partCard}>
             <IconButton icon="cube-outline" size={40} />
             <View style={styles.partBody}>
@@ -197,7 +187,7 @@ export default function WorkOrderDetailScreen() {
               style={styles.notesInput}
               multiline
               numberOfLines={4}
-              placeholder="Describe what was done..."
+              placeholder={t("workOrders.completionPlaceholder")}
               placeholderTextColor={C.ink4}
               value={completionNotes}
               onChangeText={setCompletionNotes}

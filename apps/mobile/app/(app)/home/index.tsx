@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
+import { localDate } from "@/lib/utils/date";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, R, displayFont, monoFont } from "@/components/shared/tokens";
 import {
@@ -35,11 +36,6 @@ const ENGINEER_ORDERS = [
 ];
 
 const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
-
-function localDate() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-}
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -157,22 +153,22 @@ export default function HousekeeperHomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
       >
         <CopilotHero
-          kicker="Your smart order"
+          kicker={t("home.copilotKicker")}
           confidence={92}
           actions={
             firstRoom ? (
               <>
                 <HeroButton primary onPress={() => router.push(`/(app)/my-rooms/${firstRoom.id}`)}>
-                  Start with {firstRoom.room_number}
+                  {t("home.startWith", { room: firstRoom.room_number })}
                 </HeroButton>
-                <HeroButton>See the plan</HeroButton>
+                <HeroButton>{t("home.seePlan")}</HeroButton>
               </>
             ) : undefined
           }
           foot={
             <>
               <Ionicons name="time-outline" size={11} color="rgba(241,237,228,0.5)" />
-              <Mono style={styles.heroFootText}>Saves ~18 min vs. room order</Mono>
+              <Mono style={styles.heroFootText}>{t("home.savesMins")}</Mono>
             </>
           }
         >
@@ -190,10 +186,10 @@ export default function HousekeeperHomeScreen() {
         <View style={styles.paceCard}>
           <ProgressRing value={doneCount} total={myRooms.length || 0} />
           <View style={styles.paceBody}>
-            <Text style={styles.paceTitle}>You're ahead by 3 min</Text>
-            <Text style={styles.paceSub}>22m avg · target 25m</Text>
+            <Text style={styles.paceTitle}>{t("home.aheadByMins")}</Text>
+            <Text style={styles.paceSub}>{t("home.avgTarget")}</Text>
             <View style={styles.pillRow}>
-              <Pill tone="ready">on pace</Pill>
+              <Pill tone="ready">{t("home.onPace")}</Pill>
               {vipCount > 0 ? (
                 <Pill tone="accent" icon="star">
                   {vipCount} VIP
@@ -208,11 +204,11 @@ export default function HousekeeperHomeScreen() {
             hint={`${Math.min(3, nextRooms.length)} of ${remainingCount}`}
             action={
               <TouchableOpacity onPress={() => router.push("/(app)/my-rooms")}>
-                <Text style={styles.seeAll}>See all</Text>
+                <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
               </TouchableOpacity>
             }
           >
-            Up next
+            {t("home.upNext")}
           </SectionLabel>
           <View style={styles.rows}>
             {nextRooms.slice(0, 3).map((room, index) => (
@@ -236,8 +232,8 @@ export default function HousekeeperHomeScreen() {
             ))}
             {nextRooms.length === 0 ? (
               <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>All assigned rooms are done.</Text>
-                <Text style={styles.emptyText}>Pull to refresh if your supervisor adds more.</Text>
+                <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
+                <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
               </View>
             ) : null}
           </View>
@@ -248,6 +244,7 @@ export default function HousekeeperHomeScreen() {
 }
 
 function EngineerHomeScreen({ name }: { name: string }) {
+  const { t } = useTranslation();
   const engineerName = firstName(name);
 
   return (
@@ -257,26 +254,26 @@ function EngineerHomeScreen({ name }: { name: string }) {
           <Avatar name={name} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>Tue - May 26 - Maintenance</Text>
-        <Text style={styles.title}>Morning, {engineerName}.</Text>
+        <Text style={styles.headerMeta}>{t("home.engineer.shiftMeta")}</Text>
+        <Text style={styles.title}>{t("home.engineer.greeting", { name: engineerName })}</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <CopilotHero
-          kicker="Failure prediction"
+          kicker={t("home.engineer.failurePrediction")}
           confidence={88}
           actions={
             <>
               <HeroButton primary icon="construct-outline">
-                Pre-empt belt swap
+                {t("home.engineer.preEmpt")}
               </HeroButton>
-              <HeroButton>Dismiss</HeroButton>
+              <HeroButton>{t("home.engineer.dismiss")}</HeroButton>
             </>
           }
           foot={
             <>
               <Ionicons name="trending-up-outline" size={11} color="rgba(241,237,228,0.5)" />
-              <Mono style={styles.heroFootText}>3 zone-B coils trending - same vibration signature</Mono>
+              <Mono style={styles.heroFootText}>{t("home.engineer.coilsTrending")}</Mono>
             </>
           }
         >
@@ -287,9 +284,9 @@ function EngineerHomeScreen({ name }: { name: string }) {
 
         <View style={styles.engineerStats}>
           {[
-            { value: "3", label: "open orders" },
-            { value: "1", label: "PM due", color: C.caution },
-            { value: "2", label: "closed today", color: C.ready },
+            { value: "3", label: t("home.engineer.openOrders") },
+            { value: "1", label: t("home.engineer.pmDue"), color: C.caution },
+            { value: "2", label: t("home.engineer.closedToday"), color: C.ready },
           ].map((stat) => (
             <View key={stat.label} style={styles.engineerStat}>
               <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
@@ -301,15 +298,15 @@ function EngineerHomeScreen({ name }: { name: string }) {
         <View style={styles.pmCard}>
           <IconButton icon="calendar-outline" tone="caution" />
           <View style={styles.pmBody}>
-            <Text style={styles.pmTitle}>Quarterly HVAC filters due</Text>
-            <Text style={styles.pmText}>14 units - scheduled today</Text>
+            <Text style={styles.pmTitle}>{t("home.engineer.hvacFilters")}</Text>
+            <Text style={styles.pmText}>{t("home.engineer.hvacUnits")}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={C.caution} />
         </View>
 
         <View>
-          <SectionLabel hint="3 open" action={<Text style={styles.seeAll}>All orders</Text>}>
-            Work orders
+          <SectionLabel hint="3 open" action={<Text style={styles.seeAll}>{t("home.engineer.allOrders")}</Text>}>
+            {t("home.engineer.workOrders")}
           </SectionLabel>
           <View style={styles.rows}>
             {ENGINEER_ORDERS.map((order) => (

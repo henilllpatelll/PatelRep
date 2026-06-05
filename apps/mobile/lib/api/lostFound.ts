@@ -1,8 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { api } from "./client";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://api.patelrep.com/v1";
-
 export interface LostFoundItem {
   id: string;
   description: string;
@@ -56,7 +54,8 @@ export async function uploadLostFoundPhoto(uri: string): Promise<string | null> 
       name: `photo_${Date.now()}.jpg`,
     } as unknown as Blob);
 
-    const response = await fetch(`${API_BASE}/lost-found/upload-photo`, {
+    const base = process.env.EXPO_PUBLIC_API_URL ?? "https://api.patelrep.com/v1";
+    const response = await fetch(`${base}/lost-found/upload-photo`, {
       method: "POST",
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: formData,

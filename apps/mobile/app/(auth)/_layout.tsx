@@ -9,7 +9,7 @@ export default function AuthLayout() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/(app)/my-rooms");
+      router.replace("/(app)/home");
     }
   }, [isAuthenticated, isLoading]);
 

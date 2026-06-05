@@ -1,34 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-
-const PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/reset-password']
-const ALL_ROLES = ['housekeeper', 'engineer', 'housekeeping_supervisor', 'chief_engineer', 'front_desk', 'gm'] as const
-
-type UserRole = (typeof ALL_ROLES)[number]
-
-const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
-  { prefix: '/dashboard', roles: [...ALL_ROLES] },
-  { prefix: '/housekeeping/assignments', roles: ['gm', 'housekeeping_supervisor'] },
-  { prefix: '/housekeeping/inspections', roles: ['gm', 'housekeeping_supervisor'] },
-  { prefix: '/housekeeping/rooms', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
-  { prefix: '/housekeeping', roles: ['gm', 'housekeeping_supervisor', 'housekeeper', 'front_desk'] },
-  { prefix: '/engineering', roles: ['gm', 'chief_engineer', 'engineer'] },
-  { prefix: '/tasks', roles: [...ALL_ROLES] },
-  { prefix: '/scheduling', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
-  { prefix: '/staff', roles: ['gm'] },
-  { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
-  { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
-  { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk', 'housekeeper'] },
-  { prefix: '/logbook', roles: ['housekeeping_supervisor', 'chief_engineer', 'front_desk', 'gm'] },
-  { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
-  { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'chief_engineer'] },
-  { prefix: '/billing', roles: ['gm'] },
-  { prefix: '/settings', roles: ['gm'] },
-]
-
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))
-}
+import { getRouteAccessDecision, type RouteAccessDecision, type UserRole } from '@/lib/utils/routeGuard'
 
 function decodeJwtClaims(accessToken: string | undefined): Record<string, unknown> {
   if (!accessToken) return {}
@@ -36,16 +8,20 @@ function decodeJwtClaims(accessToken: string | undefined): Record<string, unknow
     const payload = accessToken.split('.')[1]
     if (!payload) return {}
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
     return JSON.parse(atob(padded)) as Record<string, unknown>
   } catch {
     return {}
   }
 }
 
-function getRouteRoles(pathname: string): UserRole[] | null {
-  const match = ROLE_ROUTE_RULES.find(({ prefix }) => pathname === prefix || pathname.startsWith(prefix + '/'))
-  return match?.roles ?? null
+function redirectFromDecision(request: NextRequest, decision: Extract<RouteAccessDecision, { type: 'redirect' }>) {
+  const url = request.nextUrl.clone()
+  url.pathname = decision.pathname
+  url.search = ''
+  if (decision.redirectTo) url.searchParams.set('redirectTo', decision.redirectTo)
+  if (decision.unauthorized) url.searchParams.set('unauthorized', decision.unauthorized)
+  return NextResponse.redirect(url)
 }
 
 export async function proxy(request: NextRequest) {
@@ -70,65 +46,33 @@ export async function proxy(request: NextRequest) {
     },
   )
 
-  // getUser() verifies the token with the Supabase Auth server on every request —
-  // more secure than getSession() which only reads the cookie without server verification.
+  // getUser() verifies the token with the Supabase Auth server on every request.
   const [{ data: sessionData }, { data: userData }] = await Promise.all([
     supabase.auth.getSession(),
     supabase.auth.getUser(),
   ])
   const user = userData.user ?? null
-  // Decode claims from the session token (JWT is signed; tampering breaks signature).
   const jwtClaims = decodeJwtClaims(sessionData.session?.access_token)
 
   const { pathname } = request.nextUrl
-
-  // Allow public routes through for everyone
-  if (isPublicRoute(pathname)) {
-    // If already authenticated and hitting /login, redirect to dashboard
-    if (user && pathname === '/login') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-    return supabaseResponse
-  }
-
-  // Not authenticated — redirect to login
-  if (!user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    // Preserve the intended destination so we can redirect after login
-    url.searchParams.set('redirectTo', pathname)
-    return NextResponse.redirect(url)
-  }
-
-  // Authenticated but no hotel_id — redirect to onboarding
-  // Check JWT claims first (app_metadata via hook, user_metadata as fallback),
-  // then fall back to the pr_hotel_id cookie set by the onboarding page on hotel creation.
   const hotelId =
     (jwtClaims.hotel_id as string | undefined) ??
-    (user.app_metadata as Record<string, unknown>)?.hotel_id ??
-    (user.user_metadata as Record<string, unknown>)?.hotel_id ??
+    (user?.app_metadata as Record<string, unknown> | undefined)?.hotel_id ??
+    (user?.user_metadata as Record<string, unknown> | undefined)?.hotel_id ??
     request.cookies.get('pr_hotel_id')?.value
-
-  if (!hotelId && pathname !== '/onboarding') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/onboarding'
-    return NextResponse.redirect(url)
-  }
-
   const role =
     (jwtClaims.role as UserRole | undefined) ??
-    ((user.app_metadata as Record<string, unknown>)?.role as UserRole | undefined) ??
-    ((user.user_metadata as Record<string, unknown>)?.role as UserRole | undefined)
-  const allowedRoles = getRouteRoles(pathname)
+    ((user?.app_metadata as Record<string, unknown> | undefined)?.role as UserRole | undefined) ??
+    ((user?.user_metadata as Record<string, unknown> | undefined)?.role as UserRole | undefined)
 
-  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    url.searchParams.set('unauthorized', pathname)
-    return NextResponse.redirect(url)
-  }
+  const decision = getRouteAccessDecision({
+    pathname,
+    isAuthenticated: !!user,
+    hasHotel: !!hotelId,
+    role,
+  })
+
+  if (decision.type === 'redirect') return redirectFromDecision(request, decision)
 
   return supabaseResponse
 }

@@ -1,6 +1,42 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 
+const EN: Record<string, string> = {
+  "inspect.title": "Inspections",
+  "inspect.passedCount": "passed",
+  "inspect.today": "today",
+  "inspect.inQueue": "in queue",
+  "inspect.waiting": "waiting",
+  "inspect.allClear": "all clear",
+  "inspect.toInspect": "To inspect",
+  "inspect.passedTab": "Passed",
+  "inspect.queueEmpty": "Queue is empty",
+  "inspect.nonePassedYet": "No passed rooms yet",
+  "inspect.pullToRefresh": "Pull to refresh.",
+  "inspect.roomTitle": "Room {{room}}",
+  "inspect.notesOptional": "Notes (optional)",
+  "inspect.failNotesPlaceholder": "Describe what needs attention…",
+  "inspect.passNotesPlaceholder": "Any observations…",
+  "inspect.submitting": "Submitting…",
+  "inspect.confirmPass": "Confirm Pass",
+  "inspect.confirmFail": "Confirm Fail",
+  "inspect.submitError": "Could not submit inspection. Try again.",
+  "inspect.modalTitlePass": "Pass Room {{room}}?",
+  "inspect.modalTitleFail": "Fail Room {{room}}?",
+  "common.cancel": "Cancel",
+};
+
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, unknown>) => {
+      const template = EN[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
+    },
+    i18n: { language: "en" },
+  }),
+}));
+
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("@/lib/api/client", () => ({
   api: { get: jest.fn() },

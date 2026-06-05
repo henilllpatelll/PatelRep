@@ -8,15 +8,11 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, displayFont } from "@/components/shared/tokens";
 import { HandoffRow, Mono, Pill, RoomNumberTile, Segmented } from "@/components/shared/mobileHandoff";
+import { localDate } from "@/lib/utils/date";
 
 const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
 type Filter = "all" | "todo" | "done" | "vip";
-
-function localDate() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-}
 
 function dayLabel() {
   return new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T13:10:49.893Z
-> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T14:23:23.631Z
+> Files: 226 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -15,6 +15,7 @@
 - `MEMORY.md` — PatelRep Project Memory (~312 tok)
 - `project_eas_build_status.md` (~352 tok)
 - `project_guest_requests_spec.md` — Guest Requests Redesign Spec (~451 tok)
+- `project_i18n_handoff.md` — What was done (~2125 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -550,11 +551,14 @@
 
 ## apps/mobile/__tests__/lib/offline/
 
+- `sync.test.ts` — Mock dependencies (~1455 tok)
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — React Native Testing Library coverage for Housekeeper Home Variation A: greeting, Copilot smart-order CTA, pace card, up-next room rows, VIP chip. (~520 tok)
-- `InspectorQueue.test.tsx` — mockGet (~513 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~978 tok)
+- `InspectorQueue.test.tsx` — EN (~889 tok)
+- `ProfileHandoff.test.tsx` — EN (~715 tok)
+- `TasksVariationA.test.tsx` — EN (~472 tok)
 - `WorkOrdersList.test.tsx` — mockApiGet (~524 tok)
 
 ## apps/mobile/android/
@@ -577,11 +581,11 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — Housekeeper Home Variation A port: warm header, dark CopilotHero smart order, derived pace card, up-next rooms from my-rooms API/offline cache. (~1220 tok)
+- `index.tsx` — ENGINEER_ORDERS (~4444 tok)
 
 ## apps/mobile/app/(app)/inspect/
 
-- `index.tsx` — localDate — renders modal (~3908 tok)
+- `index.tsx` — timeSince — renders modal (~4052 tok)
 
 ## apps/mobile/app/(app)/lost-found/
 
@@ -590,7 +594,7 @@
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — formatETA (~3889 tok)
-- `index.tsx` — DONE_STATUSES (~2287 tok)
+- `index.tsx` — DONE_STATUSES (~2248 tok)
 
 ## apps/mobile/app/(app)/notifications/
 
@@ -598,7 +602,7 @@
 
 ## apps/mobile/app/(app)/profile/
 
-- `index.tsx` — ProfileScreen (~861 tok)
+- `index.tsx` — roleLabel (~2148 tok)
 
 ## apps/mobile/app/(app)/scheduling/
 
@@ -611,13 +615,16 @@
 
 ## apps/mobile/app/(app)/tasks/
 
+- `index.tsx` — FALLBACK_GROUPS (~2507 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
-- `index.tsx` — priorityTone (~2263 tok)
+- `[woId].tsx` — STEPS (~2914 tok)
+- `index.tsx` — priorityTone (~2308 tok)
 
 ## apps/mobile/app/(auth)/
 
+- `_layout.tsx` — AuthLayout (~150 tok)
 
 ## apps/mobile/components/housekeeping/
 
@@ -632,6 +639,8 @@
 
 ## apps/mobile/i18n/locales/
 
+- `en.json` (~2040 tok)
+- `es.json` (~2195 tok)
 
 ## apps/mobile/lib/
 
@@ -640,8 +649,8 @@
 ## apps/mobile/lib/api/
 
 - `assets.ts` — Exports Asset, FailurePrediction, listAssets, getFailurePredictions + 2 more (~368 tok)
-- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, submitInspection (~183 tok)
-- `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~570 tok)
+- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~226 tok)
+- `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~568 tok)
 - `notifications.ts` — Exports AppNotification, listNotifications, markAllRead, markRead (~182 tok)
 - `scheduling.ts` — Exports ShiftAssignment, mySchedule (~146 tok)
 - `sop.ts` — Exports SOPDocument, SOPQueryResult, listDocuments, getDocument, querySOPs (~282 tok)
@@ -652,6 +661,12 @@
 
 ## apps/mobile/lib/offline/
 
+- `db.ts` — Exports getDb, upsertRooms, getRooms, enqueueAction + 3 more (~1486 tok)
+- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~685 tok)
+
+## apps/mobile/lib/utils/
+
+- `date.ts` — Exports localDate (~52 tok)
 
 ## apps/mobile/stores/
 
@@ -890,6 +905,8 @@
 - `housekeepingDashboardMetrics.ts` — `getSupervisorHousekeepingMetrics`, `getHousekeeperDashboardRooms` (sorted by priority), `getHousekeeperDashboardMetrics`; `HousekeepingDashboardMetrics` interface (~816 tok)
 - `housekeepingNavigation.ts` — `getHousekeepingSubNavItems(role)` returns role-appropriate sub-nav tabs for housekeeping section (~232 tok)
 - `index.ts` — `cn(...inputs)` Tailwind class merge using clsx + tailwind-merge (~56 tok)
+- `routeGuard.ts` — Pure proxy route-decision helper: public routes, hotel onboarding gate, RBAC matrix, dashboard fallback for unresolved roles. (~720 tok)
+- `routeGuard.test.mjs` — Node test regression for auth redirect decisions, including missing-role dashboard loop prevention. (~220 tok)
 - `roomStatus.ts` — `STATUS_LABELS`, `STATUS_SHORT_LABELS`, `STATUS_COLORS`, `STATUS_BG`, `STATUS_TEXT`, `VALID_TRANSITIONS`, `getValidTransitions(status, role)`, `getRiskColorClass`, `formatCheckinTime`, `getTimeSinceSync` (~1960 tok)
 
 ## apps/web/stores/

@@ -3,8 +3,10 @@ import { api } from "@/lib/api/client";
 import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
+  incrementSyncQueueAttempts,
   upsertRooms,
 } from "@/lib/offline/db";
+import { localDate } from "@/lib/utils/date";
 import type { Room } from "@/stores/appStore";
 
 let _syncInProgress = false;
@@ -49,7 +51,7 @@ export async function flushSyncQueue(): Promise<void> {
 
         await deleteSyncQueueItem(item.id);
       } catch (err) {
-        // Leave in queue to retry, but increment attempts via separate update if needed
+        await incrementSyncQueueAttempts(item.id);
         console.warn("Sync item failed:", item.id, err);
       }
     }
@@ -60,7 +62,7 @@ export async function flushSyncQueue(): Promise<void> {
 
 export async function refreshRooms(): Promise<void> {
   try {
-    const result = await api.get<{ data: Room[] }>("/housekeeping/my-rooms");
+    const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
     await upsertRooms(result.data);
   } catch (err) {
     console.warn("Failed to refresh rooms:", err);

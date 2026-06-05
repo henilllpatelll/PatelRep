@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +18,7 @@ function roleLabel(role?: string | null) {
 }
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { user } = useAppStore();
   const [hotelName, setHotelName] = useState("Lone Star Inn");
   const [language, setLanguage] = useState(i18n.language);
@@ -39,14 +41,14 @@ export default function ProfileScreen() {
 
   const rows = useMemo(
     () => [
-      { icon: "calendar-outline" as const, label: "My schedule", value: "Day - 7-3" },
-      { icon: "trending-up-outline" as const, label: "My stats", value: "22m avg" },
-      { icon: "document-text-outline" as const, label: "Pay & hours", value: "32h this wk" },
-      { icon: "notifications-outline" as const, label: "Notifications", value: "On" },
-      { icon: "settings-outline" as const, label: "Language", value: language === "es" ? "Spanish" : "English" },
-      { icon: "shield-checkmark-outline" as const, label: "Help & safety", value: null },
+      { icon: "calendar-outline" as const, label: t("profile.schedule"), value: t("profile.scheduleValue") },
+      { icon: "trending-up-outline" as const, label: t("profile.stats"), value: t("profile.avgTime") },
+      { icon: "document-text-outline" as const, label: t("profile.payHours"), value: t("profile.hoursThisWeek") },
+      { icon: "notifications-outline" as const, label: t("profile.notifications"), value: t("profile.notificationsOn") },
+      { icon: "settings-outline" as const, label: t("profile.language"), value: language === "es" ? t("profile.spanish") : t("profile.english") },
+      { icon: "shield-checkmark-outline" as const, label: t("profile.helpSafety"), value: null },
     ],
-    [language]
+    [language, t]
   );
 
   async function toggleLanguage(value: boolean) {
@@ -63,10 +65,10 @@ export default function ProfileScreen() {
   }
 
   async function signOut() {
-    Alert.alert("Sign out", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("profile.signOutTitle"), t("profile.signOutConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sign out",
+        text: t("profile.signOut"),
         style: "destructive",
         onPress: async () => {
           await supabase.auth.signOut();
@@ -80,7 +82,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Me</Text>
+        <Text style={styles.headerTitle}>{t("profile.me")}</Text>
         <IconButton icon="settings-outline" />
       </View>
 
@@ -93,10 +95,10 @@ export default function ProfileScreen() {
           </Text>
           <View style={styles.badges}>
             <Pill tone="ready" icon="checkmark">
-              94 quality
+              {t("profile.qualityBadge", { score: "94" })}
             </Pill>
             <Pill tone="accent" icon="star">
-              Top pace
+              {t("profile.topPace")}
             </Pill>
           </View>
         </View>
@@ -104,9 +106,9 @@ export default function ProfileScreen() {
 
       <View style={styles.stats}>
         {[
-          { value: "128", label: "rooms this month" },
-          { value: "96%", label: "first-pass", tone: C.ready },
-          { value: "21d", label: "streak", tone: C.accent },
+          { value: "128", label: t("profile.roomsThisMonth") },
+          { value: "96%", label: t("profile.firstPass"), tone: C.ready },
+          { value: "21d", label: t("profile.streak"), tone: C.accent },
         ].map((stat) => (
           <View key={stat.label} style={styles.statCard}>
             <Text style={[styles.statValue, stat.tone ? { color: stat.tone } : undefined]}>{stat.value}</Text>
@@ -120,7 +122,7 @@ export default function ProfileScreen() {
           <View key={row.label} style={[styles.row, index > 0 && styles.rowBorder]}>
             <Ionicons name={row.icon} size={17} color={C.ink3} />
             <Text style={styles.rowLabel}>{row.label}</Text>
-            {row.label === "Language" ? (
+            {row.label === t("profile.language") ? (
               <Switch
                 value={language === "es"}
                 onValueChange={toggleLanguage}
@@ -137,7 +139,7 @@ export default function ProfileScreen() {
 
       <TouchableOpacity activeOpacity={0.84} style={styles.signOutButton} onPress={signOut}>
         <Ionicons name="log-out-outline" size={18} color={C.ink2} />
-        <Text style={styles.signOutText}>Sign out</Text>
+        <Text style={styles.signOutText}>{t("profile.signOut")}</Text>
       </TouchableOpacity>
 
       <Text style={styles.version}>PatelRep v2.4 - build 1182</Text>

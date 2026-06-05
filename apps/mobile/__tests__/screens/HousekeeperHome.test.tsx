@@ -54,12 +54,28 @@ const mockRooms = [
   },
 ];
 
+const EN: Record<string, string> = {
+  "home.greeting": "Morning, {{name}}.",
+  "home.shiftMeta": "Tue · May 26 · Day shift",
+  "home.copilotKicker": "Your smart order",
+  "home.startWith": "Start with {{room}}",
+  "home.seePlan": "See the plan",
+  "home.savesMins": "Saves ~18 min vs. room order",
+  "home.aheadByMins": "You're ahead by 3 min",
+  "home.avgTarget": "22m avg · target 25m",
+  "home.onPace": "on pace",
+  "home.seeAll": "See all",
+  "home.upNext": "Up next",
+  "home.allDone": "All assigned rooms are done.",
+  "home.pullToRefresh": "Pull to refresh if your supervisor adds more.",
+};
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) => {
-      if (key === "home.greeting") return `Morning, ${values?.name}.`;
-      if (key === "home.shiftMeta") return "Tue · May 26 · Day shift";
-      return key;
+      const template = EN[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
     },
   }),
 }));

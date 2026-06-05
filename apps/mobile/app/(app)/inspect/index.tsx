@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { C, displayFont } from "@/components/shared/tokens";
 import {
   HandoffRow,
@@ -10,7 +11,8 @@ import {
   Segmented,
 } from "@/components/shared/mobileHandoff";
 import { api } from "@/lib/api/client";
-import { listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
+import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
+import { localDate } from "@/lib/utils/date";
 
 interface ReadyRoom {
   room_id: string;
@@ -30,11 +32,6 @@ interface InspectionRecord {
   completed_at: string;
 }
 
-function localDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function timeSince(iso: string | null): string {
   if (!iso) return "recently";
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -45,12 +42,13 @@ function timeSince(iso: string | null): string {
 type Tab = "queue" | "passed";
 
 export default function InspectScreen() {
+  const { t, i18n } = useTranslation();
   const [queue, setQueue] = useState<ReadyRoom[]>([]);
   const [passed, setPassed] = useState<InspectionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("queue");
-  const [templateId, setTemplateId] = useState<string | undefined>();
+  const [template, setTemplate] = useState<InspectionTemplate | undefined>();
   const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" } | null>(null);
   const [confirmNotes, setConfirmNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +64,7 @@ export default function InspectScreen() {
       if (queueRes.status === "fulfilled") setQueue(queueRes.value.data);
       if (passedRes.status === "fulfilled") setPassed(passedRes.value.data);
       if (templatesRes.status === "fulfilled" && templatesRes.value.data.length > 0) {
-        setTemplateId(templatesRes.value.data[0].id);
+        setTemplate(templatesRes.value.data[0]);
       }
     } finally {
       setLoading(false);
@@ -90,11 +88,16 @@ export default function InspectScreen() {
     if (!confirm || submitting) return;
     setSubmitting(true);
     try {
+      const items = (template?.items ?? []).map((item) => ({
+        template_item_id: item.id,
+        result: confirm.result,
+      }));
       await submitInspection({
         room_id: confirm.room.room_id,
-        template_id: templateId,
+        template_id: template?.id,
         overall_result: confirm.result,
         notes: confirmNotes.trim() || undefined,
+        items,
       });
       setQueue((prev) => prev.filter((r) => r.room_id !== confirm.room.room_id));
       if (confirm.result === "passed") {
@@ -111,11 +114,11 @@ export default function InspectScreen() {
       }
       setConfirm(null);
     } catch {
-      Alert.alert("Error", "Could not submit inspection. Try again.");
+      Alert.alert(t("inspect.submitError"));
     } finally {
       setSubmitting(false);
     }
-  }, [confirm, submitting, templateId, confirmNotes]);
+  }, [confirm, submitting, template, confirmNotes, t]);
 
   const displayList = activeTab === "queue" ? queue : passed;
 
@@ -123,8 +126,8 @@ export default function InspectScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <IconButton icon="filter-outline" />
-        <Text style={styles.headerMeta}>{new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</Text>
-        <Text style={styles.title}>Inspections</Text>
+        <Text style={styles.headerMeta}>{new Date().toLocaleDateString(i18n.language === "es" ? "es-MX" : "en-US", { weekday: "short", month: "short", day: "numeric" })}</Text>
+        <Text style={styles.title}>{t("inspect.title")}</Text>
       </View>
 
       {loading ? (
@@ -139,34 +142,34 @@ export default function InspectScreen() {
             <View style={styles.summaryCell}>
               <View style={styles.summaryLine}>
                 <Text style={styles.summaryValue}>{passed.length}</Text>
-                <Text style={styles.summaryLabel}>passed</Text>
+                <Text style={styles.summaryLabel}>{t("inspect.passedCount")}</Text>
               </View>
-              <Text style={styles.summarySub}>today</Text>
+              <Text style={styles.summarySub}>{t("inspect.today")}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.summaryCell}>
               <View style={styles.summaryLine}>
                 <Text style={styles.summaryValue}>{queue.length}</Text>
-                <Text style={styles.summaryLabel}>in queue</Text>
+                <Text style={styles.summaryLabel}>{t("inspect.inQueue")}</Text>
               </View>
               <Text style={[styles.summarySub, queue.length > 0 ? { color: C.caution } : { color: C.ready }]}>
-                {queue.length > 0 ? "waiting" : "all clear"}
+                {queue.length > 0 ? t("inspect.waiting") : t("inspect.allClear")}
               </Text>
             </View>
           </View>
 
           <Segmented
             items={[
-              { label: "To inspect", count: queue.length, active: activeTab === "queue", onPress: () => setActiveTab("queue") },
-              { label: "Passed", count: passed.length, active: activeTab === "passed", onPress: () => setActiveTab("passed") },
+              { label: t("inspect.toInspect"), count: queue.length, active: activeTab === "queue", onPress: () => setActiveTab("queue") },
+              { label: t("inspect.passedTab"), count: passed.length, active: activeTab === "passed", onPress: () => setActiveTab("passed") },
             ]}
           />
 
           <View style={styles.rows}>
             {displayList.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>{activeTab === "queue" ? "Queue is empty" : "No passed rooms yet"}</Text>
-                <Text style={styles.emptySub}>Pull to refresh.</Text>
+                <Text style={styles.emptyTitle}>{activeTab === "queue" ? t("inspect.queueEmpty") : t("inspect.nonePassedYet")}</Text>
+                <Text style={styles.emptySub}>{t("inspect.pullToRefresh")}</Text>
               </View>
             ) : activeTab === "queue" ? (
               (displayList as ReadyRoom[]).map((room) => (
@@ -201,7 +204,7 @@ export default function InspectScreen() {
                 <HandoffRow
                   key={rec.id}
                   lead={<RoomNumberTile roomNumber={rec.room_number} status="INSPECTED" size={48} />}
-                  title={<Text style={styles.rowTitle}>Room {rec.room_number}</Text>}
+                  title={<Text style={styles.rowTitle}>{t("inspect.roomTitle", { room: rec.room_number })}</Text>}
                   sub={`${rec.inspector_name} — ${rec.overall_result}`}
                   right={<Ionicons name="checkmark-circle" size={20} color={C.ready} />}
                 />
@@ -216,17 +219,19 @@ export default function InspectScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {confirm?.result === "passed" ? "Pass" : "Fail"} Room {confirm?.room.room_number}?
+                {confirm?.result === "passed"
+                  ? t("inspect.modalTitlePass", { room: confirm?.room.room_number })
+                  : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
               </Text>
               <TouchableOpacity onPress={() => setConfirm(null)}>
                 <Ionicons name="close" size={22} color={C.ink} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>Notes (optional)</Text>
+            <Text style={styles.fieldLabel}>{t("inspect.notesOptional")}</Text>
             <TextInput
               style={[styles.input, styles.notesInput]}
-              placeholder={confirm?.result === "failed" ? "Describe what needs attention…" : "Any observations…"}
+              placeholder={confirm?.result === "failed" ? t("inspect.failNotesPlaceholder") : t("inspect.passNotesPlaceholder")}
               placeholderTextColor={C.ink4}
               value={confirmNotes}
               onChangeText={setConfirmNotes}
@@ -236,7 +241,7 @@ export default function InspectScreen() {
 
             <View style={styles.confirmRow}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setConfirm(null)}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -248,7 +253,7 @@ export default function InspectScreen() {
                 disabled={submitting}
               >
                 <Text style={styles.confirmText}>
-                  {submitting ? "Submitting…" : confirm?.result === "passed" ? "Confirm Pass" : "Confirm Fail"}
+                  {submitting ? t("inspect.submitting") : confirm?.result === "passed" ? t("inspect.confirmPass") : t("inspect.confirmFail")}
                 </Text>
               </TouchableOpacity>
             </View>

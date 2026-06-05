@@ -103,8 +103,8 @@ export default function WorkOrdersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerMeta}>{workOrders.length} {tab === "open" ? "open" : tab === "in_progress" ? "in progress" : "completed"}</Text>
-        <Text style={styles.title}>Work orders</Text>
+        <Text style={styles.headerMeta}>{tab === "open" ? t("workOrders.headerCountOpen", { count: workOrders.length }) : tab === "in_progress" ? t("workOrders.headerCountInProgress", { count: workOrders.length }) : t("workOrders.headerCountCompleted", { count: workOrders.length })}</Text>
+        <Text style={styles.title}>{t("workOrders.title")}</Text>
       </View>
 
       <View style={styles.tabs}>

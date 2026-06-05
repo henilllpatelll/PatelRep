@@ -18,6 +18,8 @@
 
 ## Key Learnings
 
+- **Web proxy dashboard fallback must tolerate unresolved app role (2026-06-05):** `apps/web/proxy.ts` should allow authenticated users with a hotel but no resolved PatelRep app role to reach `/dashboard`; redirecting `/dashboard` to `/dashboard?unauthorized=/dashboard` creates a browser redirect loop. Keep restricted modules role-gated and use `apps/web/lib/utils/routeGuard.ts` for the shared matrix.
+- **Web local verification may need app-level dependency install (2026-06-05):** If `cd apps/web && npm run type-check` reports missing `react`, `next`, or JSX types, `apps/web/node_modules` is likely partial. Run `npm install --no-package-lock` from `apps/web` before rerunning checks to avoid creating an app-level lockfile.
 - **Mobile handoff route coverage (2026-06-04):** `design_handoff_mobile/` is now ported into Expo routes rather than copied as web prototypes. Shared RN atoms live in `apps/mobile/components/shared/mobileHandoff.tsx`; non-tab handoff screens are registered as hidden tab routes in `apps/mobile/app/(app)/_layout.tsx`; Tasks uses Variation A.
 - **Mobile handoff home CTA contract (2026-06-04):** Housekeeper Home Variation A can keep an `IN_PROGRESS` stayover room visible in Up Next, but the Copilot smart-order CTA should choose the first actionable dirty/pickup room instead of the in-progress room; this matches the handoff's "Start with 112" pattern while 108 remains context.
 - **Mobile Expo web verification blocker (2026-06-04):** `apps/mobile` currently cannot run `npm run web` because Expo web dependencies `react-dom` and `react-native-web` are not installed. Until intentionally adding web support, verify mobile screen work with `npm run type-check` and `npm run test -- --runInBand`; native visual verification requires device/emulator.
@@ -126,6 +128,14 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-06-05] **Mobile auth redirect after login must go to `/(app)/home`, not `/(app)/my-rooms`** — Engineers and chief_engineers do not have a `my-rooms` tab. Redirecting them to that route lands them on a tab outside their role's visible set. Always redirect to `/(app)/home` which exists in all role configs. File: `apps/mobile/app/(auth)/_layout.tsx`.
+
+- [2026-06-05] **Mobile sync `refreshRooms()` must always pass `?date=` to `/housekeeping/my-rooms`** — The offline sync module calls this endpoint in the background without user context. Still must pass `localDate()` because the Railway API runs UTC and rolls to "tomorrow" after ~7 PM CDT without a client date. Import `localDate` from `lib/utils/date.ts`. File: `apps/mobile/lib/offline/sync.ts`.
+
+- [2026-06-05] **Do not duplicate `localDate()` across mobile screen files** — Was defined identically in `home/index.tsx`, `my-rooms/index.tsx`, and `inspect/index.tsx`. Now lives in `apps/mobile/lib/utils/date.ts`. Always import from there.
+
+- [2026-06-05] **API client constant must not be duplicated in feature API modules** — `lostFound.ts` had its own `API_BASE` constant that could drift from `client.ts`. Orphan URL constants in feature API files will silently use the wrong base URL. For FormData uploads that can't go through the shared client, read `process.env.EXPO_PUBLIC_API_URL` inline inside the function.
 
 - [2026-06-02] **Never use synchronous httpx.get() inside async FastAPI middleware** — `_fetch_jwks()` in `auth.py` used `httpx.get()` (blocking) inside an async function. This blocks the entire asyncio event loop, freezing all request processing until the HTTP call completes. Always use `async with httpx.AsyncClient() as client: await client.get(...)` for any HTTP calls in async Python code.
 

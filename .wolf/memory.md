@@ -1,4 +1,5 @@
 # Memory
+| 2026-06-05 | Full E2E mobile audit + 10 fixes: P1: sync.ts missing date param, lostFound.ts orphan API_BASE, auth redirect to /my-rooms for engineers; P2: db.ts missing room fields, [woId].tsx hardcoded fallback, sync retry limit; P3: localDate() extracted to lib/utils/date.ts, tasks Georgia font. All 34 tests pass, type-check clean. | apps/mobile/lib/offline/sync.ts, apps/mobile/lib/offline/db.ts, apps/mobile/lib/api/lostFound.ts, apps/mobile/app/(auth)/_layout.tsx, apps/mobile/app/(app)/work-orders/[woId].tsx, apps/mobile/app/(app)/tasks/index.tsx, apps/mobile/app/(app)/home/index.tsx, apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/inspect/index.tsx, apps/mobile/lib/utils/date.ts | complete | ~3k tok |
 | 2026-06-04 | Bulk anatomy update: read 100+ files across api routers, core, middleware, services (AI + Opera), web lib/api, lib/hooks, lib/supabase, lib/utils, lib/ai, stores, all dashboard pages, all settings pages; wrote full descriptions into .wolf/anatomy.md | .wolf/anatomy.md | complete | ~8k tok |
 | 2026-06-04 | Mobile login bounce fix: applied DB migration to fix user_profiles+user_roles SELECT RLS (added id=auth.uid() fallback), fixed UserProfile interface (hotel_id→tenant_id, preferred_language→language_pref), fixed _layout.tsx to fetch role from user_roles via maybeSingle(), fixed profile screen field refs | apps/mobile/lib/supabase.ts, apps/mobile/app/_layout.tsx, apps/mobile/app/(app)/profile/index.tsx, supabase/migrations | complete | ~2k tok |
 | 2026-06-04 | EAS build fix: removed apps/web from root workspaces, removed workspaces field entirely, added apps/mobile/node_modules/ to root .easignore, added .npmrc with legacy-peer-deps=true at root and apps/mobile/ | package.json, .easignore, .npmrc, apps/mobile/.npmrc | in-progress | ~1k tok |
@@ -3639,3 +3640,89 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 08:49 | Created apps/mobile/lib/utils/date.ts | — | ~52 |
+| 08:49 | Edited apps/mobile/lib/offline/sync.ts | added 1 import(s) | ~90 |
+| 08:49 | Edited apps/mobile/lib/offline/sync.ts | modified catch() | ~40 |
+| 08:49 | Edited apps/mobile/lib/offline/sync.ts | modified refreshRooms() | ~78 |
+| 08:50 | Edited apps/mobile/lib/offline/db.ts | expanded (+8 lines) | ~155 |
+| 08:50 | Edited apps/mobile/lib/offline/db.ts | expanded (+10 lines) | ~257 |
+| 08:50 | Edited apps/mobile/lib/offline/db.ts | modified upsertRooms() | ~422 |
+| 08:50 | Edited apps/mobile/lib/offline/db.ts | modified getPendingSyncQueue() | ~182 |
+| 08:50 | Edited apps/mobile/app/(auth)/_layout.tsx | "/(app)/my-rooms" → "/(app)/home" | ~11 |
+| 08:50 | Edited apps/mobile/lib/api/lostFound.ts | 4→2 lines | ~22 |
+| 08:50 | Edited apps/mobile/lib/api/lostFound.ts | added nullish coalescing | ~44 |
+| 08:51 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | removed 13 lines | ~20 |
+| 08:51 | Edited apps/mobile/app/(app)/tasks/index.tsx | inline fix | ~8 |
+| 08:51 | Edited apps/mobile/app/(app)/tasks/index.tsx | inline fix | ~18 |
+| 08:51 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 11→7 lines | ~102 |
+| 08:51 | Edited apps/mobile/app/(app)/inspect/index.tsx | added 1 import(s) | ~48 |
+| 08:51 | Edited apps/mobile/app/(app)/inspect/index.tsx | removed 6 lines | ~6 |
+| 08:51 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 import(s) | ~58 |
+| 08:52 | Edited apps/mobile/app/(app)/home/index.tsx | removed 6 lines | ~6 |
+| 08:53 | Edited apps/mobile/__tests__/lib/offline/sync.test.ts | 5→6 lines | ~51 |
+| 08:53 | Edited apps/mobile/__tests__/lib/offline/sync.test.ts | inline fix | ~34 |
+| 08:53 | Edited apps/mobile/__tests__/lib/offline/sync.test.ts | 9→11 lines | ~136 |
+| 08:54 | Edited apps/mobile/__tests__/lib/offline/sync.test.ts | 16→17 lines | ~165 |
+| 08:54 | Edited apps/mobile/__tests__/lib/offline/sync.test.ts | 9→9 lines | ~124 |
+| 08:55 | Session end: 24 writes across 8 files (date.ts, sync.ts, db.ts, _layout.tsx, lostFound.ts) | 51 reads | ~41674 tok |
+| 09:07 | Created apps/mobile/i18n/locales/en.json | — | ~2040 |
+| 09:07 | Created apps/mobile/i18n/locales/es.json | — | ~2195 |
+| 09:07 | Session end: 26 writes across 10 files (date.ts, sync.ts, db.ts, _layout.tsx, lostFound.ts) | 51 reads | ~49036 tok |
+| 09:10 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md | — | ~2252 |
+| 09:10 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~43 |
+| 09:10 | Session end: 28 writes across 12 files (date.ts, sync.ts, db.ts, _layout.tsx, lostFound.ts) | 52 reads | ~51495 tok |
+
+## Session: 2026-06-05 09:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:14 | Edited apps/mobile/lib/api/inspections.ts | added nullish coalescing | ~119 |
+| 09:15 | Edited apps/mobile/app/(app)/tasks/index.tsx | added 1 import(s) | ~92 |
+| 09:15 | Edited apps/mobile/app/(app)/tasks/index.tsx | modified TasksScreen() | ~49 |
+| 09:15 | Edited apps/mobile/app/(app)/tasks/index.tsx | CSS: count | ~44 |
+| 09:15 | Edited apps/mobile/app/(app)/tasks/index.tsx | 8→8 lines | ~72 |
+| 09:15 | Edited apps/mobile/app/(app)/work-orders/index.tsx | CSS: count, count, count | ~102 |
+| 09:15 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | "Done!" → "workOrders.completedTitle" | ~39 |
+| 09:15 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | inline fix | ~28 |
+| 09:15 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | "Insight" → "workOrders.insight" | ~12 |
+| 09:16 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | "3 of 6 done" → "workOrders.stepsHint" | ~34 |
+| 09:16 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | inline fix | ~19 |
+| 09:16 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | "Describe what was done..." → "workOrders.completionPlac" | ~19 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | CSS: room | ~199 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | 4→4 lines | ~70 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | 6→6 lines | ~69 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | 2→2 lines | ~44 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | modified EngineerHomeScreen() | ~38 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | CSS: name | ~50 |
+| 09:16 | Edited apps/mobile/app/(app)/home/index.tsx | 16→16 lines | ~169 |
+| 09:17 | Edited apps/mobile/app/(app)/home/index.tsx | 5→5 lines | ~77 |
+| 09:17 | Edited apps/mobile/app/(app)/home/index.tsx | 2→2 lines | ~46 |
+| 09:17 | Edited apps/mobile/app/(app)/home/index.tsx | 3→3 lines | ~53 |
+| 09:17 | Edited apps/mobile/app/(app)/inspect/index.tsx | added 1 import(s) | ~202 |
+| 09:17 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified InspectScreen() | ~156 |
+| 09:17 | Edited apps/mobile/app/(app)/inspect/index.tsx | setTemplateId() → setTemplate() | ~41 |
+| 09:17 | Edited apps/mobile/app/(app)/inspect/index.tsx | added optional chaining | ~321 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | 2→2 lines | ~69 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~208 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | 6→6 lines | ~100 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~80 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | inline fix | ~33 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | CSS: room, room | ~82 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~95 |
+| 09:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~227 |
+| 09:18 | Edited apps/mobile/app/(app)/profile/index.tsx | added 1 import(s) | ~79 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | modified ProfileScreen() | ~66 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | modified t() | ~218 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | modified signOut() | ~96 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | inline fix | ~19 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | 3→3 lines | ~60 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | "Language" → "profile.language" | ~15 |
+| 09:19 | Edited apps/mobile/app/(app)/profile/index.tsx | CSS: score | ~66 |
+| 09:20 | Edited apps/mobile/app/(app)/profile/index.tsx | inline fix | ~20 |
+| 09:22 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | added nullish coalescing | ~260 |
+| 09:22 | Edited apps/mobile/__tests__/screens/TasksVariationA.test.tsx | added nullish coalescing | ~142 |
+| 09:22 | Edited apps/mobile/__tests__/screens/InspectorQueue.test.tsx | added nullish coalescing | ~422 |
+| 09:23 | Edited apps/mobile/__tests__/screens/ProfileHandoff.test.tsx | added nullish coalescing | ~328 |
+
+| 09:24 | i18n+inspections handoff complete: wired t() in home/tasks/work-orders/inspect/profile, InspectionItem items passed, all 34 tests pass | 7 screen files + inspections.ts + 4 test files | success | ~8000 || 09:24 | Session end: 47 writes across 7 files (inspections.ts, index.tsx, [woId].tsx, HousekeeperHome.test.tsx, TasksVariationA.test.tsx) | 14 reads | ~19399 tok |
+| 09:32 | Fixed web dashboard redirect loop by extracting route guard and allowing /dashboard fallback for unresolved roles | apps/web/proxy.ts, apps/web/lib/utils/routeGuard.ts, routeGuard.test.mjs | tests/build/browser pass | ~5200 |

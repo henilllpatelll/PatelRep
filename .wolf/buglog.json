@@ -112,6 +112,328 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T13:10:49.924Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-06-05T13:49:52.319Z",
+      "error_message": "Missing await",
+      "file": "apps/mobile/lib/offline/sync.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:49:52.319Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-06-05T13:50:35.976Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 26→36 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:50:35.976Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-06-05T13:50:49.250Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(auth)/_layout.tsx",
+      "root_cause": "Had \"/(app)/my-rooms\"",
+      "fix": "Changed to \"/(app)/home\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:50:49.250Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-06-05T13:50:59.878Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/lib/api/lostFound.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:50:59.878Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-06-05T13:51:07.062Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 13→3 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:51:07.062Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-06-05T13:51:11.671Z",
+      "error_message": "Wrong reference: Georgia should be displayFont",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Used \"Georgia\" instead of \"displayFont\"",
+      "fix": "Changed Georgia → displayFont",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T13:51:11.671Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-06-05T14:14:58.697Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/lib/api/inspections.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:14:58.697Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-06-05T14:15:14.164Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Text style={styles.headerMeta}>{t(\"home.engineer.shiftMeta\"; <Text style={styles.title}>{t(\"home.engineer.greeting\", { na | Also: title={<Text style={styles.rowTitle}>{t(\"inspect.roomTitle\",",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-05T14:18:27.259Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-06-05T14:15:29.811Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "Had \"open\"",
+      "fix": "Changed to \"workOrders.headerCountOpen\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-05T14:19:51.071Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-06-05T14:15:36.689Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Had \"Done!\"",
+      "fix": "Changed to \"workOrders.completedTitle\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-05T14:16:11.265Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-06-05T14:15:51.119Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:15:51.119Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-06-05T14:17:02.854Z",
+      "error_message": "CSS fix: value",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "value: \"2\", label: \"closed today\", color: C.ready → \"2\", label: t(\"home.engineer.closedToday\"), color: C.ready",
+      "fix": "Changed value: \"2\", label: \"closed today\", color: C.ready → \"2\", label: t(\"home.engineer.closedToday\"), color: C.ready",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-05T14:19:20.706Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-06-05T14:17:43.678Z",
+      "error_message": "Wrong reference: setTemplateId should be setTemplate",
+      "file": "apps/mobile/app/(app)/inspect/index.tsx",
+      "root_cause": "Used \"setTemplateId\" instead of \"setTemplate\"",
+      "fix": "Changed setTemplateId → setTemplate",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:17:43.678Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-06-05T14:17:56.614Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/inspect/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:17:56.614Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-06-05T14:22:15.682Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:22:15.682Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-06-05T14:22:21.982Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:22:21.982Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-06-05T14:22:32.892Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/InspectorQueue.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:22:32.892Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-06-05T14:23:23.651Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/__tests__/screens/ProfileHandoff.test.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T14:23:23.651Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-06-05T09:32:59.6100817-05:00",
+      "error_message": "https://patelrep-web.vercel.app/dashboard?unauthorized=%2Fdashboard is showing The page isn't redirecting properly",
+      "file": "apps/web/proxy.ts",
+      "root_cause": "The proxy redirected users with an authenticated session but no resolved app role from /dashboard back to /dashboard?unauthorized=/dashboard, creating a self-redirect loop.",
+      "fix": "Extracted proxy route decisions to apps/web/lib/utils/routeGuard.ts, allowed /dashboard as the safe fallback for unresolved app roles, kept restricted modules role-gated, and stripped stale redirect query params when redirecting.",
+      "tags": [
+        "web",
+        "auth",
+        "middleware",
+        "rbac",
+        "redirect-loop"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T09:32:59.6100817-05:00"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-06-05T09:32:59.6100817-05:00",
+      "error_message": "npm run type-check initially failed with missing react/next modules; npm install --no-package-lock timed out on first attempt but left dependencies usable",
+      "file": "apps/web/node_modules",
+      "root_cause": "The local apps/web dependency install was partial and lacked runtime packages such as react and next.",
+      "fix": "Ran npm install --no-package-lock in apps/web, then reran type-check, lint, and build successfully.",
+      "tags": [
+        "local-verification",
+        "dependencies",
+        "web"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T09:32:59.6100817-05:00"
     }
   ]
 }

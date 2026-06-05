@@ -1,8 +1,21 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 
+const EN: Record<string, string> = {
+  "tasks.title": "My tasks",
+  "tasks.headerMeta": "{{count}} tasks",
+  "tasks.copilotKicker": "Heads up",
+  "tasks.reorderBtn": "Reorder for me",
+};
+
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, unknown>) => {
+      const template = EN[key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
+    },
+  }),
 }));
 
 jest.mock("@expo/vector-icons", () => ({

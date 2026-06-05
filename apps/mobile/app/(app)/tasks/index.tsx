@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { C, R } from "@/components/shared/tokens";
+import { C, R, displayFont } from "@/components/shared/tokens";
 import {
   AILabel,
   CopilotHero,
@@ -127,6 +128,7 @@ function groupTasks(tasks: Task[]): TaskGroup[] {
 }
 
 export default function TasksScreen() {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -165,17 +167,17 @@ export default function TasksScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <IconButton icon="filter-outline" />
-        <Text style={styles.headerMeta}>{openCount} tasks - 1 from a guest</Text>
-        <Text style={styles.title}>My tasks</Text>
+        <Text style={styles.headerMeta}>{t("tasks.headerMeta", { count: openCount })}</Text>
+        <Text style={styles.title}>{t("tasks.title")}</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <CopilotHero
           tone="violet"
-          kicker="Heads up"
+          kicker={t("tasks.copilotKicker")}
           actions={
             <HeroButton onDark={false} icon="checkmark" primary>
-              Reorder for me
+              {t("tasks.reorderBtn")}
             </HeroButton>
           }
         >
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
     color: C.ink,
     fontSize: 30,
     lineHeight: 34,
-    fontFamily: "Georgia",
+    fontFamily: displayFont,
   },
   scroll: {
     flex: 1,
