@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Literal, Optional
-from middleware.auth import get_current_user, CurrentUser
+from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CreateTaskRequest, UpdateTaskRequest
 from core.database import supabase
 from datetime import datetime, timedelta, timezone
@@ -64,7 +64,10 @@ def _validate_task_references(request: CreateTaskRequest, hotel_id: str) -> None
 
 @router.post("")
 async def create_task(
-    request: CreateTaskRequest, current_user: CurrentUser = Depends(get_current_user)
+    request: CreateTaskRequest,
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor", "front_desk", "chief_engineer", "engineer")
+    ),
 ):
     if request.use_ai and request.nl_input:
         # Defer to AI copilot for NL parsing — return preview

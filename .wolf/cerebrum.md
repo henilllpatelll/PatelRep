@@ -18,7 +18,10 @@
 
 ## Key Learnings
 
+- **Web proxy role fallback for tab navigation (2026-06-05):** Supabase sessions may expose top-level JWT role `authenticated` while the PatelRep app role lives in custom claim `user_role` and `/auth/me`. `apps/web/proxy.ts` now uses `getAppRoleFromSources(jwt.user_role, jwt.role, app_metadata, user_metadata, pr_role)`, and `apps/web/components/shared/Providers.tsx` writes a non-secret `pr_role` cookie after hydration so sidebar tab navigation is not bounced back to `/dashboard`; API/RBAC endpoints remain the real authorization layer.
+- **Web verification command fallback (2026-06-05):** This checkout's root package does not currently expose npm workspaces. If `npm run type-check --workspace=@patelrep/web` reports "No workspaces found", run app-local commands from `apps/web`: `npm run type-check`, `npm run lint`, and `npm run build`.
 - **Web proxy dashboard fallback must tolerate unresolved app role (2026-06-05):** `apps/web/proxy.ts` should allow authenticated users with a hotel but no resolved PatelRep app role to reach `/dashboard`; redirecting `/dashboard` to `/dashboard?unauthorized=/dashboard` creates a browser redirect loop. Keep restricted modules role-gated and use `apps/web/lib/utils/routeGuard.ts` for the shared matrix.
+- **Web proxy must whitelist app roles before RBAC checks (2026-06-05):** Supabase JWTs can expose the DB role `authenticated` as a top-level `role` claim. Never cast that directly to PatelRep `UserRole`; normalize through `toAppRole()` so only `gm`, `housekeeper`, `engineer`, `housekeeping_supervisor`, `chief_engineer`, and `front_desk` participate in route RBAC.
 - **Web local verification may need app-level dependency install (2026-06-05):** If `cd apps/web && npm run type-check` reports missing `react`, `next`, or JSX types, `apps/web/node_modules` is likely partial. Run `npm install --no-package-lock` from `apps/web` before rerunning checks to avoid creating an app-level lockfile.
 - **Mobile handoff route coverage (2026-06-04):** `design_handoff_mobile/` is now ported into Expo routes rather than copied as web prototypes. Shared RN atoms live in `apps/mobile/components/shared/mobileHandoff.tsx`; non-tab handoff screens are registered as hidden tab routes in `apps/mobile/app/(app)/_layout.tsx`; Tasks uses Variation A.
 - **Mobile handoff home CTA contract (2026-06-04):** Housekeeper Home Variation A can keep an `IN_PROGRESS` stayover room visible in Up Next, but the Copilot smart-order CTA should choose the first actionable dirty/pickup room instead of the in-progress room; this matches the handoff's "Start with 112" pattern while 108 remains context.
@@ -129,6 +132,7 @@
 
 ## Do-Not-Repeat
 
+- **2026-06-05: Use PowerShell literal paths for Next route groups.** Paths like `apps/web/app/(dashboard)/tasks/page.tsx` must be read with `Get-Content -LiteralPath 'apps/web/app/(dashboard)/tasks/page.tsx'` or passed as quoted rg arguments; unescaped parentheses make PowerShell treat `(dashboard)` as an expression.
 - [2026-06-05] **Mobile auth redirect after login must go to `/(app)/home`, not `/(app)/my-rooms`** — Engineers and chief_engineers do not have a `my-rooms` tab. Redirecting them to that route lands them on a tab outside their role's visible set. Always redirect to `/(app)/home` which exists in all role configs. File: `apps/mobile/app/(auth)/_layout.tsx`.
 
 - [2026-06-05] **Mobile sync `refreshRooms()` must always pass `?date=` to `/housekeeping/my-rooms`** — The offline sync module calls this endpoint in the background without user context. Still must pass `localDate()` because the Railway API runs UTC and rolls to "tomorrow" after ~7 PM CDT without a client date. Import `localDate` from `lib/utils/date.ts`. File: `apps/mobile/lib/offline/sync.ts`.

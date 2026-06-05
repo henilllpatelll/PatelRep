@@ -37,6 +37,14 @@ export function toAppRole(role: unknown): UserRole | null {
   return typeof role === 'string' && APP_ROLES.has(role) ? (role as UserRole) : null
 }
 
+export function getAppRoleFromSources(...roles: unknown[]): UserRole | null {
+  for (const role of roles) {
+    const appRole = toAppRole(role)
+    if (appRole) return appRole
+  }
+  return null
+}
+
 function getRouteRoles(pathname: string): UserRole[] | null {
   const match = ROLE_ROUTE_RULES.find(({ prefix }) => pathname === prefix || pathname.startsWith(prefix + '/'))
   return match?.roles ?? null

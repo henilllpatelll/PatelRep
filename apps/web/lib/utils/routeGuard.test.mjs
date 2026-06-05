@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getRouteAccessDecision, toAppRole } from './routeGuard.ts'
+import { getAppRoleFromSources, getRouteAccessDecision, toAppRole } from './routeGuard.ts'
 
 test('allows authenticated users without a resolved app role to reach dashboard', () => {
   assert.deepEqual(
@@ -28,6 +28,13 @@ test('normalizes Supabase database roles as unresolved app roles', () => {
     }),
     { type: 'allow' },
   )
+})
+
+test('uses the first valid PatelRep role from fallback sources', () => {
+  assert.equal(getAppRoleFromSources('gm', 'authenticated'), 'gm')
+  assert.equal(getAppRoleFromSources('authenticated', undefined, 'gm'), 'gm')
+  assert.equal(getAppRoleFromSources('anon', 'engineer', 'gm'), 'engineer')
+  assert.equal(getAppRoleFromSources('authenticated', 'viewer'), null)
 })
 
 test('redirects authenticated users without a resolved app role away from restricted routes', () => {

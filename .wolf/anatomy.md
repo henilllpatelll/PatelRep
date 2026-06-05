@@ -1,13 +1,14 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T15:01:39.681Z
-> Files: 228 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T16:14:25.236Z
+> Files: 230 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
 
 ## ../../.claude/plans/
 
+- `lets-discuss-fully-building-dreamy-sloth.md` — Mobile App Full Build-Out Plan (~2873 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
@@ -48,6 +49,7 @@
 
 ## .claude/skills/patelrep-web/
 
+- `SKILL.md` — Project-local Next.js/App Router conventions for apps/web: auth/routing, API client, Zustand, realtime, role-gated UI, and styling patterns. (~1200 tok)
 
 ## .claude/skills/ui-ux-pro-max/
 
@@ -486,7 +488,7 @@
 - `scheduling.py` — 13 endpoints: shifts CRUD, assignments CRUD + bulk, clock-in/out, my-schedule, today-roster (~3580 tok)
 - `sop.py` — 5 endpoints: GET/POST/GET/{id}/DELETE documents (PDF upload → background indexing), POST /query (RAG) (~2290 tok)
 - `staff.py` — 14 endpoints: push-token update, effective-role (with day-of-week schedule), list staff, invitations, invite, onboarding-invite, add-direct (with duplicate-user recovery), custom roles CRUD, role schedules CRUD, update/deactivate staff (~4930 tok)
-- `tasks.py` — 8 endpoints: CRUD, add comment, batch create; housekeeper sees only own tasks (~2980 tok)
+- `tasks.py` — API: 7 endpoints (~2912 tok)
 - `webhooks.py` — 2 endpoints: POST /opera (handles checkout/checkin/modified/DND/make-up-room events), POST /stripe (subscription lifecycle + invoice paid) (~1700 tok)
 - `work_orders.py` — 10 endpoints: CRUD + claim, complete, upload photos, add comments; engineer-scoped visibility filter (~5300 tok)
 
@@ -615,7 +617,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — FALLBACK_GROUPS (~2507 tok)
+- `index.tsx` — FALLBACK_GROUPS (~2915 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 

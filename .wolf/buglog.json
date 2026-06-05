@@ -458,10 +458,139 @@
       "file": "apps/mobile/lib/offline/db.ts",
       "root_cause": "ALTER TABLE ... ADD COLUMN IF NOT EXISTS is PostgreSQL syntax; SQLite does not support IF NOT EXISTS on ALTER TABLE. execAsync passed this invalid syntax inside a multi-statement string.",
       "fix": "Moved ALTER TABLE statements out of execAsync into individual db.runAsync calls wrapped in try/catch so duplicate-column errors (column already exists) are silently ignored — the SQLite-compatible migration pattern.",
-      "tags": ["sqlite", "mobile", "migration", "sql-syntax"],
+      "tags": [
+        "sqlite",
+        "mobile",
+        "migration",
+        "sql-syntax"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T00:00:00.000Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-06-05T10:06:57.6509893-05:00",
+      "error_message": "After logging in on https://patelrep-web.vercel.app/login?redirectTo=%2Fdashboard it redirects to https://patelrep-web.vercel.app/dashboard?unauthorized=%2Fdashboard",
+      "file": "apps/web/proxy.ts",
+      "root_cause": "The proxy treated the Supabase top-level database role claim (`authenticated`) as a PatelRep app role because it cast `jwtClaims.role` directly to UserRole. That made `/dashboard` fail RBAC after login and redirect to itself with `unauthorized=/dashboard`.",
+      "fix": "Added `toAppRole()` in apps/web/lib/utils/routeGuard.ts to whitelist only PatelRep app roles, used it in proxy role extraction, added a regression test for Supabase DB roles, deployed to Vercel production, and verified login reaches /dashboard with /v1/auth/me 200.",
+      "tags": [
+        "web",
+        "auth",
+        "middleware",
+        "rbac",
+        "vercel",
+        "redirect-loop"
+      ],
+      "related_bugs": [
+        "bug-026"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T10:06:57.6509893-05:00"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-06-05T15:10:37.785Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T15:10:37.785Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-06-05T15:11:02.513Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 14→23 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T15:11:02.513Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-06-05T15:11:09.156Z",
+      "error_message": "CSS fix: borderColor, backgroundColor",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "borderColor: C.line, → C.accent,; backgroundColor: C.surface, → C.accent,",
+      "fix": "Changed borderColor: C.line, → C.accent,; backgroundColor: C.surface, → C.accent,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T15:11:09.156Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
+      "error_message": "when i click any tab it stays on the dashbaord it does not go to that tab. the url changes but it still shows the dashboard",
+      "file": "apps/web/proxy.ts, apps/web/components/shared/Providers.tsx, apps/web/lib/utils/routeGuard.ts",
+      "root_cause": "The proxy only trusted JWT `role`/user metadata roles. Supabase sessions expose the top-level database role `authenticated`, while the PatelRep app role can be in the custom JWT `user_role` claim and is also hydrated from /auth/me after login. The sidebar could show app-role tabs client-side while server route checks still treated the user as unresolved and bounced restricted routes back to /dashboard.",
+      "fix": "Added getAppRoleFromSources(), read the custom JWT user_role claim before the database role, wrote a non-secret pr_role cookie when /auth/me or auth events resolve the app role, cleared it on sign-out/session expiry, and let the proxy use that cookie as the final app-role source for UI route gating.",
+      "tags": [
+        "web",
+        "navigation",
+        "proxy",
+        "auth",
+        "rbac"
+      ],
+      "related_bugs": [
+        "bug-026",
+        "bug-030"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
+      "error_message": "PowerShell reported `dashboard : The term 'dashboard' is not recognized` when reading apps/web/app/(dashboard) paths",
+      "file": "command line",
+      "root_cause": "App Router route-group parentheses were passed to PowerShell without a literal path, so PowerShell interpreted `(dashboard)` as an expression.",
+      "fix": "Used quoted paths with -LiteralPath for Get-Content and quoted path arguments for rg.",
+      "tags": [
+        "powershell",
+        "nextjs",
+        "route-groups",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
+      "error_message": "npm error No workspaces found: --workspace=@patelrep/web",
+      "file": "package.json",
+      "root_cause": "This checkout's root package.json does not expose npm workspaces, so workspace-targeted npm commands fail before running the web app scripts.",
+      "fix": "Ran the web verification commands from apps/web with npm run type-check, npm run lint, and npm run build.",
+      "tags": [
+        "npm",
+        "web",
+        "local-verification",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
     }
   ]
 }

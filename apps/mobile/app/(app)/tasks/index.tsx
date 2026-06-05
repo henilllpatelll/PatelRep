@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentProps } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
@@ -112,25 +112,26 @@ function normalizeTask(task: Task) {
 }
 
 function groupTasks(tasks: Task[]): TaskGroup[] {
-  const groups = FALLBACK_GROUPS.map((group) => ({ ...group, items: [...group.items] }));
-
-  if (tasks.length === 0) return groups;
+  if (tasks.length === 0) return FALLBACK_GROUPS;
 
   const now = tasks.filter((task) => task.due_label === "now" || task.priority === "urgent");
-  const midday = tasks.filter((task) => task.due_label === "before_noon" || task.source === "guest");
+  const midday = tasks.filter(
+    (task) => !now.includes(task) && (task.due_label === "before_noon" || task.source === "guest")
+  );
   const afternoon = tasks.filter((task) => !now.includes(task) && !midday.includes(task));
 
-  if (now.length > 0) groups[0].items = now.map(normalizeTask);
-  if (midday.length > 0) groups[1].items = midday.map(normalizeTask);
-  if (afternoon.length > 0) groups[2].items = afternoon.map(normalizeTask);
-
-  return groups;
+  return [
+    { when: "Now", tone: "accent" as const, items: now.map(normalizeTask) },
+    { when: "Before 12:00", tone: "caution" as const, items: midday.map(normalizeTask) },
+    { when: "This afternoon", tone: "info" as const, items: afternoon.map(normalizeTask) },
+  ].filter((group) => group.items.length > 0);
 }
 
 export default function TasksScreen() {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -150,6 +151,23 @@ export default function TasksScreen() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  const completeTask = useCallback((taskId: string) => {
+    if (taskId.startsWith("fallback-")) return;
+    setCompleting((prev) => new Set(prev).add(taskId));
+    api
+      .patch(`/tasks/${taskId}`, { status: "done", completed_at: new Date().toISOString() })
+      .then(() => {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      })
+      .catch(() => {
+        setCompleting((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      });
   }, []);
 
   const groups = useMemo(() => groupTasks(tasks), [tasks]);
@@ -195,19 +213,28 @@ export default function TasksScreen() {
             </View>
 
             <View style={styles.taskStack}>
-              {group.items.map((item) => (
-                <View key={item.id} style={styles.taskCard}>
-                  <View style={styles.checkbox} />
-                  <View style={styles.taskBody}>
-                    <View style={styles.taskTitleRow}>
-                      <Text style={styles.taskTitle}>{item.label}</Text>
-                      {item.ai ? <AILabel>AI</AILabel> : null}
+              {group.items.map((item) => {
+                const done = completing.has(item.id);
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={({ pressed }) => [styles.taskCard, (pressed || done) && styles.taskCardPressed]}
+                    onPress={() => completeTask(item.id)}
+                  >
+                    <View style={[styles.checkbox, done && styles.checkboxDone]}>
+                      {done ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
                     </View>
-                    <Text style={styles.taskMeta}>{item.meta}</Text>
-                  </View>
-                  <IconButton icon={item.icon} tone={item.tone} size={34} />
-                </View>
-              ))}
+                    <View style={styles.taskBody}>
+                      <View style={styles.taskTitleRow}>
+                        <Text style={[styles.taskTitle, done && styles.taskTitleDone]}>{item.label}</Text>
+                        {item.ai ? <AILabel>AI</AILabel> : null}
+                      </View>
+                      <Text style={styles.taskMeta}>{item.meta}</Text>
+                    </View>
+                    <IconButton icon={item.icon} tone={item.tone} size={34} />
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         ))}
@@ -307,6 +334,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 11,
   },
+  taskCardPressed: {
+    opacity: 0.7,
+  },
   checkbox: {
     width: 24,
     height: 24,
@@ -314,6 +344,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.line,
     backgroundColor: C.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxDone: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  taskTitleDone: {
+    textDecorationLine: "line-through",
+    color: C.ink3,
   },
   taskBody: {
     flex: 1,

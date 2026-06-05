@@ -43,6 +43,16 @@ interface MeResponse {
 
 // Standard Supabase/Postgres DB roles — never our app roles
 const SUPABASE_DB_ROLES = new Set(['authenticated', 'anon', 'service_role', 'postgres'])
+const APP_ROLE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
+
+function writeAppRoleCookie(role: UserRole | null) {
+  if (typeof document === 'undefined') return
+  if (!role) {
+    document.cookie = 'pr_role=; Path=/; Max-Age=0; SameSite=Lax'
+    return
+  }
+  document.cookie = `pr_role=${encodeURIComponent(role)}; Path=/; Max-Age=${APP_ROLE_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`
+}
 
 function decodeJwtRole(accessToken: string | undefined): UserRole | null {
   if (!accessToken) return null
@@ -52,7 +62,7 @@ function decodeJwtRole(accessToken: string | undefined): UserRole | null {
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
     const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
     const claims = JSON.parse(atob(padded)) as Record<string, unknown>
-    const role = claims.role as string | undefined
+    const role = (claims.user_role ?? claims.role) as string | undefined
     if (role && !SUPABASE_DB_ROLES.has(role)) return role as UserRole
   } catch {
     // Ignore malformed JWT
@@ -110,12 +120,14 @@ function AuthListener() {
         // If the API returns a role, overwrite what we got from the JWT
         if (data.user?.role) {
           setRole(data.user.role)
+          writeAppRoleCookie(data.user.role)
         }
         await fetchEffectiveRole()
       } catch (err) {
         if (err instanceof ApiClientError && err.status === 401) {
           clear()
           clearHotel()
+          writeAppRoleCookie(null)
           await supabase.auth.signOut().catch(() => undefined)
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
             router.replace('/login?reason=session-expired')
@@ -142,13 +154,13 @@ function AuthListener() {
       if (session?.user) {
         setUser(session.user)
         setSession(session)
-        setRole(
-          extractRole(
-            session,
-            session.user.app_metadata as Record<string, unknown>,
-            session.user.user_metadata as Record<string, unknown>,
-          ),
+        const role = extractRole(
+          session,
+          session.user.app_metadata as Record<string, unknown>,
+          session.user.user_metadata as Record<string, unknown>,
         )
+        setRole(role)
+        writeAppRoleCookie(role)
         fetchProfile()
       }
       setLoading(false)
@@ -160,42 +172,46 @@ function AuthListener() {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         setSession(session)
-        setRole(
-          extractRole(
-            session,
-            session.user.app_metadata as Record<string, unknown>,
-            session.user.user_metadata as Record<string, unknown>,
-          ),
+        const role = extractRole(
+          session,
+          session.user.app_metadata as Record<string, unknown>,
+          session.user.user_metadata as Record<string, unknown>,
         )
+        setRole(role)
+        writeAppRoleCookie(role)
         fetchProfile()
         setLoading(false)
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         setUser(session.user)
         setSession(session)
-        setRole(
-          extractRole(
-            session,
-            session.user.app_metadata as Record<string, unknown>,
-            session.user.user_metadata as Record<string, unknown>,
-          ),
-        )
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setUser(session.user)
-        setSession(session)
-        setRole(extractRole(
+        const role = extractRole(
           session,
           session.user.app_metadata as Record<string, unknown>,
           session.user.user_metadata as Record<string, unknown>,
-        ))
+        )
+        setRole(role)
+        writeAppRoleCookie(role)
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        setUser(session.user)
+        setSession(session)
+        const role = extractRole(
+          session,
+          session.user.app_metadata as Record<string, unknown>,
+          session.user.user_metadata as Record<string, unknown>,
+        )
+        setRole(role)
+        writeAppRoleCookie(role)
       } else if (event === 'SIGNED_OUT') {
         clear()
         clearHotel()
+        writeAppRoleCookie(null)
       }
     })
 
     const handleSessionExpired = () => {
       clear()
       clearHotel()
+      writeAppRoleCookie(null)
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         router.replace('/login?reason=session-expired')
       }
