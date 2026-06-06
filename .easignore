@@ -2,6 +2,10 @@ apps/api/
 apps/web/
 node_modules/
 apps/mobile/node_modules/
+/apps/mobile/.expo
+/apps/mobile/android
+apps/mobile/.expo/
+apps/mobile/android/
 .git/
 e2e/
 playwright-report/

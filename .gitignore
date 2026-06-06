@@ -34,6 +34,9 @@ apps/web/out/
 # Build outputs
 *.tsbuildinfo
 
+# Expo local state
+apps/mobile/.expo/
+
 # IDEs
 .vscode/
 .idea/

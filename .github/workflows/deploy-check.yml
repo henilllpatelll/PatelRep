@@ -1,0 +1,40 @@
+name: Deploy Health Check
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check-api:
+    name: API health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll API /health (up to 5 min)
+        run: |
+          for i in $(seq 1 10); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://api-production-130b.up.railway.app/health || echo "000")
+            echo "Attempt $i — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::warning::API health check timed out — Railway deploy may still be in progress"
+
+  check-web:
+    name: Web health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll web app (up to 3 min)
+        run: |
+          for i in $(seq 1 6); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -L https://patelrepweb-production.up.railway.app || echo "000")
+            echo "Attempt $i — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Web is healthy"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::warning::Web health check timed out — Railway deploy may still be in progress"

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-05T19:53:39.324Z
-> Files: 247 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-06T21:51:32.586Z
+> Files: 256 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -28,7 +28,7 @@
 - `.npmrc` (~6 tok)
 - `CLAUDE.md` — OpenWolf (~2969 tok)
 - `fix-encoding.ps1` — Fix mojibake encoding in TSX files (~546 tok)
-- `package.json` — Node.js package manifest (~334 tok)
+- `package.json` — Node.js package manifest (~380 tok)
 
 ## .claude/
 
@@ -420,6 +420,16 @@
 ## .claude/worktrees/agent-ad340f5a/apps/api/routers/
 
 
+## .githooks/
+
+- `pre-push` — Runs before any push to main. Skips on all other branches. (~212 tok)
+
+## .github/workflows/
+
+- `auto-merge.yml` — Auto-merges open PRs via squash when CI passes; no branch protection needed (~150 tok)
+- `ci.yml` — Comprehensive CI: lint (API+web), type-check, web build, API smoke tests, security scan, PR status comment (~1200 tok)
+- `deploy-check.yml` — Post-deploy health poller: polls /health (API) and web URL after main push, up to 5 min retry (~200 tok)
+
 ## .planning/
 
 - `STATE.md` — GSD State (~559 tok)
@@ -565,7 +575,13 @@
 
 ## apps/mobile/android/
 
+- `build.gradle` — Root Android Gradle config: plugin versions and repositories for the native Expo project. (~150 tok)
 - `gradle.properties` — Project-wide Gradle settings. (~771 tok)
+- `settings.gradle` — Native Gradle module registration and Expo/React Native autolinking setup. (~250 tok)
+
+## apps/mobile/android/app/
+
+- `build.gradle` — Android app module Gradle config: Expo autolinking, React Native settings, package namespace, SDK versions, signing, and native dependencies. (~650 tok)
 
 ## apps/mobile/app/
 
@@ -1008,6 +1024,10 @@
 
 ## graphify-out/
 
+
+## scripts/
+
+- `ship.mjs` — AI_KEY: ai, run, spawn, main (~735 tok)
 
 ## supabase/migrations/
 

@@ -26,7 +26,7 @@
     "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-notifications": "~0.32.17",
-    "expo-router": "~6.0.23",
+    "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
     "expo-speech-recognition": "^0.3.2",
     "expo-splash-screen": "~31.0.13",

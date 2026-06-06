@@ -1,4 +1,5 @@
 ﻿# Memory
+| 21:10 | CI/CD setup: replaced deploy.yml with ci.yml (lint, build, test, security, PR comment) + deploy-check.yml (health polling) | .github/workflows/ci.yml, .github/workflows/deploy-check.yml | complete | ~200 tok |
 | 2026-06-05 | AI Copilot extended actions: verified backend (ai_copilot.py detect_intent + 4 confirm endpoints + parsers) and frontend (AICopilotBubble response handlers + ambiguity chips + localStorage history) were already fully implemented; added missing 2c post-action close â€” `setTimeout(() => setOpen(false), 1200)` in all 4 confirm handlers. 206 API tests pass, web type-check clean. | apps/web/components/ai/AICopilotBubble.tsx | complete | ~300 tok |
 | 2026-06-05 | Fix 1: useStateâ†’useEffect on 5 screens (alerts, pm-schedules, room-board, room-status, staff). Fix 2: Supabase Realtime on room-board (room_status table). Fix 3: Supabase Realtime on assignments (room_assignments table). Phase 8: Copilot enhanced â€” AsyncStorage persistence (last 20 msgs @patelrep/copilot_history), role in every POST, work_order_preview + guest_request_preview inline confirm cards, typing indicator. type-check clean. | apps/mobile/app/(app)/alerts/index.tsx, pm-schedules/index.tsx, room-board/index.tsx, room-status/index.tsx, staff/index.tsx, assignments/index.tsx, copilot/index.tsx | complete | ~900 tok |
 | 2026-06-05 | Phase 3/4/5 mobile API modules + screen fixes: created guestRequests.ts, logbook.ts, housekeeping.ts; fixed useStateâ†’useEffect on 4 screens; added Supabase Realtime+setUnreadCount to guest-requests; added department_id:null to logbook POST; added auto-assign button to assignments screen. type-check clean. | apps/mobile/lib/api/guestRequests.ts, apps/mobile/lib/api/logbook.ts, apps/mobile/lib/api/housekeeping.ts, apps/mobile/app/(app)/guest-requests/index.tsx, apps/mobile/app/(app)/guest-requests/[requestId].tsx, apps/mobile/app/(app)/logbook/index.tsx, apps/mobile/app/(app)/logbook/new.tsx, apps/mobile/app/(app)/assignments/index.tsx | complete | ~1.2k tok |
@@ -3956,6 +3957,7 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 17:04 | Fixed EAS Android production build path by excluding stale native Android/.expo archive state, upgrading expo-router, and refreshing mobile tests | .easignore, apps/mobile/.easignore, .gitignore, apps/mobile/.gitignore, apps/mobile/package.json, apps/mobile/package-lock.json, apps/mobile/__tests__/*, .wolf/* | Expo Doctor, type-check, Jest, temp prebuild simulation, and archive inspection pass | ~16000 |
 
 ## Session: 2026-06-05 14:11
 
@@ -4050,6 +4052,25 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:54 | Session end: 29 writes across 8 files (roleTabs.ts, supabase.ts, _layout.tsx, index.tsx, guestRequests.ts) | 13 reads | ~29487 tok |
 
 ## Session: 2026-06-05 14:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:00 | Created .github/workflows/ci.yml | — | ~1330 |
+| 16:00 | Created .github/workflows/deploy-check.yml | — | ~353 |
+| 16:01 | Session end: 2 writes across 2 files (ci.yml, deploy-check.yml) | 3 reads | ~4986 tok |
+| 16:28 | Session end: 3 writes across 2 files (ci.yml, deploy-check.yml) | 3 reads | ~5046 tok |
+| 16:36 | Created .githooks/pre-push | — | ~212 |
+| 16:37 | Edited package.json | 1→2 lines | ~48 |
+| 16:37 | Session end: 5 writes across 4 files (ci.yml, deploy-check.yml, pre-push, package.json) | 3 reads | ~5322 tok |
+| 16:39 | Session end: 5 writes across 4 files (ci.yml, deploy-check.yml, pre-push, package.json) | 3 reads | ~5322 tok |
+| 16:40 | Session end: 5 writes across 4 files (ci.yml, deploy-check.yml, pre-push, package.json) | 3 reads | ~5322 tok |
+| 16:51 | Created scripts/ship.mjs | — | ~735 |
+| 16:51 | Created .github/workflows/auto-merge.yml | — | ~397 |
+| 16:51 | Edited package.json | 1→2 lines | ~45 |
+| 16:51 | Session end: 8 writes across 6 files (ci.yml, deploy-check.yml, pre-push, package.json, ship.mjs) | 3 reads | ~6552 tok |
+| 17:06 | Session end: 8 writes across 6 files (ci.yml, deploy-check.yml, pre-push, package.json, ship.mjs) | 3 reads | ~6552 tok |
+
+## Session: 2026-06-06 17:09
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|

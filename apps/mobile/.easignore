@@ -1,5 +1,11 @@
 node_modules/
 .git/
+.expo
+/android
+.expo/
+android/
+apps/mobile/.expo/
+apps/mobile/android/
 *.log
 *.DS_Store
 __tests__/

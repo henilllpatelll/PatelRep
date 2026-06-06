@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "postinstall": "npx patch-package || true",
+    "setup:hooks": "git config core.hooksPath .githooks && chmod +x .githooks/pre-push && echo 'Git hooks configured.'",
+    "ship": "node scripts/ship.mjs",
     "build": "cd apps/web && npm run build",
     "start": "cd apps/web && npm run start",
     "dev:web": "cd apps/web && npm run dev",

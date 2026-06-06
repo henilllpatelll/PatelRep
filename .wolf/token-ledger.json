@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 11851752,
-    "total_reads": 6518,
-    "total_writes": 4845,
-    "total_sessions": 240,
-    "anatomy_hits": 2484,
-    "anatomy_misses": 3921,
-    "repeated_reads_blocked": 2200,
-    "estimated_savings_vs_bare_cli": 10653785
+    "total_tokens_estimated": 11895900,
+    "total_reads": 6542,
+    "total_writes": 4884,
+    "total_sessions": 241,
+    "anatomy_hits": 2500,
+    "anatomy_misses": 3929,
+    "repeated_reads_blocked": 2213,
+    "estimated_savings_vs_bare_cli": 10658655
   },
   "sessions": [
     {
@@ -73327,6 +73327,481 @@
         "writes_count": 29,
         "repeated_reads_blocked": 7,
         "anatomy_lookups": 12
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:01:40.698Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 1683,
+        "reads_count": 3,
+        "writes_count": 2,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:26:00.451Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 1743,
+        "reads_count": 3,
+        "writes_count": 3,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:28:45.532Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 1743,
+        "reads_count": 3,
+        "writes_count": 3,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:37:11.887Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 228,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 48,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 2019,
+        "reads_count": 3,
+        "writes_count": 5,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:39:51.621Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 228,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 48,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 2019,
+        "reads_count": 3,
+        "writes_count": 5,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:40:46.700Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 228,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 48,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 2019,
+        "reads_count": 3,
+        "writes_count": 5,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T21:51:57.560Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 228,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 48,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/scripts/ship.mjs",
+          "tokens_estimated": 788,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/auto-merge.yml",
+          "tokens_estimated": 397,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 45,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 3249,
+        "reads_count": 3,
+        "writes_count": 8,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-05-1456",
+      "started": "2026-06-05T19:56:39.475Z",
+      "ended": "2026-06-06T22:06:26.286Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy.yml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/CLAUDE.md",
+          "tokens_estimated": 2969,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 334,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 1330,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/deploy-check.yml",
+          "tokens_estimated": 353,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/ci.yml",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 228,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 48,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/scripts/ship.mjs",
+          "tokens_estimated": 788,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.github/workflows/auto-merge.yml",
+          "tokens_estimated": 397,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/package.json",
+          "tokens_estimated": 45,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3303,
+        "output_tokens_estimated": 3249,
+        "reads_count": 3,
+        "writes_count": 8,
+        "repeated_reads_blocked": 2,
+        "anatomy_lookups": 2
       }
     }
   ],

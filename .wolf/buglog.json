@@ -1263,6 +1263,25 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T19:53:29.471Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-06-05T21:55:00.000Z",
+      "error_message": "EAS Android production build failed: Could not resolve project :react-native-async-storage_async-storage / :react-native-community_netinfo / :react-native-safe-area-context / :react-native-screens; No matching variant; No variants exist.",
+      "file": ".easignore, apps/mobile/.easignore, .gitignore, apps/mobile/.gitignore, apps/mobile/package.json, apps/mobile/package-lock.json",
+      "root_cause": "EAS archived the checked-in native apps/mobile/android folder, so it skipped Expo prebuild and used stale native autolinking state. The archive also included tracked .expo local state, and Expo Router was one patch behind SDK 54's expected version.",
+      "fix": "Excluded apps/mobile/android and apps/mobile/.expo from the EAS archive, untracked generated .expo files, upgraded expo-router to ~6.0.24, and verified a temp archive can run expo prebuild to generate android/settings.gradle and android/app/build.gradle.",
+      "tags": [
+        "eas",
+        "android",
+        "expo",
+        "gradle",
+        "autolinking",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-05T21:55:00.000Z"
     }
   ]
 }

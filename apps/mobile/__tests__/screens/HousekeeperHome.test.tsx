@@ -56,6 +56,10 @@ const mockRooms = [
 
 const EN: Record<string, string> = {
   "home.greeting": "Morning, {{name}}.",
+  "home.shiftSuffix": "Day shift",
+  "home.roomsLeft": "{{count}} rooms left.",
+  "home.copilotPlanBefore": "I'd clean ",
+  "home.copilotPlanAfter": " first, then keep your VIP room fresh for check-in.",
   "home.shiftMeta": "Tue · May 26 · Day shift",
   "home.copilotKicker": "Your smart order",
   "home.startWith": "Start with {{room}}",

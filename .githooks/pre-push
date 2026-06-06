@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Runs before any push to main. Skips on all other branches.
+
+protected_branch="main"
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+[ "$current_branch" != "$protected_branch" ] && exit 0
+
+echo "pre-push: running checks before push to main..."
+
+(cd apps/api && ruff check .) || { echo ""; echo "BLOCKED: API lint failed — fix ruff errors before pushing."; exit 1; }
+echo "  ✓ API lint"
+
+(cd apps/web && npm run lint --silent 2>&1) || { echo ""; echo "BLOCKED: Web lint failed — fix ESLint errors before pushing."; exit 1; }
+echo "  ✓ Web lint"
+
+(cd apps/web && npm run type-check 2>&1) || { echo ""; echo "BLOCKED: TypeScript type-check failed — fix type errors before pushing."; exit 1; }
+echo "  ✓ Web type-check"
+
+echo ""
+echo "pre-push: all checks passed — pushing."

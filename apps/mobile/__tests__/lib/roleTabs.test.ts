@@ -20,6 +20,7 @@ describe("getTabsForRole", () => {
       "home",
       "board",
       "assignments",
+      "inspect",
       "copilot",
       "me",
     ]);
@@ -29,6 +30,7 @@ describe("getTabsForRole", () => {
     expect(getTabsForRole("chief_engineer").map((tab) => tab.key)).toEqual([
       "home",
       "orders",
+      "copilot",
       "assets",
       "pm",
       "me",
