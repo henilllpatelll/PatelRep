@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import pdfplumber
@@ -38,9 +38,12 @@ _HK_STATUS_MAP: dict[str, str] = {
 
 def _normalize_task(raw: str) -> Optional[str]:
     r = raw.strip().upper()
-    if r.startswith("DEP"):   return "DEP"
-    if r.startswith("FULL"):  return "FULL"
-    if r.startswith("LIGHT"): return "LIGHT"
+    if r.startswith("DEP"):
+        return "DEP"
+    if r.startswith("FULL"):
+        return "FULL"
+    if r.startswith("LIGHT"):
+        return "LIGHT"
     return None
 
 

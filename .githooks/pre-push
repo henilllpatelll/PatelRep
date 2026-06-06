@@ -8,7 +8,8 @@ current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 echo "pre-push: running checks before push to main..."
 
-(cd apps/api && ruff check .) || { echo ""; echo "BLOCKED: API lint failed — fix ruff errors before pushing."; exit 1; }
+if command -v ruff &>/dev/null; then RUFF="ruff"; else RUFF="python -m ruff"; fi
+(cd apps/api && $RUFF check .) || { echo ""; echo "BLOCKED: API lint failed — fix ruff errors before pushing."; exit 1; }
 echo "  ✓ API lint"
 
 (cd apps/web && npm run lint --silent 2>&1) || { echo ""; echo "BLOCKED: Web lint failed — fix ESLint errors before pushing."; exit 1; }
