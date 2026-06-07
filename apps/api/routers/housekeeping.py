@@ -478,8 +478,9 @@ async def get_my_rooms(
         return {"data": []}
 
     # Return current status for all rooms assigned today (all statuses, not filtered)
+    # room_status uses room_id as PK — there is no separate "id" column
     my_rooms_select = (
-        "id, room_id, tenant_id, status, assigned_to, "
+        "room_id, tenant_id, status, assigned_to, "
         "clean_type, vip_flag, dnd_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
         "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
@@ -508,8 +509,10 @@ async def get_my_rooms(
         assignment = assignment_map.get(room.get("room_id")) or {}
         clean_type = assignment.get("clean_type") or room.get("clean_type")
         nested_room = room.get("rooms") or {}
+        room_id = room.get("room_id", "")
         rows.append({
             **room,
+            "id": room_id,  # mobile app uses room.id for navigation / API calls
             "room_number": nested_room.get("room_number"),
             "floor": nested_room.get("floor"),
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
