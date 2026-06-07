@@ -446,14 +446,27 @@ async def get_my_rooms(
     # Accept client-supplied date (local hotel timezone) so Railway's UTC clock
     # doesn't cause a mismatch after 7 PM CST when date.today() rolls to tomorrow.
     today = assignment_date or date.today()
-    assignments = (
-        supabase.table("room_assignments")
-        .select("id, room_id, assignment_date, clean_type")
-        .eq("tenant_id", current_user.hotel_id)
-        .eq("assigned_to", current_user.user_id)
-        .eq("assignment_date", today.isoformat())
-        .execute()
-    )
+    try:
+        assignments = (
+            supabase.table("room_assignments")
+            .select("id, room_id, assignment_date, clean_type")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("assigned_to", current_user.user_id)
+            .eq("assignment_date", today.isoformat())
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_clean_type_column_error(exc):
+            raise
+        logger.warning("room_assignments.clean_type column missing; retrying without clean_type")
+        assignments = (
+            supabase.table("room_assignments")
+            .select("id, room_id, assignment_date")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("assigned_to", current_user.user_id)
+            .eq("assignment_date", today.isoformat())
+            .execute()
+        )
     assignment_rows = assignments.data or []
     assignment_map = {
         a["room_id"]: a
@@ -467,7 +480,7 @@ async def get_my_rooms(
     # Return current status for all rooms assigned today (all statuses, not filtered)
     my_rooms_select = (
         "id, room_id, tenant_id, status, assigned_to, "
-        "clean_type, vip_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
+        "clean_type, vip_flag, dnd_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
         "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
     )

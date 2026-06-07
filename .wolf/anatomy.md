@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T02:29:29.168Z
-> Files: 255 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T04:31:26.740Z
+> Files: 257 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -13,10 +13,11 @@
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
 - `feedback_platform_scope.md` (~185 tok)
-- `MEMORY.md` — PatelRep Project Memory (~312 tok)
+- `MEMORY.md` — PatelRep Project Memory (~386 tok)
 - `project_eas_build_status.md` (~352 tok)
 - `project_guest_requests_spec.md` — Guest Requests Redesign Spec (~451 tok)
 - `project_i18n_handoff.md` — Status: COMPLETE (2026-06-05) (~222 tok)
+- `project_rooms_debug.md` — Bug (~504 tok)
 - `project_status.md` — Declares in (~1006 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
@@ -486,7 +487,7 @@
 - `feedback.py` — 2 endpoints: POST (submit + GM notifications + webhook), GET (GM-only list); sends to feedback_webhook_url (~1420 tok)
 - `guest_requests.py` — 4 endpoints: create (auto-creates linked task), list, update (cascades to task), delete (cascades to task comments) (~1880 tok)
 - `hotels.py` — 6 endpoints: create hotel with Stripe customer + trial subscription, GET/PATCH hotel, GET stats, GET departments; seeds default departments on creation (~2160 tok)
-- `housekeeping.py` — Declares from (~17606 tok)
+- `housekeeping.py` — Declares from (~17768 tok)
 - `integrations.py` — 5 endpoints: POST opera/connect (OHIP token test + bootstrap), GET opera/status, POST opera/sync, POST opera/test, DELETE opera/disconnect (~1410 tok)
 - `internal.py` — 9 cron endpoints (X-Cron-Secret guarded): predictions/run, pm/check-due, ai/failure-predictions, billing/monthly-trueup, logbook/shift-summary, reports/daily-summary-email, opera/sync-reservations, escalations/check (3-tier ladder), logbook/cleanup-expired (~4510 tok)
 - `logbook.py` — 6 endpoints: CRUD logbook entries (with expires_at), GET/POST shift-summary (AI-generated) (~2010 tok)
@@ -576,12 +577,16 @@
 ## apps/mobile/android/
 
 - `build.gradle` — Root Android Gradle config: plugin versions and repositories for the native Expo project. (~150 tok)
-- `gradle.properties` — Project-wide Gradle settings. (~771 tok)
+- `gradle.properties` — Project-wide Gradle settings. (~769 tok)
 - `settings.gradle` — Native Gradle module registration and Expo/React Native autolinking setup. (~250 tok)
 
 ## apps/mobile/android/app/
 
 - `build.gradle` — Android app module Gradle config: Expo autolinking, React Native settings, package namespace, SDK versions, signing, and native dependencies. (~650 tok)
+
+## apps/mobile/android/gradle/wrapper/
+
+- `gradle-wrapper.properties` (~68 tok)
 
 ## apps/mobile/app/
 
@@ -632,7 +637,7 @@
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — formatETA (~3889 tok)
-- `index.tsx` — DONE_STATUSES (~2248 tok)
+- `index.tsx` — DONE_STATUSES (~2357 tok)
 
 ## apps/mobile/app/(app)/notifications/
 

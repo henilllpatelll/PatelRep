@@ -1370,6 +1370,30 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-06T00:00:00.000Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-06-07T00:00:00.000Z",
+      "error_message": "Failed to refresh rooms: [Error: HTTP 400] / no rooms assigned api error: HTTP 400",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "room_assignments query selects clean_type but has no fallback try/except. If migration 042_room_assignment_clean_type.sql is not applied, PostgREST throws APIError → main.py postgrest_exception_handler returns HTTP 400 with {\"error\":{\"code\":...,\"message\":...}} (no \"detail\" key) → mobile API client falls through to throw new Error(`HTTP ${status}`) = 'HTTP 400'. Secondary: dnd_flag was missing from my_rooms_select so DND rooms always showed generic subtitle.",
+      "fix": "Wrapped room_assignments query in try/except using existing _is_missing_clean_type_column_error fallback pattern (retries without clean_type). Added dnd_flag to my_rooms_select.",
+      "tags": ["mobile", "housekeeping", "my-rooms", "clean_type", "migration", "400", "postgrest"],
+      "related_bugs": ["bug-084"],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T00:00:00.000Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-06-06T22:30:00.000Z",
+      "error_message": "Task :react-native-screens:configureCMakeDebug[arm64-v8a] FAILED — WARNING: A restricted method in java.lang.System has been called",
+      "file": "apps/mobile/android/gradle.properties",
+      "root_cause": "System JDK is JDK 24 which restricts internal java.lang.System methods that React Native's CMake configuration calls. Gradle 8.14.3 enforces this as fatal. JDK 24 also causes 'Unsupported class file major version 68' with older Gradle/Groovy.",
+      "fix": "Added org.gradle.java.home=C:\\\\Program Files\\\\Microsoft\\\\jdk-21.0.3.9-hotspot to gradle.properties to pin the Gradle daemon to JDK 21 LTS. Gradle wrapper stays at 8.14.3.",
+      "tags": ["android", "gradle", "jdk", "cmake", "expo", "react-native", "mobile"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-06T22:30:00.000Z"
     }
   ]
 }

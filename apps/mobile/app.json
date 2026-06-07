@@ -16,7 +16,11 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.patelrep.app",
       "buildNumber": "1",
-      "newArchEnabled": true
+      "newArchEnabled": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow PatelRep to use speech recognition for voice commands.",
+        "NSMicrophoneUsageDescription": "Allow PatelRep to use the microphone for voice input."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +32,7 @@
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -78,6 +83,10 @@
         "projectId": "0fc41a33-8e3c-40cf-9114-26dc0b95d044"
       }
     },
-    "owner": "henilllpatelll"
+    "owner": "henilllpatelll",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/0fc41a33-8e3c-40cf-9114-26dc0b95d044"
+    }
   }
 }

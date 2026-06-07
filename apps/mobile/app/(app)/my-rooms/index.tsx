@@ -50,14 +50,18 @@ export default function MyRoomsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
       try {
         const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
         setMyRooms(result.data);
+        setApiError(null);
         await upsertRooms(result.data);
-      } catch {
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setApiError(msg);
         const cached = (await getRooms()) as Room[];
         setMyRooms(cached);
       }
@@ -135,6 +139,7 @@ export default function MyRoomsScreen() {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{myRooms.length === 0 ? t("rooms.noRooms") : "No rooms in this filter."}</Text>
             <Text style={styles.emptyText}>{myRooms.length === 0 ? "Pull to refresh if your supervisor adds assignments." : "Try another tab."}</Text>
+            {apiError ? <Text style={styles.errorText}>API error: {apiError}</Text> : null}
           </View>
         ) : (
           displayRooms.map((room, index) => (
@@ -183,6 +188,7 @@ const styles = StyleSheet.create({
   emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },
   emptyText: { color: C.ink3, fontSize: 12, marginTop: 4 },
+  errorText: { color: C.alert, fontSize: 11, marginTop: 6, fontFamily: "monospace" },
   rowTitle: { color: C.ink, fontSize: 13.5, fontWeight: "600" },
   meta: { color: C.ink3, fontSize: 10.5 },
   dimRow: { opacity: 0.58 },

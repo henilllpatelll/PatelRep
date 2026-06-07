@@ -1,4 +1,6 @@
 ﻿# Memory
+| 2026-06-07 | Fixed /my-rooms HTTP 400: room_assignments query selected clean_type with no fallback; migration 042 not applied causes PostgREST APIError → main.py converts to 400 with {"error":{}} (not {"detail":...}) → mobile shows "HTTP 400". Added try/except fallback mirroring room_status pattern. Also added dnd_flag to my_rooms_select. | apps/api/routers/housekeeping.py | complete | ~150 tok |
+| 2026-06-06 | Fixed Android build: JDK 24 breaks CMake config ("restricted method in java.lang.System"). Pinned Gradle daemon to JDK 21 via org.gradle.java.home in gradle.properties; wrapper stays at 8.14.3. BUILD SUCCESSFUL. | apps/mobile/android/gradle.properties | complete | ~100 tok |
 | 22:30 | Fixed Android SQLite "cannot rollback - no transaction is active" (race condition): NetInfo fires multiple times, syncOnConnect() called fire-and-forget causing concurrent withTransactionAsync calls that destroy each other's transactions. Fixed with promise-mutex for getDb(), _syncOnConnectInProgress guard, and PRAGMA moved to runAsync. | apps/mobile/lib/offline/db.ts, sync.ts | complete | ~200 tok |
 | 21:10 | CI/CD setup: replaced deploy.yml with ci.yml (lint, build, test, security, PR comment) + deploy-check.yml (health polling) | .github/workflows/ci.yml, .github/workflows/deploy-check.yml | complete | ~200 tok |
 | 2026-06-05 | AI Copilot extended actions: verified backend (ai_copilot.py detect_intent + 4 confirm endpoints + parsers) and frontend (AICopilotBubble response handlers + ambiguity chips + localStorage history) were already fully implemented; added missing 2c post-action close â€” `setTimeout(() => setOpen(false), 1200)` in all 4 confirm handlers. 206 API tests pass, web type-check clean. | apps/web/components/ai/AICopilotBubble.tsx | complete | ~300 tok |
@@ -4116,3 +4118,33 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 21:29 | Edited apps/api/routers/housekeeping.py | maybe_single() → in_() | ~126 |
 | 21:29 | Edited apps/api/routers/housekeeping.py | 3→3 lines | ~52 |
 | 21:29 | Session end: 2 writes across 1 files (housekeeping.py) | 12 reads | ~37311 tok |
+| 22:13 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: err, message | ~248 |
+| 22:13 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: error | ~133 |
+| 22:13 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: errorText, fontFamily | ~42 |
+| 22:14 | Session end: 5 writes across 2 files (housekeeping.py, index.tsx) | 13 reads | ~47954 tok |
+| 22:19 | Session end: 5 writes across 2 files (housekeeping.py, index.tsx) | 13 reads | ~47954 tok |
+| 22:21 | Session end: 5 writes across 2 files (housekeeping.py, index.tsx) | 13 reads | ~47954 tok |
+| 22:22 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md | — | ~523 |
+| 22:23 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 2→5 lines | ~78 |
+| 22:23 | Session end: 7 writes across 4 files (housekeeping.py, index.tsx, project_rooms_debug.md, MEMORY.md) | 14 reads | ~48598 tok |
+
+## Session: 2026-06-07 22:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:26 | Edited apps/mobile/android/gradle/wrapper/gradle-wrapper.properties | inline fix | ~22 |
+| 22:27 | Session end: 1 writes across 1 files (gradle-wrapper.properties) | 5 reads | ~1324 tok |
+| 22:29 | Edited apps/mobile/android/gradle.properties | 1→2 lines | ~34 |
+| 22:30 | Edited apps/mobile/android/gradle/wrapper/gradle-wrapper.properties | inline fix | ~22 |
+| 22:36 | Session end: 3 writes across 2 files (gradle-wrapper.properties, gradle.properties) | 5 reads | ~1383 tok |
+| 22:40 | Session end: 3 writes across 2 files (gradle-wrapper.properties, gradle.properties) | 5 reads | ~1383 tok |
+| 23:06 | Session end: 3 writes across 2 files (gradle-wrapper.properties, gradle.properties) | 5 reads | ~1383 tok |
+| 23:14 | Session end: 3 writes across 2 files (gradle-wrapper.properties, gradle.properties) | 11 reads | ~21726 tok |
+
+## Session: 2026-06-07 23:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:31 | Edited apps/api/routers/housekeeping.py | modified _is_missing_clean_type_column_error() | ~269 |
+| 23:31 | Edited apps/api/routers/housekeeping.py | 6→6 lines | ~89 |
+| 23:32 | Session end: 2 writes across 1 files (housekeeping.py) | 7 reads | ~21895 tok |
