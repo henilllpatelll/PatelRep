@@ -1,63 +1,12 @@
 {
-  "session_id": "session-2026-06-07-2323",
-  "started": "2026-06-07T04:23:51.063Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx": {
-      "count": 1,
-      "tokens": 2357,
-      "first_read": "2026-06-07T04:24:50.067Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts": {
-      "count": 1,
-      "tokens": 52,
-      "first_read": "2026-06-07T04:24:55.766Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T04:25:04.102Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
-      "count": 3,
-      "tokens": 17768,
-      "first_read": "2026-06-07T04:28:05.565Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py": {
-      "count": 1,
-      "tokens": 1360,
-      "first_read": "2026-06-07T04:28:32.521Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/004_rooms.sql": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-06-07T04:28:40.787Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/main.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T04:29:52.507Z"
-    }
-  },
-  "files_written": [
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
-      "action": "edit",
-      "tokens": 269,
-      "at": "2026-06-07T04:31:21.387Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
-      "action": "edit",
-      "tokens": 89,
-      "at": "2026-06-07T04:31:26.837Z"
-    }
-  ],
-  "edit_counts": {
-    "apps/api/routers/housekeeping.py": 2
-  },
-  "anatomy_hits": 4,
-  "anatomy_misses": 3,
-  "repeated_reads_warned": 3,
+  "session_id": "session-2026-06-07-2345",
+  "started": "2026-06-07T04:45:30.382Z",
+  "files_read": {},
+  "files_written": [],
+  "edit_counts": {},
+  "anatomy_hits": 0,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
   "stop_count": 1
 }
