@@ -56,9 +56,13 @@ export interface Room {
   checkout_time?: string | null;
   actual_checkout_at?: string | null;
   fo_status?: "OCC" | "VAC" | null;
+  clean_type?: string | null;
   updated_at?: string | null;
   last_cleaned_at?: string | null;
   last_inspected_at?: string | null;
+  rooms?: {
+    room_types?: { name?: string; base_clean_minutes?: number } | null;
+  } | null;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({

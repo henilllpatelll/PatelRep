@@ -133,6 +133,7 @@ export default function AppLayout() {
             name={name}
             options={{
               href: null,
+              headerShown: false,
               tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
             }}
             listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}

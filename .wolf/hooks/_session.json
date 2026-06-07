@@ -1,62 +1,32 @@
 {
-  "session_id": "session-2026-06-07-0105",
-  "started": "2026-06-07T06:05:04.717Z",
+  "session_id": "session-2026-06-07-1029",
+  "started": "2026-06-07T15:29:11.925Z",
   "files_read": {
-    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md": {
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/[roomId].tsx": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T06:07:49.202Z"
+      "tokens": 5295,
+      "first_read": "2026-06-07T15:30:58.056Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
       "count": 1,
-      "tokens": 2357,
-      "first_read": "2026-06-07T06:07:59.389Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
-      "count": 5,
-      "tokens": 17768,
-      "first_read": "2026-06-07T06:08:07.085Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T06:08:11.327Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts": {
-      "count": 1,
-      "tokens": 52,
-      "first_read": "2026-06-07T06:08:23.411Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/.env": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T06:09:00.171Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/main.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-07T06:09:53.308Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py": {
-      "count": 1,
-      "tokens": 1360,
-      "first_read": "2026-06-07T06:12:06.106Z"
+      "tokens": 12942,
+      "first_read": "2026-06-07T15:30:59.031Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/[roomId].tsx",
       "action": "edit",
-      "tokens": 555,
-      "at": "2026-06-07T06:13:56.715Z"
+      "tokens": 21,
+      "at": "2026-06-07T15:31:14.648Z"
     }
   ],
   "edit_counts": {
-    "apps/api/routers/housekeeping.py": 1
+    "apps/mobile/app/(app)/my-rooms/[roomId].tsx": 1
   },
-  "anatomy_hits": 4,
-  "anatomy_misses": 4,
-  "repeated_reads_warned": 4,
+  "anatomy_hits": 2,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 4
+  "stop_count": 1
 }

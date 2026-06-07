@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-06-07 | Fixed back button too high/unclickable in room detail: added useSafeAreaInsets, paddingTop: insets.top + 10 on navBar, replaced paddingVertical with paddingBottom. | apps/mobile/app/(app)/my-rooms/[roomId].tsx | complete | ~40 tok |
 | 2026-06-07 | Fixed /my-rooms HTTP 400 (root cause): room_status has no `id` column (PK is room_id). Selecting `id` → PostgreSQL 42703 → PostgREST APIError → main.py maps to 400. Removed `id` from my_rooms_select, added explicit `"id": room_id` in loop. Deployed to Railway. | apps/api/routers/housekeeping.py | complete | ~100 tok |
 | 2026-06-07 | Fixed /my-rooms HTTP 400: room_assignments query selected clean_type with no fallback; migration 042 not applied causes PostgREST APIError → main.py converts to 400 with {"error":{}} (not {"detail":...}) → mobile shows "HTTP 400". Added try/except fallback mirroring room_status pattern. Also added dnd_flag to my_rooms_select. | apps/api/routers/housekeeping.py | complete | ~150 tok |
 | 2026-06-06 | Fixed Android build: JDK 24 breaks CMake config ("restricted method in java.lang.System"). Pinned Gradle daemon to JDK 21 via org.gradle.java.home in gradle.properties; wrapper stays at 8.14.3. BUILD SUCCESSFUL. | apps/mobile/android/gradle.properties | complete | ~100 tok |
@@ -4169,3 +4170,100 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:27 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
 | 01:34 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
 | 01:42 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
+
+## Session: 2026-06-07 07:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:55 | Created apps/mobile/app/(app)/my-rooms/index.tsx | — | ~3488 |
+| 07:56 | Created apps/mobile/app/(app)/my-rooms/[roomId].tsx | — | ~5160 |
+| 07:57 | Edited apps/mobile/stores/appStore.ts | 7→8 lines | ~69 |
+| 07:57 | Redesigned mobile My Rooms + Room Detail to match web RoomCard / RoomDetailDrawer visual | my-rooms/index.tsx, [roomId].tsx, appStore.ts | done | ~3k |
+| 07:58 | Session end: 3 writes across 3 files (index.tsx, [roomId].tsx, appStore.ts) | 7 reads | ~36987 tok |
+
+## Session: 2026-06-07 08:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:12 | Edited apps/mobile/stores/appStore.ts | 19→22 lines | ~208 |
+| 08:13 | Created apps/mobile/app/(app)/my-rooms/index.tsx | — | ~5256 |
+|  | Rewrote mobile my-rooms/index.tsx to match web HousekeeperMyRoomsView: single-column list, summary counts, Start/Done/Undo action buttons, room type from nested rooms.room_types.name | apps/mobile/app/(app)/my-rooms/index.tsx, stores/appStore.ts | complete | ~450 tok |
+| 08:14 | Rewrote mobile my-rooms index to match web HousekeeperMyRoomsView: single-column list, summary counts, Start/Done/Undo action buttons, room type name | my-rooms/index.tsx, appStore.ts | complete | ~450 tok |
+| 08:14 | Session end: 2 writes across 2 files (appStore.ts, index.tsx) | 7 reads | ~38013 tok |
+| 08:18 | Session end: 2 writes across 2 files (appStore.ts, index.tsx) | 8 reads | ~38013 tok |
+| 08:18 | Session end: 2 writes across 2 files (appStore.ts, index.tsx) | 8 reads | ~38013 tok |
+| 08:19 | Session end: 2 writes across 2 files (appStore.ts, index.tsx) | 9 reads | ~38013 tok |
+| 08:26 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | added 1 condition(s) | ~86 |
+| 08:27 | Session end: 3 writes across 2 files (appStore.ts, index.tsx) | 9 reads | ~38099 tok |
+| 08:34 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 3→3 lines | ~33 |
+| 08:34 | Session end: 4 writes across 2 files (appStore.ts, index.tsx) | 9 reads | ~38132 tok |
+| 08:38 | Created apps/mobile/app/(app)/my-rooms/[roomId].tsx | — | ~5889 |
+| 08:38 | Session end: 5 writes across 3 files (appStore.ts, index.tsx, [roomId].tsx) | 11 reads | ~62085 tok |
+| 08:42 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | back() → push() | ~86 |
+| 08:42 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→2 lines | ~42 |
+| 08:42 | Session end: 7 writes across 3 files (appStore.ts, index.tsx, [roomId].tsx) | 11 reads | ~62942 tok |
+| 08:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 8→4 lines | ~76 |
+| 08:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→2 lines | ~42 |
+| 08:44 | Session end: 9 writes across 3 files (appStore.ts, index.tsx, [roomId].tsx) | 11 reads | ~63060 tok |
+| 08:53 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~27 |
+| 08:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: CLEAN_TYPE_SHORT | ~30 |
+| 08:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: color, alert | ~129 |
+| 08:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→3 lines | ~49 |
+| 08:54 | Session end: 13 writes across 3 files (appStore.ts, index.tsx, [roomId].tsx) | 11 reads | ~63255 tok |
+| 09:04 | Edited apps/mobile/app/(app)/_layout.tsx | CSS: headerShown | ~127 |
+| 09:04 | Session end: 14 writes across 4 files (appStore.ts, index.tsx, [roomId].tsx, _layout.tsx) | 12 reads | ~64786 tok |
+| 09:05 | Session end: 14 writes across 4 files (appStore.ts, index.tsx, [roomId].tsx, _layout.tsx) | 13 reads | ~66348 tok |
+
+## Session: 2026-06-07 09:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:07 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 import(s) | ~116 |
+| 09:07 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified RoomDetailScreen() | ~71 |
+| 09:07 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: paddingTop | ~59 |
+| 09:07 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: paddingBottom | ~63 |
+| 09:08 | Session end: 4 writes across 1 files ([roomId].tsx) | 2 reads | ~7692 tok |
+| 09:09 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | added 1 import(s) | ~88 |
+| 09:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | modified MyRoomsScreen() | ~54 |
+| 09:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: paddingTop | ~22 |
+| 09:10 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 20 → 12 | ~14 |
+| 09:10 | Session end: 8 writes across 2 files ([roomId].tsx, index.tsx) | 3 reads | ~13122 tok |
+| 09:13 | Session end: 8 writes across 2 files ([roomId].tsx, index.tsx) | 3 reads | ~13122 tok |
+| 09:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→2 lines | ~34 |
+| 09:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified performUndo() | ~177 |
+| 09:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 27 lines | ~26 |
+| 09:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 7 lines | ~5 |
+| 09:16 | Session end: 12 writes across 2 files ([roomId].tsx, index.tsx) | 3 reads | ~13403 tok |
+| 09:34 | Created apps/mobile/components/housekeeping/ReportIssueModal.tsx | — | ~2574 |
+| 09:34 | Created apps/mobile/lib/api/workOrders.ts | — | ~103 |
+| 09:34 | Session end: 14 writes across 4 files ([roomId].tsx, index.tsx, ReportIssueModal.tsx, workOrders.ts) | 6 reads | ~28984 tok |
+| 09:36 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | added 1 import(s) | ~135 |
+| 09:36 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | 2→3 lines | ~50 |
+| 09:37 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | modified if() | ~52 |
+| 09:37 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | added optional chaining | ~468 |
+| 09:37 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | expanded (+19 lines) | ~252 |
+| 09:37 | Session end: 19 writes across 4 files ([roomId].tsx, index.tsx, ReportIssueModal.tsx, workOrders.ts) | 6 reads | ~32546 tok |
+| 09:38 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | 10→10 lines | ~116 |
+| 09:38 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 10→10 lines | ~116 |
+| 09:38 | Session end: 21 writes across 5 files ([roomId].tsx, index.tsx, ReportIssueModal.tsx, workOrders.ts, RoomDetailDrawer.tsx) | 6 reads | ~32778 tok |
+| 09:39 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | inline fix | ~14 |
+| 09:39 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | inline fix | ~7 |
+| 09:40 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | modified handleSubmit() | ~22 |
+| 09:40 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | 3→3 lines | ~58 |
+| 09:40 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | inline fix | ~33 |
+| 09:40 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | 3→3 lines | ~61 |
+| 09:40 | Edited apps/mobile/components/housekeeping/ReportIssueModal.tsx | CSS: selectPlaceholder | ~25 |
+| 09:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~15 |
+| 09:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~6 |
+| 09:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~17 |
+| 09:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 11→12 lines | ~230 |
+| 09:40 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~22 |
+| 09:40 | Session end: 33 writes across 5 files ([roomId].tsx, index.tsx, ReportIssueModal.tsx, workOrders.ts, RoomDetailDrawer.tsx) | 6 reads | ~33288 tok |
+| 09:52 | Session end: 33 writes across 5 files ([roomId].tsx, index.tsx, ReportIssueModal.tsx, workOrders.ts, RoomDetailDrawer.tsx) | 6 reads | ~33288 tok |
+
+## Session: 2026-06-07 10:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:31 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | "construct-outline" → "build-outline" | ~21 |
+| 10:31 | Session end: 1 writes across 1 files ([roomId].tsx) | 2 reads | ~18258 tok |

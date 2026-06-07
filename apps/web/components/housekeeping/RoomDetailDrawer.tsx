@@ -34,14 +34,14 @@ import { Button } from '@/components/ui/Button'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
 
 const WO_CATEGORIES = [
-  { value: 'plumbing',    label: 'Plumbing' },
-  { value: 'electrical',  label: 'Electrical' },
-  { value: 'hvac',        label: 'HVAC / A/C' },
-  { value: 'furniture',   label: 'Furniture' },
   { value: 'appliance',   label: 'Appliance' },
-  { value: 'structural',  label: 'Structural' },
-  { value: 'safety',      label: 'Safety' },
+  { value: 'electrical',  label: 'Electrical' },
+  { value: 'furniture',   label: 'Furniture' },
   { value: 'general',     label: 'General' },
+  { value: 'hvac',        label: 'HVAC / A/C' },
+  { value: 'plumbing',    label: 'Plumbing' },
+  { value: 'safety',      label: 'Safety' },
+  { value: 'structural',  label: 'Structural' },
 ]
 
 interface Props {
@@ -198,7 +198,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
   const [woTitle, setWoTitle] = useState('')
-  const [woCategory, setWoCategory] = useState('general')
+  const [woCategory, setWoCategory] = useState('')
   const [woDescription, setWoDescription] = useState('')
   const [woPriority, setWoPriority] = useState<'urgent' | 'normal' | 'low'>('normal')
   const [woLoading, setWoLoading] = useState(false)
@@ -226,7 +226,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     setSaveTimeError(null)
     setWoOpen(false)
     setWoTitle('')
-    setWoCategory('general')
+    setWoCategory('')
     setWoDescription('')
     setWoPriority('normal')
     setWoSuccess(null)
@@ -255,7 +255,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   }
 
   async function handleCreateWorkOrder() {
-    if (!woTitle.trim() || !roomId) return
+    if (!woTitle.trim() || !woCategory || !roomId) return
     setWoLoading(true)
     setWoError(null)
     try {
@@ -268,7 +268,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       })
       setWoTitle('')
       setWoDescription('')
-      setWoCategory('general')
+      setWoCategory('')
       setWoPriority('normal')
       setWoOpen(false)
       const roomLabel = room?.rooms?.room_number ?? room?.room_number ?? roomId
@@ -748,13 +748,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label htmlFor="room-wo-category" className="block text-xs text-gray-500 mb-1">Category</label>
+                    <label htmlFor="room-wo-category" className="block text-xs text-gray-500 mb-1">Category <span className="text-[var(--alert)]">*</span></label>
                     <select
                       id="room-wo-category"
                       value={woCategory}
                       onChange={(e) => setWoCategory(e.target.value)}
                       className="w-full rounded-lg border border-gray-200 bg-surface/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     >
+                      <option value="" disabled>Select a category</option>
                       {WO_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>{c.label}</option>
                       ))}
@@ -791,7 +792,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     variant="primary"
                     className="text-xs px-3 py-1.5 flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600"
                     onClick={handleCreateWorkOrder}
-                    disabled={!woTitle.trim() || woLoading}
+                    disabled={!woTitle.trim() || !woCategory || woLoading}
                   >
                     {woLoading ? (
                       <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />

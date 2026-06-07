@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T06:13:56.677Z
-> Files: 257 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T15:31:14.621Z
+> Files: 259 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -594,7 +594,7 @@
 
 ## apps/mobile/app/(app)/
 
-- `_layout.tsx` — AppLayout (~1404 tok)
+- `_layout.tsx` — AppLayout (~1414 tok)
 
 ## apps/mobile/app/(app)/alerts/
 
@@ -636,8 +636,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — formatETA (~3889 tok)
-- `index.tsx` — DONE_STATUSES (~2357 tok)
+- `[roomId].tsx` — STATUS_COLOR (~5294 tok)
+- `index.tsx` — STATUS_PRIORITY (~5291 tok)
 
 ## apps/mobile/app/(app)/notifications/
 
@@ -687,6 +687,7 @@
 
 ## apps/mobile/components/housekeeping/
 
+- `ReportIssueModal.tsx` — CATEGORIES — renders modal (~3064 tok)
 
 ## apps/mobile/components/shared/
 
@@ -717,6 +718,7 @@
 - `scheduling.ts` — Exports ShiftAssignment, mySchedule (~146 tok)
 - `sop.ts` — Exports SOPDocument, SOPQueryResult, listDocuments, getDocument, querySOPs (~282 tok)
 - `staff.ts` — Exports StaffMember, getStaff (~110 tok)
+- `workOrders.ts` — Exports CreateWorkOrderPayload, createWorkOrder (~103 tok)
 
 ## apps/mobile/lib/navigation/
 
@@ -733,7 +735,7 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1190 tok)
+- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1226 tok)
 
 ## apps/web/
 
@@ -903,7 +905,7 @@
 
 - `InspectionModal.tsx` — calcOverallResult (~4817 tok)
 - `RoomCard.tsx` — STATUS_BORDER (~3562 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~12904 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~12942 tok)
 - `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~7070 tok)
 
 ## apps/web/components/settings/
