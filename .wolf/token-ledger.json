@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 12187675,
-    "total_reads": 6675,
-    "total_writes": 4936,
-    "total_sessions": 250,
-    "anatomy_hits": 2587,
-    "anatomy_misses": 3975,
-    "repeated_reads_blocked": 2244,
-    "estimated_savings_vs_bare_cli": 11130939
+    "total_tokens_estimated": 12279051,
+    "total_reads": 6714,
+    "total_writes": 4940,
+    "total_sessions": 254,
+    "anatomy_hits": 2608,
+    "anatomy_misses": 3993,
+    "repeated_reads_blocked": 2260,
+    "estimated_savings_vs_bare_cli": 11419427
   },
   "sessions": [
     {
@@ -75195,6 +75195,392 @@
         "reads_count": 7,
         "writes_count": 2,
         "repeated_reads_blocked": 3,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-06-07-2355",
+      "started": "2026-06-07T04:55:16.823Z",
+      "ended": "2026-06-07T04:57:05.168Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 559,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 559,
+        "output_tokens_estimated": 0,
+        "reads_count": 1,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-07-2355",
+      "started": "2026-06-07T04:55:16.823Z",
+      "ended": "2026-06-07T05:07:34.140Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 559,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 559,
+        "output_tokens_estimated": 0,
+        "reads_count": 1,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-07-2355",
+      "started": "2026-06-07T04:55:16.823Z",
+      "ended": "2026-06-07T05:17:16.211Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 559,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/a24439d1-3816-438d-9bfe-bec28dc191fa/tasks/bmkyephyg.output",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 559,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-07-2355",
+      "started": "2026-06-07T04:55:16.823Z",
+      "ended": "2026-06-07T05:52:17.216Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 559,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/a24439d1-3816-438d-9bfe-bec28dc191fa/tasks/bmkyephyg.output",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/eas.json",
+          "tokens_estimated": 772,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1331,
+        "output_tokens_estimated": 0,
+        "reads_count": 3,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-07-0105",
+      "started": "2026-06-07T06:05:04.717Z",
+      "ended": "2026-06-07T06:19:30.743Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2357,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 17768,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+          "tokens_estimated": 52,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/.env",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 1360,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 555,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 21537,
+        "output_tokens_estimated": 555,
+        "reads_count": 8,
+        "writes_count": 1,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-06-07-0105",
+      "started": "2026-06-07T06:05:04.717Z",
+      "ended": "2026-06-07T06:27:29.662Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2357,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 17768,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+          "tokens_estimated": 52,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/.env",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 1360,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 555,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 21537,
+        "output_tokens_estimated": 555,
+        "reads_count": 8,
+        "writes_count": 1,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-06-07-0105",
+      "started": "2026-06-07T06:05:04.717Z",
+      "ended": "2026-06-07T06:34:03.984Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2357,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 17768,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+          "tokens_estimated": 52,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/.env",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 1360,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 555,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 21537,
+        "output_tokens_estimated": 555,
+        "reads_count": 8,
+        "writes_count": 1,
+        "repeated_reads_blocked": 4,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-06-07-0105",
+      "started": "2026-06-07T06:05:04.717Z",
+      "ended": "2026-06-07T06:42:32.262Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_rooms_debug.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2357,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 17768,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+          "tokens_estimated": 52,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/.env",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 1360,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 555,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 21537,
+        "output_tokens_estimated": 555,
+        "reads_count": 8,
+        "writes_count": 1,
+        "repeated_reads_blocked": 4,
         "anatomy_lookups": 4
       }
     }

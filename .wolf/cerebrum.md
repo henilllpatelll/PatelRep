@@ -133,6 +133,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-06-07] **`my_rooms_select` must NOT include `id` — room_status uses `room_id` as PK** — Selecting `id` from `room_status` causes PostgreSQL error 42703 (undefined_column) → PostgREST APIError → main.py maps non-PGRST204 errors to HTTP 400. Mobile sees "HTTP 400" because the body is `{error:{}}` not `{detail:...}`. Fix: use `room_id` in select, then add `"id": room["room_id"]` in the loop so mobile navigation (`room.id`) works.
+
 - [2026-06-06] **`/my-rooms` and `_ensure_housekeeper` must allow both `housekeeper` and `housekeeping_supervisor`** — The web HousekeeperBar lists both roles for assignment. Restricting only `housekeeper` in API means supervisors get 403 on mobile (rooms don't show) and their assignments silently fail to save. Always use `.in_("role", ["housekeeper", "housekeeping_supervisor"])` and `require_role("housekeeper", "housekeeping_supervisor")` in the housekeeping assignment flow.
 
 - **2026-06-05: Use PowerShell literal paths for Next route groups.** Paths like `apps/web/app/(dashboard)/tasks/page.tsx` must be read with `Get-Content -LiteralPath 'apps/web/app/(dashboard)/tasks/page.tsx'` or passed as quoted rg arguments; unescaped parentheses make PowerShell treat `(dashboard)` as an expression.

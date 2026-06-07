@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-06-07 | Fixed /my-rooms HTTP 400 (root cause): room_status has no `id` column (PK is room_id). Selecting `id` → PostgreSQL 42703 → PostgREST APIError → main.py maps to 400. Removed `id` from my_rooms_select, added explicit `"id": room_id` in loop. Deployed to Railway. | apps/api/routers/housekeeping.py | complete | ~100 tok |
 | 2026-06-07 | Fixed /my-rooms HTTP 400: room_assignments query selected clean_type with no fallback; migration 042 not applied causes PostgREST APIError → main.py converts to 400 with {"error":{}} (not {"detail":...}) → mobile shows "HTTP 400". Added try/except fallback mirroring room_status pattern. Also added dnd_flag to my_rooms_select. | apps/api/routers/housekeeping.py | complete | ~150 tok |
 | 2026-06-06 | Fixed Android build: JDK 24 breaks CMake config ("restricted method in java.lang.System"). Pinned Gradle daemon to JDK 21 via org.gradle.java.home in gradle.properties; wrapper stays at 8.14.3. BUILD SUCCESSFUL. | apps/mobile/android/gradle.properties | complete | ~100 tok |
 | 22:30 | Fixed Android SQLite "cannot rollback - no transaction is active" (race condition): NetInfo fires multiple times, syncOnConnect() called fire-and-forget causing concurrent withTransactionAsync calls that destroy each other's transactions. Fixed with promise-mutex for getDb(), _syncOnConnectInProgress guard, and PRAGMA moved to runAsync. | apps/mobile/lib/offline/db.ts, sync.ts | complete | ~200 tok |
@@ -4158,3 +4159,13 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-06-07 01:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:13 | Edited apps/api/routers/housekeeping.py | modified _is_missing_clean_type_column_error() | ~555 |
+| 01:19 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
+| 01:27 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
+| 01:34 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
+| 01:42 | Session end: 1 writes across 1 files (housekeeping.py) | 8 reads | ~22092 tok |
