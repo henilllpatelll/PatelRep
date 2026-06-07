@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 11908810,
-    "total_reads": 6572,
-    "total_writes": 4897,
+    "total_tokens_estimated": 11946121,
+    "total_reads": 6584,
+    "total_writes": 4899,
     "total_sessions": 246,
-    "anatomy_hits": 2515,
-    "anatomy_misses": 3944,
-    "repeated_reads_blocked": 2216,
-    "estimated_savings_vs_bare_cli": 10664753
+    "anatomy_hits": 2524,
+    "anatomy_misses": 3947,
+    "repeated_reads_blocked": 2221,
+    "estimated_savings_vs_bare_cli": 10749803
   },
   "sessions": [
     {
@@ -74196,6 +74196,105 @@
         "writes_count": 3,
         "repeated_reads_blocked": 1,
         "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-06-07-2116",
+      "started": "2026-06-07T02:16:03.210Z",
+      "ended": "2026-06-07T02:29:57.938Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 2248,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 16650,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts",
+          "tokens_estimated": 1544,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/housekeeping/page.tsx",
+          "tokens_estimated": 6248,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py",
+          "tokens_estimated": 1360,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/stores/housekeepingStore.ts",
+          "tokens_estimated": 1176,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/stores/appStore.ts",
+          "tokens_estimated": 1190,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/019_jwt_hook.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/022_jwt_hook_null_role.sql",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+          "tokens_estimated": 52,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+          "tokens_estimated": 6665,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 126,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+          "tokens_estimated": 52,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 37133,
+        "output_tokens_estimated": 178,
+        "reads_count": 12,
+        "writes_count": 2,
+        "repeated_reads_blocked": 5,
+        "anatomy_lookups": 9
       }
     }
   ],

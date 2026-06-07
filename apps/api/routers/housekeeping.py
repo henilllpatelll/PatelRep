@@ -88,22 +88,13 @@ def _ensure_housekeeper(user_id: str, hotel_id: str) -> None:
         .select("id")\
         .eq("user_id", user_id)\
         .eq("tenant_id", hotel_id)\
-        .eq("role", "housekeeper")\
+        .in_("role", ["housekeeper", "housekeeping_supervisor"])\
         .eq("is_active", True)\
         .limit(1)\
         .execute()
     if result.data:
         return
-    # Fallback for staff added before user_roles was fully populated — verify
-    # hotel membership via user_profiles instead of raising 404.
-    profile = supabase.table("user_profiles")\
-        .select("id")\
-        .eq("id", user_id)\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
-        .execute()
-    if not profile or not profile.data:
-        raise HTTPException(status_code=404, detail="Housekeeper not found")
+    raise HTTPException(status_code=404, detail="Housekeeper not found")
 
 
 def _clean_type_payload(clean_type: str | None) -> dict:
@@ -450,7 +441,7 @@ async def get_housekeeping_board(
 @router.get("/my-rooms")
 async def get_my_rooms(
     assignment_date: Optional[date] = Query(None, alias="date"),
-    current_user: CurrentUser = Depends(require_role("housekeeper")),
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
 ):
     # Accept client-supplied date (local hotel timezone) so Railway's UTC clock
     # doesn't cause a mismatch after 7 PM CST when date.today() rolls to tomorrow.

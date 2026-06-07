@@ -133,6 +133,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-06-06] **`/my-rooms` and `_ensure_housekeeper` must allow both `housekeeper` and `housekeeping_supervisor`** — The web HousekeeperBar lists both roles for assignment. Restricting only `housekeeper` in API means supervisors get 403 on mobile (rooms don't show) and their assignments silently fail to save. Always use `.in_("role", ["housekeeper", "housekeeping_supervisor"])` and `require_role("housekeeper", "housekeeping_supervisor")` in the housekeeping assignment flow.
+
 - **2026-06-05: Use PowerShell literal paths for Next route groups.** Paths like `apps/web/app/(dashboard)/tasks/page.tsx` must be read with `Get-Content -LiteralPath 'apps/web/app/(dashboard)/tasks/page.tsx'` or passed as quoted rg arguments; unescaped parentheses make PowerShell treat `(dashboard)` as an expression.
 - [2026-06-05] **Mobile auth redirect after login must go to `/(app)/home`, not `/(app)/my-rooms`** — Engineers and chief_engineers do not have a `my-rooms` tab. Redirecting them to that route lands them on a tab outside their role's visible set. Always redirect to `/(app)/home` which exists in all role configs. File: `apps/mobile/app/(auth)/_layout.tsx`.
 

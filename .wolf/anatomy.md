@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T01:32:41.752Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T02:29:29.168Z
 > Files: 255 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -486,7 +486,7 @@
 - `feedback.py` — 2 endpoints: POST (submit + GM notifications + webhook), GET (GM-only list); sends to feedback_webhook_url (~1420 tok)
 - `guest_requests.py` — 4 endpoints: create (auto-creates linked task), list, update (cascades to task), delete (cascades to task comments) (~1880 tok)
 - `hotels.py` — 6 endpoints: create hotel with Stripe customer + trial subscription, GET/PATCH hotel, GET stats, GET departments; seeds default departments on creation (~2160 tok)
-- `housekeeping.py` — 20+ endpoints: GET board, GET my-rooms, GET/POST/DELETE assignments, POST ai-suggest-assignments, GET predictions, ready-for-inspection, ready-to-strip, POST inspections, GET/POST/PATCH/DELETE inspection templates, POST import/hk-details and import/task-sheet (Opera PDF parsing) (~16650 tok)
+- `housekeeping.py` — Declares from (~17606 tok)
 - `integrations.py` — 5 endpoints: POST opera/connect (OHIP token test + bootstrap), GET opera/status, POST opera/sync, POST opera/test, DELETE opera/disconnect (~1410 tok)
 - `internal.py` — 9 cron endpoints (X-Cron-Secret guarded): predictions/run, pm/check-due, ai/failure-predictions, billing/monthly-trueup, logbook/shift-summary, reports/daily-summary-email, opera/sync-reservations, escalations/check (3-tier ladder), logbook/cleanup-expired (~4510 tok)
 - `logbook.py` — 6 endpoints: CRUD logbook entries (with expires_at), GET/POST shift-summary (AI-generated) (~2010 tok)
