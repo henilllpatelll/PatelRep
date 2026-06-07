@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-06T21:51:32.586Z
-> Files: 256 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T01:32:41.752Z
+> Files: 255 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -422,7 +422,7 @@
 
 ## .githooks/
 
-- `pre-push` — Runs before any push to main. Skips on all other branches. (~212 tok)
+- `pre-push` — Runs before any push to main. Skips on all other branches. (~234 tok)
 
 ## .github/workflows/
 
@@ -505,7 +505,7 @@
 ## apps/api/services/
 
 - `housekeeping_assignments.py` — `room_status_for_clean_type` and `effective_room_status` shared helpers for PICKUP/DEP/FULL/LIGHT clean type logic (~240 tok)
-- `opera_pdf.py` — `parse_hk_details(pdf_bytes)` and `parse_task_sheet(pdf_bytes)` using pdfplumber; column x-ratio parsing; returns `HKDetailsRow`/`TaskSheetRow` dataclasses + warnings list (~2350 tok)
+- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2389 tok)
 - `policy.py` — `check_action_permitted(action, role)` deterministic RBAC gate; `_ROLE_RANK` dict; no LLM involved (~440 tok)
 
 ## apps/api/services/ai/
@@ -719,8 +719,8 @@
 
 ## apps/mobile/lib/offline/
 
-- `db.ts` — Exports getDb, upsertRooms, getRooms, enqueueAction + 3 more (~1537 tok)
-- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~737 tok)
+- `db.ts` — Promise-mutex: all concurrent getDb() calls share one initialization promise. (~1724 tok)
+- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~840 tok)
 
 ## apps/mobile/lib/utils/
 

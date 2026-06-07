@@ -11,14 +11,23 @@ import { localDate } from "@/lib/utils/date";
 import type { Room } from "@/stores/appStore";
 
 let _syncInProgress = false;
+let _syncOnConnectInProgress = false;
 
 export async function syncOnConnect(): Promise<void> {
-  const state = await NetInfo.fetch();
-  if (!state.isConnected) return;
-  // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
-  await useAppStore.getState().flushQueue();
-  await flushSyncQueue();
-  await refreshRooms();
+  // Guard against concurrent calls — NetInfo fires multiple times on Android.
+  // Two concurrent withTransactionAsync on the same connection destroy each other.
+  if (_syncOnConnectInProgress) return;
+  _syncOnConnectInProgress = true;
+  try {
+    const state = await NetInfo.fetch();
+    if (!state.isConnected) return;
+    // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
+    await useAppStore.getState().flushQueue();
+    await flushSyncQueue();
+    await refreshRooms();
+  } finally {
+    _syncOnConnectInProgress = false;
+  }
 }
 
 export async function flushSyncQueue(): Promise<void> {

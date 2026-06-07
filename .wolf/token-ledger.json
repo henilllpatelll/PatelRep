@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 11895900,
-    "total_reads": 6542,
-    "total_writes": 4884,
-    "total_sessions": 241,
-    "anatomy_hits": 2500,
-    "anatomy_misses": 3929,
-    "repeated_reads_blocked": 2213,
-    "estimated_savings_vs_bare_cli": 10658655
+    "total_tokens_estimated": 11908810,
+    "total_reads": 6572,
+    "total_writes": 4897,
+    "total_sessions": 246,
+    "anatomy_hits": 2515,
+    "anatomy_misses": 3944,
+    "repeated_reads_blocked": 2216,
+    "estimated_savings_vs_bare_cli": 10664753
   },
   "sessions": [
     {
@@ -73802,6 +73802,400 @@
         "writes_count": 8,
         "repeated_reads_blocked": 2,
         "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-06-1709",
+      "started": "2026-06-06T22:09:10.805Z",
+      "ended": "2026-06-06T22:11:37.418Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 212,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 56,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 212,
+        "output_tokens_estimated": 56,
+        "reads_count": 1,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-06-1709",
+      "started": "2026-06-06T22:09:10.805Z",
+      "ended": "2026-06-06T22:13:55.973Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 212,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 56,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 66,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 58,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 212,
+        "output_tokens_estimated": 180,
+        "reads_count": 1,
+        "writes_count": 3,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-06-1709",
+      "started": "2026-06-06T22:09:10.805Z",
+      "ended": "2026-06-06T22:15:37.967Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 212,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 2350,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 56,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 66,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.githooks/pre-push",
+          "tokens_estimated": 58,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 10,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/opera_pdf.py",
+          "tokens_estimated": 44,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 2562,
+        "output_tokens_estimated": 234,
+        "reads_count": 2,
+        "writes_count": 5,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-06-1734",
+      "started": "2026-06-06T22:34:28.346Z",
+      "ended": "2026-06-06T22:35:04.746Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 3,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-06-06-1734",
+      "started": "2026-06-06T22:34:28.346Z",
+      "ended": "2026-06-06T22:36:18.830Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/supabase.ts",
+          "tokens_estimated": 328,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 328,
+        "output_tokens_estimated": 0,
+        "reads_count": 5,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-06-06-1734",
+      "started": "2026-06-06T22:34:28.346Z",
+      "ended": "2026-06-06T22:55:24.345Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/supabase.ts",
+          "tokens_estimated": 328,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts",
+          "tokens_estimated": 737,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1065,
+        "output_tokens_estimated": 0,
+        "reads_count": 6,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-06-1734",
+      "started": "2026-06-06T22:34:28.346Z",
+      "ended": "2026-06-07T00:11:52.244Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_i18n_handoff.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_eas_build_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_status.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/supabase.ts",
+          "tokens_estimated": 328,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts",
+          "tokens_estimated": 737,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/package.json",
+          "tokens_estimated": 380,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1445,
+        "output_tokens_estimated": 0,
+        "reads_count": 7,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 3
+      }
+    },
+    {
+      "id": "session-2026-06-07-1947",
+      "started": "2026-06-07T00:47:31.632Z",
+      "ended": "2026-06-07T00:49:16.301Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/db.ts",
+          "tokens_estimated": 1537,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts",
+          "tokens_estimated": 737,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/db.ts",
+          "tokens_estimated": 134,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 2274,
+        "output_tokens_estimated": 134,
+        "reads_count": 2,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-06-07-1947",
+      "started": "2026-06-07T00:47:31.632Z",
+      "ended": "2026-06-07T01:33:38.221Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/db.ts",
+          "tokens_estimated": 1624,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts",
+          "tokens_estimated": 737,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx",
+          "tokens_estimated": 1338,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/db.ts",
+          "tokens_estimated": 134,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/db.ts",
+          "tokens_estimated": 177,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts",
+          "tokens_estimated": 198,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3699,
+        "output_tokens_estimated": 509,
+        "reads_count": 3,
+        "writes_count": 3,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 3
       }
     }
   ],

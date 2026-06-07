@@ -1,18 +1,32 @@
 import * as SQLite from "expo-sqlite";
 
-let _db: SQLite.SQLiteDatabase | null = null;
+// Promise-mutex: all concurrent getDb() calls share one initialization promise.
+// Prevents two callers racing to open + init the DB on the same connection.
+let _dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (_db) return _db;
-  _db = await SQLite.openDatabaseAsync("patelrep.db");
-  await initSchema(_db);
-  return _db;
+export function getDb(): Promise<SQLite.SQLiteDatabase> {
+  if (!_dbPromise) {
+    _dbPromise = SQLite.openDatabaseAsync("patelrep.db")
+      .then(async (db) => {
+        await initSchema(db);
+        return db;
+      })
+      .catch((err) => {
+        _dbPromise = null; // allow retry on next call
+        throw err;
+      });
+  }
+  return _dbPromise;
 }
 
 async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
+  // PRAGMA journal_mode = WAL cannot run inside a transaction.
+  // execAsync on Android wraps its batch in an implicit transaction, which causes
+  // "cannot rollback - no transaction is active" when the PRAGMA aborts it.
+  // Run it separately first, outside any transaction context.
+  await db.runAsync("PRAGMA journal_mode = WAL");
 
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS rooms (
       id TEXT PRIMARY KEY,
       room_number TEXT NOT NULL,

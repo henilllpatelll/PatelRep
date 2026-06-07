@@ -1282,6 +1282,60 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-05T21:55:00.000Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-06-06T22:30:00.000Z",
+      "error_message": "Failed to refresh rooms: Call to function 'NativeDatabase.execAsync' has been rejected. → Caused by: cannot rollback - no transaction is active",
+      "file": "apps/mobile/lib/offline/db.ts, apps/mobile/lib/offline/sync.ts",
+      "root_cause": "Race condition: NetInfo fires isConnected=true multiple times on Android; syncOnConnect() is fire-and-forget (no await) in the listener. Two concurrent withTransactionAsync calls on the same SQLite connection: the second BEGIN fails ('cannot start transaction within transaction'), its catch calls ROLLBACK which silently kills the first call's transaction, then the first call's own ROLLBACK fails with 'cannot rollback - no transaction is active'. Secondary: getDb() set _db before initSchema() finished, so concurrent callers got a partially-initialized DB.",
+      "fix": "(1) Added _syncOnConnectInProgress guard to syncOnConnect() so concurrent calls bail early. (2) Replaced _db singleton with a promise-mutex (_dbPromise) so all concurrent getDb() callers share one init promise and wait for initSchema to complete. (3) Moved PRAGMA journal_mode = WAL to a standalone runAsync before the execAsync batch.",
+      "tags": [
+        "sqlite",
+        "mobile",
+        "android",
+        "race-condition",
+        "transaction",
+        "expo-sqlite",
+        "netinfo"
+      ],
+      "related_bugs": [
+        "bug-029"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-06-06T22:30:00.000Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-06-06T22:11:34.258Z",
+      "error_message": "Incorrect value in code",
+      "file": ".githooks/pre-push",
+      "root_cause": "Had \"; echo \"",
+      "fix": "Changed to \"../../.venv/Scripts/ruff\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "unknown"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-06T22:13:53.518Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-06-07T01:32:33.416Z",
+      "error_message": "Missing error handling in getDb",
+      "file": "apps/mobile/lib/offline/db.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T01:32:33.416Z"
     }
   ]
 }

@@ -1,4 +1,5 @@
 ﻿# Memory
+| 22:30 | Fixed Android SQLite "cannot rollback - no transaction is active" (race condition): NetInfo fires multiple times, syncOnConnect() called fire-and-forget causing concurrent withTransactionAsync calls that destroy each other's transactions. Fixed with promise-mutex for getDb(), _syncOnConnectInProgress guard, and PRAGMA moved to runAsync. | apps/mobile/lib/offline/db.ts, sync.ts | complete | ~200 tok |
 | 21:10 | CI/CD setup: replaced deploy.yml with ci.yml (lint, build, test, security, PR comment) + deploy-check.yml (health polling) | .github/workflows/ci.yml, .github/workflows/deploy-check.yml | complete | ~200 tok |
 | 2026-06-05 | AI Copilot extended actions: verified backend (ai_copilot.py detect_intent + 4 confirm endpoints + parsers) and frontend (AICopilotBubble response handlers + ambiguity chips + localStorage history) were already fully implemented; added missing 2c post-action close â€” `setTimeout(() => setOpen(false), 1200)` in all 4 confirm handlers. 206 API tests pass, web type-check clean. | apps/web/components/ai/AICopilotBubble.tsx | complete | ~300 tok |
 | 2026-06-05 | Fix 1: useStateâ†’useEffect on 5 screens (alerts, pm-schedules, room-board, room-status, staff). Fix 2: Supabase Realtime on room-board (room_status table). Fix 3: Supabase Realtime on assignments (room_assignments table). Phase 8: Copilot enhanced â€” AsyncStorage persistence (last 20 msgs @patelrep/copilot_history), role in every POST, work_order_preview + guest_request_preview inline confirm cards, typing indicator. type-check clean. | apps/mobile/app/(app)/alerts/index.tsx, pm-schedules/index.tsx, room-board/index.tsx, room-status/index.tsx, staff/index.tsx, assignments/index.tsx, copilot/index.tsx | complete | ~900 tok |
@@ -4071,6 +4072,44 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 17:06 | Session end: 8 writes across 6 files (ci.yml, deploy-check.yml, pre-push, package.json, ship.mjs) | 3 reads | ~6552 tok |
 
 ## Session: 2026-06-06 17:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:11 | Edited .githooks/pre-push | 1→2 lines | ~52 |
+| 17:11 | Session end: 1 writes across 1 files (pre-push) | 1 reads | ~268 tok |
+| 17:13 | Edited .githooks/pre-push | 2→2 lines | ~62 |
+| 17:13 | Edited .githooks/pre-push | 2→2 lines | ~54 |
+| 17:13 | Session end: 3 writes across 1 files (pre-push) | 1 reads | ~392 tok |
+| 17:14 | Edited apps/api/services/opera_pdf.py | inline fix | ~10 |
+| 17:15 | Edited apps/api/services/opera_pdf.py | modified startswith() | ~44 |
+| 17:15 | Session end: 5 writes across 2 files (pre-push, opera_pdf.py) | 2 reads | ~2796 tok |
+
+## Session: 2026-06-06 17:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-07 19:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-07 19:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-07 19:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:48 | Edited apps/mobile/lib/offline/db.ts | modified initSchema() | ~134 |
+| 19:49 | Session end: 1 writes across 1 files (db.ts) | 2 reads | ~2408 tok |
+| 20:32 | Edited apps/mobile/lib/offline/db.ts | added error handling | ~177 |
+| 20:32 | Edited apps/mobile/lib/offline/sync.ts | added 1 condition(s) | ~198 |
+| 20:33 | Session end: 3 writes across 2 files (db.ts, sync.ts) | 3 reads | ~4208 tok |
+
+## Session: 2026-06-07 21:16
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
