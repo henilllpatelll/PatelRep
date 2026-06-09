@@ -204,7 +204,9 @@
     "groupNow": "Ahora",
     "groupBeforeNoon": "Antes del mediodía",
     "groupAfternoon": "Esta tarde",
-    "footerHint": "El Copiloto mantiene el orden según tu recorrido."
+    "footerHint": "El Copiloto mantiene el orden según tu recorrido.",
+    "emptyTitle": "Sin tareas asignadas",
+    "emptyMeta": "Tu supervisor añadirá tareas aquí cuando comience tu turno."
   },
   "profile": {
     "title": "Perfil",

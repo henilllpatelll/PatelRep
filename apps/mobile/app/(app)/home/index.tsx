@@ -25,7 +25,6 @@ import {
   Mono,
   Pill,
   ProgressRing,
-  RoomNumberTile,
   SectionLabel,
 } from "@/components/shared/mobileHandoff";
 
@@ -37,16 +36,29 @@ const ENGINEER_ORDERS = [
 
 const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
-function firstName(name?: string | null) {
-  return name?.trim().split(/\s+/)[0] || "there";
+const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; border: string }> = {
+  DIRTY:         { label: "Vacant Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
+  OCCUPIED:      { label: "Occupied Dirty",                bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
+  PICKUP:        { label: "Pickup",                        bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  IN_PROGRESS:   { label: "In Progress",                   bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  CLEAN:         { label: "Clean",                         bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
+  INSPECTED:     { label: "Inspected / Ready",             bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
+  OOO:           { label: "Out of Order",                  bg: C.surface3,    fg: C.ink3,    border: C.line },
+  OUT_OF_ORDER:  { label: "Out of Order",                  bg: C.surface3,    fg: C.ink3,    border: C.line },
+  OUT_OF_SERVICE:{ label: "Out of Service",                bg: C.surface3,    fg: C.ink3,    border: C.line },
+};
+
+const CLEAN_TYPE_SHORT: Record<string, string> = { DEP: "Departure", FULL: "Full", LIGHT: "Light" };
+
+function formatCheckoutTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  } catch { return null; }
 }
 
-function roomSubtitle(room: Room) {
-  const type = room.vip_flag ? "Suite" : room.status === "PICKUP" ? "Stay-over" : "Queen";
-  if (room.vip_flag) return `${type} · VIP arrival`;
-  if (room.status === "DIRTY") return `${type} · Checkout`;
-  if (room.status === "IN_PROGRESS") return `${type} · Stay-over`;
-  return `${type} · Room`;
+function firstName(name?: string | null) {
+  return name?.trim().split(/\s+/)[0] || "there";
 }
 
 function roomMeta(room: Room, index: number) {
@@ -54,13 +66,6 @@ function roomMeta(room: Room, index: number) {
   if (index === 0) return "next";
   if (room.vip_flag && room.checkin_time) return "by 3pm";
   return `${index + 1}th`;
-}
-
-function roomNote(room: Room) {
-  if (room.vip_flag) return "Extra pillows · still water";
-  if (room.guest_name && room.status === "IN_PROGRESS") return "Guest still in - knock first";
-  if (room.risk_level === "HIGH") return "High risk - give this one a little extra time";
-  return undefined;
 }
 
 function sortNextRooms(rooms: Room[]) {
@@ -83,6 +88,53 @@ function dynamicShiftMeta(languagePref: string, suffix: string): string {
   const weekday = now.toLocaleDateString(locale, { weekday: "short" });
   const month = now.toLocaleDateString(locale, { month: "short" });
   return `${weekday} · ${month} ${now.getDate()} · ${suffix}`;
+}
+
+function DashboardRoomCard({ room, index, onPress }: { room: Room; index: number; onPress: () => void }) {
+  const status = room.status ?? "DIRTY";
+  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: C.surface3, fg: C.ink3, border: C.line };
+  const roomType = room.rooms?.room_types?.name ?? null;
+  const cleanTypeLabel = room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null;
+  const checkoutIso = room.actual_checkout_at ?? room.checkout_time ?? null;
+  const checkoutLabel = room.actual_checkout_at ? "Checked out" : "Due out";
+  const checkoutTime = formatCheckoutTime(checkoutIso);
+
+  return (
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.roomCard}>
+      <View style={styles.roomCardLeft}>
+        <View style={styles.roomCardTitleRow}>
+          <Text style={styles.roomCardNum}>Room {room.room_number}</Text>
+          {room.vip_flag ? (
+            <View style={styles.roomVipBadge}><Text style={styles.roomVipText}>VIP</Text></View>
+          ) : null}
+        </View>
+        {roomType ? <Text style={styles.roomType}>{roomType}</Text> : null}
+        <View style={styles.roomPillRow}>
+          <View style={[styles.roomPill, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+            <Text style={[styles.roomPillText, { color: cfg.fg }]}>{cfg.label}</Text>
+          </View>
+          {cleanTypeLabel ? (
+            <View style={styles.cleanTypeRow}>
+              {room.clean_type === "DEP" ? <Ionicons name="log-out-outline" size={10} color={C.alert} /> : null}
+              <Text style={[styles.cleanTypeText, { color: room.clean_type === "DEP" ? C.alert : C.caution }]}>
+                {cleanTypeLabel}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        {checkoutTime ? (
+          <View style={styles.roomTimeRow}>
+            <Ionicons name="time-outline" size={12} color={C.ink3} />
+            <Text style={styles.roomTimeText}>{checkoutLabel} {checkoutTime}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.roomCardRight}>
+        <Mono style={styles.roomMeta}>{roomMeta(room, index)}</Mono>
+        <Ionicons name="chevron-forward" size={14} color={C.ink4} style={{ marginTop: 6 }} />
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 export default function HousekeeperHomeScreen() {
@@ -235,22 +287,11 @@ export default function HousekeeperHomeScreen() {
           </SectionLabel>
           <View style={styles.rows}>
             {nextRooms.slice(0, 3).map((room, index) => (
-              <HandoffRow
+              <DashboardRoomCard
                 key={room.id}
+                room={room}
+                index={index}
                 onPress={() => router.push(`/(app)/my-rooms/${room.id}`)}
-                lead={<RoomNumberTile roomNumber={room.room_number} status={room.status} />}
-                title={
-                  <>
-                    <Text style={styles.rowTitle}>{roomSubtitle(room)}</Text>
-                    {room.vip_flag ? (
-                      <Pill tone="accent" icon="star">
-                        VIP
-                      </Pill>
-                    ) : null}
-                  </>
-                }
-                sub={roomNote(room)}
-                right={<Mono style={styles.roomMeta}>{roomMeta(room, index)}</Mono>}
               />
             ))}
             {nextRooms.length === 0 ? (
@@ -626,11 +667,6 @@ const styles = StyleSheet.create({
   rows: {
     gap: 8,
   },
-  rowTitle: {
-    fontSize: 13.5,
-    fontWeight: "600",
-    color: C.ink,
-  },
   roomMeta: {
     fontSize: 11,
     color: C.ink3,
@@ -652,6 +688,39 @@ const styles = StyleSheet.create({
     color: C.ink3,
     marginTop: 4,
   },
+  roomCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 16,
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.line,
+  },
+  roomCardLeft: { flex: 1, minWidth: 0 },
+  roomCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
+  roomCardNum: { fontFamily: monoFont, fontSize: 15, fontWeight: "700", color: C.ink },
+  roomVipBadge: {
+    backgroundColor: C.accentSoft,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+  },
+  roomVipText: { fontSize: 9, fontWeight: "700", color: C.accent },
+  roomType: { fontFamily: monoFont, fontSize: 11, color: C.ink3, marginBottom: 6 },
+  roomPillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" as const },
+  roomPill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
+  roomPillText: { fontSize: 11, fontWeight: "600" },
+  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  cleanTypeText: { fontSize: 10, fontWeight: "700" },
+  roomTimeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  roomTimeText: { fontFamily: monoFont, fontSize: 11, color: C.ink2 },
+  roomCardRight: { alignItems: "flex-end", flexShrink: 0 },
+
   engineerStats: {
     flexDirection: "row",
     gap: 9,

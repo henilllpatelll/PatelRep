@@ -1738,6 +1738,231 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-07T15:31:14.653Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-06-07T15:37:36.125Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Was returning: FALLBACK_GROUPS;",
+      "fix": "Now returns: [];",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T15:37:36.125Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-06-07T15:37:45.156Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T15:37:45.156Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-06-07T15:37:51.078Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "fontSize: 12, → 13,",
+      "fix": "Changed fontSize: 12, → 13,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T15:37:51.078Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-06-07T00:00:00.000Z",
+      "error_message": "Mobile tasks screen shows hardcoded placeholder tasks when no tasks are assigned",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "groupTasks() returned FALLBACK_GROUPS when tasks.length === 0, showing demo data instead of an empty state. openCount also fell back to FALLBACK_GROUPS count.",
+      "fix": "groupTasks returns [] when empty. Added empty state UI with icon + i18n strings (emptyTitle/emptyMeta in en.json and es.json). openCount now uses tasks.length directly.",
+      "tags": [
+        "mobile",
+        "tasks",
+        "placeholder-data",
+        "empty-state"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T00:00:00.000Z"
+    },
+    {
+      "id": "bug-111",
+      "timestamp": "2026-06-07T16:01:27.755Z",
+      "error_message": "Missing error handling in formatCheckoutTime",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T16:01:27.755Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-06-07T16:01:44.705Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T16:01:44.705Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-06-07T16:01:55.217Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 20→9 lines (14 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T16:01:55.217Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-06-07T16:02:08.168Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-07T16:02:08.168Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-06-08T06:55:07.877Z",
+      "error_message": "CSS fix: btnStart",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 → { backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 11",
+      "fix": "Changed btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 → { backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 11",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-08T06:55:07.877Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-06-09T00:56:31.757Z",
+      "error_message": "CSS fix: IN_PROGRESS",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "IN_PROGRESS: { label: \"In Progress\",                     bg: C.cautionSoft, fg: C.caution, border: C.cautionLine → { label: \"In Progress\",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine",
+      "fix": "Changed IN_PROGRESS: { label: \"In Progress\",                     bg: C.cautionSoft, fg: C.caution, border: C.cautionLine → { label: \"In Progress\",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-09T00:56:46.572Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-06-09T00:56:37.157Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Had \"700\"",
+      "fix": "Changed to \"600\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-09T00:57:01.604Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-06-09T01:24:27.042Z",
+      "error_message": "Wrong reference: caution should be ai",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Used \"caution\" instead of \"ai\"",
+      "fix": "Changed caution → ai",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T01:24:27.042Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-06-09T01:26:39.865Z",
+      "error_message": "Wrong reference: const should be return",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Used \"const\" instead of \"return\"",
+      "fix": "Changed const → return",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T01:26:39.865Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-06-09T01:26:47.025Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 15→3 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T01:26:47.025Z"
     }
   ]
 }

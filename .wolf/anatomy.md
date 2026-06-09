@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-07T15:31:14.621Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-09T01:26:57.965Z
 > Files: 259 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -619,7 +619,7 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~6665 tok)
+- `index.tsx` — ENGINEER_ORDERS (~7786 tok)
 
 ## apps/mobile/app/(app)/inspect/
 
@@ -636,8 +636,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~5294 tok)
-- `index.tsx` — STATUS_PRIORITY (~5291 tok)
+- `[roomId].tsx` — STATUS_COLOR (~4770 tok)
+- `index.tsx` — STATUS_PRIORITY (~5287 tok)
 
 ## apps/mobile/app/(app)/notifications/
 
@@ -674,7 +674,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — FALLBACK_GROUPS (~2926 tok)
+- `index.tsx` — FALLBACK_GROUPS (~3119 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -699,8 +699,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~3656 tok)
-- `es.json` (~3927 tok)
+- `en.json` (~3690 tok)
+- `es.json` (~3962 tok)
 
 ## apps/mobile/lib/
 

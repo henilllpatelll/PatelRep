@@ -204,7 +204,9 @@
     "groupNow": "Now",
     "groupBeforeNoon": "Before 12:00",
     "groupAfternoon": "This afternoon",
-    "footerHint": "Copilot keeps this ordered around your route."
+    "footerHint": "Copilot keeps this ordered around your route.",
+    "emptyTitle": "No tasks assigned",
+    "emptyMeta": "Your supervisor will add tasks here when your shift begins."
   },
   "profile": {
     "title": "Profile",

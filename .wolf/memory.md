@@ -1,4 +1,6 @@
 ﻿# Memory
+| 2026-06-08 | Fixed IN_PROGRESS status pill to purple (C.ai/aiSoft/aiLine) matching web color contract; matched font sizes: room num 16px/600, room type 12px, time 12px, pill text 12px/500, waitingText 12px/500, readyLabel 14px/600. | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~30 tok |
+| 2026-06-08 | Updated My Rooms card Start button to full pill shape (borderRadius 12→999, paddingH 16→20, paddingV 9→11) to match web screenshot design. | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~20 tok |
 | 2026-06-07 | Fixed back button too high/unclickable in room detail: added useSafeAreaInsets, paddingTop: insets.top + 10 on navBar, replaced paddingVertical with paddingBottom. | apps/mobile/app/(app)/my-rooms/[roomId].tsx | complete | ~40 tok |
 | 2026-06-07 | Fixed /my-rooms HTTP 400 (root cause): room_status has no `id` column (PK is room_id). Selecting `id` → PostgreSQL 42703 → PostgREST APIError → main.py maps to 400. Removed `id` from my_rooms_select, added explicit `"id": room_id` in loop. Deployed to Railway. | apps/api/routers/housekeeping.py | complete | ~100 tok |
 | 2026-06-07 | Fixed /my-rooms HTTP 400: room_assignments query selected clean_type with no fallback; migration 042 not applied causes PostgREST APIError → main.py converts to 400 with {"error":{}} (not {"detail":...}) → mobile shows "HTTP 400". Added try/except fallback mirroring room_status pattern. Also added dnd_flag to my_rooms_select. | apps/api/routers/housekeeping.py | complete | ~150 tok |
@@ -4267,3 +4269,72 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 10:31 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | "construct-outline" → "build-outline" | ~21 |
 | 10:31 | Session end: 1 writes across 1 files ([roomId].tsx) | 2 reads | ~18258 tok |
+
+## Session: 2026-06-07 10:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:37 | Edited apps/mobile/app/(app)/tasks/index.tsx | modified groupTasks() | ~52 |
+| 10:37 | Edited apps/mobile/app/(app)/tasks/index.tsx | 2→2 lines | ~27 |
+| 10:37 | Edited apps/mobile/app/(app)/tasks/index.tsx | expanded (+8 lines) | ~108 |
+| 10:37 | Edited apps/mobile/app/(app)/tasks/index.tsx | expanded (+17 lines) | ~99 |
+| 10:37 | Edited apps/mobile/i18n/locales/en.json | 1→3 lines | ~53 |
+| 10:38 | Edited apps/mobile/i18n/locales/es.json | 2→4 lines | ~56 |
+| 10:38 | Fixed tasks screen showing fallback placeholder tasks when no tasks assigned | apps/mobile/app/(app)/tasks/index.tsx, i18n/locales/en.json, es.json | groupTasks now returns [] on empty; added empty state UI | ~200 |
+| 10:38 | Session end: 6 writes across 3 files (index.tsx, en.json, es.json) | 3 reads | ~10904 tok |
+| 10:42 | Edited apps/mobile/app/(app)/tasks/index.tsx | 16→18 lines | ~184 |
+| 10:42 | Edited apps/mobile/app/(app)/tasks/index.tsx | 3→3 lines | ~59 |
+| 10:42 | Edited apps/mobile/app/(app)/tasks/index.tsx | 5→7 lines | ~80 |
+| 10:43 | Session end: 9 writes across 3 files (index.tsx, en.json, es.json) | 3 reads | ~11409 tok |
+| 11:01 | Edited apps/mobile/app/(app)/home/index.tsx | 12→11 lines | ~48 |
+| 11:01 | Edited apps/mobile/app/(app)/home/index.tsx | added error handling | ~452 |
+| 11:01 | Edited apps/mobile/app/(app)/home/index.tsx | added optional chaining | ~684 |
+| 11:01 | Edited apps/mobile/app/(app)/home/index.tsx | reduced (-11 lines) | ~92 |
+| 11:02 | Edited apps/mobile/app/(app)/home/index.tsx | expanded (+33 lines) | ~412 |
+| 11:02 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~16 |
+| 11:02 | Edited apps/mobile/app/(app)/home/index.tsx | removed 9 lines | ~14 |
+| 11:02 | Edited apps/mobile/app/(app)/home/index.tsx | removed 8 lines | ~7 |
+| 11:02 | Edited apps/mobile/app/(app)/home/index.tsx | removed 6 lines | ~4 |
+| 11:02 | Session end: 18 writes across 3 files (index.tsx, en.json, es.json) | 7 reads | ~26596 tok |
+
+## Session: 2026-06-07 11:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-07 12:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:32 | Identified web app style/theme from core styling files | apps/web/app/globals.css; apps/web/components/shared/DashboardShell.tsx; apps/web/stores/uiPreferencesStore.ts | Theme is Warm Operational Hospitality with light/balanced/terracotta defaults | ~1200 |
+
+## Session: 2026-06-08 01:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:55 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 2→2 lines | ~50 |
+| 01:55 | Session end: 1 writes across 1 files (index.tsx) | 4 reads | ~16522 tok |
+
+## Session: 2026-06-09 19:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:56 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 11→11 lines | ~328 |
+| 19:56 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | "700" → "600" | ~25 |
+| 19:56 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 11 → 12 | ~24 |
+| 19:56 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 11 → 12 | ~19 |
+| 19:56 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | "600" → "500" | ~14 |
+| 19:57 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 2→2 lines | ~55 |
+| 19:57 | Session end: 6 writes across 1 files (index.tsx) | 5 reads | ~17068 tok |
+| 20:24 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~21 |
+| 20:24 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: marginTop | ~123 |
+| 20:24 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 17→17 lines | ~288 |
+| 20:24 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~26 |
+| 20:24 | Session end: 10 writes across 1 files (index.tsx) | 5 reads | ~17525 tok |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→1 lines | ~20 |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 27 lines | ~10 |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 3 lines | ~3 |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 15 lines | ~31 |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 7 lines | ~10 |
+| 20:26 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | — | ~0 |
+| 20:27 | Session end: 16 writes across 2 files (index.tsx, [roomId].tsx) | 6 reads | ~22893 tok |

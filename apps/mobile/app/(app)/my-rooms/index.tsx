@@ -30,7 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; bor
   DIRTY:         { label: "Vacant Dirty",                    bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
   OCCUPIED:      { label: "Occupied Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
   PICKUP:        { label: "Pickup",                          bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  IN_PROGRESS:   { label: "In Progress",                     bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  IN_PROGRESS:   { label: "In Progress",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine },
   CLEAN:         { label: "Clean",                           bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
   INSPECTED:     { label: "Inspected / Ready",               bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
   OOO:           { label: "Out of Order / Out of Service",   bg: C.surface3,    fg: C.ink3,    border: C.line },
@@ -176,7 +176,7 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
       <View style={styles.cardLeft}>
         <View style={styles.cardTitleRow}>
-          <Text style={styles.cardRoomNum}>Room  {room.room_number}</Text>
+          <Text style={styles.cardRoomNum}>Room {room.room_number}</Text>
           {room.vip_flag ? (
             <View style={styles.vipBadge}><Text style={styles.vipText}>VIP</Text></View>
           ) : null}
@@ -325,7 +325,7 @@ export default function MyRoomsScreen() {
               <Text style={styles.summaryLabel}> to do</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNum, { color: C.caution }]}>{inProgressCount}</Text>
+              <Text style={[styles.summaryNum, { color: C.ai }]}>{inProgressCount}</Text>
               <Text style={styles.summaryLabel}> in progress</Text>
             </View>
             <View style={styles.summaryItem}>
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   },
   cardLeft: { flex: 1, minWidth: 0 },
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  cardRoomNum: { fontFamily: monoFont, fontSize: 15, fontWeight: "700", color: C.ink },
+  cardRoomNum: { fontFamily: monoFont, fontSize: 16, fontWeight: "600", color: C.ink },
   vipBadge: {
     backgroundColor: C.accentSoft,
     borderRadius: 4,
@@ -412,42 +412,42 @@ const styles = StyleSheet.create({
     borderColor: C.accentLine,
   },
   vipText: { fontSize: 9, fontWeight: "700", color: C.accent },
-  roomType: { fontFamily: monoFont, fontSize: 11, color: C.ink3, marginBottom: 6 },
+  roomType: { fontFamily: monoFont, fontSize: 12, color: C.ink3 },
 
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  pill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
-  pillText: { fontSize: 11, fontWeight: "600" },
-  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  cleanTypeText: { fontSize: 10, fontWeight: "700" },
+  pillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 6 },
+  pill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
+  pillText: { fontSize: 12, fontWeight: "500" },
+  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  cleanTypeText: { fontSize: 10, fontWeight: "600" },
 
   timeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  timeText: { fontFamily: monoFont, fontSize: 11, color: C.ink2 },
+  timeText: { fontFamily: monoFont, fontSize: 12, color: C.ink2 },
 
   cardRight: { alignItems: "flex-end", flexShrink: 0 },
   confirmCol: { alignItems: "flex-end", gap: 6 },
 
-  btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 },
-  btnStartText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
+  btnStartText: { color: "#fff", fontSize: 14, fontWeight: "600" },
 
-  btnDone: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 },
-  btnDoneText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  btnDone: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
+  btnDoneText: { color: "#fff", fontSize: 14, fontWeight: "600" },
 
-  btnDoneConfirm: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
-  btnDoneConfirmText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  btnDoneConfirm: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  btnDoneConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
-  btnUndo: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
+  btnUndo: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
   btnUndoText: { fontSize: 12, fontWeight: "600", color: C.ink2 },
 
-  btnUndoConfirm: { backgroundColor: C.alert, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
-  btnUndoConfirmText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  btnUndoConfirm: { backgroundColor: C.alert, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  btnUndoConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
   btnCancel: { paddingVertical: 4 },
-  btnCancelText: { fontSize: 11, color: C.ink3 },
+  btnCancelText: { fontSize: 12, color: C.ink3 },
 
   btnDisabled: { opacity: 0.5 },
 
-  waitingText: { fontSize: 11, color: C.caution, fontWeight: "600", textAlign: "right", lineHeight: 16 },
-  readyLabel: { fontSize: 12, color: C.ready, fontWeight: "700", textAlign: "right" },
+  waitingText: { fontSize: 12, color: C.caution, fontWeight: "500", textAlign: "right", lineHeight: 17 },
+  readyLabel: { fontSize: 14, color: C.ready, fontWeight: "600", textAlign: "right" },
 
   emptyCard: { marginTop: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },

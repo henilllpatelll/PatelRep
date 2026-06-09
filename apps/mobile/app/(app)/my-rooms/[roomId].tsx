@@ -14,7 +14,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
-import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, displayFont } from "@/components/shared/tokens";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
@@ -86,7 +85,6 @@ export default function RoomDetailScreen() {
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
   const [noteOpen, setNoteOpen] = useState(false);
@@ -117,32 +115,6 @@ export default function RoomDetailScreen() {
     void loadHistory();
     return () => { cancelled = true; };
   }, [isOnline, room?.id, user?.id]);
-
-  async function performUndo() {
-    if (!room) return;
-    setUpdating(true);
-    try {
-      if (isOnline) {
-        const res = await api.post<{ data: Room }>(`/rooms/${room.id}/status/undo`, {});
-        const next = { ...room, status: res.data.status, updated_at: new Date().toISOString() };
-        setRoom(next);
-        setMyRooms(myRooms.map((r) => (r.id === room.id ? next : r)));
-      } else {
-        Alert.alert(t("common.error"), t("rooms.undoNeedsConnection"));
-      }
-    } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message);
-    } finally {
-      setUpdating(false);
-    }
-  }
-
-  function handleUndo() {
-    Alert.alert(t("rooms.confirmUndoTitle"), t("rooms.confirmUndoMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("rooms.confirmUndoAction"), style: "destructive", onPress: () => void performUndo() },
-    ]);
-  }
 
   async function handleAddNote() {
     if (!room || !noteText.trim()) return;
@@ -177,8 +149,6 @@ export default function RoomDetailScreen() {
   const checkoutTime = formatTime(checkoutIso);
   const checkinTime = formatTime(room.checkin_time);
   const etaTime = formatTime(room.predicted_ready_at);
-  const canUndo = status === "IN_PROGRESS" || status === "CLEAN";
-
   return (
     <>
       {/* Nav header */}
@@ -278,18 +248,6 @@ export default function RoomDetailScreen() {
 
         {/* Status actions */}
         <View style={styles.section}>
-          {canUndo ? (
-            <TouchableOpacity
-              style={[styles.secondaryBtn, updating && styles.btnDisabled]}
-              onPress={handleUndo}
-              disabled={updating}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="arrow-undo-outline" size={15} color={C.ink2} />
-              <Text style={styles.secondaryBtnText}>{t("rooms.undoLastStep")}</Text>
-            </TouchableOpacity>
-          ) : null}
-
           {/* Inline action buttons */}
           <View style={styles.actionRow}>
             <TouchableOpacity
@@ -429,12 +387,6 @@ const styles = StyleSheet.create({
   lastActionText: { fontSize: 12, color: C.ink3, lineHeight: 17 },
   noteSuccessText: { fontSize: 12, color: C.ready, fontWeight: "600" },
 
-  secondaryBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
-    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 18,
-  },
-  secondaryBtnText: { color: C.ink2, fontSize: 14, fontWeight: "600" },
   btnDisabled: { opacity: 0.5 },
 
   actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },

@@ -112,7 +112,7 @@ function normalizeTask(task: Task) {
 }
 
 function groupTasks(tasks: Task[]): TaskGroup[] {
-  if (tasks.length === 0) return FALLBACK_GROUPS;
+  if (tasks.length === 0) return [];
 
   const now = tasks.filter((task) => task.due_label === "now" || task.priority === "urgent");
   const midday = tasks.filter(
@@ -171,7 +171,7 @@ export default function TasksScreen() {
   }, []);
 
   const groups = useMemo(() => groupTasks(tasks), [tasks]);
-  const openCount = tasks.length || FALLBACK_GROUPS.reduce((sum, group) => sum + group.items.length, 0);
+  const openCount = tasks.length;
 
   if (loading) {
     return (
@@ -190,19 +190,29 @@ export default function TasksScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <CopilotHero
-          tone="violet"
-          kicker={t("tasks.copilotKicker")}
-          actions={
-            <HeroButton onDark={false} icon="checkmark" primary>
-              {t("tasks.reorderBtn")}
-            </HeroButton>
-          }
-        >
-          <Text>
-            The towel drop for <Text style={styles.heroStrong}>214</Text> is on your way to 218 - knock that out next and save a trip.
-          </Text>
-        </CopilotHero>
+        {groups.length > 0 ? (
+          <CopilotHero
+            tone="violet"
+            kicker={t("tasks.copilotKicker")}
+            actions={
+              <HeroButton onDark={false} icon="checkmark" primary>
+                {t("tasks.reorderBtn")}
+              </HeroButton>
+            }
+          >
+            <Text>
+              The towel drop for <Text style={styles.heroStrong}>214</Text> is on your way to 218 - knock that out next and save a trip.
+            </Text>
+          </CopilotHero>
+        ) : null}
+
+        {groups.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="checkmark-circle-outline" size={40} color={C.ink4} />
+            <Text style={styles.emptyTitle}>{t("tasks.emptyTitle")}</Text>
+            <Text style={styles.emptyMeta}>{t("tasks.emptyMeta")}</Text>
+          </View>
+        ) : null}
 
         {groups.map((group) => (
           <View key={group.when}>
@@ -239,10 +249,12 @@ export default function TasksScreen() {
           </View>
         ))}
 
-        <View style={styles.footerHint}>
-          <Ionicons name="sparkles-outline" size={13} color={C.ink4} />
-          <Text style={styles.footerText}>{t("tasks.footerHint")}</Text>
-        </View>
+        {groups.length > 0 ? (
+          <View style={styles.footerHint}>
+            <Ionicons name="sparkles-outline" size={13} color={C.ink4} />
+            <Text style={styles.footerText}>{t("tasks.footerHint")}</Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -385,5 +397,22 @@ const styles = StyleSheet.create({
   footerText: {
     color: C.ink4,
     fontSize: 12,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 8,
+  },
+  emptyTitle: {
+    color: C.ink2,
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  emptyMeta: {
+    color: C.ink4,
+    fontSize: 13,
+    textAlign: "center",
+    maxWidth: 220,
   },
 });
