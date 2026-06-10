@@ -64,13 +64,18 @@ jest.mock("@/lib/api/client", () => ({
 import TasksScreen from "@/app/(app)/tasks";
 
 describe("TasksScreen handoff", () => {
-  it("renders the empty task state when no tasks are assigned", async () => {
+  it("renders assigned tasks in route-aware groups", async () => {
     const { getByText } = render(<TasksScreen />);
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
-    expect(getByText("0 tasks")).toBeTruthy();
-    expect(getByText("All caught up")).toBeTruthy();
-    expect(getByText("New tasks will show here when assigned.")).toBeTruthy();
+    expect(getByText("3 tasks")).toBeTruthy();
+    expect(getByText("Heads up")).toBeTruthy();
+    expect(getByText("Now")).toBeTruthy();
+    expect(getByText("Before 12:00")).toBeTruthy();
+    expect(getByText("This afternoon")).toBeTruthy();
+    expect(getByText("Restock cart - floor 2")).toBeTruthy();
+    expect(getByText("Deliver 2 extra towels to 214")).toBeTruthy();
+    expect(getByText("Deep-clean fridge - 122")).toBeTruthy();
   });
 });

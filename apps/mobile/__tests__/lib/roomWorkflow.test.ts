@@ -1,5 +1,6 @@
 import type { Room } from "@/stores/appStore";
 import {
+  compareRoomsByPriority,
   getBeforeEnterWarnings,
   getPrimaryTimingLine,
   getPriorityScore,
@@ -72,6 +73,26 @@ describe("roomWorkflow helpers", () => {
     expect(getPriorityScore(room({ status: "CLEAN" }), now)).toBeLessThan(
       getPriorityScore(room({ status: "INSPECTED" }), now),
     );
+  });
+
+  it("sorts my rooms by vacant dirty, pickup, occupied, then room number", () => {
+    const rooms = [
+      room({ id: "pickup-110", room_number: "110", floor: 1, status: "PICKUP", vip_flag: true }),
+      room({ id: "occupied-102", room_number: "102", floor: 1, status: "OCCUPIED" }),
+      room({ id: "dirty-203", room_number: "203", floor: 2, status: "DIRTY", dnd_flag: true }),
+      room({ id: "pickup-101", room_number: "101", floor: 1, status: "PICKUP" }),
+      room({ id: "dirty-102", room_number: "102", floor: 1, status: "DIRTY" }),
+      room({ id: "occupied-101", room_number: "101", floor: 1, status: "OCCUPIED" }),
+    ];
+
+    expect(rooms.sort((a, b) => compareRoomsByPriority(a, b, now)).map((r) => r.id)).toEqual([
+      "dirty-102",
+      "dirty-203",
+      "pickup-101",
+      "pickup-110",
+      "occupied-101",
+      "occupied-102",
+    ]);
   });
 
   it("detects useful timing and before-enter warnings", () => {

@@ -19,6 +19,7 @@
 
 ## Key Learnings
 
+- **Mobile My Rooms assigned-room sort contract (2026-06-09):** The My Rooms list should group assigned actionable rooms as `DIRTY` / Vacant Dirty first, then `PICKUP`, then `OCCUPIED`, with numeric `room_number` ordering inside each group. VIP/DND/work-order/note exceptions still affect action labels and badges, but should not jump rooms ahead of that queue order.
 - **Mobile My Rooms workflow helper (2026-06-09):** Shared card/detail decision logic now lives in `apps/mobile/lib/housekeeping/roomWorkflow.ts`; use it for exception badges, Start vs Review/Done vs Review Done actions, priority sorting, timing lines, and Before You Enter warnings so My Rooms list and detail stay consistent.
 - **Mobile warm visual-system token contract (2026-06-10):** `apps/mobile/components/shared/tokens.ts` now centralizes the mobile warm hospitality palette with `lightTheme`, `darkTheme`, `statusTokens`, and `darkStatusTokens`. Keep room status meanings on these exact core colors: ready `#0E7468`, clean `#2F6F95`, dirty/occupied `#A9363F`, pickup `#B7791F`, out-of-order `#746D63`; `displayFont` is intentionally `undefined` so mobile floor-staff UI uses native system fonts while room numbers/codes use `monoFont`.
 - **Web design theme (2026-06-07):** PatelRep web uses a custom "Warm Operational Hospitality" token system, not plain shadcn defaults: off-white paper canvas, white surfaces, charcoal ink, terracotta default action accent, teal ready/success, amber caution, rose alert, violet AI. `DashboardShell` applies persisted density/theme/accent classes from `uiPreferencesStore` with defaults `balanced`, `light`, and `terracotta`.
@@ -233,6 +234,8 @@
 
 ## Decision Log
 
+- **Branch recovery (2026-06-09):** `codex/myRooms` can be recovered from the local branch if pruned from GitHub. As of this recovery, `main` already contains the equivalent patch (`git cherry main codex/myRooms` reported `- e309e97`), so restore the branch instead of re-merging old history.
+- **My Rooms branch update (2026-06-09):** To move `codex/myRooms` after the latest redesign without force-pushing, merge `origin/main` into `codex/myRooms`, resolve conflicts to main first, then apply the restored workflow patch as a new commit. Pushed tip `bf8e05e` has `origin/main` as an ancestor and keeps the redesigned mobile shell with roomWorkflow-driven My Rooms behavior restored.
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->
 
 - [2026-05-10] **FrontDeskDashboard must NOT call reportsApi.getDailySummary()** — `/reports/daily-summary` requires `gm/housekeeping_supervisor/chief_engineer`; front_desk gets 403. Fixed by calling `housekeepingApi.getBoard(today, undefined, false)` (no role restriction) and computing breakdown locally.

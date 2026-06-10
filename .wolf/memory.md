@@ -4406,3 +4406,7 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:11 | Final mobile checks passed | apps/mobile | type-check and full Jest green; old-color scan found no matches | ~1000 |
 | 20:12 | Updated OpenWolf anatomy/cerebrum for mobile visual tokens | .wolf/anatomy.md, .wolf/cerebrum.md | learning recorded | ~500 |
 | 20:13 | Completed mobile warm visual-system implementation and final diff review | apps/mobile, .wolf | ready to report results | ~700 |
+| 20:45 | Restored deleted GitHub branch codex/myRooms from local branch | git refs | pushed origin/codex/myRooms; main already contained equivalent patch | ~900 |
+| 20:51 | Investigated why codex/myRooms UI was not visible on main | apps/mobile/app/(app)/my-rooms | branch patch merged as 264c0dc but later main commit e7e260b rewrote visible screens | ~1100 |
+| 21:19 | Reapplied codex/myRooms workflow on top of latest mobile redesign | apps/mobile/app/(app)/my-rooms, apps/mobile/__tests__/screens | full mobile Jest and type-check passed; pushed origin/codex/myRooms at bf8e05e | ~2200 |
+| 21:28 | Updated My Rooms sort contract | apps/mobile/lib/housekeeping/roomWorkflow.ts, apps/mobile/__tests__/lib/roomWorkflow.test.ts | vacant dirty then pickup then occupied, numeric within each group; mobile type-check and Jest passed | ~1800 |

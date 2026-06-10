@@ -38,6 +38,11 @@ export interface BeforeEnterWarning {
 const ACTIONABLE_STATUSES = new Set(["DIRTY", "PICKUP", "OCCUPIED"]);
 const BLOCKED_STATUSES = new Set(["OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 const ARRIVAL_SOON_MS = 4 * 60 * 60 * 1000;
+const MY_ROOMS_STATUS_ORDER: Partial<Record<Room["status"], number>> = {
+  DIRTY: 0,
+  PICKUP: 1,
+  OCCUPIED: 2,
+};
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -168,6 +173,16 @@ export function getPriorityScore(room: Room, now: Date = new Date()): number {
 }
 
 export function compareRoomsByPriority(a: Room, b: Room, now: Date = new Date()): number {
+  const aStatusOrder = MY_ROOMS_STATUS_ORDER[a.status];
+  const bStatusOrder = MY_ROOMS_STATUS_ORDER[b.status];
+  if (aStatusOrder !== undefined || bStatusOrder !== undefined) {
+    const orderDelta = (aStatusOrder ?? Number.MAX_SAFE_INTEGER) - (bStatusOrder ?? Number.MAX_SAFE_INTEGER);
+    if (orderDelta !== 0) return orderDelta;
+
+    const roomDelta = a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: "base" });
+    if (roomDelta !== 0) return roomDelta;
+  }
+
   const scoreDelta = getPriorityScore(a, now) - getPriorityScore(b, now);
   if (scoreDelta !== 0) return scoreDelta;
 

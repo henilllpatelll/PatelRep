@@ -2011,6 +2011,42 @@
       "related_bugs": ["bug-110", "bug-123"],
       "occurrences": 1,
       "last_seen": "2026-06-09T20:15:24.6317325-05:00"
+    },
+    {
+      "id": "bug-125",
+      "timestamp": "2026-06-09T20:51:00.1942844-05:00",
+      "error_message": "User could not see codex/myRooms mobile UI code on main after branch recovery",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "The codex/myRooms patch was merged into main as 264c0dc, but the later main commit e7e260b rewrote the visible My Rooms screens, leaving the branch-era UI no longer visible in the current app.",
+      "fix": "Confirmed the merge chain and identified that only the two visible my-rooms screen files differ between codex/myRooms and current main; no code fix applied yet because restoring them would overwrite the later redesign.",
+      "tags": ["mobile", "git", "my-rooms", "branch-recovery"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T20:51:00.1942844-05:00"
+    },
+    {
+      "id": "bug-126",
+      "timestamp": "2026-06-09T21:19:05.0725026-05:00",
+      "error_message": "Full mobile Jest failed: TasksVariationA mocked three API tasks but expected the empty task state",
+      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
+      "root_cause": "The test contract was stale after the Tasks screen started rendering mocked assigned tasks into route-aware groups.",
+      "fix": "Updated the test to assert the rendered three-task grouped workflow instead of an empty state.",
+      "tags": ["mobile", "jest", "tasks", "test-contract"],
+      "related_bugs": ["bug-124"],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T21:19:05.0725026-05:00"
+    },
+    {
+      "id": "bug-127",
+      "timestamp": "2026-06-09T21:28:18.4940309-05:00",
+      "error_message": "User requested My Rooms be sorted from vacant dirty to pickup to occupied in numerical order",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts, apps/mobile/__tests__/lib/roomWorkflow.test.ts",
+      "root_cause": "compareRoomsByPriority used operational exception scores first, so VIP/DND and other exception rooms could jump ahead of the requested status-group queue order.",
+      "fix": "Added a My Rooms status order for DIRTY, PICKUP, and OCCUPIED before priority fallback, with numeric room_number sorting inside those status groups, plus a regression test.",
+      "tags": ["mobile", "my-rooms", "sorting", "housekeeping"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-09T21:28:18.4940309-05:00"
     }
   ]
 }

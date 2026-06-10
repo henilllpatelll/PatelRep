@@ -3,12 +3,12 @@
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
     "total_tokens_estimated": 13345169,
-    "total_reads": 6938,
+    "total_reads": 6940,
     "total_writes": 5280,
     "total_sessions": 267,
     "anatomy_hits": 2802,
-    "anatomy_misses": 4023,
-    "repeated_reads_blocked": 2302,
+    "anatomy_misses": 4025,
+    "repeated_reads_blocked": 2304,
     "estimated_savings_vs_bare_cli": 11650782
   },
   "sessions": [
@@ -79202,6 +79202,50 @@
         "writes_count": 21,
         "repeated_reads_blocked": 3,
         "anatomy_lookups": 6
+      }
+    },
+    {
+      "id": "session-2026-06-09-1837",
+      "started": "2026-06-09T23:37:06.599Z",
+      "ended": "2026-06-10T01:34:57.805Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 1,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-06-09-1837",
+      "started": "2026-06-09T23:37:06.599Z",
+      "ended": "2026-06-10T01:36:44.718Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 1,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 0
       }
     }
   ],
