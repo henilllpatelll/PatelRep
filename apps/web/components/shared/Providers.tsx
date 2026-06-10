@@ -91,12 +91,12 @@ function AuthListener() {
     clear,
   } = useAuthStore()
   const { setHotel, setHotels, setSubscription, clear: clearHotel } = useHotelStore()
-  const supabase = createClient()
   const router = useRouter()
   // Guard against concurrent /auth/me fetches
   const fetchingRef = useRef(false)
 
   useEffect(() => {
+    const supabase = createClient()
     const fetchEffectiveRole = async () => {
       try {
         const res = await staffApi.getEffectiveRole()
