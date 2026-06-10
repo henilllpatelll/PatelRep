@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore } from "@/stores/appStore";
-import { C, displayFont } from "@/components/shared/tokens";
+import { C } from "@/components/shared/tokens";
 import { Avatar, CopilotHero, HeroButton, IconButton, Mono, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 
 type WorkOrder = {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   headerSub: { color: C.ink3, fontSize: 11.5, marginTop: 2 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 120, gap: 14 },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 27, lineHeight: 31 },
+  title: { color: C.ink, fontSize: 27, fontWeight: "600", lineHeight: 31 },
   locationLine: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
   locationText: { color: C.ink3, fontSize: 12.5 },
   dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.ink4 },
@@ -245,6 +245,6 @@ const styles = StyleSheet.create({
   partQty: { color: C.ink2, fontSize: 12 },
   notesInput: { minHeight: 92, textAlignVertical: "top", backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, color: C.ink, fontSize: 14 },
   footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 26, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line },
-  completeButton: { minHeight: 46, borderRadius: 12, backgroundColor: C.accent, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  completeButton: { minHeight: 52, borderRadius: 13, backgroundColor: C.accent, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   completeText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });

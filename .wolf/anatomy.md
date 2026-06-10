@@ -486,6 +486,7 @@
 
 ## apps/mobile/__tests__/components/
 
+- `MobileVisualTokens.test.ts` — Regression tests for warm mobile light/dark theme tokens, status color mapping, shared room tones, and native-font contract. (~420 tok)
 
 ## apps/mobile/__tests__/lib/
 

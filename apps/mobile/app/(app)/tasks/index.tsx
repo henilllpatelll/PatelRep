@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { C, R, displayFont } from "@/components/shared/tokens";
+import { C, R } from "@/components/shared/tokens";
 import {
   AILabel,
   CopilotHero,
@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
   title: {
     color: C.ink,
     fontSize: 30,
+    fontWeight: "600",
     lineHeight: 34,
-    fontFamily: displayFont,
   },
   scroll: {
     flex: 1,

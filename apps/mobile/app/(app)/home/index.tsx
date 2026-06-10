@@ -15,7 +15,7 @@ import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { localDate } from "@/lib/utils/date";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, R, displayFont, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont } from "@/components/shared/tokens";
 import {
   Avatar,
   CopilotHero,
@@ -43,9 +43,9 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; bor
   IN_PROGRESS:   { label: "In Progress",                   bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
   CLEAN:         { label: "Clean",                         bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
   INSPECTED:     { label: "Inspected / Ready",             bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
-  OOO:           { label: "Out of Order",                  bg: C.surface3,    fg: C.ink3,    border: C.line },
-  OUT_OF_ORDER:  { label: "Out of Order",                  bg: C.surface3,    fg: C.ink3,    border: C.line },
-  OUT_OF_SERVICE:{ label: "Out of Service",                bg: C.surface3,    fg: C.ink3,    border: C.line },
+  OOO:           { label: "Out of Order",                  bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
+  OUT_OF_ORDER:  { label: "Out of Order",                  bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
+  OUT_OF_SERVICE:{ label: "Out of Service",                bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
 };
 
 const CLEAN_TYPE_SHORT: Record<string, string> = { DEP: "Departure", FULL: "Full", LIGHT: "Light" };
@@ -101,9 +101,18 @@ function DashboardRoomCard({ room, index, onPress }: { room: Room; index: number
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.roomCard}>
+      {status === "OCCUPIED" ? (
+        <View style={styles.occupiedRail}>
+          {[0, 1, 2].map((stripe) => (
+            <View key={stripe} style={styles.occupiedRailStripe} />
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.statusRail, { backgroundColor: cfg.fg }]} />
+      )}
       <View style={styles.roomCardLeft}>
         <View style={styles.roomCardTitleRow}>
-          <Text style={styles.roomCardNum}>Room {room.room_number}</Text>
+          <Text style={styles.roomCardNum}>{room.room_number}</Text>
           {room.vip_flag ? (
             <View style={styles.roomVipBadge}><Text style={styles.roomVipText}>VIP</Text></View>
           ) : null}
@@ -599,8 +608,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontFamily: displayFont,
     fontSize: 30,
+    fontWeight: "600",
     lineHeight: 34,
     color: C.ink,
   },
@@ -614,7 +623,6 @@ const styles = StyleSheet.create({
     gap: 13,
   },
   heroSentence: {
-    fontFamily: displayFont,
     fontStyle: "italic",
     fontSize: 19,
     lineHeight: 26,
@@ -634,7 +642,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 16,
+    borderRadius: R.lg,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -689,19 +697,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   roomCard: {
+    position: "relative",
+    overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
     padding: 16,
+    paddingLeft: 18,
     backgroundColor: C.surface,
-    borderRadius: 14,
+    borderRadius: R.lg,
     borderWidth: 1,
     borderColor: C.line,
   },
+  statusRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  occupiedRail: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    justifyContent: "space-evenly",
+    backgroundColor: C.alertSoft,
+  },
+  occupiedRailStripe: { height: "22%", backgroundColor: C.occupied },
   roomCardLeft: { flex: 1, minWidth: 0 },
   roomCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  roomCardNum: { fontFamily: monoFont, fontSize: 15, fontWeight: "700", color: C.ink },
+  roomCardNum: { fontFamily: monoFont, fontSize: 29, lineHeight: 33, fontWeight: "700", color: C.ink },
   roomVipBadge: {
     backgroundColor: C.accentSoft,
     borderRadius: 4,
@@ -711,10 +733,10 @@ const styles = StyleSheet.create({
     borderColor: C.accentLine,
   },
   roomVipText: { fontSize: 9, fontWeight: "700", color: C.accent },
-  roomType: { fontFamily: monoFont, fontSize: 11, color: C.ink3, marginBottom: 6 },
+  roomType: { fontSize: 13.5, color: C.ink3, marginBottom: 6, marginTop: 1 },
   roomPillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" as const },
-  roomPill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
-  roomPillText: { fontSize: 11, fontWeight: "600" },
+  roomPill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 3, minHeight: 24 },
+  roomPillText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   cleanTypeText: { fontSize: 10, fontWeight: "700" },
   roomTimeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
@@ -735,7 +757,6 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   engineerStatValue: {
-    fontFamily: displayFont,
     fontSize: 26,
     lineHeight: 28,
     color: C.ink,
