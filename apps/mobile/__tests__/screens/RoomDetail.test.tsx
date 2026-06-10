@@ -1,8 +1,10 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
+import type { Room } from "@/stores/appStore";
 
 const mockSetMyRooms = jest.fn();
-let mockRooms = [
+const mockEnqueueAction = jest.fn();
+let mockRooms: Room[] = [
   {
     id: "room-1",
     room_number: "101",
@@ -14,6 +16,9 @@ let mockRooms = [
     predicted_ready_at: null,
     vip_flag: false,
     checkin_time: null,
+    checkout_time: null,
+    actual_checkout_at: null,
+    clean_type: null,
     updated_at: "2026-05-25T15:00:00.000Z",
   },
 ];
@@ -47,6 +52,7 @@ jest.mock("@/stores/appStore", () => ({
     isOnline: true,
     myRooms: mockRooms,
     setMyRooms: mockSetMyRooms,
+    enqueueAction: mockEnqueueAction,
   }),
 }));
 
@@ -88,5 +94,23 @@ describe("RoomDetailScreen", () => {
     expect(getByText("Lost & Found")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
     expect(mockSetMyRooms).not.toHaveBeenCalled();
+  });
+
+  it("restores the reviewed room workflow inside the redesigned detail screen", async () => {
+    mockRooms = [{
+      ...mockRooms[0],
+      status: "DIRTY",
+      clean_type: "DEP",
+      dnd_flag: true,
+      actual_checkout_at: null,
+    }];
+
+    const { getByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
+    expect(getByText("DND active")).toBeTruthy();
+    expect(getByText("Not checked out")).toBeTruthy();
+    expect(getByText("Quick blockers")).toBeTruthy();
+    expect(getByText("Start Cleaning")).toBeTruthy();
   });
 });

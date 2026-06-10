@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   ActivityIndicator,
+  type GestureResponderEvent,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,10 +19,13 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont } from "@/components/shared/tokens";
 import { localDate } from "@/lib/utils/date";
-
-const STATUS_PRIORITY: Record<string, number> = {
-  IN_PROGRESS: 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,
-};
+import {
+  compareRoomsByPriority,
+  getPrimaryTimingLine,
+  getRoomAction,
+  getRoomBadges,
+  hasRoomException,
+} from "@/lib/housekeeping/roomWorkflow";
 
 const CLEAN_TYPE_SHORT: Record<string, string> = {
   DEP: "Departure", FULL: "Full", LIGHT: "Light",
@@ -31,22 +36,12 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; bor
   OCCUPIED:      { label: "Occupied Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
   PICKUP:        { label: "Pickup",                          bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
   IN_PROGRESS:   { label: "In Progress",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine },
-  CLEAN:         { label: "Clean",                           bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
-  INSPECTED:     { label: "Inspected / Ready",               bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
+  CLEAN:         { label: "Submitted",                       bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
+  INSPECTED:     { label: "Ready",                           bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
   OOO:           { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
   OUT_OF_ORDER:  { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
   OUT_OF_SERVICE:{ label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
 };
-
-function formatTime(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  } catch {
-    return null;
-  }
-}
 
 function dayLabel() {
   return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -67,51 +62,61 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
   const status = room.status ?? "DIRTY";
   const cfg = STATUS_CONFIG[status] ?? { label: status, bg: C.surface3, fg: C.ink3, border: C.line };
   const roomType = room.rooms?.room_types?.name ?? null;
-  const cleanTypeLabel = room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null;
-  const checkoutIso = room.actual_checkout_at ?? room.checkout_time ?? null;
-  const checkoutLabel = room.actual_checkout_at ? "Checked out" : "Due out";
-  const checkoutTime = formatTime(checkoutIso);
-  const isOccupied = Boolean(room.guest_name);
+  const action = getRoomAction(room);
+  const badges = getRoomBadges(room);
+  const timing = getPrimaryTimingLine(room);
+  const cleanTypeLabel = room.clean_type_label ?? (room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null);
 
   useEffect(() => {
     setDonePending(false);
     setUndoPending(false);
   }, [status]);
 
-  async function handleStart(e: { stopPropagation?: () => void }) {
-    e.stopPropagation?.();
+  async function handleStart(e: GestureResponderEvent) {
+    e.stopPropagation();
     setLoading(true);
     try { await onAction(room.id, "IN_PROGRESS"); } finally { setLoading(false); }
   }
 
-  function handleDonePress(e: { stopPropagation?: () => void }) {
-    e.stopPropagation?.();
+  function handleDonePress(e: GestureResponderEvent) {
+    e.stopPropagation();
     if (!donePending) { setUndoPending(false); setDonePending(true); return; }
     setDonePending(false);
     setLoading(true);
     onAction(room.id, "CLEAN").finally(() => setLoading(false));
   }
 
-  function handleUndoPress(e: { stopPropagation?: () => void }) {
-    e.stopPropagation?.();
+  function handleUndoPress(e: GestureResponderEvent) {
+    e.stopPropagation();
     if (!undoPending) { setDonePending(false); setUndoPending(true); return; }
     setUndoPending(false);
     setLoading(true);
     onUndo(room.id).finally(() => setLoading(false));
   }
 
-  function cancelDone(e: { stopPropagation?: () => void }) { e.stopPropagation?.(); setDonePending(false); }
-  function cancelUndo(e: { stopPropagation?: () => void }) { e.stopPropagation?.(); setUndoPending(false); }
+  function handleReview(e: GestureResponderEvent) {
+    e.stopPropagation();
+    onPress();
+  }
 
-  let rightContent: React.ReactNode = null;
+  function cancelDone(e: GestureResponderEvent) { e.stopPropagation(); setDonePending(false); }
+  function cancelUndo(e: GestureResponderEvent) { e.stopPropagation(); setUndoPending(false); }
 
-  if (status === "DIRTY" || status === "PICKUP" || status === "OCCUPIED") {
+  let rightContent: ReactNode = null;
+
+  if (action.kind === "start") {
     rightContent = (
       <TouchableOpacity onPress={handleStart} disabled={loading} style={[styles.btnStart, loading && styles.btnDisabled]} activeOpacity={0.85}>
         <Text style={styles.btnStartText}>{loading ? "…" : "Start"}</Text>
       </TouchableOpacity>
     );
-  } else if (status === "IN_PROGRESS") {
+  } else if (action.kind === "review" || action.kind === "review_done") {
+    rightContent = (
+      <TouchableOpacity onPress={handleReview} disabled={loading} style={styles.btnReview} activeOpacity={0.85}>
+        <Text style={styles.btnReviewText}>{action.label}</Text>
+      </TouchableOpacity>
+    );
+  } else if (action.kind === "done") {
     if (donePending) {
       rightContent = (
         <View style={styles.confirmCol}>
@@ -146,7 +151,7 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
         </View>
       );
     }
-  } else if (status === "CLEAN") {
+  } else if (action.kind === "submitted") {
     if (undoPending) {
       rightContent = (
         <View style={styles.confirmCol}>
@@ -168,8 +173,16 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
         </View>
       );
     }
-  } else if (status === "INSPECTED") {
-    rightContent = <Text style={styles.readyLabel}>{isOccupied ? "Ready\nOccupied" : "Ready\nVacant"}</Text>;
+  } else if (action.kind === "ready") {
+    rightContent = <Text style={styles.readyLabel}>Ready</Text>;
+  } else if (action.kind === "blocked") {
+    rightContent = <Text style={styles.blockedLabel}>Blocked</Text>;
+  } else {
+    rightContent = (
+      <TouchableOpacity onPress={handleReview} style={styles.btnReview} activeOpacity={0.85}>
+        <Text style={styles.btnReviewText}>{action.label}</Text>
+      </TouchableOpacity>
+    );
   }
 
   return (
@@ -186,9 +199,9 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
       <View style={styles.cardLeft}>
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardRoomNum}>{room.room_number}</Text>
-          {room.vip_flag ? (
-            <View style={styles.vipBadge}><Text style={styles.vipText}>VIP</Text></View>
-          ) : null}
+          {badges.map((badge) => (
+            <View key={badge.key} style={styles.vipBadge}><Text style={styles.vipText}>{badge.label}</Text></View>
+          ))}
         </View>
 
         {roomType ? <Text style={styles.roomType}>{roomType}</Text> : null}
@@ -209,10 +222,10 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
           ) : null}
         </View>
 
-        {checkoutTime ? (
+        {timing ? (
           <View style={styles.timeRow}>
             <Ionicons name="time-outline" size={12} color={C.ink3} />
-            <Text style={styles.timeText}>{checkoutLabel} {checkoutTime}</Text>
+            <Text style={styles.timeText}>{timing.label} {timing.value}</Text>
           </View>
         ) : null}
       </View>
@@ -258,10 +271,10 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const sortedRooms = useMemo(() =>
-    [...myRooms].sort((a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5)),
-    [myRooms],
-  );
+  const sortedRooms = useMemo(() => {
+    const now = new Date();
+    return [...myRooms].sort((a, b) => compareRoomsByPriority(a, b, now));
+  }, [myRooms]);
 
   const todoCount = useMemo(() =>
     myRooms.filter(r => r.status === "DIRTY" || r.status === "PICKUP" || r.status === "OCCUPIED").length,
@@ -270,6 +283,9 @@ export default function MyRoomsScreen() {
     myRooms.filter(r => r.status === "IN_PROGRESS").length, [myRooms]);
   const doneCount = useMemo(() =>
     myRooms.filter(r => r.status === "INSPECTED").length, [myRooms]);
+  const priorityCount = useMemo(() =>
+    myRooms.filter(r => r.status !== "CLEAN" && r.status !== "INSPECTED" && hasRoomException(r)).length,
+    [myRooms]);
 
   async function handleAction(roomId: string, status: string) {
     const { myRooms: current, setMyRooms: set } = useAppStore.getState();
@@ -340,6 +356,10 @@ export default function MyRoomsScreen() {
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryNum, { color: C.ready }]}>{doneCount}</Text>
               <Text style={styles.summaryLabel}> done</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryNum, { color: C.caution }]}>{priorityCount}</Text>
+              <Text style={styles.summaryLabel}> priority</Text>
             </View>
           </View>
         ) : null}
@@ -452,6 +472,9 @@ const styles = StyleSheet.create({
   btnStart: { minHeight: 52, backgroundColor: C.accent, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
   btnStartText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 
+  btnReview: { minHeight: 48, backgroundColor: C.surface3, borderWidth: 1, borderColor: C.line, borderRadius: 13, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
+  btnReviewText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
+
   btnDone: { minHeight: 48, backgroundColor: C.ready, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
   btnDoneText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 
@@ -471,6 +494,7 @@ const styles = StyleSheet.create({
 
   waitingText: { fontSize: 12, color: C.caution, fontWeight: "500", textAlign: "right", lineHeight: 17 },
   readyLabel: { fontSize: 14, color: C.ready, fontWeight: "600", textAlign: "right" },
+  blockedLabel: { fontSize: 13, color: C.ink3, fontWeight: "700", textAlign: "right" },
 
   emptyCard: { marginTop: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },
