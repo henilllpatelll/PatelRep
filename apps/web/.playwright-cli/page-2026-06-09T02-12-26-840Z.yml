@@ -1,0 +1,69 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e20] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e21]
+              - generic [ref=e26]: Dashboard
+            - link "My Rooms" [ref=e29] [cursor=pointer]:
+              - /url: /housekeeping
+              - img [ref=e30]
+              - generic [ref=e32]: My Rooms
+            - link "Guest Requests" [ref=e35] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e36]
+              - generic [ref=e38]: Guest Requests
+      - generic [ref=e40]:
+        - generic [ref=e41]: C
+        - generic [ref=e42]:
+          - paragraph [ref=e43]: Claudia
+          - paragraph [ref=e44]: Housekeeper
+    - generic [ref=e45]:
+      - banner [ref=e46]:
+        - generic [ref=e47]:
+          - img [ref=e48]
+          - textbox "Open command palette" [ref=e51]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e52]: ⌘K
+        - generic [ref=e55]: Mon, Jun 8 · Evening shift
+        - button "Espanol" [ref=e57] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e62]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e66]: Ask copilot
+          - generic [ref=e67]: ⌘J
+        - button "Notifications" [ref=e68] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e72]: "3"
+        - button "User menu for Claudia" [ref=e74] [cursor=pointer]:
+          - generic [ref=e75]: C
+          - img [ref=e76]
+      - main [ref=e78]:
+        - generic [ref=e82]:
+          - paragraph [ref=e83]: Monday, June 8
+          - heading "Good evening, Claudia." [level=1] [ref=e84]:
+            - text: Good evening,
+            - emphasis [ref=e85]: Claudia
+            - text: .
+    - button "Open AI Copilot" [ref=e93] [cursor=pointer]:
+      - img [ref=e94]
+      - generic [ref=e96]: Ask copilot
+      - generic [ref=e97]: ⌘J
+    - button "Open feedback" [ref=e99] [cursor=pointer]:
+      - img [ref=e100]
+      - generic [ref=e102]: Feedback
+    - button "Display preferences" [ref=e104] [cursor=pointer]:
+      - img [ref=e105]
+  - button "Open Next.js Dev Tools" [ref=e113] [cursor=pointer]:
+    - img [ref=e114]
+  - alert [ref=e117]

@@ -112,7 +112,7 @@ import HousekeeperHomeScreen from "@/app/(app)/home";
 
 describe("HousekeeperHomeScreen", () => {
   it("renders Variation A with the dark copilot plan, pace card, and up-next rooms", async () => {
-    const { getByText } = render(<HousekeeperHomeScreen />);
+    const { getByText, getAllByText } = render(<HousekeeperHomeScreen />);
 
     await waitFor(() => expect(getByText("Morning, Maria.")).toBeTruthy());
 
@@ -123,8 +123,8 @@ describe("HousekeeperHomeScreen", () => {
     expect(getByText("of 4")).toBeTruthy();
     expect(getByText("You're ahead by 3 min")).toBeTruthy();
     expect(getByText("Up next")).toBeTruthy();
-    expect(getByText("112")).toBeTruthy();
-    expect(getByText("115")).toBeTruthy();
+    expect(getByText("Start with 112")).toBeTruthy();
+    expect(getAllByText(/115/).length).toBeGreaterThan(0);
     expect(getByText("VIP")).toBeTruthy();
   });
 });

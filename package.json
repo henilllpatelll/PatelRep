@@ -20,7 +20,10 @@
     "ab:test": "powershell -ExecutionPolicy Bypass -File e2e/agent-browser/scripts/run-all.ps1"
   },
   "dependencies": {
-    "patch-package": "^8.0.1"
+    "expo": "^46.0.21",
+    "patch-package": "^8.0.1",
+    "@types/react": "~18.0.0",
+    "@types/react-native": "~0.69.1"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

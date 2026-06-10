@@ -14,6 +14,9 @@ jest.mock("@/stores/appStore", () => ({
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: () => null,
+}));
 
 // Import after mocks
 // eslint-disable-next-line import/first
@@ -46,22 +49,11 @@ describe("ReportIssueModal", () => {
       selector({ isOnline: true })
     );
 
-    const { getByPlaceholderText, getByTestId } = render(
+    const { getByPlaceholderText } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    // The modal should render a description input
-    // Accept either placeholder text or testID
-    const input =
-      (() => {
-        try {
-          return getByPlaceholderText(/description/i);
-        } catch {
-          return getByTestId("description-input");
-        }
-      })();
-
-    expect(input).toBeTruthy();
+    expect(getByPlaceholderText(/Describe what you found/i)).toBeTruthy();
   });
 
   it("calls POST /work-orders with room_id, title, description, category, priority when online", async () => {
@@ -70,37 +62,23 @@ describe("ReportIssueModal", () => {
     );
     mockApiPost.mockResolvedValue({ data: { id: "wo-new" } });
 
-    const { getByPlaceholderText, getByTestId, getByText } = render(
+    const { getByPlaceholderText, getByText } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    // Fill in description
-    const descriptionInput =
-      (() => {
-        try {
-          return getByPlaceholderText(/description/i);
-        } catch {
-          return getByTestId("description-input");
-        }
-      })();
-    fireEvent.changeText(descriptionInput, "AC unit is broken");
+    fireEvent.changeText(getByPlaceholderText(/Toilet not flushing/i), "Broken AC");
+    fireEvent.press(getByText("Select a category"));
+    fireEvent.press(getByText("General"));
+    fireEvent.changeText(getByPlaceholderText(/Describe what you found/i), "AC unit is broken");
 
-    // Press Submit button
-    const submitButton =
-      (() => {
-        try {
-          return getByText(/submit/i);
-        } catch {
-          return getByTestId("submit-button");
-        }
-      })();
-    fireEvent.press(submitButton);
+    fireEvent.press(getByText("Submit to Engineering"));
 
     await waitFor(() => {
       expect(mockApiPost).toHaveBeenCalledWith(
         "/work-orders",
         expect.objectContaining({
           room_id: "room-123",
+          title: "Broken AC",
           description: "AC unit is broken",
           category: "general",
           priority: "normal",
@@ -116,31 +94,16 @@ describe("ReportIssueModal", () => {
       selector({ isOnline: false })
     );
 
-    const { getByPlaceholderText, getByTestId, getByText } = render(
+    const { getByPlaceholderText, getByText } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    // Fill in description
-    const descriptionInput =
-      (() => {
-        try {
-          return getByPlaceholderText(/description/i);
-        } catch {
-          return getByTestId("description-input");
-        }
-      })();
-    fireEvent.changeText(descriptionInput, "Toilet is clogged");
+    fireEvent.changeText(getByPlaceholderText(/Toilet not flushing/i), "Clogged toilet");
+    fireEvent.press(getByText("Select a category"));
+    fireEvent.press(getByText("General"));
+    fireEvent.changeText(getByPlaceholderText(/Describe what you found/i), "Toilet is clogged");
 
-    // Press Submit button
-    const submitButton =
-      (() => {
-        try {
-          return getByText(/submit/i);
-        } catch {
-          return getByTestId("submit-button");
-        }
-      })();
-    fireEvent.press(submitButton);
+    fireEvent.press(getByText("Submit to Engineering"));
 
     await waitFor(() => {
       expect(mockEnqueueAction).toHaveBeenCalledWith(
@@ -148,6 +111,7 @@ describe("ReportIssueModal", () => {
         "create",
         expect.objectContaining({
           room_id: "room-123",
+          title: "Clogged toilet",
           description: "Toilet is clogged",
           category: "general",
           priority: "normal",

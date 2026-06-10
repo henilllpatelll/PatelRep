@@ -57,6 +57,16 @@ export interface Room {
   actual_checkout_at?: string | null;
   fo_status?: "OCC" | "VAC" | null;
   clean_type?: string | null;
+  clean_type_label?: string | null;
+  latest_note?: string | null;
+  latest_note_at?: string | null;
+  open_work_order_id?: string | null;
+  open_work_order_number?: string | null;
+  open_work_order_title?: string | null;
+  open_work_order_priority?: string | null;
+  open_work_order_status?: string | null;
+  assignment_id?: string | null;
+  assignment_date?: string | null;
   updated_at?: string | null;
   last_cleaned_at?: string | null;
   last_inspected_at?: string | null;
