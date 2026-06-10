@@ -10,6 +10,8 @@ const EN: Record<string, string> = {
   "tasks.groupBeforeNoon": "Before 12:00",
   "tasks.groupAfternoon": "This afternoon",
   "tasks.footerHint": "Copilot keeps this ordered around your route.",
+  "tasks.emptyTitle": "All caught up",
+  "tasks.emptyMeta": "New tasks will show here when assigned.",
 };
 
 jest.mock("react-i18next", () => ({
@@ -35,16 +37,13 @@ jest.mock("@/lib/api/client", () => ({
 import TasksScreen from "@/app/(app)/tasks";
 
 describe("TasksScreen handoff", () => {
-  it("renders Tasks variation A as a shift timeline with the AI reorder nudge", async () => {
+  it("renders the empty task state when no tasks are assigned", async () => {
     const { getByText } = render(<TasksScreen />);
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
-    expect(getByText("Heads up")).toBeTruthy();
-    expect(getByText("Reorder for me")).toBeTruthy();
-    expect(getByText("Now")).toBeTruthy();
-    expect(getByText("Before 12:00")).toBeTruthy();
-    expect(getByText("This afternoon")).toBeTruthy();
-    expect(getByText("Restock cart - floor 2")).toBeTruthy();
+    expect(getByText("0 tasks")).toBeTruthy();
+    expect(getByText("All caught up")).toBeTruthy();
+    expect(getByText("New tasks will show here when assigned.")).toBeTruthy();
   });
 });

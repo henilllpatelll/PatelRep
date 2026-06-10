@@ -8,6 +8,7 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **Mobile redesign discovery should use repeated explicit questions (2026-06-08):** When discussing a major mobile app redesign, user wants the assistant to use the app question tool when available and keep asking until confidence is high rather than jumping prematurely into implementation.
 - **Spanish toggle must remove all English UI copy, including AI (2026-06-03):** When the web app is toggled to Spanish, user expects literally every staff-facing UI label, button, status, helper line, chip, dynamic phrase, aria/title/placeholder, and AI/Copilot surface to be Spanish. Translate `AI` to `IA`, do not expose `English` in Spanish-mode labels, and treat only proper names/brand names as acceptable exceptions.
 - **MVP feedback loop should be always available (2026-05-28):** User wants a floating feedback/report button available to hotel staff during the live hotel pilot, with a simple text box and automatic page/device/user context capture so even tiny staff complaints are easy to send.
 - **Feedback form should be text-only (2026-05-28):** User explicitly removed "What happened?" and "How bad?" controls from the feedback widget. Keep staff-facing feedback to a single text box plus send action; infer/default metadata in the backend instead of asking staff.
@@ -18,6 +19,7 @@
 
 ## Key Learnings
 
+- **Mobile My Rooms workflow helper (2026-06-09):** Shared card/detail decision logic now lives in `apps/mobile/lib/housekeeping/roomWorkflow.ts`; use it for exception badges, Start vs Review/Done vs Review Done actions, priority sorting, timing lines, and Before You Enter warnings so My Rooms list and detail stay consistent.
 - **Web design theme (2026-06-07):** PatelRep web uses a custom "Warm Operational Hospitality" token system, not plain shadcn defaults: off-white paper canvas, white surfaces, charcoal ink, terracotta default action accent, teal ready/success, amber caution, rose alert, violet AI. `DashboardShell` applies persisted density/theme/accent classes from `uiPreferencesStore` with defaults `balanced`, `light`, and `terracotta`.
 - **Mobile EAS Android CNG archive rule (2026-06-05):** For `apps/mobile`, production EAS builds should exclude checked-in `apps/mobile/android/` from the upload archive so EAS runs Expo prebuild from `app.json`; otherwise stale native autolinking can fail Gradle with `No matching variant ... No variants exist` for React Native community modules. Also keep `apps/mobile/.expo/` untracked/ignored because Expo Doctor treats tracked local Expo state as a project setup failure.
 - **Web proxy role fallback for tab navigation (2026-06-05):** Supabase sessions may expose top-level JWT role `authenticated` while the PatelRep app role lives in custom claim `user_role` and `/auth/me`. `apps/web/proxy.ts` now uses `getAppRoleFromSources(jwt.user_role, jwt.role, app_metadata, user_metadata, pr_role)`, and `apps/web/components/shared/Providers.tsx` writes a non-secret `pr_role` cookie after hydration so sidebar tab navigation is not bounced back to `/dashboard`; API/RBAC endpoints remain the real authorization layer.
