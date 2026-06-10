@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
+import { C, darkTheme } from "@/components/shared/tokens";
 
 const HISTORY_KEY = "@patelrep/copilot_history";
 const MAX_HISTORY = 20;
@@ -277,13 +278,13 @@ export default function CopilotScreen() {
             onPressOut={handleMicPressOut}
             style={[styles.micBtn, isRecording && styles.micBtnActive]}
           >
-            <Ionicons name="mic" size={20} color={isRecording ? "#a6263c" : "#807a70"} />
+            <Ionicons name="mic" size={20} color={isRecording ? C.alert : darkTheme.textMuted} />
           </TouchableOpacity>
         ) : null}
         <TextInput
           style={styles.input}
           placeholder={t("copilot.placeholder")}
-          placeholderTextColor="#807a70"
+          placeholderTextColor={darkTheme.textMuted}
           value={input}
           onChangeText={setInput}
           multiline

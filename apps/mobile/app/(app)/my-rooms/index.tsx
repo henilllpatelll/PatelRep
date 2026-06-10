@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import {
   ActivityIndicator,
-  type GestureResponderEvent,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,31 +15,38 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont, displayFont } from "@/components/shared/tokens";
+import { C, monoFont } from "@/components/shared/tokens";
 import { localDate } from "@/lib/utils/date";
-import {
-  compareRoomsByPriority,
-  getPrimaryTimingLine,
-  getRoomAction,
-  getRoomBadges,
-  hasRoomException,
-} from "@/lib/housekeeping/roomWorkflow";
+
+const STATUS_PRIORITY: Record<string, number> = {
+  IN_PROGRESS: 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,
+};
 
 const CLEAN_TYPE_SHORT: Record<string, string> = {
   DEP: "Departure", FULL: "Full", LIGHT: "Light",
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; border: string }> = {
-  DIRTY:         { label: "Vacant Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  OCCUPIED:      { label: "Occupied Dirty",                bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  PICKUP:        { label: "Pickup",                        bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  IN_PROGRESS:   { label: "In Progress",                   bg: C.aiSoft,      fg: C.ai,      border: C.aiLine },
-  CLEAN:         { label: "Submitted",                     bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
-  INSPECTED:     { label: "Ready",                         bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
-  OOO:           { label: "Out of Order / Out of Service", bg: C.surface3,    fg: C.ink3,    border: C.line },
-  OUT_OF_ORDER:  { label: "Out of Order / Out of Service", bg: C.surface3,    fg: C.ink3,    border: C.line },
-  OUT_OF_SERVICE:{ label: "Out of Order / Out of Service", bg: C.surface3,    fg: C.ink3,    border: C.line },
+  DIRTY:         { label: "Vacant Dirty",                    bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
+  OCCUPIED:      { label: "Occupied Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
+  PICKUP:        { label: "Pickup",                          bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  IN_PROGRESS:   { label: "In Progress",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine },
+  CLEAN:         { label: "Clean",                           bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
+  INSPECTED:     { label: "Inspected / Ready",               bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
+  OOO:           { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
+  OUT_OF_ORDER:  { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
+  OUT_OF_SERVICE:{ label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
 };
+
+function formatTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  } catch {
+    return null;
+  }
+}
 
 function dayLabel() {
   return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -61,61 +66,52 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
 
   const status = room.status ?? "DIRTY";
   const cfg = STATUS_CONFIG[status] ?? { label: status, bg: C.surface3, fg: C.ink3, border: C.line };
-  const action = getRoomAction(room);
-  const badges = getRoomBadges(room);
-  const timing = getPrimaryTimingLine(room);
-  const cleanTypeLabel = room.clean_type_label ?? (room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null);
+  const roomType = room.rooms?.room_types?.name ?? null;
+  const cleanTypeLabel = room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null;
+  const checkoutIso = room.actual_checkout_at ?? room.checkout_time ?? null;
+  const checkoutLabel = room.actual_checkout_at ? "Checked out" : "Due out";
+  const checkoutTime = formatTime(checkoutIso);
+  const isOccupied = Boolean(room.guest_name);
 
   useEffect(() => {
     setDonePending(false);
     setUndoPending(false);
   }, [status]);
 
-  async function handleStart(e: GestureResponderEvent) {
-    e.stopPropagation();
+  async function handleStart(e: { stopPropagation?: () => void }) {
+    e.stopPropagation?.();
     setLoading(true);
     try { await onAction(room.id, "IN_PROGRESS"); } finally { setLoading(false); }
   }
 
-  function handleDonePress(e: GestureResponderEvent) {
-    e.stopPropagation();
+  function handleDonePress(e: { stopPropagation?: () => void }) {
+    e.stopPropagation?.();
     if (!donePending) { setUndoPending(false); setDonePending(true); return; }
     setDonePending(false);
     setLoading(true);
     onAction(room.id, "CLEAN").finally(() => setLoading(false));
   }
 
-  function handleUndoPress(e: GestureResponderEvent) {
-    e.stopPropagation();
+  function handleUndoPress(e: { stopPropagation?: () => void }) {
+    e.stopPropagation?.();
     if (!undoPending) { setDonePending(false); setUndoPending(true); return; }
     setUndoPending(false);
     setLoading(true);
     onUndo(room.id).finally(() => setLoading(false));
   }
 
-  function handleReview(e: GestureResponderEvent) {
-    e.stopPropagation();
-    onPress();
-  }
+  function cancelDone(e: { stopPropagation?: () => void }) { e.stopPropagation?.(); setDonePending(false); }
+  function cancelUndo(e: { stopPropagation?: () => void }) { e.stopPropagation?.(); setUndoPending(false); }
 
-  function cancelDone(e: GestureResponderEvent) { e.stopPropagation(); setDonePending(false); }
-  function cancelUndo(e: GestureResponderEvent) { e.stopPropagation(); setUndoPending(false); }
+  let rightContent: React.ReactNode = null;
 
-  let rightContent: ReactNode = null;
-
-  if (action.kind === "start") {
+  if (status === "DIRTY" || status === "PICKUP" || status === "OCCUPIED") {
     rightContent = (
       <TouchableOpacity onPress={handleStart} disabled={loading} style={[styles.btnStart, loading && styles.btnDisabled]} activeOpacity={0.85}>
-        <Text style={styles.btnStartText}>{loading ? "..." : action.label}</Text>
+        <Text style={styles.btnStartText}>{loading ? "…" : "Start"}</Text>
       </TouchableOpacity>
     );
-  } else if (action.kind === "review" || action.kind === "review_done") {
-    rightContent = (
-      <TouchableOpacity onPress={handleReview} disabled={loading} style={styles.btnReview} activeOpacity={0.85}>
-        <Text style={styles.btnReviewText}>{action.label}</Text>
-      </TouchableOpacity>
-    );
-  } else if (action.kind === "done") {
+  } else if (status === "IN_PROGRESS") {
     if (donePending) {
       rightContent = (
         <View style={styles.confirmCol}>
@@ -142,7 +138,7 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
       rightContent = (
         <View style={styles.confirmCol}>
           <TouchableOpacity onPress={handleDonePress} disabled={loading} style={[styles.btnDone, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnDoneText}>{loading ? "..." : action.label}</Text>
+            <Text style={styles.btnDoneText}>{loading ? "…" : "Done"}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndo, loading && styles.btnDisabled]} activeOpacity={0.85}>
             <Text style={styles.btnUndoText}>Undo</Text>
@@ -150,7 +146,7 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
         </View>
       );
     }
-  } else if (action.kind === "submitted") {
+  } else if (status === "CLEAN") {
     if (undoPending) {
       rightContent = (
         <View style={styles.confirmCol}>
@@ -165,36 +161,37 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
     } else {
       rightContent = (
         <View style={styles.confirmCol}>
-          <Text style={styles.submittedText}>Submitted</Text>
+          <Text style={styles.waitingText}>{"Waiting for\nsupervisor"}</Text>
           <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndo, loading && styles.btnDisabled]} activeOpacity={0.85}>
             <Text style={styles.btnUndoText}>Undo</Text>
           </TouchableOpacity>
         </View>
       );
     }
-  } else if (action.kind === "ready") {
-    rightContent = <Text style={styles.readyLabel}>Ready</Text>;
-  } else if (action.kind === "blocked") {
-    rightContent = <Text style={styles.blockedLabel}>Blocked</Text>;
-  } else {
-    rightContent = (
-      <TouchableOpacity onPress={handleReview} style={styles.btnReview} activeOpacity={0.85}>
-        <Text style={styles.btnReviewText}>{action.label}</Text>
-      </TouchableOpacity>
-    );
+  } else if (status === "INSPECTED") {
+    rightContent = <Text style={styles.readyLabel}>{isOccupied ? "Ready\nOccupied" : "Ready\nVacant"}</Text>;
   }
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
-      <View style={styles.cardLeft}>
-        <View style={styles.cardTitleRow}>
-          <Text style={styles.cardRoomNum}>Room {room.room_number}</Text>
-          {badges.map((badge) => (
-            <View key={badge.key} style={styles.exceptionBadge}>
-              <Text style={styles.exceptionBadgeText}>{badge.label}</Text>
-            </View>
+      {status === "OCCUPIED" ? (
+        <View style={styles.occupiedRail}>
+          {[0, 1, 2].map((stripe) => (
+            <View key={stripe} style={styles.occupiedRailStripe} />
           ))}
         </View>
+      ) : (
+        <View style={[styles.statusRail, { backgroundColor: cfg.fg }]} />
+      )}
+      <View style={styles.cardLeft}>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardRoomNum}>{room.room_number}</Text>
+          {room.vip_flag ? (
+            <View style={styles.vipBadge}><Text style={styles.vipText}>VIP</Text></View>
+          ) : null}
+        </View>
+
+        {roomType ? <Text style={styles.roomType}>{roomType}</Text> : null}
 
         <View style={styles.pillRow}>
           <View style={[styles.pill, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
@@ -212,10 +209,10 @@ function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
           ) : null}
         </View>
 
-        {timing ? (
+        {checkoutTime ? (
           <View style={styles.timeRow}>
             <Ionicons name="time-outline" size={12} color={C.ink3} />
-            <Text style={styles.timeText}>{timing.label} {timing.value}</Text>
+            <Text style={styles.timeText}>{checkoutLabel} {checkoutTime}</Text>
           </View>
         ) : null}
       </View>
@@ -261,18 +258,18 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const sortedRooms = useMemo(() => {
-    const now = new Date();
-    return [...myRooms].sort((a, b) => compareRoomsByPriority(a, b, now));
-  }, [myRooms]);
+  const sortedRooms = useMemo(() =>
+    [...myRooms].sort((a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5)),
+    [myRooms],
+  );
 
-  const summary = useMemo(() => ({
-    left: myRooms.filter((r) => r.status === "DIRTY" || r.status === "PICKUP" || r.status === "OCCUPIED" || r.status === "IN_PROGRESS").length,
-    active: myRooms.filter((r) => r.status === "IN_PROGRESS").length,
-    submitted: myRooms.filter((r) => r.status === "CLEAN").length,
-    ready: myRooms.filter((r) => r.status === "INSPECTED").length,
-    priority: myRooms.filter((r) => r.status !== "CLEAN" && r.status !== "INSPECTED" && hasRoomException(r)).length,
-  }), [myRooms]);
+  const todoCount = useMemo(() =>
+    myRooms.filter(r => r.status === "DIRTY" || r.status === "PICKUP" || r.status === "OCCUPIED").length,
+    [myRooms]);
+  const inProgressCount = useMemo(() =>
+    myRooms.filter(r => r.status === "IN_PROGRESS").length, [myRooms]);
+  const doneCount = useMemo(() =>
+    myRooms.filter(r => r.status === "INSPECTED").length, [myRooms]);
 
   async function handleAction(roomId: string, status: string) {
     const { myRooms: current, setMyRooms: set } = useAppStore.getState();
@@ -297,7 +294,7 @@ export default function MyRoomsScreen() {
         set(current.map(r => r.id === roomId ? { ...r, status: nextStatus as Room["status"] } : r));
       }
     } catch {
-      // Room list will reload on next refresh.
+      // silently ignore — room list will reload on next refresh
     } finally {
       loadRooms();
     }
@@ -331,12 +328,19 @@ export default function MyRoomsScreen() {
         </View>
 
         {myRooms.length > 0 ? (
-          <View style={styles.summaryGrid}>
-            <SummaryMetric label="left" value={summary.left} color={C.alert} />
-            <SummaryMetric label="active" value={summary.active} color={C.ai} />
-            <SummaryMetric label="submitted" value={summary.submitted} color={C.info} />
-            <SummaryMetric label="ready" value={summary.ready} color={C.ready} />
-            <SummaryMetric label="priority" value={summary.priority} color={C.caution} />
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryNum, { color: C.alert }]}>{todoCount}</Text>
+              <Text style={styles.summaryLabel}> to do</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryNum, { color: C.ai }]}>{inProgressCount}</Text>
+              <Text style={styles.summaryLabel}> in progress</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryNum, { color: C.ready }]}>{doneCount}</Text>
+              <Text style={styles.summaryLabel}> done</Text>
+            </View>
           </View>
         ) : null}
 
@@ -364,63 +368,65 @@ export default function MyRoomsScreen() {
   );
 }
 
-function SummaryMetric({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <View style={styles.summaryItem}>
-      <Text style={[styles.summaryNum, { color }]}>{value}</Text>
-      <Text style={styles.summaryLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 18, paddingBottom: 40 },
 
   offlineBanner: { backgroundColor: C.alert, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8 },
   offlineText: { flex: 1, color: "#fff", fontSize: 12 },
 
   header: { paddingTop: 12, paddingBottom: 4 },
-  title: { fontFamily: displayFont, fontSize: 32, color: C.ink, lineHeight: 38 },
+  title: { fontSize: 29, fontWeight: "600", color: C.ink, lineHeight: 35 },
   headerDate: { fontSize: 13, color: C.ink3, marginTop: 2 },
 
-  summaryGrid: {
+  summaryCard: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 12,
-  },
-  summaryItem: {
-    flex: 1,
+    gap: 20,
     backgroundColor: C.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.line,
-    paddingVertical: 9,
-    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 12,
   },
-  summaryNum: { fontFamily: displayFont, fontSize: 17, fontWeight: "700", lineHeight: 21 },
-  summaryLabel: { fontSize: 10, color: C.ink3, marginTop: 1 },
+  summaryItem: { flexDirection: "row", alignItems: "baseline" },
+  summaryNum: { fontSize: 18, fontWeight: "700" },
+  summaryLabel: { fontSize: 13, color: C.ink3 },
 
-  list: { gap: 8, marginTop: 14 },
+  list: { gap: 15, marginTop: 16 },
 
   card: {
+    position: "relative",
+    overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    padding: 16,
+    paddingLeft: 18,
     backgroundColor: C.surface,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.line,
   },
+  statusRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  occupiedRail: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    justifyContent: "space-evenly",
+    backgroundColor: C.alertSoft,
+  },
+  occupiedRailStripe: { height: "22%", backgroundColor: C.occupied },
   cardLeft: { flex: 1, minWidth: 0 },
-  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" },
-  cardRoomNum: { fontFamily: monoFont, fontSize: 16, fontWeight: "600", color: C.ink },
-  exceptionBadge: {
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
+  cardRoomNum: { fontFamily: monoFont, fontSize: 30, lineHeight: 34, fontWeight: "700", color: C.ink },
+  vipBadge: {
     backgroundColor: C.accentSoft,
     borderRadius: 4,
     paddingHorizontal: 5,
@@ -428,36 +434,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.accentLine,
   },
-  exceptionBadgeText: { fontSize: 9, fontWeight: "700", color: C.accent },
+  vipText: { fontSize: 9, fontWeight: "700", color: C.accent },
+  roomType: { fontSize: 14, color: C.ink3, marginTop: 2 },
 
   pillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 6 },
-  pill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
-  pillText: { fontSize: 12, fontWeight: "500" },
+  pill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 3, minHeight: 24 },
+  pillText: { fontSize: 11.5, fontWeight: "700", textTransform: "uppercase" },
   cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   cleanTypeText: { fontSize: 10, fontWeight: "600" },
 
   timeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
   timeText: { fontFamily: monoFont, fontSize: 12, color: C.ink2 },
 
-  cardRight: { alignItems: "flex-end", flexShrink: 0, minWidth: 76 },
+  cardRight: { alignItems: "flex-end", flexShrink: 0 },
   confirmCol: { alignItems: "flex-end", gap: 6 },
 
-  btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  btnStartText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  btnStart: { minHeight: 52, backgroundColor: C.accent, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
+  btnStartText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 
-  btnReview: { backgroundColor: C.surface3, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 8 },
-  btnReviewText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
+  btnDone: { minHeight: 48, backgroundColor: C.ready, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
+  btnDoneText: { color: "#fff", fontSize: 15, fontWeight: "600" },
 
-  btnDone: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  btnDoneText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-
-  btnDoneConfirm: { backgroundColor: C.ready, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  btnDoneConfirm: { minHeight: 48, backgroundColor: C.ready, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
   btnDoneConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
-  btnUndo: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  btnUndo: { minHeight: 44, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 13, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
   btnUndoText: { fontSize: 12, fontWeight: "600", color: C.ink2 },
 
-  btnUndoConfirm: { backgroundColor: C.alert, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  btnUndoConfirm: { minHeight: 48, backgroundColor: C.alert, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
   btnUndoConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
   btnCancel: { paddingVertical: 4 },
@@ -465,9 +469,8 @@ const styles = StyleSheet.create({
 
   btnDisabled: { opacity: 0.5 },
 
-  submittedText: { fontSize: 12, color: C.info, fontWeight: "700", textAlign: "right" },
-  readyLabel: { fontSize: 14, color: C.ready, fontWeight: "700", textAlign: "right" },
-  blockedLabel: { fontSize: 13, color: C.ink3, fontWeight: "700", textAlign: "right" },
+  waitingText: { fontSize: 12, color: C.caution, fontWeight: "500", textAlign: "right", lineHeight: 17 },
+  readyLabel: { fontSize: 14, color: C.ready, fontWeight: "600", textAlign: "right" },
 
   emptyCard: { marginTop: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },

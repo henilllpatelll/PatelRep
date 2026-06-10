@@ -10,11 +10,12 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, displayFont, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, statusTokens } from "@/components/shared/tokens";
 
-type Tone =
+export type Tone =
   | "neutral"
   | "dirty"
+  | "occupied"
   | "progress"
   | "clean"
   | "ready"
@@ -29,6 +30,7 @@ type Tone =
 const toneColors: Record<Tone, { bg: string; fg: string; line: string }> = {
   neutral: { bg: C.surface3, fg: C.ink2, line: C.line },
   dirty: { bg: C.alertSoft, fg: C.alert, line: C.alertLine },
+  occupied: { bg: C.alertSoft, fg: C.occupied, line: C.alertLine },
   progress: { bg: C.cautionSoft, fg: C.caution, line: C.cautionLine },
   clean: { bg: C.infoSoft, fg: C.info, line: C.infoLine },
   ready: { bg: C.readySoft, fg: C.ready, line: C.readyLine },
@@ -38,14 +40,19 @@ const toneColors: Record<Tone, { bg: string; fg: string; line: string }> = {
   alert: { bg: C.alertSoft, fg: C.alert, line: C.alertLine },
   caution: { bg: C.cautionSoft, fg: C.caution, line: C.cautionLine },
   info: { bg: C.infoSoft, fg: C.info, line: C.infoLine },
-  ooo: { bg: C.surface3, fg: C.ink3, line: C.line },
+  ooo: { bg: C.oooSoft, fg: C.ooo, line: C.oooLine },
 };
+
+export function getToneColors(tone: Tone) {
+  return toneColors[tone];
+}
 
 export function getRoomTone(status?: string): Tone {
   switch (status) {
     case "DIRTY":
-    case "OCCUPIED":
       return "dirty";
+    case "OCCUPIED":
+      return "occupied";
     case "IN_PROGRESS":
       return "progress";
     case "CLEAN":
@@ -75,7 +82,7 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const palette = [C.accent, C.ready, C.caution, C.info, "#7d2855", C.ai];
+  const palette = [C.accent, C.ready, C.caution, C.info, C.brass, C.ai];
   const hash = name.split("").reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) >>> 0, 0);
 
   return (
@@ -186,7 +193,7 @@ export function HeroButton({
   onDark?: boolean;
   onPress?: () => void;
 }) {
-  const backgroundColor = primary ? C.accent : onDark ? "rgba(255,255,255,0.1)" : C.surface;
+  const backgroundColor = primary ? C.accent : onDark ? "rgba(255,253,252,0.11)" : C.surface;
   const color = primary ? "#fff" : onDark ? C.paper : C.ink;
 
   return (
@@ -221,7 +228,7 @@ export function Segmented({
             styles.segment,
             {
               backgroundColor: item.active ? C.ink : C.surface,
-              borderColor: item.active ? C.ink : C.line,
+              borderColor: item.active ? C.primary : C.line,
             },
           ]}
         >
@@ -259,15 +266,15 @@ export function CopilotHero({
       style={[
         styles.copilotHero,
         {
-          backgroundColor: dark ? C.ink : C.aiSoft,
+          backgroundColor: dark ? "#241C18" : C.aiSoft,
           borderWidth: dark ? 0 : 1,
           borderColor: C.aiLine,
         },
       ]}
     >
-      <View style={[styles.sparkWash, { backgroundColor: dark ? "rgba(179,156,224,0.18)" : "rgba(74,44,143,0.08)" }]} />
+      <View style={[styles.sparkWash, { backgroundColor: dark ? "rgba(194,154,74,0.16)" : "rgba(90,63,140,0.08)" }]} />
       <View style={styles.copilotHeader}>
-        <View style={[styles.sparkAvatar, { backgroundColor: dark ? C.accent : C.ai }]}>
+        <View style={[styles.sparkAvatar, { backgroundColor: dark ? C.brass : C.ai }]}>
           <Ionicons name="sparkles" size={12} color="#fff" />
         </View>
         <Text style={[styles.copilotKicker, { color: dark ? "rgba(241,237,228,0.7)" : C.ai }]}>
@@ -392,17 +399,18 @@ const styles = StyleSheet.create({
   pill: {
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    minHeight: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    minHeight: 22,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     alignSelf: "flex-start",
   },
   pillText: {
-    fontSize: 10.5,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   aiLabel: {
     alignSelf: "flex-start",
@@ -438,7 +446,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1.1,
@@ -499,10 +507,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   copilotBody: {
-    fontFamily: displayFont,
-    fontStyle: "italic",
     fontSize: 19,
     lineHeight: 26,
+    fontWeight: "500",
   },
   heroActions: {
     flexDirection: "row",
@@ -519,17 +526,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   heroButton: {
-    minHeight: 36,
-    borderRadius: 9,
-    paddingHorizontal: 14,
+    minHeight: 48,
+    borderRadius: 13,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
   heroButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
   },
   segmented: {
     flexDirection: "row",
@@ -539,8 +546,9 @@ const styles = StyleSheet.create({
   segment: {
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -575,7 +583,7 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 44,
     borderWidth: 7,
-    borderColor: C.accent,
+    borderColor: statusTokens.ready,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: C.surface,
@@ -589,7 +597,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ringValue: {
-    fontFamily: displayFont,
     fontSize: 26,
     lineHeight: 28,
     color: C.ink,
@@ -602,9 +609,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    borderRadius: R.lg,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -620,7 +627,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   rowSub: {
-    fontSize: 11.5,
+    fontSize: 13,
     color: C.ink3,
     marginTop: 3,
     lineHeight: 16,

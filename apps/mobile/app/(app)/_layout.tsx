@@ -79,11 +79,11 @@ export default function AppLayout() {
         screenOptions={{
           tabBarActiveTintColor: C.accent,
           tabBarInactiveTintColor: C.ink4,
-          tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
           tabBarStyle: {
             backgroundColor: C.surface,
             borderTopColor: C.line,
-            height: 72,
+            height: 74,
             paddingTop: 8,
             paddingBottom: 12,
           },
@@ -108,7 +108,7 @@ export default function AppLayout() {
                   style={
                     tab.special
                       ? {
-                          backgroundColor: C.ink,
+                          backgroundColor: C.primary,
                           borderRadius: 20,
                           marginTop: -18,
                           width: 40,

@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R } from "@/components/shared/tokens";
+import { C, R, monoFont } from "@/components/shared/tokens";
 import { Pill } from "@/components/shared/mobileHandoff";
 
 type RoomStatusRow = {
@@ -28,7 +28,7 @@ type RoomStatusRow = {
   checkout_time: string | null;
 };
 
-type ToneType = "alert" | "caution" | "ready" | "info" | "neutral" | "progress";
+type ToneType = "alert" | "caution" | "ready" | "info" | "neutral" | "progress" | "occupied" | "ooo";
 
 const STATUS_TONES: Record<string, ToneType> = {
   DIRTY: "alert",
@@ -36,10 +36,10 @@ const STATUS_TONES: Record<string, ToneType> = {
   PICKUP: "caution",
   CLEAN: "info",
   INSPECTED: "ready",
-  OCCUPIED: "neutral",
-  OOO: "neutral",
-  OUT_OF_ORDER: "neutral",
-  OUT_OF_SERVICE: "neutral",
+  OCCUPIED: "occupied",
+  OOO: "ooo",
+  OUT_OF_ORDER: "ooo",
+  OUT_OF_SERVICE: "ooo",
 };
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
   },
-  filterBtnActive: { backgroundColor: C.ink, borderColor: C.ink },
+  filterBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
   filterLabel: { fontSize: 11, fontWeight: "600", color: C.ink3 },
   filterLabelActive: { color: C.paper },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32, gap: 6 },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 10 },
   roomRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -254,11 +254,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: R.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
   },
-  roomLeft: { width: 52 },
-  roomNum: { fontSize: 16, fontWeight: "700", color: C.ink },
+  roomLeft: { width: 58 },
+  roomNum: { fontFamily: monoFont, fontSize: 24, lineHeight: 28, fontWeight: "700", color: C.ink },
   floorLabel: { fontSize: 10, color: C.ink4 },
   roomMiddle: { flex: 1, gap: 2 },
   guestName: { fontSize: 12, fontWeight: "600", color: C.ink2 },

@@ -15,7 +15,7 @@ import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
-import { C, displayFont } from "@/components/shared/tokens";
+import { C } from "@/components/shared/tokens";
 import { HandoffRow, IconButton, Mono, Pill, Segmented } from "@/components/shared/mobileHandoff";
 
 type WorkOrder = {
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.line2,
   },
   headerMeta: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
+  title: { color: C.ink, fontSize: 30, fontWeight: "600", lineHeight: 34, marginTop: 4 },
   tabs: { display: "none" },
   tabBar: {
     flexDirection: "row",
@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
     borderBottomColor: C.line,
   },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center" },
-  activeTabBtn: { borderBottomWidth: 2, borderBottomColor: C.accent },
+  activeTabBtn: { borderBottomWidth: 2, borderBottomColor: C.primary },
   tabText: { fontSize: 13, color: C.ink3, fontWeight: "600" },
-  activeTabText: { color: C.accent },
-  listContent: { padding: 16, gap: 8 },
+  activeTabText: { color: C.primary },
+  listContent: { padding: 16, gap: 12 },
   rowWrap: { gap: 6 },
   woId: { color: C.ink3, fontSize: 11, fontWeight: "700" },
   claimBtn: {
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 8,
-    borderRadius: 8,
+    minHeight: 48,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: C.accentLine,
     backgroundColor: C.accentSoft,

@@ -30,7 +30,34 @@ jest.mock("@expo/vector-icons", () => ({
 
 jest.mock("@/lib/api/client", () => ({
   api: {
-    get: jest.fn().mockResolvedValue({ data: [] }),
+    get: jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: "task-cart",
+          title: "Restock cart - floor 2",
+          priority: "urgent",
+          task_type: "housekeeping",
+          due_label: "now",
+          source: "manual",
+        },
+        {
+          id: "task-towels",
+          title: "Deliver 2 extra towels to 214",
+          priority: "normal",
+          room_number: "214",
+          due_label: "before_noon",
+          source: "guest",
+          ai_suggested: true,
+        },
+        {
+          id: "task-fridge",
+          title: "Deep-clean fridge - 122",
+          priority: "low",
+          room_number: "122",
+          source: "manual",
+        },
+      ],
+    }),
   },
 }));
 

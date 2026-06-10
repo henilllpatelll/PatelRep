@@ -98,6 +98,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             {/* Issue title */}
             <Text style={styles.label}>Issue title <Text style={styles.required}>*</Text></Text>
             <TextInput
+              testID="title-input"
               style={styles.input}
               placeholder="e.g. Toilet not flushing, A/C not cooling"
               placeholderTextColor={C.ink3}
@@ -109,6 +110,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             {/* Category */}
             <Text style={[styles.label, { marginTop: 14 }]}>Category <Text style={styles.required}>*</Text></Text>
             <TouchableOpacity
+              testID="category-select"
               style={styles.selectRow}
               onPress={() => setCategoryOpen((v) => !v)}
               activeOpacity={0.8}
@@ -126,6 +128,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
               <View style={styles.dropdownList}>
                 {CATEGORIES.map((c, i) => (
                   <TouchableOpacity
+                    testID={`category-option-${c.value}`}
                     key={c.value}
                     style={[
                       styles.dropdownItem,
@@ -139,7 +142,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
                       {c.label}
                     </Text>
                     {c.value === category && (
-                      <Ionicons name="checkmark" size={15} color="#c2410c" />
+                      <Ionicons name="checkmark" size={15} color={C.brass} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -174,6 +177,7 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
             {/* Details */}
             <Text style={[styles.label, { marginTop: 14 }]}>Details <Text style={styles.optional}>(optional)</Text></Text>
             <TextInput
+              testID="description-input"
               style={[styles.input, styles.textarea]}
               placeholder="Describe what you found…"
               placeholderTextColor={C.ink3}
@@ -188,10 +192,11 @@ export default function ReportIssueModal({ visible, roomId, roomNumber, onClose 
           </ScrollView>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
+            <TouchableOpacity testID="cancel-button" style={styles.cancelBtn} onPress={onClose} activeOpacity={0.8}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="submit-button"
               style={[styles.submitBtn, (!title.trim() || !category || submitting) && styles.submitDisabled]}
               onPress={handleSubmit}
               disabled={!title.trim() || !category || submitting}
@@ -277,9 +282,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   dropdownItemBorder: { borderBottomWidth: 1, borderBottomColor: C.line2 },
-  dropdownItemActive: { backgroundColor: "#fff7ed" },
+  dropdownItemActive: { backgroundColor: C.brassSoft },
   dropdownItemText: { fontSize: 14, color: C.ink2 },
-  dropdownItemTextActive: { color: "#c2410c", fontWeight: "600" },
+  dropdownItemTextActive: { color: C.brass, fontWeight: "600" },
 
   priorityRow: { flexDirection: "row", gap: 8 },
   priorityBtn: {
@@ -287,7 +292,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 10,
-    paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: "center",
     alignItems: "center",
     backgroundColor: C.paper,
   },
@@ -311,7 +317,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 12,
-    paddingVertical: 13,
+    minHeight: 48,
+    justifyContent: "center",
     alignItems: "center",
     backgroundColor: C.paper,
   },
@@ -319,9 +326,10 @@ const styles = StyleSheet.create({
   submitBtn: {
     flex: 2,
     borderRadius: 12,
-    paddingVertical: 13,
+    minHeight: 48,
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ea580c",
+    backgroundColor: C.accent,
   },
   submitDisabled: { opacity: 0.45 },
   submitText: { fontSize: 14, fontWeight: "700", color: "#fff" },

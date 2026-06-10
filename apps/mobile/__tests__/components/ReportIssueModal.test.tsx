@@ -5,6 +5,9 @@ import { render, fireEvent, waitFor } from "@testing-library/react-native";
 jest.mock("@/lib/api/client", () => ({
   api: { post: jest.fn().mockResolvedValue({ data: {} }) },
 }));
+jest.mock("@/lib/api/workOrders", () => ({
+  createWorkOrder: jest.fn().mockResolvedValue({ data: { id: "wo-new" } }),
+}));
 jest.mock("@/lib/offline/db", () => ({
   enqueueAction: jest.fn(),
 }));
@@ -14,13 +17,12 @@ jest.mock("@/stores/appStore", () => ({
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
-jest.mock("@expo/vector-icons", () => ({
-  Ionicons: () => null,
-}));
 
 // Import after mocks
 // eslint-disable-next-line import/first
 import { api } from "@/lib/api/client";
+// eslint-disable-next-line import/first
+import { createWorkOrder } from "@/lib/api/workOrders";
 // eslint-disable-next-line import/first
 import { enqueueAction } from "@/lib/offline/db";
 // eslint-disable-next-line import/first
@@ -29,6 +31,7 @@ import { useAppStore } from "@/stores/appStore";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 
 const mockApiPost = api.post as jest.Mock;
+const mockCreateWorkOrder = createWorkOrder as jest.Mock;
 const mockEnqueueAction = enqueueAction as jest.Mock;
 const mockUseAppStore = useAppStore as unknown as jest.Mock;
 
@@ -49,38 +52,37 @@ describe("ReportIssueModal", () => {
       selector({ isOnline: true })
     );
 
-    const { getByPlaceholderText } = render(
+    const { getByTestId } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    expect(getByPlaceholderText(/Describe what you found/i)).toBeTruthy();
+    expect(getByTestId("description-input")).toBeTruthy();
   });
 
   it("calls POST /work-orders with room_id, title, description, category, priority when online", async () => {
     mockUseAppStore.mockImplementation((selector: (s: { isOnline: boolean }) => unknown) =>
       selector({ isOnline: true })
     );
-    mockApiPost.mockResolvedValue({ data: { id: "wo-new" } });
+    mockCreateWorkOrder.mockResolvedValue({ data: { id: "wo-new" } });
 
-    const { getByPlaceholderText, getByText } = render(
+    const { getByTestId } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    fireEvent.changeText(getByPlaceholderText(/Toilet not flushing/i), "Broken AC");
-    fireEvent.press(getByText("Select a category"));
-    fireEvent.press(getByText("General"));
-    fireEvent.changeText(getByPlaceholderText(/Describe what you found/i), "AC unit is broken");
+    fireEvent.changeText(getByTestId("title-input"), "A/C not cooling");
+    fireEvent.press(getByTestId("category-select"));
+    fireEvent.press(getByTestId("category-option-hvac"));
+    fireEvent.changeText(getByTestId("description-input"), "AC unit is broken");
 
-    fireEvent.press(getByText("Submit to Engineering"));
+    fireEvent.press(getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(mockApiPost).toHaveBeenCalledWith(
-        "/work-orders",
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({
           room_id: "room-123",
-          title: "Broken AC",
+          title: "A/C not cooling",
           description: "AC unit is broken",
-          category: "general",
+          category: "hvac",
           priority: "normal",
         })
       );
@@ -94,16 +96,16 @@ describe("ReportIssueModal", () => {
       selector({ isOnline: false })
     );
 
-    const { getByPlaceholderText, getByText } = render(
+    const { getByTestId } = render(
       <ReportIssueModal {...defaultProps} />
     );
 
-    fireEvent.changeText(getByPlaceholderText(/Toilet not flushing/i), "Clogged toilet");
-    fireEvent.press(getByText("Select a category"));
-    fireEvent.press(getByText("General"));
-    fireEvent.changeText(getByPlaceholderText(/Describe what you found/i), "Toilet is clogged");
+    fireEvent.changeText(getByTestId("title-input"), "Toilet clogged");
+    fireEvent.press(getByTestId("category-select"));
+    fireEvent.press(getByTestId("category-option-plumbing"));
+    fireEvent.changeText(getByTestId("description-input"), "Toilet is clogged");
 
-    fireEvent.press(getByText("Submit to Engineering"));
+    fireEvent.press(getByTestId("submit-button"));
 
     await waitFor(() => {
       expect(mockEnqueueAction).toHaveBeenCalledWith(
@@ -111,15 +113,16 @@ describe("ReportIssueModal", () => {
         "create",
         expect.objectContaining({
           room_id: "room-123",
-          title: "Clogged toilet",
+          title: "Toilet clogged",
           description: "Toilet is clogged",
-          category: "general",
+          category: "plumbing",
           priority: "normal",
         })
       );
     });
 
     expect(mockApiPost).not.toHaveBeenCalled();
+    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
   });
 
   it("calls onClose when user taps Cancel", () => {
