@@ -28,6 +28,15 @@ const EN: Record<string, string> = {
   "tasks.aiUnavailable": "AI is unavailable right now — try again in a moment.",
   "tasks.aiNoTask": "I couldn't turn that into a task.",
   "tasks.newTag": "New",
+  "tasks.typeLabel.housekeeping": "Housekeeping",
+  "tasks.typeLabel.guest_request": "Guest request",
+  "tasks.typeLabel.general": "General",
+  "tasks.detailType": "Type",
+  "tasks.detailCreated": "Created",
+  "tasks.detailDue": "Due",
+  "tasks.detailSla": "SLA",
+  "tasks.statusInProgress": "IN PROGRESS",
+  "tasks.statusEscalated": "ESCALATED",
   "tasks.emptyTitle": "No tasks assigned",
   "tasks.emptyAiHint": "Type below to create one with AI.",
   "ai.briefing.sourceLocal": "Planned on device",
@@ -96,7 +105,7 @@ const mockTasks = [
     description: "Guest called front desk, prefers bath sheets",
     priority: "normal",
     source: "guest",
-    ai_suggested: true,
+    is_ai_created: true,
     rooms: { room_number: "214" },
   },
   {
@@ -119,7 +128,7 @@ describe("TasksScreen", () => {
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
-    expect(mockApiGet).toHaveBeenCalledWith("/tasks?my_tasks=true");
+    expect(mockApiGet).toHaveBeenCalledWith("/tasks?per_page=100");
     expect(getByText("AI Task Briefing")).toBeTruthy();
     expect(getByText("1 task(s) overdue — start with “Fix iron in 305”.")).toBeTruthy();
     expect(getByText(/guest-facing task/)).toBeTruthy();
@@ -199,7 +208,7 @@ describe("TasksScreen", () => {
     await waitFor(() =>
       expect(mockApiPost).toHaveBeenCalledWith(
         "/ai/tasks/confirm",
-        expect.objectContaining({ title: "Bring crib to 412", use_ai: true }),
+        [expect.objectContaining({ title: "Bring crib to 412", room_number_display: "412" })],
       ),
     );
     await waitFor(() => expect(getByText("Task created ✨")).toBeTruthy());

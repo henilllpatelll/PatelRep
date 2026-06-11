@@ -231,7 +231,20 @@
     "aiCreated": "Tarea creada ✨",
     "emptyTitle": "Sin tareas asignadas",
     "emptyAiHint": "Escribe abajo para crear una con IA — p. ej. “El cuarto 214 necesita dos toallas extra”.",
-    "newTag": "Nueva"
+    "newTag": "Nueva",
+    "typeLabel": {
+      "housekeeping": "Limpieza",
+      "engineering": "Mantenimiento",
+      "guest_request": "Petición de huésped",
+      "lost_found": "Objetos perdidos",
+      "general": "General"
+    },
+    "detailType": "Tipo",
+    "detailCreated": "Creada",
+    "detailDue": "Vence",
+    "detailSla": "SLA",
+    "statusInProgress": "EN PROGRESO",
+    "statusEscalated": "ESCALADA"
   },
   "profile": {
     "title": "Perfil",

@@ -231,7 +231,20 @@
     "aiCreated": "Task created ✨",
     "emptyTitle": "No tasks assigned",
     "emptyAiHint": "Type below to create one with AI — e.g. “Room 214 needs two extra towels”.",
-    "newTag": "New"
+    "newTag": "New",
+    "typeLabel": {
+      "housekeeping": "Housekeeping",
+      "engineering": "Engineering",
+      "guest_request": "Guest request",
+      "lost_found": "Lost & Found",
+      "general": "General"
+    },
+    "detailType": "Type",
+    "detailCreated": "Created",
+    "detailDue": "Due",
+    "detailSla": "SLA",
+    "statusInProgress": "IN PROGRESS",
+    "statusEscalated": "ESCALATED"
   },
   "profile": {
     "title": "Profile",

@@ -4,13 +4,19 @@ export type Task = {
   id: string;
   title: string;
   description?: string | null;
+  /** Real enum: housekeeping | engineering | guest_request | lost_found | general */
   task_type?: string | null;
   status?: string | null;
+  /** Real enum: urgent | normal | low */
   priority?: string | null;
   due_at?: string | null;
+  sla_minutes?: number | null;
+  created_at?: string | null;
   room_id?: string | null;
   room_number?: string | null;
   rooms?: { room_number?: string | null } | null;
+  /** DB column for AI-originated tasks (there is no `ai_suggested` field) */
+  is_ai_created?: boolean | null;
   source?: string | null;
   ai_suggested?: boolean | null;
 };
@@ -38,6 +44,14 @@ const DUE_SOON_MS = 2 * 60 * 60 * 1000;
 
 export function getTaskRoomNumber(task: Task): string | null {
   return task.room_number ?? task.rooms?.room_number ?? null;
+}
+
+export function isAITask(task: Task): boolean {
+  return Boolean(task.is_ai_created ?? task.ai_suggested);
+}
+
+export function isGuestTask(task: Task): boolean {
+  return task.source === "guest" || task.task_type === "guest_request";
 }
 
 function parseDue(task: Task): Date | null {
@@ -136,7 +150,17 @@ export async function parseTaskWithAI(message: string): Promise<CopilotTaskRespo
   });
 }
 
-/** Create the task the AI proposed. */
+/** Create the task the AI proposed.
+ *  The endpoint takes a LIST of tasks and resolves the room from
+ *  `room_number_display` — sending a bare object or `room_number` silently
+ *  creates a room-less task (or 422s). */
 export async function confirmAITask(preview: TaskPreview): Promise<void> {
-  await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
+  await api.post("/ai/tasks/confirm", [
+    {
+      title: preview.title,
+      task_type: preview.task_type,
+      priority: preview.priority,
+      room_number_display: preview.room_number ?? undefined,
+    },
+  ]);
 }

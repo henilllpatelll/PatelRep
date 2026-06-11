@@ -419,6 +419,106 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-06-11T14:09:56.723Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: isNew: boolean;; function TaskRow({ entry, confirming, busy, isNew, onRequest | Also: isNew={lastCreatedTitle != null && entry.task.title === last",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-11T14:10:42.083Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-06-11T14:10:58.249Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 25\u219254 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:10:58.249Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-06-11T14:20:47.249Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/lib/ai/tasks.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:20:47.249Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-06-11T14:20:54.959Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:20:54.959Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-06-11T14:20:58.728Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Had \"/tasks?my_tasks=true\"",
+      "fix": "Changed to `my_tasks`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:20:58.728Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-06-11T00:00:00",
+      "error_message": "Mobile AI-created tasks show no room number / details",
+      "file": "apps/mobile/lib/ai/tasks.ts, apps/mobile/app/(app)/copilot/index.tsx, apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "POST /ai/tasks/confirm takes a LIST of tasks and resolves rooms only from room_number_display; mobile sent a single object with room_number (422 or room-less task). Card also read ai_suggested but the DB column is is_ai_created, and /tasks?my_tasks=true is not a real param.",
+      "fix": "confirmAITask and copilot confirmTask now send [{title, task_type, priority, room_number_display}]; card reads is_ai_created via isAITask(); fetch uses /tasks?per_page=100 (housekeepers auto-scoped server-side; per_page max 100).",
+      "tags": [
+        "mobile",
+        "tasks",
+        "ai-confirm",
+        "room_number_display",
+        "api-contract"
+      ],
+      "related_bugs": [
+        "bug-016"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-11"
     }
   ]
 }
