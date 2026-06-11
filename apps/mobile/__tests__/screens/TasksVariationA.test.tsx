@@ -27,16 +27,6 @@ const EN: Record<string, string> = {
   "tasks.aiCreated": "Task created ✨",
   "tasks.aiUnavailable": "AI is unavailable right now — try again in a moment.",
   "tasks.aiNoTask": "I couldn't turn that into a task.",
-  "tasks.newTag": "New",
-  "tasks.typeLabel.housekeeping": "Housekeeping",
-  "tasks.typeLabel.guest_request": "Guest request",
-  "tasks.typeLabel.general": "General",
-  "tasks.detailType": "Type",
-  "tasks.detailCreated": "Created",
-  "tasks.detailDue": "Due",
-  "tasks.detailSla": "SLA",
-  "tasks.statusInProgress": "IN PROGRESS",
-  "tasks.statusEscalated": "ESCALATED",
   "tasks.emptyTitle": "No tasks assigned",
   "tasks.emptyAiHint": "Type below to create one with AI.",
   "ai.briefing.sourceLocal": "Planned on device",
@@ -102,10 +92,9 @@ const mockTasks = [
   {
     id: "task-towels",
     title: "Deliver 2 extra towels to 214",
-    description: "Guest called front desk, prefers bath sheets",
     priority: "normal",
     source: "guest",
-    is_ai_created: true,
+    ai_suggested: true,
     rooms: { room_number: "214" },
   },
   {
@@ -128,7 +117,7 @@ describe("TasksScreen", () => {
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
-    expect(mockApiGet).toHaveBeenCalledWith("/tasks?per_page=100");
+    expect(mockApiGet).toHaveBeenCalledWith("/tasks?my_tasks=true");
     expect(getByText("AI Task Briefing")).toBeTruthy();
     expect(getByText("1 task(s) overdue — start with “Fix iron in 305”.")).toBeTruthy();
     expect(getByText(/guest-facing task/)).toBeTruthy();
@@ -139,7 +128,6 @@ describe("TasksScreen", () => {
     expect(getByText("Fix iron in 305")).toBeTruthy();
     expect(getByText("Restock cart - floor 2")).toBeTruthy();
     expect(getByText("Deliver 2 extra towels to 214")).toBeTruthy();
-    expect(getByText("Guest called front desk, prefers bath sheets")).toBeTruthy();
     expect(getByText("Deep-clean fridge - 122")).toBeTruthy();
     expect(getByText(/30m overdue|3[01]m overdue/)).toBeTruthy();
   });
@@ -195,24 +183,14 @@ describe("TasksScreen", () => {
     );
     expect(getByText("Bring crib to 412")).toBeTruthy();
 
-    // After creation the refreshed list contains the new task — it shows up highlighted
-    mockApiGet.mockResolvedValue({
-      data: [
-        ...mockTasks,
-        { id: "task-crib", title: "Bring crib to 412", priority: "high", task_type: "guest_request", rooms: { room_number: "412" } },
-      ],
-    });
-
     fireEvent.press(getByText("Create"));
 
     await waitFor(() =>
       expect(mockApiPost).toHaveBeenCalledWith(
         "/ai/tasks/confirm",
-        [expect.objectContaining({ title: "Bring crib to 412", room_number_display: "412" })],
+        expect.objectContaining({ title: "Bring crib to 412", use_ai: true }),
       ),
     );
     await waitFor(() => expect(getByText("Task created ✨")).toBeTruthy());
-    await waitFor(() => expect(getByText("Bring crib to 412")).toBeTruthy());
-    expect(getByText("New")).toBeTruthy();
   });
 });

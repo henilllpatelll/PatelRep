@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T14:23:23.191Z
-> Files: 15 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T18:19:15.051Z
+> Files: 21 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -14,6 +14,22 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
+
+## ../PatelRep-web-v2/apps/web/
+
+- `tasks-smoke.mjs` — One-off visual smoke for the AI Tasks redesign on :3001. (~282 tok)
+
+## ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/
+
+- `page.tsx` — BUCKET_LABELS — renders form (~12105 tok)
+
+## ../PatelRep-web-v2/apps/web/components/tasks/
+
+- `TasksAIPanel.tsx` — Dark-shell AI panel for the Tasks page: an instant on-device briefing plus (~1805 tok)
+
+## ../PatelRep-web-v2/apps/web/lib/ai/
+
+- `taskQueue.ts` — Minutes past due when overdue, otherwise null (~1013 tok)
 
 ## ./
 
@@ -491,6 +507,7 @@
 
 ## apps/mobile/__tests__/lib/
 
+- `roomBlockers.test.ts` — mockApiPost: room (~1186 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -556,8 +573,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~8815 tok)
-- `index.tsx` — SECTION_META (~4338 tok)
+- `[roomId].tsx` — STATUS_COLOR (~10373 tok)
+- `index.tsx` — DONE_SECTIONS (~3695 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -632,6 +649,7 @@
 
 ## apps/mobile/lib/housekeeping/
 
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1388 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -851,3 +869,4 @@
 
 ## youtubeMobileResearch.md
 
+- `apps/mobile/lib/housekeeping/roomBlockers.ts` — Context-aware quick-blocker sets (occupied/pickup/vacant) with side effects: deep-clean/pet WO creation, ozone delegation task, late-checkout front-desk task. ~120 lines, ~1000 tokens.

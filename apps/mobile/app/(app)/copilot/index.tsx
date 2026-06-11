@@ -153,15 +153,7 @@ export default function CopilotScreen() {
 
   async function confirmTask(preview: TaskPreview) {
     try {
-      // Endpoint takes a list; room resolves via room_number_display only
-      await api.post("/ai/tasks/confirm", [
-        {
-          title: preview.title,
-          task_type: preview.task_type,
-          priority: preview.priority,
-          room_number_display: preview.room_number ?? undefined,
-        },
-      ]);
+      await api.post("/ai/tasks/confirm", { ...preview, use_ai: true });
       setPendingTaskMsgId(null);
       Alert.alert("", t("copilot.taskCreated"));
     } catch (err: unknown) {

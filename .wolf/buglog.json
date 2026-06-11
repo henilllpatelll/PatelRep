@@ -6,8 +6,8 @@
       "timestamp": "2026-06-11T02:46:17.445Z",
       "error_message": "CSS fix: DEP, FULL, LIGHT",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
-      "fix": "Changed DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
+      "root_cause": "DEP: { icon: \"log-out-outline\", fg: C.alert → { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
+      "fix": "Changed DEP: { icon: \"log-out-outline\", fg: C.alert → { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -23,7 +23,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 11\u219211 lines (5 removed) | Also: <View; style={[",
+      "fix": "Rewrote 11→11 lines (5 removed) | Also: <View; style={[",
       "tags": [
         "auto-detected",
         "refactor",
@@ -38,8 +38,8 @@
       "timestamp": "2026-06-11T02:56:29.204Z",
       "error_message": "CSS fix: DEP, CLEAN_TYPE_META",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
-      "fix": "Changed DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
+      "root_cause": "DEP: { fg: C.ink3 → { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string → Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
+      "fix": "Changed DEP: { fg: C.ink3 → { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string → Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -103,7 +103,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "37 lines replaced/restructured",
-      "fix": "Rewrote 60\u219220 lines (37 removed)",
+      "fix": "Rewrote 60→20 lines (37 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -119,7 +119,7 @@
       "error_message": "Wrong reference: enqueueAction should be useAppStore",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "Used \"enqueueAction\" instead of \"useAppStore\"",
-      "fix": "Changed enqueueAction \u2192 useAppStore",
+      "fix": "Changed enqueueAction → useAppStore",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -134,8 +134,8 @@
       "timestamp": "2026-06-11T03:15:40.883Z",
       "error_message": "CSS fix: roomIdentity",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
-      "fix": "Changed roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
+      "root_cause": "roomIdentity: { flex: 1, minWidth: 0 → { minWidth: 0",
+      "fix": "Changed roomIdentity: { flex: 1, minWidth: 0 → { minWidth: 0",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -151,7 +151,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
       "root_cause": "15 lines replaced/restructured",
-      "fix": "Rewrote 37\u219219 lines (15 removed)",
+      "fix": "Rewrote 37→19 lines (15 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -166,7 +166,7 @@
       "timestamp": "2026-06-11T06:12:49.505Z",
       "error_message": "Missing await",
       "file": "apps/api/routers/ai_copilot.py",
-      "root_cause": "Async call without await \u2014 returned Promise instead of value",
+      "root_cause": "Async call without await — returned Promise instead of value",
       "fix": "Added await to async call",
       "tags": [
         "auto-detected",
@@ -182,8 +182,8 @@
       "timestamp": "2026-06-11T06:15:28.777Z",
       "error_message": "CSS fix: borderColor, shadowOpacity, shadowRadius",
       "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "borderColor: C.surface, \u2192 C.shell,; shadowOpacity: 0.3, \u2192 0.45,; shadowRadius: 8, \u2192 10,",
-      "fix": "Changed borderColor: C.surface, \u2192 C.shell,; shadowOpacity: 0.3, \u2192 0.45,; shadowRadius: 8, \u2192 10,",
+      "root_cause": "borderColor: C.surface, → C.shell,; shadowOpacity: 0.3, → 0.45,; shadowRadius: 8, → 10,",
+      "fix": "Changed borderColor: C.surface, → C.shell,; shadowOpacity: 0.3, → 0.45,; shadowRadius: 8, → 10,",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -199,7 +199,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/home/index.tsx",
       "root_cause": "86 lines replaced/restructured",
-      "fix": "Rewrote 111\u219213 lines (86 removed)",
+      "fix": "Rewrote 111→13 lines (86 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -230,8 +230,8 @@
       "timestamp": "2026-06-11T06:18:02.896Z",
       "error_message": "CSS fix: room",
       "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "room: firstRoom.room_number \u2192 firstEntry.room.room_number",
-      "fix": "Changed room: firstRoom.room_number \u2192 firstEntry.room.room_number",
+      "root_cause": "room: firstRoom.room_number → firstEntry.room.room_number",
+      "fix": "Changed room: firstRoom.room_number → firstEntry.room.room_number",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -263,7 +263,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
       "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 8\u219231 lines (4 removed)",
+      "fix": "Rewrote 8→31 lines (4 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -328,7 +328,7 @@
       "error_message": "Wrong reference: shell should be surface",
       "file": "apps/mobile/app/(app)/_layout.tsx",
       "root_cause": "Used \"shell\" instead of \"surface\"",
-      "fix": "Changed shell \u2192 surface",
+      "fix": "Changed shell → surface",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -343,8 +343,8 @@
       "timestamp": "2026-06-11T12:53:30.681Z",
       "error_message": "CSS fix: shell",
       "file": "apps/mobile/components/shared/evening.tsx",
-      "root_cause": "shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line \u2192 { bg: C.surface2, fg: C.ink, border: C.line",
-      "fix": "Changed shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line \u2192 { bg: C.surface2, fg: C.ink, border: C.line",
+      "root_cause": "shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line → { bg: C.surface2, fg: C.ink, border: C.line",
+      "fix": "Changed shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line → { bg: C.surface2, fg: C.ink, border: C.line",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -360,7 +360,7 @@
       "error_message": "Wrong reference: shellTokens should be C",
       "file": "apps/mobile/components/shared/evening.tsx",
       "root_cause": "Used \"shellTokens\" instead of \"C\"",
-      "fix": "Changed shellTokens \u2192 C",
+      "fix": "Changed shellTokens → C",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -375,8 +375,8 @@
       "timestamp": "2026-06-11T12:54:08.007Z",
       "error_message": "CSS fix: backgroundColor, borderBottomColor, color",
       "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "backgroundColor: shellTokens.bg, \u2192 C.paper,; borderBottomColor: shellTokens.line, \u2192 C.line2,; color: shellTokens.ink, \u2192 C.ink,",
-      "fix": "Changed backgroundColor: shellTokens.bg, \u2192 C.paper,; borderBottomColor: shellTokens.line, \u2192 C.line2,; color: shellTokens.ink, \u2192 C.ink,",
+      "root_cause": "backgroundColor: shellTokens.bg, → C.paper,; borderBottomColor: shellTokens.line, → C.line2,; color: shellTokens.ink, → C.ink,",
+      "fix": "Changed backgroundColor: shellTokens.bg, → C.paper,; borderBottomColor: shellTokens.line, → C.line2,; color: shellTokens.ink, → C.ink,",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -442,7 +442,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/tasks/index.tsx",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 25\u219254 lines (5 removed)",
+      "fix": "Rewrote 25→54 lines (5 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -519,6 +519,134 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-11"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-06-11T14:45:06.432Z",
+      "error_message": "Null/undefined access in ",
+      "file": "../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {confirming && (; <div | Also: // Smart-order view (matches mobile): active tabs group into; // Today with queue positions; Completed/Cancelled tabs keep | Also: {/* AI briefing + natural-language composer (matches mobile ; {now != null && statusFilter !== 'completed' && statusFilter",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-11T14:45:58.542Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-06-11T14:45:38.565Z",
+      "error_message": "CSS fix: taskId",
+      "file": "../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "taskId: string, status: TaskStatus) => updateStatus({ taskId, status → string, status: TaskStatus) => {",
+      "fix": "Changed taskId: string, status: TaskStatus) => updateStatus({ taskId, status → string, status: TaskStatus) => {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:45:38.565Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-06-11T18:15:55.718Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:15:55.718Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-06-11T18:16:16.991Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:16:16.992Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-06-11T18:16:39.116Z",
+      "error_message": "CSS fix: gap, paddingTop",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "gap: 10, → 9,; paddingTop: 12, → 10,",
+      "fix": "Changed gap: 10, → 9,; paddingTop: 12, → 10,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:16:39.116Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-06-11T18:17:09.874Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 20→7 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:17:09.874Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-06-11T18:17:12.001Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Had \"smart\"",
+      "fix": "Changed to \"remaining\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:17:12.001Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-06-11T18:17:26.371Z",
+      "error_message": "CSS fix: key",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "key: \"status\" as const, label: t(\"ai.byStatus\"), icon: \"layers-outline\" as const → \"done\" as const,",
+      "fix": "Changed key: \"status\" as const, label: t(\"ai.byStatus\"), icon: \"layers-outline\" as const → \"done\" as const,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:17:26.371Z"
     }
   ]
 }

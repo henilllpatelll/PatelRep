@@ -22,6 +22,12 @@ import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 import { getBeforeEnterWarnings, getRoomAction } from "@/lib/housekeeping/roomWorkflow";
 import { buildRoomInsight } from "@/lib/ai/briefing";
+import {
+  buildBlockerNote,
+  getBlockersForRoom,
+  runBlockerSideEffect,
+  type RoomBlocker,
+} from "@/lib/housekeeping/roomBlockers";
 
 const STATUS_COLOR: Record<string, string> = {
   DIRTY: C.alert,
@@ -64,13 +70,6 @@ const CHECKLISTS: Record<string, string[]> = {
   FULL: ["Bed made", "Bathroom cleaned", "Towels replaced", "Trash removed", "Amenities restocked", "Floors cleaned"],
   LIGHT: ["Towels refreshed", "Trash removed", "Bed refreshed", "Bathroom checked", "Amenities topped off"],
 };
-
-const BLOCKERS = [
-  { label: "Can't Enter", note: "BLOCKER: Can't enter" },
-  { label: "Guest Inside", note: "BLOCKER: Guest inside" },
-  { label: "Need Linen", note: "BLOCKER: Need linen" },
-  { label: "Need Supervisor", note: "BLOCKER: Need supervisor" },
-];
 
 function formatTime(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -156,6 +155,9 @@ export default function RoomDetailScreen() {
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [showFoundItem, setShowFoundItem] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [timeEntryKey, setTimeEntryKey] = useState<string | null>(null);
+  const [timeText, setTimeText] = useState("");
+  const [blockerBusy, setBlockerBusy] = useState<string | null>(null);
   const noteSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -277,6 +279,27 @@ export default function RoomDetailScreen() {
     }
   }
 
+  async function submitBlocker(blocker: RoomBlocker, time?: string) {
+    if (!room) return;
+    if (!isOnline) {
+      Alert.alert("Offline", "Quick blockers need a connection. Status changes will still queue offline.");
+      return;
+    }
+    setBlockerBusy(blocker.key);
+    try {
+      // Side effect first (WO / delegation task) so a failure doesn't leave a
+      // note claiming something was created; the note is the audit trail.
+      await runBlockerSideEffect(room, blocker, time);
+      await submitNote(buildBlockerNote(blocker, time));
+      setTimeEntryKey(null);
+      setTimeText("");
+    } catch (err: unknown) {
+      Alert.alert("Error", (err as Error).message ?? "Failed to report blocker");
+    } finally {
+      setBlockerBusy(null);
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -307,6 +330,7 @@ export default function RoomDetailScreen() {
   const checklist = CHECKLISTS[room.clean_type ?? ""] ?? CHECKLISTS.LIGHT;
   const insight = buildRoomInsight(room, myRooms, t);
   const checkedCount = checklist.filter((item) => checkedItems[item]).length;
+  const blockers = getBlockersForRoom(room);
   const timingRows = [
     { label: "Guest", value: room.guest_name },
     { label: "FO status", value: room.fo_status },
@@ -415,32 +439,86 @@ export default function RoomDetailScreen() {
           )}
         </View>
 
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Current Status</Text>
-          <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
-          {lastAction ? <Text style={styles.lastActionText}>Last action: {lastAction}</Text> : null}
-          {noteSuccess ? <Text style={styles.noteSuccessText}>Note saved</Text> : null}
-        </View>
+        {blockers.length > 0 ? (
+          <View style={styles.cardSection}>
+            <Text style={styles.sectionTitle}>Quick blockers</Text>
+            <View style={styles.blockerGrid}>
+              {blockers.map((blocker) => {
+                const busy = blockerBusy === blocker.key;
+                const open = timeEntryKey === blocker.key;
+                return (
+                  <TouchableOpacity
+                    key={blocker.key}
+                    style={[
+                      styles.blockerBtn,
+                      open && styles.blockerBtnOpen,
+                      (noteLoading || blockerBusy != null) && !busy && styles.btnDisabled,
+                    ]}
+                    onPress={() => {
+                      if (blocker.needsTime) {
+                        setTimeEntryKey(open ? null : blocker.key);
+                        setTimeText("");
+                        return;
+                      }
+                      void submitBlocker(blocker);
+                    }}
+                    disabled={noteLoading || blockerBusy != null}
+                    activeOpacity={0.82}
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={C.accent} />
+                    ) : (
+                      <Text style={styles.blockerText}>{t(blocker.labelKey)}</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Quick blockers</Text>
-          <View style={styles.blockerGrid}>
-            {BLOCKERS.map((blocker) => (
-              <TouchableOpacity
-                key={blocker.label}
-                style={[styles.blockerBtn, noteLoading && styles.btnDisabled]}
-                onPress={() => void submitNote(blocker.note)}
-                disabled={noteLoading}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.blockerText}>{blocker.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {timeEntryKey ? (() => {
+              const active = blockers.find((blocker) => blocker.key === timeEntryKey);
+              if (!active) return null;
+              return (
+                <View style={styles.timeEntry}>
+                  <Text style={styles.timeEntryLabel}>{t("blockers.timePrompt")}</Text>
+                  <View style={styles.timeChipRow}>
+                    {(active.timePresets ?? []).map((preset) => (
+                      <TouchableOpacity
+                        key={preset}
+                        style={[styles.timeChip, timeText === preset && styles.timeChipActive]}
+                        onPress={() => setTimeText(preset)}
+                        activeOpacity={0.82}
+                      >
+                        <Text style={[styles.timeChipText, timeText === preset && styles.timeChipTextActive]}>{preset}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={styles.timeEntryActions}>
+                    <TextInput
+                      style={styles.timeInput}
+                      value={timeText}
+                      onChangeText={setTimeText}
+                      placeholder={t("blockers.timePlaceholder")}
+                      placeholderTextColor={C.ink3}
+                    />
+                    <TouchableOpacity
+                      style={[styles.timeSendBtn, (!timeText.trim() || blockerBusy != null) && styles.btnDisabled]}
+                      onPress={() => void submitBlocker(active, timeText)}
+                      disabled={!timeText.trim() || blockerBusy != null}
+                      activeOpacity={0.85}
+                    >
+                      {blockerBusy === active.key ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.timeSendText}>{t("blockers.report")}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })() : null}
           </View>
-        </View>
+        ) : null}
 
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>Actions</Text>
@@ -522,19 +600,32 @@ export default function RoomDetailScreen() {
       </ScrollView>
 
       <View style={[styles.stickyAction, { paddingBottom: insets.bottom + 12 }]}>
-        <TouchableOpacity
-          style={[styles.primaryBtn, primaryDisabled && styles.primaryBtnDisabled]}
-          onPress={handlePrimaryAction}
-          disabled={primaryDisabled}
-          activeOpacity={0.86}
-        >
-          {statusLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>{primaryLabel}</Text>}
-        </TouchableOpacity>
-        {showUndo ? (
-          <TouchableOpacity style={styles.secondaryBtn} onPress={handleUndo} disabled={statusLoading} activeOpacity={0.82}>
-            <Text style={styles.secondaryBtnText}>Undo</Text>
+        {/* Compact status line — lives with the controls that change it */}
+        <View style={styles.stickyStatusRow}>
+          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+          <Text style={[styles.stickyStatusText, { color: statusColor }]}>{statusLabel}</Text>
+          {lastAction ? (
+            <Text style={styles.stickyLastAction} numberOfLines={1}>
+              · {lastAction}
+            </Text>
+          ) : null}
+          {noteSuccess ? <Text style={styles.noteSuccessText}>Note saved</Text> : null}
+        </View>
+        <View style={styles.stickyButtons}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, primaryDisabled && styles.primaryBtnDisabled]}
+            onPress={handlePrimaryAction}
+            disabled={primaryDisabled}
+            activeOpacity={0.86}
+          >
+            {statusLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>{primaryLabel}</Text>}
           </TouchableOpacity>
-        ) : null}
+          {showUndo ? (
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleUndo} disabled={statusLoading} activeOpacity={0.82}>
+              <Text style={styles.secondaryBtnText}>Undo</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
       <FloatingAIButton bottom={insets.bottom + 86} onPress={() => router.push("/(app)/copilot")} />
 
@@ -622,10 +713,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 14, borderBottomWidth: 1, borderBottomColor: C.line2, paddingBottom: 7 },
   infoLabel: { color: C.ink3, fontSize: 12, fontWeight: "700" },
   infoValue: { color: C.ink, fontSize: 13, fontWeight: "700", textAlign: "right", flexShrink: 1 },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusText: { fontSize: 17, fontWeight: "800" },
-  lastActionText: { fontSize: 12, color: C.ink3, lineHeight: 17 },
   noteSuccessText: { fontSize: 12, color: C.ready, fontWeight: "700" },
 
   blockerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -641,7 +729,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   blockerText: { fontSize: 13, fontWeight: "800", color: C.ink2 },
+  blockerBtnOpen: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
   btnDisabled: { opacity: 0.5 },
+
+  timeEntry: { gap: 9, borderTopWidth: 1, borderTopColor: C.line2, paddingTop: 11 },
+  timeEntryLabel: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  timeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  timeChip: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface2,
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeChipActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
+  timeChipText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  timeChipTextActive: { color: C.accent },
+  timeEntryActions: { flexDirection: "row", gap: 8, alignItems: "center" },
+  timeInput: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface2,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: C.ink,
+  },
+  timeSendBtn: {
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: C.accent,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeSendText: { color: "#fff", fontSize: 13, fontWeight: "800" },
 
   actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionChip: {
@@ -678,14 +805,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: "row",
-    gap: 10,
+    gap: 9,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: C.line,
     backgroundColor: C.surface,
   },
+  stickyStatusRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
+  stickyStatusText: { fontSize: 13, fontWeight: "800" },
+  stickyLastAction: { flex: 1, color: C.ink3, fontSize: 11.5, minWidth: 0 },
+  stickyButtons: { flexDirection: "row", gap: 10 },
   primaryBtn: { flex: 1, minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: C.accent, paddingHorizontal: 14 },
   primaryBtnDisabled: { backgroundColor: C.ink4 },
   primaryBtnText: { color: "#fff", fontSize: 15, fontWeight: "900", textAlign: "center" },

@@ -27,25 +27,12 @@ import {
   type RoomQueueBucket,
 } from "@/lib/housekeeping/roomWorkflow";
 
-type ViewMode = "smart" | "status";
-type FilterKey = "all" | RoomQueueBucket;
+type ViewMode = "remaining" | "done";
 
-const SECTION_META: Array<{ bucket: RoomQueueBucket; title: string }> = [
-  { bucket: "in_progress", title: "IN PROGRESS" },
-  { bucket: "next_to_clean", title: "NEXT TO CLEAN" },
-  { bucket: "needs_attention", title: "NEEDS ATTENTION" },
+const DONE_SECTIONS: Array<{ bucket: RoomQueueBucket; title: string }> = [
   { bucket: "submitted", title: "SUBMITTED" },
   { bucket: "ready", title: "READY" },
   { bucket: "blocked", title: "BLOCKED / OUT OF SERVICE" },
-];
-
-const FILTERS: Array<{ key: FilterKey; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "next_to_clean", label: "Next to Clean" },
-  { key: "needs_attention", label: "Needs Attention" },
-  { key: "in_progress", label: "Started" },
-  { key: "submitted", label: "Submitted" },
-  { key: "ready", label: "Ready" },
 ];
 
 function dayLabel() {
@@ -59,8 +46,7 @@ export default function MyRoomsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("smart");
-  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("remaining");
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
@@ -126,11 +112,6 @@ export default function MyRoomsScreen() {
     return { ...bucketCounts, completed, total: myRooms.length };
   }, [groupedRooms, myRooms.length]);
 
-  const visibleSections = useMemo(() => {
-    if (activeFilter === "all") return SECTION_META.filter((section) => groupedRooms[section.bucket].length > 0);
-    return SECTION_META.filter((section) => section.bucket === activeFilter && groupedRooms[section.bucket].length > 0);
-  }, [activeFilter, groupedRooms]);
-
   const totalQueueMinutes = useMemo(
     () => smartQueue.reduce((sum, entry) => sum + entry.estimateMinutes, 0),
     [smartQueue],
@@ -180,12 +161,22 @@ export default function MyRoomsScreen() {
           </View>
         ) : null}
 
-        {/* Smart order / By status toggle */}
+        {/* Remaining / Done toggle */}
         <View style={styles.modeToggle}>
           {(
             [
-              { key: "smart" as const, label: t("ai.smartOrder"), icon: "sparkles" as const },
-              { key: "status" as const, label: t("ai.byStatus"), icon: "layers-outline" as const },
+              {
+                key: "remaining" as const,
+                label: t("rooms.remaining"),
+                icon: "sparkles" as const,
+                count: counts.next_to_clean + counts.in_progress + counts.needs_attention,
+              },
+              {
+                key: "done" as const,
+                label: t("rooms.doneTab"),
+                icon: "checkmark-done-outline" as const,
+                count: counts.completed + counts.blocked,
+              },
             ]
           ).map((mode) => {
             const active = viewMode === mode.key;
@@ -197,7 +188,9 @@ export default function MyRoomsScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name={mode.icon} size={12} color={active ? shellTokens.ink : shellTokens.ink3} />
-                <Text style={[styles.modeText, active && styles.modeTextActive]}>{mode.label}</Text>
+                <Text style={[styles.modeText, active && styles.modeTextActive]}>
+                  {mode.label} {mode.count}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -215,7 +208,7 @@ export default function MyRoomsScreen() {
             <Text style={styles.emptyText}>Pull to refresh if your supervisor adds assignments.</Text>
             {apiError ? <Text style={styles.errorText}>API error: {apiError}</Text> : null}
           </View>
-        ) : viewMode === "smart" ? (
+        ) : viewMode === "remaining" ? (
           <View style={styles.sections}>
             {smartQueue.length > 0 ? (
               <View style={styles.section}>
@@ -249,65 +242,32 @@ export default function MyRoomsScreen() {
               </View>
             ) : null}
 
-            {(["submitted", "ready", "blocked"] as const).map((bucket) =>
-              groupedRooms[bucket].length > 0 ? (
-                <View key={bucket} style={styles.section}>
-                  <SectionHeader
-                    title={SECTION_META.find((section) => section.bucket === bucket)!.title}
-                    hint={String(groupedRooms[bucket].length)}
-                  />
-                  <View style={styles.sectionList}>
-                    {groupedRooms[bucket].map((room) => (
-                      <RoomQueueCard key={room.id} room={room} onPress={() => openRoom(room)} />
-                    ))}
-                  </View>
-                </View>
-              ) : null,
-            )}
+            {smartQueue.length === 0 && groupedRooms.needs_attention.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>
+                <Text style={styles.emptyText}>{t("rooms.allRoomsDoneHint")}</Text>
+              </View>
+            ) : null}
           </View>
         ) : (
-          <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-              {FILTERS.map((filter) => {
-                const active = activeFilter === filter.key;
-                return (
-                  <TouchableOpacity
-                    key={filter.key}
-                    onPress={() => setActiveFilter(filter.key)}
-                    style={[styles.filterChip, active && styles.filterChipActive]}
-                    activeOpacity={0.82}
-                  >
-                    <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <View style={styles.sections}>
-              {visibleSections.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyTitle}>Nothing in this filter</Text>
-                  <Text style={styles.emptyText}>Switch filters to see the rest of your assignment sheet.</Text>
+          <View style={styles.sections}>
+            {DONE_SECTIONS.filter((section) => groupedRooms[section.bucket].length > 0).map((section) => (
+              <View key={section.bucket} style={styles.section}>
+                <SectionHeader title={section.title} hint={String(groupedRooms[section.bucket].length)} />
+                <View style={styles.sectionList}>
+                  {groupedRooms[section.bucket].map((room) => (
+                    <RoomQueueCard key={room.id} room={room} onPress={() => openRoom(room)} />
+                  ))}
                 </View>
-              ) : (
-                visibleSections.map((section) => (
-                  <View key={section.bucket} style={styles.section}>
-                    <SectionHeader title={section.title} hint={String(groupedRooms[section.bucket].length)} />
-                    <View style={styles.sectionList}>
-                      {groupedRooms[section.bucket].map((room) => (
-                        <RoomQueueCard
-                          key={room.id}
-                          room={room}
-                          actionLabel={getRoomAction(room).label}
-                          onPress={() => openRoom(room)}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
-          </>
+              </View>
+            ))}
+            {counts.completed + counts.blocked === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>{t("rooms.nothingDoneYet")}</Text>
+                <Text style={styles.emptyText}>{t("rooms.nothingDoneYetHint")}</Text>
+              </View>
+            ) : null}
+          </View>
         )}
       </ScrollView>
       <FloatingAIButton bottom={insets.bottom + 84} onPress={() => router.push("/(app)/copilot")} />
@@ -363,21 +323,6 @@ const styles = StyleSheet.create({
   modeBtnActive: { backgroundColor: shellTokens.raised },
   modeText: { color: shellTokens.ink3, fontSize: 12.5, fontWeight: "700" },
   modeTextActive: { color: shellTokens.ink },
-
-  filterRow: { gap: 7, paddingBottom: 14 },
-  filterChip: {
-    minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterChipActive: { backgroundColor: C.ink, borderColor: C.ink },
-  filterText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
-  filterTextActive: { color: C.paper },
 
   sections: { gap: 20 },
   section: { gap: 9 },

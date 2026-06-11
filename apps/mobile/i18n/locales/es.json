@@ -139,7 +139,13 @@
     "submit": "Enviar",
     "undoConfirmTitle": "¿Deshacer último estado?",
     "undoConfirmBody": "Esto regresa el cuarto a su estado anterior.",
-    "undoConfirm": "Deshacer"
+    "undoConfirm": "Deshacer",
+    "remaining": "Pendientes",
+    "doneTab": "Hechos",
+    "allRoomsDone": "Todos los cuartos atendidos",
+    "allRoomsDoneHint": "Todo está enviado, listo o bloqueado — mira la pestaña Hechos.",
+    "nothingDoneYet": "Nada terminado aún",
+    "nothingDoneYetHint": "Los cuartos aparecen aquí cuando están enviados, inspeccionados o bloqueados."
   },
   "workOrders": {
     "title": "Órdenes de Trabajo",
@@ -461,5 +467,20 @@
     "smartOrder": "Orden inteligente",
     "byStatus": "Por estado",
     "askAboutRoom": "Pregunta a la IA sobre este cuarto"
+  },
+  "blockers": {
+    "guestInside": "Huésped Adentro",
+    "dndOnDoor": "No Molestar en Puerta",
+    "cantEnter": "No Puedo Entrar",
+    "lateCheckout": "Checkout Tardío",
+    "declinedService": "Rechazó Servicio",
+    "comeBackLater": "Volver Más Tarde",
+    "deepClean": "Limpieza Profunda",
+    "petRoom": "Cuarto con Mascota",
+    "needOzone": "Necesita Ozono",
+    "smokeSmell": "Olor a Humo",
+    "timePrompt": "Escribe la hora que te dio el huésped",
+    "timePlaceholder": "p. ej. 1:30 PM",
+    "report": "Reportar"
   }
 }

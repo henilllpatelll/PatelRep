@@ -139,7 +139,13 @@
     "submit": "Submit",
     "undoConfirmTitle": "Undo last status?",
     "undoConfirmBody": "This rolls the room back to its previous status.",
-    "undoConfirm": "Undo"
+    "undoConfirm": "Undo",
+    "remaining": "Remaining",
+    "doneTab": "Done",
+    "allRoomsDone": "All rooms handled",
+    "allRoomsDoneHint": "Everything is submitted, ready, or blocked — see the Done tab.",
+    "nothingDoneYet": "Nothing finished yet",
+    "nothingDoneYetHint": "Rooms show here once they're submitted, inspected, or blocked."
   },
   "workOrders": {
     "title": "Work Orders",
@@ -461,5 +467,20 @@
     "smartOrder": "Smart order",
     "byStatus": "By status",
     "askAboutRoom": "Ask AI about this room"
+  },
+  "blockers": {
+    "guestInside": "Guest Inside",
+    "dndOnDoor": "DND on Door",
+    "cantEnter": "Can't Enter",
+    "lateCheckout": "Late Checkout",
+    "declinedService": "Declined Service",
+    "comeBackLater": "Come Back Later",
+    "deepClean": "Needs Deep Clean",
+    "petRoom": "Pet Room",
+    "needOzone": "Need Ozone",
+    "smokeSmell": "Smoke Smell",
+    "timePrompt": "Enter the time the guest gave you",
+    "timePlaceholder": "e.g. 1:30 PM",
+    "report": "Report"
   }
 }

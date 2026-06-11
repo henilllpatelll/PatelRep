@@ -23,8 +23,6 @@ import {
   buildTaskQueue,
   confirmAITask,
   getTaskRoomNumber,
-  isAITask,
-  isGuestTask,
   parseTaskWithAI,
   type Task,
   type TaskBucket,
@@ -43,30 +41,6 @@ const PRIORITY_STYLE: Record<string, { fg: string; bg: string; border: string }>
   high: { fg: C.alert, bg: C.alertSoft, border: C.alertLine },
   normal: { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine },
   low: { fg: C.ink3, bg: C.surface2, border: C.line2 },
-};
-
-/** Urgency rail on the card's left edge — same scanning language as room cards. */
-const BUCKET_RAIL: Record<TaskBucket, string> = {
-  overdue: C.alert,
-  now: C.caution,
-  today: C.line,
-};
-
-const TYPE_ICON: Record<string, { icon: React.ComponentProps<typeof Ionicons>["name"]; fg: string; bg: string }> = {
-  housekeeping: { icon: "brush-outline", fg: C.accent, bg: C.accentSoft },
-  engineering: { icon: "construct-outline", fg: C.caution, bg: C.cautionSoft },
-  guest_request: { icon: "person-outline", fg: C.info, bg: C.infoSoft },
-  lost_found: { icon: "bag-outline", fg: C.caution, bg: C.cautionSoft },
-  general: { icon: "clipboard-outline", fg: C.ink3, bg: C.surface2 },
-};
-
-function getTypeIcon(task: Task) {
-  return TYPE_ICON[(task.task_type ?? "").toLowerCase()] ?? TYPE_ICON.general;
-}
-
-const STATUS_PILL: Record<string, { labelKey: string; fg: string; bg: string; border: string }> = {
-  in_progress: { labelKey: "tasks.statusInProgress", fg: C.caution, bg: C.cautionSoft, border: C.cautionLine },
-  escalated: { labelKey: "tasks.statusEscalated", fg: C.alert, bg: C.alertSoft, border: C.alertLine },
 };
 
 function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
@@ -90,152 +64,67 @@ interface TaskRowProps {
   entry: TaskQueueEntry;
   confirming: boolean;
   busy: boolean;
-  isNew: boolean;
-  expanded: boolean;
-  onToggleExpand: () => void;
   onRequestComplete: () => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-function formatStamp(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    const date = new Date(iso);
-    const now = new Date();
-    const sameDay =
-      date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-    if (sameDay) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
-  } catch {
-    return null;
-  }
-}
-
-function TaskRow({ entry, confirming, busy, isNew, expanded, onToggleExpand, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
+function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
   const { t } = useTranslation();
   const { task, overdueMinutes } = entry;
   const room = getTaskRoomNumber(task);
   const priority = (task.priority ?? "normal").toLowerCase();
   const prioStyle = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE.normal;
   const dueTime = formatDue(task.due_at);
-  const typeIcon = getTypeIcon(task);
-  const typeLabel = t(`tasks.typeLabel.${(task.task_type ?? "general").toLowerCase()}`, task.task_type ?? "general");
-  const statusPill = task.status ? STATUS_PILL[task.status] : undefined;
-  const description = task.description?.trim() || null;
-
-  const detailRows = [
-    { key: "type", label: t("tasks.detailType"), value: typeLabel },
-    { key: "created", label: t("tasks.detailCreated"), value: formatStamp(task.created_at) },
-    { key: "due", label: t("tasks.detailDue"), value: formatStamp(task.due_at) },
-    { key: "sla", label: t("tasks.detailSla"), value: task.sla_minutes ? `${task.sla_minutes}m` : null },
-  ].filter((row): row is { key: string; label: string; value: string } => Boolean(row.value));
+  const isGuest = task.source === "guest" || task.task_type === "guest_request";
 
   return (
-    <View
-      style={[
-        styles.taskCard,
-        entry.bucket === "overdue" && styles.taskCardOverdue,
-        isNew && styles.taskCardNew,
-      ]}
-      testID={`task-${task.id}`}
-    >
-      <View style={[styles.taskRail, { backgroundColor: isNew ? C.accent : BUCKET_RAIL[entry.bucket] }]} />
-
-      <TouchableOpacity activeOpacity={0.88} onPress={onToggleExpand} style={styles.taskMain}>
-        <View style={[styles.typeTile, { backgroundColor: typeIcon.bg }]}>
-          <Ionicons name={typeIcon.icon} size={16} color={typeIcon.fg} />
-        </View>
-
+    <View style={[styles.taskCard, entry.bucket === "overdue" && styles.taskCardOverdue]} testID={`task-${task.id}`}>
+      <View style={styles.taskMain}>
+        <TouchableOpacity
+          accessibilityLabel={t("tasks.markDone", { title: task.title })}
+          onPress={onRequestComplete}
+          disabled={busy || confirming}
+          style={styles.checkbox}
+          hitSlop={8}
+        >
+          {busy ? <ActivityIndicator size="small" color={C.accent} /> : null}
+        </TouchableOpacity>
         <View style={styles.taskBody}>
-          {/* Row 1 — room (the anchor) + badges */}
-          <View style={styles.taskTopRow}>
-            {room ? (
-              <View style={styles.roomBadge}>
-                <Ionicons name="bed-outline" size={11} color={C.ink} />
-                <Text style={styles.roomBadgeText}>{room}</Text>
-              </View>
-            ) : (
-              <Text style={styles.typeLabelText}>{typeLabel}</Text>
-            )}
-            <View style={[styles.prioPill, { backgroundColor: prioStyle.bg, borderColor: prioStyle.border }]}>
-              <Text style={[styles.prioText, { color: prioStyle.fg }]}>{priority.toUpperCase()}</Text>
-            </View>
-            {statusPill ? (
-              <View style={[styles.prioPill, { backgroundColor: statusPill.bg, borderColor: statusPill.border }]}>
-                <Text style={[styles.prioText, { color: statusPill.fg }]}>{t(statusPill.labelKey)}</Text>
-              </View>
-            ) : null}
-            {isNew ? (
-              <View style={styles.newTag}>
-                <Text style={styles.newTagText}>{t("tasks.newTag")}</Text>
-              </View>
-            ) : null}
-            {isAITask(task) ? (
+          <View style={styles.taskTitleRow}>
+            <Text style={styles.taskTitle}>{task.title}</Text>
+            {task.ai_suggested ? (
               <View style={styles.aiTag}>
                 <Ionicons name="sparkles" size={8} color={C.ai} />
                 <Text style={styles.aiTagText}>AI</Text>
               </View>
             ) : null}
           </View>
-
-          {/* Row 2 — what needs doing */}
-          <Text style={styles.taskTitle}>{task.title}</Text>
-          {description ? (
-            <Text style={styles.taskDescription} numberOfLines={expanded ? undefined : 2}>
-              {description}
-            </Text>
-          ) : null}
-
-          {/* Row 3 — timing + context */}
           <View style={styles.taskMetaRow}>
+            <View style={[styles.prioPill, { backgroundColor: prioStyle.bg, borderColor: prioStyle.border }]}>
+              <Text style={[styles.prioText, { color: prioStyle.fg }]}>{priority.toUpperCase()}</Text>
+            </View>
+            {room ? (
+              <View style={styles.roomChip}>
+                <Ionicons name="bed-outline" size={10} color={C.ink2} />
+                <Text style={styles.roomChipText}>{room}</Text>
+              </View>
+            ) : null}
+            {isGuest ? (
+              <View style={styles.roomChip}>
+                <Ionicons name="person-outline" size={10} color={C.info} />
+                <Text style={[styles.roomChipText, { color: C.info }]}>{t("tasks.guestTag")}</Text>
+              </View>
+            ) : null}
             {overdueMinutes != null ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="alert-circle" size={11} color={C.alert} />
-                <Text style={styles.overdueText}>{t("tasks.overdueBy", { minutes: overdueMinutes })}</Text>
-              </View>
+              <Text style={styles.overdueText}>{t("tasks.overdueBy", { minutes: overdueMinutes })}</Text>
             ) : dueTime ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={11} color={C.ink3} />
-                <Text style={styles.dueText}>{t("tasks.dueAt", { time: dueTime })}</Text>
-              </View>
+              <Text style={styles.dueText}>{t("tasks.dueAt", { time: dueTime })}</Text>
             ) : null}
-            {isGuestTask(task) ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="person-outline" size={11} color={C.info} />
-                <Text style={[styles.dueText, { color: C.info }]}>{t("tasks.guestTag")}</Text>
-              </View>
-            ) : null}
-            {room ? <Text style={styles.typeLabelText}>{typeLabel}</Text> : null}
           </View>
         </View>
-
-        <View style={styles.taskRight}>
-          <TouchableOpacity
-            accessibilityLabel={t("tasks.markDone", { title: task.title })}
-            onPress={onRequestComplete}
-            disabled={busy || confirming}
-            style={[styles.checkbox, confirming && styles.checkboxArmed]}
-            hitSlop={8}
-          >
-            {busy ? <ActivityIndicator size="small" color={C.accent} /> : <Ionicons name="checkmark" size={15} color={confirming ? C.accent : C.ink4} />}
-          </TouchableOpacity>
-          <Text style={styles.positionText}>#{entry.position}</Text>
-          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={13} color={C.ink4} />
-        </View>
-      </TouchableOpacity>
-
-      {/* Expanded details */}
-      {expanded && detailRows.length > 0 ? (
-        <View style={styles.detailGrid}>
-          {detailRows.map((row) => (
-            <View key={row.key} style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{row.label}</Text>
-              <Text style={styles.detailValue}>{row.value}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+        <Text style={styles.positionText}>#{entry.position}</Text>
+      </View>
 
       {confirming ? (
         <View style={styles.confirmRow}>
@@ -261,7 +150,6 @@ export default function TasksScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [doneToday, setDoneToday] = useState(0);
 
@@ -271,14 +159,10 @@ export default function TasksScreen() {
   const [aiPreview, setAiPreview] = useState<TaskPreview | null>(null);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiCreating, setAiCreating] = useState(false);
-  // Title of the task just created via AI — highlighted when it lands in the list
-  const [lastCreatedTitle, setLastCreatedTitle] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
     try {
-      // No `my_tasks` param exists — housekeepers are auto-scoped server-side.
-      // per_page max is 100 (200 is a 422).
-      const response = await api.get<{ data: Task[] } | Task[]>("/tasks?per_page=100");
+      const response = await api.get<{ data: Task[] } | Task[]>("/tasks?my_tasks=true");
       setTasks(unwrapTasks(response));
     } catch {
       setTasks([]);
@@ -338,7 +222,6 @@ export default function TasksScreen() {
     setAiCreating(true);
     try {
       await confirmAITask(aiPreview);
-      setLastCreatedTitle(aiPreview.title);
       setAiPreview(null);
       setAiMessage(t("tasks.aiCreated"));
       await loadTasks();
@@ -420,9 +303,6 @@ export default function TasksScreen() {
                     entry={entry}
                     confirming={confirmingId === entry.task.id}
                     busy={busyId === entry.task.id}
-                    isNew={lastCreatedTitle != null && entry.task.title === lastCreatedTitle}
-                    expanded={expandedId === entry.task.id}
-                    onToggleExpand={() => setExpandedId((current) => (current === entry.task.id ? null : entry.task.id))}
                     onRequestComplete={() => setConfirmingId(entry.task.id)}
                     onConfirm={() => completeTask(entry.task.id)}
                     onCancel={() => setConfirmingId(null)}
@@ -521,82 +401,30 @@ const styles = StyleSheet.create({
   taskStack: { gap: 9 },
 
   taskCard: {
-    position: "relative",
-    overflow: "hidden",
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 14,
-    paddingLeft: 17,
-    paddingRight: 13,
+    paddingHorizontal: 13,
     paddingVertical: 12,
     gap: 10,
-    shadowColor: C.ink,
-    shadowOpacity: 0.04,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
-  taskCardOverdue: { borderColor: C.alertLine },
-  taskCardNew: { borderColor: C.accentLine, backgroundColor: C.surface },
-  taskRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  taskCardOverdue: { borderColor: C.alertLine, backgroundColor: C.surface },
   taskMain: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
-  typeTile: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  taskRight: { alignItems: "center", gap: 6 },
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: C.line,
     backgroundColor: C.surface2,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 1,
   },
-  checkboxArmed: { borderColor: C.accent, backgroundColor: C.accentSoft },
   taskBody: { flex: 1, minWidth: 0, gap: 6 },
-  taskTopRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
-  roomBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: C.surface2,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: 7,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  roomBadgeText: { color: C.ink, fontSize: 13, fontWeight: "800", fontFamily: monoFont },
-  typeLabelText: { color: C.ink3, fontSize: 11, fontWeight: "700" },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  taskTitleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
   taskTitle: { color: C.ink, fontSize: 14.5, fontWeight: "700", lineHeight: 19 },
-  taskDescription: { color: C.ink2, fontSize: 12.5, lineHeight: 17 },
-  detailGrid: {
-    borderTopWidth: 1,
-    borderTopColor: C.line2,
-    paddingTop: 10,
-    gap: 7,
-  },
-  detailRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
-  detailLabel: { color: C.ink3, fontSize: 11.5, fontWeight: "700" },
-  detailValue: { color: C.ink, fontSize: 12.5, fontWeight: "700", fontFamily: monoFont, textAlign: "right", flexShrink: 1 },
-  newTag: {
-    backgroundColor: C.accentSoft,
-    borderWidth: 1,
-    borderColor: C.accentLine,
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  newTagText: { color: C.accent, fontSize: 8.5, fontWeight: "800", letterSpacing: 0.5 },
   aiTag: {
     flexDirection: "row",
     alignItems: "center",
@@ -612,6 +440,8 @@ const styles = StyleSheet.create({
   taskMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
   prioPill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
   prioText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
+  roomChip: { flexDirection: "row", alignItems: "center", gap: 3 },
+  roomChipText: { color: C.ink2, fontSize: 11.5, fontWeight: "700", fontFamily: monoFont },
   dueText: { color: C.ink3, fontSize: 11, fontFamily: monoFont },
   overdueText: { color: C.alert, fontSize: 11, fontWeight: "800", fontFamily: monoFont },
   positionText: { fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "800", marginTop: 2 },

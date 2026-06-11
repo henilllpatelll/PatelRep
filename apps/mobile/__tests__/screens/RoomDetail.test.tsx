@@ -82,12 +82,12 @@ beforeEach(() => {
 });
 
 describe("RoomDetailScreen", () => {
-  it("shows a compact last action line instead of full status history", async () => {
+  it("shows a compact last-action line in the sticky bar instead of a status section", async () => {
     const { getByText, queryByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
-    await waitFor(() => expect(getByText(/Last action:/)).toBeTruthy());
-    expect(getByText(/Marked clean/)).toBeTruthy();
+    await waitFor(() => expect(getByText(/Marked clean/)).toBeTruthy());
+    expect(queryByText("Current Status")).toBeNull();
     expect(queryByText("Status History")).toBeNull();
   });
 

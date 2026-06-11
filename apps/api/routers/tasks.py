@@ -66,7 +66,9 @@ def _validate_task_references(request: CreateTaskRequest, hotel_id: str) -> None
 async def create_task(
     request: CreateTaskRequest,
     current_user: CurrentUser = Depends(
-        require_role("gm", "housekeeping_supervisor", "front_desk", "chief_engineer", "engineer")
+        # housekeeper included so floor quick-blockers (ozone delegation,
+        # late-checkout confirmation) can create tasks from the room screen
+        require_role("gm", "housekeeping_supervisor", "front_desk", "chief_engineer", "engineer", "housekeeper")
     ),
 ):
     if request.use_ai and request.nl_input:

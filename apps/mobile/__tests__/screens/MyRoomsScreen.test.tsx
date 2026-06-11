@@ -116,9 +116,9 @@ describe("MyRoomsScreen", () => {
     expect(getByText("rooms.title")).toBeTruthy();
     expect(getByText("1/6")).toBeTruthy();
     expect(getByText("17%")).toBeTruthy();
-    // toggle + smart section header
-    expect(getAllByText("ai.smartOrder").length).toBeGreaterThanOrEqual(2);
-    expect(getByText("ai.byStatus")).toBeTruthy();
+    expect(getAllByText(/rooms\.remaining/).length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText(/rooms\.doneTab/).length).toBeGreaterThanOrEqual(1);
+    expect(getByText("ai.smartOrder")).toBeTruthy();
     expect(getByText("NEEDS ATTENTION")).toBeTruthy();
   });
 
@@ -144,6 +144,8 @@ describe("MyRoomsScreen", () => {
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
+    // Inspected rooms live in the Done tab
+    fireEvent.press(getByText(/rooms\.doneTab/));
     expect(getByText("Full Done")).toBeTruthy();
     expect(getByText("Light Done")).toBeTruthy();
     expect(queryByText("Full")).toBeNull();
@@ -177,21 +179,30 @@ describe("MyRoomsScreen", () => {
     expect(getByText("102")).toBeTruthy();
   });
 
-  it("by-status mode filter chips switch visible sections", async () => {
+  it("Done tab shows submitted, ready, and blocked rooms only", async () => {
+    mockRooms = [
+      ...mockRooms,
+      makeRoom({ id: "submitted", room_number: "107", status: "CLEAN" }),
+      makeRoom({ id: "blocked", room_number: "108", status: "OUT_OF_SERVICE" }),
+    ];
+    mockStore.myRooms = mockRooms;
+    mockApiGet.mockResolvedValue({ data: mockRooms });
+
     const { getByText, queryByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("ai.byStatus")).toBeTruthy());
-    fireEvent.press(getByText("ai.byStatus"));
+    await waitFor(() => expect(getByText("ai.smartOrder")).toBeTruthy());
+    expect(queryByText("SUBMITTED")).toBeNull();
 
-    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
-    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+    fireEvent.press(getByText(/rooms\.doneTab/));
 
-    fireEvent.press(getByText("Started"));
-
-    expect(getByText("IN PROGRESS")).toBeTruthy();
-    expect(getByText("103")).toBeTruthy();
-    expect(queryByText("NEXT TO CLEAN")).toBeNull();
+    expect(getByText("SUBMITTED")).toBeTruthy();
+    expect(getByText("READY")).toBeTruthy();
+    expect(getByText("BLOCKED / OUT OF SERVICE")).toBeTruthy();
+    expect(getByText("107")).toBeTruthy();
+    expect(getByText("104")).toBeTruthy();
+    expect(getByText("108")).toBeTruthy();
+    // active queue rooms are not in the Done tab
     expect(queryByText("101")).toBeNull();
-    expect(queryByText("NEEDS ATTENTION")).toBeNull();
+    expect(queryByText("103")).toBeNull();
   });
 });

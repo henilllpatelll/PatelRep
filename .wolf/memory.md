@@ -4835,3 +4835,35 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:37 | Session end: 30 writes across 7 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 5 reads | ~17631 tok |
 | 09:39 | Session end: 30 writes across 7 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 5 reads | ~17631 tok |
 | 09:39 | Session end: 30 writes across 7 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 5 reads | ~17631 tok |
+| 09:43 | Created ../PatelRep-web-v2/apps/web/lib/ai/taskQueue.ts | — | ~1013 |
+| 09:44 | Created ../PatelRep-web-v2/apps/web/components/tasks/TasksAIPanel.tsx | — | ~1805 |
+| 09:44 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | expanded (+14 lines) | ~235 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | added optional chaining | ~556 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | added optional chaining | ~320 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | 2→3 lines | ~59 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | 1→4 lines | ~41 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | CSS: entries | ~228 |
+| 09:45 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | CSS: queryKey | ~191 |
+| 09:46 | Edited ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/page.tsx | CSS: backgroundColor, entry | ~1023 |
+| 09:51 | Created ../PatelRep-web-v2/apps/web/tasks-smoke.mjs | — | ~282 |
+| 09:53 | Session end: 41 writes across 11 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 8 reads | ~23404 tok |
+| 10:56 | Session end: 41 writes across 11 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 8 reads | ~23404 tok |
+| 13:15 | Created apps/mobile/lib/housekeeping/roomBlockers.ts | — | ~1388 |
+| 13:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+6 lines) | ~80 |
+| 13:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | — | ~0 |
+| 13:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→6 lines | ~114 |
+| 13:15 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added error handling | ~263 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→3 lines | ~51 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added nullish coalescing | ~1028 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: backgroundColor, color | ~399 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 13→16 lines | ~145 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+39 lines) | ~388 |
+| 13:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 5→2 lines | ~37 |
+| 13:17 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: DONE_SECTIONS | ~75 |
+| 13:17 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 3→2 lines | ~38 |
+| 13:17 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | removed 6 lines | ~11 |
+| 13:17 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: count, count | ~371 |
+| 13:17 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | reduced (-33 lines) | ~890 |
+| 13:18 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | removed 16 lines | ~7 |
+| 13:19 | Created apps/mobile/__tests__/lib/roomBlockers.test.ts | — | ~1186 |
+| 2026-06-11 | My Rooms UX feedback round: Remaining/Done toggle, status line into sticky bar, context-aware quick blockers (WO/task side effects), housekeeper allowed on POST /tasks | my-rooms screens, roomBlockers.ts, tasks.py, locales, tests | 64/64 mobile tests, 222 API smoke, tsc clean | ~35k |
