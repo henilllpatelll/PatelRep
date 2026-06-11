@@ -18,11 +18,11 @@ import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
+import { TaskCard } from "@/components/tasks/TaskCard";
 import {
   buildTaskBriefing,
   buildTaskQueue,
   confirmAITask,
-  getTaskRoomNumber,
   parseTaskWithAI,
   type Task,
   type TaskBucket,
@@ -36,116 +36,19 @@ const BUCKET_TITLES: Record<TaskBucket, string> = {
   today: "tasks.groupToday",
 };
 
-const PRIORITY_STYLE: Record<string, { fg: string; bg: string; border: string }> = {
-  urgent: { fg: C.alert, bg: C.alertSoft, border: C.alertLine },
-  high: { fg: C.alert, bg: C.alertSoft, border: C.alertLine },
-  normal: { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine },
-  low: { fg: C.ink3, bg: C.surface2, border: C.line2 },
-};
-
 function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
   return Array.isArray(response) ? response : response.data ?? [];
 }
 
-function formatDue(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  } catch {
-    return null;
-  }
-}
-
-function dayLabel() {
-  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-}
-
-interface TaskRowProps {
-  entry: TaskQueueEntry;
-  confirming: boolean;
-  busy: boolean;
-  onRequestComplete: () => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
-  const { t } = useTranslation();
-  const { task, overdueMinutes } = entry;
-  const room = getTaskRoomNumber(task);
-  const priority = (task.priority ?? "normal").toLowerCase();
-  const prioStyle = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE.normal;
-  const dueTime = formatDue(task.due_at);
-  const isGuest = task.source === "guest" || task.task_type === "guest_request";
-
-  return (
-    <View style={[styles.taskCard, entry.bucket === "overdue" && styles.taskCardOverdue]} testID={`task-${task.id}`}>
-      <View style={styles.taskMain}>
-        <TouchableOpacity
-          accessibilityLabel={t("tasks.markDone", { title: task.title })}
-          onPress={onRequestComplete}
-          disabled={busy || confirming}
-          style={styles.checkbox}
-          hitSlop={8}
-        >
-          {busy ? <ActivityIndicator size="small" color={C.accent} /> : null}
-        </TouchableOpacity>
-        <View style={styles.taskBody}>
-          <View style={styles.taskTitleRow}>
-            <Text style={styles.taskTitle}>{task.title}</Text>
-            {task.ai_suggested ? (
-              <View style={styles.aiTag}>
-                <Ionicons name="sparkles" size={8} color={C.ai} />
-                <Text style={styles.aiTagText}>AI</Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={styles.taskMetaRow}>
-            <View style={[styles.prioPill, { backgroundColor: prioStyle.bg, borderColor: prioStyle.border }]}>
-              <Text style={[styles.prioText, { color: prioStyle.fg }]}>{priority.toUpperCase()}</Text>
-            </View>
-            {room ? (
-              <View style={styles.roomChip}>
-                <Ionicons name="bed-outline" size={10} color={C.ink2} />
-                <Text style={styles.roomChipText}>{room}</Text>
-              </View>
-            ) : null}
-            {isGuest ? (
-              <View style={styles.roomChip}>
-                <Ionicons name="person-outline" size={10} color={C.info} />
-                <Text style={[styles.roomChipText, { color: C.info }]}>{t("tasks.guestTag")}</Text>
-              </View>
-            ) : null}
-            {overdueMinutes != null ? (
-              <Text style={styles.overdueText}>{t("tasks.overdueBy", { minutes: overdueMinutes })}</Text>
-            ) : dueTime ? (
-              <Text style={styles.dueText}>{t("tasks.dueAt", { time: dueTime })}</Text>
-            ) : null}
-          </View>
-        </View>
-        <Text style={styles.positionText}>#{entry.position}</Text>
-      </View>
-
-      {confirming ? (
-        <View style={styles.confirmRow}>
-          <Text style={styles.confirmLabel}>{t("tasks.confirmComplete")}</Text>
-          <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm} activeOpacity={0.85}>
-            <Ionicons name="checkmark" size={13} color="#fff" />
-            <Text style={styles.confirmBtnText}>{t("tasks.confirmYes")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.85}>
-            <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-    </View>
-  );
+function dayLabel(locale: string) {
+  return new Date().toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
 }
 
 export default function TasksScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isOnline } = useAppStore();
+  const { isOnline, user } = useAppStore();
+  const locale = user?.language_pref === "es" ? "es-MX" : "en-US";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -261,7 +164,7 @@ export default function TasksScreen() {
         <View style={styles.shellTopRow}>
           <View style={styles.shellTitleBlock}>
             <Text style={styles.shellTitle}>{t("tasks.title")}</Text>
-            <Text style={styles.shellDate}>{dayLabel()}</Text>
+            <Text style={styles.shellDate}>{dayLabel(locale)}</Text>
           </View>
           <View style={styles.shellCountBlock}>
             <Text style={styles.shellCountValue}>{queue.length}</Text>
@@ -298,9 +201,10 @@ export default function TasksScreen() {
               <SectionHeader title={t(BUCKET_TITLES[section.bucket])} hint={String(section.entries.length)} />
               <View style={styles.taskStack}>
                 {section.entries.map((entry) => (
-                  <TaskRow
+                  <TaskCard
                     key={entry.task.id}
                     entry={entry}
+                    locale={locale}
                     confirming={confirmingId === entry.task.id}
                     busy={busyId === entry.task.id}
                     onRequestComplete={() => setConfirmingId(entry.task.id)}
@@ -399,84 +303,6 @@ const styles = StyleSheet.create({
 
   section: { gap: 9 },
   taskStack: { gap: 9 },
-
-  taskCard: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  taskCardOverdue: { borderColor: C.alertLine, backgroundColor: C.surface },
-  taskMain: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  taskBody: { flex: 1, minWidth: 0, gap: 6 },
-  taskTitleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
-  taskTitle: { color: C.ink, fontSize: 14.5, fontWeight: "700", lineHeight: 19 },
-  aiTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: C.aiSoft,
-    borderWidth: 1,
-    borderColor: C.aiLine,
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  aiTagText: { color: C.ai, fontSize: 8.5, fontWeight: "800", letterSpacing: 0.5 },
-  taskMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
-  prioPill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  prioText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
-  roomChip: { flexDirection: "row", alignItems: "center", gap: 3 },
-  roomChipText: { color: C.ink2, fontSize: 11.5, fontWeight: "700", fontFamily: monoFont },
-  dueText: { color: C.ink3, fontSize: 11, fontFamily: monoFont },
-  overdueText: { color: C.alert, fontSize: 11, fontWeight: "800", fontFamily: monoFont },
-  positionText: { fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "800", marginTop: 2 },
-
-  confirmRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    borderTopWidth: 1,
-    borderTopColor: C.line2,
-    paddingTop: 10,
-  },
-  confirmLabel: { flex: 1, color: C.ink2, fontSize: 12.5, fontWeight: "700" },
-  confirmBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: C.accent,
-    borderRadius: 9,
-    minHeight: 40,
-    paddingHorizontal: 13,
-    justifyContent: "center",
-  },
-  confirmBtnText: { color: "#fff", fontSize: 12.5, fontWeight: "800" },
-  cancelBtn: {
-    minHeight: 40,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelBtnText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
 
   emptyState: { alignItems: "center", paddingVertical: 36, gap: 8 },
   emptyTitle: { color: C.ink2, fontSize: 16, fontWeight: "700", marginTop: 4 },

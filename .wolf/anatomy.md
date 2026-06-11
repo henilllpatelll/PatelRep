@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T18:19:15.051Z
-> Files: 21 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T23:14:36.834Z
+> Files: 26 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -517,8 +517,8 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~1427 tok)
-- `TasksVariationA.test.tsx` — EN (~1935 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2423 tok)
+- `TasksVariationA.test.tsx` — EN (~2230 tok)
 
 ## apps/mobile/android/
 
@@ -557,7 +557,7 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~7164 tok)
+- `index.tsx` — ENGINEER_ORDERS (~7491 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -573,7 +573,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~10373 tok)
+- `[roomId].tsx` — STATUS_COLOR (~12125 tok)
 - `index.tsx` — DONE_SECTIONS (~3695 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
@@ -605,7 +605,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — Urgency rail on the card's left edge — same scanning language as room cards. (~8088 tok)
+- `index.tsx` — Tasks tab screen: shell header with open/done counts, on-device AI task briefing, Overdue/Do now/Today sections rendering components/tasks/TaskCard, AI quick-add composer (parse via copilot, confirm preview). Queue/briefing logic in lib/ai/tasks.ts (~3300 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -615,6 +615,7 @@
 
 ## apps/mobile/components/home/
 
+- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2839 tok)
 
 ## apps/mobile/components/housekeeping/
 
@@ -625,16 +626,26 @@
 ## apps/mobile/components/housekeeping/ReportIssueModal.tsx
 
 
+## apps/mobile/components/home/
+
+- `CompanionHome.tsx` — Home tab redesign atoms: ShiftMosaic (one status-colored tile per assigned room on the dark hero, sorted by room number, tap → room detail), SignalChips (review/DND/arrivals/VIP, render only when nonzero, dark-shell palette), FocusCard (single "Start here" room — big mono number, reason line, est minutes, green Start button, Resume link for an in-progress room) (~2400 tok)
+
 ## apps/mobile/components/shared/
 
 - `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4251 tok)
 - `tokens.ts` — The dark "Evening Lobby" chrome — a designed constant across themes. (~1503 tok)
+
+## apps/mobile/components/tasks/
+
+- `TaskCard.tsx` — Redesigned task card: left urgency rail (overdue alert/now caution/today neutral), task-type icon tile (housekeeping/engineering/guest_request/lost_found/general) with a11y typeLabel, 2-line description preview, urgent/high-only priority chip, in-progress chip, room+guest chips, due/overdue right-aligned, 38px round Done button + inline confirm row (~2922 tok)
 
 ## apps/mobile/i18n/
 
 
 ## apps/mobile/i18n/locales/
 
+- `en.json` (~5206 tok)
+- `es.json` (~5561 tok)
 
 ## apps/mobile/lib/
 
@@ -642,6 +653,7 @@
 ## apps/mobile/lib/ai/
 
 - `briefing.ts` — Room numbers in suggested cleaning order (~2065 tok)
+- `companion.ts` — Shift companion layer for Home: buildShiftSnapshot (done/remaining/minutesLeft/finishBy/stage analytics), getCompanionCheckin (stage-based supportive message + one gentle tip), getGreetingKey (time-of-day greeting) (~1215 tok)
 - `tasks.ts` — Real enum: housekeeping | engineering | guest_request | lost_found | general (~1684 tok)
 
 ## apps/mobile/lib/api/
@@ -649,7 +661,7 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1388 tok)
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1683 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -869,4 +881,3 @@
 
 ## youtubeMobileResearch.md
 
-- `apps/mobile/lib/housekeeping/roomBlockers.ts` — Context-aware quick-blocker sets (occupied/pickup/vacant) with side effects: deep-clean/pet WO creation, ozone delegation task, late-checkout front-desk task. ~120 lines, ~1000 tokens.

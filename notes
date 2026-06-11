@@ -23,3 +23,66 @@ Questions to ask housekeepers:
 4. what happens when an inspection is failed
 
 
+
+If staff have multiple roles first prompt what are you starting your shift as Housekeeper or Supervisor or Houseman or something like that before or after logging in
+
+
+SUPERVISOR:
+clean times for each room type and clean type
+automated scheduling to forecast pulled from opera
+walking vacant rooms
+supervisor be able to create and edit the checklist for all cleaning and room types
+Strip all rooms
+inspect departure and full clean rooms
+needs ozone option when inspecting room
+
+
+
+when a task is created send to on shift supervisor and have ai suggest that room be delagated to the closest housekeeper in proximity then supervisor can either confirm or edit/change who its delagated to or the supervisor does it themselves. If the only person thats on shift is a houseman have it automatically delgate and ping the houseman. Right now the houseman role is not created but create the route or whatever so its easier when it is actually built
+
+*
+Would floor map make this easier and how does one upload or tell the program what the hotel layout is?
+*
+
+
+*
+all housekeeping history for rooms kept until the room shows up as a departure then reset history once the room is inspected, do not reset until the room is inspected. Engineering history should always stay as its not guest dependent its more the room itself so it can be used analytically.
+*
+
+Breakfast inventory tracking
+
+DASHBOARD/HOME:
+remove up next just have analytical stuff and like updated breifs to the housekeeper, its like a therapist being with you every step of the way to relieve the housekeepr from stress thats how the home page should be designed
+
+
+TABS:
+Also get rid of the co pilot tab just have a floating ai copilot icon that can be accessed anytime and will have context
+
+Fix tasks card and full settings redesign
+
+
+MY ROOMS:
+my rooms smart order and by status seems like the same do we really need by status? If not can we replace it with something more useful
+
+in room detail do we need current status section if its showing the status at the very top? or can we move it somewhere more efficient? Like next to the buttons of start/undo process. Also do we need reservation/timing section, if not can we replace with something else or completely remove them what do you suggest or ask me questions for both?
+
+in room detail any more useful actions you suggest or thats not in our program that we can add?
+
+in room detail do vacant dirty rooms need quick blockers? If so make different quick blockers for that room type as guest inside or cant enter is not useful. Also speaking on quick blockers in general need linen and need supervisor is not really a blocker from cleaning the room since the housekeepers would be prepared with linen and more than capable themselves without need of a supervisor
+
+
+*How should we go about deep clean vaccuum & change filter because of 30+nights/pet*
+
+
+
+
+
+
+FRONT DESK LOGIN:
+housekeeper updates late checkout for departure room, confirm it
+
+
+
+
+
+Add live activities to ios and android

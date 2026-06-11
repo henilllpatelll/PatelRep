@@ -12,6 +12,7 @@ jest.mock("@/lib/api/workOrders", () => ({
 
 import {
   buildBlockerNote,
+  formatBlockerTimeInput,
   getBlockersForRoom,
   runBlockerSideEffect,
 } from "@/lib/housekeeping/roomBlockers";
@@ -50,14 +51,18 @@ describe("getBlockersForRoom", () => {
     expect(keys).not.toContain("deep_clean");
   });
 
-  it("gives pickup rooms declined service, timed come-back-later, and guest inside", () => {
-    const keys = getBlockersForRoom(room({ status: "PICKUP" })).map((b) => b.key);
-    expect(keys).toEqual(["declined_service", "come_back_later", "guest_inside"]);
+  it("gives pickup rooms clock-time presets for come-back-later", () => {
+    const pickupBlockers = getBlockersForRoom(room({ status: "PICKUP" }));
+    const keys = pickupBlockers.map((b) => b.key);
+    const comeBackLater = pickupBlockers.find((b) => b.key === "come_back_later");
+
+    expect(keys).toEqual(["declined_service", "come_back_later", "guest_inside", "dnd_sign"]);
+    expect(comeBackLater?.timePresets).toEqual(["11:00 AM", "12:00 PM", "1:00 PM"]);
   });
 
   it("gives vacant dirty rooms room-condition flags, never guest blockers", () => {
     const keys = getBlockersForRoom(room({ status: "DIRTY", fo_status: "VAC" })).map((b) => b.key);
-    expect(keys).toEqual(["deep_clean", "pet_room", "need_ozone", "smoke_smell"]);
+    expect(keys).toEqual(["pet_room", "smoke_smell"]);
   });
 
   it("hides blockers on finished or out-of-service rooms", () => {
@@ -68,14 +73,13 @@ describe("getBlockersForRoom", () => {
 });
 
 describe("runBlockerSideEffect", () => {
-  it("deep clean and pet room create a low-priority deep vacuum work order", async () => {
+  it("pet room creates a low-priority deep vacuum work order", async () => {
     const vacant = room({ status: "DIRTY", fo_status: "VAC" });
-    const [deepClean, petRoom] = getBlockersForRoom(vacant);
+    const petRoom = getBlockersForRoom(vacant).find((b) => b.key === "pet_room")!;
 
-    await runBlockerSideEffect(vacant, deepClean);
     await runBlockerSideEffect(vacant, petRoom);
 
-    expect(mockCreateWorkOrder).toHaveBeenCalledTimes(2);
+    expect(mockCreateWorkOrder).toHaveBeenCalledTimes(1);
     expect(mockCreateWorkOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         room_id: "room-1",
@@ -88,7 +92,7 @@ describe("runBlockerSideEffect", () => {
 
   it("ozone and smoke smell create a housekeeping delegation task", async () => {
     const vacant = room({ status: "DIRTY", fo_status: "VAC" });
-    const ozone = getBlockersForRoom(vacant).find((b) => b.key === "need_ozone")!;
+    const ozone = getBlockersForRoom(vacant).find((b) => b.key === "smoke_smell")!;
 
     await runBlockerSideEffect(vacant, ozone);
 
@@ -116,5 +120,21 @@ describe("runBlockerSideEffect", () => {
       }),
     );
     expect(buildBlockerNote(late, "1:30 PM")).toBe("BLOCKER: Late checkout — guest says 1:30 PM");
+  });
+});
+
+describe("formatBlockerTimeInput", () => {
+  it("formats typed come-back-later times with AM/PM for morning and afternoon", () => {
+    expect(formatBlockerTimeInput("11")).toBe("11:00 AM");
+    expect(formatBlockerTimeInput("11:15")).toBe("11:15 AM");
+    expect(formatBlockerTimeInput("12")).toBe("12:00 PM");
+    expect(formatBlockerTimeInput("1")).toBe("1:00 PM");
+    expect(formatBlockerTimeInput("1:30")).toBe("1:30 PM");
+    expect(formatBlockerTimeInput("13:45")).toBe("1:45 PM");
+  });
+
+  it("keeps already formatted AM/PM input tidy", () => {
+    expect(formatBlockerTimeInput("11 am")).toBe("11:00 AM");
+    expect(formatBlockerTimeInput("1:05pm")).toBe("1:05 PM");
   });
 });

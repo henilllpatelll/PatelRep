@@ -25,20 +25,18 @@ import {
   IconButton,
   Mono,
   Pill,
-  ProgressRing,
   SectionLabel,
 } from "@/components/shared/mobileHandoff";
-import { AIBriefingCard, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
+import { AIBriefingCard } from "@/components/shared/evening";
+import { FocusCard, ShiftMosaic, SignalChips } from "@/components/home/CompanionHome";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
-import { getRoomQueueBucket } from "@/lib/housekeeping/roomWorkflow";
+import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
 
 const ENGINEER_ORDERS = [
   { id: "WO-1141", title: "Replace fan-coil belt", loc: "R-209 - zone B", pri: "HIGH", tone: "alert" as const, meta: "22m", active: true },
   { id: "WO-1138", title: "Reseat toilet flange", loc: "R-144", pri: "MED", tone: "caution" as const, meta: "queued" },
   { id: "WO-1135", title: "Pool pump pressure check", loc: "Mech room", pri: "LOW", tone: "info" as const, meta: "queued" },
 ];
-
-const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -99,14 +97,19 @@ export default function HousekeeperHomeScreen() {
     [myRooms, t],
   );
   const briefing = aiBriefing ?? localBriefing;
-  const doneCount = myRooms.filter((room) => DONE_STATUSES.has(room.status)).length;
-  const remainingCount = Math.max(0, myRooms.length - doneCount);
-  const vipCount = myRooms.filter((room) => room.vip_flag && !DONE_STATUSES.has(room.status)).length;
-  const attentionCount = useMemo(
-    () => myRooms.filter((room) => getRoomQueueBucket(room) === "needs_attention").length,
+  const snapshot = useMemo(
+    () => buildShiftSnapshot(myRooms, language === "es" ? "es-MX" : "en-US"),
+    [myRooms, language],
+  );
+  const checkin = useMemo(() => getCompanionCheckin(snapshot, t), [snapshot, t]);
+  const firstEntry = getStartEntry(smartQueue);
+  const inProgressRoom = useMemo(
+    () => myRooms.find((room) => room.status === "IN_PROGRESS") ?? null,
     [myRooms],
   );
-  const firstEntry = getStartEntry(smartQueue);
+  const openRoom = useCallback((room: Room) => {
+    router.push(`/(app)/my-rooms/${room.id}`);
+  }, []);
 
   const requestAiBriefing = useCallback(async () => {
     if (briefingLoading || myRooms.length === 0) return;
@@ -141,110 +144,106 @@ export default function HousekeeperHomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Evening Lobby shell hero */}
-      <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerTop}>
-          <Avatar name={user?.full_name ?? "Staff"} size={34} />
-          <IconButton icon="notifications-outline" />
-        </View>
-        <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
-        <Text style={styles.shellTitle}>{t("home.greeting", { name: firstName(user?.full_name) })}</Text>
-      </View>
-
+    <View style={styles.companionContainer}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        style={styles.companionScroll}
+        contentContainerStyle={styles.companionScrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={shellTokens.ink2} />}
       >
-        {briefing ? (
-          <AIBriefingCard
-            kicker={t("ai.briefing.kicker")}
-            headline={briefing.headline}
-            planLabel={t("ai.briefing.planLabel")}
-            plan={briefing.plan}
-            watchouts={briefing.watchouts}
-            loading={briefingLoading}
-            footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
-          >
-            <View style={styles.briefingActions}>
-              {firstEntry ? (
-                <TouchableOpacity
-                  style={styles.briefingPrimaryBtn}
-                  onPress={() => router.push(`/(app)/my-rooms/${firstEntry.room.id}`)}
-                  activeOpacity={0.86}
-                >
-                  <Text style={styles.briefingPrimaryText}>{t("home.startWith", { room: firstEntry.room.room_number })}</Text>
-                </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                style={styles.briefingGhostBtn}
-                onPress={() => void requestAiBriefing()}
-                disabled={briefingLoading}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="sparkles" size={12} color="#CBB8F0" />
-                <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.briefingGhostBtn}
-                onPress={() => router.push("/(app)/copilot")}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
-              </TouchableOpacity>
-            </View>
-          </AIBriefingCard>
-        ) : null}
+        {/* Dark bleed behind iOS overscroll so the hero reads full-bleed */}
+        <View style={styles.topBleed} />
 
-        <View style={styles.paceCard}>
-          <ProgressRing value={doneCount} total={myRooms.length || 0} />
-          <View style={styles.paceBody}>
-            <Text style={styles.paceTitle}>{t("home.roomsLeft", { count: remainingCount })}</Text>
-            <View style={styles.pillRow}>
-              {attentionCount > 0 ? (
-                <Pill tone="alert" icon="alert-circle-outline">
-                  {attentionCount}
-                </Pill>
-              ) : (
-                <Pill tone="ready">{t("home.onPace")}</Pill>
-              )}
-              {vipCount > 0 ? (
-                <Pill tone="accent" icon="star">
-                  {vipCount} VIP
-                </Pill>
-              ) : null}
-            </View>
+        {/* Evening Lobby hero — greeting, check-in, and the shift mosaic */}
+        <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
+          <View style={styles.headerTop}>
+            <Avatar name={user?.full_name ?? "Staff"} size={34} />
+            <IconButton icon="notifications-outline" />
           </View>
+          <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
+          <Text style={styles.shellTitle}>{t(getGreetingKey(), { name: firstName(user?.full_name) })}</Text>
+          <Text style={styles.shellCompanion}>{checkin.message}</Text>
+          {snapshot.total > 0 ? (
+            <>
+              <ShiftMosaic rooms={myRooms} onPressRoom={openRoom} />
+              <Text style={styles.heroPaceLine}>
+                {t("home.heroProgress", { done: snapshot.done, total: snapshot.total })}
+                {snapshot.minutesLeft > 0 ? ` · ${t("home.minutesLeft", { minutes: snapshot.minutesLeft })}` : ""}
+                {snapshot.finishByLabel ? ` · ${t("home.finishBy", { time: snapshot.finishByLabel })}` : ""}
+              </Text>
+              <SignalChips snapshot={snapshot} t={t} />
+            </>
+          ) : null}
         </View>
 
-        <View style={styles.upNextBlock}>
-          <SectionHeader
-            title={t("home.upNext")}
-            hint={`${Math.min(3, smartQueue.length)} / ${remainingCount}`}
-            action={
-              <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)}>
-                <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
-              </TouchableOpacity>
-            }
-          />
-          <View style={styles.rows}>
-            {smartQueue.slice(0, 3).map((entry) => (
-              <RoomQueueCard
-                key={entry.room.id}
-                room={entry.room}
-                position={entry.position}
-                estimateMinutes={entry.estimateMinutes}
-                onPress={() => router.push(`/(app)/my-rooms/${entry.room.id}`)}
-              />
-            ))}
-            {smartQueue.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
-                <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
+        <View style={styles.companionBody}>
+          {firstEntry ? (
+            <FocusCard
+              entry={firstEntry}
+              inProgressRoom={inProgressRoom}
+              t={t}
+              onStart={openRoom}
+              onResume={openRoom}
+            />
+          ) : null}
+
+          {briefing ? (
+            <AIBriefingCard
+              kicker={t("ai.briefing.kicker")}
+              headline={briefing.headline}
+              planLabel={t("ai.briefing.planLabel")}
+              plan={briefing.plan}
+              watchouts={briefing.watchouts}
+              loading={briefingLoading}
+              footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
+            >
+              <View style={styles.briefingActions}>
+                <TouchableOpacity
+                  style={styles.briefingGhostBtn}
+                  onPress={() => void requestAiBriefing()}
+                  disabled={briefingLoading}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons name="sparkles" size={12} color="#CBB8F0" />
+                  <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.briefingGhostBtn}
+                  onPress={() => router.push("/(app)/copilot")}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
+                </TouchableOpacity>
               </View>
-            ) : null}
-          </View>
+            </AIBriefingCard>
+          ) : null}
+
+          {checkin.tip ? (
+            <View style={styles.tipCard} testID="companion-tip">
+              <View style={styles.tipIconWrap}>
+                <Ionicons name="leaf-outline" size={15} color={C.primary} />
+              </View>
+              <View style={styles.tipBody}>
+                <Text style={styles.tipKicker}>{t("home.companion.kicker")}</Text>
+                <Text style={styles.tipText}>{checkin.tip}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {snapshot.stage === "done" || snapshot.stage === "empty" ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
+              <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.myRoomsBtn}
+            onPress={() => router.push("/(app)/my-rooms" as never)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
+            <Ionicons name="arrow-forward" size={15} color={C.accent} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -557,12 +556,38 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 13,
   },
+  companionContainer: {
+    flex: 1,
+    backgroundColor: shellTokens.bg,
+  },
+  companionScroll: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  companionScrollContent: {
+    flexGrow: 1,
+  },
+  topBleed: {
+    position: "absolute",
+    top: -600,
+    left: 0,
+    right: 0,
+    height: 600,
+    backgroundColor: shellTokens.bg,
+  },
+  companionBody: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 28,
+    gap: 13,
+  },
   shellHeader: {
     paddingHorizontal: 18,
-    paddingBottom: 18,
+    paddingBottom: 20,
     backgroundColor: shellTokens.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: shellTokens.line,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
   shellHeaderMeta: {
     fontSize: 11,
@@ -578,21 +603,24 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: shellTokens.ink,
   },
+  shellCompanion: {
+    marginTop: 7,
+    fontSize: 14.5,
+    lineHeight: 21,
+    color: shellTokens.ink2,
+  },
+  heroPaceLine: {
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: "700",
+    color: shellTokens.ink2,
+  },
   briefingActions: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     marginTop: 2,
   },
-  briefingPrimaryBtn: {
-    backgroundColor: C.accent,
-    borderRadius: 11,
-    minHeight: 44,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  briefingPrimaryText: { color: "#fff", fontSize: 13.5, fontWeight: "800" },
   briefingGhostBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -606,7 +634,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
-  upNextBlock: { gap: 9 },
   heroStrong: {
     fontFamily: monoFont,
     fontStyle: "normal",
@@ -617,29 +644,52 @@ const styles = StyleSheet.create({
     color: "rgba(241,237,228,0.5)",
     fontSize: 10.5,
   },
-  paceCard: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
-    padding: 16,
+  tipCard: {
     flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 11,
+    backgroundColor: C.accentSoft,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    borderRadius: R.lg,
+    padding: 14,
+  },
+  tipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.surface,
     alignItems: "center",
-    gap: 16,
+    justifyContent: "center",
   },
-  paceBody: {
-    flex: 1,
+  tipBody: { flex: 1, gap: 3 },
+  tipKicker: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: C.primary,
   },
-  paceTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+  tipText: {
+    fontSize: 13,
+    lineHeight: 19,
     color: C.ink,
   },
-  pillRow: {
+  myRoomsBtn: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 48,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    backgroundColor: C.surface,
+  },
+  myRoomsBtnText: {
+    color: C.accent,
+    fontSize: 13.5,
+    fontWeight: "800",
   },
   seeAll: {
     fontSize: 12,

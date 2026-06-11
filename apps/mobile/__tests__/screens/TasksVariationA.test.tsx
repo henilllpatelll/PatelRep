@@ -21,6 +21,13 @@ const EN: Record<string, string> = {
   "tasks.guestTag": "Guest",
   "tasks.dueAt": "Due {{time}}",
   "tasks.overdueBy": "{{minutes}}m overdue",
+  "tasks.overdueByHours": "{{hours}}h {{minutes}}m overdue",
+  "tasks.statusInProgress": "IN PROGRESS",
+  "tasks.typeLabel.housekeeping": "Housekeeping",
+  "tasks.typeLabel.engineering": "Engineering",
+  "tasks.typeLabel.guest_request": "Guest request",
+  "tasks.typeLabel.lost_found": "Lost & Found",
+  "tasks.typeLabel.general": "General",
   "tasks.addPlaceholder": "Add a task in plain words…",
   "tasks.addWithAI": "Create task with AI",
   "tasks.aiPreviewLabel": "AI drafted this task",
@@ -92,6 +99,7 @@ const mockTasks = [
   {
     id: "task-towels",
     title: "Deliver 2 extra towels to 214",
+    description: "Guest asked at the front desk — leave them at the door.",
     priority: "normal",
     source: "guest",
     ai_suggested: true,
@@ -113,7 +121,7 @@ beforeEach(() => {
 
 describe("TasksScreen", () => {
   it("renders the AI briefing and smart-order buckets", async () => {
-    const { getByText } = render(<TasksScreen />);
+    const { getByText, getAllByLabelText, queryByText } = render(<TasksScreen />);
 
     await waitFor(() => expect(getByText("My tasks")).toBeTruthy());
 
@@ -130,6 +138,16 @@ describe("TasksScreen", () => {
     expect(getByText("Deliver 2 extra towels to 214")).toBeTruthy();
     expect(getByText("Deep-clean fridge - 122")).toBeTruthy();
     expect(getByText(/30m overdue|3[01]m overdue/)).toBeTruthy();
+
+    // New card anatomy: type tiles carry the type label for screen readers
+    expect(getAllByLabelText("Housekeeping").length).toBeGreaterThanOrEqual(2);
+    expect(getAllByLabelText("General").length).toBeGreaterThanOrEqual(1);
+    // Description preview renders on the card
+    expect(getByText("Guest asked at the front desk — leave them at the door.")).toBeTruthy();
+    // Priority chips only for urgent/high — normal and low stay silent
+    expect(getByText("URGENT")).toBeTruthy();
+    expect(queryByText("NORMAL")).toBeNull();
+    expect(queryByText("LOW")).toBeNull();
   });
 
   it("requires a confirmation before completing a task", async () => {
