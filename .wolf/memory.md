@@ -4942,3 +4942,17 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 18:10 | Created apps/mobile/components/home/CompanionHome.tsx | — | ~2779 |
+| 18:11 | Edited apps/mobile/components/home/CompanionHome.tsx | added 1 condition(s) | ~107 |
+| 18:11 | Edited apps/mobile/components/home/CompanionHome.tsx | CSS: room, room | ~76 |
+| 18:11 | Edited apps/mobile/components/home/CompanionHome.tsx | inline fix | ~18 |
+| 18:11 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 import(s) | ~106 |
+| 18:11 | Edited apps/mobile/app/(app)/home/index.tsx | added nullish coalescing | ~104 |
+| 18:12 | Edited apps/mobile/app/(app)/home/index.tsx | CSS: time | ~1313 |
+| 18:12 | Edited apps/mobile/app/(app)/home/index.tsx | expanded (+26 lines) | ~181 |
+| 18:12 | Edited apps/mobile/app/(app)/home/index.tsx | CSS: heroPaceLine | ~68 |
+| 18:12 | Edited apps/mobile/app/(app)/home/index.tsx | removed 29 lines | ~4 |
+| 18:13 | Edited apps/mobile/i18n/locales/en.json | expanded (+12 lines) | ~241 |
+| 18:13 | Edited apps/mobile/i18n/locales/es.json | expanded (+12 lines) | ~251 |
+| 18:14 | Created apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | — | ~2423 |
+| 18:16 | Home tab redesigned to Floor Mosaic Companion (mosaic hero, FocusCard, SignalChips; stat deck removed) | apps/mobile/components/home/CompanionHome.tsx, app/(app)/home/index.tsx, i18n en/es, HousekeeperHome.test | type-check + 18/18 suites pass | ~9k |

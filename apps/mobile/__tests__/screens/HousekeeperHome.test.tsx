@@ -1,5 +1,5 @@
 import React from "react";
-import { render, waitFor, within } from "@testing-library/react-native";
+import { render, waitFor } from "@testing-library/react-native";
 
 const mockSetMyRooms = jest.fn();
 
@@ -60,12 +60,22 @@ const EN: Record<string, string> = {
   "home.greetingEvening": "Good evening, {{name}}.",
   "home.shiftSuffix": "Day shift",
   "home.heroProgress": "{{done}} of {{total}} rooms done",
-  "home.glance": "Your shift at a glance",
+  "home.minutesLeft": "~{{minutes}}m left",
+  "home.finishBy": "on track for {{time}}",
   "home.openMyRooms": "Open My Rooms",
-  "home.stat.timeLeft": "Est. cleaning left",
-  "home.stat.finishBy": "On track to finish",
-  "home.stat.vipsLeft": "VIPs still ahead",
-  "home.stat.review": "Waiting on review",
+  "home.signal.review": "{{count}} waiting on review",
+  "home.signal.dnd": "{{count}} DND",
+  "home.signal.arrivals": "{{count}} arriving soon",
+  "home.signal.vip": "{{count}} VIP",
+  "home.focus.kicker": "Start here",
+  "home.focus.estMinutes": "~{{minutes}} min",
+  "home.focus.reasonInProgress": "You're already in this one — pick up where you left off.",
+  "home.focus.reasonVip": "VIP guest — a perfect room early goes a long way.",
+  "home.focus.reasonArrival": "The next guest arrives soon.",
+  "home.focus.reasonDeparture": "Guest checked out — it's all yours.",
+  "home.focus.reasonDefault": "Fastest path through your list.",
+  "home.focus.resume": "Resume {{room}}",
+  "home.focus.inProgress": "in progress",
   "home.companion.kicker": "With you",
   "home.companion.empty": "Nothing on your board yet. Enjoy the calm — your rooms will appear here.",
   "home.companion.fresh": "One room at a time — that's all today is.",
@@ -140,38 +150,53 @@ jest.mock("@/stores/appStore", () => ({
 import HousekeeperHomeScreen from "@/app/(app)/home";
 
 describe("HousekeeperHomeScreen", () => {
-  it("renders the companion hero, AI briefing, and shift analytics — with no up-next room queue", async () => {
+  it("renders the companion hero with shift mosaic, focus card, briefing, and signals — no up-next queue", async () => {
     const { getByText, getByTestId, queryByText, queryByTestId } = render(<HousekeeperHomeScreen />);
 
     // Time-of-day greeting plus the supportive companion check-in
     await waitFor(() => expect(getByText(/Good (morning|afternoon|evening), Maria\./)).toBeTruthy());
     // 1 of 4 done (101 inspected) → "early" stage message
     expect(getByText("1 done already. You're finding your rhythm.")).toBeTruthy();
-    expect(getByText("1 of 4 rooms done")).toBeTruthy();
-    expect(getByText("25%")).toBeTruthy();
 
-    // AI briefing card with the on-device plan
+    // Shift mosaic: one tile per assigned room, sorted by room number
+    expect(getByTestId("shift-mosaic")).toBeTruthy();
+    for (const num of ["101", "108", "112", "115"]) {
+      expect(getByTestId(`mosaic-tile-${num}`)).toBeTruthy();
+    }
+    // Pace line: done count + est minutes left (108 + 112 cleanable, 25m each) + finish time
+    expect(getByText(/1 of 4 rooms done · ~50m left · on track for/)).toBeTruthy();
+
+    // Signal chips: 115 needs review (high risk) and is the one VIP still open
+    expect(getByTestId("signal-review")).toBeTruthy();
+    expect(getByText("1 waiting on review")).toBeTruthy();
+    expect(getByTestId("signal-vip")).toBeTruthy();
+    expect(getByText("1 VIP")).toBeTruthy();
+
+    // Focus card recommends the first startable room (112), not the in-progress room (108)
+    expect(getByTestId("focus-card")).toBeTruthy();
+    expect(getByText("Start here")).toBeTruthy();
+    expect(getByText("Start with 112")).toBeTruthy();
+    expect(getByText("Fastest path through your list.")).toBeTruthy();
+    expect(getByText("~25 min")).toBeTruthy();
+    // ...while 108 stays reachable through the resume link
+    expect(getByTestId("focus-resume")).toBeTruthy();
+    expect(getByText(/Resume 108/)).toBeTruthy();
+
+    // AI briefing card with the on-device plan and explicit-tap AI refresh
     expect(getByTestId("ai-briefing-card")).toBeTruthy();
     expect(getByText("AI Shift Briefing")).toBeTruthy();
-    // Start CTA picks the first startable room (112), not the in-progress room (108)
     expect(getByText("Start with room 112 — it's the fastest path through your list.")).toBeTruthy();
-    expect(getByText("Start with 112")).toBeTruthy();
     expect(getByText("New plan")).toBeTruthy();
     expect(getByText("Ask AI")).toBeTruthy();
     expect(getByText(/Planned on device/)).toBeTruthy();
-
-    // Analytics deck: 108 + 112 cleanable (25m each), 115 needs review (high risk), 1 VIP left
-    expect(getByText("Your shift at a glance")).toBeTruthy();
-    expect(getByText("~50m")).toBeTruthy();
-    expect(within(getByTestId("stat-vips")).getByText("1")).toBeTruthy();
-    expect(within(getByTestId("stat-review")).getByText("1")).toBeTruthy();
 
     // Companion tip surfaces the review room as a gentle nudge, not a task
     expect(getByTestId("companion-tip")).toBeTruthy();
     expect(getByText(/waiting on review — that's not on you/)).toBeTruthy();
 
-    // Up Next queue is gone from Home — rooms live in My Rooms
+    // No Up Next queue and no stat deck — rooms live in My Rooms
     expect(queryByText("Up next")).toBeNull();
+    expect(queryByText("Your shift at a glance")).toBeNull();
     expect(queryByTestId("room-card-108")).toBeNull();
     expect(queryByTestId("room-card-112")).toBeNull();
     expect(getByText("Open My Rooms")).toBeTruthy();

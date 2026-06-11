@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T22:54:56.620Z
-> Files: 25 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T23:14:36.834Z
+> Files: 26 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -517,7 +517,7 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2041 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2423 tok)
 - `TasksVariationA.test.tsx` — EN (~2230 tok)
 
 ## apps/mobile/android/
@@ -557,7 +557,7 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — Home tab, role-switched. Housekeeper view is the companion redesign: shell hero with greeting/check-in/progress bar, AIBriefingCard, 2x2 glance stat tiles, companion tip card, Open My Rooms CTA — no room queue. Engineer/supervisor/front-desk/GM views unchanged (~8000 tok)
+- `index.tsx` — ENGINEER_ORDERS (~7491 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -615,6 +615,7 @@
 
 ## apps/mobile/components/home/
 
+- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2839 tok)
 
 ## apps/mobile/components/housekeeping/
 
@@ -624,6 +625,10 @@
 
 ## apps/mobile/components/housekeeping/ReportIssueModal.tsx
 
+
+## apps/mobile/components/home/
+
+- `CompanionHome.tsx` — Home tab redesign atoms: ShiftMosaic (one status-colored tile per assigned room on the dark hero, sorted by room number, tap → room detail), SignalChips (review/DND/arrivals/VIP, render only when nonzero, dark-shell palette), FocusCard (single "Start here" room — big mono number, reason line, est minutes, green Start button, Resume link for an in-progress room) (~2400 tok)
 
 ## apps/mobile/components/shared/
 
@@ -639,8 +644,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~4930 tok)
-- `es.json` (~5294 tok)
+- `en.json` (~5206 tok)
+- `es.json` (~5561 tok)
 
 ## apps/mobile/lib/
 

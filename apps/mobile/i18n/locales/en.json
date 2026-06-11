@@ -42,13 +42,25 @@
     "greetingAfternoon": "Good afternoon, {{name}}.",
     "greetingEvening": "Good evening, {{name}}.",
     "heroProgress": "{{done}} of {{total}} rooms done",
-    "glance": "Your shift at a glance",
+    "minutesLeft": "~{{minutes}}m left",
+    "finishBy": "on track for {{time}}",
     "openMyRooms": "Open My Rooms",
-    "stat": {
-      "timeLeft": "Est. cleaning left",
-      "finishBy": "On track to finish",
-      "vipsLeft": "VIPs still ahead",
-      "review": "Waiting on review"
+    "signal": {
+      "review": "{{count}} waiting on review",
+      "dnd": "{{count}} DND",
+      "arrivals": "{{count}} arriving soon",
+      "vip": "{{count}} VIP"
+    },
+    "focus": {
+      "kicker": "Start here",
+      "estMinutes": "~{{minutes}} min",
+      "reasonInProgress": "You're already in this one — pick up where you left off.",
+      "reasonVip": "VIP guest — a perfect room early goes a long way.",
+      "reasonArrival": "The next guest arrives soon.",
+      "reasonDeparture": "Guest checked out — it's all yours.",
+      "reasonDefault": "Fastest path through your list.",
+      "resume": "Resume {{room}}",
+      "inProgress": "in progress"
     },
     "companion": {
       "kicker": "With you",

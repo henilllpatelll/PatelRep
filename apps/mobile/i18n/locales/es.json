@@ -42,13 +42,25 @@
     "greetingAfternoon": "Buenas tardes, {{name}}.",
     "greetingEvening": "Buenas noches, {{name}}.",
     "heroProgress": "{{done}} de {{total}} cuartos listos",
-    "glance": "Tu turno de un vistazo",
+    "minutesLeft": "~{{minutes}}m restantes",
+    "finishBy": "terminarías a las {{time}}",
     "openMyRooms": "Abrir Mis cuartos",
-    "stat": {
-      "timeLeft": "Limpieza restante est.",
-      "finishBy": "Terminarías cerca de",
-      "vipsLeft": "VIP por atender",
-      "review": "En espera de revisión"
+    "signal": {
+      "review": "{{count}} en espera de revisión",
+      "dnd": "{{count}} con No Molestar",
+      "arrivals": "{{count}} llegan pronto",
+      "vip": "{{count}} VIP"
+    },
+    "focus": {
+      "kicker": "Empieza aquí",
+      "estMinutes": "~{{minutes}} min",
+      "reasonInProgress": "Ya estás en este — retómalo donde lo dejaste.",
+      "reasonVip": "Huésped VIP — un cuarto perfecto temprano rinde mucho.",
+      "reasonArrival": "El próximo huésped llega pronto.",
+      "reasonDeparture": "El huésped ya salió — es todo tuyo.",
+      "reasonDefault": "La ruta más rápida de tu lista.",
+      "resume": "Continuar {{room}}",
+      "inProgress": "en curso"
     },
     "companion": {
       "kicker": "Contigo",

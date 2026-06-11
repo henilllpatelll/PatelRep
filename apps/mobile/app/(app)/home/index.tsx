@@ -27,7 +27,8 @@ import {
   Pill,
   SectionLabel,
 } from "@/components/shared/mobileHandoff";
-import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
+import { AIBriefingCard } from "@/components/shared/evening";
+import { FocusCard, ShiftMosaic, SignalChips } from "@/components/home/CompanionHome";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
 import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
 
@@ -102,6 +103,13 @@ export default function HousekeeperHomeScreen() {
   );
   const checkin = useMemo(() => getCompanionCheckin(snapshot, t), [snapshot, t]);
   const firstEntry = getStartEntry(smartQueue);
+  const inProgressRoom = useMemo(
+    () => myRooms.find((room) => room.status === "IN_PROGRESS") ?? null,
+    [myRooms],
+  );
+  const openRoom = useCallback((room: Room) => {
+    router.push(`/(app)/my-rooms/${room.id}`);
+  }, []);
 
   const requestAiBriefing = useCallback(async () => {
     if (briefingLoading || myRooms.length === 0) return;
@@ -136,133 +144,107 @@ export default function HousekeeperHomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Evening Lobby shell hero — greeting, companion check-in, shift progress */}
-      <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerTop}>
-          <Avatar name={user?.full_name ?? "Staff"} size={34} />
-          <IconButton icon="notifications-outline" />
-        </View>
-        <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
-        <Text style={styles.shellTitle}>{t(getGreetingKey(), { name: firstName(user?.full_name) })}</Text>
-        <Text style={styles.shellCompanion}>{checkin.message}</Text>
-        {snapshot.total > 0 ? (
-          <View style={styles.heroProgress}>
-            <View style={styles.heroProgressHead}>
-              <Text style={styles.heroProgressLabel}>
-                {t("home.heroProgress", { done: snapshot.done, total: snapshot.total })}
-              </Text>
-              <Text style={styles.heroProgressPct}>{snapshot.pct}%</Text>
-            </View>
-            <View style={styles.heroProgressTrack}>
-              <View style={[styles.heroProgressFill, { width: `${snapshot.pct}%` }]} />
-            </View>
-          </View>
-        ) : null}
-      </View>
-
+    <View style={styles.companionContainer}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        style={styles.companionScroll}
+        contentContainerStyle={styles.companionScrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={shellTokens.ink2} />}
       >
-        {briefing ? (
-          <AIBriefingCard
-            kicker={t("ai.briefing.kicker")}
-            headline={briefing.headline}
-            planLabel={t("ai.briefing.planLabel")}
-            plan={briefing.plan}
-            watchouts={briefing.watchouts}
-            loading={briefingLoading}
-            footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
-          >
-            <View style={styles.briefingActions}>
-              {firstEntry ? (
+        {/* Dark bleed behind iOS overscroll so the hero reads full-bleed */}
+        <View style={styles.topBleed} />
+
+        {/* Evening Lobby hero — greeting, check-in, and the shift mosaic */}
+        <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
+          <View style={styles.headerTop}>
+            <Avatar name={user?.full_name ?? "Staff"} size={34} />
+            <IconButton icon="notifications-outline" />
+          </View>
+          <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
+          <Text style={styles.shellTitle}>{t(getGreetingKey(), { name: firstName(user?.full_name) })}</Text>
+          <Text style={styles.shellCompanion}>{checkin.message}</Text>
+          {snapshot.total > 0 ? (
+            <>
+              <ShiftMosaic rooms={myRooms} onPressRoom={openRoom} />
+              <Text style={styles.heroPaceLine}>
+                {t("home.heroProgress", { done: snapshot.done, total: snapshot.total })}
+                {snapshot.minutesLeft > 0 ? ` · ${t("home.minutesLeft", { minutes: snapshot.minutesLeft })}` : ""}
+                {snapshot.finishByLabel ? ` · ${t("home.finishBy", { time: snapshot.finishByLabel })}` : ""}
+              </Text>
+              <SignalChips snapshot={snapshot} t={t} />
+            </>
+          ) : null}
+        </View>
+
+        <View style={styles.companionBody}>
+          {firstEntry ? (
+            <FocusCard
+              entry={firstEntry}
+              inProgressRoom={inProgressRoom}
+              t={t}
+              onStart={openRoom}
+              onResume={openRoom}
+            />
+          ) : null}
+
+          {briefing ? (
+            <AIBriefingCard
+              kicker={t("ai.briefing.kicker")}
+              headline={briefing.headline}
+              planLabel={t("ai.briefing.planLabel")}
+              plan={briefing.plan}
+              watchouts={briefing.watchouts}
+              loading={briefingLoading}
+              footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
+            >
+              <View style={styles.briefingActions}>
                 <TouchableOpacity
-                  style={styles.briefingPrimaryBtn}
-                  onPress={() => router.push(`/(app)/my-rooms/${firstEntry.room.id}`)}
-                  activeOpacity={0.86}
+                  style={styles.briefingGhostBtn}
+                  onPress={() => void requestAiBriefing()}
+                  disabled={briefingLoading}
+                  activeOpacity={0.82}
                 >
-                  <Text style={styles.briefingPrimaryText}>{t("home.startWith", { room: firstEntry.room.room_number })}</Text>
+                  <Ionicons name="sparkles" size={12} color="#CBB8F0" />
+                  <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
                 </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                style={styles.briefingGhostBtn}
-                onPress={() => void requestAiBriefing()}
-                disabled={briefingLoading}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="sparkles" size={12} color="#CBB8F0" />
-                <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.briefingGhostBtn}
-                onPress={() => router.push("/(app)/copilot")}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
-              </TouchableOpacity>
-            </View>
-          </AIBriefingCard>
-        ) : null}
+                <TouchableOpacity
+                  style={styles.briefingGhostBtn}
+                  onPress={() => router.push("/(app)/copilot")}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
+                </TouchableOpacity>
+              </View>
+            </AIBriefingCard>
+          ) : null}
 
-        {snapshot.total > 0 ? (
-          <View style={styles.glanceBlock}>
-            <SectionHeader title={t("home.glance")} />
-            <View style={styles.glanceGrid}>
-              <View style={styles.statTile} testID="stat-time-left">
-                <Text style={styles.statValue}>
-                  {snapshot.minutesLeft > 0 ? `~${snapshot.minutesLeft}m` : "—"}
-                </Text>
-                <Text style={styles.statLabel}>{t("home.stat.timeLeft")}</Text>
+          {checkin.tip ? (
+            <View style={styles.tipCard} testID="companion-tip">
+              <View style={styles.tipIconWrap}>
+                <Ionicons name="leaf-outline" size={15} color={C.primary} />
               </View>
-              <View style={styles.statTile} testID="stat-finish-by">
-                <Text style={styles.statValue}>{snapshot.finishByLabel ?? "—"}</Text>
-                <Text style={styles.statLabel}>{t("home.stat.finishBy")}</Text>
-              </View>
-              <View style={styles.statTile} testID="stat-vips">
-                <Text style={[styles.statValue, snapshot.vipLeft > 0 ? { color: C.brass } : undefined]}>
-                  {snapshot.vipLeft}
-                </Text>
-                <Text style={styles.statLabel}>{t("home.stat.vipsLeft")}</Text>
-              </View>
-              <View style={styles.statTile} testID="stat-review">
-                <Text style={[styles.statValue, snapshot.attention > 0 ? { color: C.caution } : undefined]}>
-                  {snapshot.attention}
-                </Text>
-                <Text style={styles.statLabel}>{t("home.stat.review")}</Text>
+              <View style={styles.tipBody}>
+                <Text style={styles.tipKicker}>{t("home.companion.kicker")}</Text>
+                <Text style={styles.tipText}>{checkin.tip}</Text>
               </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {checkin.tip ? (
-          <View style={styles.tipCard} testID="companion-tip">
-            <View style={styles.tipIconWrap}>
-              <Ionicons name="leaf-outline" size={15} color={C.primary} />
+          {snapshot.stage === "done" || snapshot.stage === "empty" ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
+              <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
             </View>
-            <View style={styles.tipBody}>
-              <Text style={styles.tipKicker}>{t("home.companion.kicker")}</Text>
-              <Text style={styles.tipText}>{checkin.tip}</Text>
-            </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {snapshot.stage === "done" || snapshot.stage === "empty" ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
-            <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
-          </View>
-        ) : null}
-
-        <TouchableOpacity
-          style={styles.myRoomsBtn}
-          onPress={() => router.push("/(app)/my-rooms" as never)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
-          <Ionicons name="arrow-forward" size={15} color={C.accent} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.myRoomsBtn}
+            onPress={() => router.push("/(app)/my-rooms" as never)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
+            <Ionicons name="arrow-forward" size={15} color={C.accent} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -574,12 +556,38 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 13,
   },
+  companionContainer: {
+    flex: 1,
+    backgroundColor: shellTokens.bg,
+  },
+  companionScroll: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  companionScrollContent: {
+    flexGrow: 1,
+  },
+  topBleed: {
+    position: "absolute",
+    top: -600,
+    left: 0,
+    right: 0,
+    height: 600,
+    backgroundColor: shellTokens.bg,
+  },
+  companionBody: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 28,
+    gap: 13,
+  },
   shellHeader: {
     paddingHorizontal: 18,
-    paddingBottom: 18,
+    paddingBottom: 20,
     backgroundColor: shellTokens.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: shellTokens.line,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
   shellHeaderMeta: {
     fontSize: 11,
@@ -601,36 +609,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: shellTokens.ink2,
   },
-  heroProgress: {
-    marginTop: 15,
-    gap: 7,
-  },
-  heroProgressHead: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-  },
-  heroProgressLabel: {
+  heroPaceLine: {
+    marginTop: 12,
     fontSize: 12,
     fontWeight: "700",
     color: shellTokens.ink2,
-  },
-  heroProgressPct: {
-    fontFamily: monoFont,
-    fontSize: 12,
-    fontWeight: "800",
-    color: shellTokens.ink3,
-  },
-  heroProgressTrack: {
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: shellTokens.raised,
-    overflow: "hidden",
-  },
-  heroProgressFill: {
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: C.accent,
   },
   briefingActions: {
     flexDirection: "row",
@@ -638,15 +621,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 2,
   },
-  briefingPrimaryBtn: {
-    backgroundColor: C.accent,
-    borderRadius: 11,
-    minHeight: 44,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  briefingPrimaryText: { color: "#fff", fontSize: 13.5, fontWeight: "800" },
   briefingGhostBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -669,34 +643,6 @@ const styles = StyleSheet.create({
   heroFootText: {
     color: "rgba(241,237,228,0.5)",
     fontSize: 10.5,
-  },
-  glanceBlock: { gap: 9 },
-  glanceGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 9,
-  },
-  statTile: {
-    flexBasis: "47%",
-    flexGrow: 1,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  statValue: {
-    fontFamily: monoFont,
-    fontSize: 22,
-    lineHeight: 26,
-    fontWeight: "800",
-    color: C.ink,
-  },
-  statLabel: {
-    color: C.ink3,
-    fontSize: 11,
-    marginTop: 5,
   },
   tipCard: {
     flexDirection: "row",
