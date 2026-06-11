@@ -241,6 +241,7 @@
     "guestTag": "Guest",
     "dueAt": "Due {{time}}",
     "overdueBy": "{{minutes}}m overdue",
+    "overdueByHours": "{{hours}}h {{minutes}}m overdue",
     "addPlaceholder": "Add a task in plain words…",
     "addWithAI": "Create task with AI",
     "aiPreviewLabel": "AI drafted this task",

@@ -241,6 +241,7 @@
     "guestTag": "Huésped",
     "dueAt": "Vence {{time}}",
     "overdueBy": "{{minutes}}m de retraso",
+    "overdueByHours": "{{hours}}h {{minutes}}m de retraso",
     "addPlaceholder": "Agrega una tarea con tus palabras…",
     "addWithAI": "Crear tarea con IA",
     "aiPreviewLabel": "La IA redactó esta tarea",
