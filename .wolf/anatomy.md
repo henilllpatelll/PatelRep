@@ -923,3 +923,6 @@
 
 - `apps/web/components/ui/EmptyState.tsx` — Reusable empty-state panel (icon, title, description, action; compact mode). ~40 lines, ~350 tokens.
 - `apps/web/components/ui/SegmentedControl.tsx` — Animated segmented control with framer layoutId thumb, count badges, reduced-motion aware. ~80 lines, ~650 tokens.
+
+- `apps/web/lib/ai/taskQueue.ts` — On-device task queue intelligence mirroring apps/mobile/lib/ai/tasks.ts: buildTaskQueue (overdue/now/today scoring + positions), buildTaskBriefing. ~110 lines, ~900 tokens.
+- `apps/web/components/tasks/TasksAIPanel.tsx` — Dark-shell AI panel for /tasks: on-device briefing + natural-language task composer (aiApi.chat with intent_hint task_creation → preview → aiApi.confirmTasks). ~150 lines, ~1400 tokens.

@@ -10,6 +10,19 @@ const textOriginals = new WeakMap<Text, string>()
 const attrOriginals = new WeakMap<Element, Map<string, string>>()
 
 const PHRASE_TRANSLATIONS: Record<string, string> = {
+  // Tasks — AI panel (matches mobile Tasks experience)
+  'AI Task Briefing': 'Resumen IA de Tareas',
+  'Do now': 'Hazlo ahora',
+  'Overdue': 'Vencidas',
+  'Mark this task done?': '¿Marcar esta tarea como hecha?',
+  'AI drafted this task': 'La IA redactó esta tarea',
+  'Create task with AI': 'Crear tarea con IA',
+  'Add a task in plain words — e.g. “Room 214 needs two extra towels”': 'Agrega una tarea con tus palabras — p. ej. “El cuarto 214 necesita dos toallas extra”',
+  'AI is unavailable right now — try again in a moment, or use New task.': 'La IA no está disponible ahora — intenta de nuevo en un momento, o usa Nueva tarea.',
+  'Task created ✨': 'Tarea creada ✨',
+  'Tasks created ✨': 'Tareas creadas ✨',
+  'All caught up. No open tasks on the list.': 'Todo al día. No hay tareas abiertas en la lista.',
+  'Dismiss': 'Descartar',
   // Common actions
   'Add': 'Agregar',
   'Add Note': 'Agregar Nota',
@@ -594,6 +607,13 @@ const ATTRIBUTE_TRANSLATIONS: Record<string, string> = {
 }
 
 const REGEX_TRANSLATIONS: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
+  [/^(\d+) tasks? overdue — start with “(.+)”\.$/i, (match) => `${match[1]} ${match[1] === '1' ? 'tarea vencida' : 'tareas vencidas'} — empieza con “${match[2]}”.`],
+  [/^Start with “(.+)” — it's the highest priority\.$/i, (match) => `Empieza con “${match[1]}” — es la mayor prioridad.`],
+  [/^Next up: “(.+)”\.$/i, (match) => `Siguiente: “${match[1]}”.`],
+  [/^(\d+) guest-facing tasks? — those make or break reviews\.$/i, (match) => `${match[1]} tarea(s) de huéspedes — esas definen las reseñas.`],
+  [/^(\d+) tasks? tied to specific rooms\.$/i, (match) => `${match[1]} tarea(s) ligadas a cuartos específicos.`],
+  [/^AI drafted (\d+) tasks$/i, (match) => `La IA redactó ${match[1]} tareas`],
+  [/^Mark (.+) done$/i, (match) => `Marcar ${match[1]} como hecha`],
   [/^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:,\s+(\d{4}))?$/i, (match) => {
     const weekday = WEEKDAY_TRANSLATIONS[match[1].toLowerCase()]
     const month = MONTH_TRANSLATIONS[match[2].toLowerCase()]

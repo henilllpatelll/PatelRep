@@ -4743,3 +4743,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:22 | Created scripts/redesign-smoke.mjs | — | ~483 |
 | 2026-06-11 | Web redesign v2 "Evening Lobby": dark shell sidebar, motion system, new EmptyState/SegmentedControl, RoomCard/WorkOrderCard rework on branch redesign/web-ui-v2 | apps/web globals.css, tailwind.config.ts, ui/*, shared/*, RoomCard, WorkOrderCard | type-check+lint+build clean, Playwright smoke verified | ~60k |
 | 00:27 | Session end: 23 writes across 16 files (globals.css, tailwind.config.ts, Button.tsx, Card.tsx, Input.tsx) | 21 reads | ~21641 tok |
+| 2026-06-11 | Web Tasks AI redesign matching mobile: TasksAIPanel (briefing + NL composer via aiApi.chat/confirmTasks), smart-order Overdue/Do now/Today/Done sections, confirm-to-complete checkbox | apps/web tasks/page.tsx, components/tasks/TasksAIPanel.tsx, lib/ai/taskQueue.ts, i18n/domTranslations.ts | tsc+lint+build clean, Playwright smoke on :3001 | ~30k |
