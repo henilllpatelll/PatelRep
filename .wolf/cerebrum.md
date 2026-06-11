@@ -8,6 +8,8 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **Mobile palette: forest-green primary, not terracotta (2026-06-11):** User rebased the mobile Evening Lobby port onto the main palette — keep dark shellTokens chrome but primary/action stays forest-green (#2F5D50/#4F7A5A light, #7EA889 dark) on the warm #F8F1E7 canvas. Do not reintroduce terracotta as the mobile action color.
+
 - **Mobile redesign discovery should use repeated explicit questions (2026-06-08):** When discussing a major mobile app redesign, user wants the assistant to use the app question tool when available and keep asking until confidence is high rather than jumping prematurely into implementation.
 - **Spanish toggle must remove all English UI copy, including AI (2026-06-03):** When the web app is toggled to Spanish, user expects literally every staff-facing UI label, button, status, helper line, chip, dynamic phrase, aria/title/placeholder, and AI/Copilot surface to be Spanish. Translate `AI` to `IA`, do not expose `English` in Spanish-mode labels, and treat only proper names/brand names as acceptable exceptions.
 - **MVP feedback loop should be always available (2026-05-28):** User wants a floating feedback/report button available to hotel staff during the live hotel pilot, with a simple text box and automatic page/device/user context capture so even tiny staff complaints are easy to send.
@@ -19,6 +21,7 @@
 
 ## Key Learnings
 
+- **Copilot chat context contract (2026-06-11):** `POST /ai/copilot/chat` requires `context` to be a dict; `intent_hint` is read from `context["intent_hint"]` to force an intent (e.g. task_creation from the mobile Tasks composer). A bare-string context 422s.
 - **Mobile Evening Lobby + AI briefing architecture (2026-06-11):** Branch redesign/mobile-housekeeping-ai ports Evening Lobby to Expo: `shellTokens` (dark chrome) in `components/shared/tokens.ts` (status/AI tokens unchanged, accent now terracotta #B8431C), shared atoms in `components/shared/evening.tsx` (StatusPill/StatusRail/RoomQueueCard/AIBriefingCard/CleanTypeTag), and the AI layer in `lib/ai/briefing.ts`: `buildSmartQueue` (deterministic order + per-room ETA from base_clean_minutes), `buildLocalBriefing` (free on-device briefing), `fetchShiftBriefing` (calls POST /ai/housekeeping/briefing, never throws, falls back local). Briefings are local-first; the paid AI call fires only on the explicit "New plan" tap to protect the credit cap. `getStartEntry` skips IN_PROGRESS rooms so the Start CTA matches the 'Start with 112' contract.
 
 - **Mobile UI modernization source of truth (2026-06-10):** Current Expo mobile floor-staff UI is route-driven under `apps/mobile/app/(app)/**`; previously indexed `apps/mobile/components/home/*` and `components/housekeeping/RoomQueueCard.tsx` paths can be stale in anatomy. Shared visual atoms live in `apps/mobile/components/shared/mobileHandoff.tsx`, and all warm/status/AI/dark tokens should stay centralized in `apps/mobile/components/shared/tokens.ts`.

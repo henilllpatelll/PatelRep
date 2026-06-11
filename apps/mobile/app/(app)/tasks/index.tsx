@@ -1,177 +1,247 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ComponentProps } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { C, R } from "@/components/shared/tokens";
+import { useAppStore } from "@/stores/appStore";
+import { C, monoFont, shellTokens } from "@/components/shared/tokens";
+import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
 import {
-  AILabel,
-  CopilotHero,
-  HeroButton,
-  IconButton,
-  Pill,
-  SectionLabel,
-} from "@/components/shared/mobileHandoff";
+  buildTaskBriefing,
+  buildTaskQueue,
+  confirmAITask,
+  getTaskRoomNumber,
+  parseTaskWithAI,
+  type Task,
+  type TaskBucket,
+  type TaskPreview,
+  type TaskQueueEntry,
+} from "@/lib/ai/tasks";
 
-type Task = {
-  id: string;
-  title: string;
-  task_type?: string;
-  status?: string;
-  priority?: string;
-  room_number?: string | null;
-  due_label?: string | null;
-  source?: string | null;
-  ai_suggested?: boolean | null;
+const BUCKET_TITLES: Record<TaskBucket, string> = {
+  overdue: "tasks.groupOverdue",
+  now: "tasks.groupNow",
+  today: "tasks.groupToday",
 };
 
-type TaskGroup = {
-  when: string;
-  tone: "accent" | "caution" | "info";
-  items: Array<{
-    id: string;
-    label: string;
-    meta: string;
-    icon: ComponentProps<typeof Ionicons>["name"];
-    tone?: "accent" | "caution" | "info";
-    ai?: boolean;
-  }>;
+const PRIORITY_STYLE: Record<string, { fg: string; bg: string; border: string }> = {
+  urgent: { fg: C.alert, bg: C.alertSoft, border: C.alertLine },
+  high: { fg: C.alert, bg: C.alertSoft, border: C.alertLine },
+  normal: { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine },
+  low: { fg: C.ink3, bg: C.surface2, border: C.line2 },
 };
-
-const FALLBACK_GROUPS: TaskGroup[] = [
-  {
-    when: "tasks.groupNow",
-    tone: "accent",
-    items: [
-      {
-        id: "fallback-cart",
-        label: "Restock cart - floor 2",
-        meta: "Linens low - 6 rooms left",
-        icon: "cube-outline",
-        tone: "accent",
-      },
-    ],
-  },
-  {
-    when: "tasks.groupBeforeNoon",
-    tone: "caution",
-    items: [
-      {
-        id: "fallback-towels",
-        label: "Deliver 2 extra towels to 214",
-        meta: "Guest request - GR-438",
-        icon: "bed-outline",
-        tone: "caution",
-        ai: true,
-      },
-      {
-        id: "fallback-strip",
-        label: "Strip and flip 118",
-        meta: "Early checkout cleared",
-        icon: "bed-outline",
-      },
-    ],
-  },
-  {
-    when: "tasks.groupAfternoon",
-    tone: "info",
-    items: [
-      {
-        id: "fallback-fridge",
-        label: "Deep-clean fridge - 122",
-        meta: "Long stay - day 9",
-        icon: "water-outline",
-      },
-      {
-        id: "fallback-vip",
-        label: "Photo audit 115 before VIP",
-        meta: "Inspector will fast-track",
-        icon: "camera-outline",
-        ai: true,
-      },
-    ],
-  },
-];
 
 function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
   return Array.isArray(response) ? response : response.data ?? [];
 }
 
-function normalizeTask(task: Task) {
-  const room = task.room_number ? `Room ${task.room_number}` : task.task_type ?? "Shift task";
-  const priority = task.priority ? task.priority.toUpperCase() : "P2";
-  return {
-    id: task.id,
-    label: task.title,
-    meta: `${room} - ${priority}`,
-    icon: task.source === "guest" ? ("bed-outline" as const) : ("cube-outline" as const),
-    tone: task.priority === "urgent" || task.priority === "high" ? ("accent" as const) : undefined,
-    ai: Boolean(task.ai_suggested),
-  };
+function formatDue(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  } catch {
+    return null;
+  }
 }
 
-function groupTasks(tasks: Task[]): TaskGroup[] {
-  if (tasks.length === 0) return [];
+function dayLabel() {
+  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+}
 
-  const now = tasks.filter((task) => task.due_label === "now" || task.priority === "urgent");
-  const midday = tasks.filter(
-    (task) => !now.includes(task) && (task.due_label === "before_noon" || task.source === "guest")
+interface TaskRowProps {
+  entry: TaskQueueEntry;
+  confirming: boolean;
+  busy: boolean;
+  onRequestComplete: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
+  const { t } = useTranslation();
+  const { task, overdueMinutes } = entry;
+  const room = getTaskRoomNumber(task);
+  const priority = (task.priority ?? "normal").toLowerCase();
+  const prioStyle = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE.normal;
+  const dueTime = formatDue(task.due_at);
+  const isGuest = task.source === "guest" || task.task_type === "guest_request";
+
+  return (
+    <View style={[styles.taskCard, entry.bucket === "overdue" && styles.taskCardOverdue]} testID={`task-${task.id}`}>
+      <View style={styles.taskMain}>
+        <TouchableOpacity
+          accessibilityLabel={t("tasks.markDone", { title: task.title })}
+          onPress={onRequestComplete}
+          disabled={busy || confirming}
+          style={styles.checkbox}
+          hitSlop={8}
+        >
+          {busy ? <ActivityIndicator size="small" color={C.accent} /> : null}
+        </TouchableOpacity>
+        <View style={styles.taskBody}>
+          <View style={styles.taskTitleRow}>
+            <Text style={styles.taskTitle}>{task.title}</Text>
+            {task.ai_suggested ? (
+              <View style={styles.aiTag}>
+                <Ionicons name="sparkles" size={8} color={C.ai} />
+                <Text style={styles.aiTagText}>AI</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.taskMetaRow}>
+            <View style={[styles.prioPill, { backgroundColor: prioStyle.bg, borderColor: prioStyle.border }]}>
+              <Text style={[styles.prioText, { color: prioStyle.fg }]}>{priority.toUpperCase()}</Text>
+            </View>
+            {room ? (
+              <View style={styles.roomChip}>
+                <Ionicons name="bed-outline" size={10} color={C.ink2} />
+                <Text style={styles.roomChipText}>{room}</Text>
+              </View>
+            ) : null}
+            {isGuest ? (
+              <View style={styles.roomChip}>
+                <Ionicons name="person-outline" size={10} color={C.info} />
+                <Text style={[styles.roomChipText, { color: C.info }]}>{t("tasks.guestTag")}</Text>
+              </View>
+            ) : null}
+            {overdueMinutes != null ? (
+              <Text style={styles.overdueText}>{t("tasks.overdueBy", { minutes: overdueMinutes })}</Text>
+            ) : dueTime ? (
+              <Text style={styles.dueText}>{t("tasks.dueAt", { time: dueTime })}</Text>
+            ) : null}
+          </View>
+        </View>
+        <Text style={styles.positionText}>#{entry.position}</Text>
+      </View>
+
+      {confirming ? (
+        <View style={styles.confirmRow}>
+          <Text style={styles.confirmLabel}>{t("tasks.confirmComplete")}</Text>
+          <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm} activeOpacity={0.85}>
+            <Ionicons name="checkmark" size={13} color="#fff" />
+            <Text style={styles.confirmBtnText}>{t("tasks.confirmYes")}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.85}>
+            <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
   );
-  const afternoon = tasks.filter((task) => !now.includes(task) && !midday.includes(task));
-
-  return [
-    { when: "tasks.groupNow", tone: "accent" as const, items: now.map(normalizeTask) },
-    { when: "tasks.groupBeforeNoon", tone: "caution" as const, items: midday.map(normalizeTask) },
-    { when: "tasks.groupAfternoon", tone: "info" as const, items: afternoon.map(normalizeTask) },
-  ].filter((group) => group.items.length > 0);
 }
 
 export default function TasksScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { isOnline } = useAppStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [completing, setCompleting] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [doneToday, setDoneToday] = useState(0);
+
+  // AI composer state
+  const [composerText, setComposerText] = useState("");
+  const [aiParsing, setAiParsing] = useState(false);
+  const [aiPreview, setAiPreview] = useState<TaskPreview | null>(null);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [aiCreating, setAiCreating] = useState(false);
+
+  const loadTasks = useCallback(async () => {
+    try {
+      const response = await api.get<{ data: Task[] } | Task[]>("/tasks?my_tasks=true");
+      setTasks(unwrapTasks(response));
+    } catch {
+      setTasks([]);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
+    void loadTasks();
+  }, [loadTasks]);
 
-    api
-      .get<{ data: Task[] } | Task[]>("/tasks?my_tasks=true")
-      .then((response) => {
-        if (mounted) setTasks(unwrapTasks(response));
-      })
-      .catch(() => {
-        if (mounted) setTasks([]);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadTasks();
+    setRefreshing(false);
+  }, [loadTasks]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const completeTask = useCallback(
+    (taskId: string) => {
+      setConfirmingId(null);
+      setBusyId(taskId);
+      api
+        .patch(`/tasks/${taskId}`, { status: "completed", completed_at: new Date().toISOString() })
+        .then(() => {
+          setTasks((prev) => prev.filter((task) => task.id !== taskId));
+          setDoneToday((count) => count + 1);
+        })
+        .catch(() => {})
+        .finally(() => setBusyId(null));
+    },
+    [],
+  );
 
-  const completeTask = useCallback((taskId: string) => {
-    if (taskId.startsWith("fallback-")) return;
-    setCompleting((prev) => new Set(prev).add(taskId));
-    api
-      .patch(`/tasks/${taskId}`, { status: "completed", completed_at: new Date().toISOString() })
-      .then(() => {
-        setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      })
-      .catch(() => {
-        setCompleting((prev) => {
-          const next = new Set(prev);
-          next.delete(taskId);
-          return next;
-        });
-      });
-  }, []);
+  const submitToAI = useCallback(async () => {
+    const text = composerText.trim();
+    if (!text || aiParsing) return;
+    setAiParsing(true);
+    setAiMessage(null);
+    setAiPreview(null);
+    try {
+      const response = await parseTaskWithAI(text);
+      if (response.task_preview) {
+        setAiPreview(response.task_preview);
+        setComposerText("");
+      } else {
+        setAiMessage(response.message || t("tasks.aiNoTask"));
+      }
+    } catch {
+      setAiMessage(t("tasks.aiUnavailable"));
+    } finally {
+      setAiParsing(false);
+    }
+  }, [composerText, aiParsing, t]);
 
-  const groups = useMemo(() => groupTasks(tasks), [tasks]);
-  const openCount = tasks.length;
+  const createFromPreview = useCallback(async () => {
+    if (!aiPreview || aiCreating) return;
+    setAiCreating(true);
+    try {
+      await confirmAITask(aiPreview);
+      setAiPreview(null);
+      setAiMessage(t("tasks.aiCreated"));
+      await loadTasks();
+    } catch {
+      setAiMessage(t("tasks.aiUnavailable"));
+    } finally {
+      setAiCreating(false);
+    }
+  }, [aiPreview, aiCreating, loadTasks, t]);
+
+  const queue = useMemo(() => buildTaskQueue(tasks), [tasks]);
+  const briefing = useMemo(() => buildTaskBriefing(queue, t), [queue, t]);
+
+  const sections = useMemo(() => {
+    const byBucket: Record<TaskBucket, TaskQueueEntry[]> = { overdue: [], now: [], today: [] };
+    queue.forEach((entry) => byBucket[entry.bucket].push(entry));
+    return (Object.keys(byBucket) as TaskBucket[])
+      .map((bucket) => ({ bucket, entries: byBucket[bucket] }))
+      .filter((section) => section.entries.length > 0);
+  }, [queue]);
 
   if (loading) {
     return (
@@ -182,237 +252,305 @@ export default function TasksScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="filter-outline" />
-        <Text style={styles.headerMeta}>{t("tasks.headerMeta", { count: openCount })}</Text>
-        <Text style={styles.title}>{t("tasks.title")}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      {/* Evening Lobby shell header */}
+      <View style={[styles.shellHeader, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.shellTopRow}>
+          <View style={styles.shellTitleBlock}>
+            <Text style={styles.shellTitle}>{t("tasks.title")}</Text>
+            <Text style={styles.shellDate}>{dayLabel()}</Text>
+          </View>
+          <View style={styles.shellCountBlock}>
+            <Text style={styles.shellCountValue}>{queue.length}</Text>
+            <Text style={styles.shellCountLabel}>{t("tasks.openLabel")}</Text>
+            {doneToday > 0 ? (
+              <Text style={styles.shellDoneLabel}>{t("tasks.doneToday", { count: doneToday })}</Text>
+            ) : null}
+          </View>
+        </View>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {groups.length > 0 ? (
-          <CopilotHero
-            tone="violet"
-            kicker={t("tasks.copilotKicker")}
-            actions={
-              <HeroButton onDark={false} icon="checkmark" primary>
-                {t("tasks.reorderBtn")}
-              </HeroButton>
-            }
-          >
-            <Text>
-              The towel drop for <Text style={styles.heroStrong}>214</Text> is on your way to 218 - knock that out next and save a trip.
-            </Text>
-          </CopilotHero>
-        ) : null}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+      >
+        <AIBriefingCard
+          kicker={t("tasks.aiKicker")}
+          headline={briefing.headline}
+          watchouts={briefing.watchouts}
+          footNote={t("ai.briefing.sourceLocal")}
+        />
 
-        {groups.length === 0 ? (
+        {queue.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle-outline" size={40} color={C.ink4} />
             <Text style={styles.emptyTitle}>{t("tasks.emptyTitle")}</Text>
-            <Text style={styles.emptyMeta}>{t("tasks.emptyMeta")}</Text>
+            <Text style={styles.emptyMeta}>{t("tasks.emptyAiHint")}</Text>
           </View>
-        ) : null}
-
-        {groups.map((group) => (
-          <View key={group.when}>
-            <View style={styles.groupHeader}>
-              <View style={[styles.groupDot, { backgroundColor: C[group.tone] }]} />
-              <Text style={styles.groupTitle}>{t(group.when)}</Text>
-              <View style={styles.groupLine} />
+        ) : (
+          sections.map((section) => (
+            <View key={section.bucket} style={styles.section}>
+              <SectionHeader title={t(BUCKET_TITLES[section.bucket])} hint={String(section.entries.length)} />
+              <View style={styles.taskStack}>
+                {section.entries.map((entry) => (
+                  <TaskRow
+                    key={entry.task.id}
+                    entry={entry}
+                    confirming={confirmingId === entry.task.id}
+                    busy={busyId === entry.task.id}
+                    onRequestComplete={() => setConfirmingId(entry.task.id)}
+                    onConfirm={() => completeTask(entry.task.id)}
+                    onCancel={() => setConfirmingId(null)}
+                  />
+                ))}
+              </View>
             </View>
-
-            <View style={styles.taskStack}>
-              {group.items.map((item) => {
-                const done = completing.has(item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    style={({ pressed }) => [styles.taskCard, (pressed || done) && styles.taskCardPressed]}
-                    onPress={() => completeTask(item.id)}
-                  >
-                    <View style={[styles.checkbox, done && styles.checkboxDone]}>
-                      {done ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-                    </View>
-                    <View style={styles.taskBody}>
-                      <View style={styles.taskTitleRow}>
-                        <Text style={[styles.taskTitle, done && styles.taskTitleDone]}>{item.label}</Text>
-                        {item.ai ? <AILabel>AI</AILabel> : null}
-                      </View>
-                      <Text style={styles.taskMeta}>{item.meta}</Text>
-                    </View>
-                    <IconButton icon={item.icon} tone={item.tone} size={34} />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-
-        {groups.length > 0 ? (
-          <View style={styles.footerHint}>
-            <Ionicons name="sparkles-outline" size={13} color={C.ink4} />
-            <Text style={styles.footerText}>{t("tasks.footerHint")}</Text>
-          </View>
-        ) : null}
+          ))
+        )}
       </ScrollView>
-    </View>
+
+      {/* AI quick-add composer */}
+      <View style={[styles.composerWrap, { paddingBottom: insets.bottom + 10 }]}>
+        {aiPreview ? (
+          <View style={styles.previewCard} testID="ai-task-preview">
+            <View style={styles.previewHeader}>
+              <Ionicons name="sparkles" size={12} color={C.ai} />
+              <Text style={styles.previewLabel}>{t("tasks.aiPreviewLabel")}</Text>
+            </View>
+            <Text style={styles.previewTitle}>{aiPreview.title}</Text>
+            <View style={styles.previewMetaRow}>
+              {aiPreview.room_number ? <Text style={styles.previewMeta}>Room {aiPreview.room_number}</Text> : null}
+              <Text style={styles.previewMeta}>{aiPreview.priority?.toUpperCase()}</Text>
+              <Text style={styles.previewMeta}>{aiPreview.task_type}</Text>
+            </View>
+            <View style={styles.previewActions}>
+              <TouchableOpacity
+                style={[styles.previewCreateBtn, aiCreating && styles.btnDisabled]}
+                onPress={() => void createFromPreview()}
+                disabled={aiCreating}
+                activeOpacity={0.85}
+              >
+                {aiCreating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.previewCreateText}>{t("copilot.create")}</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.previewDismissBtn} onPress={() => setAiPreview(null)} activeOpacity={0.85}>
+                <Text style={styles.previewDismissText}>{t("copilot.dismiss")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+        {aiMessage ? <Text style={styles.aiMessage}>{aiMessage}</Text> : null}
+        <View style={styles.composerRow}>
+          <TextInput
+            style={styles.composerInput}
+            value={composerText}
+            onChangeText={setComposerText}
+            placeholder={isOnline ? t("tasks.addPlaceholder") : t("common.offline")}
+            placeholderTextColor={C.ink4}
+            editable={isOnline && !aiParsing}
+            maxLength={300}
+            onSubmitEditing={() => void submitToAI()}
+            returnKeyType="send"
+          />
+          <TouchableOpacity
+            accessibilityLabel={t("tasks.addWithAI")}
+            style={[styles.composerSend, (!composerText.trim() || aiParsing || !isOnline) && styles.btnDisabled]}
+            onPress={() => void submitToAI()}
+            disabled={!composerText.trim() || aiParsing || !isOnline}
+            activeOpacity={0.85}
+          >
+            {aiParsing ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="sparkles" size={17} color="#fff" />}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.paper,
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.paper,
-  },
-  header: {
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 18,
-    backgroundColor: C.paper,
+  container: { flex: 1, backgroundColor: C.paper },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 24, gap: 18 },
+
+  shellHeader: {
+    backgroundColor: shellTokens.bg,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-  },
-  headerMeta: {
-    marginTop: 8,
-    color: C.ink3,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  title: {
-    color: C.ink,
-    fontSize: 30,
-    fontWeight: "600",
-    lineHeight: 34,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
+    borderBottomColor: shellTokens.line,
     paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 24,
-    gap: 16,
+    paddingBottom: 16,
   },
-  heroStrong: {
-    fontStyle: "normal",
-    fontWeight: "700",
-    color: C.ink,
-  },
-  groupHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 9,
-  },
-  groupDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  groupTitle: {
-    color: C.ink2,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  groupLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: C.line2,
-  },
-  taskStack: {
-    gap: 8,
-    paddingLeft: 4,
-  },
+  shellTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 14 },
+  shellTitleBlock: { flex: 1, minWidth: 0 },
+  shellTitle: { fontSize: 28, fontWeight: "700", color: shellTokens.ink, lineHeight: 33 },
+  shellDate: { fontSize: 12.5, color: shellTokens.ink3, marginTop: 2 },
+  shellCountBlock: { alignItems: "flex-end" },
+  shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800", color: shellTokens.ink },
+  shellCountLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", color: shellTokens.ink3 },
+  shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, color: C.ready, marginTop: 2 },
+
+  section: { gap: 9 },
+  taskStack: { gap: 9 },
+
   taskCard: {
-    minHeight: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 13,
-    paddingVertical: 11,
+    paddingVertical: 12,
+    gap: 10,
   },
-  taskCardPressed: {
-    opacity: 0.7,
-  },
+  taskCardOverdue: { borderColor: C.alertLine, backgroundColor: C.surface },
+  taskMain: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: C.line,
-    backgroundColor: C.surface,
+    backgroundColor: C.surface2,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 1,
   },
-  checkboxDone: {
+  taskBody: { flex: 1, minWidth: 0, gap: 6 },
+  taskTitleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
+  taskTitle: { color: C.ink, fontSize: 14.5, fontWeight: "700", lineHeight: 19 },
+  aiTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: C.aiSoft,
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  aiTagText: { color: C.ai, fontSize: 8.5, fontWeight: "800", letterSpacing: 0.5 },
+  taskMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
+  prioPill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
+  prioText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
+  roomChip: { flexDirection: "row", alignItems: "center", gap: 3 },
+  roomChipText: { color: C.ink2, fontSize: 11.5, fontWeight: "700", fontFamily: monoFont },
+  dueText: { color: C.ink3, fontSize: 11, fontFamily: monoFont },
+  overdueText: { color: C.alert, fontSize: 11, fontWeight: "800", fontFamily: monoFont },
+  positionText: { fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "800", marginTop: 2 },
+
+  confirmRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    borderTopWidth: 1,
+    borderTopColor: C.line2,
+    paddingTop: 10,
+  },
+  confirmLabel: { flex: 1, color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  confirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     backgroundColor: C.accent,
-    borderColor: C.accent,
-  },
-  taskTitleDone: {
-    textDecorationLine: "line-through",
-    color: C.ink3,
-  },
-  taskBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  taskTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  taskTitle: {
-    color: C.ink,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  taskMeta: {
-    color: C.ink3,
-    fontSize: 11.5,
-    marginTop: 3,
-  },
-  footerHint: {
-    flexDirection: "row",
+    borderRadius: 9,
+    minHeight: 40,
+    paddingHorizontal: 13,
     justifyContent: "center",
+  },
+  confirmBtnText: { color: "#fff", fontSize: 12.5, fontWeight: "800" },
+  cancelBtn: {
+    minHeight: 40,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface,
+    paddingHorizontal: 12,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtnText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+
+  emptyState: { alignItems: "center", paddingVertical: 36, gap: 8 },
+  emptyTitle: { color: C.ink2, fontSize: 16, fontWeight: "700", marginTop: 4 },
+  emptyMeta: { color: C.ink4, fontSize: 13, textAlign: "center", maxWidth: 250 },
+
+  composerWrap: {
+    borderTopWidth: 1,
+    borderTopColor: shellTokens.line,
+    backgroundColor: shellTokens.bg,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    gap: 9,
+  },
+  composerRow: { flexDirection: "row", alignItems: "center", gap: 9 },
+  composerInput: {
+    flex: 1,
+    minHeight: 46,
+    maxHeight: 90,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: shellTokens.line,
+    backgroundColor: shellTokens.surface,
+    color: shellTokens.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 13.5,
+  },
+  composerSend: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: C.ai,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: C.ai,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  btnDisabled: { opacity: 0.45 },
+  aiMessage: { color: shellTokens.ink2, fontSize: 12, paddingHorizontal: 2 },
+
+  previewCard: {
+    backgroundColor: shellTokens.surface,
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    borderRadius: 14,
+    padding: 13,
     gap: 7,
-    marginTop: 2,
   },
-  footerText: {
-    color: C.ink4,
-    fontSize: 12,
-  },
-  emptyState: {
+  previewHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
+  previewLabel: { color: C.ai, fontSize: 10, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  previewTitle: { color: shellTokens.ink, fontSize: 14.5, fontWeight: "700" },
+  previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  previewMeta: { color: shellTokens.ink2, fontSize: 11.5, fontFamily: monoFont },
+  previewActions: { flexDirection: "row", gap: 8, marginTop: 2 },
+  previewCreateBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 10,
+    backgroundColor: C.accent,
     alignItems: "center",
-    paddingVertical: 40,
-    gap: 8,
+    justifyContent: "center",
   },
-  emptyTitle: {
-    color: C.ink2,
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 4,
+  previewCreateText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  previewDismissBtn: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: shellTokens.line,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  emptyMeta: {
-    color: C.ink4,
-    fontSize: 13,
-    textAlign: "center",
-    maxWidth: 220,
-  },
+  previewDismissText: { color: shellTokens.ink2, fontSize: 13, fontWeight: "700" },
 });

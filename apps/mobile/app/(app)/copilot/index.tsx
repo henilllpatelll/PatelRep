@@ -119,10 +119,11 @@ export default function CopilotScreen() {
     setLoading(true);
 
     try {
+      // context must be an object — the API validates Optional[dict] and reads
+      // intent_hint from it; a bare string fails validation with a 422.
       const response = await api.post<CopilotResponse>("/ai/copilot/chat", {
         message: text,
-        role: user?.role,
-        context: "mobile",
+        context: { source: "mobile", role: user?.role ?? null },
       });
 
       const msgId = (Date.now() + 1).toString();

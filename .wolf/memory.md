@@ -4755,3 +4755,57 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:25 | Edited apps/mobile/__tests__/components/MobileVisualTokens.test.ts | 9→9 lines | ~122 |
 | 01:26 | Created apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | — | ~1427 |
 | 2026-06-11 | Mobile housekeeper redesign: Evening Lobby tokens/tab bar, AI briefing (new API endpoint + local fallback), smart-order My Rooms, AI insight room detail, undo confirm | apps/mobile tokens/evening/briefing/home/my-rooms/[roomId]/copilot, apps/api ai_copilot+housekeeping_briefing | 54/54 mobile tests, 222 API smoke, tsc clean | ~80k |
+| 01:29 | Session end: 36 writes across 10 files (housekeeping_briefing.py, ai_copilot.py, tokens.ts, briefing.ts, evening.tsx) | 16 reads | ~20137 tok |
+
+## Session: 2026-06-11 07:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:42 | Edited apps/mobile/components/shared/tokens.ts | 21→20 lines | ~138 |
+| 07:42 | Edited apps/mobile/components/shared/tokens.ts | 23→22 lines | ~174 |
+| 07:42 | Edited apps/mobile/components/shared/tokens.ts | 5→4 lines | ~36 |
+| 07:43 | Session end: 3 writes across 1 files (tokens.ts) | 1 reads | ~348 tok |
+| 07:53 | Created apps/mobile/components/shared/tokens.ts | — | ~1272 |
+| 07:53 | Edited apps/mobile/app/(app)/_layout.tsx | 16→15 lines | ~149 |
+| 07:53 | Edited apps/mobile/components/shared/evening.tsx | inline fix | ~18 |
+| 07:53 | Edited apps/mobile/app/(app)/_layout.tsx | inline fix | ~13 |
+| 07:53 | Edited apps/mobile/components/shared/evening.tsx | inline fix | ~17 |
+| 07:53 | Edited apps/mobile/components/shared/evening.tsx | inline fix | ~30 |
+| 07:53 | Edited apps/mobile/components/shared/evening.tsx | 32→32 lines | ~382 |
+| 07:54 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~18 |
+| 07:54 | Edited apps/mobile/app/(app)/home/index.tsx | 21→21 lines | ~120 |
+| 07:54 | Edited apps/mobile/app/(app)/home/index.tsx | 13→13 lines | ~98 |
+| 07:54 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~17 |
+| 07:54 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~25 |
+| 07:54 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 39→39 lines | ~370 |
+| 07:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~17 |
+| 07:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 8→8 lines | ~254 |
+| 07:55 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+| 07:57 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+| 07:58 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+| 08:00 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+| 08:01 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+| 08:04 | Session end: 18 writes across 5 files (tokens.ts, _layout.tsx, evening.tsx, index.tsx, [roomId].tsx) | 7 reads | ~16124 tok |
+
+## Session: 2026-06-11 08:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 08:12 | Edited apps/mobile/components/shared/tokens.ts | 21→20 lines | ~138 |
+| 08:12 | Edited apps/mobile/components/shared/tokens.ts | 15→14 lines | ~113 |
+| 08:12 | Edited apps/mobile/components/shared/tokens.ts | 5→4 lines | ~36 |
+| 08:12 | Session end: 3 writes across 1 files (tokens.ts) | 0 reads | ~287 tok |
+| 08:17 | Session end: 3 writes across 1 files (tokens.ts) | 1 reads | ~1789 tok |
+| 08:22 | Edited apps/mobile/components/shared/tokens.ts | 5→5 lines | ~110 |
+| 08:22 | Edited apps/mobile/components/shared/tokens.ts | 15→14 lines | ~102 |
+| 08:22 | Edited apps/mobile/components/shared/tokens.ts | 15→14 lines | ~113 |
+| 08:22 | Edited apps/mobile/components/shared/tokens.ts | 5→4 lines | ~36 |
+| 08:23 | Session end: 7 writes across 1 files (tokens.ts) | 1 reads | ~2150 tok |
+| 08:24 | Session end: 7 writes across 1 files (tokens.ts) | 1 reads | ~2150 tok |
+| 08:32 | Created apps/mobile/lib/ai/tasks.ts | — | ~1421 |
+| 08:32 | Edited apps/mobile/lib/ai/tasks.ts | modified parseTaskWithAI() | ~152 |
+| 08:32 | Edited apps/mobile/app/(app)/copilot/index.tsx | added nullish coalescing | ~94 |
+| 08:34 | Created apps/mobile/app/(app)/tasks/index.tsx | — | ~5789 |
+| 08:35 | Created apps/mobile/__tests__/screens/TasksVariationA.test.tsx | — | ~1935 |
+| 08:36 | Edited apps/mobile/__tests__/components/MobileVisualTokens.test.ts | 9→9 lines | ~126 |
+| 2026-06-11 | Tasks mobile redesign: shell header, AI task briefing, overdue/now/today smart buckets, confirm-to-complete, NL AI task composer (copilot parse + confirm); fixed copilot context-dict 422 | apps/mobile tasks/index, lib/ai/tasks.ts, copilot/index, locales, TasksVariationA test | 56/56 tests, tsc clean | ~25k |

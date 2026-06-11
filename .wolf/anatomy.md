@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T06:26:15.385Z
-> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T13:36:30.659Z
+> Files: 13 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -485,7 +485,7 @@
 
 ## apps/mobile/__tests__/components/
 
-- `MobileVisualTokens.test.ts` (~895 tok)
+- `MobileVisualTokens.test.ts` (~900 tok)
 
 ## apps/mobile/__tests__/lib/
 
@@ -499,6 +499,7 @@
 ## apps/mobile/__tests__/screens/
 
 - `HousekeeperHome.test.tsx` — mockSetMyRooms (~1427 tok)
+- `TasksVariationA.test.tsx` — EN (~1935 tok)
 
 ## apps/mobile/android/
 
@@ -514,6 +515,7 @@
 
 ## apps/mobile/app/(app)/
 
+- `_layout.tsx` — AppLayout (~1564 tok)
 
 ## apps/mobile/app/(app)/alerts/
 
@@ -529,13 +531,14 @@
 
 ## apps/mobile/app/(app)/copilot/
 
+- `index.tsx` — HISTORY_KEY (~4592 tok)
 
 ## apps/mobile/app/(app)/guest-requests/
 
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~7186 tok)
+- `index.tsx` — ENGINEER_ORDERS (~7164 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -551,6 +554,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
+- `[roomId].tsx` — STATUS_COLOR (~8815 tok)
+- `index.tsx` — SECTION_META (~4338 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -581,6 +586,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
+- `index.tsx` — BUCKET_TITLES (~5789 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -602,7 +608,8 @@
 
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4288 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4251 tok)
+- `tokens.ts` — The dark "Evening Lobby" chrome — a designed constant across themes. (~1503 tok)
 
 ## apps/mobile/i18n/
 
@@ -616,6 +623,7 @@
 ## apps/mobile/lib/ai/
 
 - `briefing.ts` — Room numbers in suggested cleaning order (~2065 tok)
+- `tasks.ts` — Minutes past due (positive) when overdue, otherwise null (~1436 tok)
 
 ## apps/mobile/lib/api/
 
@@ -841,7 +849,4 @@
 
 ## youtubeMobileResearch.md
 
-
-- `apps/mobile/components/shared/evening.tsx` — Evening Lobby mobile UI atoms: STATUS_META/StatusPill/StatusRail (protected status colors), CleanTypeTag, RoomQueueCard, AIBriefingCard, SectionHeader, ProgressBar, Chip. ~420 lines, ~3500 tokens.
-- `apps/mobile/lib/ai/briefing.ts` — AI layer: buildSmartQueue (ETA-ordered queue), buildLocalBriefing (on-device fallback), fetchShiftBriefing (backend + timeout fallback), buildRoomInsight, getStartEntry. ~190 lines, ~1700 tokens.
-- `apps/api/services/ai/housekeeping_briefing.py` — Claude shift-briefing generator for POST /ai/housekeeping/briefing (returns headline/plan/watchouts/estimated_minutes JSON). ~95 lines, ~800 tokens.
+- `apps/mobile/lib/ai/tasks.ts` — Task AI layer: buildTaskQueue (overdue/now/today scoring), buildTaskBriefing (on-device), parseTaskWithAI (/ai/copilot/chat with intent_hint), confirmAITask. ~160 lines, ~1300 tokens.

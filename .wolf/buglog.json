@@ -321,6 +321,104 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-06-11T12:53:28.569Z",
+      "error_message": "Wrong reference: shell should be surface",
+      "file": "apps/mobile/app/(app)/_layout.tsx",
+      "root_cause": "Used \"shell\" instead of \"surface\"",
+      "fix": "Changed shell \u2192 surface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T12:53:28.569Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-06-11T12:53:30.681Z",
+      "error_message": "CSS fix: shell",
+      "file": "apps/mobile/components/shared/evening.tsx",
+      "root_cause": "shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line \u2192 { bg: C.surface2, fg: C.ink, border: C.line",
+      "fix": "Changed shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line \u2192 { bg: C.surface2, fg: C.ink, border: C.line",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T12:53:30.681Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-06-11T12:53:37.586Z",
+      "error_message": "Wrong reference: shellTokens should be C",
+      "file": "apps/mobile/components/shared/evening.tsx",
+      "root_cause": "Used \"shellTokens\" instead of \"C\"",
+      "fix": "Changed shellTokens \u2192 C",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T12:53:37.586Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-06-11T12:54:08.007Z",
+      "error_message": "CSS fix: backgroundColor, borderBottomColor, color",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "backgroundColor: shellTokens.bg, \u2192 C.paper,; borderBottomColor: shellTokens.line, \u2192 C.line2,; color: shellTokens.ink, \u2192 C.ink,",
+      "fix": "Changed backgroundColor: shellTokens.bg, \u2192 C.paper,; borderBottomColor: shellTokens.line, \u2192 C.line2,; color: shellTokens.ink, \u2192 C.ink,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-11T12:54:30.124Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-06-11T13:32:48.126Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T13:32:48.126Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-06-11T00:00:00",
+      "error_message": "Mobile copilot chat always 422: context sent as string \"mobile\" but CopilotChatRequest.context is Optional[dict]",
+      "file": "apps/mobile/app/(app)/copilot/index.tsx",
+      "root_cause": "API model validates context as a dict (and reads intent_hint from context[\"intent_hint\"]); mobile sent a bare string, failing pydantic validation on every chat message",
+      "fix": "Send context as an object: { source: \"mobile\", role } in copilot screen and { source: \"mobile_tasks\", intent_hint: \"task_creation\" } in lib/ai/tasks.ts",
+      "tags": [
+        "mobile",
+        "copilot",
+        "422",
+        "pydantic",
+        "api-contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11"
     }
   ]
 }
