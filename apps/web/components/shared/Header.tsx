@@ -143,7 +143,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   }).slice(0, 7)
 
   return (
-    <header className="h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 z-50 shrink-0 gap-3">
+    <header className="h-14 flex items-center justify-between px-4 md:px-5 bg-[color-mix(in_srgb,var(--paper)_82%,transparent)] backdrop-blur-md border-b border-line sticky top-0 z-50 shrink-0 gap-3">
       {/* Hamburger — mobile only */}
       <button
         onClick={onMenuToggle}
@@ -176,12 +176,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       {commandOpen && (
-        <div className="fixed inset-0 z-[80] bg-ink/25 backdrop-blur-sm p-4 pt-[12vh]" role="presentation" onMouseDown={() => setCommandOpen(false)}>
+        <div className="anim-fade fixed inset-0 z-[80] bg-ink/25 backdrop-blur-sm p-4 pt-[12vh]" role="presentation" onMouseDown={() => setCommandOpen(false)}>
           <div
             role="dialog"
             aria-modal="true"
             aria-label={t('header.commandPalette')}
-            className="mx-auto w-full max-w-xl overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop"
+            className="anim-scale-in mx-auto w-full max-w-xl overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-line px-4 py-3">
@@ -287,7 +287,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-pop py-1 z-50">
+          <div className="anim-scale-in origin-top-right absolute right-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-pop py-1 z-50">
             <div className="px-4 py-2.5 border-b border-line-2">
               <p className="text-[13px] font-medium text-ink truncate">{fullName}</p>
               {roleLabel && <p className="text-[11px] text-ink3 mt-0.5 truncate">{roleLabel}</p>}

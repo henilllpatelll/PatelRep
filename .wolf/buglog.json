@@ -6,8 +6,8 @@
       "timestamp": "2026-06-11T02:46:17.445Z",
       "error_message": "CSS fix: DEP, FULL, LIGHT",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "DEP: { icon: \"log-out-outline\", fg: C.alert → { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
-      "fix": "Changed DEP: { icon: \"log-out-outline\", fg: C.alert → { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution → { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
+      "root_cause": "DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
+      "fix": "Changed DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -23,7 +23,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 11→11 lines (5 removed) | Also: <View; style={[",
+      "fix": "Rewrote 11\u219211 lines (5 removed) | Also: <View; style={[",
       "tags": [
         "auto-detected",
         "refactor",
@@ -38,8 +38,8 @@
       "timestamp": "2026-06-11T02:56:29.204Z",
       "error_message": "CSS fix: DEP, CLEAN_TYPE_META",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "DEP: { fg: C.ink3 → { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string → Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
-      "fix": "Changed DEP: { fg: C.ink3 → { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string → Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
+      "root_cause": "DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
+      "fix": "Changed DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -103,7 +103,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "37 lines replaced/restructured",
-      "fix": "Rewrote 60→20 lines (37 removed)",
+      "fix": "Rewrote 60\u219220 lines (37 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -119,7 +119,7 @@
       "error_message": "Wrong reference: enqueueAction should be useAppStore",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
       "root_cause": "Used \"enqueueAction\" instead of \"useAppStore\"",
-      "fix": "Changed enqueueAction → useAppStore",
+      "fix": "Changed enqueueAction \u2192 useAppStore",
       "tags": [
         "auto-detected",
         "wrong-reference",
@@ -134,8 +134,8 @@
       "timestamp": "2026-06-11T03:15:40.883Z",
       "error_message": "CSS fix: roomIdentity",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "roomIdentity: { flex: 1, minWidth: 0 → { minWidth: 0",
-      "fix": "Changed roomIdentity: { flex: 1, minWidth: 0 → { minWidth: 0",
+      "root_cause": "roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
+      "fix": "Changed roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -151,7 +151,7 @@
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
       "root_cause": "15 lines replaced/restructured",
-      "fix": "Rewrote 37→19 lines (15 removed)",
+      "fix": "Rewrote 37\u219219 lines (15 removed)",
       "tags": [
         "auto-detected",
         "refactor",
@@ -160,6 +160,71 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T03:41:07.715Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-06-11T05:17:07.867Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/ui/primitives.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 23\u219228 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T05:17:07.867Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-06-11T05:18:36.297Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Had \"h-14 flex items-center justify-between px-4 md:px",
+      "fix": "Changed to \"h-14 flex items-center justify-between px-4 md:px",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T05:18:42.158Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-06-11T05:20:45.290Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/ui/Button.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T05:20:45.290Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-06-11T00:00:00",
+      "error_message": "GET /v1/tasks?per_page=200 returns 422 Unprocessable Content on local API",
+      "file": "apps/web (tasks page fetch) / apps/api/routers/tasks.py",
+      "root_cause": "Web tasks page requests per_page=200 but API query validation caps per_page below 200; pre-existing mismatch surfaced during redesign smoke test, not introduced by UI changes",
+      "fix": "NOT FIXED (out of redesign scope) - either raise API per_page le= bound or lower client page size",
+      "tags": [
+        "tasks",
+        "422",
+        "pagination",
+        "api-contract"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11"
     }
   ]
 }

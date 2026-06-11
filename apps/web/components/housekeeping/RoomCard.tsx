@@ -6,7 +6,7 @@ import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 import { Pill } from '@/components/ui/primitives'
 
-// ── Status → border color ─────────────────────────────────────────────────────
+// ── Status → card border ──────────────────────────────────────────────────────
 const STATUS_BORDER: Record<string, string> = {
   DIRTY:          'border-[var(--alert-line)]',
   IN_PROGRESS:    'border-[var(--progress-line)]',
@@ -22,8 +22,8 @@ const STATUS_BORDER: Record<string, string> = {
   PICKUP:         'border-[var(--caution-line)]',
 }
 
-// ── Status → top strip color ──────────────────────────────────────────────────
-const STATUS_STRIP_COLOR: Record<string, string> = {
+// ── Status → left rail color (the protected status color contract) ───────────
+const STATUS_RAIL_COLOR: Record<string, string> = {
   DIRTY:          'var(--alert)',
   IN_PROGRESS:    'var(--progress)',
   CLEAN:          'var(--info)',
@@ -153,9 +153,9 @@ export function RoomCard({
 
   const cardBg = isAssignmentSelected ? 'bg-[var(--ai-soft)]' : 'bg-surface'
 
-  const stripColor = isAssignmentSelected
+  const railColor = isAssignmentSelected
     ? 'var(--ai)'
-    : (STATUS_STRIP_COLOR[status] ?? 'var(--line)')
+    : (STATUS_RAIL_COLOR[status] ?? 'var(--line)')
 
   const pillTone = STATUS_PILL_TONE[status] ?? 'neutral'
   const statusLabel = STATUS_SHORT_LABELS[status] ?? status.replace(/_/g, ' ')
@@ -163,7 +163,7 @@ export function RoomCard({
   return (
     <div
       className={cn(
-        'relative rounded-[var(--r-lg)] px-3 pb-3 pt-4 flex flex-col gap-1.5 min-h-[116px] transition-all duration-150 overflow-hidden cursor-pointer',
+        'lift relative rounded-[var(--r-lg)] pl-4 pr-3 pb-3 pt-3 flex flex-col gap-1.5 min-h-[116px] overflow-hidden cursor-pointer shadow-[var(--shadow-sm)]',
         cardBg, cardBorder,
         isAssignmentSelected && 'ring-2 ring-[var(--ai-line)] ring-offset-1',
         vipFlag && 'shadow-[0_0_0_2px_var(--caution-line)]',
@@ -179,40 +179,18 @@ export function RoomCard({
         }
       }}
     >
-      {/* Colored top strip */}
+      {/* Status rail — left edge, the first thing the eye catches */}
       <div
-        className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--r-lg)]"
+        className="absolute top-0 left-0 bottom-0 w-[4px]"
         style={isOccupied
           ? { background: `repeating-linear-gradient(135deg, var(--alert) 0 5px, var(--alert-soft) 5px 10px)` }
-          : { background: stripColor }
+          : { background: railColor }
         }
       />
 
-      {/* Room number + AI risk dot + VIP */}
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <span className="font-mono font-semibold text-[19px] leading-none text-ink">{roomNumber}</span>
-        {vipFlag && (
-          <Pill tone="accent" size="sm">VIP</Pill>
-        )}
-        {isHighRisk && (
-          <span
-            className="ml-auto w-4 h-4 rounded-[4px] flex items-center justify-center bg-[var(--ai-soft)] border border-[var(--ai-line)]"
-            title="AI: at risk"
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--ai)" aria-hidden>
-              <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
-            </svg>
-          </span>
-        )}
-      </div>
-
-      {/* Room type + clean type */}
-      {roomTypeName && (
-        <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
-      )}
-      {/* Status pill + clean type side label */}
-      <div className="mt-auto flex items-center gap-1.5 flex-wrap">
-        <Pill tone={pillTone} size="sm" striped={isOccupied}>
+      {/* Row 1 — status pill + flags, scannable before anything else */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Pill tone={pillTone} size="sm" striped={isOccupied} dot={!isOccupied}>
           {statusLabel}
           {isOccupied && etaTime ? ` · ${etaTime}` : ''}
         </Pill>
@@ -230,7 +208,28 @@ export function RoomCard({
             {cleanTypeLabel}
           </span>
         ) : null}
+        {isHighRisk && (
+          <span
+            className="ml-auto w-4 h-4 rounded-[4px] flex items-center justify-center bg-[var(--ai-soft)] border border-[var(--ai-line)] shrink-0"
+            title="AI: at risk"
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--ai)" aria-hidden>
+              <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
+            </svg>
+          </span>
+        )}
       </div>
+
+      {/* Row 2 — room number, the anchor */}
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono font-semibold text-[22px] leading-none text-ink tracking-[-0.3px]">{roomNumber}</span>
+        {vipFlag && <Pill tone="accent" size="sm">VIP</Pill>}
+        {roomTypeName && (
+          <span className="text-[11px] text-ink3 font-mono leading-none truncate">{roomTypeName}</span>
+        )}
+      </div>
+
+      <div className="mt-auto" />
 
       {/* Assignee row */}
       {!assignmentMode && assignedName && (
@@ -255,7 +254,7 @@ export function RoomCard({
       )}
       {workOrderLabel && (
         <div className="mt-0.5">
-          <div className="flex items-center gap-1 min-w-0 text-[11px] text-orange-700">
+          <div className="flex items-center gap-1 min-w-0 text-[11px] text-[var(--caution)]">
             <Wrench className="w-3 h-3 shrink-0" />
             <span className="truncate">{workOrderLabel}</span>
           </div>

@@ -1,8 +1,9 @@
 'use client'
 import type { WorkOrder } from '@/lib/api/engineering'
-import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Pill } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
+import { cn } from '@/lib/utils'
 
 const CATEGORY_ICONS: Record<string, string> = {
   plumbing: '💧',
@@ -15,12 +16,22 @@ const CATEGORY_ICONS: Record<string, string> = {
   general: '🔧',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-blue-50 text-blue-700',
-  in_progress: 'bg-purple-50 text-purple-700',
-  on_hold: 'bg-orange-50 text-orange-700',
-  completed: 'bg-green-50 text-green-700',
-  cancelled: 'bg-gray-50 text-gray-500',
+// WO status keeps the same hue meanings as the room status contract:
+// blue = open/queued, violet = in progress, amber = on hold, teal = completed
+const STATUS_TONE: Record<string, 'info' | 'progress' | 'caution' | 'ready' | 'blocked'> = {
+  open: 'info',
+  in_progress: 'progress',
+  on_hold: 'caution',
+  completed: 'ready',
+  cancelled: 'blocked',
+}
+
+const STATUS_RAIL: Record<string, string> = {
+  open: 'var(--info)',
+  in_progress: 'var(--progress)',
+  on_hold: 'var(--caution)',
+  completed: 'var(--ready)',
+  cancelled: 'var(--blocked)',
 }
 
 function formatSLA(dueAt: string): { text: string; breached: boolean } {
@@ -60,15 +71,24 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
   const isDanger = wo.priority === 'urgent' || sla?.breached
 
   return (
-    <Card
-      className={`cursor-pointer p-3${isDanger ? ' border-red-200 bg-red-50' : ''}`}
+    <div
+      className={cn(
+        'lift relative overflow-hidden bg-surface border rounded-[var(--r-lg)] pl-4 pr-3 py-3 cursor-pointer shadow-[var(--shadow-sm)]',
+        isDanger ? 'border-[var(--alert-line)] bg-[var(--alert-soft)]/40' : 'border-line'
+      )}
     >
+      {/* Status rail */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 bottom-0 w-[4px]"
+        style={{ background: isDanger ? 'var(--alert)' : (STATUS_RAIL[wo.status] ?? 'var(--line)') }}
+      />
       <div onClick={() => onClick(wo)}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Top row */}
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="text-xs font-mono text-gray-400">WO-{wo.work_order_number}</span>
+              <span className="text-xs font-mono text-ink4">WO-{wo.work_order_number}</span>
               <Badge variant={priorityVariant(wo.priority)}>
                 {wo.priority}
               </Badge>
@@ -76,17 +96,15 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
                 <Badge variant="high">SLA BREACHED</Badge>
               )}
               {wo.is_pm_generated && (
-                <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded font-medium border border-teal-200">
-                  PM
-                </span>
+                <Pill tone="ready" size="sm">PM</Pill>
               )}
             </div>
 
             {/* Title */}
-            <p className="font-medium text-gray-900 text-sm leading-snug">{wo.title}</p>
+            <p className="font-medium text-ink text-sm leading-snug">{wo.title}</p>
 
             {/* Meta */}
-            <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500 flex-wrap">
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-ink3 flex-wrap">
               <span>
                 {CATEGORY_ICONS[wo.category]} {wo.category}
               </span>
@@ -100,13 +118,11 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
 
           {/* Right side */}
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[wo.status] || 'bg-gray-50 text-gray-500'}`}
-            >
+            <Pill tone={STATUS_TONE[wo.status] ?? 'blocked'} size="sm" dot className="capitalize">
               {wo.status.replace('_', ' ')}
-            </span>
+            </Pill>
             {sla && (
-              <span className={`text-xs ${sla.breached ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+              <span className={cn('text-xs font-mono', sla.breached ? 'text-[var(--alert)] font-medium' : 'text-ink4')}>
                 {sla.text}
               </span>
             )}
@@ -119,6 +135,6 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

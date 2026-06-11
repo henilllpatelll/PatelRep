@@ -2,34 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── PatelRep — Warm Operational Hospitality ──────────────────────────────
-   Paper canvas, deep charcoal ink, terracotta action, deep teal for ready,
-   amber for caution, rose for alert. IBM Plex Sans + Mono + Instrument Serif.
+/* ─── PatelRep — "Evening Lobby" design system v2 ──────────────────────────
+   A dark warm charcoal-green navigation rail (back of house) framing a warm
+   paper workspace (the floor). Terracotta action accent, IBM Plex Sans/Mono,
+   Instrument Serif display. Status colors are a protected contract:
+   teal = inspected/ready · blue = clean · violet = in progress ·
+   rose = dirty/occupied · amber = pickup · stone = OOO/OOS.
    ────────────────────────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
     /* Surfaces */
-    --paper:     #f7f4ee;
+    --paper:     #f6f3ec;
     --surface:   #ffffff;
-    --surface-2: #fbf9f4;
-    --surface-3: #f1ede4;
-    --line:      #e6dfd1;
-    --line-2:    #efe9dc;
+    --surface-2: #fbf9f3;
+    --surface-3: #f0ebe1;
+    --line:      #e5ded0;
+    --line-2:    #eee8db;
+
+    /* Shell — the dark rail. Designed constant across themes. */
+    --shell-bg:      #20251f;
+    --shell-surface: #2a2f28;
+    --shell-raised:  #333931;
+    --shell-line:    #3a4038;
+    --shell-ink:     #f1ede2;
+    --shell-ink-2:   #b9b5a7;
+    --shell-ink-3:   #84816f;
 
     /* Type */
-    --ink:   #1a1815;
+    --ink:   #1b1916;
     --ink-2: #4a4640;
     --ink-3: #807a70;
     --ink-4: #a8a195;
 
     /* Accent — terracotta */
-    --accent:      #b8431c;
-    --accent-ink:  #ffffff;
-    --accent-soft: #fbe9df;
-    --accent-line: #f0c8b3;
+    --accent:       #b8431c;
+    --accent-hover: #a23a17;
+    --accent-ink:   #ffffff;
+    --accent-soft:  #fbe9df;
+    --accent-line:  #f0c8b3;
 
-    /* Semantic */
+    /* Semantic / status — PROTECTED. Do not change meanings or hues. */
     --ready:      #0c6e63;
     --ready-soft: #d6eae5;
     --ready-line: #a4cfc7;
@@ -64,11 +77,18 @@
     --r-lg: 14px;
     --r-xl: 20px;
 
-    /* Shadows */
-    --shadow-sm:  0 1px 2px rgba(26,24,21,0.04), 0 0 0 1px rgba(26,24,21,0.04);
-    --shadow-md:  0 2px 6px rgba(26,24,21,0.05), 0 1px 2px rgba(26,24,21,0.04);
-    --shadow-lg:  0 10px 30px rgba(26,24,21,0.08), 0 2px 8px rgba(26,24,21,0.04);
-    --shadow-pop: 0 18px 40px rgba(26,24,21,0.12), 0 4px 12px rgba(26,24,21,0.06);
+    /* Elevation — hairline + soft ambient */
+    --shadow-sm:  0 1px 2px rgba(27,25,22,0.05), 0 0 0 1px rgba(27,25,22,0.03);
+    --shadow-md:  0 1px 2px rgba(27,25,22,0.04), 0 4px 10px -2px rgba(27,25,22,0.06);
+    --shadow-lg:  0 2px 6px rgba(27,25,22,0.05), 0 12px 32px -8px rgba(27,25,22,0.12);
+    --shadow-pop: 0 4px 12px rgba(27,25,22,0.07), 0 24px 56px -12px rgba(27,25,22,0.18);
+
+    /* Motion */
+    --ease-out-soft:  cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring:    cubic-bezier(0.34, 1.3, 0.64, 1);
+    --dur-fast:   120ms;
+    --dur-base:   180ms;
+    --dur-slow:   260ms;
 
     /* Legacy compat */
     --color-bg:        var(--paper);
@@ -77,22 +97,32 @@
   }
 
   .theme-dark {
-    --paper:     #0f0e0c;
-    --surface:   #1a1815;
-    --surface-2: #221f1b;
-    --surface-3: #2a2620;
-    --line:      #322d26;
-    --line-2:    #2a2620;
+    --paper:     #131210;
+    --surface:   #1c1a17;
+    --surface-2: #232019;
+    --surface-3: #2b2720;
+    --line:      #353026;
+    --line-2:    #2b2720;
+
+    --shell-bg:      #151914;
+    --shell-surface: #1f241e;
+    --shell-raised:  #282e26;
+    --shell-line:    #313830;
+    --shell-ink:     #f1ede2;
+    --shell-ink-2:   #b9b5a7;
+    --shell-ink-3:   #84816f;
 
     --ink:   #f1ede4;
     --ink-2: #c5beaf;
     --ink-3: #918a7e;
     --ink-4: #5e584f;
 
-    --accent:      #d97757;
-    --accent-soft: #2e1e16;
-    --accent-line: #5e3c2a;
+    --accent:       #d97757;
+    --accent-hover: #e08a6d;
+    --accent-soft:  #2e1e16;
+    --accent-line:  #5e3c2a;
 
+    /* Status — dark variants, hues preserved */
     --ready:      #4ab8a8;
     --ready-soft: #14302d;
     --ready-line: #2d5550;
@@ -104,6 +134,10 @@
     --alert:      #d96479;
     --alert-soft: #2e1620;
     --alert-line: #5a2a38;
+
+    --info:      #6fa8d4;
+    --info-soft: #16242f;
+    --info-line: #2d4a61;
 
     --progress:      #a78bfa;
     --progress-soft: #2e2348;
@@ -117,10 +151,10 @@
     --ai-soft: #1f1830;
     --ai-line: #3d3056;
 
-    --shadow-sm:  0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-    --shadow-md:  0 2px 6px rgba(0,0,0,0.5);
-    --shadow-lg:  0 10px 30px rgba(0,0,0,0.6);
-    --shadow-pop: 0 18px 40px rgba(0,0,0,0.7);
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+    --shadow-md:  0 1px 2px rgba(0,0,0,0.4), 0 4px 10px -2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+    --shadow-lg:  0 2px 6px rgba(0,0,0,0.45), 0 12px 32px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    --shadow-pop: 0 4px 12px rgba(0,0,0,0.5), 0 24px 56px -12px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
   html, body {
@@ -135,6 +169,32 @@
     font-feature-settings: "ss01", "cv11";
   }
 
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* Visible keyboard focus everywhere, without flashing on mouse clicks */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Quiet scrollbars that match the canvas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 8px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-track { background: transparent; }
+
   @media (max-width: 640px), (pointer: coarse) {
     button, [role="button"], input, select, textarea { min-height: 44px; }
     nav a, a.inline-flex, a.flex { min-height: 44px; }
@@ -143,10 +203,42 @@
 
 @layer utilities {
   .shimmer {
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
+  .theme-dark .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Entrance: rise + fade. Pair with .stagger-N for list entrances. */
+  .anim-rise {
+    animation: rise var(--dur-slow) var(--ease-out-soft) both;
+  }
+  .anim-fade {
+    animation: fadeIn var(--dur-base) var(--ease-out-soft) both;
+  }
+  .anim-scale-in {
+    animation: scaleIn var(--dur-base) var(--ease-out-soft) both;
+  }
+  .stagger-1 { animation-delay: 30ms; }
+  .stagger-2 { animation-delay: 60ms; }
+  .stagger-3 { animation-delay: 90ms; }
+  .stagger-4 { animation-delay: 120ms; }
+  .stagger-5 { animation-delay: 150ms; }
+  .stagger-6 { animation-delay: 180ms; }
+
+  /* Interactive surface: lift on hover, settle on press */
+  .lift {
+    transition:
+      transform var(--dur-base) var(--ease-out-soft),
+      box-shadow var(--dur-base) var(--ease-out-soft),
+      border-color var(--dur-base) var(--ease-out-soft);
+  }
+  .lift:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .lift:active { transform: translateY(0); transition-duration: var(--dur-fast); }
 }
 
 /* Density */
@@ -155,32 +247,65 @@
 .density-dense       { --row-h: 36px; --pad-y:  6px; --gap:  6px; }
 
 .accent-terracotta {
-  --accent:      #b8431c;
-  --accent-soft: #fbe9df;
-  --accent-line: #f0c8b3;
+  --accent:       #b8431c;
+  --accent-hover: #a23a17;
+  --accent-soft:  #fbe9df;
+  --accent-line:  #f0c8b3;
 }
 
 .accent-teal {
-  --accent:      #0c6e63;
-  --accent-soft: #d6eae5;
-  --accent-line: #a4cfc7;
+  --accent:       #0c6e63;
+  --accent-hover: #0a5c53;
+  --accent-soft:  #d6eae5;
+  --accent-line:  #a4cfc7;
 }
 
 .accent-blue {
-  --accent:      #265d8a;
-  --accent-soft: #d8e6f0;
-  --accent-line: #a8c2d8;
+  --accent:       #265d8a;
+  --accent-hover: #1f4d73;
+  --accent-soft:  #d8e6f0;
+  --accent-line:  #a8c2d8;
 }
 
 .accent-rose {
-  --accent:      #a6263c;
-  --accent-soft: #f5d8de;
-  --accent-line: #e8a8b3;
+  --accent:       #a6263c;
+  --accent-hover: #8e1f33;
+  --accent-soft:  #f5d8de;
+  --accent-line:  #e8a8b3;
+}
+
+.theme-dark.accent-terracotta, .theme-dark .accent-terracotta {
+  --accent: #d97757; --accent-hover: #e08a6d; --accent-soft: #2e1e16; --accent-line: #5e3c2a;
 }
 
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes statusPulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-soft); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

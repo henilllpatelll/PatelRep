@@ -29,9 +29,11 @@ interface PillProps {
   children: ReactNode
   className?: string
   striped?: boolean
+  /** Leading status dot in the tone color — improves scannability in dense lists */
+  dot?: boolean
 }
 
-export function Pill({ tone = 'neutral', size = 'md', children, className, striped }: PillProps) {
+export function Pill({ tone = 'neutral', size = 'md', children, className, striped, dot }: PillProps) {
   const sizeClass = size === 'sm'
     ? 'px-[7px] py-px text-[10.5px]'
     : size === 'lg'
@@ -51,6 +53,12 @@ export function Pill({ tone = 'neutral', size = 'md', children, className, strip
         background: `repeating-linear-gradient(135deg, var(--alert-soft) 0 5px, color-mix(in srgb, var(--alert) 22%, white) 5px 10px)`,
       } : undefined}
     >
+      {dot && (
+        <span
+          aria-hidden
+          className="inline-block h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-80"
+        />
+      )}
       {children}
     </span>
   )
@@ -194,9 +202,14 @@ interface StatProps {
 export function Stat({ label, value, unit, delta, deltaTone = 'ready', hint, icon, className }: StatProps) {
   return (
     <div className={cn(
-      'bg-surface border border-line rounded-[var(--r-lg)] p-[14px_16px] flex flex-col gap-1.5 min-h-[96px]',
+      'group relative overflow-hidden bg-surface border border-line rounded-[var(--r-lg)] p-[16px_18px] flex flex-col gap-2 min-h-[104px]',
+      'shadow-[var(--shadow-sm)] transition-shadow duration-base ease-out-soft hover:shadow-[var(--shadow-md)]',
       className
     )}>
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-line)] to-transparent opacity-0 transition-opacity duration-slow ease-out-soft group-hover:opacity-100"
+      />
       <div className="flex justify-between items-start">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3 leading-none">
           {label}
@@ -204,7 +217,7 @@ export function Stat({ label, value, unit, delta, deltaTone = 'ready', hint, ico
         {icon && <span className="text-ink4">{icon}</span>}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="font-display text-[32px] leading-none text-ink font-normal">{value}</span>
+        <span className="font-display text-[36px] leading-none text-ink font-normal tracking-[-0.5px] tabular-nums">{value}</span>
         {unit && <span className="text-[12px] font-mono text-ink-3">{unit}</span>}
       </div>
       <div className="flex items-center gap-1.5 mt-auto">

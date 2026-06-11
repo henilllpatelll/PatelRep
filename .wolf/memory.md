@@ -4718,3 +4718,27 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 00:15 | Created apps/web/app/globals.css | — | ~2491 |
+| 00:15 | Edited apps/web/tailwind.config.ts | expanded (+9 lines) | ~144 |
+| 00:15 | Edited apps/web/tailwind.config.ts | expanded (+14 lines) | ~185 |
+| 00:16 | Created apps/web/components/ui/Button.tsx | — | ~759 |
+| 00:16 | Created apps/web/components/ui/Card.tsx | — | ~222 |
+| 00:16 | Created apps/web/components/ui/Input.tsx | — | ~239 |
+| 00:16 | Edited apps/web/components/ui/Input.tsx | inline fix | ~18 |
+| 00:16 | Created apps/web/components/ui/EmptyState.tsx | — | ~340 |
+| 00:16 | Created apps/web/components/ui/SegmentedControl.tsx | — | ~673 |
+| 00:16 | Created apps/web/components/ui/Skeleton.tsx | — | ~202 |
+| 00:16 | Edited apps/web/components/ui/primitives.tsx | modified Pill() | ~217 |
+| 00:16 | Edited apps/web/components/ui/primitives.tsx | expanded (+6 lines) | ~112 |
+| 00:17 | Edited apps/web/components/ui/primitives.tsx | CSS: hover, group-hover | ~412 |
+| 00:18 | Created apps/web/components/shared/Sidebar.tsx | — | ~5098 |
+| 00:18 | Edited apps/web/components/shared/Header.tsx | "h-14 flex items-center ju" → "h-14 flex items-center ju" | ~58 |
+| 00:18 | Edited apps/web/components/shared/Header.tsx | 6→6 lines | ~121 |
+| 00:18 | Edited apps/web/components/shared/Header.tsx | "absolute right-0 mt-1.5 w" → "anim-scale-in origin-top-" | ~43 |
+| 00:18 | Created apps/web/components/shared/PageHeader.tsx | — | ~849 |
+| 00:18 | Created apps/web/components/shared/PageTransition.tsx | — | ~142 |
+| 00:19 | Created apps/web/components/housekeeping/RoomCard.tsx | — | ~3672 |
+| 00:20 | Created apps/web/components/engineering/WorkOrderCard.tsx | — | ~1362 |
+| 00:20 | Edited apps/web/components/ui/Button.tsx | 2→2 lines | ~18 |
+| 00:22 | Created scripts/redesign-smoke.mjs | — | ~483 |
+| 2026-06-11 | Web redesign v2 "Evening Lobby": dark shell sidebar, motion system, new EmptyState/SegmentedControl, RoomCard/WorkOrderCard rework on branch redesign/web-ui-v2 | apps/web globals.css, tailwind.config.ts, ui/*, shared/*, RoomCard, WorkOrderCard | type-check+lint+build clean, Playwright smoke verified | ~60k |

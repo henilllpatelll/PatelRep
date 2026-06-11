@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T03:41:07.665Z
-> Files: 72 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T05:22:31.830Z
+> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -700,9 +700,11 @@
 
 ## apps/web/
 
+- `tailwind.config.ts` — /*.{js,ts,jsx,tsx,mdx}', (~1261 tok)
 
 ## apps/web/app/
 
+- `globals.css` — Styles: 20 rules, 134 vars (~2491 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -820,6 +822,7 @@
 
 ## apps/web/components/engineering/
 
+- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1362 tok)
 
 ## apps/web/components/guest-requests/
 
@@ -827,7 +830,7 @@
 ## apps/web/components/housekeeping/
 
 - `InspectionModal.tsx` — calcOverallResult (~5196 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~3747 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3672 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~13842 tok)
 
 ## apps/web/components/settings/
@@ -836,9 +839,20 @@
 
 ## apps/web/components/shared/
 
+- `Header.tsx` — COMMANDS (~3989 tok)
+- `PageHeader.tsx` — PageHeader (~849 tok)
+- `PageTransition.tsx` — PageTransition (~142 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~5098 tok)
 
 ## apps/web/components/ui/
 
+- `Button.tsx` — VARIANTS (~765 tok)
+- `Card.tsx` — Lift + stronger shadow on hover — for clickable cards (~222 tok)
+- `EmptyState.tsx` — compact = inline list empty, default = full panel (~340 tok)
+- `Input.tsx` — Input (~229 tok)
+- `primitives.tsx` — Leading status dot in the tone color — improves scannability in dense lists (~2350 tok)
+- `SegmentedControl.tsx` — SegmentedControl (~673 tok)
+- `Skeleton.tsx` — Skeleton (~202 tok)
 
 ## apps/web/i18n/
 
@@ -894,6 +908,7 @@
 
 ## scripts/
 
+- `redesign-smoke.mjs` — One-off visual smoke for the redesign branch. Logs in as the GM test (~483 tok)
 
 ## supabase/migrations/
 
@@ -905,3 +920,6 @@
 
 ## youtubeMobileResearch.md
 
+
+- `apps/web/components/ui/EmptyState.tsx` — Reusable empty-state panel (icon, title, description, action; compact mode). ~40 lines, ~350 tokens.
+- `apps/web/components/ui/SegmentedControl.tsx` — Animated segmented control with framer layoutId thumb, count badges, reduced-motion aware. ~80 lines, ~650 tokens.

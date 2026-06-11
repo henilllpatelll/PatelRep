@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, ClipboardList,
@@ -101,6 +102,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { user } = useAuth()
   const { hotel, hotels, setHotel } = useHotelStore()
   const customRoleModules = useAuthStore((state) => state.customRoleModules)
+  const reducedMotion = useReducedMotion()
   const [hotelDropdownOpen, setHotelDropdownOpen] = useState(false)
   const hotelDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -168,7 +170,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <div key={href}>
         <div className="relative">
           {active && (
-            <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-accent rounded-full" />
+            <motion.span
+              layoutId="sidebar-rail-active"
+              transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 480, damping: 40 }}
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-accent rounded-full"
+            />
           )}
           <Link
             href={href}
@@ -176,23 +182,23 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             onClick={onMobileClose}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'group flex items-center gap-2.5 pl-3.5 pr-3 py-[7px] text-[13px] rounded-lg transition-colors duration-150',
+              'group flex items-center gap-2.5 pl-3.5 pr-3 py-2 text-[13px] rounded-lg transition-colors duration-base ease-out-soft',
               active
-                ? 'bg-surface font-medium text-ink shadow-[inset_0_0_0_1px_var(--line)]'
-                : 'text-ink2 hover:bg-surface-2 hover:text-ink'
+                ? 'bg-shell-raised font-medium text-shell-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+                : 'text-shell-ink-2 hover:bg-shell-surface hover:text-shell-ink'
             )}
           >
-            <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? 'text-accent' : 'text-ink3')} />
+            <Icon className={cn('w-4 h-4 shrink-0 transition-colors duration-base', active ? 'text-accent' : 'text-shell-ink-3 group-hover:text-shell-ink-2')} strokeWidth={1.75} />
             <span className="flex-1">{navLabel(label)}</span>
             {tag && (
-              <span className="text-[9px] font-bold tracking-wide px-1.5 py-px rounded bg-ai-soft text-ai border border-ai-line">
+              <span className="text-[9px] font-bold tracking-wide px-1.5 py-px rounded bg-[var(--ai)]/25 text-[#cbb8f0] border border-[var(--ai)]/40">
                 {tag}
               </span>
             )}
           </Link>
         </div>
         {subNavOpen && subNav && (
-          <div className="mt-0.5 ml-3.5 pl-3 border-l border-line-2 space-y-px">
+          <div className="anim-fade mt-0.5 ml-4 pl-3 border-l border-shell-line space-y-px">
             {subNav.map(({ href: subHref, label: subLabel }) => {
               const subActive = pathname === subHref || (subHref !== href && pathname.startsWith(subHref + '/'))
               return (
@@ -202,8 +208,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   prefetch={false}
                   onClick={onMobileClose}
                   className={cn(
-                    'flex items-center min-h-[36px] px-2.5 py-1.5 text-[12px] rounded-md transition-colors',
-                    subActive ? 'bg-accent-soft text-accent font-medium' : 'text-ink3 hover:bg-surface-2 hover:text-ink2'
+                    'flex items-center min-h-[36px] px-2.5 py-1.5 text-[12px] rounded-md transition-colors duration-base',
+                    subActive
+                      ? 'bg-shell-raised text-accent font-medium'
+                      : 'text-shell-ink-3 hover:bg-shell-surface hover:text-shell-ink-2'
                   )}
                 >
                   {navLabel(subLabel)}
@@ -220,24 +228,24 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     <aside
       aria-label="Main navigation"
       className={cn(
-        'bg-paper border-r border-line flex flex-col shrink-0',
-        'fixed inset-y-0 left-0 z-40 w-[240px] transition-transform duration-300 ease-in-out',
-        'md:relative md:w-[232px] md:translate-x-0',
+        'bg-shell text-shell-ink flex flex-col shrink-0',
+        'fixed inset-y-0 left-0 z-40 w-[248px] transition-transform duration-300 ease-out-soft',
+        'md:relative md:w-[240px] md:translate-x-0',
         mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       )}
     >
-      {/* Logo + collapse button */}
-      <div className="flex items-center justify-between px-3.5 pt-4 pb-3">
+      {/* Logo */}
+      <div className="flex items-center justify-between px-4 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-[7px] bg-ink flex items-center justify-center shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M4 21V8l8-5 8 5v13" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M9 21v-6h6v6" stroke="var(--paper)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="w-8 h-8 rounded-[9px] bg-accent flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M4 21V8l8-5 8 5v13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 21v-6h6v6" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
             </svg>
           </div>
           <div className="leading-none">
-            <div className="text-sm font-semibold tracking-tight text-ink">PatelRep</div>
-            <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('nav.hotelOperationsAI')}</div>
+            <div className="text-[14.5px] font-semibold tracking-tight text-shell-ink">PatelRep</div>
+            <div className="text-[10px] text-shell-ink-3 font-mono mt-1">{t('nav.hotelOperationsAI')}</div>
           </div>
         </div>
       </div>
@@ -253,21 +261,21 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             aria-haspopup="menu"
             aria-expanded={hotelDropdownOpen}
             onClick={() => setHotelDropdownOpen((open) => !open)}
-            className="flex w-full items-center gap-2.5 rounded-[10px] border border-line bg-surface px-2.5 py-2 text-left transition-colors hover:bg-surface-2"
+            className="flex w-full items-center gap-2.5 rounded-[10px] border border-shell-line bg-shell-surface px-2.5 py-2 text-left transition-colors duration-base hover:bg-shell-raised"
           >
           <div className="w-6 h-6 rounded-md bg-accent flex items-center justify-center text-white text-[10px] font-bold font-display shrink-0">
             {hotel.name[0]?.toUpperCase()}
           </div>
           <div className="flex-1 min-w-0 leading-none">
-            <div className="text-xs font-semibold text-ink truncate">{hotel.name}</div>
-            <div className="text-[10px] text-ink3 font-mono mt-0.5">{t('common.rooms', { count: hotel.room_count ?? 0 })}</div>
+            <div className="text-xs font-semibold text-shell-ink truncate">{hotel.name}</div>
+            <div className="text-[10px] text-shell-ink-3 font-mono mt-1">{t('common.rooms', { count: hotel.room_count ?? 0 })}</div>
           </div>
-          <ChevronDown className={cn('w-3 h-3 text-ink3 shrink-0 transition-transform', hotelDropdownOpen && 'rotate-180')} />
+          <ChevronDown className={cn('w-3 h-3 text-shell-ink-3 shrink-0 transition-transform duration-base', hotelDropdownOpen && 'rotate-180')} />
           </button>
           {hotelDropdownOpen && (
             <div
               role="menu"
-              className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-xl border border-line bg-surface p-1.5 shadow-pop"
+              className="anim-scale-in absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-xl border border-shell-line bg-shell-raised p-1.5 shadow-pop"
               onClick={(e) => e.stopPropagation()}
             >
               {(hotels.length ? hotels : [hotel]).map((item) => {
@@ -281,8 +289,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       setHotelDropdownOpen(false)
                     }}
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-surface-2',
-                      active && 'bg-accent-soft text-accent'
+                      'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-base hover:bg-shell-surface',
+                      active ? 'text-accent' : 'text-shell-ink-2'
                     )}
                   >
                     <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-white">
@@ -290,7 +298,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-medium">{item.name}</span>
-                      <span className="block font-mono text-[10px] text-ink3">{t('common.rooms', { count: item.room_count ?? 0 })}</span>
+                      <span className="block font-mono text-[10px] text-shell-ink-3">{t('common.rooms', { count: item.room_count ?? 0 })}</span>
                     </span>
                   </button>
                 )
@@ -302,7 +310,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   router.push('/settings')
                   onMobileClose?.()
                 }}
-                className="mt-1 flex w-full items-center justify-center rounded-lg border border-line px-2.5 py-2 text-[12px] font-medium text-ink2 hover:bg-surface-2"
+                className="mt-1 flex w-full items-center justify-center rounded-lg border border-shell-line px-2.5 py-2 text-[12px] font-medium text-shell-ink-2 transition-colors duration-base hover:bg-shell-surface hover:text-shell-ink"
               >
                 {t('nav.manageHotelProfile')}
               </button>
@@ -312,24 +320,24 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       )}
 
       {/* Nav groups */}
-      <nav className="flex-1 px-3 overflow-y-auto space-y-3">
+      <nav className="flex-1 px-3 overflow-y-auto space-y-4 [scrollbar-color:var(--shell-line)_transparent]">
         {opsItems.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pt-1 pb-1.5">{t('nav.operations')}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-shell-ink-3 px-2 pt-1 pb-1.5">{t('nav.operations')}</p>
             <div className="space-y-px">{opsItems.map(renderNavItem)}</div>
           </div>
         )}
         {intelItems.length > 0 && (
           <div>
-            <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">{t('nav.intelligence')}</p>
+            <div className="mx-1 mb-2.5 border-t border-shell-line/60" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-shell-ink-3 px-2 pb-1.5">{t('nav.intelligence')}</p>
             <div className="space-y-px">{intelItems.map(renderNavItem)}</div>
           </div>
         )}
         {peopleItems.length > 0 && (
           <div>
-            <div className="mx-1 mb-2 border-t border-line-2" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink4 px-2 pb-1.5">{t('nav.organization')}</p>
+            <div className="mx-1 mb-2.5 border-t border-shell-line/60" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-shell-ink-3 px-2 pb-1.5">{t('nav.organization')}</p>
             <div className="space-y-px">{peopleItems.map(renderNavItem)}</div>
           </div>
         )}
@@ -337,22 +345,24 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Settings / Billing */}
       {bottomItems.length > 0 && (
-        <div className="px-3 pt-2 pb-1 border-t border-line-2 space-y-px">
+        <div className="px-3 pt-2 pb-1 border-t border-shell-line/60 space-y-px">
           {bottomItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             return (
               <div key={href} className="relative">
-                {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-accent rounded-full" />}
+                {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-accent rounded-full" />}
                 <Link
                   href={href}
                   prefetch={false}
                   onClick={onMobileClose}
                   className={cn(
-                    'group flex items-center gap-2.5 pl-3.5 pr-3 py-[7px] text-[13px] rounded-lg transition-colors',
-                    active ? 'bg-surface font-medium text-ink shadow-[inset_0_0_0_1px_var(--line)]' : 'text-ink2 hover:bg-surface-2 hover:text-ink'
+                    'group flex items-center gap-2.5 pl-3.5 pr-3 py-2 text-[13px] rounded-lg transition-colors duration-base',
+                    active
+                      ? 'bg-shell-raised font-medium text-shell-ink'
+                      : 'text-shell-ink-2 hover:bg-shell-surface hover:text-shell-ink'
                   )}
                 >
-                  <Icon className={cn('w-3.5 h-3.5 shrink-0', active ? 'text-accent' : 'text-ink3')} />
+                  <Icon className={cn('w-4 h-4 shrink-0', active ? 'text-accent' : 'text-shell-ink-3')} strokeWidth={1.75} />
                   {navLabel(label)}
                 </Link>
               </div>
@@ -362,15 +372,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       )}
 
       {/* User identity */}
-      <div className="px-3 pb-4 pt-2 border-t border-line-2">
-        <LanguageToggle className="mb-2 flex w-full justify-center sm:hidden" />
-        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-surface border border-line">
+      <div className="px-3 pb-4 pt-2 border-t border-shell-line/60">
+        <LanguageToggle className="mb-2 flex w-full justify-center sm:hidden border-shell-line bg-shell-surface text-shell-ink-2 hover:bg-shell-raised hover:text-shell-ink" />
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-shell-surface border border-shell-line">
           <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0', avatarBg)}>
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-ink truncate leading-tight">{fullName}</p>
-            {roleLabel && <p className="text-[10px] text-ink3 truncate leading-tight mt-0.5">{roleLabel}</p>}
+            <p className="text-[13px] font-medium text-shell-ink truncate leading-tight">{fullName}</p>
+            {roleLabel && <p className="text-[10px] text-shell-ink-3 truncate leading-tight mt-0.5">{roleLabel}</p>}
           </div>
         </div>
       </div>
