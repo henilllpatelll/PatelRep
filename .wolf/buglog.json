@@ -647,6 +647,200 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T18:17:26.371Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-06-11T18:43:12.466Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→17 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:43:12.466Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-06-11T18:43:59.165Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Modal visible={customOpen} transparent animationType=\"slide; <TouchableOpacity style={styles.modalOverlay} activeOpacity=",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T18:44:24.446Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-06-11T18:56:16.878Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "No early return/throw for edge case: room.status === \"DIRTY\" || room.status === \"IN_PROGRESS\"",
+      "fix": "Added guard clause: if (room.status === \"DIRTY\" || room.status =)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:56:16.878Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-06-11T18:56:28.604Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "Had \"FLAG: Needs deep clean (work order created)\"",
+      "fix": "Changed to \"FLAG: Deep vacuum & filter change needed after cl",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:56:28.604Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-06-11T18:59:31.133Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Condition was: if (loading)",
+      "fix": "Changed to: if (undoTimer.current)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:59:31.133Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-06-11T18:59:38.186Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T18:59:38.186Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-06-11T14:29:32.6944654-05:00",
+      "error_message": "Mobile room detail quick blockers used duration presets for pickup Come Back Later and showed an 8-second Undo correction bar after blocker notes",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx, apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "Pickup come_back_later timePresets still used relative durations, and blocker submission rendered transient undo state that posted a correction note instead of clearing the just-created latest note.",
+      "fix": "Changed pickup Come Back Later presets to 11:00/12:00/1:00 and replaced quick-blocker Undo state with a latest-note Remove note action that clears/restores local latest_note state.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "quick-blockers",
+        "notes"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:29:32.6944654-05:00"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-06-11T14:49:23.9448512-05:00",
+      "error_message": "Mobile room detail pickup Come Back Later presets showed bare times and Full linen change hero chip used blue instead of yellow",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Come Back Later presets were stored as 11:00/12:00/1:00 without AM/PM, and CLEAN_TYPE_META.FULL used info tokens while LIGHT used caution/yellow tokens.",
+      "fix": "Changed pickup presets to 11:00 AM, 12:00 PM, 1:00 PM and changed FULL clean-type metadata to caution/yellow background, text, and border tokens.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "quick-blockers",
+        "clean-type",
+        "ui"
+      ],
+      "related_bugs": [
+        "bug-047"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:49:23.9448512-05:00"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-06-11T14:58:20.0369034-05:00",
+      "error_message": "Mobile pickup room detail still showed Full/Light clean-type symbols and saved typed Come Back Later times without AM/PM",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx, apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "Hero clean-type icons rendered for all clean types regardless of pickup status, and submitBlocker passed raw typed time text directly into blocker notes.",
+      "fix": "Hide clean-type icons for PICKUP rooms with FULL or LIGHT clean_type, add formatBlockerTimeInput(), and normalize typed blocker times before side effects and note creation.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "quick-blockers",
+        "clean-type",
+        "time-formatting"
+      ],
+      "related_bugs": [
+        "bug-047",
+        "bug-048"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T14:58:20.0369034-05:00"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-06-11T15:22:23.6841735-05:00",
+      "error_message": "Mobile vacant-room Room Flags still showed Needs Deep Clean and Need Ozone, and room 116 had a stale note",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/__tests__/lib/roomBlockers.test.ts, Supabase room_status_history",
+      "root_cause": "VACANT_BLOCKERS still included deep_clean and need_ozone entries after the desired floor workflow was narrowed, and room 116 had a note-only room_status_history row.",
+      "fix": "Removed deep_clean and need_ozone from VACANT_BLOCKERS, updated blocker tests to expect only pet_room and smoke_smell for vacant rooms, and deleted the room 116 note row from Supabase.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "quick-blockers",
+        "room-flags",
+        "data-cleanup"
+      ],
+      "related_bugs": [
+        "bug-047",
+        "bug-049"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T15:22:23.6841735-05:00"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-06-11T15:30:15.6238192-05:00",
+      "error_message": "Room 118 needed work order and note cleanup",
+      "file": "Supabase room_status_history, work_orders, room_status",
+      "root_cause": "Room 118 had note-only history rows, an open deep-vacuum work order, and a stale room_status.notes value from a prior undo.",
+      "fix": "Deleted 2 room_status_history note rows, deleted 1 work_orders row for room 118, and cleared room_status.notes for room 118.",
+      "tags": [
+        "data-cleanup",
+        "housekeeping",
+        "room-notes",
+        "work-orders"
+      ],
+      "related_bugs": [
+        "bug-050"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T15:30:15.6238192-05:00"
     }
   ]
 }

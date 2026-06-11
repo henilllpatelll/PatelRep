@@ -479,6 +479,8 @@
     "petRoom": "Pet Room",
     "needOzone": "Need Ozone",
     "smokeSmell": "Smoke Smell",
+    "dndSign": "DND Sign",
+    "petInside": "Pet Inside",
     "timePrompt": "Enter the time the guest gave you",
     "timePlaceholder": "e.g. 1:30 PM",
     "report": "Report"

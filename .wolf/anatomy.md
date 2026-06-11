@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T18:19:15.051Z
-> Files: 21 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T18:59:45.009Z
+> Files: 23 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -573,7 +573,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~10373 tok)
+- `[roomId].tsx` — STATUS_COLOR (~12125 tok)
 - `index.tsx` — DONE_SECTIONS (~3695 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
@@ -635,6 +635,8 @@
 
 ## apps/mobile/i18n/locales/
 
+- `en.json` (~4930 tok)
+- `es.json` (~5294 tok)
 
 ## apps/mobile/lib/
 
@@ -649,7 +651,7 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1388 tok)
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1683 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -869,4 +871,3 @@
 
 ## youtubeMobileResearch.md
 
-- `apps/mobile/lib/housekeeping/roomBlockers.ts` — Context-aware quick-blocker sets (occupied/pickup/vacant) with side effects: deep-clean/pet WO creation, ozone delegation task, late-checkout front-desk task. ~120 lines, ~1000 tokens.

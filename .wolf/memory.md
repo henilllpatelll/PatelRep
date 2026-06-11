@@ -4867,3 +4867,35 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 13:18 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | removed 16 lines | ~7 |
 | 13:19 | Created apps/mobile/__tests__/lib/roomBlockers.test.ts | — | ~1186 |
 | 2026-06-11 | My Rooms UX feedback round: Remaining/Done toggle, status line into sticky bar, context-aware quick blockers (WO/task side effects), housekeeper allowed on POST /tasks | my-rooms screens, roomBlockers.ts, tasks.py, locales, tests | 64/64 mobile tests, 222 API smoke, tsc clean | ~35k |
+| 13:21 | Session end: 59 writes across 14 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 8 reads | ~29875 tok |
+| 13:43 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | expanded (+15 lines) | ~467 |
+| 13:43 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | modified isOccupiedDeparture() | ~215 |
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 10→11 lines | ~42 |
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 6→8 lines | ~53 |
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→5 lines | ~86 |
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→3 lines | ~42 |
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+20 lines) | ~270 |
+| 13:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 5→5 lines | ~67 |
+| 13:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+8 lines) | ~140 |
+| 13:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: paddingBottom | ~620 |
+| 13:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+43 lines) | ~388 |
+| 13:45 | Edited apps/mobile/i18n/locales/en.json | 2→4 lines | ~42 |
+| 13:45 | Edited apps/mobile/i18n/locales/es.json | 2→4 lines | ~47 |
+| 13:45 | Session end: 72 writes across 16 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 12 reads | ~44115 tok |
+| 13:56 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | added 1 condition(s) | ~50 |
+| 13:56 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | 4→3 lines | ~52 |
+| 13:56 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | inline fix | ~55 |
+| 13:56 | Session end: 75 writes across 16 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 12 reads | ~44272 tok |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→6 lines | ~113 |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~54 |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~118 |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: CORRECTION | ~69 |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+9 lines) | ~123 |
+| 13:59 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+13 lines) | ~144 |
+| 14:00 | Session end: 81 writes across 16 files (tokens.ts, tasks.ts, index.tsx, TasksVariationA.test.tsx, MobileVisualTokens.test.ts) | 12 reads | ~44893 tok |
+| 14:29 | Updated mobile room-detail quick blockers: pickup Come Back Later uses clock presets and latest quick-blocker notes show Remove note instead of transient Undo | apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/app/(app)/my-rooms/[roomId].tsx, mobile tests | type-check and Jest passed | ~6100 tok |
+| 14:49 | Corrected mobile room-detail pickup Come Back Later presets to AM/PM labels and made Full linen change chip yellow like Light | apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/app/(app)/my-rooms/[roomId].tsx, mobile tests | type-check and Jest passed | ~2300 tok |
+| 14:58 | Removed Full/Light clean-type symbols from pickup room-detail hero chips and auto-formatted typed Come Back Later times to AM/PM before saving notes | apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/app/(app)/my-rooms/[roomId].tsx, mobile tests | type-check and Jest passed | ~3100 tok |
+| 15:11 | Cleaned Supabase housekeeping data by deleting staff room-note history for rooms 137, 129, 115, 107 and the room 137 work order | Supabase room_status_history, work_orders | deleted 17 note rows and 1 work order; verified zero remaining candidates | ~1800 tok |
+| 15:22 | Removed vacant-room Needs Deep Clean and Need Ozone flags from mobile room detail and cleaned room 116 note | apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/__tests__/lib/roomBlockers.test.ts, Supabase room_status_history | deleted 1 note row; type-check and Jest passed | ~2600 tok |
+| 15:30 | Cleaned Supabase housekeeping data for room 118 by deleting note history, work order, and stale room_status note | Supabase room_status_history, work_orders, room_status | deleted 2 note rows and 1 work order; cleared 1 status note; verified zero remaining | ~1100 tok |

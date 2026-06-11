@@ -479,6 +479,8 @@
     "petRoom": "Cuarto con Mascota",
     "needOzone": "Necesita Ozono",
     "smokeSmell": "Olor a Humo",
+    "dndSign": "Señal No Molestar",
+    "petInside": "Mascota Adentro",
     "timePrompt": "Escribe la hora que te dio el huésped",
     "timePlaceholder": "p. ej. 1:30 PM",
     "report": "Reportar"
