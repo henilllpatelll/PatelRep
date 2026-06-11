@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont } from "@/components/shared/tokens";
+import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import { ProgressBar, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
 import { buildSmartQueue } from "@/lib/ai/briefing";
@@ -196,7 +196,7 @@ export default function MyRoomsScreen() {
                 style={[styles.modeBtn, active && styles.modeBtnActive]}
                 activeOpacity={0.85}
               >
-                <Ionicons name={mode.icon} size={12} color={active ? C.ink : C.ink3} />
+                <Ionicons name={mode.icon} size={12} color={active ? shellTokens.ink : shellTokens.ink3} />
                 <Text style={[styles.modeText, active && styles.modeTextActive]}>{mode.label}</Text>
               </TouchableOpacity>
             );
@@ -325,29 +325,29 @@ const styles = StyleSheet.create({
   offlineText: { flex: 1, color: "#fff", fontSize: 12 },
 
   shellHeader: {
-    backgroundColor: C.paper,
+    backgroundColor: shellTokens.bg,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
+    borderBottomColor: shellTokens.line,
     paddingHorizontal: 18,
     paddingBottom: 14,
     gap: 12,
   },
   shellTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 14 },
   shellTitleBlock: { flex: 1, minWidth: 0 },
-  shellTitle: { fontSize: 28, fontWeight: "700", color: C.ink, lineHeight: 33 },
-  shellDate: { fontSize: 12.5, color: C.ink3, marginTop: 2 },
+  shellTitle: { fontSize: 28, fontWeight: "700", color: shellTokens.ink, lineHeight: 33 },
+  shellDate: { fontSize: 12.5, color: shellTokens.ink3, marginTop: 2 },
   shellCountBlock: { alignItems: "flex-end" },
-  shellCountValue: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", color: C.ink },
-  shellCountTotal: { fontSize: 14, color: C.ink3 },
-  shellCountLabel: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: C.ink3, marginTop: 1 },
+  shellCountValue: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", color: shellTokens.ink },
+  shellCountTotal: { fontSize: 14, color: shellTokens.ink3 },
+  shellCountLabel: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: shellTokens.ink3, marginTop: 1 },
   shellProgress: { marginTop: -2 },
 
   modeToggle: {
     flexDirection: "row",
     gap: 4,
-    backgroundColor: C.surface,
+    backgroundColor: shellTokens.surface,
     borderWidth: 1,
-    borderColor: C.line,
+    borderColor: shellTokens.line,
     borderRadius: 12,
     padding: 3,
   },
@@ -360,9 +360,9 @@ const styles = StyleSheet.create({
     minHeight: 38,
     borderRadius: 9,
   },
-  modeBtnActive: { backgroundColor: C.surface2 },
-  modeText: { color: C.ink3, fontSize: 12.5, fontWeight: "700" },
-  modeTextActive: { color: C.ink },
+  modeBtnActive: { backgroundColor: shellTokens.raised },
+  modeText: { color: shellTokens.ink3, fontSize: 12.5, fontWeight: "700" },
+  modeTextActive: { color: shellTokens.ink },
 
   filterRow: { gap: 7, paddingBottom: 14 },
   filterChip: {

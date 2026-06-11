@@ -16,7 +16,7 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { localDate } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import {
   Avatar,
   CopilotHero,
@@ -560,23 +560,23 @@ const styles = StyleSheet.create({
   shellHeader: {
     paddingHorizontal: 18,
     paddingBottom: 18,
-    backgroundColor: C.paper,
+    backgroundColor: shellTokens.bg,
     borderBottomWidth: 1,
-    borderBottomColor: C.line2,
+    borderBottomColor: shellTokens.line,
   },
   shellHeaderMeta: {
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: C.ink3,
+    color: shellTokens.ink3,
     marginBottom: 4,
   },
   shellTitle: {
     fontSize: 30,
     fontWeight: "600",
     lineHeight: 34,
-    color: C.ink,
+    color: shellTokens.ink,
   },
   briefingActions: {
     flexDirection: "row",
@@ -598,14 +598,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface,
+    borderColor: shellTokens.line,
+    backgroundColor: shellTokens.surface,
     borderRadius: 11,
     minHeight: 44,
     paddingHorizontal: 13,
     justifyContent: "center",
   },
-  briefingGhostText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
   upNextBlock: { gap: 9 },
   heroStrong: {
     fontFamily: monoFont,

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import type { Room } from "@/stores/appStore";
 import {
   getPrimaryTimingLine,
@@ -96,7 +96,7 @@ export function Chip({
     alert: { bg: C.alertSoft, fg: C.alert, border: C.alertLine },
     caution: { bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
     ai: { bg: C.aiSoft, fg: C.ai, border: C.aiLine },
-    shell: { bg: C.surface2, fg: C.ink, border: C.line },
+    shell: { bg: shellTokens.raised, fg: shellTokens.ink, border: shellTokens.line },
   }[tone];
   return (
     <View style={[styles.chip, { backgroundColor: palette.bg, borderColor: palette.border }]}>
@@ -240,7 +240,7 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
               <View key={`${roomNumber}-${index}`} style={styles.aiPlanChip}>
                 <Text style={styles.aiPlanChipText}>{roomNumber}</Text>
                 {index < plan.length - 1 ? (
-                  <Ionicons name="arrow-forward" size={9} color={C.ink3} style={styles.aiPlanArrow} />
+                  <Ionicons name="arrow-forward" size={9} color={shellTokens.ink3} style={styles.aiPlanArrow} />
                 ) : null}
               </View>
             ))}
@@ -348,27 +348,27 @@ const styles = StyleSheet.create({
   vipText: { fontSize: 9, fontWeight: "800", color: C.brass },
 
   aiCard: {
-    backgroundColor: C.surface,
+    backgroundColor: shellTokens.bg,
     borderWidth: 1,
-    borderColor: C.aiLine,
+    borderColor: shellTokens.line,
     borderRadius: R.xl,
     padding: 18,
     gap: 11,
   },
   aiKickerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  aiKicker: { color: C.ai, fontSize: 10.5, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
-  aiPulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.ai, marginLeft: 2 },
-  aiHeadline: { color: C.ink, fontSize: 18, lineHeight: 25, fontWeight: "700" },
+  aiKicker: { color: "#CBB8F0", fontSize: 10.5, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
+  aiPulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#CBB8F0", marginLeft: 2 },
+  aiHeadline: { color: shellTokens.ink, fontSize: 18, lineHeight: 25, fontWeight: "700" },
   aiPlanRow: { gap: 6 },
-  aiPlanLabel: { color: C.ink3, fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  aiPlanLabel: { color: shellTokens.ink3, fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
   aiPlanChips: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
   aiPlanChip: { flexDirection: "row", alignItems: "center", gap: 4 },
   aiPlanChipText: {
     fontFamily: monoFont,
-    color: C.ink,
+    color: shellTokens.ink,
     fontSize: 13,
     fontWeight: "800",
-    backgroundColor: C.surface2,
+    backgroundColor: shellTokens.raised,
     borderRadius: 7,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -377,6 +377,6 @@ const styles = StyleSheet.create({
   aiPlanArrow: { marginHorizontal: 1 },
   aiWatchouts: { gap: 5 },
   aiWatchoutRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-  aiWatchoutText: { flex: 1, color: C.ink2, fontSize: 12.5, lineHeight: 17 },
-  aiFootNote: { color: C.ink3, fontSize: 10.5, fontFamily: monoFont },
+  aiWatchoutText: { flex: 1, color: shellTokens.ink2, fontSize: 12.5, lineHeight: 17 },
+  aiFootNote: { color: shellTokens.ink3, fontSize: 10.5, fontFamily: monoFont },
 });
