@@ -841,6 +841,166 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-11T15:30:15.6238192-05:00"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-06-11T21:33:12.397Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "37 lines replaced/restructured",
+      "fix": "Rewrote 110→132 lines (37 removed) | Also: paceCard: {; padding: 16,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T21:33:42.675Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-06-11T21:33:29.985Z",
+      "error_message": "Wrong reference: upNextBlock should be heroStrong",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Used \"upNextBlock\" instead of \"heroStrong\"",
+      "fix": "Changed upNextBlock → heroStrong",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T21:33:29.985Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-06-11T21:35:13.062Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→28 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T21:35:13.062Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-06-11T21:35:31.222Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T21:35:31.222Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-06-11T21:35:55.622Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
+      "root_cause": "Had \");\n    expect(getByTestId(\"",
+      "fix": "Changed to \")).toBeTruthy();\n    expect(within(getByTestId(\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T21:35:55.622Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-06-11T22:07:07.562Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/components/tasks/TaskCard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T22:07:07.562Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-06-11T22:07:09.121Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/components/tasks/TaskCard.tsx",
+      "root_cause": "Had `tasks.typeLabel.${TYPE_META[typeKey] ? typeKey : ",
+      "fix": "Changed to `tasks.typeLabel.${typeKey}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T22:07:09.121Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-06-11T22:53:14.112Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "90 lines replaced/restructured",
+      "fix": "Rewrote 127→29 lines (90 removed) | Also: taskCard: {; backgroundColor: C.surface,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T22:53:45.352Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-06-11T22:53:21.726Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T22:53:21.726Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-06-11T22:53:23.708Z",
+      "error_message": "Wrong reference: Text should be locale",
+      "file": "apps/mobile/app/(app)/tasks/index.tsx",
+      "root_cause": "Used \"Text\" instead of \"locale\"",
+      "fix": "Changed Text → locale",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T22:53:23.708Z"
     }
   ]
 }

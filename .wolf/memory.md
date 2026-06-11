@@ -4899,3 +4899,46 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 15:11 | Cleaned Supabase housekeeping data by deleting staff room-note history for rooms 137, 129, 115, 107 and the room 137 work order | Supabase room_status_history, work_orders | deleted 17 note rows and 1 work order; verified zero remaining candidates | ~1800 tok |
 | 15:22 | Removed vacant-room Needs Deep Clean and Need Ozone flags from mobile room detail and cleaned room 116 note | apps/mobile/lib/housekeeping/roomBlockers.ts, apps/mobile/__tests__/lib/roomBlockers.test.ts, Supabase room_status_history | deleted 1 note row; type-check and Jest passed | ~2600 tok |
 | 15:30 | Cleaned Supabase housekeeping data for room 118 by deleting note history, work order, and stale room_status note | Supabase room_status_history, work_orders, room_status | deleted 2 note rows and 1 work order; cleared 1 status note; verified zero remaining | ~1100 tok |
+
+## Session: 2026-06-11 16:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:32 | Created apps/mobile/lib/ai/companion.ts | — | ~1215 |
+| 16:32 | Edited apps/mobile/app/(app)/home/index.tsx | 14→12 lines | ~127 |
+| 16:32 | Edited apps/mobile/app/(app)/home/index.tsx | 7→5 lines | ~118 |
+| 16:32 | Edited apps/mobile/app/(app)/home/index.tsx | modified buildLocalBriefing() | ~147 |
+| 16:33 | Edited apps/mobile/app/(app)/home/index.tsx | modified t() | ~1693 |
+| 16:33 | Edited apps/mobile/app/(app)/home/index.tsx | expanded (+37 lines) | ~240 |
+| 16:33 | Edited apps/mobile/app/(app)/home/index.tsx | 2→1 lines | ~5 |
+| 16:33 | Edited apps/mobile/app/(app)/home/index.tsx | expanded (+51 lines) | ~424 |
+| 16:35 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | expanded (+17 lines) | ~525 |
+| 16:35 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | CSS: deck | ~585 |
+| 16:35 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | inline fix | ~21 |
+| 16:35 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | toHaveTextContent() → within() | ~56 |
+| 16:36 | Edited apps/mobile/app/(app)/home/index.tsx | 4→5 lines | ~26 |
+| 16:37 | Redesigned mobile Home tab: removed Up Next queue, added companion check-in + shift analytics deck + new lib/ai/companion.ts; en/es keys updated | apps/mobile/app/(app)/home/index.tsx, lib/ai/companion.ts, i18n/locales/*, __tests__/screens/HousekeeperHome.test.tsx | type-check + 69 tests pass | ~60k |
+| 16:38 | Session end: 13 writes across 3 files (companion.ts, index.tsx, HousekeeperHome.test.tsx) | 5 reads | ~21592 tok |
+| 17:06 | Created apps/mobile/components/tasks/TaskCard.tsx | — | ~2921 |
+| 17:07 | Edited apps/mobile/components/tasks/TaskCard.tsx | CSS: rawType | ~45 |
+| 17:07 | Edited apps/mobile/components/tasks/TaskCard.tsx | "tasks.typeLabel.${TYPE_ME" → "tasks.typeLabel.${typeKey" | ~18 |
+| 17:53 | Edited apps/mobile/app/(app)/tasks/index.tsx | removed 127 lines | ~257 |
+| 17:53 | Edited apps/mobile/app/(app)/tasks/index.tsx | added optional chaining | ~52 |
+| 17:53 | Edited apps/mobile/app/(app)/tasks/index.tsx | 2→2 lines | ~40 |
+| 17:53 | Edited apps/mobile/app/(app)/tasks/index.tsx | 11→12 lines | ~156 |
+| 17:53 | Edited apps/mobile/app/(app)/tasks/index.tsx | removed 82 lines | ~34 |
+| 17:54 | Edited apps/mobile/__tests__/screens/TasksVariationA.test.tsx | expanded (+7 lines) | ~120 |
+| 17:54 | Edited apps/mobile/__tests__/screens/TasksVariationA.test.tsx | CSS: description | ~73 |
+| 17:54 | Edited apps/mobile/__tests__/screens/TasksVariationA.test.tsx | CSS: anatomy | ~439 |
+| 17:55 | Redesigned Tasks tab cards: new components/tasks/TaskCard.tsx (urgency rail, type tile, description, round Done btn), index.tsx slimmed, overdueByHours key added | apps/mobile/app/(app)/tasks/index.tsx, components/tasks/TaskCard.tsx, i18n/locales/*, __tests__/screens/TasksVariationA.test.tsx | type-check + 69 tests pass | ~35k |
+| 17:56 | Session end: 24 writes across 5 files (companion.ts, index.tsx, HousekeeperHome.test.tsx, TaskCard.tsx, TasksVariationA.test.tsx) | 8 reads | ~37454 tok |
+
+## Session: 2026-06-11 17:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-11 18:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
