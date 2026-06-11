@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont, shellTokens } from "@/components/shared/tokens";
+import { C, monoFont } from "@/components/shared/tokens";
 import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
@@ -562,14 +562,14 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: C.paper },
   content: { paddingHorizontal: 18, paddingTop: 16, gap: 12 },
 
-  hero: { backgroundColor: shellTokens.bg, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 18, padding: 18, gap: 12 },
+  hero: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 18, padding: 18, gap: 12 },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
-  roomEyebrow: { color: shellTokens.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  roomNum: { fontFamily: monoFont, color: shellTokens.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
+  roomEyebrow: { color: C.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  roomNum: { fontFamily: monoFont, color: C.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
   statusBadge: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, marginTop: 4 },
   statusBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  heroMetaText: { color: shellTokens.ink2, backgroundColor: shellTokens.raised, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
+  heroMetaText: { color: C.ink2, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
 
   aiInsightCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.aiLine, borderRadius: 16, padding: 14, gap: 8 },
   aiInsightHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
