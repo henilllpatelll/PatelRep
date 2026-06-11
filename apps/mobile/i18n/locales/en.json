@@ -230,7 +230,8 @@
     "aiUnavailable": "AI is unavailable right now — try again in a moment.",
     "aiCreated": "Task created ✨",
     "emptyTitle": "No tasks assigned",
-    "emptyAiHint": "Type below to create one with AI — e.g. “Room 214 needs two extra towels”."
+    "emptyAiHint": "Type below to create one with AI — e.g. “Room 214 needs two extra towels”.",
+    "newTag": "New"
   },
   "profile": {
     "title": "Profile",

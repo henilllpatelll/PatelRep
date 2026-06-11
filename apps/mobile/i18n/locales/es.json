@@ -230,7 +230,8 @@
     "aiUnavailable": "La IA no está disponible ahora — intenta de nuevo en un momento.",
     "aiCreated": "Tarea creada ✨",
     "emptyTitle": "Sin tareas asignadas",
-    "emptyAiHint": "Escribe abajo para crear una con IA — p. ej. “El cuarto 214 necesita dos toallas extra”."
+    "emptyAiHint": "Escribe abajo para crear una con IA — p. ej. “El cuarto 214 necesita dos toallas extra”.",
+    "newTag": "Nueva"
   },
   "profile": {
     "title": "Perfil",

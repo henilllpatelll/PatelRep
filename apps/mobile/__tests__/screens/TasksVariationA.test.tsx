@@ -27,6 +27,7 @@ const EN: Record<string, string> = {
   "tasks.aiCreated": "Task created ✨",
   "tasks.aiUnavailable": "AI is unavailable right now — try again in a moment.",
   "tasks.aiNoTask": "I couldn't turn that into a task.",
+  "tasks.newTag": "New",
   "tasks.emptyTitle": "No tasks assigned",
   "tasks.emptyAiHint": "Type below to create one with AI.",
   "ai.briefing.sourceLocal": "Planned on device",
@@ -92,6 +93,7 @@ const mockTasks = [
   {
     id: "task-towels",
     title: "Deliver 2 extra towels to 214",
+    description: "Guest called front desk, prefers bath sheets",
     priority: "normal",
     source: "guest",
     ai_suggested: true,
@@ -128,6 +130,7 @@ describe("TasksScreen", () => {
     expect(getByText("Fix iron in 305")).toBeTruthy();
     expect(getByText("Restock cart - floor 2")).toBeTruthy();
     expect(getByText("Deliver 2 extra towels to 214")).toBeTruthy();
+    expect(getByText("Guest called front desk, prefers bath sheets")).toBeTruthy();
     expect(getByText("Deep-clean fridge - 122")).toBeTruthy();
     expect(getByText(/30m overdue|3[01]m overdue/)).toBeTruthy();
   });
@@ -183,6 +186,14 @@ describe("TasksScreen", () => {
     );
     expect(getByText("Bring crib to 412")).toBeTruthy();
 
+    // After creation the refreshed list contains the new task — it shows up highlighted
+    mockApiGet.mockResolvedValue({
+      data: [
+        ...mockTasks,
+        { id: "task-crib", title: "Bring crib to 412", priority: "high", task_type: "guest_request", rooms: { room_number: "412" } },
+      ],
+    });
+
     fireEvent.press(getByText("Create"));
 
     await waitFor(() =>
@@ -192,5 +203,7 @@ describe("TasksScreen", () => {
       ),
     );
     await waitFor(() => expect(getByText("Task created ✨")).toBeTruthy());
+    await waitFor(() => expect(getByText("Bring crib to 412")).toBeTruthy());
+    expect(getByText("New")).toBeTruthy();
   });
 });

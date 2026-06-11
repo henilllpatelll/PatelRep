@@ -43,6 +43,25 @@ const PRIORITY_STYLE: Record<string, { fg: string; bg: string; border: string }>
   low: { fg: C.ink3, bg: C.surface2, border: C.line2 },
 };
 
+/** Urgency rail on the card's left edge — same scanning language as room cards. */
+const BUCKET_RAIL: Record<TaskBucket, string> = {
+  overdue: C.alert,
+  now: C.caution,
+  today: C.line,
+};
+
+const TYPE_ICON: Record<string, { icon: React.ComponentProps<typeof Ionicons>["name"]; fg: string; bg: string }> = {
+  housekeeping: { icon: "brush-outline", fg: C.accent, bg: C.accentSoft },
+  maintenance: { icon: "construct-outline", fg: C.caution, bg: C.cautionSoft },
+  guest_request: { icon: "person-outline", fg: C.info, bg: C.infoSoft },
+  front_desk: { icon: "call-outline", fg: C.info, bg: C.infoSoft },
+  inspection: { icon: "shield-checkmark-outline", fg: C.ready, bg: C.readySoft },
+};
+
+function getTypeIcon(task: Task) {
+  return TYPE_ICON[(task.task_type ?? "").toLowerCase()] ?? { icon: "clipboard-outline" as const, fg: C.ink3, bg: C.surface2 };
+}
+
 function unwrapTasks(response: { data?: Task[] } | Task[]): Task[] {
   return Array.isArray(response) ? response : response.data ?? [];
 }
@@ -64,12 +83,13 @@ interface TaskRowProps {
   entry: TaskQueueEntry;
   confirming: boolean;
   busy: boolean;
+  isNew: boolean;
   onRequestComplete: () => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
+function TaskRow({ entry, confirming, busy, isNew, onRequestComplete, onConfirm, onCancel }: TaskRowProps) {
   const { t } = useTranslation();
   const { task, overdueMinutes } = entry;
   const room = getTaskRoomNumber(task);
@@ -77,22 +97,30 @@ function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCanc
   const prioStyle = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE.normal;
   const dueTime = formatDue(task.due_at);
   const isGuest = task.source === "guest" || task.task_type === "guest_request";
+  const typeIcon = getTypeIcon(task);
 
   return (
-    <View style={[styles.taskCard, entry.bucket === "overdue" && styles.taskCardOverdue]} testID={`task-${task.id}`}>
+    <View
+      style={[
+        styles.taskCard,
+        entry.bucket === "overdue" && styles.taskCardOverdue,
+        isNew && styles.taskCardNew,
+      ]}
+      testID={`task-${task.id}`}
+    >
+      <View style={[styles.taskRail, { backgroundColor: isNew ? C.accent : BUCKET_RAIL[entry.bucket] }]} />
       <View style={styles.taskMain}>
-        <TouchableOpacity
-          accessibilityLabel={t("tasks.markDone", { title: task.title })}
-          onPress={onRequestComplete}
-          disabled={busy || confirming}
-          style={styles.checkbox}
-          hitSlop={8}
-        >
-          {busy ? <ActivityIndicator size="small" color={C.accent} /> : null}
-        </TouchableOpacity>
+        <View style={[styles.typeTile, { backgroundColor: typeIcon.bg }]}>
+          <Ionicons name={typeIcon.icon} size={16} color={typeIcon.fg} />
+        </View>
         <View style={styles.taskBody}>
           <View style={styles.taskTitleRow}>
             <Text style={styles.taskTitle}>{task.title}</Text>
+            {isNew ? (
+              <View style={styles.newTag}>
+                <Text style={styles.newTagText}>{t("tasks.newTag")}</Text>
+              </View>
+            ) : null}
             {task.ai_suggested ? (
               <View style={styles.aiTag}>
                 <Ionicons name="sparkles" size={8} color={C.ai} />
@@ -100,6 +128,11 @@ function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCanc
               </View>
             ) : null}
           </View>
+          {task.description?.trim() ? (
+            <Text style={styles.taskDescription} numberOfLines={2}>
+              {task.description.trim()}
+            </Text>
+          ) : null}
           <View style={styles.taskMetaRow}>
             <View style={[styles.prioPill, { backgroundColor: prioStyle.bg, borderColor: prioStyle.border }]}>
               <Text style={[styles.prioText, { color: prioStyle.fg }]}>{priority.toUpperCase()}</Text>
@@ -123,7 +156,18 @@ function TaskRow({ entry, confirming, busy, onRequestComplete, onConfirm, onCanc
             ) : null}
           </View>
         </View>
-        <Text style={styles.positionText}>#{entry.position}</Text>
+        <View style={styles.taskRight}>
+          <TouchableOpacity
+            accessibilityLabel={t("tasks.markDone", { title: task.title })}
+            onPress={onRequestComplete}
+            disabled={busy || confirming}
+            style={[styles.checkbox, confirming && styles.checkboxArmed]}
+            hitSlop={8}
+          >
+            {busy ? <ActivityIndicator size="small" color={C.accent} /> : <Ionicons name="checkmark" size={15} color={confirming ? C.accent : C.ink4} />}
+          </TouchableOpacity>
+          <Text style={styles.positionText}>#{entry.position}</Text>
+        </View>
       </View>
 
       {confirming ? (
@@ -159,6 +203,8 @@ export default function TasksScreen() {
   const [aiPreview, setAiPreview] = useState<TaskPreview | null>(null);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiCreating, setAiCreating] = useState(false);
+  // Title of the task just created via AI — highlighted when it lands in the list
+  const [lastCreatedTitle, setLastCreatedTitle] = useState<string | null>(null);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -222,6 +268,7 @@ export default function TasksScreen() {
     setAiCreating(true);
     try {
       await confirmAITask(aiPreview);
+      setLastCreatedTitle(aiPreview.title);
       setAiPreview(null);
       setAiMessage(t("tasks.aiCreated"));
       await loadTasks();
@@ -303,6 +350,7 @@ export default function TasksScreen() {
                     entry={entry}
                     confirming={confirmingId === entry.task.id}
                     busy={busyId === entry.task.id}
+                    isNew={lastCreatedTitle != null && entry.task.title === lastCreatedTitle}
                     onRequestComplete={() => setConfirmingId(entry.task.id)}
                     onConfirm={() => completeTask(entry.task.id)}
                     onCancel={() => setConfirmingId(null)}
@@ -401,30 +449,59 @@ const styles = StyleSheet.create({
   taskStack: { gap: 9 },
 
   taskCard: {
+    position: "relative",
+    overflow: "hidden",
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 14,
-    paddingHorizontal: 13,
+    paddingLeft: 17,
+    paddingRight: 13,
     paddingVertical: 12,
     gap: 10,
+    shadowColor: C.ink,
+    shadowOpacity: 0.04,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  taskCardOverdue: { borderColor: C.alertLine, backgroundColor: C.surface },
+  taskCardOverdue: { borderColor: C.alertLine },
+  taskCardNew: { borderColor: C.accentLine, backgroundColor: C.surface },
+  taskRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
   taskMain: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
+  typeTile: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  taskRight: { alignItems: "center", gap: 6 },
   checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     borderWidth: 1.5,
     borderColor: C.line,
     backgroundColor: C.surface2,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 1,
   },
+  checkboxArmed: { borderColor: C.accent, backgroundColor: C.accentSoft },
   taskBody: { flex: 1, minWidth: 0, gap: 6 },
   taskTitleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
   taskTitle: { color: C.ink, fontSize: 14.5, fontWeight: "700", lineHeight: 19 },
+  taskDescription: { color: C.ink2, fontSize: 12.5, lineHeight: 17 },
+  newTag: {
+    backgroundColor: C.accentSoft,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  newTagText: { color: C.accent, fontSize: 8.5, fontWeight: "800", letterSpacing: 0.5 },
   aiTag: {
     flexDirection: "row",
     alignItems: "center",
