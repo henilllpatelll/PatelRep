@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import (
-    CopilotChatRequest,
+    CopilotChatRequest, HousekeepingBriefingRequest,
     WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
 )
 from core.database import supabase
@@ -12,6 +12,7 @@ from services.ai.work_order_parser import parse_work_orders
 from services.ai.guest_request_parser import parse_guest_requests
 from services.ai.assignment_parser import parse_assignments
 from services.ai.sop_rag import query_sop
+from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
 from services.policy import check_action_permitted
 import openai
@@ -377,6 +378,45 @@ async def copilot_chat(
         success=True,
     )
     return {"data": response_payload}
+
+
+@router.post("/housekeeping/briefing")
+async def housekeeping_shift_briefing(
+    request: HousekeepingBriefingRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
+):
+    """AI shift briefing for the housekeeper's assigned rooms.
+
+    The mobile app sends compact room summaries and renders a local heuristic
+    briefing when this returns 503, so AI failures must not leak provider detail.
+    """
+    start = time.time()
+    credits = 0
+    try:
+        result = generate_shift_briefing(
+            [room.model_dump() for room in request.rooms],
+            request.language,
+        )
+        credits = await check_and_deduct_credits(current_user.hotel_id, "housekeeping_briefing")
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="housekeeping_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=result["prompt_tokens"],
+            completion_tokens=result["completion_tokens"], latency_ms=latency, success=True,
+        )
+        return {"data": {**result["briefing"], "credits_used": credits, "model_used": "claude-sonnet-4-6"}}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        latency = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="housekeeping_briefing", model_used="claude-sonnet-4-6",
+            credits_charged=credits, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency, success=False, error_message=str(exc),
+        )
+        raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
 
 
 @router.post("/tasks/confirm")

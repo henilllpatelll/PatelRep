@@ -94,7 +94,8 @@ describe("RoomDetailScreen", () => {
   it("shows Before you enter near the top for unsafe rooms and does not offer Start", async () => {
     mockRooms = [
       makeRoom({
-        status: "DIRTY",
+        // OCCUPIED departure: the only case that warns "Not checked out"
+        status: "OCCUPIED",
         clean_type: "DEP",
         clean_type_label: "Departure",
         dnd_flag: true,

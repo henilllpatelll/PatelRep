@@ -14,8 +14,9 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { localDate } from "@/lib/utils/date";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import {
   Avatar,
   CopilotHero,
@@ -27,6 +28,9 @@ import {
   ProgressRing,
   SectionLabel,
 } from "@/components/shared/mobileHandoff";
+import { AIBriefingCard, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
+import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
+import { getRoomQueueBucket } from "@/lib/housekeeping/roomWorkflow";
 
 const ENGINEER_ORDERS = [
   { id: "WO-1141", title: "Replace fan-coil belt", loc: "R-209 - zone B", pri: "HIGH", tone: "alert" as const, meta: "22m", active: true },
@@ -36,50 +40,8 @@ const ENGINEER_ORDERS = [
 
 const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; border: string }> = {
-  DIRTY:         { label: "Vacant Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  OCCUPIED:      { label: "Occupied Dirty",                bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  PICKUP:        { label: "Pickup",                        bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  IN_PROGRESS:   { label: "In Progress",                   bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  CLEAN:         { label: "Clean",                         bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
-  INSPECTED:     { label: "Inspected / Ready",             bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
-  OOO:           { label: "Out of Order",                  bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
-  OUT_OF_ORDER:  { label: "Out of Order",                  bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
-  OUT_OF_SERVICE:{ label: "Out of Service",                bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
-};
-
-const CLEAN_TYPE_SHORT: Record<string, string> = { DEP: "Departure", FULL: "Full", LIGHT: "Light" };
-
-function formatCheckoutTime(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  } catch { return null; }
-}
-
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
-}
-
-function roomMeta(room: Room, index: number) {
-  if (room.status === "IN_PROGRESS") return "in progress";
-  if (index === 0) return "next";
-  if (room.vip_flag && room.checkin_time) return "by 3pm";
-  return `${index + 1}th`;
-}
-
-function sortNextRooms(rooms: Room[]) {
-  const score = (room: Room) => {
-    if (room.vip_flag) return 3;
-    if (room.status === "IN_PROGRESS") return 0;
-    if (room.status === "DIRTY") return 1;
-    if (room.status === "PICKUP") return 2;
-    return 4;
-  };
-
-  return rooms
-    .filter((room) => !DONE_STATUSES.has(room.status))
-    .sort((a, b) => score(a) - score(b) || a.room_number.localeCompare(b.room_number, undefined, { numeric: true }));
 }
 
 function dynamicShiftMeta(languagePref: string, suffix: string): string {
@@ -90,69 +52,17 @@ function dynamicShiftMeta(languagePref: string, suffix: string): string {
   return `${weekday} · ${month} ${now.getDate()} · ${suffix}`;
 }
 
-function DashboardRoomCard({ room, index, onPress }: { room: Room; index: number; onPress: () => void }) {
-  const status = room.status ?? "DIRTY";
-  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: C.surface3, fg: C.ink3, border: C.line };
-  const roomType = room.rooms?.room_types?.name ?? null;
-  const cleanTypeLabel = room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null;
-  const checkoutIso = room.actual_checkout_at ?? room.checkout_time ?? null;
-  const checkoutLabel = room.actual_checkout_at ? "Checked out" : "Due out";
-  const checkoutTime = formatCheckoutTime(checkoutIso);
-
-  return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.roomCard}>
-      {status === "OCCUPIED" ? (
-        <View style={styles.occupiedRail}>
-          {[0, 1, 2].map((stripe) => (
-            <View key={stripe} style={styles.occupiedRailStripe} />
-          ))}
-        </View>
-      ) : (
-        <View style={[styles.statusRail, { backgroundColor: cfg.fg }]} />
-      )}
-      <View style={styles.roomCardLeft}>
-        <View style={styles.roomCardTitleRow}>
-          <Text style={styles.roomCardNum}>{room.room_number}</Text>
-          {room.vip_flag ? (
-            <View style={styles.roomVipBadge}><Text style={styles.roomVipText}>VIP</Text></View>
-          ) : null}
-        </View>
-        {roomType ? <Text style={styles.roomType}>{roomType}</Text> : null}
-        <View style={styles.roomPillRow}>
-          <View style={[styles.roomPill, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-            <Text style={[styles.roomPillText, { color: cfg.fg }]}>{cfg.label}</Text>
-          </View>
-          {cleanTypeLabel ? (
-            <View style={styles.cleanTypeRow}>
-              {room.clean_type === "DEP" ? <Ionicons name="log-out-outline" size={10} color={C.alert} /> : null}
-              <Text style={[styles.cleanTypeText, { color: room.clean_type === "DEP" ? C.alert : C.caution }]}>
-                {cleanTypeLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        {checkoutTime ? (
-          <View style={styles.roomTimeRow}>
-            <Ionicons name="time-outline" size={12} color={C.ink3} />
-            <Text style={styles.roomTimeText}>{checkoutLabel} {checkoutTime}</Text>
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.roomCardRight}>
-        <Mono style={styles.roomMeta}>{roomMeta(room, index)}</Mono>
-        <Ionicons name="chevron-forward" size={14} color={C.ink4} style={{ marginTop: 6 }} />
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 export default function HousekeeperHomeScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { user, isOnline, myRooms, setMyRooms } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
   const isEngineer = effectiveRole === "engineer" || effectiveRole === "chief_engineer";
   const [loading, setLoading] = useState(myRooms.length === 0);
   const [refreshing, setRefreshing] = useState(false);
+  const [aiBriefing, setAiBriefing] = useState<ShiftBriefing | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const language: "en" | "es" = user?.language_pref === "es" ? "es" : "en";
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
@@ -183,16 +93,28 @@ export default function HousekeeperHomeScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const nextRooms = useMemo(() => sortNextRooms(myRooms), [myRooms]);
+  const smartQueue = useMemo(() => buildSmartQueue(myRooms), [myRooms]);
+  const localBriefing = useMemo(
+    () => (myRooms.length > 0 ? buildLocalBriefing(myRooms, t) : null),
+    [myRooms, t],
+  );
+  const briefing = aiBriefing ?? localBriefing;
   const doneCount = myRooms.filter((room) => DONE_STATUSES.has(room.status)).length;
   const remainingCount = Math.max(0, myRooms.length - doneCount);
   const vipCount = myRooms.filter((room) => room.vip_flag && !DONE_STATUSES.has(room.status)).length;
-  const actionRooms = nextRooms.filter((room) => room.status !== "IN_PROGRESS");
-  const firstRoom = actionRooms[0] ?? nextRooms[0];
-  const planRooms = (actionRooms.length > 0 ? actionRooms : nextRooms)
-    .slice(0, 3)
-    .map((room) => room.room_number)
-    .join(" → ");
+  const attentionCount = useMemo(
+    () => myRooms.filter((room) => getRoomQueueBucket(room) === "needs_attention").length,
+    [myRooms],
+  );
+  const firstEntry = getStartEntry(smartQueue);
+
+  const requestAiBriefing = useCallback(async () => {
+    if (briefingLoading || myRooms.length === 0) return;
+    setBriefingLoading(true);
+    const result = await fetchShiftBriefing(myRooms, language, t, isOnline);
+    setAiBriefing(result);
+    setBriefingLoading(false);
+  }, [briefingLoading, myRooms, language, t, isOnline]);
 
   if (isEngineer) {
     return <EngineerHomeScreen name={user?.full_name ?? "Engineer"} />;
@@ -220,13 +142,14 @@ export default function HousekeeperHomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      {/* Evening Lobby shell hero */}
+      <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerTop}>
           <Avatar name={user?.full_name ?? "Staff"} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
-        <Text style={styles.headerMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
-        <Text style={styles.title}>{t("home.greeting", { name: firstName(user?.full_name) })}</Text>
+        <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
+        <Text style={styles.shellTitle}>{t("home.greeting", { name: firstName(user?.full_name) })}</Text>
       </View>
 
       <ScrollView
@@ -234,50 +157,58 @@ export default function HousekeeperHomeScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
       >
-        <CopilotHero
-          kicker={t("home.copilotKicker")}
-          confidence={92}
-          actions={
-            firstRoom ? (
-              <>
-                <HeroButton primary onPress={() => router.push(`/(app)/my-rooms/${firstRoom.id}`)}>
-                  {t("home.startWith", { room: firstRoom.room_number })}
-                </HeroButton>
-                <HeroButton>{t("home.seePlan")}</HeroButton>
-                <HeroButton icon="sparkles" onPress={() => router.push("/(app)/copilot")}>
-                  {t("home.askAI")}
-                </HeroButton>
-              </>
-            ) : undefined
-          }
-          foot={
-            <>
-              <Ionicons name="time-outline" size={11} color="rgba(241,237,228,0.5)" />
-              <Mono style={styles.heroFootText}>{t("home.savesMins")}</Mono>
-            </>
-          }
-        >
-          <Text style={styles.heroSentence}>{t("home.aiPrioritized")}</Text>
-          <Text style={styles.heroSentence}>{t("home.roomsLeft", { count: remainingCount })}</Text>
-          {firstRoom ? (
-            <Text>
-              {" "}
-              {t("home.copilotPlanBefore")}
-              <Text style={styles.heroStrong}>{planRooms}</Text>
-              {t("home.copilotPlanAfter")}
-            </Text>
-          ) : (
-            <Text>{t("home.boardClear")}</Text>
-          )}
-        </CopilotHero>
+        {briefing ? (
+          <AIBriefingCard
+            kicker={t("ai.briefing.kicker")}
+            headline={briefing.headline}
+            planLabel={t("ai.briefing.planLabel")}
+            plan={briefing.plan}
+            watchouts={briefing.watchouts}
+            loading={briefingLoading}
+            footNote={`${briefing.source === "ai" ? t("ai.briefing.sourceAi") : t("ai.briefing.sourceLocal")} · ${t("ai.briefing.estTotal", { minutes: briefing.estimatedMinutes })}`}
+          >
+            <View style={styles.briefingActions}>
+              {firstEntry ? (
+                <TouchableOpacity
+                  style={styles.briefingPrimaryBtn}
+                  onPress={() => router.push(`/(app)/my-rooms/${firstEntry.room.id}`)}
+                  activeOpacity={0.86}
+                >
+                  <Text style={styles.briefingPrimaryText}>{t("home.startWith", { room: firstEntry.room.room_number })}</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.briefingGhostBtn}
+                onPress={() => void requestAiBriefing()}
+                disabled={briefingLoading}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="sparkles" size={12} color="#CBB8F0" />
+                <Text style={styles.briefingGhostText}>{t("ai.briefing.refresh")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.briefingGhostBtn}
+                onPress={() => router.push("/(app)/copilot")}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.briefingGhostText}>{t("home.askAI")}</Text>
+              </TouchableOpacity>
+            </View>
+          </AIBriefingCard>
+        ) : null}
 
         <View style={styles.paceCard}>
           <ProgressRing value={doneCount} total={myRooms.length || 0} />
           <View style={styles.paceBody}>
-            <Text style={styles.paceTitle}>{t("home.aheadByMins")}</Text>
-            <Text style={styles.paceSub}>{t("home.avgTarget")}</Text>
+            <Text style={styles.paceTitle}>{t("home.roomsLeft", { count: remainingCount })}</Text>
             <View style={styles.pillRow}>
-              <Pill tone="ready">{t("home.onPace")}</Pill>
+              {attentionCount > 0 ? (
+                <Pill tone="alert" icon="alert-circle-outline">
+                  {attentionCount}
+                </Pill>
+              ) : (
+                <Pill tone="ready">{t("home.onPace")}</Pill>
+              )}
               {vipCount > 0 ? (
                 <Pill tone="accent" icon="star">
                   {vipCount} VIP
@@ -287,27 +218,27 @@ export default function HousekeeperHomeScreen() {
           </View>
         </View>
 
-        <View>
-          <SectionLabel
-            hint={`${Math.min(3, nextRooms.length)} of ${remainingCount}`}
+        <View style={styles.upNextBlock}>
+          <SectionHeader
+            title={t("home.upNext")}
+            hint={`${Math.min(3, smartQueue.length)} / ${remainingCount}`}
             action={
               <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)}>
                 <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
               </TouchableOpacity>
             }
-          >
-            {t("home.upNext")}
-          </SectionLabel>
+          />
           <View style={styles.rows}>
-            {nextRooms.slice(0, 3).map((room, index) => (
-              <DashboardRoomCard
-                key={room.id}
-                room={room}
-                index={index}
-                onPress={() => router.push(`/(app)/my-rooms/${room.id}`)}
+            {smartQueue.slice(0, 3).map((entry) => (
+              <RoomQueueCard
+                key={entry.room.id}
+                room={entry.room}
+                position={entry.position}
+                estimateMinutes={entry.estimateMinutes}
+                onPress={() => router.push(`/(app)/my-rooms/${entry.room.id}`)}
               />
             ))}
-            {nextRooms.length === 0 ? (
+            {smartQueue.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
                 <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
@@ -626,12 +557,56 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 13,
   },
-  heroSentence: {
-    fontStyle: "italic",
-    fontSize: 19,
-    lineHeight: 26,
-    color: C.paper,
+  shellHeader: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    backgroundColor: shellTokens.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: shellTokens.line,
   },
+  shellHeaderMeta: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: shellTokens.ink3,
+    marginBottom: 4,
+  },
+  shellTitle: {
+    fontSize: 30,
+    fontWeight: "600",
+    lineHeight: 34,
+    color: shellTokens.ink,
+  },
+  briefingActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 2,
+  },
+  briefingPrimaryBtn: {
+    backgroundColor: C.accent,
+    borderRadius: 11,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  briefingPrimaryText: { color: "#fff", fontSize: 13.5, fontWeight: "800" },
+  briefingGhostBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: shellTokens.line,
+    backgroundColor: shellTokens.surface,
+    borderRadius: 11,
+    minHeight: 44,
+    paddingHorizontal: 13,
+    justifyContent: "center",
+  },
+  briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
+  upNextBlock: { gap: 9 },
   heroStrong: {
     fontFamily: monoFont,
     fontStyle: "normal",
@@ -659,11 +634,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: C.ink,
-  },
-  paceSub: {
-    fontSize: 12,
-    color: C.ink3,
-    marginTop: 2,
   },
   pillRow: {
     flexDirection: "row",
@@ -700,53 +670,6 @@ const styles = StyleSheet.create({
     color: C.ink3,
     marginTop: 4,
   },
-  roomCard: {
-    position: "relative",
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 16,
-    paddingLeft: 18,
-    backgroundColor: C.surface,
-    borderRadius: R.lg,
-    borderWidth: 1,
-    borderColor: C.line,
-  },
-  statusRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
-  occupiedRail: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-    justifyContent: "space-evenly",
-    backgroundColor: C.alertSoft,
-  },
-  occupiedRailStripe: { height: "22%", backgroundColor: C.occupied },
-  roomCardLeft: { flex: 1, minWidth: 0 },
-  roomCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  roomCardNum: { fontFamily: monoFont, fontSize: 29, lineHeight: 33, fontWeight: "700", color: C.ink },
-  roomVipBadge: {
-    backgroundColor: C.accentSoft,
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderWidth: 1,
-    borderColor: C.accentLine,
-  },
-  roomVipText: { fontSize: 9, fontWeight: "700", color: C.accent },
-  roomType: { fontSize: 13.5, color: C.ink3, marginBottom: 6, marginTop: 1 },
-  roomPillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" as const },
-  roomPill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 3, minHeight: 24 },
-  roomPillText: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  cleanTypeText: { fontSize: 10, fontWeight: "700" },
-  roomTimeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  roomTimeText: { fontFamily: monoFont, fontSize: 11, color: C.ink2 },
-  roomCardRight: { alignItems: "flex-end", flexShrink: 0 },
-
   engineerStats: {
     flexDirection: "row",
     gap: 9,

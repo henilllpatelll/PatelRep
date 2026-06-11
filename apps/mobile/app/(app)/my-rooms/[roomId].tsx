@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
@@ -16,11 +16,12 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, monoFont } from "@/components/shared/tokens";
+import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 import { getBeforeEnterWarnings, getRoomAction } from "@/lib/housekeeping/roomWorkflow";
+import { buildRoomInsight } from "@/lib/ai/briefing";
 
 const STATUS_COLOR: Record<string, string> = {
   DIRTY: C.alert,
@@ -230,15 +231,26 @@ export default function RoomDetailScreen() {
 
   function handleUndo() {
     if (!room || !isOnline) return;
-    setStatusLoading(true);
-    api
-      .post<{ data: { status?: Room["status"] } }>(`/rooms/${room.id}/status/undo`, {})
-      .then((response) => {
-        const nextStatus = response.data?.status;
-        if (nextStatus) updateLocalRoom(room.id, { status: nextStatus, updated_at: new Date().toISOString() });
-      })
-      .catch((err: unknown) => Alert.alert("Error", (err as Error).message ?? "Failed to undo"))
-      .finally(() => setStatusLoading(false));
+    // Undo rolls room status back through history — always confirm first so an
+    // accidental tap can't distort the housekeeping flow or clean-time analytics.
+    Alert.alert(t("rooms.undoConfirmTitle", "Undo last status?"), t("rooms.undoConfirmBody", "This rolls the room back to its previous status."), [
+      { text: t("common.cancel", "Cancel"), style: "cancel" },
+      {
+        text: t("rooms.undoConfirm", "Undo"),
+        style: "destructive",
+        onPress: () => {
+          setStatusLoading(true);
+          api
+            .post<{ data: { status?: Room["status"] } }>(`/rooms/${room.id}/status/undo`, {})
+            .then((response) => {
+              const nextStatus = response.data?.status;
+              if (nextStatus) updateLocalRoom(room.id, { status: nextStatus, updated_at: new Date().toISOString() });
+            })
+            .catch((err: unknown) => Alert.alert("Error", (err as Error).message ?? "Failed to undo"))
+            .finally(() => setStatusLoading(false));
+        },
+      },
+    ]);
   }
 
   async function submitNote(text: string) {
@@ -293,6 +305,8 @@ export default function RoomDetailScreen() {
   const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
   const warnings = getBeforeEnterWarnings(room);
   const checklist = CHECKLISTS[room.clean_type ?? ""] ?? CHECKLISTS.LIGHT;
+  const insight = buildRoomInsight(room, myRooms, t);
+  const checkedCount = checklist.filter((item) => checkedItems[item]).length;
   const timingRows = [
     { label: "Guest", value: room.guest_name },
     { label: "FO status", value: room.fo_status },
@@ -343,6 +357,29 @@ export default function RoomDetailScreen() {
             ) : null}
           </View>
         </View>
+
+        {insight.lines.length > 0 ? (
+          <View style={styles.aiInsightCard}>
+            <View style={styles.aiInsightHeader}>
+              <Ionicons name="sparkles" size={13} color={C.ai} />
+              <Text style={styles.aiInsightTitle}>{t("ai.insight.title")}</Text>
+            </View>
+            {insight.lines.map((line) => (
+              <View key={line.key} style={styles.aiInsightRow}>
+                <View style={styles.aiInsightDot} />
+                <Text style={styles.aiInsightText}>{line.text}</Text>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={styles.aiAskBtn}
+              onPress={() => router.push("/(app)/copilot")}
+              activeOpacity={0.82}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={13} color={C.ai} />
+              <Text style={styles.aiAskText}>{t("ai.askAboutRoom")}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {warnings.length > 0 ? (
           <View style={styles.warningSection}>
@@ -459,7 +496,10 @@ export default function RoomDetailScreen() {
         </View>
 
         <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Cleaning Checklist</Text>
+          <View style={styles.checklistHeader}>
+            <Text style={styles.sectionTitle}>Cleaning Checklist</Text>
+            <Text style={styles.checklistCount}>{checkedCount}/{checklist.length}</Text>
+          </View>
           <View style={styles.checklist}>
             {checklist.map((item) => {
               const checked = Boolean(checkedItems[item]);
@@ -522,14 +562,37 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: C.paper },
   content: { paddingHorizontal: 18, paddingTop: 16, gap: 12 },
 
-  hero: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 16, gap: 12 },
+  hero: { backgroundColor: shellTokens.bg, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 18, padding: 18, gap: 12 },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
-  roomEyebrow: { color: C.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  roomNum: { fontFamily: monoFont, color: C.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
+  roomEyebrow: { color: shellTokens.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  roomNum: { fontFamily: monoFont, color: shellTokens.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
   statusBadge: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, marginTop: 4 },
   statusBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  heroMetaText: { color: C.ink2, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
+  heroMetaText: { color: shellTokens.ink2, backgroundColor: shellTokens.raised, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
+
+  aiInsightCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.aiLine, borderRadius: 16, padding: 14, gap: 8 },
+  aiInsightHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  aiInsightTitle: { color: C.ai, fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
+  aiInsightRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  aiInsightDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.ai, marginTop: 6 },
+  aiInsightText: { flex: 1, color: C.ink2, fontSize: 13, lineHeight: 18 },
+  aiAskBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 3,
+    minHeight: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    backgroundColor: C.aiSoft,
+  },
+  aiAskText: { color: C.ai, fontSize: 12.5, fontWeight: "800" },
+
+  checklistHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  checklistCount: { fontFamily: monoFont, color: C.ink3, fontSize: 12, fontWeight: "800" },
   cleanTypeChip: {
     flexDirection: "row",
     alignItems: "center",

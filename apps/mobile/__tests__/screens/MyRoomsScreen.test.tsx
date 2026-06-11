@@ -108,17 +108,18 @@ beforeEach(() => {
 });
 
 describe("MyRoomsScreen", () => {
-  it("renders assignment progress and summary chips", async () => {
+  it("renders the shell header progress and smart-order queue by default", async () => {
     const { getAllByText, getByText } = render(<MyRoomsScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    expect(getByText("6 assigned")).toBeTruthy();
-    expect(getByText("1 / 6 completed")).toBeTruthy();
-    expect(getAllByText("Needs Attention").length).toBeGreaterThanOrEqual(2);
-    expect(getByText("To Clean")).toBeTruthy();
-    expect(getAllByText("In Progress").length).toBeGreaterThanOrEqual(1);
-    expect(getAllByText("Ready").length).toBeGreaterThanOrEqual(2);
+    expect(getByText("rooms.title")).toBeTruthy();
+    expect(getByText("1/6")).toBeTruthy();
+    expect(getByText("17%")).toBeTruthy();
+    // toggle + smart section header
+    expect(getAllByText("ai.smartOrder").length).toBeGreaterThanOrEqual(2);
+    expect(getByText("ai.byStatus")).toBeTruthy();
+    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
   });
 
   it("renders departure, full, and light clean-type labels", async () => {
@@ -159,27 +160,28 @@ describe("MyRoomsScreen", () => {
     await waitFor(() => expect(getByText("NEEDS ATTENTION")).toBeTruthy());
     expect(getByText("102")).toBeTruthy();
     expect(getByText("DND")).toBeTruthy();
-    expect(getByText("Not Checked Out")).toBeTruthy();
     expect(getByText("Review")).toBeTruthy();
     expect(queryByText("Start")).toBeNull();
   });
 
-  it("puts checked-out departure rooms in Next to Clean", async () => {
+  it("puts checked-out departure rooms in the smart queue with a Start action", async () => {
     mockRooms = [mockRooms[0], mockRooms[1]];
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
     const { getByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
+    await waitFor(() => expect(getByText("Start")).toBeTruthy());
     expect(getByText("101")).toBeTruthy();
-    expect(getByText("Start")).toBeTruthy();
     expect(getByText("NEEDS ATTENTION")).toBeTruthy();
     expect(getByText("102")).toBeTruthy();
   });
 
-  it("filter chips switch visible sections", async () => {
+  it("by-status mode filter chips switch visible sections", async () => {
     const { getByText, queryByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(getByText("ai.byStatus")).toBeTruthy());
+    fireEvent.press(getByText("ai.byStatus"));
 
     await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
     expect(getByText("NEEDS ATTENTION")).toBeTruthy();

@@ -136,7 +136,10 @@
     "issueSubmitted": "Problema reportado exitosamente",
     "issueCategory": "Categoría",
     "checkinTime": "Check-in: {{time}}",
-    "submit": "Enviar"
+    "submit": "Enviar",
+    "undoConfirmTitle": "¿Deshacer último estado?",
+    "undoConfirmBody": "Esto regresa el cuarto a su estado anterior.",
+    "undoConfirm": "Deshacer"
   },
   "workOrders": {
     "title": "Órdenes de Trabajo",
@@ -395,5 +398,35 @@
     "offlineWarning": "Sin conexión. Conéctate para guardar esta entrada.",
     "saveError": "No se pudo guardar la entrada. Intenta de nuevo.",
     "save": "Guardar Entrada"
+  },
+  "ai": {
+    "briefing": {
+      "kicker": "Resumen IA del turno",
+      "planLabel": "Orden sugerido",
+      "startWith": "Empieza con el cuarto {{room}} — es la ruta más rápida de tu lista.",
+      "startVip": "Empieza con el cuarto {{room}} — huésped VIP, déjalo perfecto temprano.",
+      "startArrival": "Empieza con el cuarto {{room}} — el próximo huésped llega pronto.",
+      "allClear": "Todo al día. Todos tus cuartos asignados están atendidos.",
+      "onlyAttentionLeft": "{{count}} cuarto(s) necesitan revisión antes de empezar a limpiar.",
+      "dndWatchout": "No Molestar activo en {{count}} cuarto(s) — omite hasta que se libere.",
+      "woWatchout": "Órdenes de trabajo abiertas en {{count}} cuarto(s).",
+      "arrivalWatchout": "Llegadas en menos de 4 horas: {{count}} cuarto(s).",
+      "estTotal": "~{{minutes}} min de limpieza restante",
+      "sourceAi": "Generado por IA",
+      "sourceLocal": "Planificado en el dispositivo",
+      "refresh": "Nuevo plan"
+    },
+    "insight": {
+      "title": "Análisis IA",
+      "position": "#{{position}} de {{count}} en tu orden inteligente",
+      "eta": "Estimado {{minutes}} min para esta limpieza",
+      "vip": "Huésped VIP — atención extra a la presentación.",
+      "arrival": "El próximo huésped llega en menos de 4 horas — prioriza este cuarto.",
+      "checkedOut": "El huésped ya hizo checkout — seguro entrar.",
+      "risk": "La IA marca este cuarto en riesgo de no estar listo a tiempo."
+    },
+    "smartOrder": "Orden inteligente",
+    "byStatus": "Por estado",
+    "askAboutRoom": "Pregunta a la IA sobre este cuarto"
   }
 }

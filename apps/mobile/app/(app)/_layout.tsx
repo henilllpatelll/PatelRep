@@ -77,20 +77,21 @@ export default function AppLayout() {
       <OfflineBanner />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: C.primary,
-          tabBarInactiveTintColor: C.ink4,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+          tabBarActiveTintColor: C.shellInk,
+          tabBarInactiveTintColor: C.shellInk3,
+          tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
           tabBarStyle: {
-            backgroundColor: C.surface,
-            borderTopColor: C.line,
+            backgroundColor: C.shell,
+            borderTopColor: C.shellLine,
+            borderTopWidth: 1,
             height: 76,
             paddingTop: 8,
             paddingBottom: 12,
-            shadowColor: C.ink,
-            shadowOpacity: 0.08,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
             shadowRadius: 12,
             shadowOffset: { width: 0, height: -4 },
-            elevation: 8,
+            elevation: 10,
           },
           headerStyle: { backgroundColor: C.paper },
           headerTintColor: C.ink,
@@ -120,10 +121,10 @@ export default function AppLayout() {
                           height: 40,
                           padding: 10,
                           borderWidth: 3,
-                          borderColor: C.surface,
+                          borderColor: C.shell,
                           shadowColor: C.ai,
-                          shadowOpacity: 0.3,
-                          shadowRadius: 8,
+                          shadowOpacity: 0.45,
+                          shadowRadius: 10,
                           shadowOffset: { width: 0, height: 3 },
                         }
                       : undefined

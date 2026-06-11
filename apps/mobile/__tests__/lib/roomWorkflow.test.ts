@@ -148,8 +148,9 @@ describe("roomWorkflow helpers", () => {
     expect(isArrivalSoon(arrival, now)).toBe(true);
     expect(getPrimaryTimingLine(arrival, now)?.label).toBe("Arrival");
     expect(getPrimaryTimingLine(arrival, now)?.value).toMatch(/\d+:\d{2}\s[AP]M/);
+    // "Not checked out" is only warned for OCCUPIED departures — a vacant-dirty
+    // DEP room without a checkout timestamp is safe to enter.
     expect(getBeforeEnterWarnings(arrival, now).map((warning) => warning.label)).toEqual([
-      "Not checked out",
       "Latest note",
       "Arrival soon",
     ]);

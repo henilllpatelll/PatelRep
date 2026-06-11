@@ -666,3 +666,21 @@ class ShiftBreakRequest(SanitizedBaseModel):
 
 class EndShiftRequest(SanitizedBaseModel):
     ended_at: datetime
+
+
+class BriefingRoomItem(SanitizedBaseModel):
+    room_number: str = Field(min_length=1, max_length=10)
+    status: str = Field(min_length=1, max_length=20)
+    clean_type: Optional[str] = Field(default=None, max_length=10)
+    vip_flag: bool = False
+    dnd_flag: bool = False
+    guest_may_be_inside: bool = False
+    open_work_order: bool = False
+    checkin_time: Optional[str] = Field(default=None, max_length=40)
+    actual_checkout_at: Optional[str] = Field(default=None, max_length=40)
+    base_clean_minutes: Optional[int] = Field(default=None, ge=0, le=600)
+
+
+class HousekeepingBriefingRequest(SanitizedBaseModel):
+    rooms: List[BriefingRoomItem] = Field(min_length=1, max_length=60)
+    language: Literal["en", "es"] = "en"

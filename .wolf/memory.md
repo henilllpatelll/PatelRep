@@ -4718,3 +4718,40 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 01:12 | Created apps/api/services/ai/housekeeping_briefing.py | — | ~989 |
+| 01:12 | Edited apps/api/routers/ai_copilot.py | 4→4 lines | ~42 |
+| 01:12 | Edited apps/api/routers/ai_copilot.py | added 1 import(s) | ~32 |
+| 01:12 | Edited apps/api/routers/ai_copilot.py | modified housekeeping_shift_briefing() | ~534 |
+| 01:13 | Created apps/mobile/components/shared/tokens.ts | — | ~1478 |
+| 01:14 | Created apps/mobile/lib/ai/briefing.ts | — | ~1946 |
+| 01:15 | Created apps/mobile/components/shared/evening.tsx | — | ~3921 |
+| 01:15 | Edited apps/mobile/app/(app)/_layout.tsx | CSS: borderTopWidth | ~226 |
+| 01:15 | Edited apps/mobile/app/(app)/_layout.tsx | 16→16 lines | ~188 |
+| 01:16 | Edited apps/mobile/app/(app)/home/index.tsx | added 4 import(s) | ~186 |
+| 01:17 | Edited apps/mobile/app/(app)/home/index.tsx | removed 111 lines | ~160 |
+| 01:17 | Edited apps/mobile/app/(app)/home/index.tsx | CSS: language | ~192 |
+| 01:17 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~293 |
+| 01:18 | Edited apps/mobile/app/(app)/home/index.tsx | rgba() → requestAiBriefing() | ~1296 |
+| 01:18 | Edited apps/mobile/app/(app)/home/index.tsx | expanded (+44 lines) | ~353 |
+| 01:18 | Edited apps/mobile/app/(app)/home/index.tsx | removed 6 lines | ~4 |
+| 01:18 | Edited apps/mobile/app/(app)/home/index.tsx | removed 48 lines | ~6 |
+| 01:19 | Created apps/mobile/app/(app)/my-rooms/index.tsx | — | ~4268 |
+| 01:19 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~18 |
+| 01:19 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 import(s) | ~123 |
+| 01:19 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified handleUndo() | ~314 |
+| 01:20 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→4 lines | ~73 |
+| 01:20 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+23 lines) | ~302 |
+| 01:20 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→6 lines | ~89 |
+| 01:20 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+23 lines) | ~579 |
+| 01:20 | Edited apps/mobile/app/(app)/copilot/index.tsx | 2→5 lines | ~76 |
+| 01:21 | Edited apps/mobile/app/(app)/copilot/index.tsx | expanded (+11 lines) | ~125 |
+| 01:21 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~26 |
+| 01:23 | Edited apps/mobile/lib/ai/briefing.ts | added nullish coalescing | ~270 |
+| 01:23 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~37 |
+| 01:23 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~14 |
+| 01:24 | Edited apps/mobile/components/shared/evening.tsx | added nullish coalescing | ~344 |
+| 01:24 | Edited apps/mobile/components/shared/evening.tsx | 3→4 lines | ~44 |
+| 01:24 | Edited apps/mobile/components/shared/evening.tsx | 1→4 lines | ~40 |
+| 01:25 | Edited apps/mobile/__tests__/components/MobileVisualTokens.test.ts | 9→9 lines | ~122 |
+| 01:26 | Created apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | — | ~1427 |
+| 2026-06-11 | Mobile housekeeper redesign: Evening Lobby tokens/tab bar, AI briefing (new API endpoint + local fallback), smart-order My Rooms, AI insight room detail, undo confirm | apps/mobile tokens/evening/briefing/home/my-rooms/[roomId]/copilot, apps/api ai_copilot+housekeeping_briefing | 54/54 mobile tests, 222 API smoke, tsc clean | ~80k |
