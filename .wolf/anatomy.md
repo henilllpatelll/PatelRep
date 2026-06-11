@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T13:36:30.659Z
-> Files: 13 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T14:23:23.191Z
+> Files: 15 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -482,6 +482,8 @@
 
 ## apps/mobile/
 
+- `_patch_tasks.py` — enum: getTypeIcon (~428 tok)
+- `_taskrow.tsx.txt` — TaskRowProps: formatStamp, TaskRow (~1796 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -531,7 +533,7 @@
 
 ## apps/mobile/app/(app)/copilot/
 
-- `index.tsx` — HISTORY_KEY (~4592 tok)
+- `index.tsx` — HISTORY_KEY (~4667 tok)
 
 ## apps/mobile/app/(app)/guest-requests/
 
@@ -586,7 +588,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — BUCKET_TITLES (~5789 tok)
+- `index.tsx` — Urgency rail on the card's left edge — same scanning language as room cards. (~8088 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -623,7 +625,7 @@
 ## apps/mobile/lib/ai/
 
 - `briefing.ts` — Room numbers in suggested cleaning order (~2065 tok)
-- `tasks.ts` — Minutes past due (positive) when overdue, otherwise null (~1436 tok)
+- `tasks.ts` — Real enum: housekeeping | engineering | guest_request | lost_found | general (~1684 tok)
 
 ## apps/mobile/lib/api/
 
@@ -849,4 +851,3 @@
 
 ## youtubeMobileResearch.md
 
-- `apps/mobile/lib/ai/tasks.ts` — Task AI layer: buildTaskQueue (overdue/now/today scoring), buildTaskBriefing (on-device), parseTaskWithAI (/ai/copilot/chat with intent_hint), confirmAITask. ~160 lines, ~1300 tokens.
