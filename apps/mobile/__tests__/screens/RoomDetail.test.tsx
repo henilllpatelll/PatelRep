@@ -4,8 +4,9 @@ import type { Room } from "@/stores/appStore";
 
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
-let mockRooms: Room[] = [
-  {
+
+function makeRoom(overrides: Partial<Room> = {}): Room {
+  return {
     id: "room-1",
     room_number: "101",
     floor: 1,
@@ -19,9 +20,14 @@ let mockRooms: Room[] = [
     checkout_time: null,
     actual_checkout_at: null,
     clean_type: null,
+    clean_type_label: null,
     updated_at: "2026-05-25T15:00:00.000Z",
-  },
-];
+    rooms: { room_types: { name: "King" } },
+    ...overrides,
+  };
+}
+
+let mockRooms: Room[] = [makeRoom()];
 
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ roomId: "room-1" }),
@@ -37,6 +43,7 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
+jest.mock("@/components/housekeeping/FoundItemModal", () => () => null);
 jest.mock("@/lib/api/client", () => ({
   api: {
     get: jest.fn(),
@@ -44,15 +51,13 @@ jest.mock("@/lib/api/client", () => ({
     post: jest.fn(),
   },
 }));
-jest.mock("@/lib/offline/db", () => ({
-  enqueueAction: jest.fn().mockResolvedValue(undefined),
-}));
 jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({
     isOnline: true,
     myRooms: mockRooms,
     setMyRooms: mockSetMyRooms,
     enqueueAction: mockEnqueueAction,
+    user: { id: "user-1" },
   }),
 }));
 
@@ -64,7 +69,7 @@ const mockApiGet = api.get as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRooms = [{ ...mockRooms[0], status: "CLEAN" }];
+  mockRooms = [makeRoom()];
   mockApiGet.mockResolvedValue({
     data: [],
   });
@@ -86,6 +91,68 @@ describe("RoomDetailScreen", () => {
     expect(queryByText("Status History")).toBeNull();
   });
 
+  it("shows Before you enter near the top for unsafe rooms and does not offer Start", async () => {
+    mockRooms = [
+      makeRoom({
+        status: "DIRTY",
+        clean_type: "DEP",
+        clean_type_label: "Departure",
+        dnd_flag: true,
+        guest_name: "Taylor Guest",
+        fo_status: "OCC",
+        actual_checkout_at: null,
+      }),
+    ];
+
+    const { getByText, queryByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
+    expect(getByText("DND active")).toBeTruthy();
+    expect(getByText("Guest may be inside")).toBeTruthy();
+    expect(getByText("Not checked out")).toBeTruthy();
+    expect(getByText("Review room")).toBeTruthy();
+    expect(queryByText("Start Cleaning")).toBeNull();
+  });
+
+  it("shows reservation and timing context", async () => {
+    mockRooms = [
+      makeRoom({
+        status: "DIRTY",
+        guest_name: "Taylor Guest",
+        fo_status: "VAC",
+        clean_type: "DEP",
+        actual_checkout_at: "2026-06-09T10:00:00.000Z",
+        checkout_time: "2026-06-09T11:00:00.000Z",
+        checkin_time: "2026-06-09T16:00:00.000Z",
+        predicted_ready_at: "2026-06-09T12:15:00.000Z",
+      }),
+    ];
+
+    const { getByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("Reservation / Timing")).toBeTruthy());
+    expect(getByText("Guest")).toBeTruthy();
+    expect(getByText("Taylor Guest")).toBeTruthy();
+    expect(getByText("FO status")).toBeTruthy();
+    expect(getByText("VAC")).toBeTruthy();
+    expect(getByText("Check-in")).toBeTruthy();
+    expect(getByText("Scheduled checkout")).toBeTruthy();
+    expect(getByText("Actual checkout")).toBeTruthy();
+    expect(getByText("Predicted ready")).toBeTruthy();
+  });
+
+  it("shows a local cleaning checklist based on clean_type", async () => {
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "FULL", clean_type_label: "Full" })];
+
+    const { getByLabelText, getByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("Cleaning Checklist")).toBeTruthy());
+    expect(getByLabelText("Full clean type")).toBeTruthy();
+    expect(getByText("Bed made")).toBeTruthy();
+    expect(getByText("Towels replaced")).toBeTruthy();
+    expect(getByText("Floors cleaned")).toBeTruthy();
+  });
+
   it("keeps room detail actions compact and button-driven", async () => {
     const { getByText } = render(<RoomDetailScreen />);
 
@@ -94,23 +161,5 @@ describe("RoomDetailScreen", () => {
     expect(getByText("Lost & Found")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
     expect(mockSetMyRooms).not.toHaveBeenCalled();
-  });
-
-  it("restores the reviewed room workflow inside the redesigned detail screen", async () => {
-    mockRooms = [{
-      ...mockRooms[0],
-      status: "DIRTY",
-      clean_type: "DEP",
-      dnd_flag: true,
-      actual_checkout_at: null,
-    }];
-
-    const { getByText } = render(<RoomDetailScreen />);
-
-    await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
-    expect(getByText("DND active")).toBeTruthy();
-    expect(getByText("Not checked out")).toBeTruthy();
-    expect(getByText("Quick blockers")).toBeTruthy();
-    expect(getByText("Start Cleaning")).toBeTruthy();
   });
 });

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { X, Check, Minus, ClipboardCheck, Loader2 } from 'lucide-react'
+import { X, Check, Minus, ClipboardCheck, Loader2, Timer, Camera } from 'lucide-react'
 import { housekeepingApi, InspectionTemplate } from '@/lib/api/housekeeping'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,11 @@ interface Props {
   cleanedBy?: string
   cleanedAt?: string | null
   cleanType?: string | null
+  lastCleanMinutes?: number | null
+  lastCleanBaseMinutes?: number | null
+  checklistDone?: number
+  checklistTotal?: number
+  photoCount?: number
   isOpen: boolean
   onClose: () => void
   onSuccess: (result: OverallResult) => void
@@ -59,7 +64,7 @@ function OverallResultBadge({ result }: { result: OverallResult }) {
   )
 }
 
-export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, isOpen, onClose, onSuccess }: Props) {
+export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, lastCleanMinutes, lastCleanBaseMinutes, checklistDone = 0, checklistTotal = 0, photoCount = 0, isOpen, onClose, onSuccess }: Props) {
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
   const [notes, setNotes] = useState('')
   const [manualOverall, setManualOverall] = useState<OverallResult>('passed')
@@ -200,6 +205,26 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                       cleanedAt && format(new Date(cleanedAt), 'h:mm a'),
                     ].filter(Boolean).join(' · ')}
                   </p>
+                )}
+                {lastCleanMinutes != null && (
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Timer className="w-3 h-3" />
+                      {lastCleanMinutes}m{lastCleanBaseMinutes != null ? ` / ${lastCleanBaseMinutes}m base` : ''}
+                    </span>
+                    {checklistTotal > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Check className="w-3 h-3" />
+                        {checklistDone}/{checklistTotal} items
+                      </span>
+                    )}
+                    {photoCount > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Camera className="w-3 h-3" />
+                        {photoCount} photo{photoCount > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

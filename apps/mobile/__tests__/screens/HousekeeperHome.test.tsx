@@ -61,9 +61,11 @@ const EN: Record<string, string> = {
   "home.copilotPlanBefore": "I'd clean ",
   "home.copilotPlanAfter": " first, then keep your VIP room fresh for check-in.",
   "home.shiftMeta": "Tue · May 26 · Day shift",
-  "home.copilotKicker": "Your smart order",
+  "home.copilotKicker": "AI briefing",
   "home.startWith": "Start with {{room}}",
   "home.seePlan": "See the plan",
+  "home.askAI": "Ask AI",
+  "home.aiPrioritized": "AI has prioritized your room order.",
   "home.savesMins": "Saves ~18 min vs. room order",
   "home.aheadByMins": "You're ahead by 3 min",
   "home.avgTarget": "22m avg · target 25m",
@@ -116,8 +118,10 @@ describe("HousekeeperHomeScreen", () => {
 
     await waitFor(() => expect(getByText("Morning, Maria.")).toBeTruthy());
 
-    expect(getByText("Your smart order")).toBeTruthy();
+    expect(getByText("AI briefing")).toBeTruthy();
+    expect(getByText("AI has prioritized your room order.")).toBeTruthy();
     expect(getByText("Start with 112")).toBeTruthy();
+    expect(getByText("Ask AI")).toBeTruthy();
     expect(getByText("3 rooms left.")).toBeTruthy();
     expect(getByText("1")).toBeTruthy();
     expect(getByText("of 4")).toBeTruthy();

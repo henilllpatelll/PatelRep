@@ -39,9 +39,11 @@
   "home": {
     "greeting": "Morning, {{name}}.",
     "shiftSuffix": "Day shift",
-    "copilotKicker": "Your smart order",
+    "copilotKicker": "AI briefing",
     "startWith": "Start with {{room}}",
     "seePlan": "See the plan",
+    "askAI": "Ask AI",
+    "aiPrioritized": "AI has prioritized your room order.",
     "savesMins": "Saves ~18 min vs. room order",
     "aheadByMins": "You're ahead by 3 min",
     "avgTarget": "22m avg · target 25m",

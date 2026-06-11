@@ -1,18 +1,12 @@
 {
-  "session_id": "session-2026-06-09-1837",
-  "started": "2026-06-09T23:37:06.599Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-06-10T01:30:54.748Z"
-    }
-  },
+  "session_id": "session-2026-06-11-0000",
+  "started": "2026-06-11T05:00:44.442Z",
+  "files_read": {},
   "files_written": [],
   "edit_counts": {},
   "anatomy_hits": 0,
-  "anatomy_misses": 1,
-  "repeated_reads_warned": 1,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 2
+  "stop_count": 0
 }

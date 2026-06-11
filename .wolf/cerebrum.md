@@ -2,7 +2,7 @@
 
 > OpenWolf's learning memory. Updated automatically as the AI learns from interactions.
 > Do not edit manually unless correcting an error.
-> Last updated: 2026-04-09
+> Last updated: 2026-06-10
 
 ## User Preferences
 
@@ -19,6 +19,9 @@
 
 ## Key Learnings
 
+- **Mobile UI modernization source of truth (2026-06-10):** Current Expo mobile floor-staff UI is route-driven under `apps/mobile/app/(app)/**`; previously indexed `apps/mobile/components/home/*` and `components/housekeeping/RoomQueueCard.tsx` paths can be stale in anatomy. Shared visual atoms live in `apps/mobile/components/shared/mobileHandoff.tsx`, and all warm/status/AI/dark tokens should stay centralized in `apps/mobile/components/shared/tokens.ts`.
+- **Mobile My Rooms task-sheet bucket contract (2026-06-10):** The current My Rooms flow separates cleaning priority from safety attention: `next_to_clean`, `needs_attention`, `in_progress`, `submitted`, `ready`, and `blocked`. DND, guest-inside/OCC, departure-without-actual-checkout, open WO, high risk, and latest-note rooms show Review and are not Start-able; VIP is important but remains cleanable when otherwise safe. This supersedes the older flat DIRTY/PICKUP/OCCUPIED My Rooms sort for this screen.
+- **Housekeeping redesign phase state (2026-06-10):** Phases 1–6 are complete. All housekeeper tabs (Today, Copilot, Tasks, Profile) are redesigned for the floor workflow. Phase 3 delivered: `cleanSessionStore.flushQueue()` wired into `syncOnConnect` (before photo flush, after session flush), `flushPendingPhotos()` in sync.ts, `expo-image-picker` + `expo-image-manipulator` photo capture in CleanSessionScreen, `PhotoStrip.tsx` component, 409 conflict handling in store (discards dependent actions, sets `sessionConflict`), checklist template caching on session start, offline session creation with cached template fallback, and Spanish parity for all new strings. All API routers, typed clients, store, offline DB tables, and session screen exist. The routing fix (actionable rooms → `clean/[roomId]`) and completion summary were the final Phase 2 pieces. Phase 3 needs: flush `cleanSessionStore.pendingActions` on reconnect (wire into `appStore` network listener), `expo-image-picker` + `expo-image-manipulator` photo capture, upload via `/clean-sessions/{id}/photos`, photo failure surfaced without blocking completion, and 409 conflict handling (discard dependent queued actions, refresh queue, show toast). Treat `HOUSEKEEPING_REDESIGN_PLAN.md` Phase 3 section as the authoritative spec.
 - **Mobile My Rooms assigned-room sort contract (2026-06-09):** The My Rooms list should group assigned actionable rooms as `DIRTY` / Vacant Dirty first, then `PICKUP`, then `OCCUPIED`, with numeric `room_number` ordering inside each group. VIP/DND/work-order/note exceptions still affect action labels and badges, but should not jump rooms ahead of that queue order.
 - **Mobile My Rooms workflow helper (2026-06-09):** Shared card/detail decision logic now lives in `apps/mobile/lib/housekeeping/roomWorkflow.ts`; use it for exception badges, Start vs Review/Done vs Review Done actions, priority sorting, timing lines, and Before You Enter warnings so My Rooms list and detail stay consistent.
 - **Mobile warm visual-system token contract (2026-06-10):** `apps/mobile/components/shared/tokens.ts` now centralizes the mobile warm hospitality palette with `lightTheme`, `darkTheme`, `statusTokens`, and `darkStatusTokens`. Keep room status meanings on these exact core colors: ready `#0E7468`, clean `#2F6F95`, dirty/occupied `#A9363F`, pickup `#B7791F`, out-of-order `#746D63`; `displayFont` is intentionally `undefined` so mobile floor-staff UI uses native system fonts while room numbers/codes use `monoFont`.

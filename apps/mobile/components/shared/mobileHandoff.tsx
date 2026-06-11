@@ -10,7 +10,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, monoFont, statusTokens } from "@/components/shared/tokens";
+import { C, R, aiTokens, darkTheme, monoFont, statusTokens } from "@/components/shared/tokens";
 
 export type Tone =
   | "neutral"
@@ -160,6 +160,45 @@ export function AILabel({ children = "AI", confidence }: { children?: string; co
   );
 }
 
+export function AIChip({
+  children,
+  icon = "sparkles",
+}: {
+  children: React.ReactNode;
+  icon?: React.ComponentProps<typeof Ionicons>["name"];
+}) {
+  return (
+    <View style={styles.aiChip}>
+      <Ionicons name={icon} size={10} color={C.ai} />
+      <Text style={styles.aiChipText}>{children}</Text>
+    </View>
+  );
+}
+
+export function AIInsightCard({
+  title,
+  children,
+  actions,
+  compact = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <View style={[styles.aiInsightCard, compact && styles.aiInsightCardCompact]}>
+      <AILabel>{title}</AILabel>
+      {typeof children === "string" || typeof children === "number" ? (
+        <Text style={[styles.aiInsightText, compact && styles.aiInsightTextCompact]}>{children}</Text>
+      ) : (
+        <View style={styles.aiInsightContent}>{children}</View>
+      )}
+      {actions ? <View style={styles.aiInsightActions}>{actions}</View> : null}
+    </View>
+  );
+}
+
 export function SectionLabel({
   children,
   hint,
@@ -208,6 +247,27 @@ export function HeroButton({
       {icon ? <Ionicons name={icon} size={14} color={color} /> : null}
       <Text style={[styles.heroButtonText, { color }]}>{children}</Text>
       {primary && !icon ? <Ionicons name="arrow-forward" size={14} color={color} /> : null}
+    </TouchableOpacity>
+  );
+}
+
+export function FloatingAIButton({
+  label = "Ask AI",
+  onPress,
+  bottom = 92,
+}: {
+  label?: string;
+  onPress?: () => void;
+  bottom?: number;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.84}
+      onPress={onPress}
+      style={[styles.floatingAIButton, { bottom }]}
+    >
+      <Ionicons name="sparkles" size={15} color="#fff" />
+      <Text style={styles.floatingAIText}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -266,24 +326,24 @@ export function CopilotHero({
       style={[
         styles.copilotHero,
         {
-          backgroundColor: dark ? "#241C18" : C.aiSoft,
-          borderWidth: dark ? 0 : 1,
-          borderColor: C.aiLine,
+          backgroundColor: dark ? darkTheme.surfaceElevated : C.aiSoft,
+          borderWidth: 1,
+          borderColor: dark ? darkTheme.glassBorder : C.aiLine,
         },
       ]}
     >
-      <View style={[styles.sparkWash, { backgroundColor: dark ? "rgba(194,154,74,0.16)" : "rgba(90,63,140,0.08)" }]} />
+      <View style={[styles.sparkWash, { backgroundColor: dark ? darkTheme.ai.line : aiTokens.line }]} />
       <View style={styles.copilotHeader}>
-        <View style={[styles.sparkAvatar, { backgroundColor: dark ? C.brass : C.ai }]}>
+        <View style={[styles.sparkAvatar, { backgroundColor: dark ? darkTheme.ai.primary : C.ai }]}>
           <Ionicons name="sparkles" size={12} color="#fff" />
         </View>
-        <Text style={[styles.copilotKicker, { color: dark ? "rgba(241,237,228,0.7)" : C.ai }]}>
+        <Text style={[styles.copilotKicker, { color: dark ? darkTheme.ai.primary : C.ai }]}>
           {kicker}
         </Text>
         {confidence != null ? (
           <View style={styles.confidence}>
             <View style={styles.confidenceDot} />
-            <Mono style={[styles.confidenceText, { color: dark ? "rgba(241,237,228,0.6)" : C.ai }]}>
+            <Mono style={[styles.confidenceText, { color: dark ? darkTheme.ai.secondary : C.ai }]}>
               {confidence}% sure
             </Mono>
           </View>
@@ -292,7 +352,7 @@ export function CopilotHero({
       <Text style={[styles.copilotBody, { color: dark ? C.paper : C.ink }]}>{children}</Text>
       {actions ? <View style={styles.heroActions}>{actions}</View> : null}
       {foot ? (
-        <View style={[styles.heroFoot, { borderTopColor: dark ? "rgba(241,237,228,0.12)" : C.aiLine }]}>
+        <View style={[styles.heroFoot, { borderTopColor: dark ? darkTheme.glassBorder : C.aiLine }]}>
           {foot}
         </View>
       ) : null}
@@ -434,6 +494,54 @@ const styles = StyleSheet.create({
     fontSize: 10,
     opacity: 0.72,
   },
+  aiChip: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    backgroundColor: C.aiSoft,
+    borderRadius: 999,
+    minHeight: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  aiChipText: {
+    color: C.ai,
+    fontSize: 10.5,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  aiInsightCard: {
+    borderRadius: R.lg,
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    backgroundColor: C.aiSoft,
+    padding: 14,
+    gap: 8,
+  },
+  aiInsightCardCompact: {
+    padding: 12,
+  },
+  aiInsightText: {
+    color: C.ink,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+  aiInsightTextCompact: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  aiInsightContent: {
+    gap: 5,
+  },
+  aiInsightActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+  },
   sectionLabel: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -465,11 +573,10 @@ const styles = StyleSheet.create({
   },
   sparkWash: {
     position: "absolute",
-    top: -40,
-    right: -30,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    top: 0,
+    right: 0,
+    width: 5,
+    height: "100%",
   },
   copilotHeader: {
     flexDirection: "row",
@@ -537,6 +644,30 @@ const styles = StyleSheet.create({
   heroButtonText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  floatingAIButton: {
+    position: "absolute",
+    right: 16,
+    minHeight: 48,
+    borderRadius: 999,
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: C.ai,
+    borderWidth: 1,
+    borderColor: C.aiLine,
+    shadowColor: C.ai,
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
+  floatingAIText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   segmented: {
     flexDirection: "row",

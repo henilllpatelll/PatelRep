@@ -1,4 +1,4 @@
-import { C, darkTheme, lightTheme, monoFont, statusTokens } from "@/components/shared/tokens";
+import { C, aiTokens, darkAiTokens, darkTheme, lightTheme, monoFont, statusTokens } from "@/components/shared/tokens";
 import { getRoomTone, getToneColors } from "@/components/shared/mobileHandoff";
 
 describe("mobile visual tokens", () => {
@@ -7,13 +7,29 @@ describe("mobile visual tokens", () => {
     expect(lightTheme.surface).toBe("#FFFDFC");
     expect(lightTheme.primaryAction).toBe("#4F7A5A");
 
-    expect(darkTheme.background).toBe("#171310");
-    expect(darkTheme.surface).toBe("#211B17");
+    expect(darkTheme.background).toBe("#0F0D0B");
+    expect(darkTheme.surface).toBe("#191512");
+    expect(darkTheme.surfaceElevated).toBe("#241E1A");
     expect(darkTheme.primaryAction).toBe("#7EA889");
 
     expect(C.paper).toBe(lightTheme.background);
     expect(C.surface).toBe(lightTheme.surface);
     expect(C.accent).toBe(lightTheme.primaryAction);
+  });
+
+  it("centralizes AI-only colors separately from room status colors", () => {
+    expect(aiTokens.primary).toBe("#7C3AED");
+    expect(aiTokens.secondary).toBe("#14B8A6");
+    expect(aiTokens.electric).toBe("#38BDF8");
+    expect(darkAiTokens.primary).toBe("#A78BFA");
+    expect(darkTheme.glass).toBe("rgba(255, 255, 255, 0.06)");
+    expect(darkTheme.glassBorder).toBe("rgba(255, 255, 255, 0.10)");
+
+    expect(C.ai).toBe(aiTokens.primary);
+    expect(C.ai).not.toBe(statusTokens.ready);
+    expect(C.ai).not.toBe(statusTokens.clean);
+    expect(C.ai).not.toBe(statusTokens.dirty);
+    expect(C.ai).not.toBe(statusTokens.pickup);
   });
 
   it("keeps status meanings while applying the refined room-status palette", () => {
