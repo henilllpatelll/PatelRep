@@ -25,20 +25,17 @@ import {
   IconButton,
   Mono,
   Pill,
-  ProgressRing,
   SectionLabel,
 } from "@/components/shared/mobileHandoff";
-import { AIBriefingCard, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
+import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
-import { getRoomQueueBucket } from "@/lib/housekeeping/roomWorkflow";
+import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
 
 const ENGINEER_ORDERS = [
   { id: "WO-1141", title: "Replace fan-coil belt", loc: "R-209 - zone B", pri: "HIGH", tone: "alert" as const, meta: "22m", active: true },
   { id: "WO-1138", title: "Reseat toilet flange", loc: "R-144", pri: "MED", tone: "caution" as const, meta: "queued" },
   { id: "WO-1135", title: "Pool pump pressure check", loc: "Mech room", pri: "LOW", tone: "info" as const, meta: "queued" },
 ];
-
-const DONE_STATUSES = new Set(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -99,13 +96,11 @@ export default function HousekeeperHomeScreen() {
     [myRooms, t],
   );
   const briefing = aiBriefing ?? localBriefing;
-  const doneCount = myRooms.filter((room) => DONE_STATUSES.has(room.status)).length;
-  const remainingCount = Math.max(0, myRooms.length - doneCount);
-  const vipCount = myRooms.filter((room) => room.vip_flag && !DONE_STATUSES.has(room.status)).length;
-  const attentionCount = useMemo(
-    () => myRooms.filter((room) => getRoomQueueBucket(room) === "needs_attention").length,
-    [myRooms],
+  const snapshot = useMemo(
+    () => buildShiftSnapshot(myRooms, language === "es" ? "es-MX" : "en-US"),
+    [myRooms, language],
   );
+  const checkin = useMemo(() => getCompanionCheckin(snapshot, t), [snapshot, t]);
   const firstEntry = getStartEntry(smartQueue);
 
   const requestAiBriefing = useCallback(async () => {
@@ -142,14 +137,28 @@ export default function HousekeeperHomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Evening Lobby shell hero */}
+      {/* Evening Lobby shell hero — greeting, companion check-in, shift progress */}
       <View style={[styles.shellHeader, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerTop}>
           <Avatar name={user?.full_name ?? "Staff"} size={34} />
           <IconButton icon="notifications-outline" />
         </View>
         <Text style={styles.shellHeaderMeta}>{dynamicShiftMeta(user?.language_pref ?? "en", t("home.shiftSuffix"))}</Text>
-        <Text style={styles.shellTitle}>{t("home.greeting", { name: firstName(user?.full_name) })}</Text>
+        <Text style={styles.shellTitle}>{t(getGreetingKey(), { name: firstName(user?.full_name) })}</Text>
+        <Text style={styles.shellCompanion}>{checkin.message}</Text>
+        {snapshot.total > 0 ? (
+          <View style={styles.heroProgress}>
+            <View style={styles.heroProgressHead}>
+              <Text style={styles.heroProgressLabel}>
+                {t("home.heroProgress", { done: snapshot.done, total: snapshot.total })}
+              </Text>
+              <Text style={styles.heroProgressPct}>{snapshot.pct}%</Text>
+            </View>
+            <View style={styles.heroProgressTrack}>
+              <View style={[styles.heroProgressFill, { width: `${snapshot.pct}%` }]} />
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView
@@ -197,55 +206,63 @@ export default function HousekeeperHomeScreen() {
           </AIBriefingCard>
         ) : null}
 
-        <View style={styles.paceCard}>
-          <ProgressRing value={doneCount} total={myRooms.length || 0} />
-          <View style={styles.paceBody}>
-            <Text style={styles.paceTitle}>{t("home.roomsLeft", { count: remainingCount })}</Text>
-            <View style={styles.pillRow}>
-              {attentionCount > 0 ? (
-                <Pill tone="alert" icon="alert-circle-outline">
-                  {attentionCount}
-                </Pill>
-              ) : (
-                <Pill tone="ready">{t("home.onPace")}</Pill>
-              )}
-              {vipCount > 0 ? (
-                <Pill tone="accent" icon="star">
-                  {vipCount} VIP
-                </Pill>
-              ) : null}
+        {snapshot.total > 0 ? (
+          <View style={styles.glanceBlock}>
+            <SectionHeader title={t("home.glance")} />
+            <View style={styles.glanceGrid}>
+              <View style={styles.statTile} testID="stat-time-left">
+                <Text style={styles.statValue}>
+                  {snapshot.minutesLeft > 0 ? `~${snapshot.minutesLeft}m` : "—"}
+                </Text>
+                <Text style={styles.statLabel}>{t("home.stat.timeLeft")}</Text>
+              </View>
+              <View style={styles.statTile} testID="stat-finish-by">
+                <Text style={styles.statValue}>{snapshot.finishByLabel ?? "—"}</Text>
+                <Text style={styles.statLabel}>{t("home.stat.finishBy")}</Text>
+              </View>
+              <View style={styles.statTile} testID="stat-vips">
+                <Text style={[styles.statValue, snapshot.vipLeft > 0 ? { color: C.brass } : undefined]}>
+                  {snapshot.vipLeft}
+                </Text>
+                <Text style={styles.statLabel}>{t("home.stat.vipsLeft")}</Text>
+              </View>
+              <View style={styles.statTile} testID="stat-review">
+                <Text style={[styles.statValue, snapshot.attention > 0 ? { color: C.caution } : undefined]}>
+                  {snapshot.attention}
+                </Text>
+                <Text style={styles.statLabel}>{t("home.stat.review")}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        ) : null}
 
-        <View style={styles.upNextBlock}>
-          <SectionHeader
-            title={t("home.upNext")}
-            hint={`${Math.min(3, smartQueue.length)} / ${remainingCount}`}
-            action={
-              <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)}>
-                <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
-              </TouchableOpacity>
-            }
-          />
-          <View style={styles.rows}>
-            {smartQueue.slice(0, 3).map((entry) => (
-              <RoomQueueCard
-                key={entry.room.id}
-                room={entry.room}
-                position={entry.position}
-                estimateMinutes={entry.estimateMinutes}
-                onPress={() => router.push(`/(app)/my-rooms/${entry.room.id}`)}
-              />
-            ))}
-            {smartQueue.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
-                <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
-              </View>
-            ) : null}
+        {checkin.tip ? (
+          <View style={styles.tipCard} testID="companion-tip">
+            <View style={styles.tipIconWrap}>
+              <Ionicons name="leaf-outline" size={15} color={C.primary} />
+            </View>
+            <View style={styles.tipBody}>
+              <Text style={styles.tipKicker}>{t("home.companion.kicker")}</Text>
+              <Text style={styles.tipText}>{checkin.tip}</Text>
+            </View>
           </View>
-        </View>
+        ) : null}
+
+        {snapshot.stage === "done" || snapshot.stage === "empty" ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>{t("home.allDone")}</Text>
+            <Text style={styles.emptyText}>{t("home.pullToRefresh")}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={styles.myRoomsBtn}
+          onPress={() => router.push("/(app)/my-rooms" as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
+          <Ionicons name="arrow-forward" size={15} color={C.accent} />
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -578,6 +595,43 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: shellTokens.ink,
   },
+  shellCompanion: {
+    marginTop: 7,
+    fontSize: 14.5,
+    lineHeight: 21,
+    color: shellTokens.ink2,
+  },
+  heroProgress: {
+    marginTop: 15,
+    gap: 7,
+  },
+  heroProgressHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  heroProgressLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: shellTokens.ink2,
+  },
+  heroProgressPct: {
+    fontFamily: monoFont,
+    fontSize: 12,
+    fontWeight: "800",
+    color: shellTokens.ink3,
+  },
+  heroProgressTrack: {
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: shellTokens.raised,
+    overflow: "hidden",
+  },
+  heroProgressFill: {
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: C.accent,
+  },
   briefingActions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -606,7 +660,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
-  upNextBlock: { gap: 9 },
   heroStrong: {
     fontFamily: monoFont,
     fontStyle: "normal",
@@ -617,29 +670,80 @@ const styles = StyleSheet.create({
     color: "rgba(241,237,228,0.5)",
     fontSize: 10.5,
   },
-  paceCard: {
+  glanceBlock: { gap: 9 },
+  glanceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 9,
+  },
+  statTile: {
+    flexBasis: "47%",
+    flexGrow: 1,
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: R.lg,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  paceBody: {
-    flex: 1,
-  },
-  paceTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+  statValue: {
+    fontFamily: monoFont,
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: "800",
     color: C.ink,
   },
-  pillRow: {
+  statLabel: {
+    color: C.ink3,
+    fontSize: 11,
+    marginTop: 5,
+  },
+  tipCard: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 9,
+    alignItems: "flex-start",
+    gap: 11,
+    backgroundColor: C.accentSoft,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    borderRadius: R.lg,
+    padding: 14,
+  },
+  tipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tipBody: { flex: 1, gap: 3 },
+  tipKicker: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: C.primary,
+  },
+  tipText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: C.ink,
+  },
+  myRoomsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 48,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    backgroundColor: C.surface,
+  },
+  myRoomsBtnText: {
+    color: C.accent,
+    fontSize: 13.5,
+    fontWeight: "800",
   },
   seeAll: {
     fontSize: 12,

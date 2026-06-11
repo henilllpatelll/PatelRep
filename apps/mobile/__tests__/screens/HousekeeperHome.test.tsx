@@ -1,5 +1,5 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { render, waitFor, within } from "@testing-library/react-native";
 
 const mockSetMyRooms = jest.fn();
 
@@ -55,14 +55,31 @@ const mockRooms = [
 ];
 
 const EN: Record<string, string> = {
-  "home.greeting": "Morning, {{name}}.",
+  "home.greetingMorning": "Good morning, {{name}}.",
+  "home.greetingAfternoon": "Good afternoon, {{name}}.",
+  "home.greetingEvening": "Good evening, {{name}}.",
   "home.shiftSuffix": "Day shift",
-  "home.roomsLeft": "{{count}} rooms left.",
+  "home.heroProgress": "{{done}} of {{total}} rooms done",
+  "home.glance": "Your shift at a glance",
+  "home.openMyRooms": "Open My Rooms",
+  "home.stat.timeLeft": "Est. cleaning left",
+  "home.stat.finishBy": "On track to finish",
+  "home.stat.vipsLeft": "VIPs still ahead",
+  "home.stat.review": "Waiting on review",
+  "home.companion.kicker": "With you",
+  "home.companion.empty": "Nothing on your board yet. Enjoy the calm — your rooms will appear here.",
+  "home.companion.fresh": "One room at a time — that's all today is.",
+  "home.companion.early": "{{done}} done already. You're finding your rhythm.",
+  "home.companion.mid": "{{done}} of {{total}} handled — past the halfway feeling. Steady does it.",
+  "home.companion.late": "Home stretch. Just {{count}} to go — you've got this.",
+  "home.companion.done": "That's a wrap — every room handled. Be proud of today.",
+  "home.companion.tipAttention": "{{count}} room(s) are waiting on review — that's not on you. Flag it and keep moving.",
+  "home.companion.tipDnd": "DND is up on {{count}} room(s). Skip them guilt-free — they'll clear.",
+  "home.companion.tipArrivals": "{{count}} arrival(s) coming up — your plan already puts them first.",
+  "home.companion.tipVip": "{{count}} VIP room(s) still ahead — a little extra polish goes a long way.",
+  "home.companion.tipBreather": "Good moment for water and a breath. The board can wait two minutes.",
   "home.startWith": "Start with {{room}}",
   "home.askAI": "Ask AI",
-  "home.onPace": "on pace",
-  "home.seeAll": "See all",
-  "home.upNext": "Up next",
   "home.allDone": "All assigned rooms are done.",
   "home.pullToRefresh": "Pull to refresh if your supervisor adds more.",
   "ai.briefing.kicker": "AI Shift Briefing",
@@ -123,10 +140,15 @@ jest.mock("@/stores/appStore", () => ({
 import HousekeeperHomeScreen from "@/app/(app)/home";
 
 describe("HousekeeperHomeScreen", () => {
-  it("renders the Evening Lobby AI briefing, pace card, and smart-order up-next rooms", async () => {
-    const { getByText, getAllByText, getByTestId } = render(<HousekeeperHomeScreen />);
+  it("renders the companion hero, AI briefing, and shift analytics — with no up-next room queue", async () => {
+    const { getByText, getByTestId, queryByText, queryByTestId } = render(<HousekeeperHomeScreen />);
 
-    await waitFor(() => expect(getByText("Morning, Maria.")).toBeTruthy());
+    // Time-of-day greeting plus the supportive companion check-in
+    await waitFor(() => expect(getByText(/Good (morning|afternoon|evening), Maria\./)).toBeTruthy());
+    // 1 of 4 done (101 inspected) → "early" stage message
+    expect(getByText("1 done already. You're finding your rhythm.")).toBeTruthy();
+    expect(getByText("1 of 4 rooms done")).toBeTruthy();
+    expect(getByText("25%")).toBeTruthy();
 
     // AI briefing card with the on-device plan
     expect(getByTestId("ai-briefing-card")).toBeTruthy();
@@ -138,14 +160,20 @@ describe("HousekeeperHomeScreen", () => {
     expect(getByText("Ask AI")).toBeTruthy();
     expect(getByText(/Planned on device/)).toBeTruthy();
 
-    // Pace card: 101 inspected → 3 remaining, 115 is VIP and not done
-    expect(getByText("3 rooms left.")).toBeTruthy();
-    expect(getByText("1 VIP")).toBeTruthy();
+    // Analytics deck: 108 + 112 cleanable (25m each), 115 needs review (high risk), 1 VIP left
+    expect(getByText("Your shift at a glance")).toBeTruthy();
+    expect(getByText("~50m")).toBeTruthy();
+    expect(within(getByTestId("stat-vips")).getByText("1")).toBeTruthy();
+    expect(within(getByTestId("stat-review")).getByText("1")).toBeTruthy();
 
-    // Up next shows the smart queue (108 in progress first, then 112)
-    expect(getByText("Up next")).toBeTruthy();
-    expect(getByTestId("room-card-108")).toBeTruthy();
-    expect(getByTestId("room-card-112")).toBeTruthy();
-    expect(getAllByText(/112/).length).toBeGreaterThan(0);
+    // Companion tip surfaces the review room as a gentle nudge, not a task
+    expect(getByTestId("companion-tip")).toBeTruthy();
+    expect(getByText(/waiting on review — that's not on you/)).toBeTruthy();
+
+    // Up Next queue is gone from Home — rooms live in My Rooms
+    expect(queryByText("Up next")).toBeNull();
+    expect(queryByTestId("room-card-108")).toBeNull();
+    expect(queryByTestId("room-card-112")).toBeNull();
+    expect(getByText("Open My Rooms")).toBeTruthy();
   });
 });
