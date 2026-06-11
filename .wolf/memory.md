@@ -4742,3 +4742,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:20 | Edited apps/web/components/ui/Button.tsx | 2→2 lines | ~18 |
 | 00:22 | Created scripts/redesign-smoke.mjs | — | ~483 |
 | 2026-06-11 | Web redesign v2 "Evening Lobby": dark shell sidebar, motion system, new EmptyState/SegmentedControl, RoomCard/WorkOrderCard rework on branch redesign/web-ui-v2 | apps/web globals.css, tailwind.config.ts, ui/*, shared/*, RoomCard, WorkOrderCard | type-check+lint+build clean, Playwright smoke verified | ~60k |
+| 00:27 | Session end: 23 writes across 16 files (globals.css, tailwind.config.ts, Button.tsx, Card.tsx, Input.tsx) | 21 reads | ~21641 tok |
