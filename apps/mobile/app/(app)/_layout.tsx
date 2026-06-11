@@ -77,15 +77,20 @@ export default function AppLayout() {
       <OfflineBanner />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: C.accent,
+          tabBarActiveTintColor: C.primary,
           tabBarInactiveTintColor: C.ink4,
           tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
           tabBarStyle: {
             backgroundColor: C.surface,
             borderTopColor: C.line,
-            height: 74,
+            height: 76,
             paddingTop: 8,
             paddingBottom: 12,
+            shadowColor: C.ink,
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: -4 },
+            elevation: 8,
           },
           headerStyle: { backgroundColor: C.paper },
           headerTintColor: C.ink,
@@ -104,11 +109,11 @@ export default function AppLayout() {
                 <Ionicons
                   name={tab.icon}
                   size={tab.special ? size + 2 : size}
-                  color={tab.special ? C.accent : color}
+                  color={tab.special ? "#fff" : color}
                   style={
                     tab.special
                       ? {
-                          backgroundColor: C.primary,
+                          backgroundColor: C.ai,
                           borderRadius: 20,
                           marginTop: -18,
                           width: 40,
@@ -116,6 +121,10 @@ export default function AppLayout() {
                           padding: 10,
                           borderWidth: 3,
                           borderColor: C.surface,
+                          shadowColor: C.ai,
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          shadowOffset: { width: 0, height: 3 },
                         }
                       : undefined
                   }

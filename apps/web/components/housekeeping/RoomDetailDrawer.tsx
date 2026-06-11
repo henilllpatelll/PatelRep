@@ -19,6 +19,8 @@ import {
   LogOut,
   RotateCcw,
   BedDouble,
+  Timer,
+  Camera,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -26,6 +28,7 @@ import { engineeringApi } from '@/lib/api/engineering'
 import { roomsApi } from '@/lib/api/rooms'
 import { guestRequestsApi } from '@/lib/api/guest_requests'
 import { tasksApi } from '@/lib/api/tasks'
+import { cleanSessionsApi } from '@/lib/api/cleanSessions'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
@@ -390,6 +393,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     enabled: !!roomId && isOpen,
     refetchInterval: 30_000,
     staleTime: 15_000,
+  })
+
+  const lastSessionId: string | null = room?.last_session_id ?? null
+  const { data: lastSessionData } = useQuery({
+    queryKey: ['clean-session', lastSessionId],
+    queryFn: () => cleanSessionsApi.getSession(lastSessionId!).then((r: any) => r.data),
+    enabled: !!lastSessionId && isOpen && canSupervise,
+    staleTime: 120_000,
   })
 
   const activeGuestRequests: any[] = ((roomGuestRequestsData as any)?.data ?? []).filter(
@@ -859,6 +870,55 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Last Clean Evidence — supervisors/GMs only */}
+          {canSupervise && room?.last_session_id && (
+            <div className="p-4 border-b border-white/60">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Last Clean</h3>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
+                {room.last_clean_minutes != null && (
+                  <div className="flex items-center gap-1.5 text-xs text-ink2">
+                    <Timer className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                    <span className="font-mono font-semibold">{room.last_clean_minutes}m</span>
+                    {room.last_clean_base_minutes != null && (
+                      <span className="text-ink3">/ base {room.last_clean_base_minutes}m</span>
+                    )}
+                  </div>
+                )}
+                {room.last_clean_checklist_total > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-ink2">
+                    <CheckCircle className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                    <span>{room.last_clean_checklist_done}/{room.last_clean_checklist_total} items</span>
+                  </div>
+                )}
+                {room.last_clean_photo_count > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-ink2">
+                    <Camera className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                    <span>{room.last_clean_photo_count} photo{room.last_clean_photo_count > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+              </div>
+              {lastSessionData?.notes && (
+                <p className="text-xs text-ink2 bg-stone-50 rounded-lg px-3 py-2 mb-3">{lastSessionData.notes}</p>
+              )}
+              {lastSessionData?.photos && lastSessionData.photos.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {lastSessionData.photos.map((photo: any) => (
+                    <a
+                      key={photo.id}
+                      href={photo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-16 h-16 rounded-lg overflow-hidden border border-line bg-stone-100 shrink-0 hover:opacity-80 transition-opacity"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.url} alt="Clean photo" className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

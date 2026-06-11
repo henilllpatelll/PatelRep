@@ -3,1445 +3,91 @@
   "bugs": [
     {
       "id": "bug-001",
-      "timestamp": "2026-06-05T02:16:01.988Z",
-      "error_message": "Function not marked async",
-      "file": "apps/mobile/lib/api/lostFound.ts",
-      "root_cause": "Function uses await but wasn't declared async",
-      "fix": "Added async modifier",
+      "timestamp": "2026-06-11T02:46:17.445Z",
+      "error_message": "CSS fix: DEP, FULL, LIGHT",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
+      "fix": "Changed DEP: { icon: \"log-out-outline\", fg: C.alert \u2192 { icon: \"arrow-back-outline\", fg: C.ooo, bg: C.oooSoft, border: C.oooLine; FULL: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine; LIGHT: { fg: C.caution \u2192 { fg: C.caution, bg: C.cautionSoft, border: C.cautionLine",
       "tags": [
         "auto-detected",
-        "async-fix",
-        "ts"
+        "style-fix",
+        "tsx"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T02:16:01.988Z"
+      "occurrences": 2,
+      "last_seen": "2026-06-11T02:46:31.193Z"
     },
     {
       "id": "bug-002",
-      "timestamp": "2026-06-05T12:45:38.139Z",
-      "error_message": "Missing await",
-      "file": "apps/mobile/lib/api/assets.ts",
-      "root_cause": "Async call without await â€” returned Promise instead of value",
-      "fix": "Added await to async call",
+      "timestamp": "2026-06-11T02:54:00.470Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11\u219211 lines (5 removed) | Also: <View; style={[",
       "tags": [
         "auto-detected",
-        "async-fix",
-        "ts"
+        "refactor",
+        "tsx"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T12:45:38.139Z"
+      "occurrences": 2,
+      "last_seen": "2026-06-11T02:54:09.185Z"
     },
     {
       "id": "bug-003",
-      "timestamp": "2026-06-05T12:45:43.774Z",
-      "error_message": "Function not marked async",
-      "file": "apps/mobile/lib/api/lostFound.ts",
-      "root_cause": "Function uses await but wasn't declared async",
-      "fix": "Added async modifier",
+      "timestamp": "2026-06-11T02:56:29.204Z",
+      "error_message": "CSS fix: DEP, CLEAN_TYPE_META",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
+      "fix": "Changed DEP: { fg: C.ink3 \u2192 { icon: \"log-out-outline\", fg: C.alert; CLEAN_TYPE_META: Record<string, { fg: string \u2192 Record<string, { icon?: ComponentProps<typeof Ionicons>[\"name\"]",
       "tags": [
         "auto-detected",
-        "async-fix",
-        "ts"
+        "style-fix",
+        "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-05T12:45:43.774Z"
+      "last_seen": "2026-06-11T02:56:29.204Z"
     },
     {
       "id": "bug-004",
-      "timestamp": "2026-06-05T12:46:17.069Z",
-      "error_message": "Missing error handling in unknown",
-      "file": "apps/mobile/app/(app)/assets/index.tsx",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
+      "timestamp": "2026-06-11T02:56:41.150Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
       "tags": [
         "auto-detected",
-        "error-handling",
+        "null-safety",
         "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-05T12:46:17.069Z"
+      "last_seen": "2026-06-11T02:56:41.150Z"
     },
     {
       "id": "bug-005",
-      "timestamp": "2026-06-05T12:46:23.209Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/assets/index.tsx",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 6â†’8 lines (2 removed)",
+      "timestamp": "2026-06-11T02:56:46.072Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Had \"800\"",
+      "fix": "Changed to \"row\"",
       "tags": [
         "auto-detected",
-        "refactor",
+        "wrong-value",
         "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-05T12:46:23.209Z"
+      "last_seen": "2026-06-11T02:56:46.072Z"
     },
     {
       "id": "bug-006",
-      "timestamp": "2026-06-05T13:10:43.244Z",
-      "error_message": "CSS fix: label",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "label: \"VIPs\", count: counts.vip â†’ \"VIPs\",  count: counts.vip,      active: filter === \"vip\",  onPress: () => setFilter(\"vip\")",
-      "fix": "Changed label: \"VIPs\", count: counts.vip â†’ \"VIPs\",  count: counts.vip,      active: filter === \"vip\",  onPress: () => setFilter(\"vip\")",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:10:43.244Z"
-    },
-    {
-      "id": "bug-007",
-      "timestamp": "2026-06-05T13:10:49.924Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 7â†’7 lines (4 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:10:49.924Z"
-    },
-    {
-      "id": "bug-008",
-      "timestamp": "2026-06-05T13:49:52.319Z",
-      "error_message": "Missing await",
-      "file": "apps/mobile/lib/offline/sync.ts",
-      "root_cause": "Async call without await â€” returned Promise instead of value",
-      "fix": "Added await to async call",
-      "tags": [
-        "auto-detected",
-        "async-fix",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:49:52.319Z"
-    },
-    {
-      "id": "bug-009",
-      "timestamp": "2026-06-05T13:50:35.976Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/lib/offline/db.ts",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 26â†’36 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:50:35.976Z"
-    },
-    {
-      "id": "bug-010",
-      "timestamp": "2026-06-05T13:50:49.250Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(auth)/_layout.tsx",
-      "root_cause": "Had \"/(app)/my-rooms\"",
-      "fix": "Changed to \"/(app)/home\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:50:49.250Z"
-    },
-    {
-      "id": "bug-011",
-      "timestamp": "2026-06-05T13:50:59.878Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/lib/api/lostFound.ts",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:50:59.878Z"
-    },
-    {
-      "id": "bug-012",
-      "timestamp": "2026-06-05T13:51:07.062Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
-      "root_cause": "11 lines replaced/restructured",
-      "fix": "Rewrote 13â†’3 lines (11 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:51:07.062Z"
-    },
-    {
-      "id": "bug-013",
-      "timestamp": "2026-06-05T13:51:11.671Z",
-      "error_message": "Wrong reference: Georgia should be displayFont",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Used \"Georgia\" instead of \"displayFont\"",
-      "fix": "Changed Georgia â†’ displayFont",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T13:51:11.671Z"
-    },
-    {
-      "id": "bug-014",
-      "timestamp": "2026-06-05T14:14:58.697Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/lib/api/inspections.ts",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:14:58.697Z"
-    },
-    {
-      "id": "bug-015",
-      "timestamp": "2026-06-05T14:15:14.164Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation | Also: <Text style={styles.headerMeta}>{t(\"home.engineer.shiftMeta\"; <Text style={styles.title}>{t(\"home.engineer.greeting\", { na | Also: title={<Text style={styles.rowTitle}>{t(\"inspect.roomTitle\",",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-05T14:18:27.259Z"
-    },
-    {
-      "id": "bug-016",
-      "timestamp": "2026-06-05T14:15:29.811Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
-      "root_cause": "Had \"open\"",
-      "fix": "Changed to \"workOrders.headerCountOpen\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 4,
-      "last_seen": "2026-06-05T14:19:51.071Z"
-    },
-    {
-      "id": "bug-017",
-      "timestamp": "2026-06-05T14:15:36.689Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
-      "root_cause": "Had \"Done!\"",
-      "fix": "Changed to \"workOrders.completedTitle\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 4,
-      "last_seen": "2026-06-05T14:16:11.265Z"
-    },
-    {
-      "id": "bug-018",
-      "timestamp": "2026-06-05T14:15:51.119Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:15:51.119Z"
-    },
-    {
-      "id": "bug-019",
-      "timestamp": "2026-06-05T14:17:02.854Z",
-      "error_message": "CSS fix: value",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "value: \"2\", label: \"closed today\", color: C.ready â†’ \"2\", label: t(\"home.engineer.closedToday\"), color: C.ready",
-      "fix": "Changed value: \"2\", label: \"closed today\", color: C.ready â†’ \"2\", label: t(\"home.engineer.closedToday\"), color: C.ready",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 4,
-      "last_seen": "2026-06-05T14:19:20.706Z"
-    },
-    {
-      "id": "bug-020",
-      "timestamp": "2026-06-05T14:17:43.678Z",
-      "error_message": "Wrong reference: setTemplateId should be setTemplate",
-      "file": "apps/mobile/app/(app)/inspect/index.tsx",
-      "root_cause": "Used \"setTemplateId\" instead of \"setTemplate\"",
-      "fix": "Changed setTemplateId â†’ setTemplate",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:17:43.678Z"
-    },
-    {
-      "id": "bug-021",
-      "timestamp": "2026-06-05T14:17:56.614Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/inspect/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:17:56.614Z"
-    },
-    {
-      "id": "bug-022",
-      "timestamp": "2026-06-05T14:22:15.682Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/__tests__/screens/HousekeeperHome.test.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:22:15.682Z"
-    },
-    {
-      "id": "bug-023",
-      "timestamp": "2026-06-05T14:22:21.982Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:22:21.982Z"
-    },
-    {
-      "id": "bug-024",
-      "timestamp": "2026-06-05T14:22:32.892Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/__tests__/screens/InspectorQueue.test.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:22:32.892Z"
-    },
-    {
-      "id": "bug-025",
-      "timestamp": "2026-06-05T14:23:23.651Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/__tests__/screens/ProfileHandoff.test.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T14:23:23.651Z"
-    },
-    {
-      "id": "bug-026",
-      "timestamp": "2026-06-05T09:32:59.6100817-05:00",
-      "error_message": "https://patelrep-web.vercel.app/dashboard?unauthorized=%2Fdashboard is showing The page isn't redirecting properly",
-      "file": "apps/web/proxy.ts",
-      "root_cause": "The proxy redirected users with an authenticated session but no resolved app role from /dashboard back to /dashboard?unauthorized=/dashboard, creating a self-redirect loop.",
-      "fix": "Extracted proxy route decisions to apps/web/lib/utils/routeGuard.ts, allowed /dashboard as the safe fallback for unresolved app roles, kept restricted modules role-gated, and stripped stale redirect query params when redirecting.",
-      "tags": [
-        "web",
-        "auth",
-        "middleware",
-        "rbac",
-        "redirect-loop"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T09:32:59.6100817-05:00"
-    },
-    {
-      "id": "bug-027",
-      "timestamp": "2026-06-05T09:32:59.6100817-05:00",
-      "error_message": "npm run type-check initially failed with missing react/next modules; npm install --no-package-lock timed out on first attempt but left dependencies usable",
-      "file": "apps/web/node_modules",
-      "root_cause": "The local apps/web dependency install was partial and lacked runtime packages such as react and next.",
-      "fix": "Ran npm install --no-package-lock in apps/web, then reran type-check, lint, and build successfully.",
-      "tags": [
-        "local-verification",
-        "dependencies",
-        "web"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T09:32:59.6100817-05:00"
-    },
-    {
-      "id": "bug-028",
-      "timestamp": "2026-06-05T15:01:39.728Z",
-      "error_message": "Missing error handling in function",
-      "file": "apps/mobile/lib/offline/db.ts",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T15:01:39.728Z"
-    },
-    {
-      "id": "bug-029",
-      "timestamp": "2026-06-05T00:00:00.000Z",
-      "error_message": "Call to function 'NativeDatabase.execAsync' has been rejected. â†’ Caused by: near \"EXISTS\": syntax error",
-      "file": "apps/mobile/lib/offline/db.ts",
-      "root_cause": "ALTER TABLE ... ADD COLUMN IF NOT EXISTS is PostgreSQL syntax; SQLite does not support IF NOT EXISTS on ALTER TABLE. execAsync passed this invalid syntax inside a multi-statement string.",
-      "fix": "Moved ALTER TABLE statements out of execAsync into individual db.runAsync calls wrapped in try/catch so duplicate-column errors (column already exists) are silently ignored â€” the SQLite-compatible migration pattern.",
-      "tags": [
-        "sqlite",
-        "mobile",
-        "migration",
-        "sql-syntax"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T00:00:00.000Z"
-    },
-    {
-      "id": "bug-030",
-      "timestamp": "2026-06-05T10:06:57.6509893-05:00",
-      "error_message": "After logging in on https://patelrep-web.vercel.app/login?redirectTo=%2Fdashboard it redirects to https://patelrep-web.vercel.app/dashboard?unauthorized=%2Fdashboard",
-      "file": "apps/web/proxy.ts",
-      "root_cause": "The proxy treated the Supabase top-level database role claim (`authenticated`) as a PatelRep app role because it cast `jwtClaims.role` directly to UserRole. That made `/dashboard` fail RBAC after login and redirect to itself with `unauthorized=/dashboard`.",
-      "fix": "Added `toAppRole()` in apps/web/lib/utils/routeGuard.ts to whitelist only PatelRep app roles, used it in proxy role extraction, added a regression test for Supabase DB roles, deployed to Vercel production, and verified login reaches /dashboard with /v1/auth/me 200.",
-      "tags": [
-        "web",
-        "auth",
-        "middleware",
-        "rbac",
-        "vercel",
-        "redirect-loop"
-      ],
-      "related_bugs": [
-        "bug-026"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T10:06:57.6509893-05:00"
-    },
-    {
-      "id": "bug-031",
-      "timestamp": "2026-06-05T15:10:37.785Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T15:10:37.785Z"
-    },
-    {
-      "id": "bug-032",
-      "timestamp": "2026-06-05T15:11:02.513Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 14â†’23 lines (5 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T15:11:02.513Z"
-    },
-    {
-      "id": "bug-033",
-      "timestamp": "2026-06-05T15:11:09.156Z",
-      "error_message": "CSS fix: borderColor, backgroundColor",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "borderColor: C.line, â†’ C.accent,; backgroundColor: C.surface, â†’ C.accent,",
-      "fix": "Changed borderColor: C.line, â†’ C.accent,; backgroundColor: C.surface, â†’ C.accent,",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T15:11:09.156Z"
-    },
-    {
-      "id": "bug-034",
-      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
-      "error_message": "when i click any tab it stays on the dashbaord it does not go to that tab. the url changes but it still shows the dashboard",
-      "file": "apps/web/proxy.ts, apps/web/components/shared/Providers.tsx, apps/web/lib/utils/routeGuard.ts",
-      "root_cause": "The proxy only trusted JWT `role`/user metadata roles. Supabase sessions expose the top-level database role `authenticated`, while the PatelRep app role can be in the custom JWT `user_role` claim and is also hydrated from /auth/me after login. The sidebar could show app-role tabs client-side while server route checks still treated the user as unresolved and bounced restricted routes back to /dashboard.",
-      "fix": "Added getAppRoleFromSources(), read the custom JWT user_role claim before the database role, wrote a non-secret pr_role cookie when /auth/me or auth events resolve the app role, cleared it on sign-out/session expiry, and let the proxy use that cookie as the final app-role source for UI route gating.",
-      "tags": [
-        "web",
-        "navigation",
-        "proxy",
-        "auth",
-        "rbac"
-      ],
-      "related_bugs": [
-        "bug-026",
-        "bug-030"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
-    },
-    {
-      "id": "bug-035",
-      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
-      "error_message": "PowerShell reported `dashboard : The term 'dashboard' is not recognized` when reading apps/web/app/(dashboard) paths",
-      "file": "command line",
-      "root_cause": "App Router route-group parentheses were passed to PowerShell without a literal path, so PowerShell interpreted `(dashboard)` as an expression.",
-      "fix": "Used quoted paths with -LiteralPath for Get-Content and quoted path arguments for rg.",
-      "tags": [
-        "powershell",
-        "nextjs",
-        "route-groups",
-        "tooling"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
-    },
-    {
-      "id": "bug-036",
-      "timestamp": "2026-06-05T10:25:07.5483678-05:00",
-      "error_message": "npm error No workspaces found: --workspace=@patelrep/web",
-      "file": "package.json",
-      "root_cause": "This checkout's root package.json does not expose npm workspaces, so workspace-targeted npm commands fail before running the web app scripts.",
-      "fix": "Ran the web verification commands from apps/web with npm run type-check, npm run lint, and npm run build.",
-      "tags": [
-        "npm",
-        "web",
-        "local-verification",
-        "tooling"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T10:25:07.5483678-05:00"
-    },
-    {
-      "id": "bug-037",
-      "timestamp": "2026-06-05T16:24:04.242Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/lib/navigation/roleTabs.ts",
-      "root_cause": "7 lines replaced/restructured",
-      "fix": "Rewrote 71â†’128 lines (7 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:24:04.242Z"
-    },
-    {
-      "id": "bug-038",
-      "timestamp": "2026-06-05T16:30:09.619Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation | Also: onPress={() => router.push(`/(app)/guest-requests/${req.id}`",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T16:31:28.415Z"
-    },
-    {
-      "id": "bug-039",
-      "timestamp": "2026-06-05T16:30:47.504Z",
-      "error_message": "Wrong reference: case should be default",
-      "file": "apps/mobile/lib/navigation/roleTabs.ts",
-      "root_cause": "Used \"case\" instead of \"default\"",
-      "fix": "Changed case â†’ default",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:30:47.504Z"
-    },
-    {
-      "id": "bug-040",
-      "timestamp": "2026-06-05T16:42:36.578Z",
-      "error_message": "Missing error handling in SupervisorHomeScreen",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block | Also: const { isOnline } = useAppStore();; const [stats, setStats] = useState({ newReq: \"â€”\", inProgress | Also: const { isOnline } = useAppStore();; const [stats, setStats] = useState({ cleanPct: \"â€”\", openWOs:",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-05T16:43:02.463Z"
-    },
-    {
-      "id": "bug-041",
-      "timestamp": "2026-06-05T16:43:35.969Z",
-      "error_message": "Missing error handling in AppLayout",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:43:35.969Z"
-    },
-    {
-      "id": "bug-042",
-      "timestamp": "2026-06-05T16:44:06.677Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "4 lines replaced/restructured",
-      "fix": "Rewrote 12â†’17 lines (4 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:44:06.677Z"
-    },
-    {
-      "id": "bug-043",
-      "timestamp": "2026-06-05T16:53:17.435Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/guest-requests/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:53:17.435Z"
-    },
-    {
-      "id": "bug-044",
-      "timestamp": "2026-06-05T16:53:31.522Z",
-      "error_message": "Wrong reference: useState should be useEffect",
-      "file": "apps/mobile/app/(app)/guest-requests/[requestId].tsx",
-      "root_cause": "Used \"useState\" instead of \"useEffect\"",
-      "fix": "Changed useState â†’ useEffect",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:53:31.522Z"
-    },
-    {
-      "id": "bug-045",
-      "timestamp": "2026-06-05T16:53:38.987Z",
-      "error_message": "Wrong reference: useState should be useEffect",
-      "file": "apps/mobile/app/(app)/logbook/index.tsx",
-      "root_cause": "Used \"useState\" instead of \"useEffect\"",
-      "fix": "Changed useState â†’ useEffect",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T16:53:38.987Z"
-    },
-    {
-      "id": "bug-046",
-      "timestamp": "2026-06-05T17:59:15.640Z",
-      "error_message": "Wrong reference: useState should be useEffect",
-      "file": "apps/mobile/app/(app)/assignments/index.tsx",
-      "root_cause": "Used \"useState\" instead of \"useEffect\"",
-      "fix": "Changed useState â†’ useEffect",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T17:59:15.640Z"
-    },
-    {
-      "id": "bug-047",
-      "timestamp": "2026-06-05T17:59:21.062Z",
-      "error_message": "Missing error handling in unknown",
-      "file": "apps/mobile/app/(app)/assignments/index.tsx",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T17:59:21.062Z"
-    },
-    {
-      "id": "bug-048",
-      "timestamp": "2026-06-05T17:59:35.957Z",
-      "error_message": "CSS fix: paddingHorizontal, backgroundColor, gap",
-      "file": "apps/mobile/app/(app)/assignments/index.tsx",
-      "root_cause": "paddingHorizontal: 18, â†’ 10,; backgroundColor: C.paper, â†’ C.accent,; gap: 4, â†’ 5,",
-      "fix": "Changed paddingHorizontal: 18, â†’ 10,; backgroundColor: C.paper, â†’ C.accent,; gap: 4, â†’ 5,",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T17:59:35.957Z"
-    },
-    {
-      "id": "bug-049",
-      "timestamp": "2026-06-05T18:10:03.546Z",
-      "error_message": "Wrong reference: useState should be useEffect",
-      "file": "apps/mobile/app/(app)/alerts/index.tsx",
-      "root_cause": "Used \"useState\" instead of \"useEffect\"",
-      "fix": "Changed useState â†’ useEffect",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 6,
-      "last_seen": "2026-06-05T18:10:34.171Z"
-    },
-    {
-      "id": "bug-050",
-      "timestamp": "2026-06-05T18:10:14.201Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/room-board/index.tsx",
-      "root_cause": "Had \"@/stores/appStore\"",
-      "fix": "Changed to \"@/lib/supabase\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T18:10:14.201Z"
-    },
-    {
-      "id": "bug-051",
-      "timestamp": "2026-06-05T18:10:22.736Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/room-board/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check) | Also: useEffect(() => {; if (!user?.tenant_id) return;",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T18:10:39.250Z"
-    },
-    {
-      "id": "bug-052",
-      "timestamp": "2026-06-05T18:23:30.539Z",
-      "error_message": "CSS fix: iso",
-      "file": "apps/mobile/app/(app)/alerts/index.tsx",
-      "root_cause": "iso: string) { â†’ string) => {",
-      "fix": "Changed iso: string) { â†’ string) => {",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T18:23:59.770Z"
-    },
-    {
-      "id": "bug-053",
-      "timestamp": "2026-06-05T18:23:42.243Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/alerts/index.tsx",
-      "root_cause": "Had `${critical.length} items`",
-      "fix": "Changed to `${critical.length} ${t(\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 12,
-      "last_seen": "2026-06-05T18:30:26.192Z"
-    },
-    {
-      "id": "bug-054",
-      "timestamp": "2026-06-05T18:24:56.287Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/room-board/index.tsx",
-      "root_cause": "10 lines replaced/restructured",
-      "fix": "Rewrote 11â†’11 lines (10 removed) | Also: const STATUS_LABELS: Record<string, string> = {; DIRTY: \"Dirty\", | Also: const ROLE_LABELS: Record<string, string> = {; housekeeper: \"Housekeeper\",",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-05T18:26:07.540Z"
-    },
-    {
-      "id": "bug-055",
-      "timestamp": "2026-06-05T18:25:52.686Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/room-status/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation | Also: <Text style={styles.subtitle}>{t(\"staff.activeCount\", { coun | Also: <Text style={styles.floorLabel}>{t(\"assignments.floor\", { fl | Also: <Text style={styles.sheetTitle}>{t(\"assignments.assignRoom\",; <Text style={styles.sheetSub}>{t(\"assignments.chooseHousekee",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 4,
-      "last_seen": "2026-06-05T18:29:50.924Z"
-    },
-    {
-      "id": "bug-056",
-      "timestamp": "2026-06-05T18:30:31.927Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/logbook/new.tsx",
-      "root_cause": "Had \"@expo/vector-icons\"",
-      "fix": "Changed to \"react-i18next\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-05T18:31:13.057Z"
-    },
-    {
-      "id": "bug-057",
-      "timestamp": "2026-06-05T18:31:24.941Z",
-      "error_message": "Wrong reference: useAppStore should be unreadCount",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "Used \"useAppStore\" instead of \"unreadCount\"",
-      "fix": "Changed useAppStore â†’ unreadCount",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T18:31:24.941Z"
-    },
-    {
-      "id": "bug-058",
-      "timestamp": "2026-06-05T18:31:30.446Z",
-      "error_message": "Missing error handling in unknown",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T18:31:30.446Z"
-    },
-    {
-      "id": "bug-059",
-      "timestamp": "2026-06-05T18:31:35.832Z",
-      "error_message": "CSS fix: href",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "href: null â†’ null,",
-      "fix": "Changed href: null â†’ null,",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T18:31:35.833Z"
-    },
-    {
-      "id": "bug-060",
-      "timestamp": "2026-06-05T18:40:59.850Z",
-      "error_message": "CSS fix: get",
-      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
-      "root_cause": "get: jest.fn().mockResolvedValue({ â†’ jest.fn().mockResolvedValue({ data: []",
-      "fix": "Changed get: jest.fn().mockResolvedValue({ â†’ jest.fn().mockResolvedValue({ data: []",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T18:40:59.850Z"
-    },
-    {
-      "id": "bug-061",
-      "timestamp": "2026-06-05T19:17:45.037Z",
-      "error_message": "CSS fix: name, value",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "name: string â†’ firstName(name); value: stats.inspected, label: \"Inspected\", color: C.ready â†’ stats.inspected, label: t(\"home.supervisor.inspected\"), color: C.ready",
-      "fix": "Changed name: string â†’ firstName(name); value: stats.inspected, label: \"Inspected\", color: C.ready â†’ stats.inspected, label: t(\"home.supervisor.inspected\"), color: C.ready",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 5,
-      "last_seen": "2026-06-05T19:18:36.842Z"
-    },
-    {
-      "id": "bug-062",
-      "timestamp": "2026-06-05T19:24:52.780Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/staff/index.tsx",
-      "root_cause": "Had \"@/lib/api/client\"",
-      "fix": "Changed to \"@/lib/api/staff\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T19:24:54.827Z"
-    },
-    {
-      "id": "bug-063",
-      "timestamp": "2026-06-05T19:25:27.416Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:25:27.416Z"
-    },
-    {
-      "id": "bug-064",
-      "timestamp": "2026-06-05T19:25:32.781Z",
-      "error_message": "CSS fix: key",
-      "file": "apps/mobile/app/(app)/copilot/index.tsx",
-      "root_cause": "key: \"guestRequest\", icon: \"person\" as const â†’ \"searchSOPs\", icon: \"book-outline\" as const",
-      "fix": "Changed key: \"guestRequest\", icon: \"person\" as const â†’ \"searchSOPs\", icon: \"book-outline\" as const",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:25:32.781Z"
-    },
-    {
-      "id": "bug-065",
-      "timestamp": "2026-06-05T19:40:47.389Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Had \"done\"",
-      "fix": "Changed to \"completed\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-05T19:41:10.239Z"
-    },
-    {
-      "id": "bug-066",
-      "timestamp": "2026-06-05T19:40:50.095Z",
-      "error_message": "Wrong reference: hotel_id should be tenant_id",
-      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
-      "root_cause": "Used \"hotel_id\" instead of \"tenant_id\"",
-      "fix": "Changed hotel_id â†’ tenant_id",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:40:50.095Z"
-    },
-    {
-      "id": "bug-067",
-      "timestamp": "2026-06-05T19:41:12.002Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/lib/api/guestRequests.ts",
-      "root_cause": "Had \"new\"",
-      "fix": "Changed to \"open\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:12.002Z"
-    },
-    {
-      "id": "bug-068",
-      "timestamp": "2026-06-05T19:41:13.414Z",
-      "error_message": "Wrong return value",
-      "file": "apps/mobile/lib/api/staff.ts",
-      "root_cause": "Was returning: api.get<{ data: StaffMember[] }>(\"/staff\");",
-      "fix": "Now returns: api.get<{ data: { staff: StaffMember[]; total: num",
-      "tags": [
-        "auto-detected",
-        "return-value",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:13.414Z"
-    },
-    {
-      "id": "bug-069",
-      "timestamp": "2026-06-05T19:41:17.643Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/staff/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:17.643Z"
-    },
-    {
-      "id": "bug-070",
-      "timestamp": "2026-06-05T19:41:19.927Z",
-      "error_message": "Wrong return value",
-      "file": "apps/mobile/lib/api/housekeeping.ts",
-      "root_cause": "Was returning: api.get<{ data: { rooms: BoardRoom[] } }>(`/housek",
-      "fix": "Now returns: api.get<{ data: BoardRoom[] }>(`/housekeeping/boar",
-      "tags": [
-        "auto-detected",
-        "return-value",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:19.927Z"
-    },
-    {
-      "id": "bug-071",
-      "timestamp": "2026-06-05T19:41:23.355Z",
-      "error_message": "CSS fix: data",
-      "file": "apps/mobile/app/(app)/assignments/index.tsx",
-      "root_cause": "data: { rooms: (AssignedRoom & { assigned_to: string | null â†’ (AssignedRoom & { assigned_to: string | null",
-      "fix": "Changed data: { rooms: (AssignedRoom & { assigned_to: string | null â†’ (AssignedRoom & { assigned_to: string | null",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:23.355Z"
-    },
-    {
-      "id": "bug-072",
-      "timestamp": "2026-06-05T19:41:50.132Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/inspect/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:41:50.132Z"
-    },
-    {
-      "id": "bug-073",
-      "timestamp": "2026-06-05T19:51:37.922Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/_layout.tsx",
-      "root_cause": "7 lines replaced/restructured",
-      "fix": "Rewrote 13â†’22 lines (7 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:51:37.922Z"
-    },
-    {
-      "id": "bug-074",
-      "timestamp": "2026-06-05T19:51:42.678Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/_layout.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check) | Also: const effectiveRole = user?.effective_role ?? user?.role;; const visibleTabs = effectiveRole ? getTabsForRole(effective",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T19:51:51.416Z"
-    },
-    {
-      "id": "bug-075",
-      "timestamp": "2026-06-05T19:51:58.965Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check) | Also: <Text style={styles.headerMeta}>{dynamicShiftMeta(user?.lang",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T19:52:08.444Z"
-    },
-    {
-      "id": "bug-076",
-      "timestamp": "2026-06-05T19:52:21.047Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/copilot/index.tsx",
-      "root_cause": "Had \", \"",
-      "fix": "Changed to \", t(\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 2,
-      "last_seen": "2026-06-05T19:52:24.586Z"
-    },
-    {
-      "id": "bug-077",
-      "timestamp": "2026-06-05T19:53:10.718Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/i18n/locales/en.json",
-      "root_cause": "Had \"shiftMeta\"",
-      "fix": "Changed to \"shiftSuffix\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "json"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:53:10.718Z"
-    },
-    {
-      "id": "bug-078",
-      "timestamp": "2026-06-05T19:53:29.471Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/i18n/locales/es.json",
-      "root_cause": "Had \"shiftMeta\"",
-      "fix": "Changed to \"shiftSuffix\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "json"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T19:53:29.471Z"
-    },
-    {
-      "id": "bug-079",
-      "timestamp": "2026-06-05T21:55:00.000Z",
-      "error_message": "EAS Android production build failed: Could not resolve project :react-native-async-storage_async-storage / :react-native-community_netinfo / :react-native-safe-area-context / :react-native-screens; No matching variant; No variants exist.",
-      "file": ".easignore, apps/mobile/.easignore, .gitignore, apps/mobile/.gitignore, apps/mobile/package.json, apps/mobile/package-lock.json",
-      "root_cause": "EAS archived the checked-in native apps/mobile/android folder, so it skipped Expo prebuild and used stale native autolinking state. The archive also included tracked .expo local state, and Expo Router was one patch behind SDK 54's expected version.",
-      "fix": "Excluded apps/mobile/android and apps/mobile/.expo from the EAS archive, untracked generated .expo files, upgraded expo-router to ~6.0.24, and verified a temp archive can run expo prebuild to generate android/settings.gradle and android/app/build.gradle.",
-      "tags": [
-        "eas",
-        "android",
-        "expo",
-        "gradle",
-        "autolinking",
-        "mobile"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-05T21:55:00.000Z"
-    },
-    {
-      "id": "bug-081",
-      "timestamp": "2026-06-06T22:30:00.000Z",
-      "error_message": "Failed to refresh rooms: Call to function 'NativeDatabase.execAsync' has been rejected. â†’ Caused by: cannot rollback - no transaction is active",
-      "file": "apps/mobile/lib/offline/db.ts, apps/mobile/lib/offline/sync.ts",
-      "root_cause": "Race condition: NetInfo fires isConnected=true multiple times on Android; syncOnConnect() is fire-and-forget (no await) in the listener. Two concurrent withTransactionAsync calls on the same SQLite connection: the second BEGIN fails ('cannot start transaction within transaction'), its catch calls ROLLBACK which silently kills the first call's transaction, then the first call's own ROLLBACK fails with 'cannot rollback - no transaction is active'. Secondary: getDb() set _db before initSchema() finished, so concurrent callers got a partially-initialized DB.",
-      "fix": "(1) Added _syncOnConnectInProgress guard to syncOnConnect() so concurrent calls bail early. (2) Replaced _db singleton with a promise-mutex (_dbPromise) so all concurrent getDb() callers share one init promise and wait for initSchema to complete. (3) Moved PRAGMA journal_mode = WAL to a standalone runAsync before the execAsync batch.",
-      "tags": [
-        "sqlite",
-        "mobile",
-        "android",
-        "race-condition",
-        "transaction",
-        "expo-sqlite",
-        "netinfo"
-      ],
-      "related_bugs": [
-        "bug-029"
-      ],
-      "occurrences": 2,
-      "last_seen": "2026-06-06T22:30:00.000Z"
-    },
-    {
-      "id": "bug-080",
-      "timestamp": "2026-06-06T22:11:34.258Z",
-      "error_message": "Incorrect value in code",
-      "file": ".githooks/pre-push",
-      "root_cause": "Had \"; echo \"",
-      "fix": "Changed to \"../../.venv/Scripts/ruff\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "unknown"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-06T22:13:53.518Z"
-    },
-    {
-      "id": "bug-082",
-      "timestamp": "2026-06-07T01:32:33.416Z",
-      "error_message": "Missing error handling in getDb",
-      "file": "apps/mobile/lib/offline/db.ts",
-      "root_cause": "Code path had no error handling â€” exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "ts"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T01:32:33.416Z"
-    },
-    {
-      "id": "bug-083",
-      "timestamp": "2026-06-07T02:29:24.724Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/api/routers/housekeeping.py",
-      "root_cause": "7 lines replaced/restructured",
-      "fix": "Rewrote 21â†’12 lines (7 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "py"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T02:29:24.724Z"
-    },
-    {
-      "id": "bug-084",
-      "timestamp": "2026-06-06T00:00:00.000Z",
-      "error_message": "Rooms assigned on web do not show on housekeeper mobile",
-      "file": "apps/api/routers/housekeeping.py",
-      "root_cause": "HousekeeperBar in web shows both housekeeper and housekeeping_supervisor for assignment, but _ensure_housekeeper only validated role=housekeeper (blocking saves for supervisors), and /my-rooms used require_role(\"housekeeper\") only (returning 403 for supervisors). Mobile silently falls back to empty cache on any API error.",
-      "fix": "Changed _ensure_housekeeper to .in_(\"role\", [\"housekeeper\", \"housekeeping_supervisor\"]) and changed /my-rooms to require_role(\"housekeeper\", \"housekeeping_supervisor\")",
-      "tags": [
-        "role-check",
-        "assignment",
-        "my-rooms",
-        "mobile",
-        "housekeeping"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-06T00:00:00.000Z"
-    },
-    {
-      "id": "bug-086",
-      "timestamp": "2026-06-07T00:00:00.000Z",
-      "error_message": "Failed to refresh rooms: [Error: HTTP 400] / no rooms assigned api error: HTTP 400",
-      "file": "apps/api/routers/housekeeping.py",
-      "root_cause": "room_assignments query selects clean_type but has no fallback try/except. If migration 042_room_assignment_clean_type.sql is not applied, PostgREST throws APIError → main.py postgrest_exception_handler returns HTTP 400 with {\"error\":{\"code\":...,\"message\":...}} (no \"detail\" key) → mobile API client falls through to throw new Error(`HTTP ${status}`) = 'HTTP 400'. Secondary: dnd_flag was missing from my_rooms_select so DND rooms always showed generic subtitle.",
-      "fix": "Wrapped room_assignments query in try/except using existing _is_missing_clean_type_column_error fallback pattern (retries without clean_type). Added dnd_flag to my_rooms_select.",
-      "tags": [
-        "mobile",
-        "housekeeping",
-        "my-rooms",
-        "clean_type",
-        "migration",
-        "400",
-        "postgrest"
-      ],
-      "related_bugs": [
-        "bug-084"
-      ],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T00:00:00.000Z"
-    },
-    {
-      "id": "bug-085",
-      "timestamp": "2026-06-06T22:30:00.000Z",
-      "error_message": "Task :react-native-screens:configureCMakeDebug[arm64-v8a] FAILED — WARNING: A restricted method in java.lang.System has been called",
-      "file": "apps/mobile/android/gradle.properties",
-      "root_cause": "System JDK is JDK 24 which restricts internal java.lang.System methods that React Native's CMake configuration calls. Gradle 8.14.3 enforces this as fatal. JDK 24 also causes 'Unsupported class file major version 68' with older Gradle/Groovy.",
-      "fix": "Added org.gradle.java.home=C:\\\\Program Files\\\\Microsoft\\\\jdk-21.0.3.9-hotspot to gradle.properties to pin the Gradle daemon to JDK 21 LTS. Gradle wrapper stays at 8.14.3.",
-      "tags": [
-        "android",
-        "gradle",
-        "jdk",
-        "cmake",
-        "expo",
-        "react-native",
-        "mobile"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-06T22:30:00.000Z"
-    },
-    {
-      "id": "bug-087",
-      "timestamp": "2026-06-07T00:00:00.000Z",
-      "error_message": "WARN Failed to refresh rooms: [Error: HTTP 400] — no rooms showing on mobile My Rooms screen",
-      "file": "apps/api/routers/housekeeping.py",
-      "root_cause": "my_rooms_select started with 'id, room_id, ...' but room_status uses room_id as PRIMARY KEY — there is no id column. PostgreSQL returned error 42703 (undefined_column), which PostgREST forwarded as an APIError. main.py postgrest_exception_handler maps non-PGRST204 APIErrors to HTTP 400 with body {error:{code,message}}, not {detail:...}, so the mobile client falls back to 'HTTP 400'. Previous fix attempts added clean_type try/except but never removed the invalid id field.",
-      "fix": "Removed 'id' from my_rooms_select. Added explicit 'id': room_id mapping in the row-building loop so mobile app's room.id navigation and /rooms/${room.id}/status API calls continue to work.",
-      "tags": [
-        "mobile",
-        "housekeeping",
-        "my-rooms",
-        "room_status",
-        "postgrest",
-        "400",
-        "column-not-found"
-      ],
-      "related_bugs": [
-        "bug-086"
-      ],
-      "occurrences": 3,
-      "last_seen": "2026-06-07T00:00:00.000Z"
-    },
-    {
-      "id": "bug-088",
-      "timestamp": "2026-06-07T13:26:50.314Z",
+      "timestamp": "2026-06-11T03:01:31.253Z",
       "error_message": "Missing guard clause",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "No early return/throw for edge case: pd !== 0",
-      "fix": "Added guard clause: if (pd !== 0)",
+      "root_cause": "No early return/throw for edge case: badge.key === \"checkout\"",
+      "fix": "Added guard clause: if (badge.key === \"checkout\")",
       "tags": [
         "auto-detected",
         "guard-clause",
@@ -1449,15 +95,47 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-07T13:26:50.314Z"
+      "last_seen": "2026-06-11T03:01:31.253Z"
     },
     {
-      "id": "bug-089",
-      "timestamp": "2026-06-07T13:34:02.994Z",
-      "error_message": "CSS fix: IN_PROGRESS",
+      "id": "bug-007",
+      "timestamp": "2026-06-11T03:15:07.829Z",
+      "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "IN_PROGRESS: 0, DIRTY: 1, OCCUPIED: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4, → 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,",
-      "fix": "Changed IN_PROGRESS: 0, DIRTY: 1, OCCUPIED: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4, → 0, DIRTY: 1, PICKUP: 2, CLEAN: 3, INSPECTED: 4,",
+      "root_cause": "37 lines replaced/restructured",
+      "fix": "Rewrote 60\u219220 lines (37 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T03:15:07.829Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-06-11T03:15:12.798Z",
+      "error_message": "Wrong reference: enqueueAction should be useAppStore",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "Used \"enqueueAction\" instead of \"useAppStore\"",
+      "fix": "Changed enqueueAction \u2192 useAppStore",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-11T03:15:36.508Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-06-11T03:15:40.883Z",
+      "error_message": "CSS fix: roomIdentity",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
+      "fix": "Changed roomIdentity: { flex: 1, minWidth: 0 \u2192 { minWidth: 0",
       "tags": [
         "auto-detected",
         "style-fix",
@@ -1465,77 +143,61 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-07T13:34:02.994Z"
+      "last_seen": "2026-06-11T03:15:40.883Z"
     },
     {
-      "id": "bug-090",
-      "timestamp": "2026-06-07T13:42:27.179Z",
+      "id": "bug-010",
+      "timestamp": "2026-06-11T03:41:07.715Z",
       "error_message": "Significant refactor of ",
       "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 4→5 lines (2 removed) | Also: <Text style={styles.navTitle} numberOfLines={1}>; Room {room.room_number}",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 37\u219219 lines (15 removed)",
       "tags": [
         "auto-detected",
         "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T03:41:07.715Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-06-11T05:17:07.867Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/ui/primitives.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 23\u219228 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T05:17:07.867Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-06-11T05:18:36.297Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Had \"h-14 flex items-center justify-between px-4 md:px",
+      "fix": "Changed to \"h-14 flex items-center justify-between px-4 md:px",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
         "tsx"
       ],
       "related_bugs": [],
       "occurrences": 2,
-      "last_seen": "2026-06-07T13:43:56.188Z"
+      "last_seen": "2026-06-11T05:18:42.158Z"
     },
     {
-      "id": "bug-091",
-      "timestamp": "2026-06-07T13:42:35.969Z",
-      "error_message": "CSS fix: backBtn",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "backBtn: { padding: 2 → { flexDirection: \"row\", alignItems: \"center\", gap: 2, padding: 2",
-      "fix": "Changed backBtn: { padding: 2 → { flexDirection: \"row\", alignItems: \"center\", gap: 2, padding: 2",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T13:42:35.969Z"
-    },
-    {
-      "id": "bug-092",
-      "timestamp": "2026-06-07T13:54:09.082Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "Had \"Departure Clean\"",
-      "fix": "Changed to \"Departure\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T13:54:09.082Z"
-    },
-    {
-      "id": "bug-093",
-      "timestamp": "2026-06-07T13:54:14.877Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "2 lines replaced/restructured",
-      "fix": "Rewrote 3→10 lines (2 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T13:54:14.877Z"
-    },
-    {
-      "id": "bug-094",
-      "timestamp": "2026-06-07T14:07:43.080Z",
+      "id": "bug-013",
+      "timestamp": "2026-06-11T05:20:45.290Z",
       "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "file": "apps/web/components/ui/Button.tsx",
       "root_cause": "Missing or incorrect type annotation",
       "fix": "Added type assertion/annotation",
       "tags": [
@@ -1545,508 +207,24 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-07T14:07:43.080Z"
+      "last_seen": "2026-06-11T05:20:45.290Z"
     },
     {
-      "id": "bug-095",
-      "timestamp": "2026-06-07T14:10:05.601Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
+      "id": "bug-014",
+      "timestamp": "2026-06-11T00:00:00",
+      "error_message": "GET /v1/tasks?per_page=200 returns 422 Unprocessable Content on local API",
+      "file": "apps/web (tasks page fetch) / apps/api/routers/tasks.py",
+      "root_cause": "Web tasks page requests per_page=200 but API query validation caps per_page below 200; pre-existing mismatch surfaced during redesign smoke test, not introduced by UI changes",
+      "fix": "NOT FIXED (out of redesign scope) - either raise API per_page le= bound or lower client page size",
       "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:10:05.601Z"
-    },
-    {
-      "id": "bug-096",
-      "timestamp": "2026-06-07T14:10:10.369Z",
-      "error_message": "CSS fix: header",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "header: { paddingTop: 20, paddingBottom: 4 → { paddingTop: 12, paddingBottom: 4",
-      "fix": "Changed header: { paddingTop: 20, paddingBottom: 4 → { paddingTop: 12, paddingBottom: 4",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:10:10.369Z"
-    },
-    {
-      "id": "bug-097",
-      "timestamp": "2026-06-07T14:15:53.135Z",
-      "error_message": "CSS fix: status",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "status: lastLocalStatus, updated_at: new Date().toISOString() → res.data.status, updated_at: new Date().toISOString()",
-      "fix": "Changed status: lastLocalStatus, updated_at: new Date().toISOString() → res.data.status, updated_at: new Date().toISOString()",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:15:53.135Z"
-    },
-    {
-      "id": "bug-098",
-      "timestamp": "2026-06-07T14:16:01.606Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "23 lines replaced/restructured",
-      "fix": "Rewrote 27→3 lines (23 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:16:01.606Z"
-    },
-    {
-      "id": "bug-099",
-      "timestamp": "2026-06-07T14:37:18.852Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:37:18.853Z"
-    },
-    {
-      "id": "bug-100",
-      "timestamp": "2026-06-07T14:37:27.803Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx",
-      "root_cause": "8 lines replaced/restructured",
-      "fix": "Rewrote 12→31 lines (8 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:37:27.803Z"
-    },
-    {
-      "id": "bug-101",
-      "timestamp": "2026-06-07T14:38:25.866Z",
-      "error_message": "CSS fix: value",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx",
-      "root_cause": "value: \"general\",     label: \"General\" → \"structural\",  label: \"Structural\"",
-      "fix": "Changed value: \"general\",     label: \"General\" → \"structural\",  label: \"Structural\"",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:38:25.867Z"
-    },
-    {
-      "id": "bug-102",
-      "timestamp": "2026-06-07T14:38:32.553Z",
-      "error_message": "CSS fix: value",
-      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "root_cause": "value: 'general',     label: 'General' → 'structural',  label: 'Structural'",
-      "fix": "Changed value: 'general',     label: 'General' → 'structural',  label: 'Structural'",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:38:32.553Z"
-    },
-    {
-      "id": "bug-103",
-      "timestamp": "2026-06-07T14:40:00.827Z",
-      "error_message": "Wrong reference: return should be category",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx",
-      "root_cause": "Used \"return\" instead of \"category\"",
-      "fix": "Changed return → category",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:40:00.827Z"
-    },
-    {
-      "id": "bug-104",
-      "timestamp": "2026-06-07T14:40:06.083Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx",
-      "root_cause": "Had \"General\"",
-      "fix": "Changed to \"Select a category\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:40:06.083Z"
-    },
-    {
-      "id": "bug-105",
-      "timestamp": "2026-06-07T14:40:54.310Z",
-      "error_message": "Wrong reference: woLoading should be woCategory",
-      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
-      "root_cause": "Used \"woLoading\" instead of \"woCategory\"",
-      "fix": "Changed woLoading → woCategory",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T14:40:54.310Z"
-    },
-    {
-      "id": "bug-106",
-      "timestamp": "2026-06-07T15:31:14.653Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "Had \"construct-outline\"",
-      "fix": "Changed to \"build-outline\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T15:31:14.653Z"
-    },
-    {
-      "id": "bug-107",
-      "timestamp": "2026-06-07T15:37:36.125Z",
-      "error_message": "Wrong return value",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Was returning: FALLBACK_GROUPS;",
-      "fix": "Now returns: [];",
-      "tags": [
-        "auto-detected",
-        "return-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T15:37:36.125Z"
-    },
-    {
-      "id": "bug-108",
-      "timestamp": "2026-06-07T15:37:45.156Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T15:37:45.156Z"
-    },
-    {
-      "id": "bug-109",
-      "timestamp": "2026-06-07T15:37:51.078Z",
-      "error_message": "CSS fix: fontSize",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "fontSize: 12, → 13,",
-      "fix": "Changed fontSize: 12, → 13,",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T15:37:51.078Z"
-    },
-    {
-      "id": "bug-110",
-      "timestamp": "2026-06-07T00:00:00.000Z",
-      "error_message": "Mobile tasks screen shows hardcoded placeholder tasks when no tasks are assigned",
-      "file": "apps/mobile/app/(app)/tasks/index.tsx",
-      "root_cause": "groupTasks() returned FALLBACK_GROUPS when tasks.length === 0, showing demo data instead of an empty state. openCount also fell back to FALLBACK_GROUPS count.",
-      "fix": "groupTasks returns [] when empty. Added empty state UI with icon + i18n strings (emptyTitle/emptyMeta in en.json and es.json). openCount now uses tasks.length directly.",
-      "tags": [
-        "mobile",
         "tasks",
-        "placeholder-data",
-        "empty-state"
+        "422",
+        "pagination",
+        "api-contract"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-07T00:00:00.000Z"
-    },
-    {
-      "id": "bug-111",
-      "timestamp": "2026-06-07T16:01:27.755Z",
-      "error_message": "Missing error handling in formatCheckoutTime",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
-      "fix": "Added try/catch block",
-      "tags": [
-        "auto-detected",
-        "error-handling",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T16:01:27.755Z"
-    },
-    {
-      "id": "bug-112",
-      "timestamp": "2026-06-07T16:01:44.705Z",
-      "error_message": "Null/undefined access in ",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
-      "tags": [
-        "auto-detected",
-        "null-safety",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T16:01:44.705Z"
-    },
-    {
-      "id": "bug-113",
-      "timestamp": "2026-06-07T16:01:55.217Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "14 lines replaced/restructured",
-      "fix": "Rewrote 20→9 lines (14 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T16:01:55.217Z"
-    },
-    {
-      "id": "bug-114",
-      "timestamp": "2026-06-07T16:02:08.168Z",
-      "error_message": "Type error",
-      "file": "apps/mobile/app/(app)/home/index.tsx",
-      "root_cause": "Missing or incorrect type annotation",
-      "fix": "Added type assertion/annotation",
-      "tags": [
-        "auto-detected",
-        "type-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-07T16:02:08.168Z"
-    },
-    {
-      "id": "bug-115",
-      "timestamp": "2026-06-08T06:55:07.877Z",
-      "error_message": "CSS fix: btnStart",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 → { backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 11",
-      "fix": "Changed btnStart: { backgroundColor: C.accent, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 9 → { backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 11",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-08T06:55:07.877Z"
-    },
-    {
-      "id": "bug-116",
-      "timestamp": "2026-06-09T00:56:31.757Z",
-      "error_message": "CSS fix: IN_PROGRESS",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "IN_PROGRESS: { label: \"In Progress\",                     bg: C.cautionSoft, fg: C.caution, border: C.cautionLine → { label: \"In Progress\",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine",
-      "fix": "Changed IN_PROGRESS: { label: \"In Progress\",                     bg: C.cautionSoft, fg: C.caution, border: C.cautionLine → { label: \"In Progress\",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine",
-      "tags": [
-        "auto-detected",
-        "style-fix",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-09T00:56:46.572Z"
-    },
-    {
-      "id": "bug-117",
-      "timestamp": "2026-06-09T00:56:37.157Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "Had \"700\"",
-      "fix": "Changed to \"600\"",
-      "tags": [
-        "auto-detected",
-        "wrong-value",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 3,
-      "last_seen": "2026-06-09T00:57:01.604Z"
-    },
-    {
-      "id": "bug-118",
-      "timestamp": "2026-06-09T01:24:27.042Z",
-      "error_message": "Wrong reference: caution should be ai",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
-      "root_cause": "Used \"caution\" instead of \"ai\"",
-      "fix": "Changed caution → ai",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T01:24:27.042Z"
-    },
-    {
-      "id": "bug-119",
-      "timestamp": "2026-06-09T01:26:39.865Z",
-      "error_message": "Wrong reference: const should be return",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "Used \"const\" instead of \"return\"",
-      "fix": "Changed const → return",
-      "tags": [
-        "auto-detected",
-        "wrong-reference",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T01:26:39.865Z"
-    },
-    {
-      "id": "bug-120",
-      "timestamp": "2026-06-09T01:26:47.025Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "11 lines replaced/restructured",
-      "fix": "Rewrote 15→3 lines (11 removed)",
-      "tags": [
-        "auto-detected",
-        "refactor",
-        "tsx"
-      ],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T01:26:47.025Z"
-    },
-    {
-      "id": "bug-121",
-      "timestamp": "2026-06-09T20:15:24.6317325-05:00",
-      "error_message": "MobileVisualTokens.test.ts failed before implementation: lightTheme/statusTokens exports were missing and getToneColors was not exported",
-      "file": "apps/mobile/components/shared/tokens.ts, apps/mobile/components/shared/mobileHandoff.tsx",
-      "root_cause": "The mobile UI still used the previous C-only token object and unexported local tone map, so the updated warm light/dark/status palette had no central contract.",
-      "fix": "Added centralized lightTheme, darkTheme, statusTokens, darkStatusTokens, getThemeTokens, kept C aliases on the new palette, and exported getToneColors from mobileHandoff.",
-      "tags": ["mobile", "visual-system", "tokens", "test-failure"],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T20:15:24.6317325-05:00"
-    },
-    {
-      "id": "bug-122",
-      "timestamp": "2026-06-09T20:15:24.6317325-05:00",
-      "error_message": "npm run type-check failed: Property fontFamily does not exist on type C in MobileVisualTokens.test.ts",
-      "file": "apps/mobile/components/shared/tokens.ts",
-      "root_cause": "The test codified the no-custom-font contract by reading C.fontFamily, but the typed C token object did not expose that key.",
-      "fix": "Added fontFamily: undefined to the C token object so the native-font contract is explicit and type-checkable.",
-      "tags": ["mobile", "type-check", "tokens"],
-      "related_bugs": ["bug-121"],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T20:15:24.6317325-05:00"
-    },
-    {
-      "id": "bug-123",
-      "timestamp": "2026-06-09T20:15:24.6317325-05:00",
-      "error_message": "Full mobile Jest failed: ReportIssueModal description-input missing, RoomDetail tests missing SafeAreaProvider, TasksVariationA expected demo tasks while screen rendered empty state",
-      "file": "apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/screens/RoomDetail.test.tsx, apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
-      "root_cause": "The broader suite had stale test contracts around modal input handles, safe-area test setup, and the post-cleanup tasks empty-state behavior.",
-      "fix": "Updated the narrow component/test contracts without changing API/data behavior.",
-      "tags": ["mobile", "jest", "tests"],
-      "related_bugs": ["bug-110"],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T20:15:24.6317325-05:00"
-    },
-    {
-      "id": "bug-124",
-      "timestamp": "2026-06-09T20:15:24.6317325-05:00",
-      "error_message": "Full mobile Jest stale contract failures after visual-token work",
-      "file": "apps/mobile/components/housekeeping/ReportIssueModal.tsx, apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/screens/RoomDetail.test.tsx, apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
-      "root_cause": "Tests expected old modal/default-task/undo contracts while the current UI requires title+category for work orders, shows task empty state when API returns no tasks, and exposes compact room-detail actions instead of undo controls.",
-      "fix": "Added stable modal testIDs, updated tests to fill required work-order fields and mock createWorkOrder, mocked safe-area in RoomDetail tests, and changed Tasks Variation A test to provide real mock tasks.",
-      "tags": ["mobile", "jest", "test-contracts"],
-      "related_bugs": ["bug-110", "bug-123"],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T20:15:24.6317325-05:00"
-    },
-    {
-      "id": "bug-125",
-      "timestamp": "2026-06-09T20:51:00.1942844-05:00",
-      "error_message": "User could not see codex/myRooms mobile UI code on main after branch recovery",
-      "file": "apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/my-rooms/[roomId].tsx",
-      "root_cause": "The codex/myRooms patch was merged into main as 264c0dc, but the later main commit e7e260b rewrote the visible My Rooms screens, leaving the branch-era UI no longer visible in the current app.",
-      "fix": "Confirmed the merge chain and identified that only the two visible my-rooms screen files differ between codex/myRooms and current main; no code fix applied yet because restoring them would overwrite the later redesign.",
-      "tags": ["mobile", "git", "my-rooms", "branch-recovery"],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T20:51:00.1942844-05:00"
-    },
-    {
-      "id": "bug-126",
-      "timestamp": "2026-06-09T21:19:05.0725026-05:00",
-      "error_message": "Full mobile Jest failed: TasksVariationA mocked three API tasks but expected the empty task state",
-      "file": "apps/mobile/__tests__/screens/TasksVariationA.test.tsx",
-      "root_cause": "The test contract was stale after the Tasks screen started rendering mocked assigned tasks into route-aware groups.",
-      "fix": "Updated the test to assert the rendered three-task grouped workflow instead of an empty state.",
-      "tags": ["mobile", "jest", "tasks", "test-contract"],
-      "related_bugs": ["bug-124"],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T21:19:05.0725026-05:00"
-    },
-    {
-      "id": "bug-127",
-      "timestamp": "2026-06-09T21:28:18.4940309-05:00",
-      "error_message": "User requested My Rooms be sorted from vacant dirty to pickup to occupied in numerical order",
-      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts, apps/mobile/__tests__/lib/roomWorkflow.test.ts",
-      "root_cause": "compareRoomsByPriority used operational exception scores first, so VIP/DND and other exception rooms could jump ahead of the requested status-group queue order.",
-      "fix": "Added a My Rooms status order for DIRTY, PICKUP, and OCCUPIED before priority fallback, with numeric room_number sorting inside those status groups, plus a regression test.",
-      "tags": ["mobile", "my-rooms", "sorting", "housekeeping"],
-      "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-06-09T21:28:18.4940309-05:00"
+      "last_seen": "2026-06-11"
     }
   ]
 }

@@ -244,6 +244,9 @@ export default function HousekeeperHomeScreen() {
                   {t("home.startWith", { room: firstRoom.room_number })}
                 </HeroButton>
                 <HeroButton>{t("home.seePlan")}</HeroButton>
+                <HeroButton icon="sparkles" onPress={() => router.push("/(app)/copilot")}>
+                  {t("home.askAI")}
+                </HeroButton>
               </>
             ) : undefined
           }
@@ -254,6 +257,7 @@ export default function HousekeeperHomeScreen() {
             </>
           }
         >
+          <Text style={styles.heroSentence}>{t("home.aiPrioritized")}</Text>
           <Text style={styles.heroSentence}>{t("home.roomsLeft", { count: remainingCount })}</Text>
           {firstRoom ? (
             <Text>
@@ -287,7 +291,7 @@ export default function HousekeeperHomeScreen() {
           <SectionLabel
             hint={`${Math.min(3, nextRooms.length)} of ${remainingCount}`}
             action={
-              <TouchableOpacity onPress={() => router.push("/(app)/my-rooms")}>
+              <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)}>
                 <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
               </TouchableOpacity>
             }

@@ -15,7 +15,7 @@ import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { C, R, monoFont } from "@/components/shared/tokens";
-import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
+import { AIInsightCard, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 
 export type GuestRequest = {
   id: string;
@@ -148,6 +148,13 @@ export default function GuestRequestsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        <AIInsightCard title="AI triage" compact>
+          {escalatedCount > 0
+            ? "Escalated requests stay surfaced until ownership is clear."
+            : newCount > 0
+              ? "New requests stay near the top so front desk can route them quickly."
+              : "No guest-pressure signals need action right now."}
+        </AIInsightCard>
       </View>
 
       <ScrollView

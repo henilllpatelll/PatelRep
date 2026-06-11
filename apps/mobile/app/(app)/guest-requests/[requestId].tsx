@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { C, R, monoFont } from "@/components/shared/tokens";
-import { Pill, HeroButton } from "@/components/shared/mobileHandoff";
+import { AIInsightCard, Pill, HeroButton } from "@/components/shared/mobileHandoff";
 import type { GuestRequest } from "./index";
 
 type StaffMember = { id: string; full_name: string };
@@ -141,6 +141,20 @@ export default function GuestRequestDetailScreen() {
             ) : null}
           </View>
         </View>
+
+        <AIInsightCard
+          title="AI recovery"
+          compact
+          actions={
+            <HeroButton onDark={false} onPress={() => router.push("/(app)/copilot")}>
+              Ask AI
+            </HeroButton>
+          }
+        >
+          {request.status === "escalated"
+            ? "Assign ownership first, then update the guest before closing the loop."
+            : "Fastest path: assign a clear owner and keep the resolution note short."}
+        </AIInsightCard>
 
         {request.status !== "resolved" ? (
           <>

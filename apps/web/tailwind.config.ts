@@ -28,6 +28,15 @@ const config: Config = {
         'ink-3':     'var(--ink-3)',
         'ink-4':     'var(--ink-4)',
 
+        // dark navigation rail
+        shell:           'var(--shell-bg)',
+        'shell-surface': 'var(--shell-surface)',
+        'shell-raised':  'var(--shell-raised)',
+        'shell-line':    'var(--shell-line)',
+        'shell-ink':     'var(--shell-ink)',
+        'shell-ink-2':   'var(--shell-ink-2)',
+        'shell-ink-3':   'var(--shell-ink-3)',
+
         // short aliases for convenience
         ink2:     'var(--ink-2)',
         ink3:     'var(--ink-3)',
@@ -106,6 +115,20 @@ const config: Config = {
         md: 'var(--r-md)',
         lg: 'var(--r-lg)',
         xl: 'var(--r-xl)',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'var(--ease-out-soft)',
+        spring:     'var(--ease-spring)',
+      },
+      transitionDuration: {
+        fast: 'var(--dur-fast)',
+        base: 'var(--dur-base)',
+        slow: 'var(--dur-slow)',
+      },
+      animation: {
+        rise:       'rise var(--dur-slow) var(--ease-out-soft) both',
+        'fade-in':  'fadeIn var(--dur-base) var(--ease-out-soft) both',
+        'scale-in': 'scaleIn var(--dur-base) var(--ease-out-soft) both',
       },
     },
   },

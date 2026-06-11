@@ -120,6 +120,7 @@ async function request(method: string, path: string, body?: any, options: Reques
 export const apiClient = {
   get: (path: string, options?: RequestOptions) => request('GET', path, undefined, options),
   post: (path: string, body?: any, options?: RequestOptions) => request('POST', path, body, options),
+  put: (path: string, body?: any, options?: RequestOptions) => request('PUT', path, body, options),
   patch: (path: string, body?: any, options?: RequestOptions) => request('PATCH', path, body, options),
   delete: (path: string, options?: RequestOptions) => request('DELETE', path, undefined, options),
 }

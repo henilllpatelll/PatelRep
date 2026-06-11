@@ -16,7 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { C } from "@/components/shared/tokens";
-import { HandoffRow, IconButton, Mono, Pill, Segmented } from "@/components/shared/mobileHandoff";
+import { AIInsightCard, HandoffRow, IconButton, Mono, Pill, Segmented } from "@/components/shared/mobileHandoff";
 
 type WorkOrder = {
   id: string;
@@ -142,6 +142,16 @@ export default function WorkOrdersScreen() {
         ))}
       </View>
 
+      <View style={styles.aiDispatchWrap}>
+        <AIInsightCard title="AI dispatch" compact>
+          {tab === "open"
+            ? "Urgent and emergency orders stay surfaced so floor work does not drift."
+            : tab === "in_progress"
+              ? "Keep parts, photos, and notes together before closing the loop."
+              : "Closed work stays visible for quick shift handoff."}
+        </AIInsightCard>
+      </View>
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={C.accent} />
@@ -219,6 +229,7 @@ const styles = StyleSheet.create({
   activeTabBtn: { borderBottomWidth: 2, borderBottomColor: C.primary },
   tabText: { fontSize: 13, color: C.ink3, fontWeight: "600" },
   activeTabText: { color: C.primary },
+  aiDispatchWrap: { paddingHorizontal: 16, paddingTop: 12 },
   listContent: { padding: 16, gap: 12 },
   rowWrap: { gap: 6 },
   woId: { color: C.ink3, fontSize: 11, fontWeight: "700" },

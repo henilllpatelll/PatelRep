@@ -251,7 +251,7 @@ export default function CopilotScreen() {
                   style={styles.quickAction}
                   onPress={() => sendMessage(t(`copilot.quickActions.${action.key}`))}
                 >
-                  <Ionicons name={action.icon} size={20} color="#c8b8e3" />
+                  <Ionicons name={action.icon} size={20} color={darkTheme.ai.primary} />
                   <Text style={styles.quickActionText}>
                     {t(`copilot.quickActions.${action.key}`)}
                   </Text>
@@ -266,7 +266,7 @@ export default function CopilotScreen() {
 
       {loading ? (
         <View style={styles.typingRow}>
-          <ActivityIndicator color="#c8b8e3" size="small" />
+          <ActivityIndicator color={darkTheme.ai.primary} size="small" />
           <Text style={styles.typingText}>{t("copilot.thinking")}</Text>
         </View>
       ) : null}
@@ -303,47 +303,47 @@ export default function CopilotScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f0e0c" },
+  container: { flex: 1, backgroundColor: darkTheme.background },
   messages: { padding: 12, gap: 8 },
   emptyFlex: { flex: 1 },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  emptyTitle: { fontSize: 22, fontWeight: "700", color: "#ece4f8", marginBottom: 24 },
+  emptyTitle: { fontSize: 22, fontWeight: "700", color: darkTheme.textPrimary, marginBottom: 24 },
   quickActions: { gap: 10, width: "100%" },
   quickAction: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#221f1b",
+    backgroundColor: darkTheme.surfaceElevated,
     borderRadius: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#322d26",
+    borderColor: darkTheme.glassBorder,
   },
-  quickActionText: { color: "#c8b8e3", fontSize: 14, fontWeight: "500" },
+  quickActionText: { color: darkTheme.ai.primary, fontSize: 14, fontWeight: "500" },
   bubble: { maxWidth: "80%", borderRadius: 14, padding: 12, marginVertical: 4 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: "#1a1815", borderWidth: 1, borderColor: "#322d26" },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: "#221f1b", borderWidth: 1, borderColor: "#322d26" },
+  userBubble: { alignSelf: "flex-end", backgroundColor: darkTheme.surface, borderWidth: 1, borderColor: darkTheme.border },
+  aiBubble: { alignSelf: "flex-start", backgroundColor: darkTheme.surfaceElevated, borderWidth: 1, borderColor: darkTheme.ai.line },
   bubbleText: { fontSize: 14, lineHeight: 20 },
-  userText: { color: "#f1ede4" },
-  aiText: { color: "#c5beaf" },
+  userText: { color: darkTheme.textPrimary },
+  aiText: { color: darkTheme.textSecondary },
   confirmCard: {
     marginHorizontal: 12,
     marginTop: 4,
     marginBottom: 8,
-    backgroundColor: "#221f1b",
+    backgroundColor: darkTheme.surfaceElevated,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#c8b8e3",
+    borderColor: darkTheme.ai.line,
     alignSelf: "flex-start",
     maxWidth: "85%",
   },
-  confirmCardLabel: { fontSize: 11, color: "#918a7e", marginBottom: 4, fontWeight: "600", textTransform: "uppercase" },
-  confirmCardTitle: { fontSize: 15, fontWeight: "600", color: "#f1ede4", marginBottom: 10 },
+  confirmCardLabel: { fontSize: 11, color: darkTheme.textMuted, marginBottom: 4, fontWeight: "600", textTransform: "uppercase" },
+  confirmCardTitle: { fontSize: 15, fontWeight: "600", color: darkTheme.textPrimary, marginBottom: 10 },
   confirmCardActions: { flexDirection: "row", gap: 8 },
   confirmBtn: {
     flex: 1,
-    backgroundColor: "#b8431c",
+    backgroundColor: darkTheme.primaryAction,
     borderRadius: 8,
     paddingVertical: 9,
     alignItems: "center",
@@ -352,46 +352,46 @@ const styles = StyleSheet.create({
   dismissBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#322d26",
+    borderColor: darkTheme.border,
     borderRadius: 8,
     paddingVertical: 9,
     alignItems: "center",
   },
-  dismissText: { color: "#c5beaf", fontSize: 13 },
+  dismissText: { color: darkTheme.textSecondary, fontSize: 13 },
   typingRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#0f0e0c",
+    backgroundColor: darkTheme.background,
   },
-  typingText: { fontSize: 12, color: "#807a70", fontStyle: "italic" },
+  typingText: { fontSize: 12, color: darkTheme.textMuted, fontStyle: "italic" },
   inputRow: {
     flexDirection: "row",
     padding: 10,
     gap: 8,
-    backgroundColor: "#1a1815",
+    backgroundColor: darkTheme.surface,
     borderTopWidth: 1,
-    borderColor: "#322d26",
+    borderColor: darkTheme.border,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#322d26",
+    borderColor: darkTheme.border,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 100,
-    color: "#f1ede4",
-    backgroundColor: "#221f1b",
+    color: darkTheme.textPrimary,
+    backgroundColor: darkTheme.surfaceElevated,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#b8431c",
+    backgroundColor: darkTheme.ai.primary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -400,11 +400,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#221f1b",
+    backgroundColor: darkTheme.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#322d26",
+    borderColor: darkTheme.border,
   },
-  micBtnActive: { backgroundColor: "#2e1e16" },
+  micBtnActive: { backgroundColor: darkTheme.ai.soft },
 });

@@ -342,6 +342,76 @@ def _has_task_sheet_clean_type_marker(
 
 
 # ---------------------------------------------------------------------------
+# GET /housekeeping/board helpers
+# ---------------------------------------------------------------------------
+
+def _attach_last_clean_session(rows: list[dict], hotel_id: str, activity_date: date) -> list[dict]:
+    """Attach the latest completed clean session summary to each row (compact supervisor evidence)."""
+    room_ids = [row.get("room_id") for row in rows if row.get("room_id")]
+    if not room_ids:
+        return rows
+
+    activity_start, activity_end = _activity_day_window_utc(activity_date)
+
+    sessions_result = (
+        supabase.table("room_clean_sessions")
+        .select("id, room_id, housekeeper_id, duration_seconds, base_clean_minutes, checklist_done, checklist_total, ended_at")
+        .eq("tenant_id", hotel_id)
+        .eq("status", "completed")
+        .in_("room_id", room_ids)
+        .gte("started_at", activity_start)
+        .lt("started_at", activity_end)
+        .order("ended_at", desc=True)
+        .limit(max(len(room_ids) * 2, 50))
+        .execute()
+    )
+
+    latest_by_room: dict[str, dict] = {}
+    for session in sessions_result.data or []:
+        room_id = session.get("room_id")
+        if room_id and room_id not in latest_by_room:
+            latest_by_room[room_id] = session
+
+    session_ids = [s["id"] for s in latest_by_room.values()]
+    photo_count_by_session: dict[str, int] = {}
+    if session_ids:
+        photos_result = (
+            supabase.table("room_clean_photos")
+            .select("session_id")
+            .eq("tenant_id", hotel_id)
+            .in_("session_id", session_ids)
+            .execute()
+        )
+        for photo in photos_result.data or []:
+            sid = photo.get("session_id")
+            if sid:
+                photo_count_by_session[sid] = photo_count_by_session.get(sid, 0) + 1
+
+    for row in rows:
+        room_id = row.get("room_id")
+        session = latest_by_room.get(room_id)
+        if session:
+            duration_s = session.get("duration_seconds")
+            row["last_session_id"] = session["id"]
+            row["last_clean_minutes"] = round(duration_s / 60) if duration_s is not None else None
+            row["last_clean_base_minutes"] = session.get("base_clean_minutes")
+            row["last_clean_checklist_done"] = session.get("checklist_done", 0)
+            row["last_clean_checklist_total"] = session.get("checklist_total", 0)
+            row["last_clean_photo_count"] = photo_count_by_session.get(session["id"], 0)
+            row["last_clean_ended_at"] = session.get("ended_at")
+        else:
+            row["last_session_id"] = None
+            row["last_clean_minutes"] = None
+            row["last_clean_base_minutes"] = None
+            row["last_clean_checklist_done"] = 0
+            row["last_clean_checklist_total"] = 0
+            row["last_clean_photo_count"] = 0
+            row["last_clean_ended_at"] = None
+
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # GET /housekeeping/board
 # ---------------------------------------------------------------------------
 
@@ -431,6 +501,7 @@ async def get_housekeeping_board(
 
     _attach_task_sheet_clean_types(rooms_with_predictions, current_user.hotel_id, target_date)
     _attach_room_activity(rooms_with_predictions, current_user.hotel_id, target_date)
+    _attach_last_clean_session(rooms_with_predictions, current_user.hotel_id, target_date)
     return {"data": rooms_with_predictions}
 
 
@@ -438,21 +509,14 @@ async def get_housekeeping_board(
 # GET /housekeeping/my-rooms
 # ---------------------------------------------------------------------------
 
-@router.get("/my-rooms")
-async def get_my_rooms(
-    assignment_date: Optional[date] = Query(None, alias="date"),
-    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
-):
-    # Accept client-supplied date (local hotel timezone) so Railway's UTC clock
-    # doesn't cause a mismatch after 7 PM CST when date.today() rolls to tomorrow.
-    today = assignment_date or date.today()
+def _fetch_my_assignments(current_user: CurrentUser, target_date: date) -> list[dict]:
     try:
         assignments = (
             supabase.table("room_assignments")
             .select("id, room_id, assignment_date, clean_type")
             .eq("tenant_id", current_user.hotel_id)
             .eq("assigned_to", current_user.user_id)
-            .eq("assignment_date", today.isoformat())
+            .eq("assignment_date", target_date.isoformat())
             .execute()
         )
     except Exception as exc:
@@ -464,10 +528,33 @@ async def get_my_rooms(
             .select("id, room_id, assignment_date")
             .eq("tenant_id", current_user.hotel_id)
             .eq("assigned_to", current_user.user_id)
-            .eq("assignment_date", today.isoformat())
+            .eq("assignment_date", target_date.isoformat())
             .execute()
         )
-    assignment_rows = assignments.data or []
+    return assignments.data or []
+
+
+@router.get("/my-rooms")
+async def get_my_rooms(
+    assignment_date: Optional[date] = Query(None, alias="date"),
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor")),
+):
+    # Assignments are keyed by the hotel's local date. The client sends its
+    # device-local date, which matches when the housekeeper is on property —
+    # but emulators/devices on UTC roll to tomorrow after ~7 PM CT. Fall back
+    # to the hotel-local date when the requested date has no assignments.
+    hotel_today = datetime.now(HOTEL_ACTIVITY_TIMEZONE).date()
+    today = assignment_date or hotel_today
+    assignment_rows = _fetch_my_assignments(current_user, today)
+    if not assignment_rows and today != hotel_today:
+        logger.info(
+            "my-rooms: 0 assignments for user=%s date=%s; retrying hotel-local date=%s",
+            current_user.user_id, today.isoformat(), hotel_today.isoformat(),
+        )
+        fallback_rows = _fetch_my_assignments(current_user, hotel_today)
+        if fallback_rows:
+            today = hotel_today
+            assignment_rows = fallback_rows
     assignment_map = {
         a["room_id"]: a
         for a in assignment_rows
@@ -475,6 +562,10 @@ async def get_my_rooms(
     }
     room_ids = list(assignment_map.keys())
     if not room_ids:
+        logger.info(
+            "my-rooms: 0 assignments for user=%s tenant=%s date=%s",
+            current_user.user_id, current_user.hotel_id, today.isoformat(),
+        )
         return {"data": []}
 
     # Return current status for all rooms assigned today (all statuses, not filtered)
@@ -1080,6 +1171,7 @@ async def list_ready_for_inspection(
         })
 
     output.sort(key=lambda r: (r["floor"] or 0, r["room_number"]))
+    _attach_last_clean_session(output, current_user.hotel_id, today)
     return {"data": output}
 
 

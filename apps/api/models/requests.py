@@ -608,3 +608,61 @@ class AssignmentPreview(SanitizedBaseModel):
 class AmbiguousOption(SanitizedBaseModel):
     label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     intent_hint: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+
+
+# --- Cleaning checklists / clean sessions / shifts ---
+
+
+class ChecklistItemInput(SanitizedBaseModel):
+    section: str = Field(default="General", min_length=1, max_length=SHORT_TEXT_MAX)
+    label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    is_required: bool = False
+
+
+class UpdateChecklistTemplateRequest(SanitizedBaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=SHORT_TEXT_MAX)
+    items: List[ChecklistItemInput] = Field(min_length=1, max_length=100)
+
+
+class ChecklistStateItem(SanitizedBaseModel):
+    item_id: Optional[str] = Field(default=None, max_length=64)
+    section: str = Field(default="General", max_length=SHORT_TEXT_MAX)
+    label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    is_required: bool = False
+    checked: bool = False
+    checked_at: Optional[datetime] = None
+
+
+class CreateCleanSessionRequest(SanitizedBaseModel):
+    id: UUID4
+    room_id: UUID4
+    started_at: datetime
+
+
+class UpdateCleanSessionRequest(SanitizedBaseModel):
+    checklist: Optional[List[ChecklistStateItem]] = Field(default=None, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CompleteCleanSessionRequest(SanitizedBaseModel):
+    ended_at: datetime
+    checklist: Optional[List[ChecklistStateItem]] = Field(default=None, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CleanSessionBlockerRequest(SanitizedBaseModel):
+    reason: Literal["dnd", "guest_in_room", "maintenance"]
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class StartShiftRequest(SanitizedBaseModel):
+    id: UUID4
+    started_at: datetime
+
+
+class ShiftBreakRequest(SanitizedBaseModel):
+    action: Literal["start", "end"]
+
+
+class EndShiftRequest(SanitizedBaseModel):
+    ended_at: datetime

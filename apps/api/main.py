@@ -16,6 +16,9 @@ from routers import (
     hotels,
     rooms,
     housekeeping,
+    cleaning_checklists,
+    clean_sessions,
+    shifts,
     tasks,
     work_orders,
     assets,
@@ -163,6 +166,9 @@ app.include_router(auth.router, prefix=PREFIX)
 app.include_router(hotels.router, prefix=PREFIX)
 app.include_router(rooms.router, prefix=PREFIX)
 app.include_router(housekeeping.router, prefix=PREFIX)
+app.include_router(cleaning_checklists.router, prefix=PREFIX)
+app.include_router(clean_sessions.router, prefix=PREFIX)
+app.include_router(shifts.router, prefix=PREFIX)
 app.include_router(tasks.router, prefix=PREFIX)
 app.include_router(work_orders.router, prefix=PREFIX)
 app.include_router(assets.router, prefix=PREFIX)

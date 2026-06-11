@@ -1,22 +1,26 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-09T02:50:40.617Z
-> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T05:22:31.830Z
+> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
 
 ## ../../.claude/plans/
 
+- `i-want-to-completely-glistening-perlis.md` — Housekeeper Mobile Experience — Complete Redesign (~4221 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `project_rooms_debug.md` — Bug — RESOLVED (2026-06-10) (~385 tok)
+- `project_status.md` — Mobile Housekeeping Redesign (2026-06-10) — Phase 5 COMPLETE (~1234 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
 
 ## ./
 
+- `HOUSEKEEPING_REDESIGN_PLAN.md` — Built-out implementation tracker for the housekeeper mobile redesign, including current state, API/mobile/web contracts, phases, verification, risks, and first slice. (~3500 tok)
 
 ## .claude/
 
@@ -420,10 +424,6 @@
 ## .wolf/runtime-logs/
 
 
-## youtubeMobileResearch.md
-
-- Mobile UX research notes from YouTube-focused investigation for the housekeeping app redesign; useful before deciding mobile IA, workflows, and implementation scope. (~unknown tok)
-
 ## Docker Context Additions
 
 
@@ -442,8 +442,12 @@
 ## Session Additions 2026-06-04 Mobile Handoff Port
 
 
+## Session Additions 2026-06-09 Mobile My Rooms Workflow
+
+
 ## apps/api/
 
+- `main.py` — API: 1 endpoints (~2424 tok)
 
 ## apps/api/core/
 
@@ -456,9 +460,15 @@
 
 ## apps/api/routers/
 
+- `clean_sessions.py` — API: 5 endpoints (~5614 tok)
+- `cleaning_checklists.py` — API: 3 endpoints (~2420 tok)
+- `housekeeping.py` — Declares from (~18984 tok)
+- `rooms.py` — API: 4 endpoints (~9450 tok)
+- `shifts.py` — API: 5 endpoints (~1710 tok)
 
 ## apps/api/services/
 
+- `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2316 tok)
 
 ## apps/api/services/ai/
 
@@ -471,6 +481,10 @@
 
 ## apps/api/tests/smoke/
 
+- `fake_supabase.py` — Richer in-memory Supabase fake for clean-sessions / checklists / shifts tests. (~1467 tok)
+- `test_clean_sessions.py` — make_db, patch_db, start_request, test_start_session_snapshots_checklist_and_flips_in_progress (~2168 tok)
+- `test_cleaning_checklists.py` — make_db, test_list_checklists_lazily_seeds_all_clean_types, test_update_checklist_replaces_items, te (~912 tok)
+- `test_shifts.py` — make_db, start_request, test_start_shift_creates_active_session, test_start_shift_is_idempotent (~827 tok)
 
 ## apps/api/tests/smoke/test_load_auth_state.py
 
@@ -486,16 +500,25 @@
 
 ## apps/mobile/__tests__/components/
 
-- `MobileVisualTokens.test.ts` — Regression tests for warm mobile light/dark theme tokens, status color mapping, shared room tones, and native-font contract. (~420 tok)
 
 ## apps/mobile/__tests__/lib/
 
+- `roleTabs.test.ts` (~269 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
 
+## apps/mobile/__tests__/lib/roomWorkflow.test.ts
+
+
 ## apps/mobile/__tests__/screens/
 
+- `GuestRequestsList.test.tsx` — Focused mobile guest request list test covering request rendering and AI triage card. (~700 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~1392 tok)
+- `MyRoomsScreen.test.tsx` — Mobile My Rooms screen tests covering assigned-room task sheet rendering and filtering. (~1200 tok)
+- `ProfileHandoff.test.tsx` — EN (~981 tok)
+- `RoomDetail.test.tsx` — Mobile room detail tests covering status actions, notes/work-order shortcuts, and detail context. (~1200 tok)
+- `TasksScreen.test.ts` — base: localDate (~828 tok)
 
 ## apps/mobile/android/
 
@@ -511,6 +534,7 @@
 
 ## apps/mobile/app/(app)/
 
+- `_layout.tsx` — Role-aware Expo tab layout that hides non-role and detail routes, wires push notification routing, and renders the offline banner. (~1200 tok)
 
 ## apps/mobile/app/(app)/alerts/
 
@@ -521,13 +545,22 @@
 ## apps/mobile/app/(app)/assignments/
 
 
+## apps/mobile/app/(app)/clean/
+
+- `[roomId].tsx` — CleanSessionScreen (~4596 tok)
+
 ## apps/mobile/app/(app)/copilot/
 
+- `index.tsx` — HISTORY_KEY (~4785 tok)
 
 ## apps/mobile/app/(app)/guest-requests/
 
 
 ## apps/mobile/app/(app)/home/
+
+- `index.tsx` — HomeScreen (~270 tok)
+
+## apps/mobile/app/(app)/home/index.tsx
 
 
 ## apps/mobile/app/(app)/inspect/
@@ -541,7 +574,11 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `index.tsx` — STATUS_PRIORITY (~5668 tok)
+- `[roomId].tsx` — STATUS_COLOR (~7767 tok)
+- `index.tsx` — CLEAN_TYPE_LABEL (~5302 tok)
+
+## apps/mobile/app/(app)/my-rooms/[roomId].tsx
+
 
 ## apps/mobile/app/(app)/notifications/
 
@@ -551,6 +588,7 @@
 
 ## apps/mobile/app/(app)/profile/
 
+- `index.tsx` — HK_ROLES (~3505 tok)
 
 ## apps/mobile/app/(app)/room-board/
 
@@ -569,6 +607,7 @@
 
 ## apps/mobile/app/(app)/tasks/
 
+- `index.tsx` — unwrapTasks (~3085 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -576,7 +615,30 @@
 ## apps/mobile/app/(auth)/
 
 
+## apps/mobile/components/home/
+
+- `EngineerHome.tsx` — ENGINEER_ORDERS (~1311 tok)
+- `FrontDeskHome.tsx` — firstName (~772 tok)
+- `GMHome.tsx` — firstName (~856 tok)
+- `homeStyles.ts` — Declares styles (~1436 tok)
+- `HousekeeperHome.tsx` — DONE_STATUSES (~3261 tok)
+- `SupervisorHome.tsx` — firstName (~797 tok)
+
 ## apps/mobile/components/housekeeping/
+
+- `BlockerRow.tsx` — BlockerRow (~368 tok)
+- `CleanChecklist.tsx` — CleanChecklist (~664 tok)
+- `CleanTimer.tsx` — CleanTimer (~436 tok)
+- `HousekeeperToday.tsx` — DONE_STATUSES (~3431 tok)
+- `PhotoStrip.tsx` — Horizontal photo strip with add button, thumbnails, failed-upload indicator (~480 tok)
+- `PhotoStrip.tsx` — THUMB (~705 tok)
+- `RoomQueueCard.tsx` — STATUS_CONFIG (~1791 tok)
+- `ShiftControlCard.tsx` — elapsedLabel (~960 tok)
+
+## apps/mobile/components/housekeeping/FoundItemModal.tsx
+
+
+## apps/mobile/components/housekeeping/ReportIssueModal.tsx
 
 
 ## apps/mobile/components/shared/
@@ -587,30 +649,62 @@
 
 ## apps/mobile/i18n/locales/
 
+- `en.json` (~4302 tok)
+- `es.json` (~4620 tok)
 
 ## apps/mobile/lib/
 
 
 ## apps/mobile/lib/api/
 
+- `checklists.ts` — Exports ChecklistTemplateItem, ChecklistTemplate, checklistsApi (~228 tok)
+- `cleanSessions.ts` — Exports ChecklistItem, CleanSession, SessionSummary, cleanSessionsApi (~862 tok)
+- `client.ts` — Exports ApiError, api (~554 tok)
+- `shifts.ts` — Exports ShiftSession, shiftsApi (~216 tok)
+
+## apps/mobile/lib/housekeeping/
+
+- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 18 more (~2822 tok)
+
+## apps/mobile/lib/housekeeping/roomWorkflow.ts
+
 
 ## apps/mobile/lib/navigation/
 
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1542 tok)
 
 ## apps/mobile/lib/offline/
+
+- `db.ts` — Promise-mutex: all concurrent getDb() calls share one initialization promise. (~4090 tok)
+- `sync.ts` — API routes: PATCH, POST (6 endpoints) (~1072 tok)
+
+## apps/mobile/lib/offline/db.ts
+
+
+## apps/mobile/lib/offline/sync.ts
 
 
 ## apps/mobile/lib/utils/
 
 
+## apps/mobile/package.json
+
+
 ## apps/mobile/stores/
+
+- `appStore.ts` — Zustand store for auth, network, My Rooms cache, notifications, and existing offline action queue; clean-session state is not present yet. (~1800 tok)
+- `cleanSessionStore.ts` — Exports OfflineCleanAction, useCleanSessionStore (~1498 tok)
+
+## apps/mobile/stores/appStore.ts
 
 
 ## apps/web/
 
+- `tailwind.config.ts` — /*.{js,ts,jsx,tsx,mdx}', (~1261 tok)
 
 ## apps/web/app/
 
+- `globals.css` — Styles: 20 rules, 134 vars (~2491 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -653,6 +747,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
+- `page.tsx` — todayISO (~6369 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
@@ -674,6 +769,7 @@
 
 ## apps/web/app/(dashboard)/settings/
 
+- `layout.tsx` — NAV_GROUPS (~1493 tok)
 
 ## apps/web/app/(dashboard)/settings/billing/
 
@@ -689,6 +785,10 @@
 
 ## apps/web/app/(dashboard)/settings/general/
 
+
+## apps/web/app/(dashboard)/settings/housekeeping/
+
+- `page.tsx` — HousekeepingSettingsPage (~258 tok)
 
 ## apps/web/app/(dashboard)/settings/inspections/
 
@@ -722,21 +822,37 @@
 
 ## apps/web/components/engineering/
 
+- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1362 tok)
 
 ## apps/web/components/guest-requests/
 
 
 ## apps/web/components/housekeeping/
 
+- `InspectionModal.tsx` — calcOverallResult (~5196 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3672 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~13842 tok)
 
 ## apps/web/components/settings/
 
+- `CleaningChecklistEditor.tsx` — CLEAN_TYPES (~3088 tok)
 
 ## apps/web/components/shared/
 
+- `Header.tsx` — COMMANDS (~3989 tok)
+- `PageHeader.tsx` — PageHeader (~849 tok)
+- `PageTransition.tsx` — PageTransition (~142 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~5098 tok)
 
 ## apps/web/components/ui/
 
+- `Button.tsx` — VARIANTS (~765 tok)
+- `Card.tsx` — Lift + stronger shadow on hover — for clickable cards (~222 tok)
+- `EmptyState.tsx` — compact = inline list empty, default = full panel (~340 tok)
+- `Input.tsx` — Input (~229 tok)
+- `primitives.tsx` — Leading status dot in the tone color — improves scannability in dense lists (~2350 tok)
+- `SegmentedControl.tsx` — SegmentedControl (~673 tok)
+- `Skeleton.tsx` — Skeleton (~202 tok)
 
 ## apps/web/i18n/
 
@@ -749,6 +865,9 @@
 
 ## apps/web/lib/api/
 
+- `checklists.ts` — API routes: GET, PUT, POST (3 endpoints) (~268 tok)
+- `cleanSessions.ts` — API routes: GET (1 endpoints) (~236 tok)
+- `client.ts` — Exports ApiClientError, apiClient (~1503 tok)
 
 ## apps/web/lib/hooks/
 
@@ -767,6 +886,7 @@
 
 ## design_handoff_mobile/
 
+- `README.md` — Mobile design handoff overview for floor-staff screens, including role-specific prototypes, token guidance, behavior notes, and implementation expectations for the Expo app. (~1800 tok)
 
 ## e2e/
 
@@ -788,47 +908,21 @@
 
 ## scripts/
 
+- `redesign-smoke.mjs` — One-off visual smoke for the redesign branch. Logs in as the GM test (~483 tok)
 
 ## supabase/migrations/
 
-## Session Additions 2026-06-09 Mobile My Rooms Workflow
+- `054_cleaning_checklists.sql` — Migration 054: Supervisor-managed cleaning checklist templates (~1473 tok)
+- `055_room_clean_sessions.sql` — Migration 055: Room clean sessions (timer + checklist snapshot) and photos (~1026 tok)
+- `056_shift_sessions.sql` — Migration 056: Lightweight housekeeper shift sessions (~359 tok)
+- `057_clean_photos_bucket.sql` — Migration 057: Storage bucket for room clean photos (~148 tok)
+- `058_clean_photos_private.sql` — Make clean-photos bucket private; access only via signed URLs (~95 tok)
 
-## apps/mobile/app/(app)/my-rooms/[roomId].tsx
+## youtubeMobileResearch.md
 
-- Mobile room detail route for a single assigned room; likely owns status actions, notes/work order/lost item entry, and room context workflow. (~unknown tok)
 
-## apps/mobile/app/(app)/home/index.tsx
+- `apps/web/components/ui/EmptyState.tsx` — Reusable empty-state panel (icon, title, description, action; compact mode). ~40 lines, ~350 tokens.
+- `apps/web/components/ui/SegmentedControl.tsx` — Animated segmented control with framer layoutId thumb, count badges, reduced-motion aware. ~80 lines, ~650 tokens.
 
-- Mobile authenticated home screen; useful for understanding housekeeper entry points and room status labels. (~unknown tok)
-
-## apps/mobile/stores/appStore.ts
-
-- Zustand app store with mobile auth/session/hotel/myRooms/workOrders state, room status updates, and offline flag. (~unknown tok)
-
-## apps/mobile/components/housekeeping/ReportIssueModal.tsx
-
-- Mobile housekeeping work-order/report issue modal used from room workflows. (~unknown tok)
-
-## apps/mobile/components/housekeeping/FoundItemModal.tsx
-
-- Mobile housekeeping lost-and-found modal used from room workflows. (~unknown tok)
-
-## apps/mobile/lib/offline/db.ts
-
-- Expo SQLite offline schema and persistence helpers for rooms/work orders/sync queue. (~unknown tok)
-
-## apps/mobile/lib/offline/sync.ts
-
-- Offline sync queue enqueue/flush behavior for room status and work-order mutations. (~unknown tok)
-
-## apps/mobile/package.json
-
-- Mobile app npm scripts and dependency versions; type-check and Jest commands live here. (~unknown tok)
-
-## apps/mobile/__tests__/lib/roomWorkflow.test.ts
-
-- Unit tests for shared mobile housekeeping room workflow helper behavior: exceptions, badges, action labels, timing, warnings, and priority. (~unknown tok)
-
-## apps/mobile/lib/housekeeping/roomWorkflow.ts
-
-- Shared mobile housekeeping room workflow helper: computes exception badges, card/detail actions, priority sort scores, primary timing line, and before-enter warnings. (~unknown tok)
+- `apps/web/lib/ai/taskQueue.ts` — On-device task queue intelligence mirroring apps/mobile/lib/ai/tasks.ts: buildTaskQueue (overdue/now/today scoring + positions), buildTaskBriefing. ~110 lines, ~900 tokens.
+- `apps/web/components/tasks/TasksAIPanel.tsx` — Dark-shell AI panel for /tasks: on-device briefing + natural-language task composer (aiApi.chat with intent_hint task_creation → preview → aiApi.confirmTasks). ~150 lines, ~1400 tokens.

@@ -41,6 +41,8 @@ describe("WorkOrdersScreen", () => {
     render(<WorkOrdersScreen />);
     await waitFor(() => expect(screen.getByText(/Fix AC/)).toBeTruthy());
     expect(screen.getByText(/101/)).toBeTruthy();
+    expect(screen.getByText("AI dispatch")).toBeTruthy();
+    expect(screen.getByText(/Urgent and emergency orders stay surfaced/)).toBeTruthy();
   });
 
   it("shows Claim button on open unassigned WOs", async () => {

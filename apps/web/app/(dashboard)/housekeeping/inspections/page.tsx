@@ -478,6 +478,11 @@ export default function InspectionsPage() {
         cleanedBy={inspectingRoom?.cleaned_by}
         cleanedAt={inspectingRoom?.cleaned_at}
         cleanType={inspectingRoom?.clean_type}
+        lastCleanMinutes={(inspectingRoom as any)?.last_clean_minutes}
+        lastCleanBaseMinutes={(inspectingRoom as any)?.last_clean_base_minutes}
+        checklistDone={(inspectingRoom as any)?.last_clean_checklist_done ?? 0}
+        checklistTotal={(inspectingRoom as any)?.last_clean_checklist_total ?? 0}
+        photoCount={(inspectingRoom as any)?.last_clean_photo_count ?? 0}
         isOpen={!!inspectingRoom}
         onClose={() => setInspectingRoom(null)}
         onSuccess={handleInspectionSuccess}

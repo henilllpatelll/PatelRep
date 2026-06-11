@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 import {
   ActivityIndicator,
-  type GestureResponderEvent,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -18,230 +17,155 @@ import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont } from "@/components/shared/tokens";
+import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import { localDate } from "@/lib/utils/date";
 import {
-  compareRoomsByPriority,
+  compareRoomsForCleaningQueue,
   getPrimaryTimingLine,
-  getRoomAction,
   getRoomBadges,
-  hasRoomException,
+  getRoomQueueBucket,
+  type RoomQueueBucket,
 } from "@/lib/housekeeping/roomWorkflow";
 
-const CLEAN_TYPE_SHORT: Record<string, string> = {
-  DEP: "Departure", FULL: "Full", LIGHT: "Light",
+type FilterKey = "all" | RoomQueueBucket;
+
+const CLEAN_TYPE_LABEL: Record<string, string> = {
+  DEP: "Departure",
+  FULL: "Full",
+  LIGHT: "Light",
+};
+
+const CLEAN_TYPE_META: Record<string, { icon?: ComponentProps<typeof Ionicons>["name"]; fg: string }> = {
+  DEP: { icon: "log-out-outline", fg: C.alert },
+  FULL: { fg: C.caution },
+  LIGHT: { fg: C.caution },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; border: string }> = {
-  DIRTY:         { label: "Vacant Dirty",                    bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  OCCUPIED:      { label: "Occupied Dirty",                  bg: C.alertSoft,   fg: C.alert,   border: C.alertLine },
-  PICKUP:        { label: "Pickup",                          bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
-  IN_PROGRESS:   { label: "In Progress",                     bg: C.aiSoft,      fg: C.ai,      border: C.aiLine },
-  CLEAN:         { label: "Submitted",                       bg: C.infoSoft,    fg: C.info,    border: C.infoLine },
-  INSPECTED:     { label: "Ready",                           bg: C.readySoft,   fg: C.ready,   border: C.readyLine },
-  OOO:           { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
-  OUT_OF_ORDER:  { label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
-  OUT_OF_SERVICE:{ label: "Out of Order / Out of Service",   bg: C.oooSoft,     fg: C.ooo,     border: C.oooLine },
+  DIRTY: { label: "Vacant Dirty", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
+  OCCUPIED: { label: "Occupied Dirty", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
+  PICKUP: { label: "Pickup", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  IN_PROGRESS: { label: "In Progress", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
+  CLEAN: { label: "Submitted", bg: C.infoSoft, fg: C.info, border: C.infoLine },
+  INSPECTED: { label: "Ready", bg: C.readySoft, fg: C.ready, border: C.readyLine },
+  OOO: { label: "Out of Order / Out of Service", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
+  OUT_OF_ORDER: { label: "Out of Order / Out of Service", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
+  OUT_OF_SERVICE: { label: "Out of Order / Out of Service", bg: C.oooSoft, fg: C.ooo, border: C.oooLine },
 };
+
+const SECTION_META: Array<{ bucket: RoomQueueBucket; title: string; empty?: string }> = [
+  { bucket: "in_progress", title: "IN PROGRESS" },
+  { bucket: "next_to_clean", title: "NEXT TO CLEAN" },
+  { bucket: "needs_attention", title: "NEEDS ATTENTION" },
+  { bucket: "submitted", title: "SUBMITTED" },
+  { bucket: "ready", title: "READY" },
+  { bucket: "blocked", title: "BLOCKED / OUT OF SERVICE" },
+];
+
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "next_to_clean", label: "Next to Clean" },
+  { key: "needs_attention", label: "Needs Attention" },
+  { key: "in_progress", label: "Started" },
+  { key: "submitted", label: "Submitted" },
+  { key: "ready", label: "Ready" },
+];
 
 function dayLabel() {
   return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
+function getCleanTypeLabel(room: Room): string | null {
+  return room.clean_type_label ?? (room.clean_type ? CLEAN_TYPE_LABEL[room.clean_type] ?? room.clean_type : null);
+}
+
+function getCleanTypeDisplay(room: Room): string | null {
+  const label = getCleanTypeLabel(room);
+  if (!label || !room.clean_type) return null;
+  if (room.status === "INSPECTED" && (room.clean_type === "FULL" || room.clean_type === "LIGHT")) {
+    return `${label} Done`;
+  }
+  return label;
+}
+
+function getRoomTypeLine(room: Room): string {
+  const roomType = room.rooms?.room_types?.name;
+  const floor = room.floor ? `Floor ${room.floor}` : null;
+  return [roomType, floor].filter(Boolean).join(" - ") || "Assigned room";
+}
+
 type RoomItemProps = {
   room: Room;
-  onAction: (roomId: string, status: string) => Promise<void>;
-  onUndo: (roomId: string) => Promise<void>;
   onPress: () => void;
 };
 
-function RoomItem({ room, onAction, onUndo, onPress }: RoomItemProps) {
-  const [loading, setLoading] = useState(false);
-  const [donePending, setDonePending] = useState(false);
-  const [undoPending, setUndoPending] = useState(false);
-
-  const status = room.status ?? "DIRTY";
-  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: C.surface3, fg: C.ink3, border: C.line };
-  const roomType = room.rooms?.room_types?.name ?? null;
-  const action = getRoomAction(room);
-  const badges = getRoomBadges(room);
+function RoomItem({ room, onPress }: RoomItemProps) {
+  const cfg = STATUS_CONFIG[room.status] ?? { label: room.status, bg: C.surface3, fg: C.ink3, border: C.line };
   const timing = getPrimaryTimingLine(room);
-  const cleanTypeLabel = room.clean_type_label ?? (room.clean_type ? (CLEAN_TYPE_SHORT[room.clean_type] ?? null) : null);
-
-  useEffect(() => {
-    setDonePending(false);
-    setUndoPending(false);
-  }, [status]);
-
-  async function handleStart(e: GestureResponderEvent) {
-    e.stopPropagation();
-    setLoading(true);
-    try { await onAction(room.id, "IN_PROGRESS"); } finally { setLoading(false); }
-  }
-
-  function handleDonePress(e: GestureResponderEvent) {
-    e.stopPropagation();
-    if (!donePending) { setUndoPending(false); setDonePending(true); return; }
-    setDonePending(false);
-    setLoading(true);
-    onAction(room.id, "CLEAN").finally(() => setLoading(false));
-  }
-
-  function handleUndoPress(e: GestureResponderEvent) {
-    e.stopPropagation();
-    if (!undoPending) { setDonePending(false); setUndoPending(true); return; }
-    setUndoPending(false);
-    setLoading(true);
-    onUndo(room.id).finally(() => setLoading(false));
-  }
-
-  function handleReview(e: GestureResponderEvent) {
-    e.stopPropagation();
-    onPress();
-  }
-
-  function cancelDone(e: GestureResponderEvent) { e.stopPropagation(); setDonePending(false); }
-  function cancelUndo(e: GestureResponderEvent) { e.stopPropagation(); setUndoPending(false); }
-
-  let rightContent: ReactNode = null;
-
-  if (action.kind === "start") {
-    rightContent = (
-      <TouchableOpacity onPress={handleStart} disabled={loading} style={[styles.btnStart, loading && styles.btnDisabled]} activeOpacity={0.85}>
-        <Text style={styles.btnStartText}>{loading ? "…" : "Start"}</Text>
-      </TouchableOpacity>
-    );
-  } else if (action.kind === "review" || action.kind === "review_done") {
-    rightContent = (
-      <TouchableOpacity onPress={handleReview} disabled={loading} style={styles.btnReview} activeOpacity={0.85}>
-        <Text style={styles.btnReviewText}>{action.label}</Text>
-      </TouchableOpacity>
-    );
-  } else if (action.kind === "done") {
-    if (donePending) {
-      rightContent = (
-        <View style={styles.confirmCol}>
-          <TouchableOpacity onPress={handleDonePress} disabled={loading} style={[styles.btnDoneConfirm, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnDoneConfirmText}>Confirm Done</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={cancelDone} style={styles.btnCancel}>
-            <Text style={styles.btnCancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    } else if (undoPending) {
-      rightContent = (
-        <View style={styles.confirmCol}>
-          <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndoConfirm, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnUndoConfirmText}>Confirm Undo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={cancelUndo} style={styles.btnCancel}>
-            <Text style={styles.btnCancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    } else {
-      rightContent = (
-        <View style={styles.confirmCol}>
-          <TouchableOpacity onPress={handleDonePress} disabled={loading} style={[styles.btnDone, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnDoneText}>{loading ? "…" : "Done"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndo, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnUndoText}>Undo</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  } else if (action.kind === "submitted") {
-    if (undoPending) {
-      rightContent = (
-        <View style={styles.confirmCol}>
-          <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndoConfirm, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnUndoConfirmText}>Confirm Undo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={cancelUndo} style={styles.btnCancel}>
-            <Text style={styles.btnCancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    } else {
-      rightContent = (
-        <View style={styles.confirmCol}>
-          <Text style={styles.waitingText}>{"Waiting for\nsupervisor"}</Text>
-          <TouchableOpacity onPress={handleUndoPress} disabled={loading} style={[styles.btnUndo, loading && styles.btnDisabled]} activeOpacity={0.85}>
-            <Text style={styles.btnUndoText}>Undo</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  } else if (action.kind === "ready") {
-    rightContent = <Text style={styles.readyLabel}>Ready</Text>;
-  } else if (action.kind === "blocked") {
-    rightContent = <Text style={styles.blockedLabel}>Blocked</Text>;
-  } else {
-    rightContent = (
-      <TouchableOpacity onPress={handleReview} style={styles.btnReview} activeOpacity={0.85}>
-        <Text style={styles.btnReviewText}>{action.label}</Text>
-      </TouchableOpacity>
-    );
-  }
+  const badges = getRoomBadges(room);
+  const cleanType = getCleanTypeDisplay(room);
+  const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
-      {status === "OCCUPIED" ? (
-        <View style={styles.occupiedRail}>
-          {[0, 1, 2].map((stripe) => (
-            <View key={stripe} style={styles.occupiedRailStripe} />
-          ))}
-        </View>
-      ) : (
-        <View style={[styles.statusRail, { backgroundColor: cfg.fg }]} />
-      )}
-      <View style={styles.cardLeft}>
-        <View style={styles.cardTitleRow}>
-          <Text style={styles.cardRoomNum}>{room.room_number}</Text>
-          {badges.map((badge) => (
-            <View key={badge.key} style={styles.vipBadge}><Text style={styles.vipText}>{badge.label}</Text></View>
-          ))}
+    <TouchableOpacity activeOpacity={0.86} onPress={onPress} style={styles.card}>
+      <View style={[styles.statusRail, { backgroundColor: cfg.fg }]} />
+      <View style={styles.cardMain}>
+        <View style={styles.roomIdentity}>
+          <Text style={styles.roomNumber}>{room.room_number}</Text>
+          <Text style={styles.roomType}>{getRoomTypeLine(room)}</Text>
         </View>
 
-        {roomType ? <Text style={styles.roomType}>{roomType}</Text> : null}
-
-        <View style={styles.pillRow}>
-          <View style={[styles.pill, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-            <Text style={[styles.pillText, { color: cfg.fg }]}>{cfg.label}</Text>
+        <View style={styles.metaRow}>
+          <View style={[styles.statusPill, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
+            <Text style={[styles.statusPillText, { color: cfg.fg }]}>{cfg.label}</Text>
           </View>
-          {cleanTypeLabel ? (
-            <View style={styles.cleanTypeRow}>
-              {room.clean_type === "DEP" ? (
-                <Ionicons name="log-out-outline" size={10} color={C.alert} />
-              ) : null}
-              <Text style={[styles.cleanTypeText, { color: room.clean_type === "DEP" ? C.alert : C.caution }]}>
-                {cleanTypeLabel}
-              </Text>
+          {cleanType ? (
+            <View
+              accessible
+              accessibilityLabel={`${cleanType} clean type`}
+              style={styles.cleanTypeRow}
+            >
+              {cleanTypeMeta?.icon ? <Ionicons name={cleanTypeMeta.icon} size={10} color={cleanTypeMeta.fg} /> : null}
+              <Text style={[styles.cleanTypeLabelText, cleanTypeMeta && { color: cleanTypeMeta.fg }]}>{cleanType}</Text>
             </View>
           ) : null}
         </View>
 
         {timing ? (
-          <View style={styles.timeRow}>
+          <View style={styles.timingRow}>
             <Ionicons name="time-outline" size={12} color={C.ink3} />
-            <Text style={styles.timeText}>{timing.label} {timing.value}</Text>
+            <Text style={styles.timingText}>
+              {timing.label}: {timing.value}
+            </Text>
+          </View>
+        ) : null}
+
+        {badges.length > 0 ? (
+          <View style={styles.badgeRow}>
+            {badges.map((badge) => {
+              if (badge.key === "checkout") return null;
+              const loud = badge.key === "dnd";
+              return (
+                <View key={badge.key} style={[styles.badge, loud && styles.badgeCritical]}>
+                  <Text style={[styles.badgeText, loud && styles.badgeCriticalText]}>{badge.label}</Text>
+                </View>
+              );
+            })}
           </View>
         ) : null}
       </View>
-
-      <View style={styles.cardRight}>{rightContent}</View>
     </TouchableOpacity>
   );
 }
 
 export default function MyRoomsScreen() {
   const { t } = useTranslation();
-  const { isOnline, myRooms, setMyRooms, enqueueAction } = useAppStore();
+  const { isOnline, myRooms, setMyRooms } = useAppStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
@@ -263,7 +187,9 @@ export default function MyRoomsScreen() {
     setLoading(false);
   }, [isOnline, setMyRooms]);
 
-  useEffect(() => { loadRooms(); }, [loadRooms]);
+  useEffect(() => {
+    void loadRooms();
+  }, [loadRooms]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -271,50 +197,45 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const sortedRooms = useMemo(() => {
+  const groupedRooms = useMemo(() => {
     const now = new Date();
-    return [...myRooms].sort((a, b) => compareRoomsByPriority(a, b, now));
+    const groups: Record<RoomQueueBucket, Room[]> = {
+      next_to_clean: [],
+      needs_attention: [],
+      in_progress: [],
+      submitted: [],
+      ready: [],
+      blocked: [],
+    };
+
+    myRooms.forEach((room) => {
+      groups[getRoomQueueBucket(room, now)].push(room);
+    });
+
+    Object.values(groups).forEach((rooms) => rooms.sort((a, b) => compareRoomsForCleaningQueue(a, b, now)));
+    return groups;
   }, [myRooms]);
 
-  const todoCount = useMemo(() =>
-    myRooms.filter(r => r.status === "DIRTY" || r.status === "PICKUP" || r.status === "OCCUPIED").length,
-    [myRooms]);
-  const inProgressCount = useMemo(() =>
-    myRooms.filter(r => r.status === "IN_PROGRESS").length, [myRooms]);
-  const doneCount = useMemo(() =>
-    myRooms.filter(r => r.status === "INSPECTED").length, [myRooms]);
-  const priorityCount = useMemo(() =>
-    myRooms.filter(r => r.status !== "CLEAN" && r.status !== "INSPECTED" && hasRoomException(r)).length,
-    [myRooms]);
+  const counts = useMemo(() => {
+    const bucketCounts = {
+      next_to_clean: groupedRooms.next_to_clean.length,
+      needs_attention: groupedRooms.needs_attention.length,
+      in_progress: groupedRooms.in_progress.length,
+      submitted: groupedRooms.submitted.length,
+      ready: groupedRooms.ready.length,
+      blocked: groupedRooms.blocked.length,
+    };
+    const completed = bucketCounts.submitted + bucketCounts.ready;
+    return { ...bucketCounts, completed, total: myRooms.length };
+  }, [groupedRooms, myRooms.length]);
 
-  async function handleAction(roomId: string, status: string) {
-    const { myRooms: current, setMyRooms: set } = useAppStore.getState();
-    set(current.map(r => r.id === roomId ? { ...r, status: status as Room["status"] } : r));
-    try {
-      if (isOnline) {
-        await api.patch(`/rooms/${roomId}/status`, { status });
-      } else {
-        await enqueueAction({ type: "room_status", entityId: roomId, payload: { status } });
-      }
-    } catch {
-      loadRooms();
-    }
-  }
+  const visibleSections = useMemo(() => {
+    if (activeFilter === "all") return SECTION_META.filter((section) => groupedRooms[section.bucket].length > 0);
+    return SECTION_META.filter((section) => section.bucket === activeFilter && groupedRooms[section.bucket].length > 0);
+  }, [activeFilter, groupedRooms]);
 
-  async function handleUndo(roomId: string) {
-    try {
-      const response = await api.post<{ data: { status: string } }>(`/rooms/${roomId}/status/undo`, {});
-      const nextStatus = response?.data?.status;
-      if (nextStatus) {
-        const { myRooms: current, setMyRooms: set } = useAppStore.getState();
-        set(current.map(r => r.id === roomId ? { ...r, status: nextStatus as Room["status"] } : r));
-      }
-    } catch {
-      // silently ignore — room list will reload on next refresh
-    } finally {
-      loadRooms();
-    }
-  }
+  const progressPercent = counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
+
 
   if (loading) {
     return (
@@ -339,51 +260,101 @@ export default function MyRoomsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>My Rooms</Text>
-          <Text style={styles.headerDate}>{dayLabel()}</Text>
+          <View>
+            <Text style={styles.title}>My Rooms</Text>
+            <Text style={styles.headerDate}>{dayLabel()}</Text>
+          </View>
+          <Text style={styles.assignedCount}>{counts.total} assigned</Text>
         </View>
 
-        {myRooms.length > 0 ? (
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNum, { color: C.alert }]}>{todoCount}</Text>
-              <Text style={styles.summaryLabel}> to do</Text>
+        {counts.total > 0 ? (
+          <View style={styles.progressBlock}>
+            <View style={styles.progressTop}>
+              <Text style={styles.progressText}>
+                {counts.completed} / {counts.total} completed
+              </Text>
+              <Text style={styles.progressPercent}>{progressPercent}%</Text>
             </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNum, { color: C.ai }]}>{inProgressCount}</Text>
-              <Text style={styles.summaryLabel}> in progress</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNum, { color: C.ready }]}>{doneCount}</Text>
-              <Text style={styles.summaryLabel}> done</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryNum, { color: C.caution }]}>{priorityCount}</Text>
-              <Text style={styles.summaryLabel}> priority</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
             </View>
           </View>
         ) : null}
 
-        {sortedRooms.length === 0 ? (
+        {counts.total > 0 ? (
+          <View style={styles.summaryGrid}>
+            <SummaryChip label="Needs Attention" value={counts.needs_attention} tone="alert" />
+            <SummaryChip label="To Clean" value={counts.next_to_clean} tone="accent" />
+            <SummaryChip label="In Progress" value={counts.in_progress} tone="caution" />
+            <SummaryChip label="Submitted" value={counts.submitted} tone="info" />
+            <SummaryChip label="Ready" value={counts.ready} tone="ready" />
+          </View>
+        ) : null}
+
+        {counts.total > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {FILTERS.map((filter) => {
+              const active = activeFilter === filter.key;
+              return (
+                <TouchableOpacity
+                  key={filter.key}
+                  onPress={() => setActiveFilter(filter.key)}
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  activeOpacity={0.82}
+                >
+                  <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+
+        {counts.total === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t("rooms.noRooms")}</Text>
             <Text style={styles.emptyText}>Pull to refresh if your supervisor adds assignments.</Text>
             {apiError ? <Text style={styles.errorText}>API error: {apiError}</Text> : null}
           </View>
         ) : (
-          <View style={styles.list}>
-            {sortedRooms.map(room => (
-              <RoomItem
-                key={room.id}
-                room={room}
-                onAction={handleAction}
-                onUndo={handleUndo}
-                onPress={() => router.push(`/(app)/my-rooms/${room.id}`)}
-              />
-            ))}
+          <View style={styles.sections}>
+            {visibleSections.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>Nothing in this filter</Text>
+                <Text style={styles.emptyText}>Switch filters to see the rest of your assignment sheet.</Text>
+              </View>
+            ) : (
+              visibleSections.map((section) => (
+                <View key={section.bucket} style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                    <Text style={styles.sectionCount}>{groupedRooms[section.bucket].length}</Text>
+                  </View>
+                  <View style={styles.sectionList}>
+                    {groupedRooms[section.bucket].map((room) => (
+                      <RoomItem
+                        key={room.id}
+                        room={room}
+                        onPress={() => router.push(`/(app)/my-rooms/${room.id}`)}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         )}
       </ScrollView>
+      <FloatingAIButton bottom={insets.bottom + 84} onPress={() => router.push("/(app)/copilot")} />
+    </View>
+  );
+}
+
+function SummaryChip({ label, value, tone }: { label: string; value: number; tone: "alert" | "accent" | "caution" | "info" | "ready" }) {
+  const color = tone === "alert" ? C.alert : tone === "accent" ? C.accent : tone === "caution" ? C.caution : tone === "info" ? C.info : C.ready;
+  return (
+    <View style={styles.summaryChip}>
+      <Text style={[styles.summaryValue, { color }]}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 }
@@ -392,109 +363,91 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 18, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 18, paddingBottom: 42 },
 
   offlineBanner: { backgroundColor: C.alert, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8 },
   offlineText: { flex: 1, color: "#fff", fontSize: 12 },
 
-  header: { paddingTop: 12, paddingBottom: 4 },
-  title: { fontSize: 29, fontWeight: "600", color: C.ink, lineHeight: 35 },
+  header: { paddingTop: 14, paddingBottom: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 14 },
+  title: { fontSize: 30, fontWeight: "700", color: C.ink, lineHeight: 36 },
   headerDate: { fontSize: 13, color: C.ink3, marginTop: 2 },
+  assignedCount: { fontFamily: monoFont, color: C.ink2, fontSize: 12, fontWeight: "700", marginTop: 8 },
 
-  summaryCard: {
-    flexDirection: "row",
-    gap: 20,
+  progressBlock: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 13, gap: 9 },
+  progressTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  progressText: { color: C.ink, fontSize: 14, fontWeight: "700" },
+  progressPercent: { fontFamily: monoFont, color: C.ink3, fontSize: 12, fontWeight: "700" },
+  progressTrack: { height: 8, borderRadius: 999, backgroundColor: C.surface3, overflow: "hidden" },
+  progressFill: { height: 8, borderRadius: 999, backgroundColor: C.ready },
+
+  summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  summaryChip: {
+    minHeight: 52,
+    minWidth: "30%",
+    flexGrow: 1,
     backgroundColor: C.surface,
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.line,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
-  summaryItem: { flexDirection: "row", alignItems: "baseline" },
-  summaryNum: { fontSize: 18, fontWeight: "700" },
-  summaryLabel: { fontSize: 13, color: C.ink3 },
+  summaryValue: { fontFamily: monoFont, fontSize: 18, fontWeight: "800" },
+  summaryLabel: { color: C.ink3, fontSize: 11.5, fontWeight: "700", marginTop: 1 },
 
-  list: { gap: 15, marginTop: 16 },
+  filterRow: { gap: 7, paddingTop: 14, paddingBottom: 2 },
+  filterChip: {
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterChipActive: { backgroundColor: C.ink, borderColor: C.ink },
+  filterText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
+  filterTextActive: { color: C.paper },
+
+  sections: { gap: 18, marginTop: 16 },
+  section: { gap: 9 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionTitle: { color: C.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
+  sectionCount: { fontFamily: monoFont, color: C.ink3, fontSize: 11, fontWeight: "800" },
+  sectionList: { gap: 10 },
 
   card: {
     position: "relative",
     overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 16,
-    paddingLeft: 18,
     backgroundColor: C.surface,
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.line,
+    borderRadius: 14,
+    paddingLeft: 16,
+    shadowColor: C.ink,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   statusRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
-  occupiedRail: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-    justifyContent: "space-evenly",
-    backgroundColor: C.alertSoft,
-  },
-  occupiedRailStripe: { height: "22%", backgroundColor: C.occupied },
-  cardLeft: { flex: 1, minWidth: 0 },
-  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
-  cardRoomNum: { fontFamily: monoFont, fontSize: 30, lineHeight: 34, fontWeight: "700", color: C.ink },
-  vipBadge: {
-    backgroundColor: C.accentSoft,
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderWidth: 1,
-    borderColor: C.accentLine,
-  },
-  vipText: { fontSize: 9, fontWeight: "700", color: C.accent },
-  roomType: { fontSize: 14, color: C.ink3, marginTop: 2 },
-
-  pillRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 6 },
-  pill: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 3, minHeight: 24 },
-  pillText: { fontSize: 11.5, fontWeight: "700", textTransform: "uppercase" },
-  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 2 },
-  cleanTypeText: { fontSize: 10, fontWeight: "600" },
-
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  timeText: { fontFamily: monoFont, fontSize: 12, color: C.ink2 },
-
-  cardRight: { alignItems: "flex-end", flexShrink: 0 },
-  confirmCol: { alignItems: "flex-end", gap: 6 },
-
-  btnStart: { minHeight: 52, backgroundColor: C.accent, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
-  btnStartText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-
-  btnReview: { minHeight: 48, backgroundColor: C.surface3, borderWidth: 1, borderColor: C.line, borderRadius: 13, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
-  btnReviewText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
-
-  btnDone: { minHeight: 48, backgroundColor: C.ready, borderRadius: 13, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
-  btnDoneText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-
-  btnDoneConfirm: { minHeight: 48, backgroundColor: C.ready, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-  btnDoneConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
-
-  btnUndo: { minHeight: 44, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 13, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
-  btnUndoText: { fontSize: 12, fontWeight: "600", color: C.ink2 },
-
-  btnUndoConfirm: { minHeight: 48, backgroundColor: C.alert, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-  btnUndoConfirmText: { color: "#fff", fontSize: 12, fontWeight: "600" },
-
-  btnCancel: { paddingVertical: 4 },
-  btnCancelText: { fontSize: 12, color: C.ink3 },
-
-  btnDisabled: { opacity: 0.5 },
-
-  waitingText: { fontSize: 12, color: C.caution, fontWeight: "500", textAlign: "right", lineHeight: 17 },
-  readyLabel: { fontSize: 14, color: C.ready, fontWeight: "600", textAlign: "right" },
-  blockedLabel: { fontSize: 13, color: C.ink3, fontWeight: "700", textAlign: "right" },
+  cardMain: { padding: 14, gap: 9 },
+  roomIdentity: { minWidth: 0 },
+  roomNumber: { fontFamily: monoFont, fontSize: 32, lineHeight: 36, fontWeight: "800", color: C.ink },
+  roomType: { color: C.ink3, fontSize: 13, marginTop: 1 },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, alignItems: "center" },
+  statusPill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 4 },
+  statusPillText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  cleanTypeLabelText: { fontSize: 10, fontWeight: "700" },
+  timingRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  timingText: { color: C.ink2, fontFamily: monoFont, fontSize: 12 },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  badge: { backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeCritical: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  badgeText: { color: C.ink2, fontSize: 10.5, fontWeight: "800" },
+  badgeCriticalText: { color: C.alert },
 
   emptyCard: { marginTop: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },

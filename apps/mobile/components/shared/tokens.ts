@@ -28,6 +28,24 @@ export const darkStatusTokens = {
   outOfOrderSoft: "rgba(116, 109, 99, 0.24)",
 } as const;
 
+export const aiTokens = {
+  primary: "#7C3AED",
+  secondary: "#14B8A6",
+  electric: "#38BDF8",
+  soft: "rgba(124, 58, 237, 0.14)",
+  line: "rgba(124, 58, 237, 0.32)",
+  glow: "rgba(124, 58, 237, 0.35)",
+} as const;
+
+export const darkAiTokens = {
+  primary: "#A78BFA",
+  secondary: "#2DD4BF",
+  electric: "#7DD3FC",
+  soft: "rgba(167, 139, 250, 0.16)",
+  line: "rgba(167, 139, 250, 0.36)",
+  glow: "rgba(167, 139, 250, 0.42)",
+} as const;
+
 export const lightTheme = {
   background: "#F8F1E7",
   surface: "#FFFDFC",
@@ -44,13 +62,14 @@ export const lightTheme = {
   primaryLine: "#B9CFBC",
   accentBrass: "#C29A4A",
   accentClay: "#E8B89A",
+  ai: aiTokens,
   status: statusTokens,
 } as const;
 
 export const darkTheme = {
-  background: "#171310",
-  surface: "#211B17",
-  surfaceElevated: "#2A231E",
+  background: "#0F0D0B",
+  surface: "#191512",
+  surfaceElevated: "#241E1A",
   surfaceMuted: "#302821",
   textPrimary: "#F4EDE3",
   textSecondary: "#B8AA9A",
@@ -63,6 +82,9 @@ export const darkTheme = {
   primaryLine: "rgba(126, 168, 137, 0.36)",
   accentBrass: "#D0A85A",
   accentClay: "#C98262",
+  glass: "rgba(255, 255, 255, 0.06)",
+  glassBorder: "rgba(255, 255, 255, 0.10)",
+  ai: darkAiTokens,
   status: darkStatusTokens,
 } as const;
 
@@ -107,9 +129,14 @@ export const C = {
   ooo: statusTokens.outOfOrder,
   oooSoft: statusTokens.outOfOrderSoft,
   oooLine: statusTokens.outOfOrderLine,
-  ai: "#5A3F8C",
-  aiSoft: "#EEE8F6",
-  aiLine: "#CDBFDF",
+  ai: aiTokens.primary,
+  aiSecondary: aiTokens.secondary,
+  aiElectric: aiTokens.electric,
+  aiSoft: aiTokens.soft,
+  aiLine: aiTokens.line,
+  aiGlow: aiTokens.glow,
+  glass: darkTheme.glass,
+  glassBorder: darkTheme.glassBorder,
   fontFamily: undefined as undefined,
 } as const;
 

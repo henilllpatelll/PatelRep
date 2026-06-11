@@ -39,9 +39,11 @@
   "home": {
     "greeting": "Buenos días, {{name}}.",
     "shiftSuffix": "Turno de día",
-    "copilotKicker": "Tu orden inteligente",
+    "copilotKicker": "Briefing IA",
     "startWith": "Empezar con {{room}}",
     "seePlan": "Ver el plan",
+    "askAI": "Preguntar a IA",
+    "aiPrioritized": "IA priorizÃ³ el orden de tus cuartos.",
     "savesMins": "Ahorra ~18 min vs. orden de cuartos",
     "aheadByMins": "Vas 3 min adelantado",
     "avgTarget": "22m prom · meta 25m",

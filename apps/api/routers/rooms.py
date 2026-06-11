@@ -8,6 +8,11 @@ from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import ManualCheckoutRequest, UpdateCheckoutTimeRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
 from core.database import supabase
+from services.room_status_transitions import (
+    close_active_sessions_for_room,
+    update_housekeeper_profile,
+    validate_transition as _validate_transition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,50 +22,11 @@ class AddRoomNoteRequest(BaseModel):
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
-# ---------------------------------------------------------------------------
-# Status transition rules
-# ---------------------------------------------------------------------------
-# Keys are (from_status, to_status). Value is a set of roles that may perform
-# the transition. None means any authenticated staff member may do it.
-ALLOWED_TRANSITIONS: dict[tuple[str, str], set[str] | None] = {
-    ("DIRTY",     "IN_PROGRESS"): None,
-    ("IN_PROGRESS", "CLEAN"):     None,
-    ("CLEAN",     "INSPECTED"):   {"gm", "housekeeping_supervisor"},
-    ("CLEAN",     "DIRTY"):       {"gm", "housekeeping_supervisor"},
-    ("DIRTY",     "PICKUP"):      None,
-    ("PICKUP",    "IN_PROGRESS"): None,
-    ("PICKUP",    "CLEAN"):       None,
-    ("OCCUPIED",  "IN_PROGRESS"): None,
-    ("INSPECTED", "DIRTY"):       {"gm", "housekeeping_supervisor"},
-}
-
-# Any status → OOO and OOO → DIRTY are supervisor/GM only
-OOO_SOURCES = {s for s in ("DIRTY", "IN_PROGRESS", "CLEAN", "INSPECTED", "PICKUP")}
-for _s in OOO_SOURCES:
-    ALLOWED_TRANSITIONS[(_s, "OOO")] = {"gm", "housekeeping_supervisor"}
-ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = {"gm", "housekeeping_supervisor"}
+# Status transition rules live in services/room_status_transitions.py
+# (shared with the clean-sessions router).
 
 UNDO_ALL_ROLES = {"gm", "housekeeping_supervisor", "front_desk"}
 CHECKOUT_PRESERVE_STATUS = {"IN_PROGRESS", "CLEAN", "INSPECTED", "OOO"}
-
-
-def _validate_transition(from_status: str | None, to_status: str, role: str) -> None:
-    """Raises HTTPException(400) if the transition is not allowed for the role."""
-    key = (from_status, to_status)
-    if key not in ALLOWED_TRANSITIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid status transition: {from_status} -> {to_status}",
-        )
-    required_roles = ALLOWED_TRANSITIONS[key]
-    if required_roles is not None and role not in required_roles:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                f"Role '{role}' is not allowed to transition "
-                f"{from_status} -> {to_status}"
-            ),
-        )
 
 
 def _find_latest_matching_status_change(history_rows: list[dict], current_status: str | None) -> dict | None:
@@ -90,79 +56,19 @@ def _validate_undo_permission(history_row: dict, current_user: CurrentUser, room
     )
 
 
-def _update_housekeeper_profile(
-    hotel_id: str,
-    room_id: str,
-    user_id: str | None,
-    room_status_data: dict,
-) -> None:
-    """Update the housekeeper's average cleaning speed for this room type."""
-    if not user_id:
-        return
+def _approx_elapsed_minutes(room_status_data: dict) -> float | None:
+    """Approximate clean time from room_status.updated_at (IN_PROGRESS start).
 
-    # Find the room type
-    room = supabase.table("rooms")\
-        .select("room_type_id")\
-        .eq("id", room_id)\
-        .eq("tenant_id", hotel_id)\
-        .maybe_single()\
-        .execute()
-
-    room_data = (room.data if room else None) or {}
-    if not room_data.get("room_type_id"):
-        return
-
-    room_type_id = room_data["room_type_id"]
-
-    # Estimate time from last status change to now
-    # We approximate using the room_status.updated_at as the IN_PROGRESS start time
-    # (Not perfect, but avoids a history query on every room completion)
+    Legacy fallback for status changes made outside a clean session.
+    """
     started_approx = room_status_data.get("updated_at")
     if not started_approx:
-        return
-
+        return None
     try:
         start_dt = datetime.fromisoformat(started_approx.replace("Z", "+00:00"))
-        elapsed_minutes = (datetime.now(timezone.utc).replace(tzinfo=start_dt.tzinfo) - start_dt).total_seconds() / 60
+        return (datetime.now(timezone.utc).replace(tzinfo=start_dt.tzinfo) - start_dt).total_seconds() / 60
     except (ValueError, TypeError):
-        return
-
-    if elapsed_minutes <= 0 or elapsed_minutes > 240:
-        return  # Ignore unrealistic durations
-
-    # Upsert housekeeper_profiles with rolling average
-    existing = supabase.table("housekeeper_profiles")\
-        .select("id, avg_clean_minutes, completion_count")\
-        .eq("user_id", user_id)\
-        .eq("tenant_id", hotel_id)\
-        .eq("room_type_id", room_type_id)\
-        .maybe_single()\
-        .execute()
-
-    existing_data = (existing.data if existing else None) or {}
-    if existing_data:
-        old_avg = float(existing_data.get("avg_clean_minutes") or elapsed_minutes)
-        old_count = int(existing_data.get("completion_count") or 0)
-        new_count = old_count + 1
-        new_avg = (old_avg * old_count + elapsed_minutes) / new_count
-
-        supabase.table("housekeeper_profiles")\
-            .update({
-                "avg_clean_minutes": round(new_avg, 2),
-                "completion_count": new_count,
-                "last_updated_at": datetime.now(timezone.utc).isoformat(),
-            })\
-            .eq("id", existing_data["id"])\
-            .execute()
-    else:
-        supabase.table("housekeeper_profiles").insert({
-            "user_id": user_id,
-            "tenant_id": hotel_id,
-            "room_type_id": room_type_id,
-            "avg_clean_minutes": round(elapsed_minutes, 2),
-            "completion_count": 1,
-            "last_updated_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        return None
 
 
 async def _send_checkout_push(housekeeper_id: str, room_number: str, room_id: str) -> None:
@@ -323,14 +229,16 @@ async def update_room_status(
         "notes": request.notes,
     }).execute()
 
-    # 6. Update housekeeper speed profile (IN_PROGRESS → CLEAN)
+    # 6. Update housekeeper speed profile (IN_PROGRESS → CLEAN) and defensively
+    #    close any active clean session so a stale offline queue flush through
+    #    this legacy endpoint never orphans a session.
     if from_status == "IN_PROGRESS" and to_status == "CLEAN":
         try:
-            _update_housekeeper_profile(
+            update_housekeeper_profile(
                 hotel_id=current_user.hotel_id,
                 room_id=room_id,
                 user_id=current_row.data.get("assigned_to"),
-                room_status_data=current_row.data,
+                elapsed_minutes=_approx_elapsed_minutes(current_row.data),
             )
         except Exception:
             logger.warning(
@@ -339,6 +247,7 @@ async def update_room_status(
                 current_user.hotel_id,
                 exc_info=True,
             )
+        close_active_sessions_for_room(current_user.hotel_id, room_id)
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}

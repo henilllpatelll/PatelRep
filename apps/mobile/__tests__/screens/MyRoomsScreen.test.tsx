@@ -1,12 +1,13 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import type { Room } from "@/stores/appStore";
 
 const mockRouterPush = jest.fn();
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
 
-let mockRooms = [
-  {
+function makeRoom(overrides: Partial<Room> = {}): Room {
+  return {
     id: "room-1",
     room_number: "101",
     floor: 1,
@@ -15,14 +16,18 @@ let mockRooms = [
     dnd_flag: false,
     guest_name: null,
     predicted_ready_at: null,
-    vip_flag: true,
+    vip_flag: false,
     checkin_time: null,
     checkout_time: null,
     actual_checkout_at: null,
-    clean_type: "DEP",
-    clean_type_label: "Departure",
-  },
-];
+    clean_type: null,
+    clean_type_label: null,
+    rooms: { room_types: { name: "King" } },
+    ...overrides,
+  };
+}
+
+let mockRooms: Room[] = [];
 
 const mockStore = {
   isOnline: true,
@@ -76,20 +81,115 @@ const mockApiGet = api.get as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockRooms = [{ ...mockRooms[0], status: "DIRTY", vip_flag: true }];
+  mockRooms = [
+    makeRoom({
+      id: "cleanable",
+      room_number: "101",
+      clean_type: "DEP",
+      clean_type_label: "Departure",
+      actual_checkout_at: "2026-06-09T10:00:00.000Z",
+      checkin_time: "2026-06-09T16:00:00.000Z",
+    }),
+    makeRoom({
+      id: "attention",
+      room_number: "102",
+      dnd_flag: true,
+      clean_type: "DEP",
+      clean_type_label: "Departure",
+      actual_checkout_at: null,
+    }),
+    makeRoom({ id: "started", room_number: "103", status: "IN_PROGRESS" }),
+    makeRoom({ id: "ready", room_number: "104", status: "INSPECTED" }),
+    makeRoom({ id: "full", room_number: "105", status: "DIRTY", clean_type: "FULL", clean_type_label: "Full" }),
+    makeRoom({ id: "light", room_number: "106", status: "PICKUP", clean_type: "LIGHT", clean_type_label: "Light" }),
+  ];
   mockStore.myRooms = mockRooms;
   mockApiGet.mockResolvedValue({ data: mockRooms });
 });
 
 describe("MyRoomsScreen", () => {
-  it("keeps exception rooms in the redesigned list but routes them through review", async () => {
+  it("renders assignment progress and summary chips", async () => {
+    const { getAllByText, getByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
+
+    expect(getByText("6 assigned")).toBeTruthy();
+    expect(getByText("1 / 6 completed")).toBeTruthy();
+    expect(getAllByText("Needs Attention").length).toBeGreaterThanOrEqual(2);
+    expect(getByText("To Clean")).toBeTruthy();
+    expect(getAllByText("In Progress").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText("Ready").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders departure, full, and light clean-type labels", async () => {
+    const { getAllByLabelText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
+
+    expect(getAllByLabelText("Departure clean type").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByLabelText("Full clean type").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByLabelText("Light clean type").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("matches web clean-type labels for inspected full and light rooms", async () => {
+    mockRooms = [
+      makeRoom({ id: "full-ready", room_number: "201", status: "INSPECTED", clean_type: "FULL", clean_type_label: "Full" }),
+      makeRoom({ id: "light-ready", room_number: "202", status: "INSPECTED", clean_type: "LIGHT", clean_type_label: "Light" }),
+    ];
+    mockStore.myRooms = mockRooms;
+    mockApiGet.mockResolvedValue({ data: mockRooms });
+
     const { getByText, queryByText } = render(<MyRoomsScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    expect(getByText("101")).toBeTruthy();
-    expect(getByText("VIP")).toBeTruthy();
+    expect(getByText("Full Done")).toBeTruthy();
+    expect(getByText("Light Done")).toBeTruthy();
+    expect(queryByText("Full")).toBeNull();
+    expect(queryByText("Light")).toBeNull();
+  });
+
+  it("shows DND departure rooms as Needs Attention with Review, not Start", async () => {
+    mockRooms = [mockRooms[1]];
+    mockStore.myRooms = mockRooms;
+    mockApiGet.mockResolvedValue({ data: mockRooms });
+
+    const { getByText, queryByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(getByText("NEEDS ATTENTION")).toBeTruthy());
+    expect(getByText("102")).toBeTruthy();
+    expect(getByText("DND")).toBeTruthy();
+    expect(getByText("Not Checked Out")).toBeTruthy();
     expect(getByText("Review")).toBeTruthy();
     expect(queryByText("Start")).toBeNull();
+  });
+
+  it("puts checked-out departure rooms in Next to Clean", async () => {
+    mockRooms = [mockRooms[0], mockRooms[1]];
+    mockStore.myRooms = mockRooms;
+    mockApiGet.mockResolvedValue({ data: mockRooms });
+
+    const { getByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
+    expect(getByText("101")).toBeTruthy();
+    expect(getByText("Start")).toBeTruthy();
+    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+    expect(getByText("102")).toBeTruthy();
+  });
+
+  it("filter chips switch visible sections", async () => {
+    const { getByText, queryByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
+    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+
+    fireEvent.press(getByText("Started"));
+
+    expect(getByText("IN PROGRESS")).toBeTruthy();
+    expect(getByText("103")).toBeTruthy();
+    expect(queryByText("NEXT TO CLEAN")).toBeNull();
+    expect(queryByText("101")).toBeNull();
+    expect(queryByText("NEEDS ATTENTION")).toBeNull();
   });
 });
