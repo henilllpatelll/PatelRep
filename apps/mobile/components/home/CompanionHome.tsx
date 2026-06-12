@@ -24,13 +24,13 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    are spatial (sorted by room number), never an ordered work queue — the
    queue lives in My Rooms. */
 
-interface TileVisual {
+export interface TileVisual {
   bg: string;
   fg: string;
   border: string;
 }
 
-function getTileVisual(status: string): TileVisual {
+export function getTileVisual(status: string): TileVisual {
   switch (status) {
     case "INSPECTED":
       return { bg: statusTokens.ready, fg: shellTokens.ink, border: "transparent" };

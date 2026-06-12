@@ -1,18 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { C, displayFont } from "@/components/shared/tokens";
-import {
-  HandoffRow,
-  IconButton,
-  Mono,
-  RoomNumberTile,
-  Segmented,
-} from "@/components/shared/mobileHandoff";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { api } from "@/lib/api/client";
 import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
 import { localDate } from "@/lib/utils/date";
+import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
+
+/* ─── Inspect — the quality gate ────────────────────────────────────────────
+   Dark shell hero with the day's inspection shape, a queue of submitted
+   rooms with one-tap pass/fail, and today's completed inspections. */
 
 interface ReadyRoom {
   room_id: string;
@@ -32,52 +44,96 @@ interface InspectionRecord {
   completed_at: string;
 }
 
-function timeSince(iso: string | null): string {
-  if (!iso) return "recently";
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff < 60) return `${diff}m ago`;
-  return `${Math.floor(diff / 60)}h ago`;
-}
+type Tab = "queue" | "done";
 
-type Tab = "queue" | "passed";
+const RESULT_META: Record<InspectionRecord["overall_result"], { fg: string; bg: string; line: string }> = {
+  passed: { fg: C.ready, bg: C.readySoft, line: C.readyLine },
+  failed: { fg: C.alert, bg: C.alertSoft, line: C.alertLine },
+  conditional: { fg: C.caution, bg: C.cautionSoft, line: C.cautionLine },
+};
 
 export default function InspectScreen() {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const locale = i18n.language === "es" ? "es-MX" : "en-US";
+
   const [queue, setQueue] = useState<ReadyRoom[]>([]);
-  const [passed, setPassed] = useState<InspectionRecord[]>([]);
+  const [records, setRecords] = useState<InspectionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("queue");
+  const [tab, setTab] = useState<Tab>("queue");
   const [template, setTemplate] = useState<InspectionTemplate | undefined>();
   const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" } | null>(null);
   const [confirmNotes, setConfirmNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const today = localDate();
-      const [queueRes, passedRes, templatesRes] = await Promise.allSettled([
-        api.get<{ data: ReadyRoom[] }>(`/housekeeping/ready-for-inspection?date=${today}`),
-        api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}`),
-        listInspectionTemplates(),
-      ]);
-      if (queueRes.status === "fulfilled") setQueue(queueRes.value.data);
-      if (passedRes.status === "fulfilled") setPassed(passedRes.value.data);
-      if (templatesRes.status === "fulfilled" && templatesRes.value.data.length > 0) {
-        setTemplate(templatesRes.value.data[0]);
-      }
-    } finally {
-      setLoading(false);
+    const today = localDate();
+    const [queueRes, recordsRes, templatesRes] = await Promise.allSettled([
+      api.get<{ data: ReadyRoom[] }>(`/housekeeping/ready-for-inspection?date=${today}`),
+      api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}`),
+      listInspectionTemplates(),
+    ]);
+    if (queueRes.status === "fulfilled") setQueue(queueRes.value.data ?? []);
+    if (recordsRes.status === "fulfilled") setRecords(recordsRes.value.data ?? []);
+    if (templatesRes.status === "fulfilled" && templatesRes.value.data.length > 0) {
+      setTemplate(templatesRes.value.data[0]);
     }
+    setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
   }, [load]);
+
+  const timeSince = useCallback(
+    (iso: string | null): string => {
+      if (!iso) return t("inspect.justNow");
+      const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+      if (diff < 1) return t("inspect.justNow");
+      if (diff < 60) return t("inspect.minutesAgo", { minutes: diff });
+      return t("inspect.hoursAgo", { hours: Math.floor(diff / 60) });
+    },
+    [t],
+  );
+
+  const formatClock = useCallback(
+    (iso: string): string =>
+      new Date(iso).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
+    [locale],
+  );
+
+  const passedToday = useMemo(
+    () => records.filter((record) => record.overall_result === "passed").length,
+    [records],
+  );
+
+  const signals = useMemo<HeroSignal[]>(
+    () =>
+      [
+        queue.length > 0 && {
+          key: "waiting",
+          label: t("inspect.signalWaiting", { count: queue.length }),
+          fg: C.info,
+          bg: C.infoSoft,
+          line: C.infoLine,
+        },
+        queue.length === 0 && !loading && {
+          key: "clear",
+          label: t("inspect.allClear"),
+          fg: C.ready,
+          bg: C.readySoft,
+          line: C.readyLine,
+        },
+      ].filter(Boolean) as HeroSignal[],
+    [queue.length, loading, t],
+  );
 
   const openConfirm = useCallback((room: ReadyRoom, result: "passed" | "failed") => {
     setConfirm({ room, result });
@@ -100,139 +156,158 @@ export default function InspectScreen() {
         notes: confirmNotes.trim() || undefined,
         items,
       });
-      setQueue((prev) => prev.filter((r) => r.room_id !== confirm.room.room_id));
-      if (confirm.result === "passed") {
-        setPassed((prev) => [
-          {
-            id: confirm.room.room_id + "-" + Date.now(),
-            room_number: confirm.room.room_number,
-            inspector_name: "You",
-            overall_result: "passed",
-            completed_at: new Date().toISOString(),
-          },
-          ...prev,
-        ]);
-      }
+      setQueue((prev) => prev.filter((room) => room.room_id !== confirm.room.room_id));
       setConfirm(null);
+      // Pull the authoritative record (inspector name, timestamps) from the API.
+      await load();
     } catch {
       Alert.alert(t("inspect.submitError"));
     } finally {
       setSubmitting(false);
     }
-  }, [confirm, submitting, template, confirmNotes, t]);
+  }, [confirm, submitting, template, confirmNotes, t, load]);
 
-  const displayList = activeTab === "queue" ? queue : passed;
+  const tabs: { key: Tab; label: string; count: number }[] = [
+    { key: "queue", label: t("inspect.toInspect"), count: queue.length },
+    { key: "done", label: t("inspect.doneTab"), count: records.length },
+  ];
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <IconButton icon="filter-outline" />
-        <Text style={styles.headerMeta}>{new Date().toLocaleDateString(i18n.language === "es" ? "es-MX" : "en-US", { weekday: "short", month: "short", day: "numeric" })}</Text>
-        <Text style={styles.title}>{t("inspect.title")}</Text>
-      </View>
-
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={styles.center}>
+          <ActivityIndicator color={C.accent} />
+        </View>
       ) : (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
         >
-          <View style={styles.summary}>
-            <View style={styles.summaryCell}>
-              <View style={styles.summaryLine}>
-                <Text style={styles.summaryValue}>{passed.length}</Text>
-                <Text style={styles.summaryLabel}>{t("inspect.passedCount")}</Text>
-              </View>
-              <Text style={styles.summarySub}>{t("inspect.today")}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryCell}>
-              <View style={styles.summaryLine}>
-                <Text style={styles.summaryValue}>{queue.length}</Text>
-                <Text style={styles.summaryLabel}>{t("inspect.inQueue")}</Text>
-              </View>
-              <Text style={[styles.summarySub, queue.length > 0 ? { color: C.caution } : { color: C.ready }]}>
-                {queue.length > 0 ? t("inspect.waiting") : t("inspect.allClear")}
-              </Text>
-            </View>
+          <View style={styles.topBleed} />
+          <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+            <Text style={styles.heroKicker}>{t("inspect.kicker")}</Text>
+            <Text style={styles.heroTitle}>{t("inspect.title")}</Text>
+            <Text style={styles.heroSummary}>
+              {t("inspect.summary", { waiting: queue.length, passed: passedToday })}
+            </Text>
+            <HeroSignalRow signals={signals} />
           </View>
 
-          <Segmented
-            items={[
-              { label: t("inspect.toInspect"), count: queue.length, active: activeTab === "queue", onPress: () => setActiveTab("queue") },
-              { label: t("inspect.passedTab"), count: passed.length, active: activeTab === "passed", onPress: () => setActiveTab("passed") },
-            ]}
-          />
+          <View style={styles.segmented}>
+            {tabs.map((item) => {
+              const isActive = tab === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.segment, isActive && styles.segmentActive]}
+                  onPress={() => setTab(item.key)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                    {item.label}
+                    {item.count > 0 ? ` ${item.count}` : ""}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-          <View style={styles.rows}>
-            {displayList.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>{activeTab === "queue" ? t("inspect.queueEmpty") : t("inspect.nonePassedYet")}</Text>
-                <Text style={styles.emptySub}>{t("inspect.pullToRefresh")}</Text>
-              </View>
-            ) : activeTab === "queue" ? (
-              (displayList as ReadyRoom[]).map((room) => (
-                <View key={room.room_id} style={styles.rowWrap}>
-                  <HandoffRow
-                    lead={<RoomNumberTile roomNumber={room.room_number} status="CLEAN" size={48} />}
-                    title={<Text style={styles.rowTitle}>{room.cleaned_by}</Text>}
-                    sub={`Done ${timeSince(room.cleaned_at)}${room.clean_type ? ` — ${room.clean_type}` : ""}`}
-                    right={
-                      <View style={styles.actions}>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, styles.passBtn]}
-                          onPress={() => openConfirm(room, "passed")}
-                          activeOpacity={0.75}
-                        >
-                          <Ionicons name="checkmark" size={18} color={C.ready} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionBtn, styles.failBtn]}
-                          onPress={() => openConfirm(room, "failed")}
-                          activeOpacity={0.75}
-                        >
-                          <Ionicons name="close" size={18} color={C.alert} />
-                        </TouchableOpacity>
-                      </View>
-                    }
-                  />
+          <View style={styles.body}>
+            {tab === "queue" ? (
+              queue.length === 0 ? (
+                <View style={styles.empty}>
+                  <Ionicons name="shield-checkmark-outline" size={30} color={C.ink4} />
+                  <Text style={styles.emptyTitle}>{t("inspect.queueEmpty")}</Text>
+                  <Text style={styles.emptyHint}>{t("inspect.queueEmptyHint")}</Text>
                 </View>
-              ))
+              ) : (
+                queue.map((room) => (
+                  <View key={room.room_id} style={styles.queueCard} testID={`inspect-${room.room_number}`}>
+                    <View style={styles.queueRail} />
+                    <View style={styles.queueBody}>
+                      <Text style={styles.queueRoomNumber}>{room.room_number}</Text>
+                      <Text style={styles.queueCleanedBy} numberOfLines={1}>{room.cleaned_by}</Text>
+                      <Text style={styles.queueMeta}>
+                        {t("inspect.doneAgo", { time: timeSince(room.cleaned_at) })}
+                        {room.clean_type ? ` · ${room.clean_type}` : ""}
+                      </Text>
+                    </View>
+                    <View style={styles.queueActions}>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.failBtn]}
+                        onPress={() => openConfirm(room, "failed")}
+                        activeOpacity={0.78}
+                        accessibilityLabel={t("inspect.confirmFail")}
+                      >
+                        <Ionicons name="close" size={20} color={C.alert} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.passBtn]}
+                        onPress={() => openConfirm(room, "passed")}
+                        activeOpacity={0.78}
+                        accessibilityLabel={t("inspect.confirmPass")}
+                      >
+                        <Ionicons name="checkmark" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )
+            ) : records.length === 0 ? (
+              <View style={styles.empty}>
+                <Ionicons name="moon-outline" size={30} color={C.ink4} />
+                <Text style={styles.emptyTitle}>{t("inspect.noneDoneYet")}</Text>
+                <Text style={styles.emptyHint}>{t("inspect.pullToRefresh")}</Text>
+              </View>
             ) : (
-              (displayList as InspectionRecord[]).map((rec) => (
-                <HandoffRow
-                  key={rec.id}
-                  lead={<RoomNumberTile roomNumber={rec.room_number} status="INSPECTED" size={48} />}
-                  title={<Text style={styles.rowTitle}>{t("inspect.roomTitle", { room: rec.room_number })}</Text>}
-                  sub={`${rec.inspector_name} — ${rec.overall_result}`}
-                  right={<Ionicons name="checkmark-circle" size={20} color={C.ready} />}
-                />
-              ))
+              records.map((record) => {
+                const meta = RESULT_META[record.overall_result] ?? RESULT_META.conditional;
+                return (
+                  <View key={record.id} style={styles.doneRow}>
+                    <Text style={styles.doneRoomNumber}>{record.room_number}</Text>
+                    <View style={styles.doneBody}>
+                      <Text style={styles.doneInspector} numberOfLines={1}>{record.inspector_name}</Text>
+                      <Text style={styles.doneTime}>{formatClock(record.completed_at)}</Text>
+                    </View>
+                    <View style={[styles.resultPill, { backgroundColor: meta.bg, borderColor: meta.line }]}>
+                      <Text style={[styles.resultText, { color: meta.fg }]}>
+                        {t(`inspect.result.${record.overall_result}`)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
             )}
           </View>
         </ScrollView>
       )}
 
-      <Modal visible={!!confirm} animationType="slide" transparent>
+      <Modal visible={!!confirm} animationType="slide" transparent onRequestClose={() => setConfirm(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
+            <View style={styles.grabber} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {confirm?.result === "passed"
                   ? t("inspect.modalTitlePass", { room: confirm?.room.room_number })
                   : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
               </Text>
-              <TouchableOpacity onPress={() => setConfirm(null)}>
-                <Ionicons name="close" size={22} color={C.ink} />
+              <TouchableOpacity onPress={() => setConfirm(null)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={C.ink3} />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.fieldLabel}>{t("inspect.notesOptional")}</Text>
             <TextInput
-              style={[styles.input, styles.notesInput]}
-              placeholder={confirm?.result === "failed" ? t("inspect.failNotesPlaceholder") : t("inspect.passNotesPlaceholder")}
+              style={styles.notesInput}
+              placeholder={
+                confirm?.result === "failed"
+                  ? t("inspect.failNotesPlaceholder")
+                  : t("inspect.passNotesPlaceholder")
+              }
               placeholderTextColor={C.ink4}
               value={confirmNotes}
               onChangeText={setConfirmNotes}
@@ -254,7 +329,11 @@ export default function InspectScreen() {
                 disabled={submitting}
               >
                 <Text style={styles.confirmText}>
-                  {submitting ? t("inspect.submitting") : confirm?.result === "passed" ? t("inspect.confirmPass") : t("inspect.confirmFail")}
+                  {submitting
+                    ? t("inspect.submitting")
+                    : confirm?.result === "passed"
+                      ? t("inspect.confirmPass")
+                      : t("inspect.confirmFail")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -268,41 +347,170 @@ export default function InspectScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 18, backgroundColor: C.paper, borderBottomWidth: 1, borderBottomColor: C.line2 },
-  headerMeta: { marginTop: 8, color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  title: { color: C.ink, fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24, gap: 13 },
-  summary: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 18 },
-  summaryCell: { flex: 1 },
-  summaryLine: { flexDirection: "row", alignItems: "baseline", gap: 7 },
-  summaryValue: { fontFamily: displayFont, fontSize: 30, lineHeight: 32, color: C.ink },
-  summaryLabel: { fontSize: 12, color: C.ink3 },
-  summarySub: { fontSize: 11.5, color: C.ink3, marginTop: 4 },
-  divider: { width: 1, alignSelf: "stretch", backgroundColor: C.line2 },
-  rows: { gap: 8 },
-  rowWrap: {},
-  rowTitle: { color: C.ink, fontSize: 13.5, fontWeight: "600" },
-  actions: { flexDirection: "row", gap: 6 },
-  actionBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 1 },
-  passBtn: { backgroundColor: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.25)" },
-  failBtn: { backgroundColor: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.25)" },
-  empty: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 20, alignItems: "center" },
-  emptyTitle: { fontSize: 14, fontWeight: "700", color: C.ink },
-  emptySub: { fontSize: 12, color: C.ink3, marginTop: 4 },
+  scrollContent: { paddingBottom: 28 },
+
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  hero: {
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    backgroundColor: shellTokens.bg,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+  },
+  heroKicker: {
+    color: shellTokens.ink3,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
+  heroSummary: { color: shellTokens.ink2, fontSize: 13, marginTop: 7 },
+
+  segmented: {
+    flexDirection: "row",
+    marginHorizontal: 18,
+    marginTop: 14,
+    marginBottom: 12,
+    backgroundColor: C.surface3,
+    borderRadius: R.md,
+    padding: 3,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: R.md - 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentActive: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    shadowColor: C.ink,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  segmentLabel: { color: C.ink3, fontSize: 12.5, fontWeight: "700" },
+  segmentLabelActive: { color: C.ink },
+
+  body: { paddingHorizontal: 16, gap: 8 },
+
+  queueCard: {
+    position: "relative",
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.lg,
+    paddingLeft: 16,
+    paddingRight: 12,
+    paddingVertical: 13,
+    shadowColor: C.ink,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  queueRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: C.info },
+  queueBody: { flex: 1, minWidth: 0, gap: 2 },
+  queueRoomNumber: { fontFamily: monoFont, fontSize: 24, lineHeight: 28, fontWeight: "800", color: C.ink },
+  queueCleanedBy: { fontSize: 12.5, fontWeight: "700", color: C.ink2 },
+  queueMeta: { fontSize: 11.5, color: C.ink3 },
+  queueActions: { flexDirection: "row", gap: 8 },
+  actionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  passBtn: { backgroundColor: C.ready, borderColor: C.ready },
+  failBtn: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+
+  doneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  doneRoomNumber: { fontFamily: monoFont, fontSize: 18, fontWeight: "800", color: C.ink },
+  doneBody: { flex: 1, minWidth: 0, gap: 1 },
+  doneInspector: { fontSize: 12.5, fontWeight: "600", color: C.ink2 },
+  doneTime: { fontSize: 11, color: C.ink3 },
+  resultPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3.5 },
+  resultText: { fontSize: 10.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
+
+  empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
+  emptyTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700", marginTop: 4 },
+  emptyHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },
+
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
-  modalSheet: { backgroundColor: C.paper, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 40, paddingTop: 20 },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontFamily: displayFont, fontSize: 22, color: C.ink, flex: 1, marginRight: 12 },
-  fieldLabel: { fontSize: 12, fontWeight: "700", color: C.ink3, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
-  input: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.ink },
-  notesInput: { minHeight: 80, textAlignVertical: "top" },
-  confirmRow: { flexDirection: "row", gap: 10, marginTop: 20 },
-  cancelBtn: { flex: 1, minHeight: 46, borderRadius: 12, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" },
+  modalSheet: {
+    backgroundColor: C.paper,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 10,
+  },
+  grabber: {
+    alignSelf: "center",
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.line,
+    marginBottom: 14,
+  },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: C.ink, flex: 1, marginRight: 12 },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: C.ink3,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  notesInput: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: C.ink,
+    minHeight: 84,
+    textAlignVertical: "top",
+  },
+  confirmRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+  cancelBtn: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cancelText: { fontSize: 15, fontWeight: "600", color: C.ink3 },
-  confirmBtn: { flex: 2, minHeight: 46, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  confirmBtn: { flex: 2, minHeight: 46, borderRadius: R.md, alignItems: "center", justifyContent: "center" },
   confirmPass: { backgroundColor: C.ready },
   confirmFail: { backgroundColor: C.alert },
-  confirmText: { fontSize: 15, fontWeight: "700", color: C.paper },
+  confirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   dimmed: { opacity: 0.5 },
 });

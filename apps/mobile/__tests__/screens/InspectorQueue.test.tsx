@@ -2,18 +2,21 @@ import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
 
 const EN: Record<string, string> = {
+  "inspect.kicker": "Quality gate",
   "inspect.title": "Inspections",
-  "inspect.passedCount": "passed",
-  "inspect.today": "today",
-  "inspect.inQueue": "in queue",
-  "inspect.waiting": "waiting",
+  "inspect.summary": "{{waiting}} waiting · {{passed}} passed today",
+  "inspect.signalWaiting": "{{count}} waiting",
   "inspect.allClear": "all clear",
   "inspect.toInspect": "To inspect",
-  "inspect.passedTab": "Passed",
+  "inspect.doneTab": "Done",
   "inspect.queueEmpty": "Queue is empty",
-  "inspect.nonePassedYet": "No passed rooms yet",
+  "inspect.queueEmptyHint": "Submitted rooms appear here as housekeepers finish.",
+  "inspect.noneDoneYet": "No inspections yet today",
   "inspect.pullToRefresh": "Pull to refresh.",
-  "inspect.roomTitle": "Room {{room}}",
+  "inspect.doneAgo": "Done {{time}}",
+  "inspect.justNow": "Just now",
+  "inspect.minutesAgo": "{{minutes}}m ago",
+  "inspect.hoursAgo": "{{hours}}h ago",
   "inspect.notesOptional": "Notes (optional)",
   "inspect.failNotesPlaceholder": "Describe what needs attention…",
   "inspect.passNotesPlaceholder": "Any observations…",
@@ -23,6 +26,9 @@ const EN: Record<string, string> = {
   "inspect.submitError": "Could not submit inspection. Try again.",
   "inspect.modalTitlePass": "Pass Room {{room}}?",
   "inspect.modalTitleFail": "Fail Room {{room}}?",
+  "inspect.result.passed": "Passed",
+  "inspect.result.failed": "Failed",
+  "inspect.result.conditional": "Conditional",
   "common.cancel": "Cancel",
 };
 
@@ -38,6 +44,9 @@ jest.mock("react-i18next", () => ({
 }));
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
 jest.mock("@/lib/api/client", () => ({
   api: { get: jest.fn() },
 }));
@@ -67,17 +76,19 @@ beforeEach(() => {
 });
 
 describe("InspectScreen", () => {
-  it("renders the title and loads queue rooms", async () => {
+  it("renders the hero and loads queue rooms", async () => {
     const { getByText, getAllByText } = render(<InspectScreen />);
-    expect(getByText("Inspections")).toBeTruthy();
-    await waitFor(() => expect(getAllByText("103").length).toBeGreaterThan(0));
+    await waitFor(() => expect(getByText("Inspections")).toBeTruthy());
+    expect(getAllByText("103").length).toBeGreaterThan(0);
     expect(getAllByText("107").length).toBeGreaterThan(0);
+    expect(getByText("Maria")).toBeTruthy();
   });
 
-  it("shows segmented tabs and queue count in summary", async () => {
+  it("shows the day summary, waiting signal, and segmented tabs", async () => {
     const { getByText } = render(<InspectScreen />);
-    await waitFor(() => expect(getByText("in queue")).toBeTruthy());
-    expect(getByText("To inspect")).toBeTruthy();
-    expect(getByText("Passed")).toBeTruthy();
+    await waitFor(() => expect(getByText("2 waiting · 0 passed today")).toBeTruthy());
+    expect(getByText("2 waiting")).toBeTruthy();
+    expect(getByText(/To inspect/)).toBeTruthy();
+    expect(getByText("Done")).toBeTruthy();
   });
 });

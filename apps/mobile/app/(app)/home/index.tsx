@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
-import { localDate } from "@/lib/utils/date";
+import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
@@ -29,6 +29,7 @@ import {
 } from "@/components/shared/mobileHandoff";
 import { AIBriefingCard } from "@/components/shared/evening";
 import { FocusCard, ShiftMosaic, SignalChips } from "@/components/home/CompanionHome";
+import { SupervisorHome } from "@/components/home/SupervisorHome";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
 import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
 
@@ -40,14 +41,6 @@ const ENGINEER_ORDERS = [
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
-}
-
-function dynamicShiftMeta(languagePref: string, suffix: string): string {
-  const now = new Date();
-  const locale = languagePref === "es" ? "es-MX" : "en-US";
-  const weekday = now.toLocaleDateString(locale, { weekday: "short" });
-  const month = now.toLocaleDateString(locale, { month: "short" });
-  return `${weekday} · ${month} ${now.getDate()} · ${suffix}`;
 }
 
 export default function HousekeeperHomeScreen() {
@@ -124,7 +117,7 @@ export default function HousekeeperHomeScreen() {
   }
 
   if (effectiveRole === "housekeeping_supervisor") {
-    return <SupervisorHomeScreen name={user?.full_name ?? "Supervisor"} />;
+    return <SupervisorHome name={user?.full_name ?? "Supervisor"} />;
   }
 
   if (effectiveRole === "front_desk") {
@@ -339,60 +332,6 @@ function EngineerHomeScreen({ name }: { name: string }) {
               />
             ))}
           </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function SupervisorHomeScreen({ name }: { name: string }) {
-  const { t } = useTranslation();
-  const { isOnline } = useAppStore();
-  const [stats, setStats] = useState({ assigned: "—", inProgress: "—", inspected: "—" });
-
-  useEffect(() => {
-    if (!isOnline) return;
-    api
-      .get<{ data: Array<{ status: string; assigned_to: string | null }> }>(
-        `/housekeeping/board?date=${localDate()}`
-      )
-      .then((res) => {
-        const rooms = res.data;
-        setStats({
-          assigned: String(rooms.filter((r) => r.assigned_to != null).length),
-          inProgress: String(rooms.filter((r) => r.status === "IN_PROGRESS").length),
-          inspected: String(rooms.filter((r) => r.status === "INSPECTED").length),
-        });
-      })
-      .catch(console.warn);
-  }, [isOnline]);
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Avatar name={name} size={34} />
-          <IconButton icon="notifications-outline" />
-        </View>
-        <Text style={styles.headerMeta}>{t("home.supervisor.shiftMeta")}</Text>
-        <Text style={styles.title}>{t("home.supervisor.greeting", { name: firstName(name) })}</Text>
-      </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.engineerStats}>
-          {[
-            { value: stats.assigned, label: t("home.supervisor.roomsAssigned") },
-            { value: stats.inProgress, label: t("home.supervisor.inProgress"), color: C.caution },
-            { value: stats.inspected, label: t("home.supervisor.inspected"), color: C.ready },
-          ].map((stat) => (
-            <View key={stat.label} style={styles.engineerStat}>
-              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
-              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>{t("home.supervisor.boardTitle")}</Text>
-          <Text style={styles.emptyText}>{t("home.supervisor.boardHint")}</Text>
         </View>
       </ScrollView>
     </View>
