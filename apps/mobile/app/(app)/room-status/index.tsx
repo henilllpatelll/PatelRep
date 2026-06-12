@@ -16,15 +16,26 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import { Chip, SectionHeader, StatusPill, StatusRail } from "@/components/shared/evening";
+import { Chip, SectionHeader, getStatusMeta } from "@/components/shared/evening";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
-   Every room in the hotel, grouped by floor, in the Evening Lobby card
-   language. The hero answers the floor question at a glance — how many
-   rooms are vacant, occupied, and guest-ready — and the Vacant filter
-   tells engineers and front desk where it's safe to walk in. */
+   Every room in the hotel, grouped by floor. The room number IS the card's
+   identity tile, colored by the protected status contract, and every card
+   answers the walk-in question with a Vacant/Occupied badge. */
 
-type RoomStatusRow = {
+/** Raw board row: room_status spread + nested rooms join (no flat fields). */
+type BoardRow = {
+  room_id: string;
+  status: string;
+  fo_status: "OCC" | "VAC" | null;
+  vip_flag?: boolean | null;
+  dnd_flag?: boolean | null;
+  guest_name?: string | null;
+  checkout_time?: string | null;
+  rooms?: { room_number?: string | null; floor?: number | null } | null;
+};
+
+type RoomRow = {
   id: string;
   room_number: string;
   floor: number;
@@ -35,6 +46,21 @@ type RoomStatusRow = {
   guest_name: string | null;
   checkout_time: string | null;
 };
+
+/** Board rows keep room identity nested under rooms(...) — flatten once here. */
+function normalizeBoardRow(row: BoardRow): RoomRow {
+  return {
+    id: row.room_id,
+    room_number: row.rooms?.room_number ?? "—",
+    floor: row.rooms?.floor ?? 0,
+    status: row.status,
+    fo_status: row.fo_status ?? null,
+    vip_flag: Boolean(row.vip_flag),
+    dnd_flag: Boolean(row.dnd_flag),
+    guest_name: row.guest_name ?? null,
+    checkout_time: row.checkout_time ?? null,
+  };
+}
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   DIRTY: "roomStatus.statusLabels.DIRTY",
@@ -49,16 +75,20 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
 };
 
 /** Occupied by any signal: Opera FO status, or a stay-driven room status. */
-function isOccupiedRoom(room: RoomStatusRow): boolean {
+function isOccupiedRoom(room: RoomRow): boolean {
   return room.fo_status === "OCC" || room.status === "OCCUPIED" || room.status === "PICKUP";
 }
 
-function roomNumberValue(room: RoomStatusRow): number {
+function isOutOfOrderRoom(room: RoomRow): boolean {
+  return room.status === "OOO" || room.status === "OUT_OF_ORDER" || room.status === "OUT_OF_SERVICE";
+}
+
+function roomNumberValue(room: RoomRow): number {
   const parsed = parseInt(room.room_number, 10);
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
-const FILTER_OPTIONS = ["all", "VACANT", "DIRTY", "CLEAN", "INSPECTED", "OCCUPIED"];
+const FILTER_OPTIONS = ["all", "VACANT", "OCCUPIED", "OOO"];
 
 // Pastel readouts for the dark hero (mirror the mosaic dark-soft text rule).
 const HERO_VALUE_COLORS = { vacant: "#A7D2C9", occupied: "#E7A9B0", ready: "#A7D2C9" };
@@ -68,7 +98,7 @@ export default function RoomStatusScreen() {
   const insets = useSafeAreaInsets();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline } = useAppStore();
-  const [rooms, setRooms] = useState<RoomStatusRow[]>([]);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -82,8 +112,8 @@ export default function RoomStatusScreen() {
       return;
     }
     try {
-      const res = await api.get<{ data: RoomStatusRow[] }>("/housekeeping/board");
-      setRooms(res.data ?? []);
+      const res = await api.get<{ data: BoardRow[] }>("/housekeeping/board");
+      setRooms((res.data ?? []).map(normalizeBoardRow));
     } catch {
       setRooms([]);
     } finally {
@@ -110,7 +140,11 @@ export default function RoomStatusScreen() {
       rooms.filter((r) => {
         const matchStatus =
           statusFilter === "all" ||
-          (statusFilter === "VACANT" ? !isOccupiedRoom(r) : r.status === statusFilter);
+          (statusFilter === "VACANT"
+            ? !isOccupiedRoom(r)
+            : statusFilter === "OCCUPIED"
+              ? isOccupiedRoom(r)
+              : isOutOfOrderRoom(r));
         const matchSearch =
           !search ||
           r.room_number.includes(search) ||
@@ -121,7 +155,7 @@ export default function RoomStatusScreen() {
   );
 
   const floors = useMemo(() => {
-    const byFloor = new Map<number, RoomStatusRow[]>();
+    const byFloor = new Map<number, RoomRow[]>();
     for (const room of filtered) {
       const list = byFloor.get(room.floor) ?? [];
       list.push(room);
@@ -190,7 +224,7 @@ export default function RoomStatusScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <View style={styles.filterRow}>
             {FILTER_OPTIONS.map((f) => {
               const active = statusFilter === f;
               return (
@@ -208,12 +242,12 @@ export default function RoomStatusScreen() {
                       ? t("roomStatus.all")
                       : f === "VACANT"
                         ? t("roomStatus.vacant")
-                        : t(STATUS_LABEL_KEYS[f] ?? f)}
+                        : t(STATUS_LABEL_KEYS[f])}
                   </Text>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         <View style={styles.body}>
@@ -223,42 +257,52 @@ export default function RoomStatusScreen() {
               <View style={styles.roomList}>
                 {floorRooms.map((room) => {
                   const occupied = isOccupiedRoom(room);
+                  const meta = getStatusMeta(room.status);
+                  const hasMetaRow = Boolean(room.guest_name || room.checkout_time || room.vip_flag || room.dnd_flag);
                   return (
                     <View key={room.id} style={styles.roomCard}>
-                      <StatusRail status={room.status} />
-                      <View style={styles.roomMain}>
-                        <Text style={styles.roomNum}>{room.room_number}</Text>
-                        <View style={styles.roomBody}>
-                          <View style={styles.occupancyRow}>
-                            <View
-                              style={[styles.occupancyDot, { backgroundColor: occupied ? C.alert : C.ready }]}
-                            />
-                            <Text style={styles.occupancyText} numberOfLines={1}>
-                              {room.guest_name ??
-                                (occupied ? t("roomStatus.occupiedNow") : t("roomStatus.vacantNow"))}
+                      {/* Room number IS the identity tile, in the status color */}
+                      <View style={[styles.numTile, { backgroundColor: meta.bg, borderColor: meta.border }]}>
+                        <Text style={[styles.numText, { color: meta.fg }]}>{room.room_number}</Text>
+                      </View>
+
+                      <View style={styles.roomBody}>
+                        <View style={styles.statusRow}>
+                          <Text style={[styles.statusText, { color: meta.fg }]} numberOfLines={1}>
+                            {t(STATUS_LABEL_KEYS[room.status] ?? room.status)}
+                          </Text>
+                          <View style={[styles.occBadge, occupied ? styles.occBadgeOccupied : styles.occBadgeVacant]}>
+                            <View style={[styles.occDot, { backgroundColor: occupied ? C.alert : C.ready }]} />
+                            <Text style={[styles.occText, { color: occupied ? C.alert : C.ready }]}>
+                              {occupied ? t("roomStatus.occupiedNow") : t("roomStatus.vacantNow")}
                             </Text>
                           </View>
-                          {room.checkout_time || room.vip_flag || room.dnd_flag ? (
-                            <View style={styles.flagRow}>
-                              {room.checkout_time ? (
-                                <Text style={styles.checkoutText}>
-                                  {t("roomStatus.checkout", { time: room.checkout_time })}
-                                </Text>
-                              ) : null}
-                              {room.vip_flag ? (
-                                <Chip tone="caution" icon="star-outline">
-                                  VIP
-                                </Chip>
-                              ) : null}
-                              {room.dnd_flag ? (
-                                <Chip tone="neutral" icon="moon-outline">
-                                  DND
-                                </Chip>
-                              ) : null}
-                            </View>
-                          ) : null}
                         </View>
-                        <StatusPill status={room.status} label={t(STATUS_LABEL_KEYS[room.status] ?? room.status)} />
+
+                        {hasMetaRow ? (
+                          <View style={styles.metaRow}>
+                            {room.guest_name ? (
+                              <Text style={styles.guestText} numberOfLines={1}>
+                                {room.guest_name}
+                              </Text>
+                            ) : null}
+                            {room.checkout_time ? (
+                              <Text style={styles.checkoutText}>
+                                {t("roomStatus.checkout", { time: room.checkout_time })}
+                              </Text>
+                            ) : null}
+                            {room.vip_flag ? (
+                              <Chip tone="caution" icon="star-outline">
+                                VIP
+                              </Chip>
+                            ) : null}
+                            {room.dnd_flag ? (
+                              <Chip tone="neutral" icon="moon-outline">
+                                DND
+                              </Chip>
+                            ) : null}
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                   );
@@ -329,10 +373,11 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 6 },
   searchInput: { flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 10 },
-  filterRow: { gap: 6, paddingRight: 8 },
+  filterRow: { flexDirection: "row", gap: 6 },
   filterBtn: {
-    paddingHorizontal: 12,
-    minHeight: 32,
+    flex: 1,
+    minHeight: 34,
+    alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
     backgroundColor: C.surface,
@@ -347,32 +392,49 @@ const styles = StyleSheet.create({
   floorSection: { gap: 2 },
   roomList: { gap: 9 },
   roomCard: {
-    position: "relative",
-    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: R.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     shadowColor: C.ink,
     shadowOpacity: 0.04,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 3 },
     elevation: 1,
   },
-  roomMain: {
+  numTile: {
+    minWidth: 56,
+    height: 48,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  numText: { fontFamily: monoFont, fontSize: 17, fontWeight: "800", letterSpacing: 0.3 },
+  roomBody: { flex: 1, minWidth: 0, gap: 5 },
+  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  statusText: { flexShrink: 1, fontSize: 13.5, fontWeight: "700" },
+  occBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingVertical: 13,
+    gap: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  roomNum: { fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "700", color: C.ink, minWidth: 52 },
-  roomBody: { flex: 1, minWidth: 0, gap: 4 },
-  occupancyRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  occupancyDot: { width: 7, height: 7, borderRadius: 3.5 },
-  occupancyText: { color: C.ink2, fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
-  flagRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
+  occBadgeVacant: { backgroundColor: C.readySoft, borderColor: C.readyLine },
+  occBadgeOccupied: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  occDot: { width: 6, height: 6, borderRadius: 3 },
+  occText: { fontSize: 10.5, fontWeight: "800" },
+  metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
+  guestText: { color: C.ink2, fontSize: 12, fontWeight: "600", flexShrink: 1 },
   checkoutText: { color: C.caution, fontSize: 11, fontWeight: "600", fontFamily: monoFont },
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
