@@ -157,7 +157,20 @@ export default function WorkOrdersScreen() {
     <View>
       <View style={styles.topBleed} />
       <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-        <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
+          <TouchableOpacity
+            style={styles.heroRoomsBtn}
+            onPress={() => router.push("/(app)/room-status" as never)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("workOrders.allRooms")}
+            testID="wo-all-rooms"
+          >
+            <Ionicons name="bed-outline" size={14} color={shellTokens.ink} />
+            <Text style={styles.heroRoomsText}>{t("workOrders.allRooms")}</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.heroTitle}>{t("workOrders.title")}</Text>
         <Text style={styles.heroSummary}>
           {t("workOrders.summary", { open: open.length, active: active.length })}
@@ -250,6 +263,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
+  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   heroKicker: {
     color: shellTokens.ink3,
     fontSize: 11,
@@ -257,6 +271,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
+  heroRoomsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: shellTokens.raised,
+    borderWidth: 1,
+    borderColor: shellTokens.line,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    minHeight: 32,
+  },
+  heroRoomsText: { color: shellTokens.ink, fontSize: 11.5, fontWeight: "700" },
   heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
   heroSummary: { color: shellTokens.ink2, fontSize: 13, marginTop: 7 },
   signalRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },

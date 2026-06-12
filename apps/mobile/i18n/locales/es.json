@@ -184,6 +184,7 @@
   "workOrders": {
     "title": "Órdenes de trabajo",
     "kicker": "Mantenimiento",
+    "allRooms": "Cuartos",
     "detailKicker": "Orden de trabajo",
     "summary": "{{open}} abiertas · {{active}} en progreso",
     "tabOpen": "Abiertas",
@@ -497,6 +498,7 @@
     "ready": "Listo",
     "searchPlaceholder": "Número de cuarto o nombre del huésped...",
     "all": "Todo",
+    "vacant": "Vacantes",
     "floorSuffix": "piso",
     "checkout": "Salida {{time}}",
     "noRoomsMatch": "Sin cuartos que coincidan",

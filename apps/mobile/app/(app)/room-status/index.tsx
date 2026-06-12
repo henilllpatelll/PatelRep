@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
@@ -61,14 +62,24 @@ function floorLabel(floor: number) {
   return `${floor}th`;
 }
 
+/** Occupied by any signal: Opera FO status, or a stay-driven room status. */
+function isOccupiedRoom(room: RoomStatusRow): boolean {
+  return room.fo_status === "OCC" || room.status === "OCCUPIED" || room.status === "PICKUP";
+}
+
+const FILTER_OPTIONS = ["all", "VACANT", "DIRTY", "CLEAN", "INSPECTED", "OCCUPIED"];
+
 export default function RoomStatusScreen() {
   const { t } = useTranslation();
+  const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline } = useAppStore();
   const [rooms, setRooms] = useState<RoomStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(
+    typeof initialFilter === "string" && FILTER_OPTIONS.includes(initialFilter) ? initialFilter : "all"
+  );
 
   const loadRooms = useCallback(async () => {
     if (!isOnline) { setLoading(false); return; }
@@ -90,9 +101,10 @@ export default function RoomStatusScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const filterOptions = ["all", "DIRTY", "CLEAN", "INSPECTED", "OCCUPIED"];
   const filtered = rooms.filter((r) => {
-    const matchStatus = statusFilter === "all" || r.status === statusFilter;
+    const matchStatus =
+      statusFilter === "all" ||
+      (statusFilter === "VACANT" ? !isOccupiedRoom(r) : r.status === statusFilter);
     const matchSearch = !search || r.room_number.includes(search) || (r.guest_name ?? "").toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
@@ -138,15 +150,16 @@ export default function RoomStatusScreen() {
           />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {filterOptions.map((f) => (
+          {FILTER_OPTIONS.map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.filterBtn, statusFilter === f && styles.filterBtnActive]}
               onPress={() => setStatusFilter(f)}
               activeOpacity={0.75}
+              testID={`room-filter-${f}`}
             >
               <Text style={[styles.filterLabel, statusFilter === f && styles.filterLabelActive]}>
-                {f === "all" ? t("roomStatus.all") : t(STATUS_LABEL_KEYS[f] ?? f)}
+                {f === "all" ? t("roomStatus.all") : f === "VACANT" ? t("roomStatus.vacant") : t(STATUS_LABEL_KEYS[f] ?? f)}
               </Text>
             </TouchableOpacity>
           ))}

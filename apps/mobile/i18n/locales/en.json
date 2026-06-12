@@ -184,6 +184,7 @@
   "workOrders": {
     "title": "Work orders",
     "kicker": "Engineering",
+    "allRooms": "Rooms",
     "detailKicker": "Work order",
     "summary": "{{open}} open · {{active}} in progress",
     "tabOpen": "Open",
@@ -497,6 +498,7 @@
     "ready": "Ready",
     "searchPlaceholder": "Room number or guest name...",
     "all": "All",
+    "vacant": "Vacant",
     "floorSuffix": "floor",
     "checkout": "Checkout {{time}}",
     "noRoomsMatch": "No rooms match",
