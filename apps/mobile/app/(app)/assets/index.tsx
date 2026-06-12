@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import { CopilotHero, HandoffRow, HeroButton, IconButton, Mono } from "@/components/shared/mobileHandoff";
+import { CopilotHero, HeroButton } from "@/components/shared/mobileHandoff";
 import { SectionHeader } from "@/components/shared/evening";
 import {
   listAssets,
@@ -16,13 +17,72 @@ import {
 
 /* ─── Assets tab — equipment health in the Evening Lobby language ───────────
    Dark shell hero with live fleet counts, the real AI failure-prediction
-   hero (paid action stays behind an explicit tap), and the asset list. */
+   hero (paid action stays behind an explicit tap), and the fleet split into
+   a risk-sorted watch list and the healthy remainder. */
 
 function riskTone(score: number): "alert" | "caution" | "ready" {
   if (score >= 70) return "alert";
   if (score >= 40) return "caution";
   return "ready";
 }
+
+const TONE_COLORS = {
+  alert: { fg: C.alert, bg: C.alertSoft, line: C.alertLine },
+  caution: { fg: C.caution, bg: C.cautionSoft, line: C.cautionLine },
+  ready: { fg: C.ready, bg: C.readySoft, line: C.readyLine },
+} as const;
+
+function AssetCard({ asset, sub }: { asset: Asset; sub: string }) {
+  const tone = TONE_COLORS[riskTone(asset.failure_risk_score)];
+  const score = Math.max(0, Math.min(100, asset.failure_risk_score));
+  return (
+    <View style={cardStyles.card}>
+      <View style={[cardStyles.rail, { backgroundColor: tone.fg }]} />
+      <View style={[cardStyles.tile, { backgroundColor: tone.bg }]}>
+        <Ionicons name="cube-outline" size={17} color={tone.fg} />
+      </View>
+      <View style={cardStyles.body}>
+        <Text style={cardStyles.name} numberOfLines={1}>
+          {asset.name}
+        </Text>
+        {sub ? (
+          <Text style={cardStyles.sub} numberOfLines={1}>
+            {sub}
+          </Text>
+        ) : null}
+        <View style={cardStyles.meterTrack}>
+          <View style={[cardStyles.meterFill, { width: `${score}%`, backgroundColor: tone.fg }]} />
+        </View>
+      </View>
+      <Text style={[cardStyles.score, { color: tone.fg }]}>{asset.failure_risk_score}%</Text>
+    </View>
+  );
+}
+
+const cardStyles = StyleSheet.create({
+  card: {
+    position: "relative",
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.lg,
+    paddingLeft: 15,
+    paddingRight: 13,
+    paddingVertical: 12,
+  },
+  rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  tile: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  body: { flex: 1, minWidth: 0, gap: 4 },
+  name: { color: C.ink, fontSize: 14, fontWeight: "700" },
+  sub: { color: C.ink3, fontSize: 11.5 },
+  meterTrack: { height: 4, borderRadius: 2, backgroundColor: C.surface3, overflow: "hidden", marginTop: 2 },
+  meterFill: { height: 4, borderRadius: 2 },
+  score: { fontSize: 12.5, fontWeight: "800", fontFamily: monoFont },
+});
 
 export default function AssetsScreen() {
   const { t } = useTranslation();
@@ -32,9 +92,6 @@ export default function AssetsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-
-  const riskLabel = (score: number): string =>
-    score >= 70 ? t("assets.riskHigh") : score >= 40 ? t("assets.riskMed") : t("assets.riskLow");
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +150,22 @@ export default function AssetsScreen() {
   const topPred = predictions[0];
   const highRisk = assets.filter((a) => a.failure_risk_score >= 70).length;
 
+  const { watch, healthy } = useMemo(() => {
+    const sorted = [...assets].sort((a, b) => b.failure_risk_score - a.failure_risk_score);
+    return {
+      watch: sorted.filter((a) => a.failure_risk_score >= 40),
+      healthy: sorted.filter((a) => a.failure_risk_score < 40),
+    };
+  }, [assets]);
+
+  const assetSub = (asset: Asset): string =>
+    [
+      asset.asset_categories?.name,
+      asset.rooms?.room_number ? t("assets.roomLabel", { room: asset.rooms.room_number }) : asset.location_text,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -148,61 +221,41 @@ export default function AssetsScreen() {
               </CopilotHero>
             ) : null}
 
-            <View>
-              <SectionHeader title={t("assets.allAssets")} hint={t("assets.totalHint", { count: assets.length })} />
-              <View style={styles.rows}>
-                {assets.length === 0 ? (
-                  <View style={styles.empty}>
-                    <Text style={styles.emptyTitle}>{t("assets.empty")}</Text>
-                    <Text style={styles.emptySub}>{t("assets.emptyHint")}</Text>
-                  </View>
-                ) : (
-                  assets.map((asset) => (
-                    <HandoffRow
-                      key={asset.id}
-                      lead={<IconButton icon="cube-outline" tone={riskTone(asset.failure_risk_score)} size={46} />}
-                      title={
-                        <>
-                          <Text style={styles.rowTitle}>{asset.name}</Text>
-                          <View style={[styles.riskChip, riskChipStyles[riskTone(asset.failure_risk_score)]]}>
-                            <Text style={[styles.riskChipText, riskTextStyles[riskTone(asset.failure_risk_score)]]}>
-                              {riskLabel(asset.failure_risk_score)}
-                            </Text>
-                          </View>
-                        </>
-                      }
-                      sub={[
-                        asset.asset_categories?.name,
-                        asset.rooms?.room_number
-                          ? t("assets.roomLabel", { room: asset.rooms.room_number })
-                          : asset.location_text,
-                      ]
-                        .filter(Boolean)
-                        .join(" — ")}
-                      right={<Mono style={styles.riskScore}>{asset.failure_risk_score}%</Mono>}
-                    />
-                  ))
-                )}
+            {assets.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>{t("assets.empty")}</Text>
+                <Text style={styles.emptySub}>{t("assets.emptyHint")}</Text>
               </View>
-            </View>
+            ) : (
+              <>
+                {watch.length > 0 ? (
+                  <View>
+                    <SectionHeader title={t("assets.watchList")} hint={String(watch.length)} />
+                    <View style={styles.rows}>
+                      {watch.map((asset) => (
+                        <AssetCard key={asset.id} asset={asset} sub={assetSub(asset)} />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {healthy.length > 0 ? (
+                  <View>
+                    <SectionHeader title={t("assets.healthy")} hint={String(healthy.length)} />
+                    <View style={styles.rows}>
+                      {healthy.map((asset) => (
+                        <AssetCard key={asset.id} asset={asset} sub={assetSub(asset)} />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         </ScrollView>
       )}
     </View>
   );
 }
-
-const riskChipStyles = StyleSheet.create({
-  alert: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
-  caution: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
-  ready: { backgroundColor: C.readySoft, borderColor: C.readyLine },
-});
-
-const riskTextStyles = StyleSheet.create({
-  alert: { color: C.alert },
-  caution: { color: C.caution },
-  ready: { color: C.ready },
-});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
@@ -237,10 +290,6 @@ const styles = StyleSheet.create({
   heroText: { color: "rgba(241,237,228,0.9)", fontSize: 14, lineHeight: 20 },
   heroStrong: { fontWeight: "700", color: C.paper },
   rows: { gap: 8 },
-  rowTitle: { fontSize: 13.5, fontWeight: "600", color: C.ink },
-  riskChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
-  riskChipText: { fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
-  riskScore: { fontSize: 11, color: C.ink3 },
   empty: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: 20, alignItems: "center" },
   emptyTitle: { fontSize: 14, fontWeight: "700", color: C.ink },
   emptySub: { fontSize: 12, color: C.ink3, marginTop: 4 },

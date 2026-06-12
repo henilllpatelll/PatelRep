@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,22 +16,22 @@ import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
-import { dueState, sortQueue, type WorkOrder } from "@/lib/engineering/workOrders";
+import { countQueueSignals, splitWorkbench, type WorkOrder } from "@/lib/engineering/workOrders";
 import { C, R, shellTokens } from "@/components/shared/tokens";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
 
-/* ─── Orders tab — the engineering workbench queue ──────────────────────────
-   Dark shell hero with the real shape of the day (open / urgent / guest /
-   past-SLA signals), a working three-way segmented, and Evening Lobby work
-   cards. Open orders can be claimed straight from the card. */
+/* ─── Orders tab — one bench, one scroll ────────────────────────────────────
+   No tabs to hop between: the engineer's own active work sits on top ("On
+   your bench"), the open queue follows with inline Claim, other engineers'
+   active orders give context, and finished work folds away at the bottom. */
 
-type Tab = "open" | "active" | "done";
-
-const EMPTY_META: Record<Tab, { icon: ComponentProps<typeof Ionicons>["name"]; titleKey: string; hintKey: string }> = {
-  open: { icon: "checkmark-done-outline", titleKey: "workOrders.emptyOpen", hintKey: "workOrders.emptyOpenHint" },
-  active: { icon: "construct-outline", titleKey: "workOrders.emptyActive", hintKey: "workOrders.emptyActiveHint" },
-  done: { icon: "moon-outline", titleKey: "workOrders.emptyDone", hintKey: "workOrders.emptyDoneHint" },
-};
+type Row =
+  | { type: "section"; key: string; title: string; hint?: string }
+  | { type: "wo"; key: string; wo: WorkOrder; claimable: boolean }
+  | { type: "doneToggle"; key: string }
+  | { type: "queueEmpty"; key: string }
+  | { type: "allEmpty"; key: string }
+  | { type: "doneEmpty"; key: string };
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
@@ -39,11 +39,11 @@ export default function WorkOrdersScreen() {
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
 
-  const [tab, setTab] = useState<Tab>("open");
   const [open, setOpen] = useState<WorkOrder[]>([]);
   const [active, setActive] = useState<WorkOrder[]>([]);
   const [done, setDone] = useState<WorkOrder[]>([]);
   const [doneLoaded, setDoneLoaded] = useState(false);
+  const [doneExpanded, setDoneExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -74,8 +74,8 @@ export default function WorkOrdersScreen() {
   }, [loadQueues]);
 
   useEffect(() => {
-    if (tab === "done" && !doneLoaded) loadDone();
-  }, [tab, doneLoaded, loadDone]);
+    if (doneExpanded && !doneLoaded) loadDone();
+  }, [doneExpanded, doneLoaded, loadDone]);
 
   useEffect(() => {
     if (!user?.tenant_id) return;
@@ -98,9 +98,9 @@ export default function WorkOrdersScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadQueues();
-    if (tab === "done") await loadDone();
+    if (doneLoaded) await loadDone();
     setRefreshing(false);
-  }, [loadQueues, loadDone, tab]);
+  }, [loadQueues, loadDone, doneLoaded]);
 
   const claim = useCallback(
     async (wo: WorkOrder) => {
@@ -112,7 +112,10 @@ export default function WorkOrdersScreen() {
         } else {
           await enqueueAction("work_order", "claim", {}, wo.id);
           setOpen((prev) => prev.filter((o) => o.id !== wo.id));
-          setActive((prev) => [{ ...wo, status: "in_progress", assigned_to: user?.id ?? null }, ...prev]);
+          setActive((prev) => [
+            { ...wo, status: "in_progress", assigned_to: user?.id ?? null, started_at: new Date().toISOString() },
+            ...prev,
+          ]);
         }
       } catch (err) {
         console.warn("Claim failed:", err);
@@ -124,34 +127,54 @@ export default function WorkOrdersScreen() {
     [isOnline, loadQueues, user?.id]
   );
 
-  const data = useMemo(() => {
-    if (tab === "open") return sortQueue(open);
-    if (tab === "active") return sortQueue(active);
-    return done;
-  }, [tab, open, active, done]);
+  const { bench, queue, team } = useMemo(
+    () => splitWorkbench(open, active, user?.id),
+    [open, active, user?.id]
+  );
 
   // Hero signals — built from live open + active queues, nonzero only.
   const signals = useMemo(() => {
-    const watching = [...open, ...active];
-    const urgent = watching.filter((wo) => wo.priority === "urgent").length;
-    const guest = watching.filter((wo) => wo.guest_reported).length;
-    const pastSla = watching.filter((wo) => dueState(wo, locale)?.kind === "overdue").length;
-    const held = active.filter((wo) => wo.status === "on_hold").length;
+    const counts = countQueueSignals([...open, ...active]);
     return [
-      urgent > 0 && { key: "urgent", label: t("workOrders.signalUrgent", { count: urgent }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
-      pastSla > 0 && { key: "sla", label: t("workOrders.signalPastSla", { count: pastSla }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
-      guest > 0 && { key: "guest", label: t("workOrders.signalGuest", { count: guest }), fg: C.info, bg: C.infoSoft, line: C.infoLine },
-      held > 0 && { key: "hold", label: t("workOrders.signalOnHold", { count: held }), fg: C.caution, bg: C.cautionSoft, line: C.cautionLine },
+      counts.urgent > 0 && { key: "urgent", label: t("workOrders.signalUrgent", { count: counts.urgent }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
+      counts.pastSla > 0 && { key: "sla", label: t("workOrders.signalPastSla", { count: counts.pastSla }), fg: C.alert, bg: C.alertSoft, line: C.alertLine },
+      counts.guest > 0 && { key: "guest", label: t("workOrders.signalGuest", { count: counts.guest }), fg: C.info, bg: C.infoSoft, line: C.infoLine },
+      counts.onHold > 0 && { key: "hold", label: t("workOrders.signalOnHold", { count: counts.onHold }), fg: C.caution, bg: C.cautionSoft, line: C.cautionLine },
     ].filter(Boolean) as { key: string; label: string; fg: string; bg: string; line: string }[];
-  }, [open, active, locale, t]);
+  }, [open, active, t]);
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: "open", label: t("workOrders.tabOpen"), count: open.length },
-    { key: "active", label: t("workOrders.tabActive"), count: active.length },
-    { key: "done", label: t("workOrders.tabDone") },
-  ];
-
-  const empty = EMPTY_META[tab];
+  const rows = useMemo<Row[]>(() => {
+    const list: Row[] = [];
+    if (bench.length === 0 && queue.length === 0 && team.length === 0) {
+      list.push({ type: "allEmpty", key: "all-empty" });
+    } else {
+      if (bench.length > 0) {
+        list.push({ type: "section", key: "s-bench", title: t("workOrders.sectionBench"), hint: String(bench.length) });
+        for (const wo of bench) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+      }
+      list.push({ type: "section", key: "s-queue", title: t("workOrders.sectionQueue"), hint: String(queue.length) });
+      if (queue.length === 0) {
+        list.push({ type: "queueEmpty", key: "queue-empty" });
+      } else {
+        for (const wo of queue) {
+          list.push({ type: "wo", key: wo.id, wo, claimable: wo.status === "open" && !wo.assigned_to });
+        }
+      }
+      if (team.length > 0) {
+        list.push({ type: "section", key: "s-team", title: t("workOrders.sectionTeam"), hint: String(team.length) });
+        for (const wo of team) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+      }
+    }
+    list.push({ type: "doneToggle", key: "done-toggle" });
+    if (doneExpanded) {
+      if (doneLoaded && done.length === 0) {
+        list.push({ type: "doneEmpty", key: "done-empty" });
+      } else {
+        for (const wo of done) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+      }
+    }
+    return list;
+  }, [bench, queue, team, done, doneExpanded, doneLoaded, t]);
 
   const header = (
     <View>
@@ -185,29 +208,79 @@ export default function WorkOrdersScreen() {
           </View>
         ) : null}
       </View>
-
-      <View style={styles.segmented} testID="wo-segmented">
-        {tabs.map((item) => {
-          const isActive = tab === item.key;
-          return (
-            <TouchableOpacity
-              key={item.key}
-              style={[styles.segment, isActive && styles.segmentActive]}
-              onPress={() => setTab(item.key)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-            >
-              <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
-                {item.label}
-                {item.count != null && item.count > 0 ? ` ${item.count}` : ""}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
     </View>
   );
+
+  const renderRow = ({ item }: { item: Row }) => {
+    switch (item.type) {
+      case "section":
+        return (
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>{item.title}</Text>
+            {item.hint ? <Text style={styles.sectionHint}>{item.hint}</Text> : null}
+          </View>
+        );
+      case "wo":
+        return (
+          <View style={styles.cardWrap}>
+            <WorkOrderCard
+              wo={item.wo}
+              locale={locale}
+              onPress={() => router.push(`/(app)/work-orders/${item.wo.id}`)}
+              onClaim={item.claimable ? () => claim(item.wo) : undefined}
+              claiming={claimingId === item.wo.id}
+            />
+          </View>
+        );
+      case "doneToggle":
+        return (
+          <TouchableOpacity
+            style={styles.doneToggle}
+            onPress={() => setDoneExpanded((prev) => !prev)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: doneExpanded }}
+            testID="wo-done-toggle"
+          >
+            <Ionicons name="checkmark-done-outline" size={15} color={C.ink2} />
+            <Text style={styles.doneToggleText}>{t("workOrders.sectionDone")}</Text>
+            {doneLoaded && done.length > 0 ? (
+              <Text style={styles.doneToggleHint}>{done.length}</Text>
+            ) : null}
+            <Ionicons
+              name={doneExpanded ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={C.ink4}
+              style={styles.doneChevron}
+            />
+          </TouchableOpacity>
+        );
+      case "queueEmpty":
+        return (
+          <View style={styles.inlineEmpty}>
+            <Text style={styles.inlineEmptyTitle}>{t("workOrders.emptyOpen")}</Text>
+            <Text style={styles.inlineEmptyHint}>{t("workOrders.emptyOpenHint")}</Text>
+          </View>
+        );
+      case "doneEmpty":
+        return (
+          <View style={styles.inlineEmpty}>
+            <Text style={styles.inlineEmptyTitle}>{t("workOrders.emptyDone")}</Text>
+            <Text style={styles.inlineEmptyHint}>{t("workOrders.emptyDoneHint")}</Text>
+          </View>
+        );
+      case "allEmpty":
+        return (
+          <View style={styles.empty}>
+            <Ionicons name="checkmark-done-outline" size={30} color={C.ink4} />
+            <Text style={styles.emptyTitle}>{t("workOrders.emptyOpen")}</Text>
+            <Text style={styles.emptyHint}>{t("workOrders.emptyOpenHint")}</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -217,33 +290,12 @@ export default function WorkOrdersScreen() {
         </View>
       ) : (
         <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
+          data={rows}
+          keyExtractor={(item) => item.key}
           ListHeaderComponent={header}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <WorkOrderCard
-                wo={item}
-                locale={locale}
-                onPress={() => router.push(`/(app)/work-orders/${item.id}`)}
-                onClaim={
-                  tab === "open" && item.status === "open" && !item.assigned_to
-                    ? () => claim(item)
-                    : undefined
-                }
-                claiming={claimingId === item.id}
-              />
-            </View>
-          )}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name={empty.icon} size={30} color={C.ink4} />
-              <Text style={styles.emptyTitle}>{t(empty.titleKey)}</Text>
-              <Text style={styles.emptyHint}>{t(empty.hintKey)}</Text>
-            </View>
-          }
+          renderItem={renderRow}
         />
       )}
     </View>
@@ -294,37 +346,58 @@ const styles = StyleSheet.create({
   },
   signalText: { fontSize: 11, fontWeight: "800" },
 
-  segmented: {
+  sectionRow: {
     flexDirection: "row",
-    marginHorizontal: 18,
-    marginTop: 14,
-    marginBottom: 12,
-    backgroundColor: C.surface3,
-    borderRadius: R.md,
-    padding: 3,
-    gap: 3,
+    alignItems: "baseline",
+    gap: 7,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 9,
   },
-  segment: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: R.md - 3,
-    alignItems: "center",
-    justifyContent: "center",
+  sectionTitle: {
+    color: C.ink3,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
-  segmentActive: {
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    shadowColor: C.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  segmentLabel: { color: C.ink3, fontSize: 12.5, fontWeight: "700" },
-  segmentLabelActive: { color: C.ink },
+  sectionHint: { color: C.ink4, fontSize: 11, fontWeight: "700" },
 
   cardWrap: { paddingHorizontal: 16, paddingBottom: 11 },
+
+  doneToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 11,
+    minHeight: 46,
+    paddingHorizontal: 14,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface2,
+  },
+  doneToggleText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
+  doneToggleHint: { color: C.ink4, fontSize: 12, fontWeight: "700" },
+  doneChevron: { marginLeft: "auto" },
+
+  inlineEmpty: {
+    marginHorizontal: 16,
+    marginBottom: 11,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.line2,
+    backgroundColor: C.surface2,
+    alignItems: "center",
+    gap: 3,
+  },
+  inlineEmptyTitle: { color: C.ink2, fontSize: 13, fontWeight: "700" },
+  inlineEmptyHint: { color: C.ink4, fontSize: 12, textAlign: "center" },
+
   empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
   emptyTitle: { color: C.ink, fontSize: 15.5, fontWeight: "700", marginTop: 4 },
   emptyHint: { color: C.ink3, fontSize: 12.5, textAlign: "center", lineHeight: 18 },

@@ -34,6 +34,13 @@ function dueTone(status: PMSchedule["status"]): "alert" | "caution" | "ready" | 
   return "info";
 }
 
+const TONE_COLORS = {
+  alert: { fg: C.alert, bg: C.alertSoft },
+  caution: { fg: C.caution, bg: C.cautionSoft },
+  ready: { fg: C.ready, bg: C.readySoft },
+  info: { fg: C.info, bg: C.infoSoft },
+} as const;
+
 function useDueLabel() {
   const { t } = useTranslation();
   return (status: PMSchedule["status"]): string => {
@@ -98,7 +105,7 @@ export default function PMSchedulesScreen() {
       >
         <View style={styles.topBleed} />
         <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
-          <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
+          <Text style={styles.heroKicker}>{t("pmSchedules.kicker")}</Text>
           <Text style={styles.heroTitle}>{t("pmSchedules.title")}</Text>
           <View style={styles.stats}>
             {overdueCount > 0 ? (
@@ -120,53 +127,65 @@ export default function PMSchedulesScreen() {
           </View>
         </View>
 
-        <View style={styles.filters}>
-          {(["all", "due", "overdue"] as const).map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
-              onPress={() => setFilter(f)}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
-                {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.segmented}>
+          {(["all", "due", "overdue"] as const).map((f) => {
+            const isActive = filter === f;
+            return (
+              <TouchableOpacity
+                key={f}
+                style={[styles.segment, isActive && styles.segmentActive]}
+                onPress={() => setFilter(f)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+              >
+                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                  {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <View style={styles.body}>
         <SectionLabel hint={`${filtered.length} ${t("pmSchedules.schedules")}`}>
           {filter === "all" ? t("pmSchedules.allTasks") : filter === "due" ? t("pmSchedules.dueToday") : t("pmSchedules.overdue")}
         </SectionLabel>
 
-        {filtered.map((schedule) => (
-          <View key={schedule.id} style={styles.card}>
-            <View style={styles.cardTop}>
-              <View style={styles.cardLeft}>
-                <Text style={styles.assetName}>{schedule.asset_name}</Text>
-                <Text style={styles.location}>{schedule.location}</Text>
-              </View>
-              <Pill tone={dueTone(schedule.status)}>{dueLabel(schedule.status)}</Pill>
-            </View>
-            <Text style={styles.taskName}>{schedule.task_name}</Text>
-            <View style={styles.cardMeta}>
-              <View style={styles.metaItem}>
-                <Ionicons name="refresh-outline" size={12} color={C.ink4} />
-                <Text style={styles.metaText}>{schedule.frequency}</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="calendar-outline" size={12} color={C.ink4} />
-                <Text style={styles.metaText}>{t("pmSchedules.due")} {schedule.next_due}</Text>
-              </View>
-              {schedule.last_completed ? (
-                <View style={styles.metaItem}>
-                  <Ionicons name="checkmark-circle-outline" size={12} color={C.ready} />
-                  <Text style={[styles.metaText, { color: C.ready }]}>{t("pmSchedules.done")}: {schedule.last_completed}</Text>
+        {filtered.map((schedule) => {
+          const tone = TONE_COLORS[dueTone(schedule.status)];
+          return (
+            <View key={schedule.id} style={styles.card}>
+              <View style={[styles.rail, { backgroundColor: tone.fg }]} />
+              <View style={styles.cardTop}>
+                <View style={[styles.cardTile, { backgroundColor: tone.bg }]}>
+                  <Ionicons name="calendar-outline" size={16} color={tone.fg} />
                 </View>
-              ) : null}
+                <View style={styles.cardLeft}>
+                  <Text style={styles.assetName}>{schedule.asset_name}</Text>
+                  <Text style={styles.location}>{schedule.location}</Text>
+                </View>
+                <Pill tone={dueTone(schedule.status)}>{dueLabel(schedule.status)}</Pill>
+              </View>
+              <Text style={styles.taskName}>{schedule.task_name}</Text>
+              <View style={styles.cardMeta}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="refresh-outline" size={12} color={C.ink4} />
+                  <Text style={styles.metaText}>{schedule.frequency}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Ionicons name="calendar-outline" size={12} color={C.ink4} />
+                  <Text style={styles.metaText}>{t("pmSchedules.due")} {schedule.next_due}</Text>
+                </View>
+                {schedule.last_completed ? (
+                  <View style={styles.metaItem}>
+                    <Ionicons name="checkmark-circle-outline" size={12} color={C.ready} />
+                    <Text style={[styles.metaText, { color: C.ready }]}>{t("pmSchedules.done")}: {schedule.last_completed}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 ? (
           <View style={styles.emptyCard}>
@@ -211,30 +230,52 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 14, fontWeight: "700", color: C.ink },
   statLabel: { fontSize: 11, color: C.ink3 },
-  filters: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 14 },
-  filterBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  segmented: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 14,
+    backgroundColor: C.surface3,
     borderRadius: R.md,
+    padding: 3,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: R.md - 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentActive: {
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
+    shadowColor: C.ink,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  filterBtnActive: { backgroundColor: C.ink, borderColor: C.ink },
-  filterLabel: { fontSize: 12, fontWeight: "600", color: C.ink3 },
-  filterLabelActive: { color: C.paper },
+  segmentLabel: { color: C.ink3, fontSize: 12.5, fontWeight: "700" },
+  segmentLabelActive: { color: C.ink },
   scroll: { flex: 1 },
   content: { paddingBottom: 32 },
   body: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
   card: {
+    position: "relative",
+    overflow: "hidden",
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: R.lg,
-    padding: 14,
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 16,
     gap: 6,
   },
-  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
+  cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardTile: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   cardLeft: { flex: 1 },
   assetName: { fontSize: 14, fontWeight: "700", color: C.ink },
   location: { fontSize: 11, color: C.ink3 },

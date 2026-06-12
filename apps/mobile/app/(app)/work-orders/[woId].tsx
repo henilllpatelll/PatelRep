@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { enqueueAction } from "@/lib/offline/db";
@@ -38,7 +39,7 @@ import {
   type WorkOrderComment,
   type WorkOrderPhoto,
 } from "@/lib/engineering/workOrders";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
 import { SectionHeader } from "@/components/shared/evening";
 
@@ -73,6 +74,7 @@ const pillStyles = StyleSheet.create({
 export default function WorkOrderDetailScreen() {
   const { woId } = useLocalSearchParams<{ woId: string }>();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
   const role = user?.effective_role ?? user?.role;
@@ -257,61 +259,59 @@ export default function WorkOrderDetailScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-        >
-          <Ionicons name="arrow-back" size={22} color={C.ink} />
-        </TouchableOpacity>
-        <View style={styles.headerBody}>
-          <Text style={styles.headerKicker}>{t("workOrders.detailKicker")}</Text>
-        </View>
-        {wo.priority === "urgent" ? (
-          <View style={styles.urgentPill}>
-            <Ionicons name="flash" size={10} color={C.alert} />
-            <Text style={styles.urgentPillText}>{t("workOrders.chipUrgent")}</Text>
+      <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.heroNav}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+          >
+            <Ionicons name="arrow-back" size={22} color={shellTokens.ink} />
+          </TouchableOpacity>
+          <View style={styles.headerBody}>
+            <Text style={styles.headerKicker}>{t("workOrders.detailKicker")}</Text>
           </View>
-        ) : null}
-        <StatusPill status={wo.status} label={t(`workOrders.status.${wo.status}`)} />
-      </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, hasFooter && styles.contentWithFooter]}>
-        {/* Identity — what and where */}
-        <View>
-          <Text style={styles.title}>{wo.title}</Text>
-          <View style={styles.metaLine}>
-            <View style={[styles.categoryTile, { backgroundColor: category.bg }]}>
-              <Ionicons name={category.icon} size={13} color={category.fg} />
+          {wo.priority === "urgent" ? (
+            <View style={styles.urgentPill}>
+              <Ionicons name="flash" size={10} color={C.alert} />
+              <Text style={styles.urgentPillText}>{t("workOrders.chipUrgent")}</Text>
             </View>
-            <Text style={styles.categoryText}>{t(`workOrders.category.${categoryKey}`)}</Text>
-            {room ? (
-              <>
-                <View style={styles.dot} />
-                <Ionicons name="location-outline" size={13} color={C.ink3} />
-                <Text style={styles.roomText}>
-                  {room}
-                  {wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}
-                </Text>
-              </>
-            ) : locationText ? (
-              <>
-                <View style={styles.dot} />
-                <Ionicons name="location-outline" size={13} color={C.ink3} />
-                <Text style={styles.locationPlain} numberOfLines={1}>
-                  {locationText}
-                </Text>
-              </>
-            ) : null}
-            {wo.guest_reported ? (
-              <View style={styles.guestChip}>
-                <Ionicons name="person-outline" size={10} color={C.info} />
-                <Text style={styles.guestChipText}>{t("workOrders.chipGuest")}</Text>
-              </View>
-            ) : null}
+          ) : null}
+          <StatusPill status={wo.status} label={t(`workOrders.status.${wo.status}`)} />
+        </View>
+
+        {/* Identity — what and where */}
+        <Text style={styles.title}>{wo.title}</Text>
+        <View style={styles.metaLine}>
+          <View style={[styles.categoryTile, { backgroundColor: category.bg }]}>
+            <Ionicons name={category.icon} size={13} color={category.fg} />
           </View>
+          <Text style={styles.categoryText}>{t(`workOrders.category.${categoryKey}`)}</Text>
+          {room ? (
+            <>
+              <View style={styles.dot} />
+              <Ionicons name="location-outline" size={13} color={shellTokens.ink3} />
+              <Text style={styles.roomText}>
+                {room}
+                {wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}
+              </Text>
+            </>
+          ) : locationText ? (
+            <>
+              <View style={styles.dot} />
+              <Ionicons name="location-outline" size={13} color={shellTokens.ink3} />
+              <Text style={styles.locationPlain} numberOfLines={1}>
+                {locationText}
+              </Text>
+            </>
+          ) : null}
+          {wo.guest_reported ? (
+            <View style={styles.guestChip}>
+              <Ionicons name="person-outline" size={10} color={C.info} />
+              <Text style={styles.guestChipText}>{t("workOrders.chipGuest")}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Timing — created / SLA / clock */}
@@ -327,7 +327,7 @@ export default function WorkOrderDetailScreen() {
           {wo.status === "completed" ? (
             <View style={styles.timingItem}>
               <Text style={styles.timingLabel}>{t("workOrders.factCompleted")}</Text>
-              <Text style={[styles.timingValue, { color: C.ready }]}>
+              <Text style={[styles.timingValue, { color: "#A7D2C9" }]}>
                 {formatClock(wo.completed_at, locale) ?? "—"}
               </Text>
             </View>
@@ -335,7 +335,7 @@ export default function WorkOrderDetailScreen() {
             <View style={styles.timingItem}>
               <Text style={styles.timingLabel}>{t("workOrders.factDue")}</Text>
               {due?.kind === "overdue" ? (
-                <Text style={[styles.timingValue, { color: C.alert }]}>
+                <Text style={[styles.timingValue, { color: "#E7A9B0" }]}>
                   {t("workOrders.overdueBy", { time: formatDuration(due.minutes) })}
                 </Text>
               ) : due?.kind === "due" ? (
@@ -348,11 +348,13 @@ export default function WorkOrderDetailScreen() {
           {elapsed != null ? (
             <View style={styles.timingItem}>
               <Text style={styles.timingLabel}>{t("workOrders.factOnClock")}</Text>
-              <Text style={[styles.timingValue, { color: C.caution }]}>{formatDuration(elapsed)}</Text>
+              <Text style={[styles.timingValue, { color: "#E4C174" }]}>{formatDuration(elapsed)}</Text>
             </View>
           ) : null}
         </View>
+      </View>
 
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, hasFooter && styles.contentWithFooter]}>
         {claimedElsewhere ? (
           <View style={styles.noticeRow}>
             <Ionicons name="information-circle-outline" size={14} color={C.ink3} />
@@ -616,19 +618,17 @@ const styles = StyleSheet.create({
   errorBack: { marginTop: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface },
   errorBackText: { color: C.ink, fontSize: 13, fontWeight: "700" },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: C.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line2,
+  hero: {
+    paddingHorizontal: 14,
+    paddingBottom: 18,
+    backgroundColor: shellTokens.bg,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
+  heroNav: { flexDirection: "row", alignItems: "center", gap: 8 },
   backButton: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   headerBody: { flex: 1 },
-  headerKicker: { color: C.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  headerKicker: { color: shellTokens.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
   urgentPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -646,13 +646,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
   contentWithFooter: { paddingBottom: 130 },
 
-  title: { color: C.ink, fontSize: 25, fontWeight: "600", lineHeight: 30 },
-  metaLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 9 },
+  title: { color: shellTokens.ink, fontSize: 24, fontWeight: "600", lineHeight: 29, marginTop: 8, paddingHorizontal: 4 },
+  metaLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 9, paddingHorizontal: 4 },
   categoryTile: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  categoryText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
-  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.ink4, marginHorizontal: 3 },
-  roomText: { color: C.ink2, fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
-  locationPlain: { color: C.ink2, fontSize: 12.5, fontWeight: "600", maxWidth: 170 },
+  categoryText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
+  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: shellTokens.ink3, marginHorizontal: 3 },
+  roomText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
+  locationPlain: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "600", maxWidth: 170 },
   guestChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -668,16 +668,18 @@ const styles = StyleSheet.create({
 
   timingCard: {
     flexDirection: "row",
-    backgroundColor: C.surface,
+    backgroundColor: shellTokens.raised,
     borderWidth: 1,
-    borderColor: C.line,
+    borderColor: shellTokens.line,
     borderRadius: R.lg,
     paddingVertical: 12,
     paddingHorizontal: 14,
+    marginTop: 14,
+    marginHorizontal: 4,
   },
   timingItem: { flex: 1, gap: 3 },
-  timingLabel: { color: C.ink3, fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
-  timingValue: { color: C.ink, fontSize: 13.5, fontWeight: "700", fontFamily: monoFont },
+  timingLabel: { color: shellTokens.ink3, fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
+  timingValue: { color: shellTokens.ink, fontSize: 13.5, fontWeight: "700", fontFamily: monoFont },
 
   noticeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   noticeText: { color: C.ink3, fontSize: 12.5 },

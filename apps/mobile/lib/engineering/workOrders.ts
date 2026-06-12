@@ -99,6 +99,61 @@ export function dueState(wo: WorkOrder, locale: string, now: Date = new Date()):
   return clock ? { kind: "due", clock } : null;
 }
 
+export interface QueueSignals {
+  urgent: number;
+  pastSla: number;
+  guest: number;
+  onHold: number;
+}
+
+/** Live shape of the day across open + active orders — feeds hero signal chips. */
+export function countQueueSignals(orders: WorkOrder[], now: Date = new Date()): QueueSignals {
+  let urgent = 0;
+  let pastSla = 0;
+  let guest = 0;
+  let onHold = 0;
+  for (const wo of orders) {
+    if (wo.status === "completed" || wo.status === "cancelled") continue;
+    if (wo.priority === "urgent") urgent += 1;
+    if (wo.guest_reported) guest += 1;
+    if (wo.status === "on_hold") onHold += 1;
+    if (wo.due_at) {
+      const due = new Date(wo.due_at).getTime();
+      if (!Number.isNaN(due) && due < now.getTime()) pastSla += 1;
+    }
+  }
+  return { urgent, pastSla, guest, onHold };
+}
+
+export interface Workbench {
+  /** My in_progress + on_hold orders — what's physically on my bench. */
+  bench: WorkOrder[];
+  /** Open, unassigned-or-anyone's queue, urgent first. */
+  queue: WorkOrder[];
+  /** Other engineers' active orders — context, not actionable. */
+  team: WorkOrder[];
+}
+
+/** Split open + active orders into the three workbench groups for a viewer. */
+export function splitWorkbench(
+  open: WorkOrder[],
+  active: WorkOrder[],
+  viewerId: string | null | undefined,
+  now: Date = new Date()
+): Workbench {
+  const bench: WorkOrder[] = [];
+  const team: WorkOrder[] = [];
+  for (const wo of active) {
+    if (viewerId != null && wo.assigned_to === viewerId) bench.push(wo);
+    else team.push(wo);
+  }
+  return {
+    bench: sortQueue(bench, now),
+    queue: sortQueue(open, now),
+    team: sortQueue(team, now),
+  };
+}
+
 /** Bench order: urgent first, then SLA-overdue, then newest first. */
 export function sortQueue(orders: WorkOrder[], now: Date = new Date()): WorkOrder[] {
   const rank = (wo: WorkOrder): number => {

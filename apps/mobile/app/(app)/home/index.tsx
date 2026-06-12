@@ -16,28 +16,14 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
-import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import {
-  Avatar,
-  CopilotHero,
-  HandoffRow,
-  HeroButton,
-  IconButton,
-  Mono,
-  Pill,
-  SectionLabel,
-} from "@/components/shared/mobileHandoff";
+import { C, R, shellTokens } from "@/components/shared/tokens";
+import { Avatar, IconButton } from "@/components/shared/mobileHandoff";
 import { AIBriefingCard } from "@/components/shared/evening";
 import { FocusCard, ShiftMosaic, SignalChips } from "@/components/home/CompanionHome";
 import { SupervisorHome } from "@/components/home/SupervisorHome";
+import { EngineerHome } from "@/components/engineering/EngineerHome";
 import { buildLocalBriefing, buildSmartQueue, fetchShiftBriefing, getStartEntry, type ShiftBriefing } from "@/lib/ai/briefing";
 import { buildShiftSnapshot, getCompanionCheckin, getGreetingKey } from "@/lib/ai/companion";
-
-const ENGINEER_ORDERS = [
-  { id: "WO-1141", title: "Replace fan-coil belt", loc: "R-209 - zone B", pri: "HIGH", tone: "alert" as const, meta: "22m", active: true },
-  { id: "WO-1138", title: "Reseat toilet flange", loc: "R-144", pri: "MED", tone: "caution" as const, meta: "queued" },
-  { id: "WO-1135", title: "Pool pump pressure check", loc: "Mech room", pri: "LOW", tone: "info" as const, meta: "queued" },
-];
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -113,7 +99,7 @@ export default function HousekeeperHomeScreen() {
   }, [briefingLoading, myRooms, language, t, isOnline]);
 
   if (isEngineer) {
-    return <EngineerHomeScreen name={user?.full_name ?? "Engineer"} />;
+    return <EngineerHome name={user?.full_name ?? "Engineer"} />;
   }
 
   if (effectiveRole === "housekeeping_supervisor") {
@@ -237,101 +223,6 @@ export default function HousekeeperHomeScreen() {
             <Text style={styles.myRoomsBtnText}>{t("home.openMyRooms")}</Text>
             <Ionicons name="arrow-forward" size={15} color={C.accent} />
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function EngineerHomeScreen({ name }: { name: string }) {
-  const { t } = useTranslation();
-  const engineerName = firstName(name);
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Avatar name={name} size={34} />
-          <IconButton icon="notifications-outline" />
-        </View>
-        <Text style={styles.headerMeta}>{t("home.engineer.shiftMeta")}</Text>
-        <Text style={styles.title}>{t("home.engineer.greeting", { name: engineerName })}</Text>
-      </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <CopilotHero
-          kicker={t("home.engineer.failurePrediction")}
-          confidence={88}
-          actions={
-            <>
-              <HeroButton primary icon="construct-outline">
-                {t("home.engineer.preEmpt")}
-              </HeroButton>
-              <HeroButton>{t("home.engineer.dismiss")}</HeroButton>
-            </>
-          }
-          foot={
-            <>
-              <Ionicons name="trending-up-outline" size={11} color="rgba(241,237,228,0.5)" />
-              <Mono style={styles.heroFootText}>{t("home.engineer.coilsTrending")}</Mono>
-            </>
-          }
-        >
-          <Text>
-            Units <Text style={styles.heroStrong}>211 and 213</Text> show the same belt wear as 209. Swapping all three this morning avoids a likely guest-facing failure by Friday.
-          </Text>
-        </CopilotHero>
-
-        <View style={styles.engineerStats}>
-          {[
-            { value: "3", label: t("home.engineer.openOrders") },
-            { value: "1", label: t("home.engineer.pmDue"), color: C.caution },
-            { value: "2", label: t("home.engineer.closedToday"), color: C.ready },
-          ].map((stat) => (
-            <View key={stat.label} style={styles.engineerStat}>
-              <Text style={[styles.engineerStatValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</Text>
-              <Text style={styles.engineerStatLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.pmCard}>
-          <IconButton icon="calendar-outline" tone="caution" />
-          <View style={styles.pmBody}>
-            <Text style={styles.pmTitle}>{t("home.engineer.hvacFilters")}</Text>
-            <Text style={styles.pmText}>{t("home.engineer.hvacUnits")}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={C.caution} />
-        </View>
-
-        <View>
-          <SectionLabel hint="3 open" action={<Text style={styles.seeAll}>{t("home.engineer.allOrders")}</Text>}>
-            {t("home.engineer.workOrders")}
-          </SectionLabel>
-          <View style={styles.rows}>
-            {ENGINEER_ORDERS.map((order) => (
-              <HandoffRow
-                key={order.id}
-                lead={<IconButton icon="construct-outline" tone={order.active ? "accent" : undefined} size={46} />}
-                title={
-                  <>
-                    <Mono style={styles.workOrderId}>{order.id}</Mono>
-                    <Pill tone={order.tone}>{order.pri}</Pill>
-                  </>
-                }
-                sub={`${order.title} - ${order.loc}`}
-                right={
-                  order.active ? (
-                    <Pill tone="progress" icon="time-outline">
-                      {order.meta}
-                    </Pill>
-                  ) : (
-                    <Mono style={styles.roomMeta}>{order.meta}</Mono>
-                  )
-                }
-              />
-            ))}
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -573,16 +464,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   briefingGhostText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700" },
-  heroStrong: {
-    fontFamily: monoFont,
-    fontStyle: "normal",
-    fontWeight: "700",
-    color: C.paper,
-  },
-  heroFootText: {
-    color: "rgba(241,237,228,0.5)",
-    fontSize: 10.5,
-  },
   tipCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -630,18 +511,6 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: "800",
   },
-  seeAll: {
-    fontSize: 12,
-    color: C.accent,
-    fontWeight: "600",
-  },
-  rows: {
-    gap: 8,
-  },
-  roomMeta: {
-    fontSize: 11,
-    color: C.ink3,
-  },
   emptyCard: {
     backgroundColor: C.surface,
     borderWidth: 1,
@@ -681,34 +550,5 @@ const styles = StyleSheet.create({
     color: C.ink3,
     fontSize: 11,
     marginTop: 5,
-  },
-  pmCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: C.cautionSoft,
-    borderWidth: 1,
-    borderColor: C.cautionLine,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  pmBody: {
-    flex: 1,
-  },
-  pmTitle: {
-    color: C.ink,
-    fontSize: 13.5,
-    fontWeight: "700",
-  },
-  pmText: {
-    color: C.caution,
-    fontSize: 11.5,
-    marginTop: 2,
-  },
-  workOrderId: {
-    color: C.ink3,
-    fontSize: 11,
-    fontWeight: "700",
   },
 });

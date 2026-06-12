@@ -53,6 +53,7 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
   const railColor = isUrgent || due?.kind === "overdue" ? C.alert : onHold ? C.caution : C.line;
 
   const ageMinutes = minutesSince(wo.created_at);
+  const elapsed = wo.status === "in_progress" ? minutesSince(wo.started_at) : null;
   const doneClock = done ? formatClock(wo.completed_at, locale) : null;
 
   return (
@@ -124,6 +125,13 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
               <Text style={styles.overdueText}>
                 {t("workOrders.overdueBy", { time: formatDuration(due.minutes) })}
               </Text>
+            ) : elapsed != null ? (
+              <View style={styles.dueRow}>
+                <Ionicons name="stopwatch-outline" size={11} color={C.caution} />
+                <Text style={styles.elapsedText}>
+                  {t("workOrders.onClock", { time: formatDuration(elapsed) })}
+                </Text>
+              </View>
             ) : due?.kind === "due" ? (
               <View style={styles.dueRow}>
                 <Ionicons name="time-outline" size={11} color={C.ink3} />
@@ -233,6 +241,7 @@ const styles = StyleSheet.create({
   dueRow: { flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto" },
   dueText: { color: C.ink3, fontSize: 11, fontFamily: monoFont },
   overdueText: { marginLeft: "auto", color: C.alert, fontSize: 11, fontWeight: "800", fontFamily: monoFont },
+  elapsedText: { color: C.caution, fontSize: 11, fontWeight: "700", fontFamily: monoFont },
   ageText: { marginLeft: "auto", color: C.ink4, fontSize: 11, fontFamily: monoFont },
   doneText: { marginLeft: "auto", color: C.ready, fontSize: 11, fontWeight: "700", fontFamily: monoFont },
 

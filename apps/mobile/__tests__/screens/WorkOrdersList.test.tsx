@@ -62,6 +62,15 @@ describe("WorkOrdersScreen", () => {
     expect(screen.getByText("workOrders.chipUrgent")).toBeTruthy();
   });
 
+  it("groups open orders under the queue section with a Done toggle below", async () => {
+    render(<WorkOrdersScreen />);
+    await waitFor(() => expect(screen.getByText("workOrders.sectionQueue")).toBeTruthy());
+    expect(screen.getByTestId("wo-done-toggle")).toBeTruthy();
+    // No bench or team work in this fixture — those sections stay hidden.
+    expect(screen.queryByText("workOrders.sectionBench")).toBeNull();
+    expect(screen.queryByText("workOrders.sectionTeam")).toBeNull();
+  });
+
   it("shows Claim button on open unassigned WOs", async () => {
     render(<WorkOrdersScreen />);
     await waitFor(() => expect(screen.getByText("workOrders.claim")).toBeTruthy());

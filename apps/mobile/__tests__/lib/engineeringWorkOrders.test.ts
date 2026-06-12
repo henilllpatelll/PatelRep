@@ -1,8 +1,10 @@
 import {
+  countQueueSignals,
   dueState,
   formatDuration,
   minutesSince,
   sortQueue,
+  splitWorkbench,
   workOrderLocation,
   type WorkOrder,
 } from "@/lib/engineering/workOrders";
@@ -67,6 +69,50 @@ describe("sortQueue", () => {
 
     const sorted = sortQueue([newish, overdue, urgent], now);
     expect(sorted.map((wo) => wo.id)).toEqual(["c", "b", "a"]);
+  });
+});
+
+describe("countQueueSignals", () => {
+  const now = new Date("2026-06-12T12:00:00Z");
+
+  it("counts urgent, past-SLA, guest-reported, and on-hold orders", () => {
+    const orders: WorkOrder[] = [
+      { ...base, id: "a", priority: "urgent", guest_reported: true },
+      { ...base, id: "b", status: "on_hold", due_at: "2026-06-12T10:00:00Z" },
+      { ...base, id: "c", due_at: "2026-06-12T15:00:00Z" },
+    ];
+    expect(countQueueSignals(orders, now)).toEqual({ urgent: 1, pastSla: 1, guest: 1, onHold: 1 });
+  });
+
+  it("ignores completed and cancelled orders", () => {
+    const orders: WorkOrder[] = [
+      { ...base, id: "a", status: "completed", priority: "urgent", due_at: "2026-06-12T10:00:00Z" },
+      { ...base, id: "b", status: "cancelled", guest_reported: true },
+    ];
+    expect(countQueueSignals(orders, now)).toEqual({ urgent: 0, pastSla: 0, guest: 0, onHold: 0 });
+  });
+});
+
+describe("splitWorkbench", () => {
+  const now = new Date("2026-06-12T12:00:00Z");
+
+  it("splits active orders into my bench vs the team, keeping open as the queue", () => {
+    const open: WorkOrder[] = [{ ...base, id: "q1" }];
+    const active: WorkOrder[] = [
+      { ...base, id: "mine", status: "in_progress", assigned_to: "u1" },
+      { ...base, id: "theirs", status: "in_progress", assigned_to: "u2" },
+    ];
+    const bench = splitWorkbench(open, active, "u1", now);
+    expect(bench.bench.map((wo) => wo.id)).toEqual(["mine"]);
+    expect(bench.team.map((wo) => wo.id)).toEqual(["theirs"]);
+    expect(bench.queue.map((wo) => wo.id)).toEqual(["q1"]);
+  });
+
+  it("treats everything as team work when the viewer is unknown", () => {
+    const active: WorkOrder[] = [{ ...base, id: "a", status: "in_progress", assigned_to: "u2" }];
+    const bench = splitWorkbench([], active, undefined, now);
+    expect(bench.bench).toHaveLength(0);
+    expect(bench.team).toHaveLength(1);
   });
 });
 
