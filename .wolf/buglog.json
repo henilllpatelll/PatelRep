@@ -1001,6 +1001,238 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-11T22:53:23.708Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-06-11T23:11:40.713Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/components/home/CompanionHome.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T23:11:40.713Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-06-11T23:11:54.276Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T23:11:54.276Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-06-11T23:12:46.874Z",
+      "error_message": "CSS fix: paddingBottom",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "paddingBottom: 18, → 20,",
+      "fix": "Changed paddingBottom: 18, → 20,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-11T23:12:52.974Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-06-11T23:13:39.999Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→21 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T23:13:39.999Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-06-11T23:13:45.297Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→21 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-11T23:13:45.297Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-06-12T04:59:02.084Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "24 lines replaced/restructured",
+      "fix": "Rewrote 34→98 lines (24 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T04:59:02.084Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-06-12T04:59:18.849Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "26 lines replaced/restructured",
+      "fix": "Rewrote 34→98 lines (26 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T04:59:18.849Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-06-12T05:01:02.749Z",
+      "error_message": "CSS fix: paddingBottom, stats, filters",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "paddingBottom: 14, → 20,; stats: { flexDirection: \"row\", gap: 8 → { flexDirection: \"row\", gap: 8, marginTop: 10; filters: { flexDirection: \"row\", gap: 6 → { flexDirection: \"row\", gap: 6, paddingHorizontal: 16, paddingTop: 14",
+      "fix": "Changed paddingBottom: 14, → 20,; stats: { flexDirection: \"row\", gap: 8 → { flexDirection: \"row\", gap: 8, marginTop: 10; filters: { flexDirection: \"row\", gap: 6 → { flexDirection: \"row\", gap: 6, paddingHorizontal: 16, paddingTop: 14",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-12T05:02:24.735Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-06-12T00:00:00Z",
+      "error_message": "Mobile work-order completion notes never saved — screen sent completion_notes/photo_urls but API CompleteWorkOrderRequest expects notes/parts_used",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Payload field name mismatch with apps/api/models/requests.py CompleteWorkOrderRequest; sanitized model dropped unknown fields silently",
+      "fix": "Detail screen + offline enqueue now send {notes, parts_used} via typed completeWorkOrder() in lib/api/workOrders.ts",
+      "tags": [
+        "mobile",
+        "work-orders",
+        "api-contract",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T00:00:00Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-06-12T00:00:00Z",
+      "error_message": "Mobile work-orders list read wo.room_number / wo.location_detail / wo.claimed_by — none exist in the API response, so location and claim gating were always wrong",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "API returns nested rooms(room_number) join, location_text, and assigned_to; the screen also mapped a nonexistent emergency priority",
+      "fix": "WorkOrder type in lib/engineering/workOrders.ts mirrors the real shape (rooms.room_number, location_text, assigned_to, urgent/normal/low); workOrderLocation() helper used by card + detail",
+      "tags": [
+        "mobile",
+        "work-orders",
+        "api-contract",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T00:00:00Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-06-12T06:07:57.220Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 11→3 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T06:07:57.220Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-06-12T06:07:59.105Z",
+      "error_message": "Wrong reference: SupervisorHomeScreen should be SupervisorHome",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Used \"SupervisorHomeScreen\" instead of \"SupervisorHome\"",
+      "fix": "Changed SupervisorHomeScreen → SupervisorHome",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T06:07:59.105Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-06-12T00:00:00",
+      "error_message": "Mobile supervisor Assignments screen always empty; assigning a room silently did nothing",
+      "file": "apps/mobile/app/(app)/assignments/index.tsx",
+      "root_cause": "Three contract mismatches: (1) POST /housekeeping/assignments expects {date, assignments:[{room_id, housekeeper_id}], is_ai_suggested} but mobile sent {room_id, assigned_to, assignment_date} -> 422 swallowed by silent catch; (2) GET /staff returns {data:{staff:[...]}} but mobile treated data as an array -> .find crashed -> catch set assignments=[]; (3) auto-assign called POST /housekeeping/assignments/auto which does not exist (real endpoint is POST /housekeeping/ai-suggest-assignments returning uncommitted suggestions).",
+      "fix": "Supervisor redesign: typed wrappers in lib/api/housekeepingSupervisor.ts use the real CreateAssignmentsRequest shape, extractAssignableStaff() parses the nested staff payload (filtering housekeeper+housekeeping_supervisor, active only, keyed by user_id not user_roles.id), and AI balance now does suggest -> review sheet -> commit with is_ai_suggested=true.",
+      "tags": [
+        "mobile",
+        "supervisor",
+        "assignments",
+        "api-contract",
+        "silent-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T00:00:00"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-06-12T00:00:00",
+      "error_message": "Mobile Room Board rendered blank room numbers and 'Unassigned' for every room",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "GET /housekeeping/board returns room_status rows with a NESTED rooms join (rooms.room_number, rooms.floor) and no top-level id/room_number/floor/assigned_to_name fields. The old screen typed rows as flat {id, room_number, floor, assigned_to_name} so keys and labels were undefined; assignee names are never returned by the API and must be resolved client-side from /staff.",
+      "fix": "normalizeBoardRooms() in lib/housekeeping/supervisor.ts flattens the nested join into a FloorRoom view model keyed by room_id; assignee names resolved via buildNameById(staff).",
+      "tags": [
+        "mobile",
+        "supervisor",
+        "room-board",
+        "api-contract",
+        "nested-join"
+      ],
+      "related_bugs": [
+        "bug-074"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T00:00:00"
     }
   ]
 }

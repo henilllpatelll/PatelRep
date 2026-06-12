@@ -1,12 +1,243 @@
 {
-  "session_id": "session-2026-06-11-1801",
-  "started": "2026-06-11T23:01:04.575Z",
-  "files_read": {},
-  "files_written": [],
-  "edit_counts": {},
-  "anatomy_hits": 0,
-  "anatomy_misses": 0,
-  "repeated_reads_warned": 0,
+  "session_id": "session-2026-06-12-0052",
+  "started": "2026-06-12T05:52:32.249Z",
+  "files_read": {
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/navigation/roleTabs.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:54:08.595Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/room-board/index.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:54:27.928Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/assignments/index.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:54:28.058Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:54:35.010Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/shared/tokens.ts": {
+      "count": 1,
+      "tokens": 1503,
+      "first_read": "2026-06-12T05:54:35.445Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/shared/evening.tsx": {
+      "count": 1,
+      "tokens": 4251,
+      "first_read": "2026-06-12T05:54:43.612Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx": {
+      "count": 1,
+      "tokens": 7491,
+      "first_read": "2026-06-12T05:54:52.693Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
+      "count": 5,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:56:03.039Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/housekeeping.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:56:34.498Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/staff.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:57:00.789Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/work-orders/index.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:57:18.796Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/CompanionHome.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:57:27.507Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T05:59:35.443Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T06:00:49.212Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/InspectorQueue.test.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-12T06:11:09.578Z"
+    }
+  },
+  "files_written": [
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/housekeeping/supervisor.ts",
+      "action": "create",
+      "tokens": 2320,
+      "at": "2026-06-12T06:01:23.937Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/housekeepingSupervisor.ts",
+      "action": "create",
+      "tokens": 604,
+      "at": "2026-06-12T06:01:36.997Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/CompanionHome.tsx",
+      "action": "edit",
+      "tokens": 40,
+      "at": "2026-06-12T06:01:44.157Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/utils/date.ts",
+      "action": "edit",
+      "tokens": 182,
+      "at": "2026-06-12T06:01:47.842Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/atoms.tsx",
+      "action": "create",
+      "tokens": 1847,
+      "at": "2026-06-12T06:02:17.548Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx",
+      "action": "create",
+      "tokens": 1238,
+      "at": "2026-06-12T06:02:38.796Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx",
+      "action": "create",
+      "tokens": 3342,
+      "at": "2026-06-12T06:03:25.404Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/room-board/index.tsx",
+      "action": "create",
+      "tokens": 3432,
+      "at": "2026-06-12T06:04:11.436Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/assignments/index.tsx",
+      "action": "create",
+      "tokens": 6242,
+      "at": "2026-06-12T06:05:31.004Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
+      "action": "create",
+      "tokens": 5402,
+      "at": "2026-06-12T06:06:43.096Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx",
+      "action": "create",
+      "tokens": 3464,
+      "at": "2026-06-12T06:07:32.724Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx",
+      "action": "edit",
+      "tokens": 48,
+      "at": "2026-06-12T06:07:41.062Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx",
+      "action": "edit",
+      "tokens": 25,
+      "at": "2026-06-12T06:07:42.749Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "action": "edit",
+      "tokens": 46,
+      "at": "2026-06-12T06:07:52.349Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "action": "edit",
+      "tokens": 62,
+      "at": "2026-06-12T06:07:56.013Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "action": "edit",
+      "tokens": 27,
+      "at": "2026-06-12T06:07:57.217Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "action": "edit",
+      "tokens": 36,
+      "at": "2026-06-12T06:07:59.099Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/home/index.tsx",
+      "action": "edit",
+      "tokens": 17,
+      "at": "2026-06-12T06:08:08.493Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/_update_supervisor_i18n.py",
+      "action": "create",
+      "tokens": 2605,
+      "at": "2026-06-12T06:10:36.334Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/InspectorQueue.test.tsx",
+      "action": "create",
+      "tokens": 1058,
+      "at": "2026-06-12T06:11:42.843Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/lib/supervisor.test.ts",
+      "action": "create",
+      "tokens": 2166,
+      "at": "2026-06-12T12:37:27.390Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/__tests__/screens/InspectorQueue.test.tsx",
+      "action": "edit",
+      "tokens": 27,
+      "at": "2026-06-12T12:39:20.395Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/room-board/index.tsx",
+      "action": "edit",
+      "tokens": 34,
+      "at": "2026-06-12T12:40:20.855Z"
+    }
+  ],
+  "edit_counts": {
+    "apps/mobile/lib/housekeeping/supervisor.ts": 1,
+    "apps/mobile/lib/api/housekeepingSupervisor.ts": 1,
+    "apps/mobile/components/home/CompanionHome.tsx": 1,
+    "apps/mobile/lib/utils/date.ts": 1,
+    "apps/mobile/components/supervisor/atoms.tsx": 1,
+    "apps/mobile/components/supervisor/HousekeeperPicker.tsx": 1,
+    "apps/mobile/components/supervisor/RoomDetailSheet.tsx": 1,
+    "apps/mobile/app/(app)/room-board/index.tsx": 2,
+    "apps/mobile/app/(app)/assignments/index.tsx": 1,
+    "apps/mobile/app/(app)/inspect/index.tsx": 1,
+    "apps/mobile/components/home/SupervisorHome.tsx": 3,
+    "apps/mobile/app/(app)/home/index.tsx": 5,
+    "apps/mobile/i18n/locales/_update_supervisor_i18n.py": 1,
+    "apps/mobile/__tests__/screens/InspectorQueue.test.tsx": 2,
+    "apps/mobile/__tests__/lib/supervisor.test.ts": 1
+  },
+  "anatomy_hits": 3,
+  "anatomy_misses": 12,
+  "repeated_reads_warned": 4,
   "cerebrum_warnings": 0,
   "stop_count": 0
 }

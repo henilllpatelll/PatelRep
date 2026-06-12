@@ -96,13 +96,23 @@
       "coilsTrending": "3 zone-B coils trending - same vibration signature"
     },
     "supervisor": {
-      "shiftMeta": "Housekeeping Supervisor",
-      "greeting": "Morning, {{name}}.",
-      "roomsAssigned": "Rooms assigned",
-      "inProgress": "In progress",
-      "inspected": "Inspected",
-      "boardTitle": "Room Board",
-      "boardHint": "Open the Board tab to see live room status and manage assignments."
+      "shiftMeta": "Housekeeping supervisor",
+      "heroSummary": "{{ready}} of {{total}} rooms ready · {{working}} in progress",
+      "emptyBoard": "No rooms on the board yet.",
+      "signalUnassigned": "{{count}} unassigned",
+      "signalToInspect": "{{count}} to inspect",
+      "signalDnd": "{{count}} DND",
+      "signalVip": "{{count}} VIP",
+      "toInspect": "To inspect",
+      "unassignedRooms": "Unassigned",
+      "teamSection": "On the floor",
+      "housekeeperCount": "{{count}} housekeepers",
+      "loadSummary": "{{done}} of {{total}} done · ~{{minutes}}m left",
+      "noTeamYet": "No rooms assigned yet",
+      "noTeamYetHint": "Use Assign to split today's rooms, or let AI balance the load.",
+      "emptyBoardTitle": "Board is empty",
+      "emptyBoardHint": "Rooms appear after the morning Opera import.",
+      "openBoard": "Open Room Board"
     },
     "frontDesk": {
       "shiftMeta": "Front Desk",
@@ -271,20 +281,11 @@
   },
   "inspect": {
     "title": "Inspections",
-    "passedCount": "passed",
-    "today": "today",
-    "inQueue": "in queue",
-    "waiting": "waiting",
     "allClear": "all clear",
     "toInspect": "To inspect",
-    "passedTab": "Passed",
     "queueEmpty": "Queue is empty",
-    "nonePassedYet": "No passed rooms yet",
     "pullToRefresh": "Pull to refresh.",
-    "roomTitle": "Room {{room}}",
     "doneAgo": "Done {{time}}",
-    "pass": "Pass",
-    "fail": "Fail",
     "modalTitlePass": "Pass Room {{room}}?",
     "modalTitleFail": "Fail Room {{room}}?",
     "notesOptional": "Notes (optional)",
@@ -293,7 +294,21 @@
     "submitting": "Submitting…",
     "confirmPass": "Confirm Pass",
     "confirmFail": "Confirm Fail",
-    "submitError": "Could not submit inspection. Try again."
+    "submitError": "Could not submit inspection. Try again.",
+    "kicker": "Quality gate",
+    "summary": "{{waiting}} waiting · {{passed}} passed today",
+    "signalWaiting": "{{count}} waiting",
+    "doneTab": "Done",
+    "queueEmptyHint": "Submitted rooms appear here as housekeepers finish.",
+    "noneDoneYet": "No inspections yet today",
+    "justNow": "Just now",
+    "minutesAgo": "{{minutes}}m ago",
+    "hoursAgo": "{{hours}}h ago",
+    "result": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "conditional": "Conditional"
+    }
   },
   "tasks": {
     "title": "My tasks",
@@ -434,14 +449,22 @@
     "upcoming": "Upcoming"
   },
   "roomBoard": {
-    "dirty": "Dirty",
-    "inProgress": "In Progress",
-    "ready": "Ready",
-    "total": "Total",
-    "rooms": "rooms",
+    "kicker": "Live floor",
+    "summary": "{{ready}} of {{total}} ready · {{working}} in progress",
+    "segAll": "All",
+    "segToClean": "To clean",
+    "segWorking": "Working",
+    "segReady": "Ready",
+    "floor": "Floor {{floor}}",
+    "roomCount": "{{count}} rooms",
     "unassigned": "Unassigned",
+    "segmentEmpty": "Nothing in this view right now",
     "noRoomsLoaded": "No rooms loaded",
     "pullToRefresh": "Pull down to refresh the board.",
+    "signalUnassigned": "{{count}} unassigned",
+    "signalSubmitted": "{{count}} to inspect",
+    "signalDnd": "{{count}} DND",
+    "signalVip": "{{count}} VIP",
     "statusLabels": {
       "DIRTY": "Vacant Dirty",
       "IN_PROGRESS": "In Progress",
@@ -452,6 +475,20 @@
       "OOO": "Out of Order",
       "OUT_OF_ORDER": "Out of Order",
       "OUT_OF_SERVICE": "Out of Service"
+    },
+    "sheet": {
+      "assignedTo": "Assigned to",
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "removeAssignment": "Remove assignment",
+      "removeConfirmTitle": "Remove Room {{room}} assignment?",
+      "removeConfirmBody": "The room goes back to the unassigned list.",
+      "checkout": "Checkout",
+      "arrival": "Arrival",
+      "latestNote": "Latest note",
+      "openWorkOrder": "Open work order",
+      "highRisk": "High risk",
+      "dnd": "DND"
     }
   },
   "roomStatus": {
@@ -494,18 +531,30 @@
     "pullToRefresh": "Pull down to refresh."
   },
   "assignments": {
-    "autoAssign": "Auto-Assign",
-    "assigning": "Assigning…",
-    "assigned": "assigned",
-    "unassigned": "unassigned",
-    "unassignedSection": "Unassigned",
-    "floor": "Floor {{floor}}",
+    "kicker": "Housekeeping",
+    "title": "Assignments",
+    "summary": "{{assigned}} assigned · {{unassigned}} unassigned · {{housekeepers}} on the floor",
+    "signalUnassigned": "{{count}} need a housekeeper",
+    "aiBalance": "Balance with AI",
+    "suggesting": "Thinking…",
+    "suggestKicker": "AI suggestion",
+    "suggestTitle": "Balanced split for today",
+    "suggestionMeta": "{{count}} rooms · ~{{minutes}}m",
+    "applyAll": "Assign all",
+    "applying": "Assigning…",
+    "suggestEmpty": "Nothing to balance right now.",
+    "suggestError": "Could not get suggestions. Try again.",
+    "applyError": "Could not save the assignments. Try again.",
+    "unassignedSection": "Needs a housekeeper",
+    "roomCount": "{{count}} rooms",
+    "teamSection": "Today's team",
+    "housekeeperCount": "{{count}} housekeepers",
+    "loadSummary": "{{done}} of {{total}} done · ~{{minutes}}m left",
+    "roomActionTitle": "Room {{room}}",
+    "reassign": "Reassign",
+    "removeAssignment": "Remove assignment",
     "noAssignments": "No assignments yet",
-    "noAssignmentsHint": "Pull to refresh or check back after morning setup.",
-    "assignRoom": "Assign Room {{room}}",
-    "chooseHousekeeper": "Choose a housekeeper",
-    "saving": "Saving...",
-    "rooms": "rooms"
+    "noAssignmentsHint": "Pull to refresh or check back after morning setup."
   },
   "logbook": {
     "title": "Shift Logbook",
@@ -572,5 +621,14 @@
     "timePrompt": "Enter the time the guest gave you",
     "timePlaceholder": "e.g. 1:30 PM",
     "report": "Report"
+  },
+  "picker": {
+    "title": "Assign Room {{room}}",
+    "titleGeneric": "Assign room",
+    "subtitle": "Pick who takes it",
+    "load": "{{count}} rooms today · ~{{minutes}}m left",
+    "noRooms": "No rooms yet today",
+    "noStaff": "No housekeeping staff found",
+    "saving": "Saving…"
   }
 }

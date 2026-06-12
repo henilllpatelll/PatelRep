@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-11T23:14:36.834Z
-> Files: 26 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T12:40:20.829Z
+> Files: 15 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -17,19 +17,15 @@
 
 ## ../PatelRep-web-v2/apps/web/
 
-- `tasks-smoke.mjs` — One-off visual smoke for the AI Tasks redesign on :3001. (~282 tok)
 
 ## ../PatelRep-web-v2/apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — BUCKET_LABELS — renders form (~12105 tok)
 
 ## ../PatelRep-web-v2/apps/web/components/tasks/
 
-- `TasksAIPanel.tsx` — Dark-shell AI panel for the Tasks page: an instant on-device briefing plus (~1805 tok)
 
 ## ../PatelRep-web-v2/apps/web/lib/ai/
 
-- `taskQueue.ts` — Minutes past due when overdue, otherwise null (~1013 tok)
 
 ## ./
 
@@ -498,16 +494,13 @@
 
 ## apps/mobile/
 
-- `_patch_tasks.py` — enum: getTypeIcon (~428 tok)
-- `_taskrow.tsx.txt` — TaskRowProps: formatStamp, TaskRow (~1796 tok)
 
 ## apps/mobile/__tests__/components/
 
-- `MobileVisualTokens.test.ts` (~900 tok)
 
 ## apps/mobile/__tests__/lib/
 
-- `roomBlockers.test.ts` — mockApiPost: room (~1186 tok)
+- `supervisor.test.ts` — API routes: GET (1 endpoints) (~2166 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -517,8 +510,7 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2423 tok)
-- `TasksVariationA.test.tsx` — EN (~2230 tok)
+- `InspectorQueue.test.tsx` — EN (~1058 tok)
 
 ## apps/mobile/android/
 
@@ -534,7 +526,6 @@
 
 ## apps/mobile/app/(app)/
 
-- `_layout.tsx` — AppLayout (~1564 tok)
 
 ## apps/mobile/app/(app)/alerts/
 
@@ -544,26 +535,27 @@
 
 ## apps/mobile/app/(app)/assignments/
 
+- `index.tsx` — AssignmentsScreen — renders modal (~6242 tok)
 
 ## apps/mobile/app/(app)/clean/
 
 
 ## apps/mobile/app/(app)/copilot/
 
-- `index.tsx` — HISTORY_KEY (~4667 tok)
 
 ## apps/mobile/app/(app)/guest-requests/
 
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~7491 tok)
+- `index.tsx` — ENGINEER_ORDERS (~6751 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
 
 ## apps/mobile/app/(app)/inspect/
 
+- `index.tsx` — RESULT_META — renders modal (~5402 tok)
 
 ## apps/mobile/app/(app)/logbook/
 
@@ -573,8 +565,6 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~12125 tok)
-- `index.tsx` — DONE_SECTIONS (~3695 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -590,6 +580,7 @@
 
 ## apps/mobile/app/(app)/room-board/
 
+- `index.tsx` — SEGMENTS (~3423 tok)
 
 ## apps/mobile/app/(app)/room-status/
 
@@ -605,7 +596,6 @@
 
 ## apps/mobile/app/(app)/tasks/
 
-- `index.tsx` — Tasks tab screen: shell header with open/done counts, on-device AI task briefing, Overdue/Do now/Today sections rendering components/tasks/TaskCard, AI quick-add composer (parse via copilot, confirm preview). Queue/briefing logic in lib/ai/tasks.ts (~3300 tok)
 
 ## apps/mobile/app/(app)/work-orders/
 
@@ -613,9 +603,13 @@
 ## apps/mobile/app/(auth)/
 
 
+## apps/mobile/components/engineering/
+
+
 ## apps/mobile/components/home/
 
-- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2839 tok)
+- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2843 tok)
+- `SupervisorHome.tsx` — firstName (~3442 tok)
 
 ## apps/mobile/components/housekeeping/
 
@@ -626,42 +620,41 @@
 ## apps/mobile/components/housekeeping/ReportIssueModal.tsx
 
 
-## apps/mobile/components/home/
-
-- `CompanionHome.tsx` — Home tab redesign atoms: ShiftMosaic (one status-colored tile per assigned room on the dark hero, sorted by room number, tap → room detail), SignalChips (review/DND/arrivals/VIP, render only when nonzero, dark-shell palette), FocusCard (single "Start here" room — big mono number, reason line, est minutes, green Start button, Resume link for an in-progress room) (~2400 tok)
-
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4251 tok)
-- `tokens.ts` — The dark "Evening Lobby" chrome — a designed constant across themes. (~1503 tok)
+
+## apps/mobile/components/supervisor/
+
+- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~1847 tok)
+- `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1238 tok)
+- `RoomDetailSheet.tsx` — formatClock — renders modal (~3342 tok)
 
 ## apps/mobile/components/tasks/
 
-- `TaskCard.tsx` — Redesigned task card: left urgency rail (overdue alert/now caution/today neutral), task-type icon tile (housekeeping/engineering/guest_request/lost_found/general) with a11y typeLabel, 2-line description preview, urgent/high-only priority chip, in-progress chip, room+guest chips, due/overdue right-aligned, 38px round Done button + inline confirm row (~2922 tok)
 
 ## apps/mobile/i18n/
 
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~5206 tok)
-- `es.json` (~5561 tok)
+- `_update_supervisor_i18n.py` — One-shot locale update for the supervisor redesign — deleted after running. (~2605 tok)
 
 ## apps/mobile/lib/
 
 
 ## apps/mobile/lib/ai/
 
-- `briefing.ts` — Room numbers in suggested cleaning order (~2065 tok)
-- `companion.ts` — Shift companion layer for Home: buildShiftSnapshot (done/remaining/minutesLeft/finishBy/stage analytics), getCompanionCheckin (stage-based supportive message + one gentle tip), getGreetingKey (time-of-day greeting) (~1215 tok)
-- `tasks.ts` — Real enum: housekeeping | engineering | guest_request | lost_found | general (~1684 tok)
 
 ## apps/mobile/lib/api/
+
+- `housekeepingSupervisor.ts` — API routes: POST, DELETE (2 endpoints) (~604 tok)
+
+## apps/mobile/lib/engineering/
 
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1683 tok)
+- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2320 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -680,6 +673,7 @@
 
 ## apps/mobile/lib/utils/
 
+- `date.ts` — "Wed · Jun 12 · {suffix}" hero meta line, localized by language preference. (~182 tok)
 
 ## apps/mobile/package.json
 
@@ -881,3 +875,21 @@
 
 ## youtubeMobileResearch.md
 
+
+## apps/mobile/lib/housekeeping/supervisor.ts
+Supervisor floor domain layer: BoardRoomRaw->FloorRoom normalization of the nested /housekeeping/board join, buildFloorSnapshot counts, groupByFloor, buildTeamLoads (per-housekeeper progress/minutes), extractAssignableStaff for the nested /staff payload. ~250 lines, ~2k tokens.
+
+## apps/mobile/lib/api/housekeepingSupervisor.ts
+Typed supervisor API wrappers: fetchBoard, fetchAssignableStaff, saveAssignments (real CreateAssignmentsRequest shape), removeAssignment, suggestAssignments (AI balance). ~80 lines, ~600 tokens.
+
+## apps/mobile/components/supervisor/atoms.tsx
+Evening Lobby supervisor atoms: HeroSignalRow (dark-hero chips), FloorMosaic (board-wide tiles), RoomStatusTile (paper board cell with status rail + flag icons + assignee), TeamLoadRow (housekeeper progress row). ~200 lines, ~1.5k tokens.
+
+## apps/mobile/components/supervisor/HousekeeperPicker.tsx
+Bottom-sheet staff picker with live per-housekeeper loads; used by Room Board sheet and Assignments. ~130 lines, ~1k tokens.
+
+## apps/mobile/components/supervisor/RoomDetailSheet.tsx
+Room Board detail sheet: status/clean-type/VIP/DND/high-risk chips, assignee + assign/reassign, checkout/arrival times, latest note, open WO, remove-assignment confirm. ~300 lines, ~2.2k tokens.
+
+## apps/mobile/components/home/SupervisorHome.tsx
+Supervisor Home (Floor Pulse): dark hero with greeting + FloorMosaic + signals, To inspect / Unassigned action cards, team progress rows, Open Room Board CTA. Realtime on room_status. ~340 lines, ~2.5k tokens.

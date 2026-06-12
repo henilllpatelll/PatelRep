@@ -4963,3 +4963,63 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 18:30 | Edited apps/mobile/i18n/locales/es.json | 25→24 lines | ~241 |
 | 18:31 | Created apps/mobile/__tests__/screens/ProfileHandoff.test.tsx | — | ~1426 |
 | 18:32 | Settings (Me) tab redesigned for all roles: dark identity hero + grouped Preferences/My work/Data & sync/Account cards, real sync state + version, fake stats removed | apps/mobile/app/(app)/profile/index.tsx, i18n en/es, ProfileHandoff.test | type-check + 18/18 suites pass | ~7k |
+| 18:32 | Session end: 17 writes across 6 files (CompanionHome.tsx, index.tsx, en.json, es.json, HousekeeperHome.test.tsx) | 12 reads | ~45221 tok |
+
+## Session: 2026-06-12 23:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:54 | Created apps/mobile/lib/engineering/workOrders.ts | — | ~1179 |
+| 23:54 | Created apps/mobile/lib/api/workOrders.ts | — | ~922 |
+| 23:55 | Created apps/mobile/components/engineering/WorkOrderCard.tsx | — | ~2721 |
+| 23:56 | Created apps/mobile/app/(app)/work-orders/index.tsx | — | ~3209 |
+| 23:58 | Created apps/mobile/app/(app)/work-orders/[woId].tsx | — | ~8388 |
+| 23:59 | Edited apps/mobile/i18n/locales/en.json | expanded (+64 lines) | ~963 |
+| 23:59 | Edited apps/mobile/i18n/locales/es.json | expanded (+64 lines) | ~1022 |
+| 23:59 | Created apps/mobile/app/(app)/assets/index.tsx | — | ~2874 |
+| 00:00 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | added 1 import(s) | ~114 |
+| 00:00 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified PMSchedulesScreen() | ~54 |
+| 00:00 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | CSS: paddingTop | ~621 |
+| 00:00 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified t() | ~104 |
+| 00:00 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | modified t() | ~60 |
+| 00:01 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | 25→26 lines | ~283 |
+| 00:01 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | CSS: body | ~33 |
+| 00:01 | Created apps/mobile/__tests__/screens/WorkOrdersList.test.tsx | — | ~711 |
+| 00:01 | Created apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx | — | ~968 |
+| 00:02 | Created apps/mobile/__tests__/lib/engineeringWorkOrders.test.ts | — | ~756 |
+| 00:02 | Edited apps/mobile/app/(app)/work-orders/index.tsx | inline fix | ~25 |
+| 00:02 | Edited apps/mobile/app/(app)/work-orders/index.tsx | inline fix | ~34 |
+| 2026-06-12 | Engineering Workbench redesign: rebuilt work-orders list+detail, assets, pm-schedules in Evening Lobby language; fixed notes/completion_notes + nested rooms contract bugs; new lib/engineering + WorkOrderCard; en/es i18n rewrite; 19 suites / 80 tests pass | apps/mobile/** | committed on redesign-engineering | ~60k |
+| 00:06 | Session end: 20 writes across 9 files (workOrders.ts, WorkOrderCard.tsx, index.tsx, [woId].tsx, en.json) | 17 reads | ~46101 tok |
+
+## Session: 2026-06-12 00:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:01 | Created apps/mobile/lib/housekeeping/supervisor.ts | — | ~2320 |
+| 01:01 | Created apps/mobile/lib/api/housekeepingSupervisor.ts | — | ~604 |
+| 01:01 | Edited apps/mobile/components/home/CompanionHome.tsx | modified getTileVisual() | ~40 |
+| 01:01 | Edited apps/mobile/lib/utils/date.ts | modified localDate() | ~182 |
+| 01:02 | Created apps/mobile/components/supervisor/atoms.tsx | — | ~1847 |
+| 01:02 | Created apps/mobile/components/supervisor/HousekeeperPicker.tsx | — | ~1238 |
+| 01:03 | Created apps/mobile/components/supervisor/RoomDetailSheet.tsx | — | ~3342 |
+| 01:04 | Created apps/mobile/app/(app)/room-board/index.tsx | — | ~3432 |
+| 01:05 | Created apps/mobile/app/(app)/assignments/index.tsx | — | ~6242 |
+| 01:06 | Created apps/mobile/app/(app)/inspect/index.tsx | — | ~5402 |
+| 01:07 | Created apps/mobile/components/home/SupervisorHome.tsx | — | ~3464 |
+| 01:07 | Edited apps/mobile/components/home/SupervisorHome.tsx | 7→8 lines | ~48 |
+| 01:07 | Edited apps/mobile/components/home/SupervisorHome.tsx | 4→1 lines | ~25 |
+| 01:07 | Edited apps/mobile/app/(app)/home/index.tsx | 3→3 lines | ~46 |
+| 01:07 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 import(s) | ~62 |
+| 01:07 | Edited apps/mobile/app/(app)/home/index.tsx | modified firstName() | ~27 |
+| 01:07 | Edited apps/mobile/app/(app)/home/index.tsx | modified if() | ~36 |
+| 01:08 | Edited apps/mobile/app/(app)/home/index.tsx | removed 55 lines | ~17 |
+| 01:10 | Created apps/mobile/i18n/locales/_update_supervisor_i18n.py | — | ~2605 |
+| 01:11 | Created apps/mobile/__tests__/screens/InspectorQueue.test.tsx | — | ~1058 |
+| 07:37 | Created apps/mobile/__tests__/lib/supervisor.test.ts | — | ~2166 |
+| 07:39 | Edited apps/mobile/__tests__/screens/InspectorQueue.test.tsx | 2→2 lines | ~27 |
+| 07:40 | Edited apps/mobile/app/(app)/room-board/index.tsx | 3→2 lines | ~34 |
+
+| -- | Supervisor redesign session (redesign/supervisor): merged redesign-engineering, rebuilt Home/Room Board/Assignments/Inspect in Evening Lobby language | apps/mobile/... | done | ~60k |
+| -- | Found+fixed 3 latent supervisor bugs: wrong POST /assignments payload, nonexistent /assignments/auto, /staff nested payload parsed as array | lib/api/housekeepingSupervisor.ts | logged bug-074/075 | - |
+| -- | New domain layer + atoms: lib/housekeeping/supervisor.ts, components/supervisor/{atoms,HousekeeperPicker,RoomDetailSheet}.tsx, components/home/SupervisorHome.tsx | apps/mobile | type-check + 89 jest pass | - |
