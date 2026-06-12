@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 
 type PMSchedule = {
@@ -45,6 +46,7 @@ function useDueLabel() {
 
 export default function PMSchedulesScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const dueLabel = useDueLabel();
   const { isOnline } = useAppStore();
   const [schedules, setSchedules] = useState<PMSchedule[]>([]);
@@ -89,26 +91,35 @@ export default function PMSchedulesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("pmSchedules.title")}</Text>
-        <View style={styles.stats}>
-          {overdueCount > 0 ? (
-            <View style={[styles.statChip, { backgroundColor: C.alertSoft, borderColor: C.alertLine }]}>
-              <Text style={[styles.statNum, { color: C.alert }]}>{overdueCount}</Text>
-              <Text style={[styles.statLabel, { color: C.alert }]}>{t("pmSchedules.overdue")}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+      >
+        <View style={styles.topBleed} />
+        <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+          <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
+          <Text style={styles.heroTitle}>{t("pmSchedules.title")}</Text>
+          <View style={styles.stats}>
+            {overdueCount > 0 ? (
+              <View style={[styles.statChip, { backgroundColor: C.alertSoft, borderColor: C.alertLine }]}>
+                <Text style={[styles.statNum, { color: C.alert }]}>{overdueCount}</Text>
+                <Text style={[styles.statLabel, { color: C.alert }]}>{t("pmSchedules.overdue")}</Text>
+              </View>
+            ) : null}
+            {dueCount > 0 ? (
+              <View style={[styles.statChip, { backgroundColor: C.cautionSoft, borderColor: C.cautionLine }]}>
+                <Text style={[styles.statNum, { color: C.caution }]}>{dueCount}</Text>
+                <Text style={[styles.statLabel, { color: C.caution }]}>{t("pmSchedules.dueToday")}</Text>
+              </View>
+            ) : null}
+            <View style={styles.statChip}>
+              <Text style={styles.statNum}>{schedules.length}</Text>
+              <Text style={styles.statLabel}>{t("pmSchedules.total")}</Text>
             </View>
-          ) : null}
-          {dueCount > 0 ? (
-            <View style={[styles.statChip, { backgroundColor: C.cautionSoft, borderColor: C.cautionLine }]}>
-              <Text style={[styles.statNum, { color: C.caution }]}>{dueCount}</Text>
-              <Text style={[styles.statLabel, { color: C.caution }]}>{t("pmSchedules.dueToday")}</Text>
-            </View>
-          ) : null}
-          <View style={styles.statChip}>
-            <Text style={styles.statNum}>{schedules.length}</Text>
-            <Text style={styles.statLabel}>{t("pmSchedules.total")}</Text>
           </View>
         </View>
+
         <View style={styles.filters}>
           {(["all", "due", "overdue"] as const).map((f) => (
             <TouchableOpacity
@@ -123,13 +134,7 @@ export default function PMSchedulesScreen() {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
-      >
+        <View style={styles.body}>
         <SectionLabel hint={`${filtered.length} ${t("pmSchedules.schedules")}`}>
           {filter === "all" ? t("pmSchedules.allTasks") : filter === "due" ? t("pmSchedules.dueToday") : t("pmSchedules.overdue")}
         </SectionLabel>
@@ -172,6 +177,7 @@ export default function PMSchedulesScreen() {
             </Text>
           </View>
         ) : null}
+        </View>
       </ScrollView>
     </View>
   );
@@ -180,17 +186,18 @@ export default function PMSchedulesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  header: {
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
+  hero: {
     paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line2,
-    backgroundColor: C.paper,
-    gap: 10,
+    paddingBottom: 20,
+    backgroundColor: shellTokens.bg,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    gap: 4,
   },
-  title: { fontSize: 22, fontWeight: "700", color: C.ink },
-  stats: { flexDirection: "row", gap: 8 },
+  heroKicker: { color: shellTokens.ink3, fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600" },
+  stats: { flexDirection: "row", gap: 8, marginTop: 10 },
   statChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 14, fontWeight: "700", color: C.ink },
   statLabel: { fontSize: 11, color: C.ink3 },
-  filters: { flexDirection: "row", gap: 6 },
+  filters: { flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 14 },
   filterBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -217,7 +224,8 @@ const styles = StyleSheet.create({
   filterLabel: { fontSize: 12, fontWeight: "600", color: C.ink3 },
   filterLabelActive: { color: C.paper },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32, gap: 8 },
+  content: { paddingBottom: 32 },
+  body: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
   card: {
     backgroundColor: C.surface,
     borderWidth: 1,
