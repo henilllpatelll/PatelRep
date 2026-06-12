@@ -32,6 +32,26 @@ export type UserRole =
   | "front_desk"
   | "gm";
 
+const APP_ROLES: ReadonlySet<string> = new Set([
+  "housekeeper",
+  "inspector",
+  "engineer",
+  "housekeeping_supervisor",
+  "chief_engineer",
+  "front_desk",
+  "gm",
+]);
+
+/** Normalize a JWT claim to a PatelRep app role. The Supabase JWT hook puts
+ *  the app role in the `user_role` claim and leaves top-level `role` as
+ *  "authenticated" (PostgREST needs it) — never cast `role` directly. */
+export function toAppRole(...candidates: Array<string | null | undefined>): UserRole | null {
+  for (const candidate of candidates) {
+    if (candidate && APP_ROLES.has(candidate)) return candidate as UserRole;
+  }
+  return null;
+}
+
 export interface UserProfile {
   id: string;
   tenant_id: string;

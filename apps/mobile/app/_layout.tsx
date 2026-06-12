@@ -7,7 +7,7 @@ import NetInfo from "@react-native-community/netinfo";
 import "@/i18n";
 import { useAppStore } from "@/stores/appStore";
 import { syncOnConnect } from "@/lib/offline/sync";
-import { supabase } from "@/lib/supabase";
+import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
 
@@ -24,13 +24,14 @@ export default function RootLayout() {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
         if (session?.user) {
-          // Decode JWT to get hotel_id and role from custom claims (migration 019 hook)
+          // Decode JWT custom claims (migration 019 hook). The app role lives in
+          // `user_role`; top-level `role` stays "authenticated" for PostgREST.
           let jwtHotelId: string | undefined;
-          let jwtRole: string | undefined;
+          let jwtRole: ReturnType<typeof toAppRole> = null;
           try {
             const payload = JSON.parse(atob(session.access_token.split(".")[1]));
             jwtHotelId = payload.hotel_id;
-            jwtRole = payload.role;
+            jwtRole = toAppRole(payload.user_role, payload.role);
           } catch { /* malformed JWT — unlikely */ }
 
           const { data: profile } = await supabase
@@ -39,27 +40,30 @@ export default function RootLayout() {
             .eq("id", session.user.id)
             .maybeSingle();
 
-          const baseUser: UserProfile = profile
-            ? ({ ...profile, role: (jwtRole ?? profile.role) } as UserProfile)
+          // user_profiles has no role column — the JWT claim is the only base source.
+          const baseUser: UserProfile | null = profile
+            ? ({ ...profile, role: jwtRole ?? "housekeeper" } as UserProfile)
             : jwtHotelId && jwtRole
               ? {
                   id: session.user.id,
                   tenant_id: jwtHotelId,
-                  role: jwtRole as UserProfile["role"],
+                  role: jwtRole,
                   full_name: session.user.email?.split("@")[0] ?? "User",
                   language_pref: "en",
                 }
-              : null as unknown as UserProfile;
+              : null;
 
           if (baseUser) {
             // Fetch effective_role for schedule overrides (non-blocking)
             try {
-              const me = await api.get<{ data?: { effective_role?: string } }>("/auth/me");
-              const effectiveRole = me?.data?.effective_role;
-              setUser(effectiveRole ? { ...baseUser, effective_role: effectiveRole as UserProfile["role"] } : baseUser);
+              const me = await api.get<{ data?: { effective_role?: string } }>("/staff/me/effective-role");
+              const effectiveRole = toAppRole(me?.data?.effective_role);
+              setUser(effectiveRole ? { ...baseUser, effective_role: effectiveRole } : baseUser);
             } catch {
               setUser(baseUser);
             }
+          } else {
+            setUser(null);
           }
         } else {
           setUser(null);

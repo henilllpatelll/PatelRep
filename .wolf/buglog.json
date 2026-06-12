@@ -1233,6 +1233,44 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-12T00:00:00"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-06-12T13:58:14.451Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/lib/supabase.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T13:58:14.451Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-06-12T00:00:00",
+      "error_message": "Sandra (housekeeping_supervisor) sees the housekeeper design on mobile — every non-housekeeper role does",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "Mobile auth bootstrap read the wrong JWT claim: the Supabase hook stores the app role in `user_role` and leaves top-level `role` as 'authenticated' (PostgREST requirement), but mobile read payload.role -> 'authenticated' for everyone. Fallback profile.role reads a column that does not exist in user_profiles, and the effective-role rescue called /auth/me expecting {data:{effective_role}} which /auth/me never returns (real endpoint is GET /staff/me/effective-role). getTabsForRole('authenticated') hits the default case = housekeeper tabs.",
+      "fix": "Added toAppRole() normalizer in lib/supabase.ts (accepts only the 7 app roles, never 'authenticated'); _layout.tsx now decodes toAppRole(payload.user_role, payload.role) and fetches /staff/me/effective-role for schedule overrides. Mirrors the web fix from 2026-06-05 (getAppRoleFromSources/toAppRole).",
+      "tags": [
+        "mobile",
+        "auth",
+        "jwt",
+        "role-routing",
+        "user_role-claim",
+        "supervisor"
+      ],
+      "related_bugs": [
+        "bug-074",
+        "bug-075"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T00:00:00"
     }
   ]
 }
