@@ -13,6 +13,20 @@ import { useRole } from '@/lib/hooks/useRole'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { Pill, AILabel, Mono } from '@/components/ui/primitives'
+import { TasksAIPanel } from '@/components/tasks/TasksAIPanel'
+import { buildTaskQueue, type TaskBucket, type TaskQueueEntry } from '@/lib/ai/taskQueue'
+
+const BUCKET_LABELS: Record<TaskBucket, string> = {
+  overdue: 'Overdue',
+  now: 'Do now',
+  today: 'Today',
+}
+
+const BUCKET_DOT: Record<TaskBucket, string> = {
+  overdue: 'var(--alert)',
+  now: 'var(--caution)',
+  today: 'var(--info)',
+}
 
 const TASK_TYPES: Array<{ value: TaskType; label: string }> = [
   { value: 'housekeeping', label: 'Housekeeping' },
@@ -111,6 +125,10 @@ function sortTasksFlat(tasks: Task[], now: number | null): Task[] {
 function TaskRow({
   task,
   isOverdue,
+  position,
+  confirming,
+  onRequestComplete,
+  onCancelComplete,
   onOpen,
   onStatusChange,
   onEdit,
@@ -119,6 +137,10 @@ function TaskRow({
 }: {
   task: Task
   isOverdue: boolean
+  position?: number
+  confirming?: boolean
+  onRequestComplete?: (t: Task) => void
+  onCancelComplete?: () => void
   onOpen: (t: Task) => void
   onStatusChange: (id: string, s: TaskStatus) => void
   onEdit: (t: Task) => void
@@ -131,22 +153,28 @@ function TaskRow({
     <div
       role="button"
       tabIndex={0}
-      className={`relative flex items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
+      className={`relative flex flex-wrap items-center gap-[11px] px-3 py-[10px] border-b border-[var(--line-2)] last:border-b-0 hover:bg-surface-2 cursor-pointer transition-colors ${isDone ? 'opacity-50' : ''}`}
       onClick={() => onOpen(task)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(task) } }}
     >
       {isOverdue && (
         <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[var(--alert)] rounded-l" />
       )}
+      {position != null && (
+        <Mono className="w-[26px] shrink-0 text-right text-[10.5px] font-bold text-ink4">#{position}</Mono>
+      )}
       <span
         role="checkbox"
         aria-checked={isDone}
+        aria-label={`Mark ${task.title} done`}
         tabIndex={-1}
         className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-[var(--line)] shrink-0 flex items-center justify-center hover:border-[var(--accent)] transition-colors"
         onClick={(e) => {
           e.stopPropagation()
           if (task.status === 'open') onStatusChange(task.id, 'in_progress')
-          else if (task.status === 'in_progress') onStatusChange(task.id, 'completed')
+          // Completing needs an explicit confirmation — a stray click must not
+          // close out real work (matches the mobile Tasks contract).
+          else if (task.status === 'in_progress') onRequestComplete?.(task)
         }}
       >
         {isDone && (
@@ -190,6 +218,28 @@ function TaskRow({
           onDelete={() => onDelete(task)}
         />
       </div>
+
+      {confirming && (
+        <div
+          className="anim-fade flex w-full items-center gap-2.5 border-t border-[var(--line-2)] pt-2 pl-[29px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="flex-1 text-[12.5px] font-medium text-ink2">Mark this task done?</span>
+          <button
+            onClick={() => onStatusChange(task.id, 'completed')}
+            disabled={updating}
+            className="rounded-lg bg-accent px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          >
+            Done
+          </button>
+          <button
+            onClick={() => onCancelComplete?.()}
+            className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-[12.5px] font-medium text-ink2 hover:bg-surface-3"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -501,6 +551,7 @@ function TasksPageContent() {
   const [drawerEditMode, setDrawerEditMode] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
   const [now, setNow] = useState<number | null>(null)
+  const [confirmCompleteId, setConfirmCompleteId] = useState<string | null>(null)
 
   function handleTabChange(tab: 'all' | TaskStatus) {
     setStatusFilter(tab)
@@ -541,7 +592,10 @@ function TasksPageContent() {
     },
   })
 
-  const handleStatusChange = (taskId: string, status: TaskStatus) => updateStatus({ taskId, status })
+  const handleStatusChange = (taskId: string, status: TaskStatus) => {
+    setConfirmCompleteId(null)
+    updateStatus({ taskId, status })
+  }
 
   const handleComment = async (taskId: string, comment: string) => {
     await tasksApi.addComment(taskId, comment)
@@ -564,6 +618,19 @@ function TasksPageContent() {
   const inProgressCount = activeTasks.filter((t) => t.status === 'in_progress').length
 
   const sortedTasks = sortTasksFlat(tasks, now)
+
+  // Smart-order view (matches mobile): active tabs group into Overdue / Do now /
+  // Today with queue positions; Completed/Cancelled tabs keep the flat list.
+  const smartView = now != null && (statusFilter === 'all' || statusFilter === 'open' || statusFilter === 'in_progress')
+  const queue = smartView ? buildTaskQueue(tasks, now) : []
+  const sections = smartView
+    ? (['overdue', 'now', 'today'] as TaskBucket[])
+        .map((bucket) => ({ bucket, entries: queue.filter((entry) => entry.bucket === bucket) }))
+        .filter((section) => section.entries.length > 0)
+    : []
+  const doneTasks = smartView
+    ? sortTasksFlat(tasks.filter((t) => t.status === 'completed' || t.status === 'cancelled'), now)
+    : []
 
   const STATUS_TABS = [
     { value: 'all' as const, label: 'All' },
@@ -599,6 +666,15 @@ function TasksPageContent() {
           <Plus size={15} />New task
         </button>
       </div>
+
+      {/* AI briefing + natural-language composer (matches mobile Tasks) */}
+      {now != null && statusFilter !== 'completed' && statusFilter !== 'cancelled' && (
+        <TasksAIPanel
+          tasks={tasks}
+          now={now}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+        />
+      )}
 
       {/* Filters row */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -657,6 +733,61 @@ function TasksPageContent() {
           >
             <Plus size={14} />New Task
           </button>
+        </div>
+      ) : smartView ? (
+        <div className="space-y-5">
+          {sections.map((section) => (
+            <div key={section.bucket} className="anim-rise">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BUCKET_DOT[section.bucket] }} />
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink3">{BUCKET_LABELS[section.bucket]}</span>
+                <Mono className="text-[11px] font-bold text-ink4">{section.entries.length}</Mono>
+                <span className="h-px flex-1 bg-[var(--line-2)]" />
+              </div>
+              <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">
+                {section.entries.map((entry: TaskQueueEntry) => (
+                  <TaskRow
+                    key={entry.task.id}
+                    task={entry.task}
+                    position={entry.position}
+                    isOverdue={entry.bucket === 'overdue'}
+                    confirming={confirmCompleteId === entry.task.id}
+                    onRequestComplete={(t) => setConfirmCompleteId(t.id)}
+                    onCancelComplete={() => setConfirmCompleteId(null)}
+                    onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}
+                    onDelete={setDeleteTarget}
+                    updating={updating}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          {doneTasks.length > 0 && (
+            <div className="anim-rise">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[var(--ready)]" />
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink3">Done</span>
+                <Mono className="text-[11px] font-bold text-ink4">{doneTasks.length}</Mono>
+                <span className="h-px flex-1 bg-[var(--line-2)]" />
+              </div>
+              <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">
+                {doneTasks.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    isOverdue={false}
+                    onOpen={(t) => { setDrawerEditMode(false); setSelectedTask(t) }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(t) => { setDrawerEditMode(true); setSelectedTask(t) }}
+                    onDelete={setDeleteTarget}
+                    updating={updating}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">

@@ -108,18 +108,17 @@ beforeEach(() => {
 });
 
 describe("MyRoomsScreen", () => {
-  it("renders the shell header progress and smart-order queue by default", async () => {
+  it("renders assignment progress and summary chips", async () => {
     const { getAllByText, getByText } = render(<MyRoomsScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    expect(getByText("rooms.title")).toBeTruthy();
-    expect(getByText("1/6")).toBeTruthy();
-    expect(getByText("17%")).toBeTruthy();
-    expect(getAllByText(/rooms\.remaining/).length).toBeGreaterThanOrEqual(1);
-    expect(getAllByText(/rooms\.doneTab/).length).toBeGreaterThanOrEqual(1);
-    expect(getByText("ai.smartOrder")).toBeTruthy();
-    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+    expect(getByText("6 assigned")).toBeTruthy();
+    expect(getByText("1 / 6 completed")).toBeTruthy();
+    expect(getAllByText("Needs Attention").length).toBeGreaterThanOrEqual(2);
+    expect(getByText("To Clean")).toBeTruthy();
+    expect(getAllByText("In Progress").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText("Ready").length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders departure, full, and light clean-type labels", async () => {
@@ -144,8 +143,6 @@ describe("MyRoomsScreen", () => {
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    // Inspected rooms live in the Done tab
-    fireEvent.press(getByText(/rooms\.doneTab/));
     expect(getByText("Full Done")).toBeTruthy();
     expect(getByText("Light Done")).toBeTruthy();
     expect(queryByText("Full")).toBeNull();
@@ -162,47 +159,37 @@ describe("MyRoomsScreen", () => {
     await waitFor(() => expect(getByText("NEEDS ATTENTION")).toBeTruthy());
     expect(getByText("102")).toBeTruthy();
     expect(getByText("DND")).toBeTruthy();
+    expect(getByText("Not Checked Out")).toBeTruthy();
     expect(getByText("Review")).toBeTruthy();
     expect(queryByText("Start")).toBeNull();
   });
 
-  it("puts checked-out departure rooms in the smart queue with a Start action", async () => {
+  it("puts checked-out departure rooms in Next to Clean", async () => {
     mockRooms = [mockRooms[0], mockRooms[1]];
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
     const { getByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("Start")).toBeTruthy());
+    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
     expect(getByText("101")).toBeTruthy();
+    expect(getByText("Start")).toBeTruthy();
     expect(getByText("NEEDS ATTENTION")).toBeTruthy();
     expect(getByText("102")).toBeTruthy();
   });
 
-  it("Done tab shows submitted, ready, and blocked rooms only", async () => {
-    mockRooms = [
-      ...mockRooms,
-      makeRoom({ id: "submitted", room_number: "107", status: "CLEAN" }),
-      makeRoom({ id: "blocked", room_number: "108", status: "OUT_OF_SERVICE" }),
-    ];
-    mockStore.myRooms = mockRooms;
-    mockApiGet.mockResolvedValue({ data: mockRooms });
-
+  it("filter chips switch visible sections", async () => {
     const { getByText, queryByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("ai.smartOrder")).toBeTruthy());
-    expect(queryByText("SUBMITTED")).toBeNull();
+    await waitFor(() => expect(getByText("NEXT TO CLEAN")).toBeTruthy());
+    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
 
-    fireEvent.press(getByText(/rooms\.doneTab/));
+    fireEvent.press(getByText("Started"));
 
-    expect(getByText("SUBMITTED")).toBeTruthy();
-    expect(getByText("READY")).toBeTruthy();
-    expect(getByText("BLOCKED / OUT OF SERVICE")).toBeTruthy();
-    expect(getByText("107")).toBeTruthy();
-    expect(getByText("104")).toBeTruthy();
-    expect(getByText("108")).toBeTruthy();
-    // active queue rooms are not in the Done tab
+    expect(getByText("IN PROGRESS")).toBeTruthy();
+    expect(getByText("103")).toBeTruthy();
+    expect(queryByText("NEXT TO CLEAN")).toBeNull();
     expect(queryByText("101")).toBeNull();
-    expect(queryByText("103")).toBeNull();
+    expect(queryByText("NEEDS ATTENTION")).toBeNull();
   });
 });

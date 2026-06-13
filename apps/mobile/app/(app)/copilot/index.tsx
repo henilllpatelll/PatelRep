@@ -119,11 +119,10 @@ export default function CopilotScreen() {
     setLoading(true);
 
     try {
-      // context must be an object — the API validates Optional[dict] and reads
-      // intent_hint from it; a bare string fails validation with a 422.
       const response = await api.post<CopilotResponse>("/ai/copilot/chat", {
         message: text,
-        context: { source: "mobile", role: user?.role ?? null },
+        role: user?.role,
+        context: "mobile",
       });
 
       const msgId = (Date.now() + 1).toString();
@@ -244,9 +243,6 @@ export default function CopilotScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="sparkles" size={22} color={darkTheme.ai.primary} />
-            </View>
             <Text style={styles.emptyTitle}>{t("copilot.title")}</Text>
             <View style={styles.quickActions}>
               {QUICK_ACTIONS.map((action) => (
@@ -311,17 +307,6 @@ const styles = StyleSheet.create({
   messages: { padding: 12, gap: 8 },
   emptyFlex: { flex: 1 },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  emptyIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: darkTheme.ai.soft,
-    borderWidth: 1,
-    borderColor: darkTheme.ai.line,
-    marginBottom: 14,
-  },
   emptyTitle: { fontSize: 22, fontWeight: "700", color: darkTheme.textPrimary, marginBottom: 24 },
   quickActions: { gap: 10, width: "100%" },
   quickAction: {

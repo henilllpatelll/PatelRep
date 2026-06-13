@@ -1,8 +1,6 @@
 import React from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { StyleSheet } from "react-native";
+import { render, waitFor } from "@testing-library/react-native";
 import type { Room } from "@/stores/appStore";
-import { C } from "@/components/shared/tokens";
 
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
@@ -42,11 +40,7 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 jest.mock("@expo/vector-icons", () => ({
-  Ionicons: ({ name }: { name: string }) => {
-    const React = require("react");
-    const { Text } = require("react-native");
-    return React.createElement(Text, { testID: `icon-${name}` }, name);
-  },
+  Ionicons: () => null,
 }));
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
 jest.mock("@/components/housekeeping/FoundItemModal", () => () => null);
@@ -88,20 +82,19 @@ beforeEach(() => {
 });
 
 describe("RoomDetailScreen", () => {
-  it("shows a compact last-action line in the sticky bar instead of a status section", async () => {
+  it("shows a compact last action line instead of full status history", async () => {
     const { getByText, queryByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
-    await waitFor(() => expect(getByText(/Marked clean/)).toBeTruthy());
-    expect(queryByText("Current Status")).toBeNull();
+    await waitFor(() => expect(getByText(/Last action:/)).toBeTruthy());
+    expect(getByText(/Marked clean/)).toBeTruthy();
     expect(queryByText("Status History")).toBeNull();
   });
 
   it("shows Before you enter near the top for unsafe rooms and does not offer Start", async () => {
     mockRooms = [
       makeRoom({
-        // OCCUPIED departure: the only case that warns "Not checked out"
-        status: "OCCUPIED",
+        status: "DIRTY",
         clean_type: "DEP",
         clean_type_label: "Departure",
         dnd_flag: true,
@@ -154,32 +147,10 @@ describe("RoomDetailScreen", () => {
     const { getByLabelText, getByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(getByText("Cleaning Checklist")).toBeTruthy());
-    const fullChip = getByLabelText("Full clean type");
-    expect(fullChip).toBeTruthy();
-    expect(StyleSheet.flatten(fullChip.props.style)).toEqual(
-      expect.objectContaining({
-        backgroundColor: C.cautionSoft,
-        borderColor: C.cautionLine,
-      }),
-    );
+    expect(getByLabelText("Full clean type")).toBeTruthy();
     expect(getByText("Bed made")).toBeTruthy();
     expect(getByText("Towels replaced")).toBeTruthy();
     expect(getByText("Floors cleaned")).toBeTruthy();
-  });
-
-  it("removes Full and Light clean-type symbols from pickup room hero chips", async () => {
-    mockRooms = [makeRoom({ status: "PICKUP", clean_type: "FULL", clean_type_label: "Full" })];
-
-    const { getByLabelText, queryByTestId, rerender } = render(<RoomDetailScreen />);
-
-    await waitFor(() => expect(getByLabelText("Full clean type")).toBeTruthy());
-    expect(queryByTestId("icon-refresh-circle-outline")).toBeNull();
-
-    mockRooms = [makeRoom({ status: "PICKUP", clean_type: "LIGHT", clean_type_label: "Light" })];
-    rerender(<RoomDetailScreen />);
-
-    await waitFor(() => expect(getByLabelText("Light clean type")).toBeTruthy());
-    expect(queryByTestId("icon-flash-outline")).toBeNull();
   });
 
   it("keeps room detail actions compact and button-driven", async () => {
@@ -190,42 +161,5 @@ describe("RoomDetailScreen", () => {
     expect(getByText("Lost & Found")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
     expect(mockSetMyRooms).not.toHaveBeenCalled();
-  });
-
-  it("lets housekeepers remove the latest quick-blocker note instead of showing Undo", async () => {
-    mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
-
-    const { getByText, queryByText } = render(<RoomDetailScreen />);
-
-    await waitFor(() => expect(getByText("blockers.guestInside")).toBeTruthy());
-    fireEvent.press(getByText("blockers.guestInside"));
-
-    await waitFor(() =>
-      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Guest inside" }),
-    );
-    expect(getByText("Latest note")).toBeTruthy();
-    expect(getByText("BLOCKER: Guest inside")).toBeTruthy();
-    expect(getByText("Remove note")).toBeTruthy();
-    expect(queryByText("Undo")).toBeNull();
-
-    fireEvent.press(getByText("Remove note"));
-
-    expect(queryByText("BLOCKER: Guest inside")).toBeNull();
-    expect(queryByText("Remove note")).toBeNull();
-  });
-
-  it("formats typed come-back-later time before saving the blocker note", async () => {
-    mockRooms = [makeRoom({ status: "PICKUP", latest_note: null, latest_note_at: null })];
-
-    const { getByPlaceholderText, getByText } = render(<RoomDetailScreen />);
-
-    await waitFor(() => expect(getByText("blockers.comeBackLater")).toBeTruthy());
-    fireEvent.press(getByText("blockers.comeBackLater"));
-    fireEvent.changeText(getByPlaceholderText("blockers.timePlaceholder"), "1:30");
-    fireEvent.press(getByText("blockers.report"));
-
-    await waitFor(() =>
-      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Come back later — 1:30 PM" }),
-    );
   });
 });

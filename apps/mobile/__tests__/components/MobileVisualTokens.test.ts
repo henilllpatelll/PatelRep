@@ -2,14 +2,14 @@ import { C, aiTokens, darkAiTokens, darkTheme, lightTheme, monoFont, statusToken
 import { getRoomTone, getToneColors } from "@/components/shared/mobileHandoff";
 
 describe("mobile visual tokens", () => {
-  it("uses the Evening Lobby chrome with the forest-green main palette", () => {
+  it("uses the updated warm hospitality light and dark foundations", () => {
     expect(lightTheme.background).toBe("#F8F1E7");
     expect(lightTheme.surface).toBe("#FFFDFC");
     expect(lightTheme.primaryAction).toBe("#4F7A5A");
 
     expect(darkTheme.background).toBe("#0F0D0B");
     expect(darkTheme.surface).toBe("#191512");
-    expect(darkTheme.surfaceElevated).toBe("#232019");
+    expect(darkTheme.surfaceElevated).toBe("#241E1A");
     expect(darkTheme.primaryAction).toBe("#7EA889");
 
     expect(C.paper).toBe(lightTheme.background);

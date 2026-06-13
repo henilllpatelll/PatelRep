@@ -1,11 +1,5 @@
 import { Platform } from "react-native";
 
-/* ─── PatelRep Mobile — "Evening Lobby" design system ───────────────────────
-   Dark warm charcoal-green chrome (tab bar, heroes) framing a warm paper
-   canvas. Forest-green primary action. Status colors are a protected contract
-   shared with the web app: teal ready, blue clean, rose dirty/occupied,
-   amber pickup, stone out-of-order. Do not change their meanings or hues. */
-
 export const statusTokens = {
   ready: "#0E7468",
   clean: "#2F6F95",
@@ -52,35 +46,22 @@ export const darkAiTokens = {
   glow: "rgba(167, 139, 250, 0.42)",
 } as const;
 
-/** The dark "Evening Lobby" chrome — a designed constant across themes.
- *  Used for the tab bar, screen heroes, and AI surfaces. */
-export const shellTokens = {
-  bg: "#20251F",
-  surface: "#2A2F28",
-  raised: "#333931",
-  line: "#3A4038",
-  ink: "#F1EDE2",
-  ink2: "#B9B5A7",
-  ink3: "#84816F",
-} as const;
-
 export const lightTheme = {
   background: "#F8F1E7",
   surface: "#FFFDFC",
-  surfaceSubtle: "#FBF9F3",
-  surfaceMuted: "#F0EBE1",
+  surfaceSubtle: "#FBF7F0",
+  surfaceMuted: "#F1E9DD",
   textPrimary: "#2C2621",
   textSecondary: "#766D63",
-  textMuted: "#807A70",
+  textMuted: "#9A9084",
   border: "#E4D6C4",
-  borderSubtle: "#EEE8DB",
+  borderSubtle: "#EFE5D6",
   primary: "#2F5D50",
   primaryAction: "#4F7A5A",
   primarySoft: "#E0EBE1",
   primaryLine: "#B9CFBC",
   accentBrass: "#C29A4A",
   accentClay: "#E8B89A",
-  shell: shellTokens,
   ai: aiTokens,
   status: statusTokens,
 } as const;
@@ -88,13 +69,13 @@ export const lightTheme = {
 export const darkTheme = {
   background: "#0F0D0B",
   surface: "#191512",
-  surfaceElevated: "#232019",
-  surfaceMuted: "#2B2720",
-  textPrimary: "#F1EDE4",
-  textSecondary: "#C5BEAF",
-  textMuted: "#918A7E",
-  border: "#353026",
-  borderSubtle: "#2B2720",
+  surfaceElevated: "#241E1A",
+  surfaceMuted: "#302821",
+  textPrimary: "#F4EDE3",
+  textSecondary: "#B8AA9A",
+  textMuted: "#8F8172",
+  border: "#3A3028",
+  borderSubtle: "#302821",
   primary: "#6FA086",
   primaryAction: "#7EA889",
   primarySoft: "rgba(126, 168, 137, 0.18)",
@@ -103,7 +84,6 @@ export const darkTheme = {
   accentClay: "#C98262",
   glass: "rgba(255, 255, 255, 0.06)",
   glassBorder: "rgba(255, 255, 255, 0.10)",
-  shell: shellTokens,
   ai: darkAiTokens,
   status: darkStatusTokens,
 } as const;
@@ -133,13 +113,6 @@ export const C = {
   brassSoft: "#F4E7C6",
   brassLine: "#E2C679",
   clay: lightTheme.accentClay,
-  shell: shellTokens.bg,
-  shellSurface: shellTokens.surface,
-  shellRaised: shellTokens.raised,
-  shellLine: shellTokens.line,
-  shellInk: shellTokens.ink,
-  shellInk2: shellTokens.ink2,
-  shellInk3: shellTokens.ink3,
   ready: statusTokens.ready,
   readySoft: statusTokens.readySoft,
   readyLine: statusTokens.readyLine,

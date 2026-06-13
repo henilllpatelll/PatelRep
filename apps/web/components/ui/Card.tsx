@@ -5,15 +5,17 @@ interface CardProps {
   children: ReactNode
   className?: string
   hover?: boolean
+  /** Lift + stronger shadow on hover — for clickable cards */
+  interactive?: boolean
   accent?: string
 }
 
-export function Card({ children, className, hover = true, accent }: CardProps) {
+export function Card({ children, className, hover = true, interactive = false, accent }: CardProps) {
   return (
     <div
       className={cn(
         'bg-surface border border-line rounded-[var(--r-lg)] shadow-card',
-        hover && 'hover:shadow-card-hover transition-shadow duration-150',
+        interactive ? 'lift cursor-pointer' : hover && 'hover:shadow-card-hover transition-shadow duration-base ease-out-soft',
         accent && 'border-l-[3px]',
         className
       )}

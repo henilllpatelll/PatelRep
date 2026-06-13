@@ -55,7 +55,7 @@ export function FeedbackButton() {
   }
 
   return (
-    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-50 md:bottom-6 md:left-6">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-50 md:bottom-6 md:left-[260px]">
       {open && (
         <div
           role="dialog"
