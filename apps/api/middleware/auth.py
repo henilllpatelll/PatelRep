@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
+from jose import jwt, JWTError, JWKError
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ async def _decode_token(token: str) -> dict:
             algorithms=["ES256"],
             audience="authenticated"
         )
-    except JWTError as e:
+    except (JWTError, JWKError) as e:
         logger.warning("JWT verification failed: %s", e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
