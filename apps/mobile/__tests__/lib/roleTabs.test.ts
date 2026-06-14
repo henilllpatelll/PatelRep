@@ -1,18 +1,13 @@
 import { getTabsForRole } from "@/lib/navigation/roleTabs";
 
 describe("getTabsForRole", () => {
-  it("uses the handoff housekeeper tab order with Copilot centered", () => {
+  it("uses the handoff housekeeper tab order", () => {
     expect(getTabsForRole("housekeeper").map((tab) => tab.key)).toEqual([
       "home",
       "rooms",
-      "copilot",
       "tasks",
       "me",
     ]);
-    expect(getTabsForRole("housekeeper")[2]).toMatchObject({
-      key: "copilot",
-      special: true,
-    });
   });
 
   it("maps inspection roles to the supervisor tab set", () => {
@@ -21,19 +16,35 @@ describe("getTabsForRole", () => {
       "board",
       "assignments",
       "inspect",
-      "copilot",
       "me",
     ]);
   });
 
-  it("maps engineer roles to the engineering tab set", () => {
+  it("maps engineer to Orders, Rooms, Assets, and More", () => {
+    expect(getTabsForRole("engineer").map((tab) => tab.key)).toEqual([
+      "home",
+      "orders",
+      "rooms",
+      "assets",
+      "more",
+    ]);
+    expect(getTabsForRole("engineer").map((tab) => tab.titleKey)).toEqual([
+      "tabs.home",
+      "tabs.orders",
+      "tabs.rooms",
+      "tabs.assets",
+      "tabs.more",
+    ]);
+  });
+
+  it("keeps chief_engineer on the same tabs as engineer", () => {
     expect(getTabsForRole("chief_engineer").map((tab) => tab.key)).toEqual([
       "home",
       "orders",
-      "copilot",
+      "rooms",
       "assets",
-      "pm",
-      "me",
+      "more",
     ]);
+    expect(getTabsForRole("chief_engineer")).toEqual(getTabsForRole("engineer"));
   });
 });

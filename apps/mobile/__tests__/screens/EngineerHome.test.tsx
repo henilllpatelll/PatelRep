@@ -48,11 +48,13 @@ jest.mock("@/lib/offline/db", () => ({
 import { router } from "expo-router";
 import { listWorkOrders, claimWorkOrder } from "@/lib/api/workOrders";
 import { getFailurePredictions } from "@/lib/api/assets";
+import { api } from "@/lib/api/client";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
 
 const mockList = listWorkOrders as jest.Mock;
 const mockClaim = claimWorkOrder as jest.Mock;
 const mockPredictions = getFailurePredictions as jest.Mock;
+const mockApiGet = api.get as jest.Mock;
 
 const openWO = {
   id: "wo-open",
@@ -79,6 +81,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockList.mockResolvedValue([]);
   mockPredictions.mockResolvedValue({ data: [] });
+  mockApiGet.mockResolvedValue({ data: [] });
 });
 
 describe("EngineerHome", () => {
@@ -133,5 +136,23 @@ describe("EngineerHome", () => {
     const { getByText } = render(<EngineerHome name="Dev Patel" />);
     await waitFor(() => expect(getByText(/Swap the belt before Friday/)).toBeTruthy());
     expect(getByText(/Fan-coil 209/)).toBeTruthy();
+  });
+
+  it("gives every engineer quick links to Orders, Rooms, Assets, and PM", async () => {
+    const { getByText, getByTestId } = render(<EngineerHome name="Dev Patel" />);
+    await waitFor(() => expect(getByTestId("engineer-clear")).toBeTruthy());
+
+    const links = [
+      ["home.engineer.quickOrders", "/(app)/work-orders"],
+      ["home.engineer.quickRooms", "/(app)/rooms"],
+      ["home.engineer.quickAssets", "/(app)/assets"],
+      ["home.engineer.quickPm", "/(app)/pm-schedules"],
+    ] as const;
+
+    for (const [label, href] of links) {
+      fireEvent.press(getByText(label));
+      expect(router.push).toHaveBeenLastCalledWith(href);
+    }
+    expect(mockApiGet).toHaveBeenCalledWith("/engineering/pm-schedules");
   });
 });

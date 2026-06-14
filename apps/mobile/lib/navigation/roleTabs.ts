@@ -14,6 +14,7 @@ export type RoleTabKey =
   | "board"
   | "assignments"
   | "pm"
+  | "more"
   | "requests"
   | "room-status"
   | "lost"
@@ -32,7 +33,6 @@ export type RoleTabDef = {
 const HOUSEKEEPER_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "rooms", name: "my-rooms/index", titleKey: "tabs.myRooms", icon: "bed-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
   { key: "tasks", name: "tasks/index", titleKey: "tabs.tasks", icon: "checkmark-circle-outline" },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
@@ -40,17 +40,16 @@ const HOUSEKEEPER_TABS: RoleTabDef[] = [
 const INSPECTOR_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "inspect", name: "inspect/index", titleKey: "tabs.inspect", icon: "shield-checkmark-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
   { key: "tasks", name: "tasks/index", titleKey: "tabs.tasks", icon: "checkmark-circle-outline" },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
 const ENGINEER_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
-  { key: "orders", name: "work-orders/index", titleKey: "tabs.workOrders", icon: "construct-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
+  { key: "orders", name: "work-orders/index", titleKey: "tabs.orders", icon: "construct-outline" },
+  { key: "rooms", name: "rooms/index", titleKey: "tabs.rooms", icon: "bed-outline" },
   { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
-  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+  { key: "more", name: "more/index", titleKey: "tabs.more", icon: "ellipsis-horizontal-circle-outline" },
 ];
 
 const SUPERVISOR_TABS: RoleTabDef[] = [
@@ -58,16 +57,6 @@ const SUPERVISOR_TABS: RoleTabDef[] = [
   { key: "board", name: "room-board/index", titleKey: "tabs.roomBoard", icon: "grid-outline" },
   { key: "assignments", name: "assignments/index", titleKey: "tabs.assignments", icon: "people-outline" },
   { key: "inspect", name: "inspect/index", titleKey: "tabs.inspect", icon: "shield-checkmark-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
-  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
-];
-
-const CHIEF_ENGINEER_TABS: RoleTabDef[] = [
-  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
-  { key: "orders", name: "work-orders/index", titleKey: "tabs.workOrders", icon: "construct-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
-  { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
-  { key: "pm", name: "pm-schedules/index", titleKey: "tabs.pmSchedules", icon: "calendar-outline" },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
@@ -84,7 +73,6 @@ const GM_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "alerts", name: "alerts/index", titleKey: "tabs.alerts", icon: "warning-outline" },
   { key: "staff", name: "staff/index", titleKey: "tabs.staff", icon: "people-circle-outline" },
-  { key: "copilot", name: "copilot/index", titleKey: "tabs.copilot", icon: "sparkles-outline", special: true },
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
@@ -93,7 +81,6 @@ const ALL_TAB_ARRAYS = [
   ...INSPECTOR_TABS,
   ...ENGINEER_TABS,
   ...SUPERVISOR_TABS,
-  ...CHIEF_ENGINEER_TABS,
   ...FRONT_DESK_TABS,
   ...GM_TABS,
 ];
@@ -101,6 +88,8 @@ const ALL_TAB_ARRAYS = [
 export const ALL_ROLE_TAB_ROUTES = Array.from(new Set(ALL_TAB_ARRAYS.map((tab) => tab.name)));
 
 export const HIDDEN_APP_ROUTES = [
+  "copilot/index",
+  "pm-schedules/index",
   "notifications/index",
   "scheduling/index",
   "sop/index",
@@ -116,9 +105,8 @@ export function getTabsForRole(role: UserRole): RoleTabDef[] {
     case "inspector":
       return INSPECTOR_TABS;
     case "engineer":
-      return ENGINEER_TABS;
     case "chief_engineer":
-      return CHIEF_ENGINEER_TABS;
+      return ENGINEER_TABS;
     case "housekeeping_supervisor":
       return SUPERVISOR_TABS;
     case "front_desk":

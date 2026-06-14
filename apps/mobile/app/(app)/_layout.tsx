@@ -1,8 +1,10 @@
 import { useEffect } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Tabs, router } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { C } from "@/components/shared/tokens";
@@ -12,6 +14,7 @@ import { listNotifications } from "@/lib/api/notifications";
 
 export default function AppLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
@@ -73,7 +76,7 @@ export default function AppLayout() {
   if (isLoading || !user) return null;
 
   return (
-    <>
+    <View style={styles.root}>
       <OfflineBanner />
       <Tabs
         screenOptions={{
@@ -107,29 +110,7 @@ export default function AppLayout() {
               title: t(tab.titleKey),
               headerShown: false,
               tabBarIcon: ({ color, size }) => (
-                <Ionicons
-                  name={tab.icon}
-                  size={tab.special ? size + 2 : size}
-                  color={tab.special ? "#fff" : color}
-                  style={
-                    tab.special
-                      ? {
-                          backgroundColor: C.ai,
-                          borderRadius: 20,
-                          marginTop: -18,
-                          width: 40,
-                          height: 40,
-                          padding: 10,
-                          borderWidth: 3,
-                          borderColor: C.shell,
-                          shadowColor: C.ai,
-                          shadowOpacity: 0.45,
-                          shadowRadius: 10,
-                          shadowOffset: { width: 0, height: 3 },
-                        }
-                      : undefined
-                  }
-                />
+                <Ionicons name={tab.icon} size={size} color={color} />
               ),
             }}
           />
@@ -150,6 +131,33 @@ export default function AppLayout() {
           />
         ))}
       </Tabs>
-    </>
+      <TouchableOpacity
+        accessibilityLabel="AI Copilot"
+        style={[styles.fab, { bottom: insets.bottom + 92 }]}
+        onPress={() => router.push("/(app)/copilot" as never)}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="sparkles" size={22} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  fab: {
+    position: "absolute",
+    right: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: C.ai,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: C.ai,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+});

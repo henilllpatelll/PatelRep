@@ -20,12 +20,15 @@
   "tabs": {
     "home": "Inicio",
     "myRooms": "Mis Cuartos",
+    "rooms": "Cuartos",
     "inspect": "Inspeccionar",
+    "orders": "Órdenes",
     "workOrders": "Órdenes de Trabajo",
     "tasks": "Tareas",
     "assets": "Activos",
     "copilot": "Copiloto",
     "profile": "Perfil",
+    "more": "Más",
     "roomBoard": "Tablero",
     "assignments": "Asignar",
     "pmSchedules": "MP",
@@ -95,7 +98,11 @@
       "benchClearHint": "Sin órdenes de trabajo abiertas por ahora. Los nuevos reportes aparecen aquí.",
       "pmTitle": "Mantenimiento preventivo",
       "pmAttention": "{{overdue}} vencidas · {{due}} vencen hoy",
-      "openOrders": "Abrir órdenes de trabajo"
+      "openOrders": "Abrir órdenes de trabajo",
+      "quickOrders": "Órdenes",
+      "quickRooms": "Cuartos",
+      "quickAssets": "Activos",
+      "quickPm": "MP"
     },
     "supervisor": {
       "shiftMeta": "Supervisora de Housekeeping",
@@ -212,6 +219,10 @@
     "doneAt": "Lista {{time}}",
     "ago": "hace {{time}}",
     "floor": "Piso {{floor}}",
+    "roomOccupancy": {
+      "occupied": "Ocupado",
+      "vacant": "Vacante"
+    },
     "factCreated": "Creada",
     "factDue": "Vence",
     "factCompleted": "Lista",
@@ -449,6 +460,53 @@
     "done": "Listo",
     "upcoming": "Próximo"
   },
+  "engineerRooms": {
+    "kicker": "Mantenimiento",
+    "summary": "{{vacant}} vacantes · {{occupied}} ocupados · {{ooo}} FdO",
+    "roomCount": "{{count}} cuartos",
+    "floor": "Piso {{floor}}",
+    "empty": "No hay cuartos en esta vista",
+    "emptyHint": "Desliza hacia abajo para actualizar el tablero en vivo.",
+    "detailKicker": "Detalle del cuarto",
+    "foStatus": "Estado FO",
+    "housekeepingStatus": "Limpieza",
+    "cleanType": "Tipo de limpieza",
+    "oooStatus": "Fuera de orden",
+    "openWorkOrders": "Órdenes abiertas",
+    "noOpenWorkOrders": "Sin órdenes abiertas",
+    "assets": "Activos",
+    "highRiskAsset": "Activo de alto riesgo",
+    "noAssetSignals": "Sin señales de activos",
+    "latestNote": "Última nota",
+    "createWorkOrder": "Crear orden de trabajo",
+    "viewRelatedWorkOrder": "Ver orden relacionada",
+    "cardStatus": {
+      "vacant": "Vacante",
+      "occupied": "Ocupado",
+      "ooo": "FdO"
+    },
+    "filters": {
+      "all": "Todo",
+      "vacant": "Vacantes",
+      "occupied": "Ocupados",
+      "ooo": "FdO"
+    }
+  },
+  "engineerMore": {
+    "kicker": "Mantenimiento",
+    "pmSchedules": "Programas de MP",
+    "pmSchedulesSub": "Lista de mantenimiento preventivo",
+    "copilot": "Copiloto IA",
+    "copilotSub": "Preguntar a IA o redactar trabajo",
+    "profile": "Perfil",
+    "profileSub": "Preferencias y cuenta",
+    "notifications": "Notificaciones",
+    "notificationsSub": "Alertas y asignaciones",
+    "sopLibrary": "Biblioteca SOP",
+    "sopLibrarySub": "Procedimientos y diagnóstico",
+    "scheduling": "Horario",
+    "schedulingSub": "Tus turnos y cobertura"
+  },
   "roomBoard": {
     "kicker": "Piso en vivo",
     "summary": "{{ready}} de {{total}} listos · {{working}} en progreso",
@@ -525,7 +583,7 @@
       "inspector": "Inspector",
       "engineer": "Técnico",
       "housekeeping_supervisor": "Supervisora HK",
-      "chief_engineer": "Jefe de Mantenimiento",
+      "chief_engineer": "Técnico",
       "front_desk": "Recepcionista",
       "gm": "Gerente"
     },

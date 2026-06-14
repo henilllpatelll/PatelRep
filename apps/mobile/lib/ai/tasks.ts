@@ -11,6 +11,7 @@ export type Task = {
   room_id?: string | null;
   room_number?: string | null;
   rooms?: { room_number?: string | null } | null;
+  location_text?: string | null;
   source?: string | null;
   ai_suggested?: boolean | null;
 };
@@ -37,7 +38,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 const DUE_SOON_MS = 2 * 60 * 60 * 1000;
 
 export function getTaskRoomNumber(task: Task): string | null {
-  return task.room_number ?? task.rooms?.room_number ?? null;
+  return task.room_number ?? task.rooms?.room_number ?? task.location_text ?? null;
 }
 
 function parseDue(task: Task): Date | null {

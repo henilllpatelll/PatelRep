@@ -29,6 +29,7 @@ import {
   uploadWorkOrderPhoto,
   workOrderPhotoUrl,
 } from "@/lib/api/workOrders";
+import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import {
   dueState,
   formatClock,
@@ -39,6 +40,8 @@ import {
   type WorkOrderComment,
   type WorkOrderPhoto,
 } from "@/lib/engineering/workOrders";
+import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
+import { localDate } from "@/lib/utils/date";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
 import { SectionHeader } from "@/components/shared/evening";
@@ -56,6 +59,27 @@ const STATUS_TONE: Record<string, { fg: string; bg: string; line: string }> = {
   completed: { fg: C.ready, bg: C.readySoft, line: C.readyLine },
   cancelled: { fg: C.ooo, bg: C.oooSoft, line: C.oooLine },
 };
+
+type RoomOccupancy = "occupied" | "vacant";
+
+async function resolveRoomOccupancy(wo: WorkOrder): Promise<RoomOccupancy | null> {
+  if (!wo.room_id && !wo.rooms?.room_number) return null;
+
+  try {
+    const board = await fetchBoard(localDate());
+    const rooms = normalizeBoardRooms(board);
+    const match = rooms.find(
+      (room) =>
+        (wo.room_id != null && room.roomId === wo.room_id) ||
+        (wo.rooms?.room_number != null && room.roomNumber === wo.rooms.room_number),
+    );
+
+    if (!match?.foStatus) return null;
+    return match.foStatus === "OCC" ? "occupied" : "vacant";
+  } catch {
+    return null;
+  }
+}
 
 function StatusPill({ status, label }: { status: string; label: string }) {
   const tone = STATUS_TONE[status] ?? STATUS_TONE.open;
@@ -80,6 +104,7 @@ export default function WorkOrderDetailScreen() {
   const role = user?.effective_role ?? user?.role;
 
   const [wo, setWo] = useState<WorkOrder | null>(null);
+  const [roomOccupancy, setRoomOccupancy] = useState<RoomOccupancy | null>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
   const [parts, setParts] = useState("");
@@ -89,9 +114,12 @@ export default function WorkOrderDetailScreen() {
 
   const load = useCallback(async () => {
     try {
-      setWo(await getWorkOrder(String(woId)));
+      const nextWo = await getWorkOrder(String(woId));
+      setWo(nextWo);
+      setRoomOccupancy(await resolveRoomOccupancy(nextWo));
     } catch {
       setWo(null);
+      setRoomOccupancy(null);
     } finally {
       setLoading(false);
     }
@@ -108,7 +136,7 @@ export default function WorkOrderDetailScreen() {
   }, []);
 
   const isMine = wo?.assigned_to != null && wo.assigned_to === user?.id;
-  const isManager = role === "chief_engineer" || role === "gm";
+  const isManager = role === "gm";
   const canClaim = wo?.status === "open" && !wo.assigned_to;
   const canComplete = wo?.status === "in_progress" && (isManager || isMine);
   const canResume = wo?.status === "on_hold" && (isManager || isMine);
@@ -253,6 +281,7 @@ export default function WorkOrderDetailScreen() {
   const category = CATEGORY_META[categoryKey];
   const showWrapUp = canComplete;
   const hasFooter = canClaim || canComplete || canResume;
+  const occupancyLabel = roomOccupancy ? t(`workOrders.roomOccupancy.${roomOccupancy}`) : null;
 
   return (
     <KeyboardAvoidingView
@@ -296,6 +325,23 @@ export default function WorkOrderDetailScreen() {
                 {room}
                 {wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}
               </Text>
+              {occupancyLabel ? (
+                <View
+                  style={[
+                    styles.occupancyChip,
+                    roomOccupancy === "occupied" ? styles.occupancyChipOccupied : styles.occupancyChipVacant,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.occupancyChipText,
+                      roomOccupancy === "occupied" ? styles.occupancyTextOccupied : styles.occupancyTextVacant,
+                    ]}
+                  >
+                    {occupancyLabel}
+                  </Text>
+                </View>
+              ) : null}
             </>
           ) : locationText ? (
             <>
@@ -653,6 +699,17 @@ const styles = StyleSheet.create({
   dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: shellTokens.ink3, marginHorizontal: 3 },
   roomText: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
   locationPlain: { color: shellTokens.ink2, fontSize: 12.5, fontWeight: "600", maxWidth: 170 },
+  occupancyChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  occupancyChipOccupied: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  occupancyChipVacant: { backgroundColor: C.readySoft, borderColor: C.readyLine },
+  occupancyChipText: { fontSize: 10, fontWeight: "800" },
+  occupancyTextOccupied: { color: C.alert },
+  occupancyTextVacant: { color: C.ready },
   guestChip: {
     flexDirection: "row",
     alignItems: "center",

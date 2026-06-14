@@ -415,6 +415,7 @@ export function HandoffRow({
   right,
   style,
   onPress,
+  testID,
 }: {
   lead: React.ReactNode;
   title: React.ReactNode;
@@ -422,9 +423,10 @@ export function HandoffRow({
   right?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  testID?: string;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.row, style]}>
+    <Pressable onPress={onPress} style={[styles.row, style]} testID={testID}>
       {lead}
       <View style={styles.rowBody}>
         <View style={styles.rowTitle}>{title}</View>

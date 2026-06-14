@@ -55,11 +55,19 @@ describe("normalizeBoardRooms", () => {
       assignedTo: "hk-1",
       assignmentId: "as-1",
       cleanType: "DEP",
-      cleanTypeLabel: "Departure",
-      latestNote: "Guest asked for towels",
-      openWorkOrder: "AC rattle",
-      highRisk: true,
-    });
+        cleanTypeLabel: "Departure",
+        latestNote: "Guest asked for towels",
+        openWorkOrder: "AC rattle",
+        highRisk: true,
+        foStatus: null,
+      });
+  });
+
+  it("preserves front-office occupancy separately from housekeeping status", () => {
+    const [room] = normalizeBoardRooms([
+      rawRoom({ room_id: "r-109", status: "DIRTY", fo_status: "VAC" }),
+    ]);
+    expect(room.foStatus).toBe("VAC");
   });
 
   it("drops rows without a room number and defaults clean minutes", () => {

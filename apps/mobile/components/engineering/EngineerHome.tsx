@@ -45,6 +45,13 @@ import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
 
 type PMScheduleLite = { id: string; status: "due" | "upcoming" | "overdue" | "completed" };
 
+const QUICK_LINKS = [
+  { key: "orders", labelKey: "home.engineer.quickOrders", href: "/(app)/work-orders", icon: "construct-outline" },
+  { key: "rooms", labelKey: "home.engineer.quickRooms", href: "/(app)/rooms", icon: "bed-outline" },
+  { key: "assets", labelKey: "home.engineer.quickAssets", href: "/(app)/assets", icon: "cube-outline" },
+  { key: "pm", labelKey: "home.engineer.quickPm", href: "/(app)/pm-schedules", icon: "calendar-outline" },
+] as const;
+
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
 }
@@ -125,8 +132,6 @@ export function EngineerHome({ name }: { name: string }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { user, isOnline } = useAppStore();
-  const role = user?.effective_role ?? user?.role;
-  const isChief = role === "chief_engineer";
 
   const [open, setOpen] = useState<WorkOrder[]>([]);
   const [active, setActive] = useState<WorkOrder[]>([]);
@@ -145,10 +150,8 @@ export function EngineerHome({ name }: { name: string }) {
       listWorkOrders("on_hold"),
       listWorkOrders("completed"),
       getFailurePredictions(),
+      api.get<{ data: PMScheduleLite[] }>("/engineering/pm-schedules"),
     ];
-    if (isChief) {
-      requests.push(api.get<{ data: PMScheduleLite[] }>("/engineering/pm-schedules"));
-    }
     const [openRes, progressRes, holdRes, doneRes, predRes, pmRes] = await Promise.allSettled(requests);
     if (openRes.status === "fulfilled") setOpen(openRes.value as WorkOrder[]);
     const progress = progressRes.status === "fulfilled" ? (progressRes.value as WorkOrder[]) : [];
@@ -168,7 +171,7 @@ export function EngineerHome({ name }: { name: string }) {
         due: schedules.filter((s) => s.status === "due").length,
       });
     }
-  }, [isChief]);
+  }, []);
 
   useEffect(() => {
     load().finally(() => setLoading(false));
@@ -443,7 +446,7 @@ export function EngineerHome({ name }: { name: string }) {
             </CopilotHero>
           ) : null}
 
-          {isChief && (pm.overdue > 0 || pm.due > 0) ? (
+          {pm.overdue > 0 || pm.due > 0 ? (
             <TouchableOpacity
               style={styles.pmStrip}
               onPress={() => router.push("/(app)/pm-schedules" as never)}
@@ -464,15 +467,20 @@ export function EngineerHome({ name }: { name: string }) {
             </TouchableOpacity>
           ) : null}
 
-          <TouchableOpacity
-            style={styles.ordersBtn}
-            onPress={() => router.push("/(app)/work-orders" as never)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-          >
-            <Text style={styles.ordersBtnText}>{t("home.engineer.openOrders")}</Text>
-            <Ionicons name="arrow-forward" size={15} color={C.accent} />
-          </TouchableOpacity>
+          <View style={styles.quickGrid}>
+            {QUICK_LINKS.map((link) => (
+              <TouchableOpacity
+                key={link.key}
+                style={styles.quickLink}
+                onPress={() => router.push(link.href as never)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                <Ionicons name={link.icon} size={16} color={C.accent} />
+                <Text style={styles.quickLinkText}>{t(link.labelKey)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -608,7 +616,13 @@ const styles = StyleSheet.create({
   pmTitle: { color: C.ink, fontSize: 13.5, fontWeight: "700" },
   pmText: { color: C.caution, fontSize: 11.5, marginTop: 2, fontWeight: "600" },
 
-  ordersBtn: {
+  quickGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 9,
+  },
+  quickLink: {
+    width: "48%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -619,5 +633,5 @@ const styles = StyleSheet.create({
     borderColor: C.accentLine,
     backgroundColor: C.surface,
   },
-  ordersBtnText: { color: C.accent, fontSize: 13.5, fontWeight: "800" },
+  quickLinkText: { color: C.accent, fontSize: 13.5, fontWeight: "800" },
 });

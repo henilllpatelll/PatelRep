@@ -20,12 +20,15 @@
   "tabs": {
     "home": "Home",
     "myRooms": "My Rooms",
+    "rooms": "Rooms",
     "inspect": "Inspect",
+    "orders": "Orders",
     "workOrders": "Work Orders",
     "tasks": "Tasks",
     "assets": "Assets",
     "copilot": "Copilot",
     "profile": "Profile",
+    "more": "More",
     "roomBoard": "Room Board",
     "assignments": "Assign",
     "pmSchedules": "PM",
@@ -95,7 +98,11 @@
       "benchClearHint": "No open work orders right now. New issues land here as they're reported.",
       "pmTitle": "Preventive maintenance",
       "pmAttention": "{{overdue}} overdue · {{due}} due today",
-      "openOrders": "Open work orders"
+      "openOrders": "Open work orders",
+      "quickOrders": "Orders",
+      "quickRooms": "Rooms",
+      "quickAssets": "Assets",
+      "quickPm": "PM"
     },
     "supervisor": {
       "shiftMeta": "Housekeeping supervisor",
@@ -212,6 +219,10 @@
     "doneAt": "Done {{time}}",
     "ago": "{{time}} ago",
     "floor": "Floor {{floor}}",
+    "roomOccupancy": {
+      "occupied": "Occupied",
+      "vacant": "Vacant"
+    },
     "factCreated": "Created",
     "factDue": "Due",
     "factCompleted": "Done",
@@ -449,6 +460,53 @@
     "done": "Done",
     "upcoming": "Upcoming"
   },
+  "engineerRooms": {
+    "kicker": "Engineering",
+    "summary": "{{vacant}} vacant · {{occupied}} occupied · {{ooo}} OOO",
+    "roomCount": "{{count}} rooms",
+    "floor": "Floor {{floor}}",
+    "empty": "No rooms in this view",
+    "emptyHint": "Pull down to refresh the live board.",
+    "detailKicker": "Room detail",
+    "foStatus": "FO status",
+    "housekeepingStatus": "Housekeeping",
+    "cleanType": "Clean type",
+    "oooStatus": "OOO",
+    "openWorkOrders": "Open work orders",
+    "noOpenWorkOrders": "No open work orders",
+    "assets": "Assets",
+    "highRiskAsset": "High-risk asset",
+    "noAssetSignals": "No asset signals",
+    "latestNote": "Latest note",
+    "createWorkOrder": "Create work order",
+    "viewRelatedWorkOrder": "View related work order",
+    "cardStatus": {
+      "vacant": "Vacant",
+      "occupied": "Occupied",
+      "ooo": "OOO"
+    },
+    "filters": {
+      "all": "All",
+      "vacant": "Vacant",
+      "occupied": "Occupied",
+      "ooo": "OOO"
+    }
+  },
+  "engineerMore": {
+    "kicker": "Engineering",
+    "pmSchedules": "PM Schedules",
+    "pmSchedulesSub": "Preventive maintenance due list",
+    "copilot": "Copilot",
+    "copilotSub": "Ask AI or draft work",
+    "profile": "Profile",
+    "profileSub": "Preferences and account",
+    "notifications": "Notifications",
+    "notificationsSub": "Alerts and assignments",
+    "sopLibrary": "SOP Library",
+    "sopLibrarySub": "Procedures and troubleshooting",
+    "scheduling": "Scheduling",
+    "schedulingSub": "Your shifts and coverage"
+  },
   "roomBoard": {
     "kicker": "Live floor",
     "summary": "{{ready}} of {{total}} ready · {{working}} in progress",
@@ -525,7 +583,7 @@
       "inspector": "Inspector",
       "engineer": "Engineer",
       "housekeeping_supervisor": "HK Supervisor",
-      "chief_engineer": "Chief Engineer",
+      "chief_engineer": "Engineer",
       "front_desk": "Front Desk",
       "gm": "GM"
     },

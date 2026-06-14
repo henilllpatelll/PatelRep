@@ -36,6 +36,8 @@ export interface WorkOrder {
   description?: string | null;
   status: WorkOrderStatus;
   priority: WorkOrderPriority;
+  room_id?: string | null;
+  work_order_number?: string | null;
   category?: WorkOrderCategory | null;
   rooms?: { room_number?: string | null; floor?: number | null } | null;
   assets?: { id?: string; name?: string | null; location_text?: string | null } | null;

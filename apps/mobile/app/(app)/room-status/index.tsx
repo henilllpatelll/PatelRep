@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
-import { Chip, SectionHeader, getStatusMeta } from "@/components/shared/evening";
+import { Chip, SectionHeader, StatusRail, StatusPill } from "@/components/shared/evening";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
    Every room in the hotel, grouped by floor. The room number IS the card's
@@ -257,20 +257,13 @@ export default function RoomStatusScreen() {
               <View style={styles.roomList}>
                 {floorRooms.map((room) => {
                   const occupied = isOccupiedRoom(room);
-                  const meta = getStatusMeta(room.status);
                   const hasMetaRow = Boolean(room.guest_name || room.checkout_time || room.vip_flag || room.dnd_flag);
                   return (
                     <View key={room.id} style={styles.roomCard}>
-                      {/* Room number IS the identity tile, in the status color */}
-                      <View style={[styles.numTile, { backgroundColor: meta.bg, borderColor: meta.border }]}>
-                        <Text style={[styles.numText, { color: meta.fg }]}>{room.room_number}</Text>
-                      </View>
-
-                      <View style={styles.roomBody}>
-                        <View style={styles.statusRow}>
-                          <Text style={[styles.statusText, { color: meta.fg }]} numberOfLines={1}>
-                            {t(STATUS_LABEL_KEYS[room.status] ?? room.status)}
-                          </Text>
+                      <StatusRail status={room.status} />
+                      <View style={styles.cardBody}>
+                        <View style={styles.cardTopRow}>
+                          <StatusPill status={room.status} />
                           <View style={[styles.occBadge, occupied ? styles.occBadgeOccupied : styles.occBadgeVacant]}>
                             <View style={[styles.occDot, { backgroundColor: occupied ? C.alert : C.ready }]} />
                             <Text style={[styles.occText, { color: occupied ? C.alert : C.ready }]}>
@@ -278,7 +271,7 @@ export default function RoomStatusScreen() {
                             </Text>
                           </View>
                         </View>
-
+                        <Text style={styles.roomNumber}>{room.room_number}</Text>
                         {hasMetaRow ? (
                           <View style={styles.metaRow}>
                             {room.guest_name ? (
@@ -392,34 +385,23 @@ const styles = StyleSheet.create({
   floorSection: { gap: 2 },
   roomList: { gap: 9 },
   roomCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    position: "relative",
+    overflow: "hidden",
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: R.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingLeft: 16,
+    paddingRight: 12,
     shadowColor: C.ink,
     shadowOpacity: 0.04,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 3 },
     elevation: 1,
   },
-  numTile: {
-    minWidth: 56,
-    height: 48,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  numText: { fontFamily: monoFont, fontSize: 17, fontWeight: "800", letterSpacing: 0.3 },
-  roomBody: { flex: 1, minWidth: 0, gap: 5 },
-  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  statusText: { flexShrink: 1, fontSize: 13.5, fontWeight: "700" },
+  cardBody: { flex: 1, minWidth: 0, paddingVertical: 13, gap: 7 },
+  cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
+  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800", color: C.ink },
   occBadge: {
     flexDirection: "row",
     alignItems: "center",

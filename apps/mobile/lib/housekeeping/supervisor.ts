@@ -17,8 +17,10 @@ export interface BoardRoomRaw {
   clean_type?: string | null;
   clean_type_label?: string | null;
   latest_note?: string | null;
+  open_work_order_id?: string | null;
   open_work_order_number?: string | null;
   open_work_order_title?: string | null;
+  open_work_order_status?: string | null;
   prediction?: { risk_level?: "LOW" | "MEDIUM" | "HIGH" | null } | null;
   rooms?: {
     id?: string;
@@ -35,6 +37,7 @@ export interface FloorRoom {
   roomType: string | null;
   baseCleanMinutes: number;
   status: string;
+  foStatus: "OCC" | "VAC" | null;
   vip: boolean;
   dnd: boolean;
   assignedTo: string | null;
@@ -42,7 +45,9 @@ export interface FloorRoom {
   cleanType: string | null;
   cleanTypeLabel: string | null;
   latestNote: string | null;
+  openWorkOrderId: string | null;
   openWorkOrder: string | null;
+  openWorkOrderStatus: string | null;
   highRisk: boolean;
   checkinTime: string | null;
   checkoutTime: string | null;
@@ -73,6 +78,7 @@ export function normalizeBoardRooms(rows: BoardRoomRaw[]): FloorRoom[] {
         roomType: room.room_types?.name ?? null,
         baseCleanMinutes: room.room_types?.base_clean_minutes ?? 30,
         status: row.status,
+        foStatus: row.fo_status ?? null,
         vip: Boolean(row.vip_flag),
         dnd: Boolean(row.dnd_flag),
         assignedTo: row.assigned_to ?? null,
@@ -80,7 +86,9 @@ export function normalizeBoardRooms(rows: BoardRoomRaw[]): FloorRoom[] {
         cleanType: row.clean_type ?? null,
         cleanTypeLabel: row.clean_type_label ?? null,
         latestNote: row.latest_note ?? null,
+        openWorkOrderId: row.open_work_order_id ?? null,
         openWorkOrder: wo ?? null,
+        openWorkOrderStatus: row.open_work_order_status ?? null,
         highRisk: row.prediction?.risk_level === "HIGH",
         checkinTime: row.checkin_time ?? null,
         checkoutTime: row.checkout_time ?? null,

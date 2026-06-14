@@ -6,7 +6,13 @@ jest.mock("expo-router", () => ({
   router: { back: jest.fn() },
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({
+    t: (k: string) => {
+      if (k === "workOrders.roomOccupancy.occupied") return "Occupied";
+      if (k === "workOrders.roomOccupancy.vacant") return "Vacant";
+      return k;
+    },
+  }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -32,10 +38,14 @@ jest.mock("@/lib/api/workOrders", () => ({
   uploadWorkOrderPhoto: jest.fn(),
   workOrderPhotoUrl: jest.fn().mockReturnValue(null),
 }));
+jest.mock("@/lib/api/housekeepingSupervisor", () => ({
+  fetchBoard: jest.fn(),
+}));
+let mockUser = { id: "u1", role: "engineer", language_pref: "en" };
 jest.mock("@/stores/appStore", () => ({
   useAppStore: () => ({
     isOnline: true,
-    user: { id: "u1", role: "engineer", language_pref: "en" },
+    user: mockUser,
   }),
 }));
 jest.mock("@/lib/offline/db", () => ({
@@ -43,25 +53,38 @@ jest.mock("@/lib/offline/db", () => ({
 }));
 
 import { getWorkOrder, completeWorkOrder } from "@/lib/api/workOrders";
+import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
 
 const mockGet = getWorkOrder as jest.Mock;
 const mockComplete = completeWorkOrder as jest.Mock;
+const mockFetchBoard = fetchBoard as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUser = { id: "u1", role: "engineer", language_pref: "en" };
   mockGet.mockResolvedValue({
     id: "wo-1",
     title: "Fix AC",
     status: "in_progress",
     priority: "urgent",
     category: "hvac",
+    room_id: "room-101",
+    rooms: { room_number: "101", floor: 1 },
     assigned_to: "u1",
     created_at: new Date().toISOString(),
     started_at: new Date().toISOString(),
     work_order_photos: [],
     work_order_comments: [],
   });
+  mockFetchBoard.mockResolvedValue([
+    {
+      room_id: "room-101",
+      status: "DIRTY",
+      fo_status: "OCC",
+      rooms: { room_number: "101", floor: 1, room_types: { name: "King" } },
+    },
+  ]);
   mockComplete.mockResolvedValue(undefined);
 });
 
@@ -101,6 +124,28 @@ describe("WorkOrderDetailScreen", () => {
     });
     const { getByText, queryByTestId } = render(<WorkOrderDetailScreen />);
     await waitFor(() => expect(getByText("workOrders.claimStart")).toBeTruthy());
+    expect(queryByTestId("completion-notes")).toBeNull();
+  });
+
+  it("shows room occupancy for a room-linked work order", async () => {
+    const { getByText } = render(<WorkOrderDetailScreen />);
+    await waitFor(() => expect(getByText("Occupied")).toBeTruthy());
+  });
+
+  it("treats chief_engineer with the same detail permissions as engineer", async () => {
+    mockUser = { id: "chief-1", role: "chief_engineer", language_pref: "en" };
+    mockGet.mockResolvedValue({
+      id: "wo-1",
+      title: "Fix AC",
+      status: "in_progress",
+      priority: "normal",
+      assigned_to: "other-engineer",
+      work_order_photos: [],
+      work_order_comments: [],
+    });
+
+    const { getByText, queryByTestId } = render(<WorkOrderDetailScreen />);
+    await waitFor(() => expect(getByText("workOrders.claimedElsewhere")).toBeTruthy());
     expect(queryByTestId("completion-notes")).toBeNull();
   });
 });

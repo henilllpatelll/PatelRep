@@ -24,7 +24,11 @@ export async function syncOnConnect(): Promise<void> {
     // Flush both queues: appStore queue (logbook, task_complete, etc.) + SQLite queue
     await useAppStore.getState().flushQueue();
     await flushSyncQueue();
-    await refreshRooms();
+    // Only refresh rooms for housekeepers and supervisors (API endpoint requires it)
+    const user = useAppStore.getState().user;
+    if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
+      await refreshRooms();
+    }
   } finally {
     _syncOnConnectInProgress = false;
   }
