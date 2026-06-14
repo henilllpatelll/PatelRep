@@ -10,11 +10,15 @@ function getLocalDevOrigins() {
 }
 
 function buildCSP() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://patelrep-web-production.up.railway.app/v1'
+  // Extract origin (strip path like /v1)
+  const apiOrigin = new URL(apiUrl).origin
+
   const connectSrc = [
     "'self'",
     'https://*.supabase.co',
     'wss://*.supabase.co',
-    'https://api-production-130b.up.railway.app',
+    apiOrigin,
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]
 
