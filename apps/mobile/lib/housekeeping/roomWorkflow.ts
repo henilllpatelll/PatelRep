@@ -244,19 +244,19 @@ export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): Befo
       severity: "critical",
     });
   }
-  if (isGuestMayBeInside(room)) {
+  const notCheckedOut = isDepartureClean(room) && !room.actual_checkout_at && room.status === "OCCUPIED";
+  if (notCheckedOut) {
+    warnings.push({
+      key: "checkout",
+      label: "Not checked out",
+      detail: "Guest has not officially checked out. Knock and confirm before entering.",
+      severity: "critical",
+    });
+  } else if (isGuestMayBeInside(room)) {
     warnings.push({
       key: "occupied",
       label: "Guest may be inside",
       detail: "Confirm access before entering.",
-      severity: "critical",
-    });
-  }
-  if (isDepartureClean(room) && !room.actual_checkout_at && room.status === "OCCUPIED") {
-    warnings.push({
-      key: "checkout",
-      label: "Not checked out",
-      detail: "Guest may not have left yet. Confirm before entering.",
       severity: "critical",
     });
   }
