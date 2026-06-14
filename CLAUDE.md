@@ -164,12 +164,12 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 | Service | URL |
 |---|---|
-| API (Railway) | https://api-production-130b.up.railway.app |
-| Web (Railway) | https://patelrepweb-production.up.railway.app |
+| API (Railway) | https://patelrep-web-production.up.railway.app |
+| Web (Railway) | https://patelrep-production.up.railway.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 
-Railway project: `16d3d022-cf7e-4d4a-8ec0-6a97ddb74e93` · env: `1b702af9-fb05-4635-8121-4a1462d2c93b`
-API service: `3d6e22bc-bc67-4a8e-b88e-5d983573922a` · web service: `8ed9664c-9257-4c01-820c-ba92be27e37b`
+Railway project: `9290c2c7-79a4-49f2-843e-cc4702a00ae5` · env: `659deef4-4f65-4102-bdb7-efd0a896bca3`
+API service: `71d29823-a960-4e1a-ac02-8478b5b6b7d9` (service name: `patelrep-web`) · web service: `00570a79-0b54-4c4a-b9f7-42534241add8` (service name: `PatelRep`)
 
 ### Env vars (by tier)
 **API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`
