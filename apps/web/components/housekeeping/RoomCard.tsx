@@ -121,7 +121,7 @@ export function RoomCard({
   const vipFlag: boolean = !!room.vip_flag
   const openWorkOrder: string | number | null = room.open_work_order_number ?? null
   const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
-  const roomTypeName: string | null = room.rooms?.room_types?.name ?? null
+  const roomTypeName: string | null = room.rooms?.room_types?.code ?? null
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
   const workOrderLabel = openWorkOrder
     ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`

@@ -241,7 +241,7 @@ function HousekeeperRoomItem({
     return true
   })
   const roomNumber = room.rooms?.room_number ?? '--'
-  const roomType = room.rooms?.room_types?.name ?? ''
+  const roomType = room.rooms?.room_types?.code ?? ''
   const status: string = room.status ?? 'DIRTY'
   const vip = !!room.vip_flag
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)

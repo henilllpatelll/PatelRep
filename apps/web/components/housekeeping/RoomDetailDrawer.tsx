@@ -427,7 +427,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   }, [isOpen])
 
   const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
-  const roomTypeName = room?.rooms?.room_types?.name ?? room?.room_type_name ?? ''
+  const roomTypeName = room?.rooms?.room_types?.code ?? room?.room_type_name ?? ''
   const vipFlag = !!room?.vip_flag
   const guestName: string | null = room?.guest_name ?? null
   const cleanTypeLabel = getCleanTypeLabel(room?.clean_type)

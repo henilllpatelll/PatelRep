@@ -71,7 +71,7 @@ export interface Room {
   last_cleaned_at?: string | null;
   last_inspected_at?: string | null;
   rooms?: {
-    room_types?: { name?: string; base_clean_minutes?: number } | null;
+    room_types?: { name?: string; code?: string; base_clean_minutes?: number } | null;
   } | null;
 }
 

@@ -139,7 +139,7 @@ export function HousekeeperDashboard() {
               {rooms.map((room: any, i: number) => {
                 const roomNumber = room.rooms?.room_number ?? room.room_number ?? '—'
                 const floor = room.rooms?.floor ?? room.floor
-                const roomType = room.rooms?.room_types?.name ?? null
+                const roomType = room.rooms?.room_types?.code ?? null
                 const tone = STATUS_TONE[room.status] ?? 'neutral'
                 const label = STATUS_LABEL[room.status] ?? room.status
                 const isActive = i === 0

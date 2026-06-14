@@ -227,7 +227,7 @@ export default function RoomsSettingsPage() {
                         {room.rooms?.room_number ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-stone-600">
-                        {room.rooms?.room_types?.name ?? room.rooms?.room_types?.code ?? '—'}
+                        {room.rooms?.room_types?.code ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-stone-600">
                         {room.rooms?.floor ?? '—'}

@@ -75,7 +75,7 @@ export function normalizeBoardRooms(rows: BoardRoomRaw[]): FloorRoom[] {
         roomId: row.room_id,
         roomNumber: room.room_number ?? "",
         floor: room.floor ?? 0,
-        roomType: room.room_types?.name ?? null,
+        roomType: room.room_types?.code ?? null,
         baseCleanMinutes: room.room_types?.base_clean_minutes ?? 30,
         status: row.status,
         foStatus: row.fo_status ?? null,

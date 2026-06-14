@@ -596,7 +596,7 @@ async def get_my_rooms(
         "room_id, tenant_id, status, assigned_to, "
         "clean_type, vip_flag, dnd_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
-        "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
+        "rooms(id, room_number, floor, room_types(name, code, base_clean_minutes))"
     )
     try:
         result = (
@@ -657,7 +657,7 @@ async def get_assignments(
     # Fetch assignments for the date (and optionally shift)
     assign_query = (
         supabase.table("room_assignments")
-        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type, rooms(room_number, room_types(name))")
+        .select("id, room_id, assigned_to, shift_id, assignment_date, clean_type, rooms(room_number, room_types(name, code))")
         .eq("tenant_id", current_user.hotel_id)
         .eq("assignment_date", target_date.isoformat())
     )
@@ -978,7 +978,7 @@ async def suggest_assignments(
         supabase.table("room_status")
         .select(
             "room_id, status, vip_flag, checkin_time, "
-            "rooms(id, room_number, floor, room_types(name, base_clean_minutes))"
+            "rooms(id, room_number, floor, room_types(name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])

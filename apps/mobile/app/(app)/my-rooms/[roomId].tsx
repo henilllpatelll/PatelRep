@@ -349,7 +349,7 @@ export default function RoomDetailScreen() {
   const showUndo = isOnline && Boolean(action.allowUndo);
   const statusColor = STATUS_COLOR[status] ?? C.ink3;
   const statusLabel = STATUS_LABEL[status] ?? status.replace(/_/g, " ");
-  const roomType = room.rooms?.room_types?.name ?? null;
+  const roomType = room.rooms?.room_types?.code ?? null;
   const cleanType = getCleanTypeLabel(room);
   const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
   const hideCleanTypeIcon = room.status === "PICKUP" && (room.clean_type === "FULL" || room.clean_type === "LIGHT");

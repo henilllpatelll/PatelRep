@@ -58,7 +58,7 @@ function RoomMobileCard({
             Room {room.rooms?.room_number ?? '-'}
           </p>
           <p className="mt-0.5 text-sm text-gray-500">
-            {room.rooms?.room_types?.name ?? room.rooms?.room_types?.code ?? 'Room type unknown'}
+            {room.rooms?.room_types?.code ?? 'Room type unknown'}
           </p>
         </div>
         <StatusBadge status={room.status} />
@@ -738,7 +738,7 @@ export default function RoomsPage() {
                         {room.rooms?.room_number ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {room.rooms?.room_types?.name ?? room.rooms?.room_types?.code ?? '—'}
+                        {room.rooms?.room_types?.code ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {room.rooms?.floor != null ? room.rooms.floor : '—'}

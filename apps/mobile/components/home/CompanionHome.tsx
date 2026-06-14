@@ -164,7 +164,7 @@ export function FocusCard({
   onResume: (room: Room) => void;
 }) {
   const room = entry.room;
-  const roomType = room.rooms?.room_types?.name ?? null;
+  const roomType = room.rooms?.room_types?.code ?? null;
   const startLabel =
     room.status === "IN_PROGRESS"
       ? t("home.focus.resume", { room: room.room_number })
