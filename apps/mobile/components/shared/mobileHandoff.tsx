@@ -252,11 +252,9 @@ export function HeroButton({
 }
 
 export function FloatingAIButton({
-  label = "Ask AI",
   onPress,
   bottom = 92,
 }: {
-  label?: string;
   onPress?: () => void;
   bottom?: number;
 }) {
@@ -266,8 +264,7 @@ export function FloatingAIButton({
       onPress={onPress}
       style={[styles.floatingAIButton, { bottom }]}
     >
-      <Ionicons name="sparkles" size={15} color="#fff" />
-      <Text style={styles.floatingAIText}>{label}</Text>
+      <Ionicons name="sparkles" size={20} color="#fff" />
     </TouchableOpacity>
   );
 }
@@ -650,13 +647,11 @@ const styles = StyleSheet.create({
   floatingAIButton: {
     position: "absolute",
     right: 16,
-    minHeight: 48,
-    borderRadius: 999,
-    paddingHorizontal: 15,
-    flexDirection: "row",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
     backgroundColor: C.ai,
     borderWidth: 1,
     borderColor: C.aiLine,
@@ -665,11 +660,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 5,
-  },
-  floatingAIText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
   },
   segmented: {
     flexDirection: "row",

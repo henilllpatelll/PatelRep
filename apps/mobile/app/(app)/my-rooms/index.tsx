@@ -16,7 +16,6 @@ import { api } from "@/lib/api/client";
 import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
-import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import { ProgressBar, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
 import { buildSmartQueue } from "@/lib/ai/briefing";
 import { localDate } from "@/lib/utils/date";
@@ -270,7 +269,6 @@ export default function MyRoomsScreen() {
           </View>
         )}
       </ScrollView>
-      <FloatingAIButton bottom={insets.bottom + 84} onPress={() => router.push("/(app)/copilot")} />
     </View>
   );
 }

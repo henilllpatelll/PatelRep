@@ -18,7 +18,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
-import { FloatingAIButton } from "@/components/shared/mobileHandoff";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
 import { getBeforeEnterWarnings, getRoomAction } from "@/lib/housekeeping/roomWorkflow";
@@ -698,7 +697,6 @@ export default function RoomDetailScreen() {
           ) : null}
         </View>
       </View>
-      <FloatingAIButton bottom={insets.bottom + 86} onPress={() => router.push("/(app)/copilot")} />
 
       <ReportIssueModal visible={showReportIssue} roomId={room.id} roomNumber={room.room_number} onClose={() => setShowReportIssue(false)} />
       <FoundItemModal visible={showFoundItem} roomId={room.id} roomNumber={room.room_number} onClose={() => setShowFoundItem(false)} />
