@@ -92,7 +92,13 @@ async def _fetch_jwks() -> list[dict]:
     global _jwks_cache, _jwks_cache_time
     now = time.time()
     if _jwks_cache is None or (now - _jwks_cache_time) > 3600:
-        url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        # supabase_url may be the REST base (e.g. .../rest/v1); strip to project root
+        project_url = settings.supabase_url.rstrip("/")
+        for suffix in ("/rest/v1", "/rest"):
+            if project_url.endswith(suffix):
+                project_url = project_url[: -len(suffix)]
+                break
+        url = f"{project_url}/auth/v1/.well-known/jwks.json"
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 r = await client.get(url)
