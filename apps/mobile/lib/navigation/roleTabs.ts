@@ -14,7 +14,6 @@ export type RoleTabKey =
   | "board"
   | "assignments"
   | "pm"
-  | "more"
   | "requests"
   | "room-status"
   | "lost"
@@ -47,9 +46,8 @@ const INSPECTOR_TABS: RoleTabDef[] = [
 const ENGINEER_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "orders", name: "work-orders/index", titleKey: "tabs.orders", icon: "construct-outline" },
-  { key: "rooms", name: "rooms/index", titleKey: "tabs.rooms", icon: "bed-outline" },
+  { key: "rooms", name: "room-status/index", titleKey: "tabs.rooms", icon: "bed-outline" },
   { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
-  { key: "more", name: "more/index", titleKey: "tabs.more", icon: "ellipsis-horizontal-circle-outline" },
 ];
 
 const SUPERVISOR_TABS: RoleTabDef[] = [
