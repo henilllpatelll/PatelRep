@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T00:17:23.453Z
-> Files: 2 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T01:37:17.937Z
+> Files: 3 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -470,6 +470,7 @@
 
 ## apps/api/services/
 
+- `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2316 tok)
 
 ## apps/api/services/ai/
 
@@ -560,6 +561,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
+- `[roomId].tsx` — STATUS_COLOR (~11936 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -617,7 +619,6 @@
 
 ## apps/mobile/components/shared/
 
-- `tokens.ts` — The dark "Evening Lobby" chrome — a designed constant across themes. (~1503 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -657,6 +658,7 @@
 
 ## apps/mobile/lib/housekeeping/
 
+- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 18 more (~2743 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -666,7 +668,6 @@
 
 ## apps/mobile/lib/navigation/
 
-- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1250 tok)
 
 ## apps/mobile/lib/offline/
 

@@ -252,14 +252,6 @@ export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): Befo
       severity: "critical",
     });
   }
-  if (isDepartureClean(room) && !room.actual_checkout_at && room.status === "OCCUPIED") {
-    warnings.push({
-      key: "checkout",
-      label: "Not checked out",
-      detail: "Guest may not have left yet. Confirm before entering.",
-      severity: "critical",
-    });
-  }
   if (hasOpenWorkOrder(room)) {
     const number = room.open_work_order_number ? ` #${room.open_work_order_number}` : "";
     warnings.push({

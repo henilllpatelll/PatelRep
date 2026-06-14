@@ -1274,35 +1274,51 @@
     },
     {
       "id": "bug-078",
-      "timestamp": "2026-06-14T00:16:54.756Z",
-      "error_message": "Incorrect value in code",
-      "file": "apps/mobile/lib/navigation/roleTabs.ts",
-      "root_cause": "Had \"more\"",
-      "fix": "Changed to \"requests\"",
+      "timestamp": "2026-06-14T00:40:12.273Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
       "tags": [
         "auto-detected",
-        "wrong-value",
-        "ts"
+        "type-fix",
+        "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-14T00:16:54.756Z"
+      "last_seen": "2026-06-14T00:40:12.273Z"
     },
     {
       "id": "bug-079",
-      "timestamp": "2026-06-14T00:17:23.459Z",
-      "error_message": "Significant refactor of ",
-      "file": "apps/mobile/components/shared/tokens.ts",
-      "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 9→4 lines (5 removed)",
+      "timestamp": "2026-06-14T00:50:43.793Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Had \"Confirm checkout\"",
+      "fix": "Changed to \"Start cleaning\"",
       "tags": [
         "auto-detected",
-        "refactor",
-        "ts"
+        "wrong-value",
+        "tsx"
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-06-14T00:17:23.459Z"
+      "last_seen": "2026-06-14T00:50:43.793Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-06-14T00:53:45.949Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T00:53:45.949Z"
     }
   ]
 }

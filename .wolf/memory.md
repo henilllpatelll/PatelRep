@@ -5023,14 +5023,28 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | -- | Supervisor redesign session (redesign/supervisor): merged redesign-engineering, rebuilt Home/Room Board/Assignments/Inspect in Evening Lobby language | apps/mobile/... | done | ~60k |
 | -- | Found+fixed 3 latent supervisor bugs: wrong POST /assignments payload, nonexistent /assignments/auto, /staff nested payload parsed as array | lib/api/housekeepingSupervisor.ts | logged bug-074/075 | - |
 | -- | New domain layer + atoms: lib/housekeeping/supervisor.ts, components/supervisor/{atoms,HousekeeperPicker,RoomDetailSheet}.tsx, components/home/SupervisorHome.tsx | apps/mobile | type-check + 89 jest pass | - |
-| 19:07 | Session end: 23 writes across 12 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 15 reads | ~47509 tok |
-| 19:16 | Edited apps/mobile/lib/navigation/roleTabs.ts | 2→1 lines | ~4 |
-| 19:16 | Edited apps/mobile/lib/navigation/roleTabs.ts | 7→6 lines | ~116 |
-| 19:17 | Edited apps/mobile/components/shared/tokens.ts | 4→9 lines | ~81 |
-| 19:17 | Edited apps/mobile/components/shared/tokens.ts | 9→4 lines | ~33 |
-| 19:18 | Session end: 27 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 15 reads | ~47793 tok |
-
-## Session: 2026-06-14 19:23
-
-| Time | Action | File(s) | Outcome | ~Tokens |
-|------|--------|---------|---------|--------|
+| 19:35 | Session end: 23 writes across 12 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 18 reads | ~47509 tok |
+| 19:36 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | removed 9 lines | ~9 |
+| 19:36 | Session end: 24 writes across 13 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 18 reads | ~47518 tok |
+| 19:40 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~81 |
+| 19:40 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: statusLoading | ~51 |
+| 19:40 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 21 lines | ~12 |
+| 19:40 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 14 lines | ~5 |
+| 19:40 | Session end: 28 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 18 reads | ~47667 tok |
+| 19:50 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | "Confirm checkout" → "Start cleaning" | ~23 |
+| 19:50 | Session end: 29 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 18 reads | ~47690 tok |
+| 19:53 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: statusLoading | ~85 |
+| 19:53 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~81 |
+| 19:53 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 21 lines | ~12 |
+| 19:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→2 lines | ~28 |
+| 19:54 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | removed 14 lines | ~5 |
+| 19:54 | Session end: 34 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 18 reads | ~59971 tok |
+| 20:07 | Edited apps/api/services/room_status_transitions.py | 1→2 lines | ~23 |
+| 20:08 | Session end: 35 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 19 reads | ~59994 tok |
+| 20:10 | Session end: 35 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 19 reads | ~59994 tok |
+| 20:10 | Session end: 35 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 19 reads | ~59994 tok |
+| 20:17 | Session end: 35 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 20 reads | ~59994 tok |
+| 20:34 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→4 lines | ~29 |
+| 20:34 | Edited apps/api/services/room_status_transitions.py | 2→1 lines | ~12 |
+| 20:34 | Session end: 37 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60035 tok |
+| 20:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→4 lines | ~27 |
