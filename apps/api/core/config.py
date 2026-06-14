@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,6 +11,17 @@ class Settings(BaseSettings):
 
     # Supabase
     supabase_url: str
+
+    @field_validator("supabase_url", mode="before")
+    @classmethod
+    def _normalize_supabase_url(cls, v: str) -> str:
+        """Strip PostgREST path suffix if SUPABASE_URL was set to the REST base URL."""
+        v = v.strip().rstrip("/")
+        for suffix in ("/rest/v1", "/rest"):
+            if v.endswith(suffix):
+                v = v[: -len(suffix)]
+                break
+        return v
     supabase_service_role_key: str
     supabase_jwt_secret: str
 
