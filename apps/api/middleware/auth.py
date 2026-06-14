@@ -1,3 +1,4 @@
+import base64
 import logging
 import time
 import httpx
@@ -6,19 +7,38 @@ from typing import Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from jose.exceptions import JWKError
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicNumbers, SECP256R1
+from cryptography.hazmat.primitives import serialization
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 
-_jwks_cache: dict | None = None
+_jwks_cache: list | None = None
 _jwks_cache_time: float = 0.0
 
 
-async def _fetch_jwks() -> dict:
-    """Fetch and cache Supabase JWKS for ES256 token verification."""
+def _jwk_ec_to_pem(jwk: dict) -> str:
+    """Convert an EC P-256 JWK public key to PEM string for python-jose."""
+    def _b64url_to_int(val: str) -> int:
+        padded = val + "=" * (-len(val) % 4)
+        return int.from_bytes(base64.urlsafe_b64decode(padded), "big")
+
+    numbers = EllipticCurvePublicNumbers(
+        x=_b64url_to_int(jwk["x"]),
+        y=_b64url_to_int(jwk["y"]),
+        curve=SECP256R1(),
+    )
+    pub_key = numbers.public_key()
+    return pub_key.public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode()
+
+
+async def _fetch_jwks() -> list[dict]:
+    """Fetch and cache Supabase JWKS keys."""
     global _jwks_cache, _jwks_cache_time
     now = time.time()
     if _jwks_cache is None or (now - _jwks_cache_time) > 3600:
@@ -27,11 +47,11 @@ async def _fetch_jwks() -> dict:
                 r = await client.get(
                     f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
                 )
-                _jwks_cache = r.json()
+                _jwks_cache = r.json().get("keys", [])
                 _jwks_cache_time = now
         except Exception as e:
             logger.warning("JWKS fetch failed, tokens may not verify: %s", e)
-    return _jwks_cache or {"keys": []}
+    return _jwks_cache or []
 
 
 @dataclass
@@ -54,17 +74,20 @@ async def _decode_token(token: str) -> dict:
     except JWTError:
         pass
     # Fall back to ES256 via JWKS (newer Supabase projects)
-    try:
-        jwks = await _fetch_jwks()
-        return jwt.decode(
-            token,
-            jwks,
-            algorithms=["ES256"],
-            audience="authenticated"
-        )
-    except (JWTError, JWKError) as e:
-        logger.warning("JWT verification failed: %s", e)
-        raise HTTPException(status_code=401, detail="Invalid token")
+    keys = await _fetch_jwks()
+    for key in keys:
+        if key.get("kty") != "EC":
+            continue
+        try:
+            pem = _jwk_ec_to_pem(key)
+            return jwt.decode(token, pem, algorithms=["ES256"], audience="authenticated")
+        except JWTError:
+            continue
+        except Exception as e:
+            logger.warning("ES256 key decode error: %s", e)
+            continue
+    logger.warning("JWT verification failed: no valid key matched")
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 
 async def get_current_user(
