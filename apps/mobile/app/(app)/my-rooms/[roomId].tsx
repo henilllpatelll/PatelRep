@@ -27,7 +27,6 @@ import {
   formatBlockerTimeInput,
   getBlockersForRoom,
   getSectionLabelForRoom,
-  isOccupiedDeparture,
   runBlockerSideEffect,
   type RoomBlocker,
 } from "@/lib/housekeeping/roomBlockers";
@@ -135,6 +134,7 @@ function getPrimaryLabel(room: Room): string {
   if (action.kind === "start") return "Start Cleaning";
   if (action.kind === "done") return "Mark Clean";
   if (action.kind === "review") return "Review room";
+  if (action.kind === "guest_checkout") return "Guest Confirmed Checkout";
   if (action.kind === "submitted") return "Submitted - Waiting for Supervisor";
   if (action.kind === "ready") return "Ready";
   if (action.kind === "blocked") return "Blocked";
@@ -363,7 +363,6 @@ export default function RoomDetailScreen() {
   const insight = buildRoomInsight(room, myRooms, t);
   const checkedCount = checklist.filter((item) => checkedItems[item]).length;
   const blockers = getBlockersForRoom(room);
-  const occupiedDep = isOccupiedDeparture(room);
   const sectionLabel = getSectionLabelForRoom(room);
   const timingRows = [
     { label: "Guest", value: room.guest_name },
@@ -464,25 +463,6 @@ export default function RoomDetailScreen() {
           </View>
         ) : null}
 
-        {occupiedDep ? (
-          <TouchableOpacity
-            style={styles.guestCheckoutCard}
-            onPress={() => void updateRoomStatus("DIRTY")}
-            disabled={statusLoading}
-            activeOpacity={0.84}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color={C.ready} />
-            <View style={styles.guestCheckoutCopy}>
-              <Text style={styles.guestCheckoutTitle}>Guest confirmed checkout</Text>
-              <Text style={styles.guestCheckoutSub}>Tap to mark vacant and start cleaning</Text>
-            </View>
-            {statusLoading ? (
-              <ActivityIndicator size="small" color={C.ready} />
-            ) : (
-              <Ionicons name="chevron-forward" size={16} color={C.ready} />
-            )}
-          </TouchableOpacity>
-        ) : null}
 
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>Reservation / Timing</Text>
@@ -859,19 +839,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 10,
   },
-  guestCheckoutCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: C.readySoft,
-    borderWidth: 1,
-    borderColor: C.readyLine,
-    borderRadius: 16,
-    padding: 14,
-  },
-  guestCheckoutCopy: { flex: 1 },
-  guestCheckoutTitle: { fontSize: 14, fontWeight: "800", color: C.ready },
-  guestCheckoutSub: { fontSize: 12, color: C.ready, opacity: 0.75, marginTop: 2 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
   modalTitle: { fontSize: 15, fontWeight: "900", color: C.ink },

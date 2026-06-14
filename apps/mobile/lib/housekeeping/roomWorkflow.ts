@@ -12,6 +12,7 @@ export type RoomBadgeKey =
 export type RoomActionKind =
   | "start"
   | "review"
+  | "guest_checkout"
   | "done"
   | "submitted"
   | "ready"
@@ -188,6 +189,9 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   if (isBlocked(room)) return { kind: "blocked", label: "Blocked", disabled: true };
   if (isReady(room)) return { kind: "ready", label: "Ready", disabled: true };
   if (isSubmitted(room)) return { kind: "submitted", label: "Waiting", allowUndo: true, disabled: true };
+  if (room.status === "OCCUPIED") {
+    return { kind: "guest_checkout", label: "Guest confirmed checkout", targetStatus: "DIRTY", allowUndo: true };
+  }
   if (isNeedsAttention(room, now)) return { kind: "review", label: "Review" };
 
   if (room.status === "IN_PROGRESS") {
