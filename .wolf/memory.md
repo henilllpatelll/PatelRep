@@ -5148,3 +5148,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 04:00 | Created pivot planning doc and OpenWolf index entry on docs/pivot-plan | docs/PATELREP_HOUSEKEEPING_MAINTENANCE_PIVOT.md, .wolf/anatomy.md, .wolf/cerebrum.md | ready for docs-only verification | ~2780 |

@@ -867,6 +867,11 @@
 ## design_handoff_mobile/
 
 
+## docs/
+
+- `PATELREP_HOUSEKEEPING_MAINTENANCE_PIVOT.md` - Planning document for the PatelRep pivot into a housekeeping and maintenance command center with supervised OPERA lookup/note-writing, approval, audit, verifier, testing, and branch strategy. (~2780 tok)
+
+
 ## e2e/
 
 
