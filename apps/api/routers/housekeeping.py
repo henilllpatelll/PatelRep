@@ -253,13 +253,31 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
 
     activity_start, activity_end = _activity_day_window_utc(activity_date)
 
+    # Fetch per-room stay boundary (set when a DEP room passes inspection)
+    rs_result = (
+        supabase.table("room_status")
+        .select("room_id, stay_reset_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", room_ids)
+        .execute()
+    )
+    stay_reset_by_room: dict[str, str | None] = {
+        r["room_id"]: r.get("stay_reset_at")
+        for r in (rs_result.data or [])
+    }
+
+    # Lower bound for the bulk query: earliest stay_reset_at across all rooms,
+    # or today's activity start when no resets exist yet.
+    reset_times = [t for t in stay_reset_by_room.values() if t]
+    query_start = min(reset_times) if reset_times else activity_start
+
     latest_note_by_room: dict[str, dict] = {}
     note_result = (
         supabase.table("room_status_history")
         .select("room_id, notes, from_status, to_status, changed_by, change_source, created_at")
         .eq("tenant_id", hotel_id)
         .in_("room_id", room_ids)
-        .gte("created_at", activity_start)
+        .gte("created_at", query_start)
         .lt("created_at", activity_end)
         .order("created_at", desc=True)
         .limit(max(len(room_ids) * 4, 50))
@@ -278,6 +296,10 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
             and from_status == to_status
         )
         if is_task_sheet_marker:
+            continue
+        # Skip notes older than this room's last DEP inspection
+        room_reset = stay_reset_by_room.get(room_id)
+        if room_reset and (note.get("created_at") or "") < room_reset:
             continue
         if room_id and note_text and is_staff_note and room_id not in latest_note_by_room:
             latest_note_by_room[room_id] = note
@@ -1261,16 +1283,17 @@ async def submit_inspection(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
-    # Capture current status before the DB trigger changes it
+    # Capture current status and clean_type before the DB trigger changes them
     current_rs = (
         supabase.table("room_status")
-        .select("status")
+        .select("status, clean_type")
         .eq("room_id", str(request.room_id))
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
         .execute()
     )
     from_status = (current_rs.data or {}).get("status", "CLEAN")
+    current_clean_type = (current_rs.data or {}).get("clean_type")
     to_status = "DIRTY" if request.overall_result == "failed" else "INSPECTED"
 
     inspection = supabase.table("inspections").insert({
@@ -1300,6 +1323,7 @@ async def submit_inspection(
 
     # room_status is updated by the on_inspection_complete DB trigger (migration 017).
     # History must be written explicitly — the status-history trigger was dropped in migration 024.
+    now_iso = datetime.now(timezone.utc).isoformat()
     supabase.table("room_status_history").insert({
         "room_id": str(request.room_id),
         "tenant_id": current_user.hotel_id,
@@ -1309,6 +1333,14 @@ async def submit_inspection(
         "change_source": "app",
         "notes": request.notes,
     }).execute()
+
+    # On a passed DEP inspection, reset the housekeeping history boundary so
+    # prior-stay notes don't bleed into the next guest's stay.
+    if to_status == "INSPECTED" and current_clean_type == "DEP":
+        supabase.table("room_status").update({"stay_reset_at": now_iso})\
+            .eq("room_id", str(request.room_id))\
+            .eq("tenant_id", current_user.hotel_id)\
+            .execute()
 
     return {"data": inspection.data[0]}
 

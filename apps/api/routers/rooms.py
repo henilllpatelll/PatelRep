@@ -208,6 +208,8 @@ async def update_room_status(
     if to_status == "INSPECTED":
         update_payload["last_inspected_at"] = now_iso
         update_payload["last_inspected_by"] = current_user.user_id
+        if current_row.data.get("clean_type") == "DEP":
+            update_payload["stay_reset_at"] = now_iso
 
     # 4. Persist
     update_result = (
@@ -695,16 +697,27 @@ async def get_room_history(
     limit: int = Query(50, ge=1, le=50),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    result = (
+    rs = (
+        supabase.table("room_status")
+        .select("stay_reset_at")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    stay_reset_at = (rs.data or {}).get("stay_reset_at") if rs else None
+
+    query = (
         supabase.table("room_status_history")
         .select("*")
         .eq("room_id", room_id)
         .eq("tenant_id", current_user.hotel_id)
         .order("created_at", desc=True)
         .limit(limit)
-        .execute()
     )
-    return {"data": result.data or []}
+    if stay_reset_at:
+        query = query.gte("created_at", stay_reset_at)
+    return {"data": query.execute().data or []}
 
 
 # ---------------------------------------------------------------------------
