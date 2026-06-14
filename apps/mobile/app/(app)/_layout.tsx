@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,8 @@ export default function AppLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
+  const pathname = usePathname();
+  const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
@@ -131,14 +133,16 @@ export default function AppLayout() {
           />
         ))}
       </Tabs>
-      <TouchableOpacity
-        accessibilityLabel="AI Copilot"
-        style={[styles.fab, { bottom: insets.bottom + 92 }]}
-        onPress={() => router.push("/(app)/copilot" as never)}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="sparkles" size={22} color="#fff" />
-      </TouchableOpacity>
+      {!hideFab ? (
+        <TouchableOpacity
+          accessibilityLabel="AI Copilot"
+          style={[styles.fab, { bottom: insets.bottom + 92 }]}
+          onPress={() => router.push("/(app)/copilot" as never)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="sparkles" size={22} color="#fff" />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

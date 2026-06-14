@@ -190,7 +190,7 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   if (isReady(room)) return { kind: "ready", label: "Ready", disabled: true };
   if (isSubmitted(room)) return { kind: "submitted", label: "Waiting", allowUndo: true, disabled: true };
   if (room.status === "OCCUPIED" && isDepartureClean(room)) {
-    return { kind: "guest_checkout", label: "Guest confirmed checkout", targetStatus: "DIRTY", allowUndo: true };
+    return { kind: "guest_checkout", label: "Review", targetStatus: "DIRTY", allowUndo: true };
   }
   if (isNeedsAttention(room, now)) return { kind: "review", label: "Review" };
 
