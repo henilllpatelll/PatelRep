@@ -92,16 +92,16 @@ async def _fetch_jwks() -> list[dict]:
     global _jwks_cache, _jwks_cache_time
     now = time.time()
     if _jwks_cache is None or (now - _jwks_cache_time) > 3600:
+        url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                r = await client.get(
-                    f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
-                )
-                _jwks_cache = r.json().get("keys", [])
+                r = await client.get(url)
+                data = r.json()
+                _jwks_cache = data.get("keys", [])
                 _jwks_cache_time = now
-                logger.info("JWKS refreshed: %d key(s) loaded", len(_jwks_cache))
+                logger.warning("JWKS fetched: url=%s status=%d keys=%d", url, r.status_code, len(_jwks_cache))
         except Exception as e:
-            logger.warning("JWKS fetch failed, tokens may not verify: %s", e)
+            logger.warning("JWKS fetch failed: url=%s error=%s", url, e)
     return _jwks_cache or []
 
 
