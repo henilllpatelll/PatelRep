@@ -1,179 +1,209 @@
-# OpenWolf
+# PatelRep Codex Instructions
 
-@.wolf/OPENWOLF.md
+These instructions apply to every Codex session in this repository.
 
-This project uses OpenWolf for context management. Read and follow .wolf/OPENWOLF.md every session. Check .wolf/cerebrum.md before generating code. Check .wolf/anatomy.md before reading files.
+## OpenWolf
 
+- This project uses OpenWolf for context management.
+- Read and follow `.wolf/OPENWOLF.md` every session.
+- Check `.wolf/anatomy.md` before reading files.
+- Check `.wolf/cerebrum.md` before generating code.
+- Prefer anatomy summaries when they are sufficient; read full files only when needed.
+- After significant actions, append a one-line entry to `.wolf/memory.md`.
+- When creating, deleting, or renaming files, update `.wolf/anatomy.md`.
+- When a useful project convention, preference, gotcha, or decision is learned, update `.wolf/cerebrum.md`.
 
-# PatelRep — Codex Instructions
+## Always Use Skills
 
-AI Staff Copilot SaaS for 50–150 room Texas hotels ($99/mo + $0.02/AI credit, cap $2.50/room/month).
-**Code decision filter:** Every feature must save a housekeeper or engineer time on the floor — not add complexity to their phone.
+- At the start of every task, inspect the available skills and use all skills that clearly apply.
+- If the user explicitly says "use skills" or names a skill, treat that as mandatory for the turn.
+- If more than one skill applies, use the smallest useful set and state the order briefly.
+- If a relevant skill is unavailable, blocked, or missing, say so clearly and continue with the best fallback.
 
----
+## Git Workflow
+
+- Default stable branch: `main`.
+- Long-lived integration branch: `pivot/hk-maint-opera-execution`.
+- Create focused feature branches from `pivot/hk-maint-opera-execution`.
+- Open PRs from feature branches into `pivot/hk-maint-opera-execution`, not directly into `main`.
+- Only merge `pivot/hk-maint-opera-execution` into `main` after the full pivot is working.
+- Keep feature branches focused on one coherent change.
+- Do not rewrite or discard user work unless the user explicitly asks.
+
+## Product Direction
+
+- PatelRep is pivoting into a housekeeping and maintenance command center with supervised OPERA Cloud execution.
+- Web app = manager command center.
+- Mobile app = housekeeping and maintenance execution app.
+- PatelRep backend/task engine = source of truth.
+- OPERA Cloud computer-use worker = supervised PMS context/execution layer.
+- Slack = optional later only for urgent escalations and AI failure alerts.
+- PMS APIs = not an MVP dependency.
+- Shift4/payment automation = out of scope.
+- Preserve the current color palette.
+- Reuse the current web and mobile apps as the foundation.
+- Do not create a separate project.
+- Keep existing API/Slack code dormant behind provider/config flags where possible.
+
+## MVP Boundaries
+
+Do not implement, automate, or expose MVP flows that perform:
+
+- Payments
+- Refunds
+- Charges
+- Check-ins
+- Checkouts
+- Room moves
+- Reservation cancellations
+- Rate changes
+- Inventory edits
+- Night audit close
+- Guest compensation
+
+If a requested feature appears to require one of these actions, stop and clarify the safest supervised/non-executing alternative.
+
+## Code Decision Filter
+
+Every feature must save a housekeeper, engineer, or manager time on the floor without adding phone complexity.
+
+Prefer:
+
+- Fast execution workflows over broad admin surfaces.
+- Clear supervisor review before risky PMS execution.
+- Deterministic task state in PatelRep before external execution.
+- Existing app surfaces over new projects or parallel prototypes.
+
+Avoid:
+
+- Adding Slack as a primary workflow.
+- Making OPERA or PMS APIs required for the MVP.
+- Adding payment, billing automation, or guest-compensation surfaces to MVP scope.
+- Building complex mobile interactions that slow floor staff down.
+
+## Test, Fix, Verify Loop
+
+- Work in small increments.
+- Before changing implementation code, identify expected behavior and add or update focused tests whenever practical.
+- For every new implementation, create or refine tests when the project has a reasonable test setup.
+- If tests are not added for an implementation, explain why in the final response.
+- After each meaningful implementation increment, run the narrowest useful verification.
+- If a check fails, stop new implementation work, fix the failure, and rerun the check.
+- Clean up temporary files, debug code, unused imports, dead code, stale comments, and accidental artifacts before moving on.
+- Format touched files using the project's normal formatter when available.
+
+## Final Verification
+
+- Before finishing any coding task, run the best available project checks: tests, typecheck, lint, build, security scan, or the narrowest valid equivalent.
+- For local apps or services, start the project on localhost and manually verify the relevant workflow when practical.
+- If browser verification is needed, open the localhost URL and confirm the screen or workflow works.
+- If verification cannot be completed, report the blocker, what was tried, and the closest verification that did run.
+
+## Task Completion Requirements
+
+Every final response for a code or repo change must summarize:
+
+- Changed files.
+- Tests, typecheck, lint, build, or manual verification results.
+- Remaining risks or known follow-up work.
+
+## Project Shape
+
+PatelRep is a hotel operations SaaS for Texas hotels, now focused on housekeeping, maintenance, and supervised OPERA execution.
+
+```
+PatelRep/
+  apps/
+    api/       FastAPI Python backend
+    web/       Next.js manager command center
+    mobile/    Expo execution app for housekeeping and maintenance
+  supabase/    SQL migrations and database source of truth
+  spec/        Product and workflow specs
+  .planning/   GSD state, roadmap, and phase plans
+```
 
 ## Commands
 
 ```bash
-npm run dev:api                  # FastAPI on :8000 (uvicorn --reload)
-npm run dev:web                  # Next.js on :3000
+npm run dev:api
+npm run dev:web
 
 cd apps/api && pip install -r requirements.txt
-cd apps/api && pytest tests/     # API tests
+cd apps/api && pytest tests/
 
-# Railway prod build (web)
-npm run build --workspace=@patelrep/web \
-  && cp -r apps/web/public apps/web/.next/standalone/ \
-  && cp -r apps/web/.next/static apps/web/.next/standalone/.next/static
-node apps/web/.next/standalone/server.js
+npm run build --workspace=@patelrep/web
 ```
 
----
+Known web command fallback: if root workspaces are unavailable, run app-local commands from `apps/web`.
 
-## Directory Structure
-
-```
-PatelRep/
-├── apps/
-│   ├── api/              FastAPI Python 3.12 (Railway, Dockerfile)
-│   │   ├── main.py       App factory + router registry (add new domains here)
-│   │   ├── core/         config.py (Pydantic Settings), database.py (Supabase singleton)
-│   │   ├── routers/      21 domain files — one per domain, most business logic lives here
-│   │   ├── services/     ai/, opera/ only — keep other logic in routers until it clearly needs extraction
-│   │   ├── models/       Pydantic request/response schemas only
-│   │   └── middleware/   auth.py (JWT validation), credits.py (AI credit gate per-route)
-│   ├── web/              Next.js 14 App Router (Railway, Dockerfile)
-│   │   ├── app/(auth)/   Unauthenticated routes (login, magic link)
-│   │   ├── app/(dashboard)/ 15 feature sections (authenticated)
-│   │   ├── components/   ai/, dashboard/, engineering/, housekeeping/, shared/, ui/
-│   │   ├── lib/api/      Typed API clients per domain (housekeepingApi, staffApi, …)
-│   │   ├── lib/hooks/    React Query hooks
-│   │   ├── stores/       Zustand: authStore, hotelStore, housekeepingStore, engineeringStore
-│   │   └── middleware.ts Route guard → /login (no session) or /onboarding (no hotel_id)
-├── supabase/migrations/  001–025 sequential SQL — schema source of truth
-├── spec/                 14 markdown specs — requirements source of truth
-├── .planning/            GSD: STATE.md, ROADMAP.md, phases/
-└── railway.toml          Two services: api + web (both Dockerfile)
+```bash
+npm run type-check
+npm run lint
+npm run build
 ```
 
----
+## Architecture Conventions
 
-## Domain Map
+### Multi-tenancy
 
-| Domain | API router | Web route |
-|---|---|---|
-| Auth | auth.py | (auth)/login |
-| Hotels / Onboarding | hotels.py, onboarding.py | (dashboard)/onboarding |
-| Rooms | rooms.py | — (internal API, no dedicated web route) |
-| Housekeeping | housekeeping.py | (dashboard)/housekeeping |
-| Engineering | work_orders.py, assets.py | (dashboard)/engineering |
-| Tasks | tasks.py | (dashboard)/tasks |
-| Scheduling | scheduling.py | (dashboard)/scheduling |
-| Staff | staff.py | (dashboard)/staff |
-| AI Copilot | ai_copilot.py | (dashboard)/ai |
-| SOP Library | sop.py | (dashboard)/sop |
-| Guest Requests | guest_requests.py | (dashboard)/guest-requests |
-| Logbook | logbook.py | (dashboard)/logbook |
-| Lost & Found | lost_found.py | (dashboard)/lost-found |
-| Reports | reports.py | (dashboard)/reports |
-| Billing | billing.py | (dashboard)/billing |
-| Opera Integration | integrations.py | (dashboard)/settings |
-| Notifications | notifications.py | — (push/in-app, no dedicated web route) |
-| Webhooks | webhooks.py | — (Stripe webhook handler only) |
+- Every Supabase query must scope to the current tenant.
+- Use `.eq("hotel_id", user.hotel_id)` or the equivalent tenant key on every tenant-owned query.
+- RLS is a second safety layer, not a substitute for application-level tenant filters.
 
----
+### Backend
 
-## Conventions
+- FastAPI lives in `apps/api`.
+- Add new API domains as routers under `apps/api/routers/` and include them from `apps/api/main.py`.
+- Keep business logic in domain routers until it is clearly shared across multiple domains.
+- Current service-layer exceptions are `apps/api/services/ai/` and `apps/api/services/opera/`.
+- Use the Supabase Python SDK directly; do not add an ORM.
+- Success responses use `{ "data": ... }`; paginated lists also include `{ "meta": { "page", "per_page" } }`.
+- Cron endpoints live in `routers/internal.py` and must be guarded by `X-Cron-Secret`.
 
-### Multi-tenancy (never skip)
-Every Supabase query must scope to tenant: `.eq("hotel_id", user.hotel_id).execute()`.
-RLS (migration 016) is a second safety layer — not a substitute for the query filter.
+### Auth and RBAC
 
-### No ORM
-All queries use the Supabase Python SDK directly inside router handlers. No SQLAlchemy.
+- JWT custom claims include `hotel_id` and app role.
+- Use `get_current_user()` for tenant-scoped routes.
+- Gate role-specific routes with `require_role(*roles)`.
+- Supported app roles: `housekeeper`, `engineer`, `housekeeping_supervisor`, `chief_engineer`, `front_desk`, `gm`.
 
-### Auth & RBAC
-JWT custom claims (`hotel_id` + `role`) are baked in at login via migration 019 hook.
-`get_current_user()` → `CurrentUser(hotel_id, user_id, role)`. Gate routes with `require_role(*roles)`.
-Roles: `housekeeper` `engineer` `housekeeping_supervisor` `chief_engineer` `front_desk` `gm`
+### Web
 
-### AI routing split
-- `gpt-4o-mini` → NL→task parsing, onboarding chat (latency-sensitive)
-- `Codex-sonnet-3.5` → RAG over SOPs, room readiness predictions (reasoning quality)
-- pgvector RPC: call `match_sop_chunks()` with param `match_hotel_id` — NOT `hotel_id` (gotcha)
+- Next.js manager command center lives in `apps/web`.
+- Auth state uses Zustand plus the `useAuth` hook.
+- Server data uses React Query.
+- Preserve the current Warm Operational Hospitality visual system and color palette.
+- Do not replace the current web app foundation or create a separate manager app.
 
-### API responses
-- Success: `{ "data": ... }` — lists add `"meta": { "page", "per_page" }`
-- New router: add file to `routers/`, import + `app.include_router(..., prefix="/v1/...")` in `main.py`
-- Cron endpoints: `routers/internal.py`, guarded by `X-Cron-Secret` header
+### Mobile
 
-### Web state
-Auth: Zustand `authStore` + `useAuth` hook. Server data: React Query. Real-time: Supabase Realtime subscriptions inside components (e.g., `RoomStatusBoard.tsx`).
+- Expo floor execution app lives in `apps/mobile`.
+- Preserve the current mobile foundation and palette.
+- Mobile workflows should optimize for quick housekeeping and maintenance execution on the floor.
+- Avoid dense manager/admin flows in the mobile app unless explicitly scoped for a supervisor workflow.
 
-### Realtime scope (A2)
-Supabase Realtime subscriptions only on three surfaces: Housekeeping Breakout Board, Engineering Work Orders, AI Service Recovery alerts. Standard screens (Tasks, SOP Library) use pull-to-refresh — no WebSocket.
+### Realtime
 
-### Services layer depth (A1)
-Keep business logic in domain routers. Only extract to `services/` when logic is shared across 2+ domains. Current exceptions: `services/ai/`, `services/opera/`. Flat architecture preserves AI context window.
+- Realtime should stay limited to high-value operational surfaces.
+- Standard screens should prefer pull-to-refresh unless realtime is clearly needed.
 
-### AI credit accounting (A3)
-Middleware must log **actual token usage** from API responses — never fixed costs. Dynamic routing between GPT-4o-mini and Codex models means fixed estimates will bleed money. Monthly Stripe true-up depends on this log.
+### AI and Credits
 
-### Opera Cloud (A4)
-Opera Cloud integration is feature-flagged for pilot. App must function standalone first. Two-way sync hardening deferred.
+- AI credit accounting must log actual token usage from provider responses, never fixed estimates.
+- Use cheaper/latency-sensitive models for parsing and routing when appropriate.
+- Use higher-reasoning models only where quality materially affects operations.
+- SOP pgvector RPC uses `match_sop_chunks()` with parameter `match_hotel_id`, not `hotel_id`.
 
----
+### OPERA Cloud
 
-## Database Schema Gotchas
+- PatelRep must function standalone first.
+- OPERA Cloud is a supervised PMS context/execution layer, not PatelRep's source of truth.
+- PMS APIs are not required for MVP.
+- Any OPERA execution must respect the forbidden MVP action list.
+- Prefer provider/config flags so OPERA-related code can remain dormant unless enabled.
 
-- `match_sop_chunks` RPC param: `match_hotel_id` (NOT `hotel_id`) — migration 018
-- `room_assignments`: `assigned_to` (housekeeper UUID), `assignment_date` (DATE)
-- `room_status` join: `rooms!inner(id, room_number, floor, room_type_id, room_types(name, code, base_clean_minutes))`
-- `housekeeper_profiles`: rolling avg clean time per housekeeper × room_type
-- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime on housekeeping/engineering tables
-- Note: two files share the `020` prefix (`020_fix_credits_decimal.sql`, `020_logbook_expires.sql`) — numbering collision in the sequence
+### Slack
 
----
-
-## Cron Jobs (Railway → FastAPI `/internal/*`)
-
-| Endpoint | Schedule | Purpose |
-|---|---|---|
-| `POST /internal/predictions/run` | `*/30 * * * *` | Room readiness predictions |
-| `POST /internal/opera/sync-reservations` | `*/30 * * * *` | Opera reservation sync |
-| `POST /internal/pm/check-due` | `0 6 * * *` | PM schedule due check |
-| `POST /internal/ai/failure-predictions` | `0 0 * * *` | Asset failure predictions |
-| `POST /internal/logbook/shift-summary` | `0 7,15,23 * * *` | Shift end summaries |
-| `POST /internal/billing/monthly-trueup` | `0 0 28-31 * *` | Stripe billing true-up |
-| `POST /internal/reports/daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
-
----
-
-## Infrastructure
-
-| Service | URL |
-|---|---|
-| API (Railway) | https://api-production-130b.up.railway.app |
-| Web (Railway) | https://patelrepweb-production.up.railway.app |
-| GitHub | https://github.com/henilllpatelll/PatelRep |
-
-Railway project: `16d3d022-cf7e-4d4a-8ec0-6a97ddb74e93` · env: `1b702af9-fb05-4635-8121-4a1462d2c93b`
-API service: `3d6e22bc-bc67-4a8e-b88e-5d983573922a` · web service: `8ed9664c-9257-4c01-820c-ba92be27e37b`
-
-### Env vars (by tier)
-**API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`
-**Web (Railway):** `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_API_URL`
-
----
-
-## GSD Workflow
-
-- Current state: `.planning/STATE.md` — run `/gsd:progress` to check phase
-- Phase plans: `.planning/phases/` — run `/gsd:execute-phase` to run next phase
-- Remaining work: `REMAINING_WORK.md`
-
-## Skills
-
-Domain skills inject automatically by file path:
-- `apps/api/**` → `patelrep-api` skill (FastAPI patterns)
-- `apps/web/**` → `patelrep-web` skill (Next.js 14 patterns)
+- Slack is optional later only for urgent escalations and AI failure alerts.
+- Do not make Slack the primary task, housekeeping, or maintenance workflow.
+- Keep Slack-related code dormant behind provider/config flags where possible.

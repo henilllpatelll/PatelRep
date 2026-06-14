@@ -1393,10 +1393,95 @@
       "file": "apps/mobile/.env, apps/mobile/app/_layout.tsx",
       "root_cause": "EXPO_PUBLIC_API_URL was set to https://patelrep-production.up.railway.app/v1 (the Next.js web service URL), not the FastAPI backend URL https://patelrep-web-production.up.railway.app/v1. Calls to /staff/me/effective-role etc. hit Next.js which returns HTML for unknown routes; response.json() fails, catch block returns { detail: 'Unknown error' }. Additionally syncOnConnect() was called without .catch() in _layout.tsx, so any throw became an unhandled rejection.",
       "fix": "Changed EXPO_PUBLIC_API_URL to https://patelrep-web-production.up.railway.app/v1. Added .catch(console.warn) to syncOnConnect() call in _layout.tsx.",
-      "tags": ["mobile", "env", "api-url", "railway", "unknown-error", "unhandled-rejection"],
-      "related_bugs": ["bug-083"],
+      "tags": [
+        "mobile",
+        "env",
+        "api-url",
+        "railway",
+        "unknown-error",
+        "unhandled-rejection"
+      ],
+      "related_bugs": [
+        "bug-083"
+      ],
       "occurrences": 1,
       "last_seen": "2026-06-14T00:00:00Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-06-14T07:14:14.507Z",
+      "error_message": "Incorrect value in code",
+      "file": "railway.toml",
+      "root_cause": "Had \"apps/web/Dockerfile\"",
+      "fix": "Changed to \"Dockerfile\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "toml"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-14T07:14:44.154Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-06-14T07:49:46.802Z",
+      "error_message": "Wrong reference: JWKError should be from",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "Used \"JWKError\" instead of \"from\"",
+      "fix": "Changed JWKError → from",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-14T07:52:03.507Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-06-14T07:51:53.535Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 15→33 lines (4 removed) | Also: jwks = await _fetch_jwks(); return jwt.decode(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-14T07:51:59.538Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-06-14T08:27:26.403Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/middleware/auth.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→6 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T08:27:26.403Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-06-14T08:29:00.000Z",
+      "error_message": "Database request failed (400) on all API endpoints after JWT fix",
+      "file": "apps/api/core/config.py",
+      "root_cause": "SUPABASE_URL Railway env var is set to PostgREST base URL (https://...supabase.co/rest/v1) rather than project root. supabase-py SDK builds /rest/v1 paths itself, so passing /rest/v1 as base URL corrupted all DB queries.",
+      "fix": "Added @field_validator('supabase_url') in Settings to strip /rest/v1 suffix at startup, normalizing the URL once for all consumers (Supabase client, JWKS URL, etc.)",
+      "tags": ["supabase", "config", "railway", "env-var", "400", "database"],
+      "related_bugs": ["bug-089"],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T08:29:00.000Z"
     }
   ]
 }

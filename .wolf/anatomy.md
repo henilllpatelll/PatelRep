@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T07:04:37.022Z
-> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T08:27:26.349Z
+> Files: 12 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -30,6 +30,7 @@
 ## ./
 
 - `CLAUDE.md` — OpenWolf (~2983 tok)
+- `railway.toml` (~62 tok)
 
 ## .claude/
 
@@ -460,9 +461,11 @@
 
 ## apps/api/core/
 
+- `config.py` — Settings: get_settings (~649 tok)
 
 ## apps/api/middleware/
 
+- `auth.py` — from: get_current_user, get_current_user_no_hotel, require_role, check_role (~2063 tok)
 
 ## apps/api/models/
 
@@ -699,7 +702,8 @@
 
 ## apps/web/
 
-- `Dockerfile` — Docker container definition (~337 tok)
+- `Dockerfile` — Docker container definition (~333 tok)
+- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~590 tok)
 
 ## apps/web/app/
 

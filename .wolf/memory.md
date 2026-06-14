@@ -5103,3 +5103,48 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 02:04 | Edited apps/mobile/app/_layout.tsx | modified if() | ~21 |
 | 02:05 | Session end: 1 writes across 1 files (_layout.tsx) | 10 reads | ~21 tok |
+
+## Session: 2026-06-14 02:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:14 | Edited apps/web/Dockerfile | inline fix | ~6 |
+| 02:14 | Edited apps/web/Dockerfile | inline fix | ~3 |
+| 02:14 | Edited railway.toml | "apps/web/Dockerfile" → "Dockerfile" | ~8 |
+| 02:14 | Edited railway.toml | "Dockerfile" → "apps/web/Dockerfile" | ~11 |
+| 02:15 | Session end: 4 writes across 2 files (Dockerfile, railway.toml) | 3 reads | ~362 tok |
+| 02:28 | Session end: 4 writes across 2 files (Dockerfile, railway.toml) | 7 reads | ~362 tok |
+| 02:42 | Edited apps/api/middleware/auth.py | inline fix | ~12 |
+| 02:43 | Edited apps/api/middleware/auth.py | 3→3 lines | ~47 |
+| 02:44 | Session end: 6 writes across 3 files (Dockerfile, railway.toml, auth.py) | 8 reads | ~421 tok |
+| 02:49 | Edited apps/api/middleware/auth.py | added 1 import(s) | ~20 |
+| 02:51 | Edited apps/api/middleware/auth.py | added 2 import(s) | ~130 |
+| 02:51 | Edited apps/api/middleware/auth.py | modified _jwk_ec_to_pem() | ~358 |
+| 02:51 | Edited apps/api/middleware/auth.py | 12→15 lines | ~172 |
+| 02:52 | Edited apps/api/middleware/auth.py | inline fix | ~9 |
+| 02:53 | Session end: 11 writes across 3 files (Dockerfile, railway.toml, auth.py) | 8 reads | ~2392 tok |
+
+## Session: 2026-06-14 02:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:01 | Edited apps/web/next.config.mjs | modified buildCSP() | ~105 |
+| 03:11 | Created apps/api/middleware/auth.py | — | ~2054 |
+| 03:14 | Updated root repository instructions for PatelRep pivot workflow | AGENTS.md, .wolf/anatomy.md, .wolf/cerebrum.md | Added branch rules, product direction, MVP forbidden actions, and completion requirements | ~2630 |
+| 03:18 | Edited apps/api/middleware/auth.py | modified _fetch_jwks() | ~223 |
+| 03:22 | Edited apps/api/middleware/auth.py | modified in() | ~107 |
+
+## Session: 2026-06-14 03:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:27 | Edited apps/api/core/config.py | modified _normalize_supabase_url() | ~210 |
+| 03:27 | Edited apps/api/middleware/auth.py | modified _fetch_jwks() | ~81 |
+
+| 08:31 | Fixed SUPABASE_URL /rest/v1 suffix breaking Supabase client SDK (400 on all DB queries) | apps/api/core/config.py | Normalized URL via field_validator; board now shows all 114 rooms | ~800 |
+| 03:32 | Session end: 2 writes across 2 files (config.py, auth.py) | 5 reads | ~291 tok |
+
+## Session: 2026-06-14 03:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

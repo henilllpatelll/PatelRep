@@ -256,6 +256,7 @@
 
 ## Decision Log
 
+- **PatelRep pivot workflow (2026-06-14):** Root `AGENTS.md` now defines `main` as stable, `pivot/hk-maint-opera-execution` as the long-lived integration branch, and focused feature branches/PRs targeting the pivot branch. Product direction is housekeeping + maintenance command center with supervised OPERA Cloud execution; web is manager command center, mobile is floor execution, backend/task engine is source of truth, PMS APIs and Shift4/payment automation are out of MVP, and Slack stays optional later for urgent escalations/AI failure alerts only.
 - **Branch recovery (2026-06-09):** `codex/myRooms` can be recovered from the local branch if pruned from GitHub. As of this recovery, `main` already contains the equivalent patch (`git cherry main codex/myRooms` reported `- e309e97`), so restore the branch instead of re-merging old history.
 - **My Rooms branch update (2026-06-09):** To move `codex/myRooms` after the latest redesign without force-pushing, merge `origin/main` into `codex/myRooms`, resolve conflicts to main first, then apply the restored workflow patch as a new commit. Pushed tip `bf8e05e` has `origin/main` as an ancestor and keeps the redesigned mobile shell with roomWorkflow-driven My Rooms behavior restored.
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->

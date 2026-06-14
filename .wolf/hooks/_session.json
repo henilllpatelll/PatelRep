@@ -1,72 +1,12 @@
 {
-  "session_id": "session-2026-06-14-0105",
-  "started": "2026-06-14T06:05:59.077Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/supabase.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T06:56:24.350Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/.env": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T06:56:39.698Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/.env.example": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T06:56:39.979Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/.env.local": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T06:56:51.519Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:01:03.311Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/_layout.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:01:03.322Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/offline/sync.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:01:18.447Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:01:18.850Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/housekeeping/roomWorkflow.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:02:53.926Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/stores/appStore.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-14T07:02:53.978Z"
-    }
-  },
-  "files_written": [
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/_layout.tsx",
-      "action": "edit",
-      "tokens": 21,
-      "at": "2026-06-14T07:04:37.035Z"
-    }
-  ],
-  "edit_counts": {
-    "apps/mobile/app/_layout.tsx": 1
-  },
+  "session_id": "session-2026-06-14-0344",
+  "started": "2026-06-14T08:44:50.733Z",
+  "files_read": {},
+  "files_written": [],
+  "edit_counts": {},
   "anatomy_hits": 0,
-  "anatomy_misses": 9,
+  "anatomy_misses": 0,
   "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 2
+  "stop_count": 0
 }
