@@ -1271,6 +1271,38 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-12T00:00:00"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-06-14T00:16:54.756Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/navigation/roleTabs.ts",
+      "root_cause": "Had \"more\"",
+      "fix": "Changed to \"requests\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T00:16:54.756Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-06-14T00:17:23.459Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/components/shared/tokens.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→4 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T00:17:23.459Z"
     }
   ]
 }

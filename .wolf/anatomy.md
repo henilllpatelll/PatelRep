@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T12:40:20.829Z
-> Files: 15 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T00:17:23.453Z
+> Files: 2 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -500,7 +500,6 @@
 
 ## apps/mobile/__tests__/lib/
 
-- `supervisor.test.ts` — API routes: GET (1 endpoints) (~2166 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -510,7 +509,6 @@
 
 ## apps/mobile/__tests__/screens/
 
-- `InspectorQueue.test.tsx` — EN (~1058 tok)
 
 ## apps/mobile/android/
 
@@ -535,7 +533,6 @@
 
 ## apps/mobile/app/(app)/assignments/
 
-- `index.tsx` — AssignmentsScreen — renders modal (~6242 tok)
 
 ## apps/mobile/app/(app)/clean/
 
@@ -548,14 +545,12 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — ENGINEER_ORDERS (~6751 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
 
 ## apps/mobile/app/(app)/inspect/
 
-- `index.tsx` — RESULT_META — renders modal (~5402 tok)
 
 ## apps/mobile/app/(app)/logbook/
 
@@ -580,7 +575,6 @@
 
 ## apps/mobile/app/(app)/room-board/
 
-- `index.tsx` — SEGMENTS (~3423 tok)
 
 ## apps/mobile/app/(app)/room-status/
 
@@ -608,8 +602,9 @@
 
 ## apps/mobile/components/home/
 
-- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2843 tok)
-- `SupervisorHome.tsx` — firstName (~3442 tok)
+
+## apps/mobile/components/home/SupervisorHome.tsx
+
 
 ## apps/mobile/components/housekeeping/
 
@@ -622,12 +617,19 @@
 
 ## apps/mobile/components/shared/
 
+- `tokens.ts` — The dark "Evening Lobby" chrome — a designed constant across themes. (~1503 tok)
 
 ## apps/mobile/components/supervisor/
 
-- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~1847 tok)
-- `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1238 tok)
-- `RoomDetailSheet.tsx` — formatClock — renders modal (~3342 tok)
+
+## apps/mobile/components/supervisor/HousekeeperPicker.tsx
+
+
+## apps/mobile/components/supervisor/RoomDetailSheet.tsx
+
+
+## apps/mobile/components/supervisor/atoms.tsx
+
 
 ## apps/mobile/components/tasks/
 
@@ -637,7 +639,6 @@
 
 ## apps/mobile/i18n/locales/
 
-- `_update_supervisor_i18n.py` — One-shot locale update for the supervisor redesign — deleted after running. (~2605 tok)
 
 ## apps/mobile/lib/
 
@@ -647,20 +648,25 @@
 
 ## apps/mobile/lib/api/
 
-- `housekeepingSupervisor.ts` — API routes: POST, DELETE (2 endpoints) (~604 tok)
+
+## apps/mobile/lib/api/housekeepingSupervisor.ts
+
 
 ## apps/mobile/lib/engineering/
 
 
 ## apps/mobile/lib/housekeeping/
 
-- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2320 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
 
+## apps/mobile/lib/housekeeping/supervisor.ts
+
+
 ## apps/mobile/lib/navigation/
 
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1250 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -673,7 +679,6 @@
 
 ## apps/mobile/lib/utils/
 
-- `date.ts` — "Wed · Jun 12 · {suffix}" hero meta line, localized by language preference. (~182 tok)
 
 ## apps/mobile/package.json
 
@@ -875,21 +880,3 @@
 
 ## youtubeMobileResearch.md
 
-
-## apps/mobile/lib/housekeeping/supervisor.ts
-Supervisor floor domain layer: BoardRoomRaw->FloorRoom normalization of the nested /housekeeping/board join, buildFloorSnapshot counts, groupByFloor, buildTeamLoads (per-housekeeper progress/minutes), extractAssignableStaff for the nested /staff payload. ~250 lines, ~2k tokens.
-
-## apps/mobile/lib/api/housekeepingSupervisor.ts
-Typed supervisor API wrappers: fetchBoard, fetchAssignableStaff, saveAssignments (real CreateAssignmentsRequest shape), removeAssignment, suggestAssignments (AI balance). ~80 lines, ~600 tokens.
-
-## apps/mobile/components/supervisor/atoms.tsx
-Evening Lobby supervisor atoms: HeroSignalRow (dark-hero chips), FloorMosaic (board-wide tiles), RoomStatusTile (paper board cell with status rail + flag icons + assignee), TeamLoadRow (housekeeper progress row). ~200 lines, ~1.5k tokens.
-
-## apps/mobile/components/supervisor/HousekeeperPicker.tsx
-Bottom-sheet staff picker with live per-housekeeper loads; used by Room Board sheet and Assignments. ~130 lines, ~1k tokens.
-
-## apps/mobile/components/supervisor/RoomDetailSheet.tsx
-Room Board detail sheet: status/clean-type/VIP/DND/high-risk chips, assignee + assign/reassign, checkout/arrival times, latest note, open WO, remove-assignment confirm. ~300 lines, ~2.2k tokens.
-
-## apps/mobile/components/home/SupervisorHome.tsx
-Supervisor Home (Floor Pulse): dark hero with greeting + FloorMosaic + signals, To inspect / Unassigned action cards, team progress rows, Open Room Board CTA. Realtime on room_status. ~340 lines, ~2.5k tokens.

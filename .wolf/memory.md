@@ -5023,3 +5023,14 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | -- | Supervisor redesign session (redesign/supervisor): merged redesign-engineering, rebuilt Home/Room Board/Assignments/Inspect in Evening Lobby language | apps/mobile/... | done | ~60k |
 | -- | Found+fixed 3 latent supervisor bugs: wrong POST /assignments payload, nonexistent /assignments/auto, /staff nested payload parsed as array | lib/api/housekeepingSupervisor.ts | logged bug-074/075 | - |
 | -- | New domain layer + atoms: lib/housekeeping/supervisor.ts, components/supervisor/{atoms,HousekeeperPicker,RoomDetailSheet}.tsx, components/home/SupervisorHome.tsx | apps/mobile | type-check + 89 jest pass | - |
+| 19:07 | Session end: 23 writes across 12 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 15 reads | ~47509 tok |
+| 19:16 | Edited apps/mobile/lib/navigation/roleTabs.ts | 2→1 lines | ~4 |
+| 19:16 | Edited apps/mobile/lib/navigation/roleTabs.ts | 7→6 lines | ~116 |
+| 19:17 | Edited apps/mobile/components/shared/tokens.ts | 4→9 lines | ~81 |
+| 19:17 | Edited apps/mobile/components/shared/tokens.ts | 9→4 lines | ~33 |
+| 19:18 | Session end: 27 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 15 reads | ~47793 tok |
+
+## Session: 2026-06-14 19:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
