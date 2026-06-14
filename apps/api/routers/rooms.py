@@ -261,7 +261,7 @@ async def update_room_status(
 async def manual_checkout_room(
     room_id: str,
     request: ManualCheckoutRequest | None = None,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk", "housekeeper")),
 ):
     current_row = (
         supabase.table("room_status")

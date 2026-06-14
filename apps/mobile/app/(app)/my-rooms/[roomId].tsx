@@ -239,10 +239,28 @@ export default function RoomDetailScreen() {
     }
   }
 
+  async function handleGuestCheckout() {
+    if (!room) return;
+    setStatusLoading(true);
+    try {
+      await api.post(`/rooms/${room.id}/checkout`, {});
+      updateLocalRoom(room.id, {
+        status: "DIRTY",
+        fo_status: "VAC",
+        actual_checkout_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err: unknown) {
+      Alert.alert("Error", (err as Error).message ?? "Failed to confirm checkout");
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
   function handlePrimaryAction() {
     if (!room) return;
     if (isOccupiedDeparture(room)) {
-      void updateRoomStatus("DIRTY");
+      void handleGuestCheckout();
       return;
     }
     const action = getRoomAction(room);

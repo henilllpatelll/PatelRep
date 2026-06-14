@@ -158,6 +158,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-06-14] **Mobile `EXPO_PUBLIC_API_URL` must point to FastAPI (`patelrep-web-production`), NOT Next.js (`patelrep-production`)** — Railway service names are misleading: the FastAPI API service is named "patelrep-web" → URL `https://patelrep-web-production.up.railway.app/v1`; the Next.js web service is named "PatelRep" → URL `https://patelrep-production.up.railway.app`. Using the wrong URL causes API calls to return HTML → `response.json()` throws → `client.ts` catch returns `{ detail: "Unknown error" }`. Also: always add `.catch(console.warn)` to `syncOnConnect()` calls that are not inside a try/catch.
+
 - [2026-06-07] **`my_rooms_select` must NOT include `id` — room_status uses `room_id` as PK** — Selecting `id` from `room_status` causes PostgreSQL error 42703 (undefined_column) → PostgREST APIError → main.py maps non-PGRST204 errors to HTTP 400. Mobile sees "HTTP 400" because the body is `{error:{}}` not `{detail:...}`. Fix: use `room_id` in select, then add `"id": room["room_id"]` in the loop so mobile navigation (`room.id`) works.
 
 - [2026-06-06] **`/my-rooms` and `_ensure_housekeeper` must allow both `housekeeper` and `housekeeping_supervisor`** — The web HousekeeperBar lists both roles for assignment. Restricting only `housekeeper` in API means supervisors get 403 on mobile (rooms don't show) and their assignments silently fail to save. Always use `.in_("role", ["housekeeper", "housekeeping_supervisor"])` and `require_role("housekeeper", "housekeeping_supervisor")` in the housekeeping assignment flow.

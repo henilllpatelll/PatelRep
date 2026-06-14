@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-06-14 | Fixed "supabaseUrl is required" crash on npm run android — EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY were missing from apps/mobile/.env. | apps/mobile/.env | complete | ~20 tok |
 | 2026-06-10 | Restyled clean-type labels (Departure/Light/Full) on My Rooms room cards to pill badges matching IMG_6396: DEP → stone pill (oooSoft/oooLine/ooo) with arrow-back icon, LIGHT/FULL → amber pill (cautionSoft/cautionLine/caution). | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~30 tok |
 | 2026-06-10 | Open decisions complete: removed my-rooms/index from HIDDEN_APP_ROUTES; hotel-tz fix in get_sessions_summary (dateutil, midnight→UTC bounds); handleMaintenanceBlocker in clean/[roomId].tsx; ChevronUp/Down ordering in CleaningChecklistEditor; 058_clean_photos_private.sql + signed URLs in clean_sessions.py. 52 tests pass. | roleTabs.ts, clean_sessions.py, clean/[roomId].tsx, CleaningChecklistEditor.tsx, 058_clean_photos_private.sql | complete | ~180 tok |
 | 2026-06-10 | Phase 6 finalized: tasks grouping changed to overdue/today/later (date-semantic, string compare to avoid TZ bug); removed dead FALLBACK_GROUPS; added TasksScreen.test.ts (9 tests). All 14 tests pass, tsc clean. | tasks/index.tsx, en.json, es.json, __tests__/screens/TasksScreen.test.ts | complete | ~120 tok |
@@ -5048,3 +5049,57 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:34 | Edited apps/api/services/room_status_transitions.py | 2→1 lines | ~12 |
 | 20:34 | Session end: 37 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60035 tok |
 | 20:37 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→4 lines | ~27 |
+| 20:37 | Edited apps/api/services/room_status_transitions.py | 1→2 lines | ~23 |
+| 20:38 | Session end: 39 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60085 tok |
+| 20:38 | Session end: 39 writes across 15 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60085 tok |
+| 20:43 | Edited apps/api/routers/rooms.py | modified manual_checkout_room() | ~73 |
+| 20:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added error handling | ~229 |
+| 20:44 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60387 tok |
+| 20:52 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60387 tok |
+| 20:53 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60387 tok |
+| 20:54 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60387 tok |
+| 21:00 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~60387 tok |
+| 21:02 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 22 reads | ~60387 tok |
+| 21:11 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 22 reads | ~60387 tok |
+| 21:55 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 22 reads | ~60387 tok |
+| 21:58 | Session end: 41 writes across 16 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 22 reads | ~60387 tok |
+
+## Session: 2026-06-14 21:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:24 | Edited .claude/settings.json | 3→1 lines | ~7 |
+| 22:24 | Session end: 1 writes across 1 files (settings.json) | 10 reads | ~7 tok |
+
+## Session: 2026-06-14 22:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-14 22:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:37 | Edited CLAUDE.md | 10→10 lines | ~134 |
+| 00:37 | Session end: 1 writes across 1 files (CLAUDE.md) | 5 reads | ~143 tok |
+| 00:41 | Edited apps/web/Dockerfile | 9→7 lines | ~38 |
+| 00:46 | Edited apps/web/Dockerfile | 7→7 lines | ~42 |
+| 00:47 | Session end: 3 writes across 2 files (CLAUDE.md, Dockerfile) | 5 reads | ~229 tok |
+| 00:55 | Session end: 3 writes across 2 files (CLAUDE.md, Dockerfile) | 5 reads | ~229 tok |
+
+## Session: 2026-06-14 00:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:58 | Created apps/escalations-check/Dockerfile | — | ~60 |
+| 00:59 | Session end: 1 writes across 1 files (Dockerfile) | 2 reads | ~64 tok |
+| 01:02 | Session end: 1 writes across 1 files (Dockerfile) | 2 reads | ~64 tok |
+| 01:02 | Session end: 1 writes across 1 files (Dockerfile) | 2 reads | ~64 tok |
+| 01:04 | Session end: 1 writes across 1 files (Dockerfile) | 2 reads | ~64 tok |
+
+## Session: 2026-06-14 01:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 02:04 | Edited apps/mobile/app/_layout.tsx | modified if() | ~21 |
+| 02:05 | Session end: 1 writes across 1 files (_layout.tsx) | 10 reads | ~21 tok |

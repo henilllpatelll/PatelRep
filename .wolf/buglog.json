@@ -1319,6 +1319,84 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-14T00:53:45.949Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-06-14T01:43:40.145Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T01:43:40.145Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-06-14T05:41:57.965Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/Dockerfile",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→7 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "unknown"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T05:41:57.965Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-06-14T00:00:00Z",
+      "error_message": "ERROR [Error: supabaseUrl is required.] when running npm run android",
+      "file": "apps/mobile/.env",
+      "root_cause": "apps/mobile/.env was missing EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY — only EXPO_PUBLIC_API_URL was present. Expo inlines env vars at build time; missing vars are undefined at runtime causing createClient() to throw.",
+      "fix": "Added EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to apps/mobile/.env, copied from apps/web/.env.local",
+      "tags": [
+        "mobile",
+        "supabase",
+        "env",
+        "android",
+        "startup-crash"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T00:00:00Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-06-14T07:04:37.040Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T07:04:37.040Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-06-14T00:00:00Z",
+      "error_message": "Error: Unknown error — API calls returning HTML instead of JSON",
+      "file": "apps/mobile/.env, apps/mobile/app/_layout.tsx",
+      "root_cause": "EXPO_PUBLIC_API_URL was set to https://patelrep-production.up.railway.app/v1 (the Next.js web service URL), not the FastAPI backend URL https://patelrep-web-production.up.railway.app/v1. Calls to /staff/me/effective-role etc. hit Next.js which returns HTML for unknown routes; response.json() fails, catch block returns { detail: 'Unknown error' }. Additionally syncOnConnect() was called without .catch() in _layout.tsx, so any throw became an unhandled rejection.",
+      "fix": "Changed EXPO_PUBLIC_API_URL to https://patelrep-web-production.up.railway.app/v1. Added .catch(console.warn) to syncOnConnect() call in _layout.tsx.",
+      "tags": ["mobile", "env", "api-url", "railway", "unknown-error", "unhandled-rejection"],
+      "related_bugs": ["bug-083"],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T00:00:00Z"
     }
   ]
 }

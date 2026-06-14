@@ -94,7 +94,7 @@ export default function RootLayout() {
       const online = !!state.isConnected;
       setIsOnline(online);
       if (online) {
-        syncOnConnect();
+        syncOnConnect().catch(console.warn);
       }
     });
 

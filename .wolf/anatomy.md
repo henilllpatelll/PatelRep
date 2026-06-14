@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T01:37:17.937Z
-> Files: 3 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T07:04:37.022Z
+> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -29,9 +29,11 @@
 
 ## ./
 
+- `CLAUDE.md` — OpenWolf (~2983 tok)
 
 ## .claude/
 
+- `settings.json` (~817 tok)
 
 ## .claude/rules/
 
@@ -467,10 +469,11 @@
 
 ## apps/api/routers/
 
+- `rooms.py` — API: 4 endpoints (~9454 tok)
 
 ## apps/api/services/
 
-- `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2316 tok)
+- `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2328 tok)
 
 ## apps/api/services/ai/
 
@@ -492,6 +495,10 @@
 
 ## apps/api/tests/smoke/test_webhooks_and_transitions.py
 
+
+## apps/escalations-check/
+
+- `Dockerfile` — Docker container definition (~60 tok)
 
 ## apps/mobile/
 
@@ -522,6 +529,7 @@
 
 ## apps/mobile/app/
 
+- `_layout.tsx` — Must be at module scope — calling inside a component or useEffect is too late. (~1409 tok)
 
 ## apps/mobile/app/(app)/
 
@@ -561,7 +569,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~11936 tok)
+- `[roomId].tsx` — STATUS_COLOR (~12089 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -658,7 +666,6 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 18 more (~2743 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -692,6 +699,7 @@
 
 ## apps/web/
 
+- `Dockerfile` — Docker container definition (~337 tok)
 
 ## apps/web/app/
 
