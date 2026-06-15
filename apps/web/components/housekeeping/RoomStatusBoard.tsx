@@ -263,7 +263,7 @@ export function RoomStatusBoard() {
 
   const { data: tasksData } = useQuery({
     queryKey: ['tasks-board'],
-    queryFn: () => tasksApi.list({ per_page: 200 }),
+    queryFn: () => tasksApi.list({ per_page: 100 }),
     refetchInterval: 30_000,
     staleTime: 15_000,
   })

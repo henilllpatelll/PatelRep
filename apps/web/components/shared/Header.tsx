@@ -35,6 +35,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const [searchFocused, setSearchFocused] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
+  const [dateShiftLabel, setDateShiftLabel] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
 
@@ -129,13 +130,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
     }
   }, [dropdownOpen])
 
-  const today = new Intl.DateTimeFormat(i18n.language === 'es' ? 'es-US' : 'en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date())
-  const hour = new Date().getHours()
-  const shift = hour < 15 ? t('header.dayShift') : hour < 23 ? t('header.eveningShift') : t('header.nightShift')
+  useEffect(() => {
+    const now = new Date()
+    const today = new Intl.DateTimeFormat(i18n.language === 'es' ? 'es-US' : 'en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    }).format(now)
+    const hour = now.getHours()
+    const shift = hour < 15 ? t('header.dayShift') : hour < 23 ? t('header.eveningShift') : t('header.nightShift')
+    setDateShiftLabel(`${today} · ${shift}`)
+  }, [i18n.language, t])
+
   const filteredCommands = COMMANDS.filter((command) => {
     const q = commandQuery.toLowerCase().trim()
     if (!q) return true
@@ -239,7 +245,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       {/* Date + shift */}
       <div className="hidden lg:flex items-center gap-1.5 text-[12px] text-ink2 shrink-0">
         <span className="w-1.5 h-1.5 rounded-full bg-ready shrink-0" />
-        <span className="font-mono">{today} · {shift}</span>
+        <span className="font-mono">{dateShiftLabel || '\u00a0'}</span>
       </div>
 
       <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
