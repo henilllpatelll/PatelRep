@@ -605,7 +605,7 @@ async def get_my_rooms(
     # room_status uses room_id as PK — there is no separate "id" column
     my_rooms_select = (
         "room_id, tenant_id, status, assigned_to, "
-        "clean_type, vip_flag, dnd_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
+        "clean_type, vip_flag, dnd_flag, do_not_service, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
         "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
     )

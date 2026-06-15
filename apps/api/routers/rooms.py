@@ -578,6 +578,72 @@ async def strip_room(
 
 
 # ---------------------------------------------------------------------------
+# PATCH /rooms/{room_id}/dnd
+# ---------------------------------------------------------------------------
+
+class DndToggleRequest(BaseModel):
+    dnd: bool
+
+@router.patch("/{room_id}/dnd")
+async def update_room_dnd(
+    room_id: str,
+    body: DndToggleRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor", "gm")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    supabase.table("room_status").update({
+        "dnd_flag": body.dnd,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    return {"data": {"room_id": room_id, "dnd_flag": body.dnd}}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /rooms/{room_id}/decline-service
+# ---------------------------------------------------------------------------
+
+class DeclineServiceRequest(BaseModel):
+    decline: bool
+
+@router.patch("/{room_id}/decline-service")
+async def update_room_decline_service(
+    room_id: str,
+    body: DeclineServiceRequest,
+    current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor", "gm")),
+):
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if current_row.data.get("status") != "PICKUP":
+        raise HTTPException(status_code=400, detail="Decline service only applies to PICKUP rooms")
+
+    supabase.table("room_status").update({
+        "do_not_service": body.decline,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("room_id", room_id).eq("tenant_id", current_user.hotel_id).execute()
+
+    return {"data": {"room_id": room_id, "do_not_service": body.decline}}
+
+
+# ---------------------------------------------------------------------------
 # PATCH /rooms/{room_id}/checkout-time
 # ---------------------------------------------------------------------------
 

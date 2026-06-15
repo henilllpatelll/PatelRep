@@ -162,13 +162,10 @@ export async function runBlockerSideEffect(room: Room, blocker: RoomBlocker, tim
     return;
   }
   if (blocker.sideEffect === "frontdesk_task") {
-    await api.post("/tasks", {
-      title: `Confirm late checkout — Room ${room.room_number} (guest says ${time?.trim() || "?"})`,
-      description:
-        "Guest told housekeeping they have a late checkout. Front desk: confirm or correct the checkout time.",
-      task_type: "general",
-      priority: "normal",
+    await api.post("/late-checkout/requests", {
       room_id: room.id,
+      room_number: room.room_number,
+      requested_time: time?.trim() || "unspecified",
     });
   }
 }

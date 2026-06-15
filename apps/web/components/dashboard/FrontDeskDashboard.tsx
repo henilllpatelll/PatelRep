@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { Bell, Package, Bed, CheckCircle2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Bell, Package, Bed, CheckCircle2, Clock, Check, X, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { hotelsApi } from '@/lib/api/hotels'
+import { lateCheckoutApi, type LateCheckoutRequest } from '@/lib/api/lateCheckout'
 import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
@@ -37,6 +38,84 @@ const REQUEST_STATUS_TONE: Record<string, 'alert' | 'caution' | 'ready' | 'neutr
   in_progress: 'caution',
   resolved: 'ready',
   escalated: 'alert',
+}
+
+function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
+  req: LateCheckoutRequest
+  onApprove: (id: string, confirmedTime: string) => void
+  onDeny: (id: string) => void
+  resolving: boolean
+}) {
+  const [mode, setMode] = useState<'idle' | 'approving' | 'denying'>('idle')
+  const [confirmedTime, setConfirmedTime] = useState(req.requested_time)
+
+  return (
+    <div className="flex flex-col gap-2 px-4 py-3 border-t border-line-2">
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded-lg bg-surface-2 border border-line flex items-center justify-center shrink-0">
+          <Clock className="w-3.5 h-3.5 text-ink3" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium text-ink">
+            Room <Mono className="bg-surface-2 border border-line rounded px-1 py-0.5 text-[10.5px]">{req.room_number}</Mono>
+          </p>
+          <p className="text-[11.5px] text-ink3 mt-0.5">Guest says <span className="font-medium text-ink2">{req.requested_time}</span></p>
+        </div>
+        {mode === 'idle' && (
+          <div className="flex gap-1.5 shrink-0">
+            <button
+              onClick={() => setMode('approving')}
+              className="px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => setMode('denying')}
+              className="px-2.5 py-1 text-[11.5px] font-medium bg-surface-2 text-ink3 border border-line rounded-lg hover:bg-[var(--alert-soft)] hover:text-[var(--alert)] hover:border-[var(--alert-line)] transition-colors"
+            >
+              Deny
+            </button>
+          </div>
+        )}
+      </div>
+
+      {mode === 'approving' && (
+        <div className="flex items-center gap-2 ml-10 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2">
+          <span className="text-[11.5px] text-[var(--ready)] font-medium shrink-0">Confirm time:</span>
+          <input
+            value={confirmedTime}
+            onChange={(e) => setConfirmedTime(e.target.value)}
+            placeholder="e.g. 1:00 PM"
+            className="flex-1 text-[12px] bg-transparent border-none outline-none text-ink font-medium"
+          />
+          <button
+            onClick={() => onApprove(req.id, confirmedTime)}
+            disabled={resolving || !confirmedTime.trim()}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold bg-[var(--ready)] text-white rounded-md disabled:opacity-50"
+          >
+            {resolving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Confirm
+          </button>
+          <button onClick={() => setMode('idle')} className="text-ink3 hover:text-ink2"><X size={14} /></button>
+        </div>
+      )}
+
+      {mode === 'denying' && (
+        <div className="flex items-center gap-2 ml-10 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
+          <span className="text-[11.5px] text-[var(--alert)] font-medium">Deny late checkout for room {req.room_number}?</span>
+          <button
+            onClick={() => onDeny(req.id)}
+            disabled={resolving}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold bg-[var(--alert)] text-white rounded-md disabled:opacity-50 ml-auto shrink-0"
+          >
+            {resolving ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+            Deny
+          </button>
+          <button onClick={() => setMode('idle')} className="text-ink3 hover:text-ink2 shrink-0"><X size={14} /></button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SkeletonRow() {
@@ -81,9 +160,11 @@ function GuestRequestRow({ req }: { req: GuestRequest }) {
 }
 
 export function FrontDeskDashboard() {
+  const queryClient = useQueryClient()
   const { user, session } = useAuthStore()
   const hotelId = getHotelIdFromSession(session?.access_token)
   const [greeting, setGreeting] = useState('Good morning')
+  const [resolvingId, setResolvingId] = useState<string | null>(null)
   useEffect(() => {
     const h = new Date().getHours()
     if (h < 12) setGreeting('Good morning')
@@ -123,6 +204,23 @@ export function FrontDeskDashboard() {
     refetchInterval: 60_000,
   })
 
+  const { data: lateCheckoutsData, isLoading: lateCheckoutsLoading } = useQuery({
+    queryKey: ['late-checkout-requests-pending'],
+    queryFn: () => lateCheckoutApi.list({ status: 'pending' }),
+    refetchInterval: 30_000,
+  })
+
+  const { mutate: resolveRequest } = useMutation({
+    mutationFn: ({ id, status, confirmed_time }: { id: string; status: 'approved' | 'denied'; confirmed_time?: string }) =>
+      lateCheckoutApi.resolve(id, { status, confirmed_time }),
+    onMutate: ({ id }) => setResolvingId(id),
+    onSettled: () => {
+      setResolvingId(null)
+      queryClient.invalidateQueries({ queryKey: ['late-checkout-requests-pending'] })
+    },
+  })
+
+  const pendingLateCheckouts: LateCheckoutRequest[] = (lateCheckoutsData as any)?.data ?? []
   const allRooms: any[] = (boardData as any)?.data ?? []
   const breakdown: Record<string, number> = {}
   for (const r of allRooms) {
@@ -249,6 +347,33 @@ export function FrontDeskDashboard() {
             allRequests.map(r => <GuestRequestRow key={r.id} req={r} />)
           )}
         </div>
+      </div>
+
+      {/* Late Checkout Requests */}
+      <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
+        <div className="px-4 pt-3.5">
+          <SectionLabel hint={pendingLateCheckouts.length > 0 ? `${pendingLateCheckouts.length} pending` : undefined}>
+            Late checkouts
+          </SectionLabel>
+        </div>
+        {lateCheckoutsLoading ? (
+          [...Array(2)].map((_, i) => <SkeletonRow key={i} />)
+        ) : pendingLateCheckouts.length === 0 ? (
+          <div className="py-8 flex flex-col items-center gap-2">
+            <CheckCircle2 className="w-8 h-8 text-[var(--ready-line)]" />
+            <p className="text-[13px] text-ink3">No pending late checkouts</p>
+          </div>
+        ) : (
+          pendingLateCheckouts.map(req => (
+            <LateCheckoutRow
+              key={req.id}
+              req={req}
+              resolving={resolvingId === req.id}
+              onApprove={(id, confirmedTime) => resolveRequest({ id, status: 'approved', confirmed_time: confirmedTime })}
+              onDeny={(id) => resolveRequest({ id, status: 'denied' })}
+            />
+          ))
+        )}
       </div>
 
       {/* Quick action — Lost & Found */}

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T14:43:32.759Z
-> Files: 35 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T17:11:31.914Z
+> Files: 50 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -471,7 +471,7 @@
 
 ## apps/api/
 
-- `main.py` — API: 1 endpoints (~2423 tok)
+- `main.py` — API: 1 endpoints (~2445 tok)
 
 ## apps/api/core/
 
@@ -481,16 +481,19 @@
 
 ## apps/api/models/
 
+- `requests.py` — Pydantic: SanitizedBaseModel (~7445 tok)
 
 ## apps/api/routers/
 
 - `ai_copilot.py` — API: 1 endpoints (~8355 tok)
 - `hotels.py` — API: 7 endpoints (~2580 tok)
-- `housekeeping.py` — from: and (~20713 tok)
+- `housekeeping.py` — from: and (~20718 tok)
+- `late_checkout.py` — API: 3 endpoints (~1213 tok)
+- `rooms.py` — API: 4 endpoints (~10276 tok)
 
 ## apps/api/scripts/
 
-- `seed_hotel_layout.py` — main (~2981 tok)
+- `seed_hotel_layout.py` — main (~2977 tok)
 
 ## apps/api/services/
 
@@ -531,6 +534,7 @@
 
 ## apps/mobile/__tests__/lib/
 
+- `roomWorkflow.test.ts` — now: room (~1911 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -573,7 +577,7 @@
 
 ## apps/mobile/app/(app)/guest-requests/
 
-- `index.tsx` — STATUS_TONES (~3028 tok)
+- `index.tsx` — STATUS_TONES (~3008 tok)
 
 ## apps/mobile/app/(app)/home/
 
@@ -592,8 +596,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~11887 tok)
-- `index.tsx` — DONE_SECTIONS (~3641 tok)
+- `[roomId].tsx` — STATUS_COLOR (~12849 tok)
+- `index.tsx` — DONE_SECTIONS (~3770 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -651,7 +655,7 @@
 
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4405 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4333 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -691,6 +695,8 @@
 
 ## apps/mobile/lib/housekeeping/
 
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1887 tok)
+- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 19 more (~3234 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -718,6 +724,7 @@
 
 ## apps/mobile/stores/
 
+- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1409 tok)
 
 ## apps/mobile/stores/appStore.ts
 
@@ -840,6 +847,7 @@
 
 ## apps/web/components/dashboard/
 
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~4922 tok)
 
 ## apps/web/components/engineering/
 
@@ -849,6 +857,8 @@
 
 ## apps/web/components/housekeeping/
 
+- `AssignmentSidebar.tsx` — AssignmentSidebar (~1160 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~7586 tok)
 
 ## apps/web/components/settings/
 
@@ -870,6 +880,7 @@
 
 ## apps/web/lib/api/
 
+- `lateCheckout.ts` — API routes: GET, PATCH (2 endpoints) (~208 tok)
 
 ## apps/web/lib/hooks/
 
@@ -879,9 +890,12 @@
 
 ## apps/web/lib/utils/
 
+- `housekeepingBoardFilters.test.ts` — Declares rooms (~1586 tok)
+- `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~640 tok)
 
 ## apps/web/stores/
 
+- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1455 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -916,6 +930,7 @@
 ## supabase/migrations/
 
 - `060_hotel_layout.sql` — 060_hotel_layout.sql (~66 tok)
+- `061_late_checkout_requests.sql` — ============================================================================= (~488 tok)
 
 ## youtubeMobileResearch.md
 

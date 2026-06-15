@@ -1840,6 +1840,361 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-15T14:42:17.495Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-06-15T15:01:33.871Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/lib/utils/housekeepingBoardFilters.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:01:33.871Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-06-15T15:02:06.347Z",
+      "error_message": "Type error",
+      "file": "apps/web/stores/housekeepingStore.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:02:06.347Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-06-15T15:02:29.008Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:02:29.008Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-06-15T15:02:52.308Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:02:52.308Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-06-15T15:03:07.849Z",
+      "error_message": "Type error",
+      "file": "apps/web/lib/utils/housekeepingBoardFilters.test.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:03:07.849Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-06-15T15:46:08.147Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→12 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:46:08.147Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-06-15T15:46:31.507Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "Was returning: { kind: \"start\", label: \"Start\", targetStatus: \"IN",
+      "fix": "Now returns: { kind: \"review\", label: \"Review\", targetStatus: \"",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:46:31.507Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-06-15T15:46:38.822Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:46:38.822Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-06-15T15:47:03.929Z",
+      "error_message": "CSS fix: count",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "count: counts.next_to_clean + counts.in_progress + counts.needs_attention, → counts.next_to_clean + counts.in_progress + counts.needs_attention + counts.skipped,",
+      "fix": "Changed count: counts.next_to_clean + counts.in_progress + counts.needs_attention, → counts.next_to_clean + counts.in_progress + counts.needs_attention + counts.skipped,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:47:03.929Z"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-06-15T15:47:23.779Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:47:23.779Z"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-06-15T15:47:34.326Z",
+      "error_message": "CSS fix: color",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "color: C.caution → room.dnd_flag ? C.alert : C.ink3",
+      "fix": "Changed color: C.caution → room.dnd_flag ? C.alert : C.ink3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:47:34.326Z"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-06-15T15:48:27.497Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/__tests__/lib/roomWorkflow.test.ts",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 12→27 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:48:27.498Z"
+    },
+    {
+      "id": "bug-124",
+      "timestamp": "2026-06-15T15:48:30.940Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/__tests__/lib/roomWorkflow.test.ts",
+      "root_cause": "Had \"needs_attention\"",
+      "fix": "Changed to \"skipped\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:48:30.940Z"
+    },
+    {
+      "id": "bug-125",
+      "timestamp": "2026-06-15T15:53:21.017Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"clean_type, vip_flag, dnd_flag, checkin_time, che",
+      "fix": "Changed to \"clean_type, vip_flag, dnd_flag, do_not_service, c",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:53:21.017Z"
+    },
+    {
+      "id": "bug-126",
+      "timestamp": "2026-06-15T15:53:27.009Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "No early return/throw for edge case: room.dnd_flag",
+      "fix": "Added guard clause: if (room.dnd_flag)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:53:27.009Z"
+    },
+    {
+      "id": "bug-127",
+      "timestamp": "2026-06-15T15:53:38.053Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:53:38.053Z"
+    },
+    {
+      "id": "bug-128",
+      "timestamp": "2026-06-15T15:53:50.659Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:53:50.659Z"
+    },
+    {
+      "id": "bug-129",
+      "timestamp": "2026-06-15T15:54:03.121Z",
+      "error_message": "CSS fix: color",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "color: room.dnd_flag ? C.alert : C.ink3 → room.do_not_service ? C.alert : C.ink3",
+      "fix": "Changed color: room.dnd_flag ? C.alert : C.ink3 → room.do_not_service ? C.alert : C.ink3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T15:54:03.121Z"
+    },
+    {
+      "id": "bug-130",
+      "timestamp": "2026-06-15T16:43:10.615Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/lib/housekeeping/roomBlockers.ts",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 10→7 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T16:43:10.615Z"
+    },
+    {
+      "id": "bug-131",
+      "timestamp": "2026-06-15T16:43:44.657Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: {/* Late Checkout Requests */}; <div className=\"bg-surface border border-line rounded-[var(-",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-15T16:44:11.453Z"
+    },
+    {
+      "id": "bug-132",
+      "timestamp": "2026-06-15T16:51:26.456Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/late_checkout.py",
+      "root_cause": "Had \"hotel_id\"",
+      "fix": "Changed to \"tenant_id\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T16:51:26.456Z"
+    },
+    {
+      "id": "bug-133",
+      "timestamp": "2026-06-15T00:00:00Z",
+      "error_message": "HTTP 422 on mobile when reporting late checkout for a departure room",
+      "file": "apps/api/models/requests.py, supabase/migrations/061_late_checkout_requests.sql",
+      "root_cause": "Two issues: (1) late_checkout_requests table was never applied to Supabase (migration was untracked/uncommitted). (2) CreateLateCheckoutRequest.room_id used UUID4 (strict version-4 check) — Pydantic v2.9.2's wildcard mode=before sanitizer processes the string before UUID4 validation, which can reject valid UUIDs if the version nibble isn't read correctly after sanitization.",
+      "fix": "Applied migration 061 via Supabase MCP to create late_checkout_requests table. Changed room_id field from UUID4 to UUID (stdlib) in CreateLateCheckoutRequest — FK integrity is enforced by the DB, not Pydantic version strictness.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "late-checkout",
+        "422",
+        "pydantic",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T00:00:00Z"
     }
   ]
 }

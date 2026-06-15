@@ -11,6 +11,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from uuid import UUID
 from datetime import datetime, date
 
 
@@ -203,6 +204,19 @@ class ImportRoomsRequest(SanitizedBaseModel):
     #   room_number (str, required), floor (int, required),
     #   room_type_code (str, required), room_type_name (str, optional),
     #   building (str, optional)
+
+
+# --- Late Checkout Requests ---
+class CreateLateCheckoutRequest(SanitizedBaseModel):
+    room_id: UUID
+    room_number: str = Field(max_length=20)
+    requested_time: str = Field(max_length=30)
+
+
+class ResolveLateCheckoutRequest(SanitizedBaseModel):
+    status: Literal["approved", "denied"]
+    confirmed_time: Optional[str] = Field(default=None, max_length=30)
+    notes: Optional[str] = Field(default=None, max_length=500)
 
 
 # --- Tasks ---
