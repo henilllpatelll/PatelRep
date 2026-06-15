@@ -1,0 +1,148 @@
+- generic [ref=e2]:
+  - complementary "Main navigation" [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e10]:
+        - generic [ref=e11]: PatelRep
+        - generic [ref=e12]: Hotel Operations AI
+    - navigation [ref=e13]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: Operations
+        - generic [ref=e16]:
+          - link "Dashboard" [ref=e19] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e20]
+            - generic [ref=e25]: Dashboard
+          - link "Housekeeping" [ref=e28] [cursor=pointer]:
+            - /url: /housekeeping
+            - img [ref=e29]
+            - generic [ref=e31]: Housekeeping
+          - generic [ref=e32]:
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - generic [ref=e39]:
+              - link "Work Orders" [ref=e40] [cursor=pointer]:
+                - /url: /engineering/work-orders
+              - link "Assets" [ref=e41] [cursor=pointer]:
+                - /url: /engineering/assets
+              - link "PM Schedules" [ref=e42] [cursor=pointer]:
+                - /url: /engineering/pm-schedules
+              - link "Predictions" [ref=e43] [cursor=pointer]:
+                - /url: /engineering/predictions
+          - link "Lost & Found" [ref=e46] [cursor=pointer]:
+            - /url: /lost-found
+            - img [ref=e47]
+            - generic [ref=e51]: Lost & Found
+          - link "Guest Requests" [ref=e54] [cursor=pointer]:
+            - /url: /guest-requests
+            - img [ref=e55]
+            - generic [ref=e57]: Guest Requests
+          - link "Tasks" [ref=e60] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e61]
+            - generic [ref=e64]: Tasks
+      - generic [ref=e65]:
+        - paragraph [ref=e67]: Intelligence
+        - generic [ref=e68]:
+          - link "AI Copilot AI" [ref=e71] [cursor=pointer]:
+            - /url: /ai
+            - img [ref=e72]
+            - generic [ref=e74]: AI Copilot
+            - generic [ref=e75]: AI
+          - link "SOP Library" [ref=e78] [cursor=pointer]:
+            - /url: /sop
+            - img [ref=e79]
+            - generic [ref=e81]: SOP Library
+          - link "Reports" [ref=e84] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e85]
+            - generic [ref=e88]: Reports
+      - generic [ref=e89]:
+        - paragraph [ref=e91]: Organization
+        - generic [ref=e92]:
+          - link "Logbook" [ref=e95] [cursor=pointer]:
+            - /url: /logbook
+            - img [ref=e96]
+            - generic [ref=e99]: Logbook
+          - link "Staff" [ref=e102] [cursor=pointer]:
+            - /url: /staff
+            - img [ref=e103]
+            - generic [ref=e108]: Staff
+          - link "Schedule" [ref=e111] [cursor=pointer]:
+            - /url: /scheduling
+            - img [ref=e112]
+            - generic [ref=e114]: Schedule
+    - generic [ref=e116]:
+      - generic [ref=e117]: U
+      - paragraph [ref=e119]: User
+  - generic [ref=e120]:
+    - banner [ref=e121]:
+      - generic [ref=e122]:
+        - img [ref=e123]
+        - textbox "Open command palette" [ref=e126]:
+          - /placeholder: Search rooms, work orders, guests...
+        - generic [ref=e127]: ⌘K
+      - generic [ref=e130]: Sun, Jun 14 · Evening shift
+      - button "Espanol" [ref=e132] [cursor=pointer]:
+        - img [ref=e133]
+        - generic [ref=e137]: ES
+      - button "Open AI Copilot (Cmd+J)" [ref=e138] [cursor=pointer]:
+        - img [ref=e139]
+        - generic [ref=e141]: Ask copilot
+        - generic [ref=e142]: ⌘J
+      - button "Notifications" [ref=e143] [cursor=pointer]:
+        - img [ref=e144]
+        - generic [ref=e147]: "3"
+      - button "User menu for User" [ref=e149] [cursor=pointer]:
+        - generic [ref=e150]: U
+        - img [ref=e151]
+    - main [ref=e153]:
+      - generic [ref=e155]:
+        - generic [ref=e156]:
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - heading "Engineering" [level=1] [ref=e159]:
+                - img [ref=e160]
+                - text: Engineering
+              - paragraph [ref=e162]: All hotel work orders
+            - button "AI triage" [ref=e164] [cursor=pointer]:
+              - img [ref=e165]
+              - text: AI triage
+          - generic [ref=e167]:
+            - button "Work Orders" [ref=e168] [cursor=pointer]
+            - button "Room Board" [ref=e169] [cursor=pointer]
+          - generic [ref=e170]:
+            - generic [ref=e171]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: Open
+                - generic [ref=e175]: "0"
+              - paragraph [ref=e178]: No open orders
+            - generic [ref=e179]:
+              - generic [ref=e181]:
+                - generic [ref=e182]: In Progress
+                - generic [ref=e183]: "0"
+              - paragraph [ref=e186]: No in progress orders
+            - generic [ref=e187]:
+              - generic [ref=e189]:
+                - generic [ref=e190]: On Hold
+                - generic [ref=e191]: "0"
+              - paragraph [ref=e194]: No on hold orders
+            - generic [ref=e195]:
+              - generic [ref=e197]:
+                - generic [ref=e198]: Completed
+                - generic [ref=e199]: "0"
+              - paragraph [ref=e202]: No completed orders
+        - generic [ref=e203]:
+          - heading "Asset Failure Risks" [level=3] [ref=e205]
+          - paragraph [ref=e241]: Predictions updated nightly by AI
+  - button "Open AI Copilot" [ref=e243] [cursor=pointer]:
+    - img [ref=e244]
+    - generic [ref=e246]: Ask copilot
+    - generic [ref=e247]: ⌘J
+  - button "Open feedback" [ref=e249] [cursor=pointer]:
+    - img [ref=e250]
+    - generic [ref=e252]: Feedback
+  - button "Display preferences" [ref=e254] [cursor=pointer]:
+    - img [ref=e255]

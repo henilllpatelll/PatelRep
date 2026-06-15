@@ -8,13 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { AIInsightCard, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 
 export type GuestRequest = {
@@ -57,6 +59,7 @@ function timeAgo(iso: string) {
 
 export default function GuestRequestsScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { isOnline, user, setUnreadCount } = useAppStore();
   const [requests, setRequests] = useState<GuestRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +116,7 @@ export default function GuestRequestsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t("tabs.guestRequests")}</Text>
           <TouchableOpacity

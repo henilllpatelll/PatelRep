@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T01:09:44.840Z
-> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T04:39:59.902Z
+> Files: 6 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -29,6 +29,7 @@
 
 ## ./
 
+- `railway.toml` (~63 tok)
 
 ## .claude/
 
@@ -467,7 +468,6 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — from: and (~19982 tok)
 
 ## apps/api/services/
 
@@ -482,6 +482,9 @@
 
 
 ## apps/api/tests/smoke/
+
+
+## apps/api/tests/smoke/test_auth_decode.py
 
 
 ## apps/api/tests/smoke/test_load_auth_state.py
@@ -543,6 +546,7 @@
 
 ## apps/mobile/app/(app)/guest-requests/
 
+- `index.tsx` — STATUS_TONES (~3028 tok)
 
 ## apps/mobile/app/(app)/home/
 
@@ -561,7 +565,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~11841 tok)
+- `[roomId].tsx` — STATUS_COLOR (~11887 tok)
+- `index.tsx` — DONE_SECTIONS (~3641 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -604,7 +609,6 @@
 
 ## apps/mobile/components/home/
 
-- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2949 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
@@ -620,7 +624,7 @@
 
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4404 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4405 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -660,7 +664,6 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 18 more (~3013 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -673,7 +676,6 @@
 
 ## apps/mobile/lib/offline/
 
-- `db.ts` — Promise-mutex: all concurrent getDb() calls share one initialization promise. (~2362 tok)
 
 ## apps/mobile/lib/offline/db.ts
 
@@ -689,13 +691,13 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1401 tok)
 
 ## apps/mobile/stores/appStore.ts
 
 
 ## apps/web/
 
+- `Dockerfile` — Docker container definition (~382 tok)
 
 ## apps/web/app/
 
@@ -849,8 +851,6 @@
 
 ## apps/web/lib/utils/
 
-- `roomType.test.ts` — node:test coverage for room type code resolution and no-name fallback. (~104 tok)
-- `roomType.ts` — Code-only room type resolver for web room cards/details; never falls back to room type name. (~91 tok)
 
 ## apps/web/stores/
 

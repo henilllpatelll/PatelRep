@@ -1,0 +1,160 @@
+- generic [ref=e2]:
+  - complementary "Main navigation" [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e10]:
+        - generic [ref=e11]: PatelRep
+        - generic [ref=e12]: Hotel Operations AI
+    - navigation [ref=e13]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: Operations
+        - generic [ref=e16]:
+          - link "Dashboard" [ref=e19] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e20]
+            - generic [ref=e25]: Dashboard
+          - link "Housekeeping" [ref=e28] [cursor=pointer]:
+            - /url: /housekeeping
+            - img [ref=e29]
+            - generic [ref=e31]: Housekeeping
+          - link "Engineering" [ref=e34] [cursor=pointer]:
+            - /url: /engineering
+            - img [ref=e35]
+            - generic [ref=e37]: Engineering
+          - link "Lost & Found" [ref=e40] [cursor=pointer]:
+            - /url: /lost-found
+            - img [ref=e41]
+            - generic [ref=e45]: Lost & Found
+          - link "Guest Requests" [ref=e48] [cursor=pointer]:
+            - /url: /guest-requests
+            - img [ref=e49]
+            - generic [ref=e51]: Guest Requests
+          - link "Tasks" [ref=e54] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e55]
+            - generic [ref=e58]: Tasks
+      - generic [ref=e59]:
+        - paragraph [ref=e61]: Intelligence
+        - generic [ref=e62]:
+          - link "AI Copilot AI" [ref=e65] [cursor=pointer]:
+            - /url: /ai
+            - img [ref=e66]
+            - generic [ref=e68]: AI Copilot
+            - generic [ref=e69]: AI
+          - link "SOP Library" [ref=e72] [cursor=pointer]:
+            - /url: /sop
+            - img [ref=e73]
+            - generic [ref=e75]: SOP Library
+          - link "Reports" [ref=e78] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e79]
+            - generic [ref=e82]: Reports
+      - generic [ref=e83]:
+        - paragraph [ref=e85]: Organization
+        - generic [ref=e86]:
+          - link "Logbook" [ref=e89] [cursor=pointer]:
+            - /url: /logbook
+            - img [ref=e90]
+            - generic [ref=e93]: Logbook
+          - link "Staff" [ref=e96] [cursor=pointer]:
+            - /url: /staff
+            - img [ref=e97]
+            - generic [ref=e102]: Staff
+          - link "Schedule" [ref=e105] [cursor=pointer]:
+            - /url: /scheduling
+            - img [ref=e106]
+            - generic [ref=e108]: Schedule
+    - generic [ref=e110]:
+      - generic [ref=e111]: U
+      - paragraph [ref=e113]: User
+  - generic [ref=e114]:
+    - banner [ref=e115]:
+      - generic [ref=e116]:
+        - img [ref=e117]
+        - textbox "Open command palette" [ref=e120]:
+          - /placeholder: Search rooms, work orders, guests...
+        - generic [ref=e121]: ⌘K
+      - generic [ref=e124]: Sun, Jun 14 · Evening shift
+      - button "Espanol" [ref=e126] [cursor=pointer]:
+        - img [ref=e127]
+        - generic [ref=e131]: ES
+      - button "Open AI Copilot (Cmd+J)" [ref=e132] [cursor=pointer]:
+        - img [ref=e133]
+        - generic [ref=e135]: Ask copilot
+        - generic [ref=e136]: ⌘J
+      - button "Notifications" [ref=e137] [cursor=pointer]:
+        - img [ref=e138]
+        - generic [ref=e141]: "3"
+      - button "User menu for User" [ref=e143] [cursor=pointer]:
+        - generic [ref=e144]: U
+        - img [ref=e145]
+    - main [ref=e147]:
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - heading "Settings" [level=1] [ref=e151]
+          - paragraph [ref=e152]: Manage your hotel profile and configuration.
+        - generic [ref=e153]:
+          - navigation "Settings navigation" [ref=e154]:
+            - generic [ref=e155]:
+              - link "General" [ref=e156] [cursor=pointer]:
+                - /url: /settings/general
+                - img [ref=e157]
+                - text: General
+              - link "Departments" [ref=e161] [cursor=pointer]:
+                - /url: /settings/departments
+                - img [ref=e162]
+                - text: Departments
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - heading "Hotel Profile" [level=2] [ref=e170]
+              - generic [ref=e171]:
+                - generic [ref=e172]: Hotel Name
+                - textbox "Hotel Name Hotel Name" [ref=e173]:
+                  - /placeholder: Sunrise Inn & Suites
+              - generic [ref=e174]:
+                - generic [ref=e175]: Address
+                - textbox "Address Address" [ref=e176]:
+                  - /placeholder: 1234 Main Street
+              - generic [ref=e177]:
+                - generic [ref=e179]:
+                  - generic [ref=e180]: City
+                  - textbox "City City" [ref=e181]:
+                    - /placeholder: San Antonio
+                - generic [ref=e183]:
+                  - generic [ref=e184]: State
+                  - textbox "State State" [ref=e185]:
+                    - /placeholder: TX
+                - generic [ref=e187]:
+                  - generic [ref=e188]: ZIP Code
+                  - textbox "ZIP Code ZIP Code" [ref=e189]:
+                    - /placeholder: "78201"
+              - generic [ref=e190]:
+                - generic [ref=e191]:
+                  - generic [ref=e192]: Phone
+                  - textbox "Phone Phone" [ref=e193]:
+                    - /placeholder: +1 (210) 555-0100
+                - generic [ref=e194]:
+                  - generic [ref=e195]: Room Count
+                  - spinbutton "Room Count Room Count" [ref=e196]
+              - generic [ref=e197]:
+                - generic [ref=e198]: Timezone
+                - combobox "Timezone Timezone" [ref=e199] [cursor=pointer]:
+                  - option "Central Time (CT)" [selected]
+                  - option "Eastern Time (ET)"
+                  - option "Mountain Time (MT)"
+                  - option "Pacific Time (PT)"
+                  - option "Arizona (no DST)"
+                  - option "Alaska Time (AKT)"
+                  - option "Hawaii Time (HT)"
+            - generic [ref=e200]:
+              - button "Discard" [disabled] [ref=e201]
+              - button "Save Changes" [disabled] [ref=e202]
+  - button "Open AI Copilot" [ref=e204] [cursor=pointer]:
+    - img [ref=e205]
+    - generic [ref=e207]: Ask copilot
+    - generic [ref=e208]: ⌘J
+  - button "Open feedback" [ref=e210] [cursor=pointer]:
+    - img [ref=e211]
+    - generic [ref=e213]: Feedback
+  - button "Display preferences" [ref=e215] [cursor=pointer]:
+    - img [ref=e216]

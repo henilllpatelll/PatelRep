@@ -1488,6 +1488,86 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-15T03:37:00Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-06-15T04:38:42.730Z",
+      "error_message": "CSS fix: cardRight",
+      "file": "apps/mobile/components/shared/evening.tsx",
+      "root_cause": "cardRight: { alignItems: \"flex-end\", gap: 4, paddingLeft: 8 → { alignItems: \"flex-end\", gap: 4, paddingLeft: 10",
+      "fix": "Changed cardRight: { alignItems: \"flex-end\", gap: 4, paddingLeft: 8 → { alignItems: \"flex-end\", gap: 4, paddingLeft: 10",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T04:38:42.730Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-06-15T04:38:54.748Z",
+      "error_message": "CSS fix: gap",
+      "file": "apps/mobile/app/(app)/my-rooms/index.tsx",
+      "root_cause": "gap: 12, → 10,",
+      "fix": "Changed gap: 12, → 10,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-15T04:39:02.851Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-06-15T04:39:11.536Z",
+      "error_message": "CSS fix: backgroundColor, borderBottomColor",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "backgroundColor: C.surface, → C.paper,; borderBottomColor: C.line, → C.line2,",
+      "fix": "Changed backgroundColor: C.surface, → C.paper,; borderBottomColor: C.line, → C.line2,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-15T04:39:24.447Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-06-15T04:39:50.364Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/guest-requests/index.tsx",
+      "root_cause": "Had \"react-i18next\"",
+      "fix": "Changed to \"react-native-safe-area-context\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T04:39:50.364Z"
+    },
+    {
+      "id": "bug-094",
+      "timestamp": "2026-06-15T04:39:59.960Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/guest-requests/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T04:39:59.960Z"
     }
   ]
 }

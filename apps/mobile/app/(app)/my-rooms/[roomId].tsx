@@ -467,8 +467,8 @@ export default function RoomDetailScreen() {
           <Text style={styles.sectionTitle}>Reservation / Timing</Text>
           {timingRows.length > 0 ? (
             <View style={styles.infoGrid}>
-              {timingRows.map((row) => (
-                <View key={row.label} style={styles.infoRow}>
+              {timingRows.map((row, idx) => (
+                <View key={row.label} style={[styles.infoRow, idx === timingRows.length - 1 && styles.infoRowLast]}>
                   <Text style={styles.infoLabel}>{row.label}</Text>
                   <Text style={styles.infoValue}>{row.value}</Text>
                 </View>
@@ -735,21 +735,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 13,
-    backgroundColor: C.surface,
+    backgroundColor: C.paper,
     borderBottomWidth: 1,
-    borderBottomColor: C.line,
+    borderBottomColor: C.line2,
   },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 2, padding: 2 },
   backLabel: { fontSize: 15, color: C.accent, fontWeight: "600" },
   scroll: { flex: 1, backgroundColor: C.paper },
-  content: { paddingHorizontal: 18, paddingTop: 16, gap: 12 },
+  content: { paddingHorizontal: 18, paddingTop: 16, gap: 14 },
 
   hero: { backgroundColor: shellTokens.bg, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 18, padding: 18, gap: 12 },
   heroTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
   roomEyebrow: { color: shellTokens.ink3, fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
   roomNum: { fontFamily: monoFont, color: shellTokens.ink, fontSize: 48, lineHeight: 52, fontWeight: "800" },
-  statusBadge: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, marginTop: 4 },
-  statusBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
+  statusBadge: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginTop: 4 },
+  statusBadgeText: { color: "#fff", fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   heroMetaText: { color: shellTokens.ink2, backgroundColor: shellTokens.raised, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
 
@@ -804,6 +804,7 @@ const styles = StyleSheet.create({
   mutedText: { color: C.ink3, fontSize: 13 },
   infoGrid: { gap: 8 },
   infoRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 14, borderBottomWidth: 1, borderBottomColor: C.line2, paddingBottom: 7 },
+  infoRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
   infoLabel: { color: C.ink3, fontSize: 12, fontWeight: "700" },
   infoValue: { color: C.ink, fontSize: 13, fontWeight: "700", textAlign: "right", flexShrink: 1 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
@@ -895,14 +896,16 @@ const styles = StyleSheet.create({
 
   actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionChip: {
+    flex: 1,
+    minWidth: "47%",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 5,
     backgroundColor: C.infoSoft,
     borderRadius: 10,
     minHeight: 46,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     borderWidth: 1,
     borderColor: C.infoLine,
   },

@@ -186,7 +186,7 @@ export default function MyRoomsScreen() {
                 style={[styles.modeBtn, active && styles.modeBtnActive]}
                 activeOpacity={0.85}
               >
-                <Ionicons name={mode.icon} size={12} color={active ? shellTokens.ink : shellTokens.ink3} />
+                <Ionicons name={mode.icon} size={13} color={active ? shellTokens.ink : shellTokens.ink3} />
                 <Text style={[styles.modeText, active && styles.modeTextActive]}>
                   {mode.label} {mode.count}
                 </Text>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     borderBottomColor: shellTokens.line,
     paddingHorizontal: 18,
     paddingBottom: 14,
-    gap: 12,
+    gap: 10,
   },
   shellTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: 14 },
   shellTitleBlock: { flex: 1, minWidth: 0 },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   shellCountValue: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", color: shellTokens.ink },
   shellCountTotal: { fontSize: 14, color: shellTokens.ink3 },
   shellCountLabel: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: shellTokens.ink3, marginTop: 1 },
-  shellProgress: { marginTop: -2 },
+  shellProgress: {},
 
   modeToggle: {
     flexDirection: "row",
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
 
   sections: { gap: 20 },
   section: { gap: 9 },
-  sectionList: { gap: 10 },
+  sectionList: { gap: 12 },
 
   emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },

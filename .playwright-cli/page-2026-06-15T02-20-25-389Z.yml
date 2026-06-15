@@ -1,0 +1,46 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: ✦ PatelRepHotel AI
+      - button "Espanol" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+        - generic [ref=e11]: ES
+    - generic [ref=e12]:
+      - paragraph [ref=e13]: Operator sign in
+      - heading "Welcome back to your hotel." [level=1] [ref=e14]
+      - paragraph [ref=e15]: Sign in to keep the floor running smoothly. The AI has prepared your morning briefing.
+      - tablist [ref=e16]:
+        - tab "Sign In" [disabled] [ref=e17]
+        - tab "Magic Link" [disabled] [ref=e18]
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Email
+          - textbox "Email" [disabled] [ref=e22]:
+            - /placeholder: you@hotel.com
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - generic [ref=e25]: Password
+            - link "Forgot password?" [ref=e26] [cursor=pointer]:
+              - /url: /auth/reset-password
+          - textbox "Password" [disabled] [ref=e27]:
+            - /placeholder: ••••••••••••
+        - button "Sign In" [disabled] [ref=e28]
+    - generic [ref=e29]: "v2.1.0 · status: operational"
+  - generic [ref=e31]:
+    - generic [ref=e32]: Lone Star Inn - Austin TX
+    - generic [ref=e34]:
+      - generic [ref=e35]: This morning - 9:42
+      - generic [ref=e36]:
+        - generic [ref=e37]: Rooms ready by 3pm
+        - generic [ref=e38]:
+          - generic [ref=e39]: "52"
+          - generic [ref=e40]: / 87
+          - generic [ref=e41]: +6 vs forecast
+      - generic [ref=e44]:
+        - generic [ref=e45]: 78% occ
+        - generic [ref=e46]: 24m clean
+        - generic [ref=e47]: 6 WOs
+        - generic [ref=e48]: 3 VIPs
+    - blockquote [ref=e49]:
+      - text: “It's like having a second supervisor on the floor - quietly catching the things we'd miss.”
+      - contentinfo [ref=e50]: Sandeep R. - GM, Bluebonnet Suites
