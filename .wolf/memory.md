@@ -5068,3 +5068,34 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:32 | Session end: 1 writes across 1 files ([roomId].tsx) | 1 reads | ~11894 tok |
 | 20:35 | Session end: 1 writes across 1 files ([roomId].tsx) | 1 reads | ~11894 tok |
 | 20:37 | Session end: 1 writes across 1 files ([roomId].tsx) | 1 reads | ~11894 tok |
+| 20:39 | Session end: 1 writes across 1 files ([roomId].tsx) | 1 reads | ~11894 tok |
+
+## Session: 2026-06-15 21:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:39 | Edited railway.toml | "/" → "/login" | ~7 |
+| 21:41 | Session end: 1 writes across 1 files (railway.toml) | 17 reads | ~8 tok |
+| 21:43 | Session end: 1 writes across 1 files (railway.toml) | 17 reads | ~8 tok |
+
+## Session: 2026-06-15 21:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:48 | Edited apps/web/Dockerfile | 2→2 lines | ~10 |
+| 21:48 | Edited apps/web/Dockerfile | inline fix | ~3 |
+| 21:48 | Edited railway.toml | "apps/web/Dockerfile" → "Dockerfile" | ~8 |
+| 21:49 | Edited railway.toml | "Dockerfile" → "apps/web/Dockerfile" | ~11 |
+| 21:50 | Session end: 4 writes across 2 files (Dockerfile, railway.toml) | 3 reads | ~479 tok |
+
+## Session: 2026-06-15 21:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-15 22:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:12 | Started production housekeeping room-board incident; loaded OpenWolf notes, buglog, and web/api/TDD/browser skills | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .wolf/buglog.json, skill docs | Found prior room-board schema fallback bug-085 as likely related | ~18000 |
+| 22:37 | Fixed and verified production room board | API auth/config, Vercel env, Header hydration, RoomStatusBoard task query, CSP | Fresh Playwright against https://patelrep-web.vercel.app/housekeeping showed 114 room cards, 3 floor groups, board API 200 | ~42000 |

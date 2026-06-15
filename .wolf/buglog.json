@@ -1447,6 +1447,47 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-15T01:09:44.865Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-06-15T02:48:55.627Z",
+      "error_message": "Incorrect value in code",
+      "file": "railway.toml",
+      "root_cause": "Had \"apps/web/Dockerfile\"",
+      "fix": "Changed to \"Dockerfile\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "toml"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-15T02:49:10.640Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-06-15T03:37:00Z",
+      "error_message": "Production Vercel /housekeeping room board showed Failed to load rooms and no room cards",
+      "file": "apps/api/middleware/auth.py, apps/api/core/config.py, apps/api/core/database.py, apps/web/components/shared/Header.tsx, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/next.config.mjs",
+      "root_cause": "Three production contracts drifted at once: Vercel NEXT_PUBLIC_API_URL pointed at retired api-production-130b Railway host, the API service had SUPABASE_URL set to /rest/v1 and python-jose JWKError during ES256 token fallback bubbled as 500, and Vercel CSP still allowed only the retired API host so the corrected API URL was blocked in-browser.",
+      "fix": "Set Vercel NEXT_PUBLIC_API_URL to https://patelrep-web-production.up.railway.app/v1 and redeployed; set Railway API SUPABASE_URL to the Supabase project root; added API code to normalize Supabase root URL and catch JWKError before JWKS fallback; patched Header hydration, reduced tasks per_page to 100, and added the live API host to CSP. Verified production /housekeeping with fresh Playwright: 114 room cards, 3 floor groups, board API 200.",
+      "tags": [
+        "web",
+        "api",
+        "production",
+        "housekeeping",
+        "room-board",
+        "vercel",
+        "railway",
+        "csp",
+        "jwt",
+        "supabase"
+      ],
+      "related_bugs": [
+        "bug-085"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T03:37:00Z"
     }
   ]
 }
