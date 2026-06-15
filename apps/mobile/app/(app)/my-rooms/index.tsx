@@ -23,6 +23,7 @@ import {
   compareRoomsForCleaningQueue,
   getRoomAction,
   getRoomQueueBucket,
+  isSkipped,
   type RoomQueueBucket,
 } from "@/lib/housekeeping/roomWorkflow";
 
@@ -83,6 +84,7 @@ export default function MyRoomsScreen() {
       next_to_clean: [],
       needs_attention: [],
       in_progress: [],
+      skipped: [],
       submitted: [],
       ready: [],
       blocked: [],
@@ -103,6 +105,7 @@ export default function MyRoomsScreen() {
       next_to_clean: groupedRooms.next_to_clean.length,
       needs_attention: groupedRooms.needs_attention.length,
       in_progress: groupedRooms.in_progress.length,
+      skipped: groupedRooms.skipped.length,
       submitted: groupedRooms.submitted.length,
       ready: groupedRooms.ready.length,
       blocked: groupedRooms.blocked.length,
@@ -110,11 +113,6 @@ export default function MyRoomsScreen() {
     const completed = bucketCounts.submitted + bucketCounts.ready;
     return { ...bucketCounts, completed, total: myRooms.length };
   }, [groupedRooms, myRooms.length]);
-
-  const totalQueueMinutes = useMemo(
-    () => smartQueue.reduce((sum, entry) => sum + entry.estimateMinutes, 0),
-    [smartQueue],
-  );
 
   const openRoom = useCallback((room: Room) => {
     router.push(`/(app)/my-rooms/${room.id}`);
@@ -168,7 +166,7 @@ export default function MyRoomsScreen() {
                 key: "remaining" as const,
                 label: t("rooms.remaining"),
                 icon: "sparkles" as const,
-                count: counts.next_to_clean + counts.in_progress + counts.needs_attention,
+                count: counts.next_to_clean + counts.in_progress + counts.needs_attention + counts.skipped,
               },
               {
                 key: "done" as const,
@@ -213,7 +211,6 @@ export default function MyRoomsScreen() {
               <View style={styles.section}>
                 <SectionHeader
                   title={t("ai.smartOrder")}
-                  hint={`~${totalQueueMinutes}m`}
                 />
                 <View style={styles.sectionList}>
                   {smartQueue.map((entry) => (
@@ -241,7 +238,18 @@ export default function MyRoomsScreen() {
               </View>
             ) : null}
 
-            {smartQueue.length === 0 && groupedRooms.needs_attention.length === 0 ? (
+            {groupedRooms.skipped.length > 0 ? (
+              <View style={styles.section}>
+                <SectionHeader title="SKIPPED — DND" hint={String(groupedRooms.skipped.length)} />
+                <View style={styles.sectionList}>
+                  {groupedRooms.skipped.map((room) => (
+                    <RoomQueueCard key={room.id} room={room} actionLabel="DND" onPress={() => openRoom(room)} />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {smartQueue.length === 0 && groupedRooms.needs_attention.length === 0 && groupedRooms.skipped.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>
                 <Text style={styles.emptyText}>{t("rooms.allRoomsDoneHint")}</Text>

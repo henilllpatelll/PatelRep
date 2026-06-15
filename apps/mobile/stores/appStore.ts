@@ -49,6 +49,7 @@ export interface Room {
   status: "DIRTY" | "IN_PROGRESS" | "CLEAN" | "INSPECTED" | "OOO" | "PICKUP" | "OCCUPIED" | "OUT_OF_ORDER" | "OUT_OF_SERVICE";
   risk_level: "LOW" | "MEDIUM" | "HIGH" | null;
   dnd_flag: boolean;
+  do_not_service?: boolean;
   guest_name: string | null;
   predicted_ready_at: string | null;
   vip_flag: boolean;

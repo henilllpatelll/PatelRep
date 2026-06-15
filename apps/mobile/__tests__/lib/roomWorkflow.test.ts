@@ -13,6 +13,7 @@ import {
   isCleanable,
   isNeedsAttention,
   isReady,
+  isSkipped,
   isSubmitted,
 } from "@/lib/housekeeping/roomWorkflow";
 
@@ -44,18 +45,33 @@ describe("roomWorkflow helpers", () => {
     expect(isCleanable(vip, now)).toBe(true);
     expect(getRoomAction(vip, now).label).toBe("Start");
 
-    const dndDeparture = room({ dnd_flag: true, clean_type: "DEP", actual_checkout_at: null });
-    expect(hasRoomException(dndDeparture, now)).toBe(true);
-    expect(isNeedsAttention(dndDeparture, now)).toBe(true);
-    expect(isCleanable(dndDeparture, now)).toBe(false);
-    expect(getRoomAction(dndDeparture, now).label).toBe("Review");
+    // DND rooms go to the "skipped" bucket, not needs_attention
+    const dndRoom = room({ dnd_flag: true, clean_type: "DEP", actual_checkout_at: null });
+    expect(isSkipped(dndRoom)).toBe(true);
+    expect(isNeedsAttention(dndRoom, now)).toBe(false);
+    expect(hasRoomException(dndRoom, now)).toBe(false);
+    expect(isCleanable(dndRoom, now)).toBe(false);
+    expect(getRoomQueueBucket(dndRoom, now)).toBe("skipped");
+    expect(getRoomAction(dndRoom, now).label).toBe("DND");
+
+    // Vacant departure rooms with notes/WO stay in smart order (Review, not needs_attention)
+    const depWithNote = room({ clean_type: "DEP", actual_checkout_at: "2026-06-09T10:00:00.000Z", latest_note: "Extra blanket left" });
+    expect(isNeedsAttention(depWithNote, now)).toBe(false);
+    expect(isCleanable(depWithNote, now)).toBe(true);
+    expect(getRoomQueueBucket(depWithNote, now)).toBe("next_to_clean");
+    expect(getRoomAction(depWithNote, now).label).toBe("Review");
+
+    const depWithWo = room({ clean_type: "DEP", actual_checkout_at: "2026-06-09T10:00:00.000Z", open_work_order_id: "wo-1" });
+    expect(isNeedsAttention(depWithWo, now)).toBe(false);
+    expect(isCleanable(depWithWo, now)).toBe(true);
+    expect(getRoomAction(depWithWo, now).label).toBe("Review");
   });
 
   it("classifies queue buckets for the task sheet sections", () => {
     expect(getRoomQueueBucket(room({ clean_type: "DEP", actual_checkout_at: "2026-06-09T10:00:00.000Z" }), now)).toBe(
       "next_to_clean",
     );
-    expect(getRoomQueueBucket(room({ dnd_flag: true }), now)).toBe("needs_attention");
+    expect(getRoomQueueBucket(room({ dnd_flag: true }), now)).toBe("skipped");
     expect(getRoomQueueBucket(room({ status: "IN_PROGRESS" }), now)).toBe("in_progress");
     expect(getRoomQueueBucket(room({ status: "CLEAN" }), now)).toBe("submitted");
     expect(getRoomQueueBucket(room({ status: "INSPECTED" }), now)).toBe("ready");
@@ -128,10 +144,11 @@ describe("roomWorkflow helpers", () => {
       room({ id: "blocked", room_number: "105", status: "OUT_OF_SERVICE" }),
     ];
 
+    // DND rooms are now "skipped" (bucket 3), after in_progress (bucket 2)
     expect(rooms.sort((a, b) => getPriorityScore(a, now) - getPriorityScore(b, now)).map((r) => r.id)).toEqual([
       "cleanable",
-      "attention",
       "progress",
+      "attention",
       "submitted",
       "ready",
       "blocked",

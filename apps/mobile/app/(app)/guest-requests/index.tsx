@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";

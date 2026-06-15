@@ -162,9 +162,6 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
               <Text style={styles.vipText}>VIP</Text>
             </View>
           ) : null}
-          {position != null ? (
-            <Text style={styles.positionText}>#{position}</Text>
-          ) : null}
         </View>
 
         <View style={styles.cardTitleRow}>
@@ -173,9 +170,6 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
             <Text style={styles.roomType} numberOfLines={1}>
               {roomType}
             </Text>
-          ) : null}
-          {estimateMinutes != null ? (
-            <Text style={styles.etaText}>~{estimateMinutes}m</Text>
           ) : null}
         </View>
 

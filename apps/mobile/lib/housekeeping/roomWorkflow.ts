@@ -23,6 +23,7 @@ export type RoomQueueBucket =
   | "next_to_clean"
   | "needs_attention"
   | "in_progress"
+  | "skipped"
   | "submitted"
   | "ready"
   | "blocked";
@@ -100,6 +101,13 @@ export function isBlocked(room: Room): boolean {
   return BLOCKED_STATUSES.has(room.status);
 }
 
+export function isSkipped(room: Room): boolean {
+  if (room.dnd_flag) return true;
+  // Guest declined service on a pickup (stayover) room
+  if (room.do_not_service && room.status === "PICKUP") return true;
+  return false;
+}
+
 export function isSubmitted(room: Room): boolean {
   return room.status === "CLEAN";
 }
@@ -109,19 +117,20 @@ export function isReady(room: Room): boolean {
 }
 
 export function isNeedsAttention(room: Room, now: Date = new Date()): boolean {
-  if (isBlocked(room) || isSubmitted(room) || isReady(room)) return false;
+  if (isBlocked(room) || isSubmitted(room) || isReady(room) || isSkipped(room)) return false;
+  // Vacant checked-out departure rooms: notes and work orders are informational (shown as
+  // badges and before-enter warnings) — they don't block the room from the cleaning queue.
+  const isVacantDeparture = isDepartureClean(room) && Boolean(room.actual_checkout_at);
   return Boolean(
-    room.dnd_flag ||
-      isGuestMayBeInside(room) ||
-      (isDepartureClean(room) && !room.actual_checkout_at && room.status === "OCCUPIED") ||
-      hasOpenWorkOrder(room) ||
+    isGuestMayBeInside(room) ||
+      (!isVacantDeparture && hasOpenWorkOrder(room)) ||
       room.risk_level === "HIGH" ||
-      hasLatestNote(room),
+      (!isVacantDeparture && hasLatestNote(room)),
   );
 }
 
 export function isCleanable(room: Room, now: Date = new Date()): boolean {
-  if (isBlocked(room) || isSubmitted(room) || isReady(room)) return false;
+  if (isBlocked(room) || isSubmitted(room) || isReady(room) || isSkipped(room)) return false;
   if (room.status === "IN_PROGRESS") return !isNeedsAttention(room, now);
   if (!CLEANABLE_STATUSES.has(room.status)) return false;
   return !isNeedsAttention(room, now);
@@ -135,6 +144,7 @@ export function getRoomQueueBucket(room: Room, now: Date = new Date()): RoomQueu
   if (isBlocked(room)) return "blocked";
   if (isReady(room)) return "ready";
   if (isSubmitted(room)) return "submitted";
+  if (isSkipped(room)) return "skipped";
   if (isNeedsAttention(room, now)) return "needs_attention";
   if (room.status === "IN_PROGRESS") return "in_progress";
   if (isCleanable(room, now)) return "next_to_clean";
@@ -170,9 +180,10 @@ const BUCKET_ORDER: Record<RoomQueueBucket, number> = {
   next_to_clean: 0,
   needs_attention: 1,
   in_progress: 2,
-  submitted: 3,
-  ready: 4,
-  blocked: 5,
+  skipped: 3,
+  submitted: 4,
+  ready: 5,
+  blocked: 6,
 };
 
 export function compareRoomsByPriority(a: Room, b: Room, now: Date = new Date()): number {
@@ -189,7 +200,7 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   if (isBlocked(room)) return { kind: "blocked", label: "Blocked", disabled: true };
   if (isReady(room)) return { kind: "ready", label: "Ready", disabled: true };
   if (isSubmitted(room)) return { kind: "submitted", label: "Waiting", allowUndo: true, disabled: true };
-  if (room.dnd_flag) return { kind: "review", label: "Review" };
+  if (isSkipped(room)) return { kind: "view", label: "DND", disabled: true };
   if (room.status === "OCCUPIED" && isDepartureClean(room)) {
     return { kind: "guest_checkout", label: "Review", targetStatus: "DIRTY", allowUndo: true };
   }
@@ -204,6 +215,9 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   }
 
   if (isCleanable(room, now)) {
+    if (hasOpenWorkOrder(room) || hasLatestNote(room)) {
+      return { kind: "review", label: "Review", targetStatus: "IN_PROGRESS" };
+    }
     return { kind: "start", label: "Start", targetStatus: "IN_PROGRESS" };
   }
 

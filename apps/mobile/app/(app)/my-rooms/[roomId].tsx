@@ -157,6 +157,8 @@ export default function RoomDetailScreen() {
   const [noteSuccess, setNoteSuccess] = useState(false);
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [showFoundItem, setShowFoundItem] = useState(false);
+  const [dndLoading, setDndLoading] = useState(false);
+  const [declineLoading, setDeclineLoading] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [timeEntryKey, setTimeEntryKey] = useState<string | null>(null);
   const [timeText, setTimeText] = useState("");
@@ -313,6 +315,42 @@ export default function RoomDetailScreen() {
       Alert.alert("Error", (err as Error).message ?? "Failed to report blocker");
     } finally {
       setBlockerBusy(null);
+    }
+  }
+
+  async function handleToggleDnd() {
+    if (!room || !isOnline) {
+      Alert.alert("Offline", "DND changes need a connection.");
+      return;
+    }
+    const next = !room.dnd_flag;
+    setDndLoading(true);
+    updateLocalRoom(room.id, { dnd_flag: next });
+    try {
+      await api.patch(`/rooms/${room.id}/dnd`, { dnd: next });
+    } catch (err: unknown) {
+      updateLocalRoom(room.id, { dnd_flag: !next });
+      Alert.alert("Error", (err as Error).message ?? "Failed to update DND");
+    } finally {
+      setDndLoading(false);
+    }
+  }
+
+  async function handleToggleDeclineService() {
+    if (!room || !isOnline) {
+      Alert.alert("Offline", "Service changes need a connection.");
+      return;
+    }
+    const next = !room.do_not_service;
+    setDeclineLoading(true);
+    updateLocalRoom(room.id, { do_not_service: next });
+    try {
+      await api.patch(`/rooms/${room.id}/decline-service`, { decline: next });
+    } catch (err: unknown) {
+      updateLocalRoom(room.id, { do_not_service: !next });
+      Alert.alert("Error", (err as Error).message ?? "Failed to update service status");
+    } finally {
+      setDeclineLoading(false);
     }
   }
 
@@ -584,6 +622,42 @@ export default function RoomDetailScreen() {
               <Ionicons name="bag-outline" size={14} color={C.caution} />
               <Text style={[styles.actionChipText, { color: C.caution }]}>Lost & Found</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionChip, styles.actionChipDnd, room.dnd_flag && styles.actionChipDndActive]}
+              onPress={() => void handleToggleDnd()}
+              disabled={dndLoading}
+              activeOpacity={0.82}
+            >
+              {dndLoading ? (
+                <ActivityIndicator size="small" color={room.dnd_flag ? C.alert : C.ink3} />
+              ) : (
+                <>
+                  <Ionicons name={room.dnd_flag ? "close-circle-outline" : "hand-left-outline"} size={14} color={room.dnd_flag ? C.alert : C.ink3} />
+                  <Text style={[styles.actionChipText, { color: room.dnd_flag ? C.alert : C.ink3 }]}>
+                    {room.dnd_flag ? "Clear DND" : "Skip (DND)"}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {room.status === "PICKUP" ? (
+              <TouchableOpacity
+                style={[styles.actionChip, styles.actionChipDnd, room.do_not_service && styles.actionChipDndActive]}
+                onPress={() => void handleToggleDeclineService()}
+                disabled={declineLoading}
+                activeOpacity={0.82}
+              >
+                {declineLoading ? (
+                  <ActivityIndicator size="small" color={room.do_not_service ? C.alert : C.ink3} />
+                ) : (
+                  <>
+                    <Ionicons name={room.do_not_service ? "refresh-outline" : "close-outline"} size={14} color={room.do_not_service ? C.alert : C.ink3} />
+                    <Text style={[styles.actionChipText, { color: room.do_not_service ? C.alert : C.ink3 }]}>
+                      {room.do_not_service ? "Restore Service" : "Decline Service"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {noteOpen ? (
@@ -911,6 +985,8 @@ const styles = StyleSheet.create({
   },
   actionChipWork: { backgroundColor: C.brassSoft, borderColor: C.brassLine },
   actionChipFound: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
+  actionChipDnd: { backgroundColor: C.surface2, borderColor: C.line },
+  actionChipDndActive: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
   actionChipText: { fontSize: 12, fontWeight: "800" },
   noteForm: { backgroundColor: C.surface2, borderRadius: 12, borderWidth: 1, borderColor: C.line, overflow: "hidden" },
   noteInput: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6, fontSize: 13, color: C.ink, minHeight: 64, textAlignVertical: "top" },
