@@ -318,8 +318,16 @@ export function RoomStatusBoard() {
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
-  const [removingAssignmentId, setRemovingAssignmentId] = useState<string | null>(null)
+  const [removingRoomIds, setRemovingRoomIds] = useState<Set<string>>(new Set())
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
+
+  const assignmentToRoomId = useMemo(() =>
+    allRooms.reduce<Record<string, string>>((acc, r: any) => {
+      if (r.assignment_id && r.room_id) acc[r.assignment_id] = r.room_id
+      return acc
+    }, {}),
+    [allRooms]
+  )
 
   const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const applyRoomStatusPayload = useCallback((payload: any) => {
@@ -365,6 +373,18 @@ export function RoomStatusBoard() {
     if (!boardData) return
     const rooms: any[] = (boardData as any)?.data ?? []
     setRooms(rooms)
+    // Clear removal loading for any rooms that no longer have an assignment —
+    // same render as setRooms so purple and spinner disappear together.
+    setRemovingRoomIds((prev) => {
+      if (prev.size === 0) return prev
+      const stillAssigned = new Set(rooms.filter((r: any) => r.assignment_id).map((r: any) => r.room_id))
+      const next = new Set(prev)
+      let changed = false
+      for (const id of next) {
+        if (!stillAssigned.has(id)) { next.delete(id); changed = true }
+      }
+      return changed ? next : prev
+    })
     const preds = rooms
       .filter((r: any) => r.prediction != null)
       .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
@@ -422,7 +442,8 @@ export function RoomStatusBoard() {
   }
 
   const handleRemoveSavedAssignment = useCallback(async (assignmentId: string) => {
-    setRemovingAssignmentId(assignmentId)
+    const roomId = assignmentToRoomId[assignmentId]
+    if (roomId) setRemovingRoomIds((prev) => new Set(prev).add(roomId))
     setAssignError(null)
     try {
       await housekeepingApi.deleteAssignment(assignmentId)
@@ -430,13 +451,14 @@ export function RoomStatusBoard() {
         queryClient.refetchQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] }),
         queryClient.refetchQueries({ queryKey: ['housekeeping-assignments', selectedDate] }),
       ])
+      // Loading cleared by the boardData useEffect when it confirms the assignment is gone
     } catch {
+      // On error the assignment still exists — clear loading immediately
+      if (roomId) setRemovingRoomIds((prev) => { const next = new Set(prev); next.delete(roomId); return next })
       setAssignError('Failed to remove assignment. Please try again.')
       setTimeout(() => setAssignError(null), 3000)
-    } finally {
-      setRemovingAssignmentId(null)
     }
-  }, [queryClient, selectedDate, selectedShift])
+  }, [queryClient, selectedDate, selectedShift, assignmentToRoomId])
 
   // -- Tap-to-assign -----------------------------------------------------------
   const handleTapAssign = useCallback((roomId: string) => {
@@ -613,7 +635,7 @@ export function RoomStatusBoard() {
                         assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
                         savedAssignmentId={room.assignment_id ?? null}
                         onRemoveSavedAssignment={handleRemoveSavedAssignment}
-                        isRemovingAssignment={!!room.assignment_id && removingAssignmentId === room.assignment_id}
+                        isRemovingAssignment={removingRoomIds.has(room.room_id)}
                       />
                     )
                   })}

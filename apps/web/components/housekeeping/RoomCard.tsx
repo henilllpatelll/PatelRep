@@ -113,7 +113,7 @@ export function RoomCard({
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
   const isPending = !!pendingAssignee
   const isSavedAssignedToActive = assignmentMode && !!assignedToActive && !!savedAssignmentId && !isPending
-  const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive)
+  const isAssignmentSelected = assignmentMode && (isPending || isSavedAssignedToActive || !!isRemovingAssignment)
   const isHighRisk = riskLevel === 'HIGH'
 
   const assignedName: string | null =
