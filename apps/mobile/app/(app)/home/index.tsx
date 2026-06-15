@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -59,10 +60,17 @@ export default function HousekeeperHomeScreen() {
   }, [isOnline, setMyRooms]);
 
   useEffect(() => {
-    if (!isEngineer && myRooms.length === 0) {
-      loadRooms();
-    }
-  }, [isEngineer, loadRooms, myRooms.length]);
+    if (effectiveRole !== "housekeeper") return;
+    void loadRooms();
+    const interval = setInterval(() => { void loadRooms(); }, 45_000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void loadRooms();
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [effectiveRole, loadRooms]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

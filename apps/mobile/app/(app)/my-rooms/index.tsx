@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -70,6 +71,14 @@ export default function MyRoomsScreen() {
 
   useEffect(() => {
     void loadRooms();
+    const interval = setInterval(() => { void loadRooms(); }, 45_000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void loadRooms();
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
   }, [loadRooms]);
 
   const onRefresh = useCallback(async () => {
