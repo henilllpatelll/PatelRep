@@ -1271,6 +1271,166 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-12T00:00:00"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-06-14T22:44:49.352Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Had \"Review room\"",
+      "fix": "Changed to \"PICKUP\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T22:44:49.352Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-06-14T22:52:22.719Z",
+      "error_message": "Wrong return value",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "Was returning: { kind: \"review\", label: \"Review\" };",
+      "fix": "Now returns: room.status === \"PICKUP\"",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T22:52:22.719Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-06-14T18:38:01.0739842-05:00",
+      "error_message": "Room cards and room details needed to show room type code instead of room type name on web and mobile",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx, apps/web/components/housekeeping/RoomDetailDrawer.tsx, apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx, apps/mobile/__tests__/screens/RoomDetail.test.tsx",
+      "root_cause": "Web detail still allowed a room_type_name fallback, and mobile tests did not lock the code-only display contract.",
+      "fix": "Added getRoomTypeCode() for web card/drawer code-only resolution and mobile regression tests asserting KS renders while King Suite does not.",
+      "tags": [
+        "web",
+        "mobile",
+        "housekeeping",
+        "room-type-code"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:38:01.0739842-05:00"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-06-14T18:38:01.0739842-05:00",
+      "error_message": "RoomDetailScreen unsafe DND occupied departure test showed a Start Cleaning action",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "getRoomAction returned guest_checkout for OCCUPIED departure rooms before checking DND/needs-attention state.",
+      "fix": "Added a DND guard before guest_checkout so unsafe rooms stay Review-only.",
+      "tags": [
+        "mobile",
+        "housekeeping",
+        "safety",
+        "dnd"
+      ],
+      "related_bugs": [
+        "bug-079"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:38:01.0739842-05:00"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-06-14T18:38:01.0739842-05:00",
+      "error_message": "Full mobile Jest suite failed because roleTabs tests still expected an engineer 'more' tab",
+      "file": "apps/mobile/__tests__/lib/roleTabs.test.ts",
+      "root_cause": "ENGINEER_TABS currently contains home/orders/rooms/assets only, but tests still asserted the old more tab.",
+      "fix": "Updated engineer and chief_engineer tab expectations to the current four-tab contract.",
+      "tags": [
+        "mobile",
+        "tests",
+        "role-tabs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:38:01.0739842-05:00"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-06-14T18:38:01.0739842-05:00",
+      "error_message": "Local /housekeeping board failed to load rooms during browser verification",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The local web app pointed to FastAPI on localhost:8003; after starting it, /v1/housekeeping/board returned PostgREST 42703 from the linked dev Supabase schema.",
+      "fix": "Used /housekeeping/rooms for browser verification of the same web room detail drawer; did not change schema or app config in this task.",
+      "tags": [
+        "web",
+        "local-verification",
+        "supabase",
+        "schema"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:38:01.0739842-05:00"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-06-14T18:38:01.0739842-05:00",
+      "error_message": "PowerShell commands failed when paths with app/(app) and [roomId] were not quoted/literal",
+      "file": "shell commands",
+      "root_cause": "PowerShell interpreted parentheses and bracket characters in paths instead of treating them as literal path text.",
+      "fix": "Reran commands with quoted paths and -LiteralPath for bracketed filenames.",
+      "tags": [
+        "powershell",
+        "windows",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:38:01.0739842-05:00"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-06-14T18:58:00-05:00",
+      "error_message": "User reported that the room board is not loading; local /v1/housekeeping/board returned PostgREST 42703 and the web UI showed Failed to load rooms",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "The linked dev Supabase schema lacks room_status.stay_reset_at, but _attach_room_activity selected that column unconditionally before loading latest room notes.",
+      "fix": "Added a missing stay_reset_at column detector and fallback so the board loads without stay-boundary note filtering when the optional column is absent; added a smoke regression test for the missing-column case.",
+      "tags": [
+        "web",
+        "api",
+        "housekeeping",
+        "room-board",
+        "supabase",
+        "schema-compatibility",
+        "42703"
+      ],
+      "related_bugs": [
+        "bug-083"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T18:58:00-05:00"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-06-14T19:31:59-05:00",
+      "error_message": "Android emulator still did not show the room code on mobile room cards after clearing Expo cache",
+      "file": "apps/mobile/components/shared/evening.tsx",
+      "root_cause": "The previous commit did not include the shared RoomQueueCard atom change, and the existing screen test used nested room_types.code so it did not force the top-level room_type_code path used by the API normalization.",
+      "fix": "Amended the commit to include RoomQueueCard rendering from room.room_type_code with nested-code fallback, typed room_type_code in appStore, and tightened MyRoomsScreen coverage to use top-level-only code data.",
+      "tags": [
+        "mobile",
+        "android-emulator",
+        "housekeeping",
+        "room-card",
+        "room-type-code",
+        "test-coverage"
+      ],
+      "related_bugs": [
+        "bug-080"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-14T19:31:59-05:00"
     }
   ]
 }

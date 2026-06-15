@@ -5023,3 +5023,40 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | -- | Supervisor redesign session (redesign/supervisor): merged redesign-engineering, rebuilt Home/Room Board/Assignments/Inspect in Evening Lobby language | apps/mobile/... | done | ~60k |
 | -- | Found+fixed 3 latent supervisor bugs: wrong POST /assignments payload, nonexistent /assignments/auto, /staff nested payload parsed as array | lib/api/housekeepingSupervisor.ts | logged bug-074/075 | - |
 | -- | New domain layer + atoms: lib/housekeeping/supervisor.ts, components/supervisor/{atoms,HousekeeperPicker,RoomDetailSheet}.tsx, components/home/SupervisorHome.tsx | apps/mobile | type-check + 89 jest pass | - |
+| 17:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~29 |
+| 17:44 | Session end: 24 writes across 13 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 17 reads | ~47538 tok |
+| 17:52 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 1→5 lines | ~56 |
+| 17:52 | Session end: 25 writes across 14 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 17 reads | ~47594 tok |
+| 18:03 | Edited apps/api/routers/housekeeping.py | 12→15 lines | ~235 |
+| 18:03 | Edited apps/mobile/lib/offline/db.ts | 3→5 lines | ~34 |
+| 18:03 | Edited apps/mobile/lib/offline/db.ts | 4→6 lines | ~82 |
+| 18:03 | Edited apps/mobile/lib/offline/db.ts | 40→43 lines | ~613 |
+| 18:03 | Edited apps/mobile/stores/appStore.ts | 3→5 lines | ~51 |
+| 18:03 | Edited apps/mobile/components/shared/evening.tsx | inline fix | ~23 |
+| 18:04 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~23 |
+| 18:04 | Edited apps/mobile/components/home/CompanionHome.tsx | inline fix | ~23 |
+| 18:04 | Session end: 33 writes across 18 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~44427 tok |
+| 18:14 | Edited apps/api/routers/housekeeping.py | rooms() → inner() | ~60 |
+| 18:14 | Session end: 34 writes across 18 files (supervisor.ts, housekeepingSupervisor.ts, CompanionHome.tsx, date.ts, atoms.tsx) | 21 reads | ~64467 tok |
+
+## Session: 2026-06-14 18:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:18 | Loaded frontend/TDD/browser and OpenWolf instructions | skills, .wolf/* | confirmed workflow and project constraints | ~18000 |
+| 18:21 | Searched room type render paths | apps/web, apps/mobile | found web RoomCard/RoomDetailDrawer and mobile RoomQueueCard/RoomDetailScreen/supervisor paths | ~3000 |
+| 18:24 | Added focused mobile room-code tests | mobile tests | My Rooms card, Room Detail, supervisor normalization assert code not name | ~900 |
+| 18:27 | Ran focused mobile tests | apps/mobile | failed on stale unsafe-room detail expectation; code assertions passed | ~1800 |
+| 18:29 | Added web code-only room type resolver | apps/web/lib/utils/roomType.ts, RoomCard.tsx, RoomDetailDrawer.tsx | web card/drawer now share code-only lookup | ~700 |
+| 18:30 | Fixed DND unsafe-room action regression | apps/mobile/lib/housekeeping/roomWorkflow.ts | DND rooms return Review before guest-checkout start action | ~600 |
+| 18:31 | Ran focused mobile tests and type/build checks | apps/mobile, apps/web | focused mobile 26/26 pass; mobile/web type-check pass; web lint/build pass | ~2500 |
+| 18:35 | Browser-verified web room code display | localhost /housekeeping/rooms | table shows 101 S1K and detail drawer title shows Room 101 — S1K | ~2000 |
+| 18:37 | Ran full mobile Jest suite | apps/mobile | 112 tests passed; existing expected console warn/error still printed | ~2200 |
+| 18:58 | Fixed local housekeeping room board loading failure from missing room_status.stay_reset_at | apps/api/routers/housekeeping.py, apps/api/tests/smoke/test_housekeeping_assignments.py | Board endpoint returns 200 with 114 rooms; browser shows room 101 with S1K | ~1.2k |
+| 18:59 | Ran final API and browser verification for room board fix | apps/api/tests/, http://127.0.0.1:3000/housekeeping | 223 API tests passed; browser board shows floor groups, room 101, and S1K code | ~0.8k |
+| 19:31 | Corrected mobile room-card code display after emulator still showed sparse cards | apps/mobile/components/shared/evening.tsx, apps/mobile/stores/appStore.ts, apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | Amended commit now includes RoomQueueCard top-level room_type_code support; mobile type-check and 112 Jest tests pass | ~1.1k |
+
+## Session: 2026-06-15 20:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

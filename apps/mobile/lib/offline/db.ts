@@ -55,6 +55,8 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
       updated_at TEXT,
       predicted_ready_at TEXT,
       assignment_id TEXT,
+      room_type_code TEXT,
+      room_type_name TEXT,
       synced_at TEXT NOT NULL
     );
 
@@ -117,6 +119,8 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
     "ALTER TABLE rooms ADD COLUMN last_cleaned_at TEXT",
     "ALTER TABLE rooms ADD COLUMN last_inspected_at TEXT",
     "ALTER TABLE rooms ADD COLUMN updated_at TEXT",
+    "ALTER TABLE rooms ADD COLUMN room_type_code TEXT",
+    "ALTER TABLE rooms ADD COLUMN room_type_name TEXT",
   ];
   for (const sql of roomsMigrations) {
     try {
@@ -140,8 +144,9 @@ export async function upsertRooms(rooms: unknown[]): Promise<void> {
           clean_type, clean_type_label, latest_note, latest_note_at,
           open_work_order_id, open_work_order_number, open_work_order_title,
           open_work_order_priority, open_work_order_status, assignment_date,
-          last_cleaned_at, last_inspected_at, updated_at, predicted_ready_at, assignment_id, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          last_cleaned_at, last_inspected_at, updated_at, predicted_ready_at, assignment_id,
+          room_type_code, room_type_name, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           room.id as string,
           room.room_number as string,
@@ -170,6 +175,8 @@ export async function upsertRooms(rooms: unknown[]): Promise<void> {
           (room.updated_at as string) ?? null,
           (room.predicted_ready_at as string) ?? null,
           (room.assignment_id as string) ?? null,
+          (room.room_type_code as string) ?? null,
+          (room.room_type_name as string) ?? null,
           now,
         ]
       );
