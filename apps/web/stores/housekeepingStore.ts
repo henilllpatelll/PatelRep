@@ -24,6 +24,7 @@ export interface HousekeepingStore {
   statusFilter: string | null
   cleanTypeFilter: CleanType[]
   showRiskOnly: boolean
+  buildingFilter: string | null
   lastSyncedAt: Date | null
 
   // Actions
@@ -39,6 +40,7 @@ export interface HousekeepingStore {
   setStatusFilter: (status: string | null) => void
   setCleanTypeFilter: (cleanTypes: CleanType[]) => void
   toggleRiskOnly: () => void
+  setBuildingFilter: (building: string | null) => void
   setLastSyncedAt: (date: Date) => void
 
   // Derived
@@ -62,6 +64,7 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
   statusFilter: null,
   cleanTypeFilter: [],
   showRiskOnly: false,
+  buildingFilter: null,
   lastSyncedAt: null,
 
   setRooms: (rooms) => set({ rooms }),
@@ -120,11 +123,17 @@ export const useHousekeepingStore = create<HousekeepingStore>((set, get) => ({
 
   toggleRiskOnly: () => set((state) => ({ showRiskOnly: !state.showRiskOnly })),
 
+  setBuildingFilter: (building) => set({ buildingFilter: building }),
+
   setLastSyncedAt: (date) => set({ lastSyncedAt: date }),
 
   filteredRooms: () => {
-    const { rooms, statusFilter, cleanTypeFilter, showRiskOnly, predictions } = get()
+    const { rooms, statusFilter, cleanTypeFilter, showRiskOnly, predictions, buildingFilter } = get()
     let result = rooms
+
+    if (buildingFilter != null) {
+      result = result.filter((room) => (room.rooms as any)?.building === buildingFilter)
+    }
 
     if (statusFilter !== null) {
       result = result.filter((room) => room.status === statusFilter)

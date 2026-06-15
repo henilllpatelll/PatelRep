@@ -215,6 +215,8 @@ export function RoomStatusBoard() {
     showRiskOnly,
     toggleRiskOnly,
     predictions,
+    buildingFilter,
+    setBuildingFilter,
   } = useHousekeepingStore()
 
   const displayRooms = useMemo(() =>
@@ -222,14 +224,24 @@ export function RoomStatusBoard() {
     [allRooms],
   )
 
+  const availableBuildings = useMemo(() => {
+    const seen = new Set<string>()
+    for (const room of displayRooms) {
+      const b = (room.rooms as any)?.building
+      if (b) seen.add(b as string)
+    }
+    return Array.from(seen).sort()
+  }, [displayRooms])
+
   const rooms = useMemo(() => {
     return filterHousekeepingBoardRooms(displayRooms, {
       statusFilter,
       cleanTypeFilter,
       showRiskOnly,
       predictions,
+      buildingFilter,
     })
-  }, [cleanTypeFilter, displayRooms, predictions, showRiskOnly, statusFilter])
+  }, [buildingFilter, cleanTypeFilter, displayRooms, predictions, showRiskOnly, statusFilter])
 
   const riskCount = useMemo(
     () => displayRooms.filter((r: any) => {
@@ -470,6 +482,40 @@ export function RoomStatusBoard() {
 
   return (
     <div className="space-y-4">
+      {/* Building filter — only shown when rooms span multiple buildings */}
+      {availableBuildings.length > 1 && (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium text-ink3 shrink-0 uppercase tracking-wide">Bldg</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setBuildingFilter(null)}
+              aria-pressed={buildingFilter === null}
+              className={`px-3 py-1 text-[12px] font-medium rounded-full border transition-colors ${
+                buildingFilter === null
+                  ? 'bg-ink text-paper border-ink'
+                  : 'bg-surface border-line text-ink2 hover:bg-surface-2'
+              }`}
+            >
+              All
+            </button>
+            {availableBuildings.map((b) => (
+              <button
+                key={b}
+                onClick={() => setBuildingFilter(buildingFilter === b ? null : b)}
+                aria-pressed={buildingFilter === b}
+                className={`px-3 py-1 text-[12px] font-medium rounded-full border transition-colors ${
+                  buildingFilter === b
+                    ? 'bg-ink text-paper border-ink'
+                    : 'bg-surface border-line text-ink2 hover:bg-surface-2'
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Status filter chips */}
       <StatusSummaryBar
         rooms={displayRooms}

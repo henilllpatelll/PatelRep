@@ -1,4 +1,5 @@
 ﻿# Memory
+| 15:30 | Added Building A/B filter to room board and assign mode | housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx | complete | ~80 tok |
 | 2026-06-10 | Restyled clean-type labels (Departure/Light/Full) on My Rooms room cards to pill badges matching IMG_6396: DEP → stone pill (oooSoft/oooLine/ooo) with arrow-back icon, LIGHT/FULL → amber pill (cautionSoft/cautionLine/caution). | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~30 tok |
 | 2026-06-10 | Open decisions complete: removed my-rooms/index from HIDDEN_APP_ROUTES; hotel-tz fix in get_sessions_summary (dateutil, midnight→UTC bounds); handleMaintenanceBlocker in clean/[roomId].tsx; ChevronUp/Down ordering in CleaningChecklistEditor; 058_clean_photos_private.sql + signed URLs in clean_sessions.py. 52 tests pass. | roleTabs.ts, clean_sessions.py, clean/[roomId].tsx, CleaningChecklistEditor.tsx, 058_clean_photos_private.sql | complete | ~180 tok |
 | 2026-06-10 | Phase 6 finalized: tasks grouping changed to overdue/today/later (date-semantic, string compare to avoid TZ bug); removed dead FALLBACK_GROUPS; added TasksScreen.test.ts (9 tests). All 14 tests pass, tsc clean. | tasks/index.tsx, en.json, es.json, __tests__/screens/TasksScreen.test.ts | complete | ~120 tok |
@@ -5198,3 +5199,24 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 09:43 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_railway.md | — | ~347 |
 | 09:43 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~34 |
 | 09:43 | Session end: 22 writes across 20 files (CLAUDE.md, AGENTS.md, deploy-check.yml, ci.yml, next.config.mjs) | 20 reads | ~1039 tok |
+| 09:45 | Session end: 22 writes across 20 files (CLAUDE.md, AGENTS.md, deploy-check.yml, ci.yml, next.config.mjs) | 20 reads | ~1039 tok |
+| 09:46 | Edited apps/api/scripts/seed_hotel_layout.py | 3→2 lines | ~6 |
+| 09:47 | Session end: 23 writes across 21 files (CLAUDE.md, AGENTS.md, deploy-check.yml, ci.yml, next.config.mjs) | 22 reads | ~4026 tok |
+
+## Session: 2026-06-15 09:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:01 | Edited apps/web/lib/utils/housekeepingBoardFilters.ts | 6→7 lines | ~60 |
+| 10:01 | Edited apps/web/lib/utils/housekeepingBoardFilters.ts | added optional chaining | ~110 |
+| 10:01 | Edited apps/web/stores/housekeepingStore.ts | 19→21 lines | ~246 |
+| 10:01 | Edited apps/web/stores/housekeepingStore.ts | 4→5 lines | ~33 |
+| 10:02 | Edited apps/web/stores/housekeepingStore.ts | added 1 condition(s) | ~279 |
+| 10:02 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 21→23 lines | ~140 |
+| 10:02 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added optional chaining | ~159 |
+| 10:02 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: hover, null, hover | ~434 |
+| 10:02 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | added optional chaining | ~164 |
+| 10:03 | Edited apps/web/lib/utils/housekeepingBoardFilters.test.ts | expanded (+52 lines) | ~530 |
+| 10:04 | Session end: 10 writes across 5 files (housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx, housekeepingBoardFilters.test.ts) | 5 reads | ~2155 tok |
+| 10:06 | Session end: 10 writes across 5 files (housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx, housekeepingBoardFilters.test.ts) | 5 reads | ~2155 tok |
+| 10:09 | Session end: 10 writes across 5 files (housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx, housekeepingBoardFilters.test.ts) | 6 reads | ~2155 tok |

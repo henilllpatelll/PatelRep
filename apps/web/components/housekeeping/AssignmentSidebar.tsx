@@ -10,12 +10,16 @@ import { Button } from '@/components/ui/Button'
 
 export function AssignmentSidebar() {
   const queryClient = useQueryClient()
-  const { selectedDate, selectedShift, rooms } = useHousekeepingStore()
+  const { selectedDate, selectedShift, rooms, buildingFilter } = useHousekeepingStore()
   const [aiLoading, setAiLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const unassignedCount = rooms.filter((room: any) => !room.assigned_to).length
-  const dirtyCount = rooms.filter((room: any) => room.status === 'DIRTY' || room.status === 'PICKUP').length
+  const scopedRooms = buildingFilter != null
+    ? rooms.filter((room: any) => room.rooms?.building === buildingFilter)
+    : rooms
+
+  const unassignedCount = scopedRooms.filter((room: any) => !room.assigned_to).length
+  const dirtyCount = scopedRooms.filter((room: any) => room.status === 'DIRTY' || room.status === 'PICKUP').length
 
   const handleAiAutoAssign = async () => {
     setAiLoading(true)

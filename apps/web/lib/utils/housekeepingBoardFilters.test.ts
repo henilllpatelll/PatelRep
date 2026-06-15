@@ -96,6 +96,58 @@ test('infers occupied departure display for older local room status rows', () =>
   )
 })
 
+test('building filter narrows rooms to a single building', () => {
+  const multiBuilding = [
+    { room_id: 'a1', status: 'DIRTY', clean_type: null, rooms: { building: 'A' } },
+    { room_id: 'a2', status: 'CLEAN', clean_type: null, rooms: { building: 'A' } },
+    { room_id: 'b1', status: 'DIRTY', clean_type: null, rooms: { building: 'B' } },
+    { room_id: 'no-bldg', status: 'DIRTY', clean_type: null, rooms: {} },
+  ]
+
+  const filteredA = filterHousekeepingBoardRooms(multiBuilding, {
+    statusFilter: null,
+    cleanTypeFilter: [],
+    showRiskOnly: false,
+    predictions: {},
+    buildingFilter: 'A',
+  })
+  assert.deepEqual(filteredA.map((r) => r.room_id), ['a1', 'a2'])
+
+  const filteredB = filterHousekeepingBoardRooms(multiBuilding, {
+    statusFilter: null,
+    cleanTypeFilter: [],
+    showRiskOnly: false,
+    predictions: {},
+    buildingFilter: 'B',
+  })
+  assert.deepEqual(filteredB.map((r) => r.room_id), ['b1'])
+
+  const filteredAll = filterHousekeepingBoardRooms(multiBuilding, {
+    statusFilter: null,
+    cleanTypeFilter: [],
+    showRiskOnly: false,
+    predictions: {},
+    buildingFilter: null,
+  })
+  assert.equal(filteredAll.length, 4)
+})
+
+test('building filter composes with status filter', () => {
+  const multiBuilding = [
+    { room_id: 'a-dirty', status: 'DIRTY', clean_type: null, rooms: { building: 'A' } },
+    { room_id: 'a-clean', status: 'CLEAN', clean_type: null, rooms: { building: 'A' } },
+    { room_id: 'b-dirty', status: 'DIRTY', clean_type: null, rooms: { building: 'B' } },
+  ]
+  const filtered = filterHousekeepingBoardRooms(multiBuilding, {
+    statusFilter: 'DIRTY',
+    cleanTypeFilter: [],
+    showRiskOnly: false,
+    predictions: {},
+    buildingFilter: 'A',
+  })
+  assert.deepEqual(filtered.map((r) => r.room_id), ['a-dirty'])
+})
+
 test('adds clean type to primary room card status labels', () => {
   assert.equal(getCleanAwareStatusLabel('Pickup', 'FULL', 'PICKUP'), 'Pickup - Full')
   assert.equal(getCleanAwareStatusLabel('Pickup', 'LIGHT', 'PICKUP'), 'Pickup - Light')

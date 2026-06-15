@@ -8,6 +8,7 @@ export interface HousekeepingBoardFilterOptions {
   cleanTypeFilter: CleanTypeFilter
   showRiskOnly: boolean
   predictions: Record<string, any>
+  buildingFilter?: string | null
 }
 
 export function getHousekeepingBoardFilterCounts(rooms: any[]) {
@@ -44,8 +45,12 @@ export function filterHousekeepingBoardRooms(
   rooms: any[],
   options: HousekeepingBoardFilterOptions,
 ): any[] {
-  const { statusFilter, cleanTypeFilter, showRiskOnly, predictions } = options
+  const { statusFilter, cleanTypeFilter, showRiskOnly, predictions, buildingFilter } = options
   let result = rooms
+
+  if (buildingFilter != null) {
+    result = result.filter((room: any) => room.rooms?.building === buildingFilter)
+  }
 
   if (statusFilter !== null) {
     result = result.filter((room: any) => room.status === statusFilter)
