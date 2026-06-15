@@ -426,8 +426,10 @@ export function RoomStatusBoard() {
     setAssignError(null)
     try {
       await housekeepingApi.deleteAssignment(assignmentId)
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] }),
+        queryClient.refetchQueries({ queryKey: ['housekeeping-assignments', selectedDate] }),
+      ])
     } catch {
       setAssignError('Failed to remove assignment. Please try again.')
       setTimeout(() => setAssignError(null), 3000)
@@ -440,8 +442,6 @@ export function RoomStatusBoard() {
   const handleTapAssign = useCallback((roomId: string) => {
     if (!activeAssigneeId) return
     if (pendingAssignments[roomId] === activeAssigneeId) {
-      setAssignError('Room already added to this housekeeper')
-      setTimeout(() => setAssignError(null), 3000)
       return
     }
     const roomData = allRooms.find((r: any) => r.room_id === roomId)
@@ -607,7 +607,7 @@ export function RoomStatusBoard() {
                           handleStatusChange(roomId, newStatus)
                         }
                         onOpenDetail={() => setSelectedRoom(visibleRoom)}
-                        onAssign={assignmentMode ? handleTapAssign : undefined}
+                        onAssign={assignmentMode && !!activeAssigneeId ? handleTapAssign : undefined}
                         pendingAssignee={pendingAssignments[room.room_id] ?? null}
                         assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}
                         assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}

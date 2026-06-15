@@ -138,7 +138,10 @@ export function RoomCard({
   // ── Event handlers ─────────────────────────────────────────────────────────
   function handleCardClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return
-    if (isSavedAssignedToActive) return
+    if (isAssignmentSelected) {
+      if (onOpenDetail) onOpenDetail(room)
+      return
+    }
     if (assignmentMode && onAssign) {
       onAssign(room.room_id)
       return
@@ -297,7 +300,7 @@ export function RoomCard({
       )}
 
       {/* Assignment mode overlays */}
-      {assignmentMode && !isAssignmentSelected && !alreadyAssigned && (
+      {assignmentMode && !!onAssign && !isAssignmentSelected && !alreadyAssigned && (
         <p className="text-xs text-[var(--ai)] mt-0.5">Tap to assign</p>
       )}
       {alreadyAssigned && (
@@ -312,7 +315,7 @@ export function RoomCard({
             <span className="text-xs text-[var(--ai)] font-medium">Assigned</span>
           </div>
           <button
-            className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
+            className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full flex items-center justify-center gap-1"
             disabled={isRemovingAssignment}
             onClick={(e) => {
               e.stopPropagation()
@@ -325,7 +328,15 @@ export function RoomCard({
               }
             }}
           >
-            {isRemovingAssignment ? 'Removing...' : 'Remove'}
+            {isRemovingAssignment ? (
+              <>
+                <svg className="animate-spin w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Removing
+              </>
+            ) : 'Remove'}
           </button>
         </>
       )}
