@@ -155,6 +155,29 @@ describe("roomWorkflow helpers", () => {
     ]);
   });
 
+  it("guest_checkout action targets IN_PROGRESS so the tap starts cleaning immediately", () => {
+    // OCCUPIED + DEP = housekeeper sees "Guest Checked Out — Start Cleaning"
+    const occupiedDep = room({ status: "OCCUPIED", clean_type: "DEP", fo_status: "OCC" });
+    const action = getRoomAction(occupiedDep, now);
+    expect(action.kind).toBe("guest_checkout");
+    // targetStatus must be IN_PROGRESS — OCCUPIED→DIRTY is not in ALLOWED_TRANSITIONS on the API
+    expect(action.targetStatus).toBe("IN_PROGRESS");
+    expect(action.allowUndo).toBeUndefined();
+  });
+
+  it("IN_PROGRESS DEP room shows Mark Clean / Undo even when fo_status is still OCC", () => {
+    // After guest_checkout tap, status=IN_PROGRESS but fo_status is still OCC (not reset by PATCH /status).
+    // The housekeeper must see "done" (Mark Clean) + Undo, not "Review" with no action.
+    const inProgressDep = room({ status: "IN_PROGRESS", clean_type: "DEP", fo_status: "OCC" });
+    const action = getRoomAction(inProgressDep, now);
+    expect(action.kind).toBe("done");
+    expect(action.targetStatus).toBe("CLEAN");
+    expect(action.allowUndo).toBe(true);
+    // stale fo_status should not flag "guest may be inside" once cleaning has started
+    const warnings = getBeforeEnterWarnings(inProgressDep, now);
+    expect(warnings.find((w) => w.key === "occupied" || w.key === "checkout")).toBeUndefined();
+  });
+
   it("detects useful timing and before-enter warnings", () => {
     const arrival = room({
       clean_type: "DEP",

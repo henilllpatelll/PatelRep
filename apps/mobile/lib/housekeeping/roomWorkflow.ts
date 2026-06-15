@@ -87,6 +87,7 @@ function isFullOrLightService(room: Room): boolean {
 
 function isGuestMayBeInside(room: Room): boolean {
   if (room.actual_checkout_at) return false;
+  if (room.status === "IN_PROGRESS") return false; // housekeeper is already inside cleaning
   return room.status === "OCCUPIED" || room.fo_status === "OCC" || Boolean(room.guest_name && isDepartureClean(room));
 }
 
@@ -202,16 +203,17 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   if (isSubmitted(room)) return { kind: "submitted", label: "Waiting", allowUndo: true, disabled: true };
   if (isSkipped(room)) return { kind: "view", label: "DND", disabled: true };
   if (room.status === "OCCUPIED" && isDepartureClean(room)) {
-    return { kind: "guest_checkout", label: "Review", targetStatus: "DIRTY", allowUndo: true };
+    return { kind: "guest_checkout", label: "Review", targetStatus: "IN_PROGRESS" };
+  }
+  // IN_PROGRESS must come before isNeedsAttention: once a housekeeper has started
+  // cleaning, stale flags (fo_status OCC, notes, WOs) should not hide the "done" button.
+  if (room.status === "IN_PROGRESS") {
+    return { kind: "done", label: "Done", targetStatus: "CLEAN", allowUndo: true };
   }
   if (isNeedsAttention(room, now)) {
     return room.status === "PICKUP"
       ? { kind: "review", label: "Review", targetStatus: "IN_PROGRESS" }
       : { kind: "review", label: "Review" };
-  }
-
-  if (room.status === "IN_PROGRESS") {
-    return { kind: "done", label: "Done", targetStatus: "CLEAN", allowUndo: true };
   }
 
   if (isCleanable(room, now)) {
