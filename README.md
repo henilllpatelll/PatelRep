@@ -43,8 +43,8 @@ npm run dev
 
 | Service | Platform | URL |
 |---------|----------|-----|
-| API     | Railway  | https://api-production-18a4.up.railway.app |
-| Web     | Railway  | https://patelrepweb-production.up.railway.app |
+| API     | Railway  | https://patelrep-web-production.up.railway.app |
+| Web     | Railway  | https://patelrep-production.up.railway.app |
 | DB      | Supabase | — |
 
 ---

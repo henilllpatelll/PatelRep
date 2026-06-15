@@ -12,7 +12,7 @@ jobs:
       - name: Poll API /health (up to 5 min)
         run: |
           for i in $(seq 1 10); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://api-production-130b.up.railway.app/health || echo "000")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://patelrep-web-production.up.railway.app/health || echo "000")
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "API is healthy"
@@ -29,7 +29,7 @@ jobs:
       - name: Poll web app (up to 3 min)
         run: |
           for i in $(seq 1 6); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -L https://patelrepweb-production.up.railway.app || echo "000")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -L https://patelrep-production.up.railway.app || echo "000")
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "Web is healthy"

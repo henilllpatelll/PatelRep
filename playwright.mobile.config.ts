@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test'
 
-const BASE_URL = 'https://patelrepweb-production.up.railway.app'
+const BASE_URL = 'https://patelrep-production.up.railway.app'
 
 export default defineConfig({
   testDir: './e2e',

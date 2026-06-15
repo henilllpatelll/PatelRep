@@ -1,16 +1,21 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T04:39:59.902Z
-> Files: 6 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T14:43:32.759Z
+> Files: 35 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
+- `settings.json` (~1416 tok)
 
 ## ../../.claude/plans/
 
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `MEMORY.md` — PatelRep Project Memory (~458 tok)
+- `project_hotel_layout.md` (~506 tok)
+- `reference_railway.md` — Railway Infrastructure (new account, 2026-06-15) (~345 tok)
+- `reference_test_account.md` (~125 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -29,7 +34,14 @@
 
 ## ./
 
+- `AGENTS.md` — OpenWolf (~2153 tok)
+- `CLAUDE.md` — OpenWolf (~2969 tok)
+- `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Frontend Playwright Audit - 2026-05-23 (~2398 tok)
+- `playwright.config.ts` — Declares BASE_URL (~310 tok)
+- `playwright.mobile.config.ts` — Declares BASE_URL (~242 tok)
 - `railway.toml` (~63 tok)
+- `README.md` — Project documentation (~344 tok)
+- `UI_UX_FIXES_BACKLOG.md` — UI/UX Fixes Backlog — PatelRep (~5526 tok)
 
 ## .claude/
 
@@ -423,9 +435,12 @@
 
 ## .github/workflows/
 
+- `ci.yml` — CI: CI (~1331 tok)
+- `deploy-check.yml` — CI: Deploy Health Check (~353 tok)
 
 ## .planning/
 
+- `STATE.md` — GSD State (~592 tok)
 
 ## .wolf/
 
@@ -456,6 +471,7 @@
 
 ## apps/api/
 
+- `main.py` — API: 1 endpoints (~2423 tok)
 
 ## apps/api/core/
 
@@ -468,21 +484,31 @@
 
 ## apps/api/routers/
 
+- `ai_copilot.py` — API: 1 endpoints (~8355 tok)
+- `hotels.py` — API: 7 endpoints (~2580 tok)
+- `housekeeping.py` — from: and (~20713 tok)
+
+## apps/api/scripts/
+
+- `seed_hotel_layout.py` — main (~2981 tok)
 
 ## apps/api/services/
 
 
 ## apps/api/services/ai/
 
+- `housekeeping_briefing.py` — AI shift briefing for housekeepers. (~1113 tok)
 
 ## apps/api/services/opera/
 
 
 ## apps/api/tests/load/
 
+- `load_test.py` — from: get_auth_token (~5962 tok)
 
 ## apps/api/tests/smoke/
 
+- `test_load_auth_state.py` — enc, test_token_from_playwright_local_storage_state, test_session_from_playwright_local_storage_stat (~1128 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -498,6 +524,7 @@
 
 ## apps/mobile/
 
+- `eas.json` (~593 tok)
 
 ## apps/mobile/__tests__/components/
 
@@ -698,6 +725,7 @@
 ## apps/web/
 
 - `Dockerfile` — Docker container definition (~382 tok)
+- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~584 tok)
 
 ## apps/web/app/
 
@@ -863,9 +891,11 @@
 
 ## e2e/
 
+- `mobile-usability.spec.ts` — Mobile Usability Testing — PatelRep Production (~3796 tok)
 
 ## e2e/agent-browser/
 
+- `config.json` (~451 tok)
 
 ## e2e/agent-browser/scripts/
 
@@ -875,6 +905,7 @@
 
 ## e2e/helpers/
 
+- `rbac-users.ts` — RBAC test user helpers. (~1926 tok)
 
 ## graphify-out/
 
@@ -884,6 +915,7 @@
 
 ## supabase/migrations/
 
+- `060_hotel_layout.sql` — 060_hotel_layout.sql (~66 tok)
 
 ## youtubeMobileResearch.md
 

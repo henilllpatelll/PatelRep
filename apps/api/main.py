@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 _ALLOWED_ORIGINS = [
     settings.app_url,
     "https://app.patelrep.com",
-    "https://patelrepweb-production.up.railway.app",
+    "https://patelrep-production.up.railway.app",
     "https://patelrep-web.vercel.app",
 ]
 _ALLOWED_METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]

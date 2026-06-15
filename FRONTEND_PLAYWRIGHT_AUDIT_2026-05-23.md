@@ -1,6 +1,6 @@
 # Frontend Playwright Audit - 2026-05-23
 
-Target: `https://patelrepweb-production.up.railway.app`
+Target: `https://patelrep-production.up.railway.app`
 
 ## What Ran
 
@@ -8,7 +8,7 @@ Target: `https://patelrepweb-production.up.railway.app`
   - Result: 98 passed, 6 failed, 58 skipped, 5 did not run.
 - `npx playwright test -c playwright.mobile.config.ts`
   - Result: 4 passed, 56 skipped.
-- `openwolf designqc --url https://patelrepweb-production.up.railway.app --routes /login`
+- `openwolf designqc --url https://patelrep-production.up.railway.app --routes /login`
   - Captured login desktop/mobile screenshots.
 - Custom authenticated Playwright route crawl
   - Desktop: 21 routes at 1366 x 900.
@@ -33,7 +33,7 @@ Target: `https://patelrepweb-production.up.railway.app`
 
 Several authenticated route loads emitted:
 
-`Access to fetch at 'https://api-production-130b.up.railway.app/v1/auth/me' ... has been blocked by CORS policy`
+`Access to fetch at 'https://patelrep-web-production.up.railway.app/v1/auth/me' ... has been blocked by CORS policy`
 
 Observed on mobile: `/logbook`, `/sop`, `/guest-requests`, `/lost-found`, `/reports`, `/ai`, `/billing`, `/settings`, and the authenticated `/login` redirect. Observed on desktop: `/ai` and `/login`.
 

@@ -58,7 +58,7 @@ last_updated: "2026-06-15T04:29:11.799Z"
 
 ## Infrastructure
 
-- API: https://api-production-130b.up.railway.app
-- Web: https://patelrepweb-production.up.railway.app
+- API: https://patelrep-web-production.up.railway.app
+- Web: https://patelrep-production.up.railway.app
 - Supabase project: oacnwalhcpqdabivweki
 - GitHub: henilllpatelll/PatelRep

@@ -19,7 +19,7 @@ def test_token_from_playwright_local_storage_state(tmp_path):
         json.dumps({
             "cookies": [],
             "origins": [{
-                "origin": "https://patelrepweb-production.up.railway.app",
+                "origin": "https://patelrep-production.up.railway.app",
                 "localStorage": [{
                     "name": "auth-store",
                     "value": json.dumps({"state": {"session": {"access_token": token}}}),
@@ -40,7 +40,7 @@ def test_session_from_playwright_local_storage_state(tmp_path):
         json.dumps({
             "cookies": [],
             "origins": [{
-                "origin": "https://patelrepweb-production.up.railway.app",
+                "origin": "https://patelrep-production.up.railway.app",
                 "localStorage": [{
                     "name": "auth-store",
                     "value": json.dumps({
@@ -71,7 +71,7 @@ def test_persist_refreshed_auth_state_updates_local_storage_session(tmp_path):
         json.dumps({
             "cookies": [],
             "origins": [{
-                "origin": "https://patelrepweb-production.up.railway.app",
+                "origin": "https://patelrep-production.up.railway.app",
                 "localStorage": [{
                     "name": "auth-store",
                     "value": json.dumps({

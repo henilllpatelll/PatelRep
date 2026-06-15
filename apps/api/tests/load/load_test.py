@@ -486,7 +486,7 @@ async def main():
     parser = argparse.ArgumentParser(description="PatelRep API load test")
     parser.add_argument("--workers", type=int, default=30, help="Concurrent workers (default: 30)")
     parser.add_argument("--duration", type=int, default=30, help="Test duration in seconds (default: 30)")
-    parser.add_argument("--api", default="https://api-production-130b.up.railway.app",
+    parser.add_argument("--api", default="https://patelrep-web-production.up.railway.app",
                         help="API base URL (default: Railway production)")
     parser.add_argument("--auth-state", default=str(_repo_root / "e2e" / ".auth" / "state.json"),
                         help="Playwright storage state to use when TEST_PASSWORD is not set")

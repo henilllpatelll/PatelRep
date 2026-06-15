@@ -7,7 +7,7 @@ import { test, expect, Page, BrowserContext } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 
-const BASE_URL = 'https://patelrepweb-production.up.railway.app'
+const BASE_URL = 'https://patelrep-production.up.railway.app'
 const EMAIL = 'hp.patelrep@gmail.com'
 const PASSWORD = process.env.TEST_PASSWORD
 

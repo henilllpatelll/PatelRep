@@ -63,7 +63,7 @@ const _rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || ''
 const _isLocalhost = _rawApiUrl.includes('localhost') || _rawApiUrl.includes('127.0.0.1')
 const API_URL = (_rawApiUrl && !_isLocalhost)
   ? _rawApiUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
-  : 'https://api-production-130b.up.railway.app'
+  : 'https://patelrep-web-production.up.railway.app'
 
 function requireEnvPassword(name: string): string {
   const value = process.env[name]

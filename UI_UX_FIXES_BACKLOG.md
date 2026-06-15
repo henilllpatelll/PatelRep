@@ -161,7 +161,7 @@ Three categories of test pollution are visible to any logged-in user:
 - Add a post-test teardown step to `e2e/auth.setup.ts` (or a dedicated teardown spec) that deletes any record created with a `prodval-` prefix or `AutoTest` name.
 
 **Fix (guard):**
-- In e2e auth setup, assert `process.env.PLAYWRIGHT_BASE_URL !== 'https://patelrepweb-production.up.railway.app'` before creating test data, or use a flag column (`is_test_record`) and filter it out in production queries.
+- In e2e auth setup, assert `process.env.PLAYWRIGHT_BASE_URL !== 'https://patelrep-production.up.railway.app'` before creating test data, or use a flag column (`is_test_record`) and filter it out in production queries.
 
 ---
 

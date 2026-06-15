@@ -1568,6 +1568,278 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-15T04:39:59.960Z"
+    },
+    {
+      "id": "bug-095",
+      "timestamp": "2026-06-15T14:01:39.800Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/ai_copilot.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 23→53 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:01:39.800Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-06-15T14:02:09.527Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/hotels.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:02:09.527Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-06-15T14:02:44.185Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "24 lines replaced/restructured",
+      "fix": "Rewrote 116→161 lines (24 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:02:44.186Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-06-15T14:29:31.905Z",
+      "error_message": "Wrong reference: true should be false",
+      "file": "../../.claude/settings.json",
+      "root_cause": "Used \"true\" instead of \"false\"",
+      "fix": "Changed true → false",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-15T14:30:16.591Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-06-15T14:41:25.694Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Had \"https://api-production-130b.up.railway.app\"",
+      "fix": "Changed to \"https://patelrep-web-production.up.railway.app\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:25.694Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-06-15T14:41:26.830Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/next.config.mjs",
+      "root_cause": "Had 'https://api-production-130b.up.railway.app'",
+      "fix": "Changed to 'https://patelrep-production.up.railway.app'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "mjs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:26.830Z"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-06-15T14:41:28.497Z",
+      "error_message": "Incorrect value in code",
+      "file": "playwright.config.ts",
+      "root_cause": "Had 'https://patelrepweb-production.up.railway.app'",
+      "fix": "Changed to 'https://patelrep-production.up.railway.app'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:28.497Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-06-15T14:41:29.636Z",
+      "error_message": "Incorrect value in code",
+      "file": "e2e/agent-browser/config.json",
+      "root_cause": "Had \"https://patelrepweb-production.up.railway.app\"",
+      "fix": "Changed to \"https://patelrep-production.up.railway.app\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:29.636Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-06-15T14:41:34.467Z",
+      "error_message": "Wrong reference: patelrepweb should be patelrep",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "Used \"patelrepweb\" instead of \"patelrep\"",
+      "fix": "Changed patelrepweb → patelrep",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:34.467Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-06-15T14:41:37.108Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/main.py",
+      "root_cause": "Had \"https://patelrepweb-production.up.railway.app\"",
+      "fix": "Changed to \"https://patelrep-production.up.railway.app\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:37.108Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-06-15T14:41:39.563Z",
+      "error_message": "Incorrect value in code",
+      "file": "e2e/helpers/rbac-users.ts",
+      "root_cause": "Had 'https://api-production-130b.up.railway.app'",
+      "fix": "Changed to 'https://patelrep-web-production.up.railway.app'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:39.563Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-06-15T14:41:51.959Z",
+      "error_message": "Wrong reference: patelrepweb should be patelrep",
+      "file": "apps/api/tests/smoke/test_load_auth_state.py",
+      "root_cause": "Used \"patelrepweb\" instead of \"patelrep\"",
+      "fix": "Changed patelrepweb → patelrep",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:51.959Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-06-15T14:41:53.430Z",
+      "error_message": "Incorrect value in code",
+      "file": "playwright.mobile.config.ts",
+      "root_cause": "Had 'https://patelrepweb-production.up.railway.app'",
+      "fix": "Changed to 'https://patelrep-production.up.railway.app'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:53.430Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-06-15T14:41:54.698Z",
+      "error_message": "Incorrect value in code",
+      "file": "e2e/mobile-usability.spec.ts",
+      "root_cause": "Had 'https://patelrepweb-production.up.railway.app'",
+      "fix": "Changed to 'https://patelrep-production.up.railway.app'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:41:54.698Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-06-15T14:42:14.861Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/tests/load/load_test.py",
+      "root_cause": "Had \"https://api-production-130b.up.railway.app\"",
+      "fix": "Changed to \"https://patelrep-web-production.up.railway.app\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:42:14.861Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-06-15T14:42:16.258Z",
+      "error_message": "Wrong reference: patelrepweb should be patelrep",
+      "file": "UI_UX_FIXES_BACKLOG.md",
+      "root_cause": "Used \"patelrepweb\" instead of \"patelrep\"",
+      "fix": "Changed patelrepweb → patelrep",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:42:16.258Z"
+    },
+    {
+      "id": "bug-111",
+      "timestamp": "2026-06-15T14:42:17.495Z",
+      "error_message": "Wrong reference: patelrepweb should be patelrep",
+      "file": "FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md",
+      "root_cause": "Used \"patelrepweb\" instead of \"patelrep\"",
+      "fix": "Changed patelrepweb → patelrep",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T14:42:17.495Z"
     }
   ]
 }

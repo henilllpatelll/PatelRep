@@ -14,7 +14,7 @@ function buildCSP() {
     "'self'",
     'https://*.supabase.co',
     'wss://*.supabase.co',
-    'https://api-production-130b.up.railway.app',
+    'https://patelrep-production.up.railway.app',
     'https://patelrep-web-production.up.railway.app',
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ]

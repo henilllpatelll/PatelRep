@@ -56,7 +56,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_API_URL: "https://api-production-130b.up.railway.app"
+          NEXT_PUBLIC_API_URL: "https://patelrep-web-production.up.railway.app"
 
   test-api:
     name: Test / API
