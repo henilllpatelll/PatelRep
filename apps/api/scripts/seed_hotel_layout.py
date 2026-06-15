@@ -6,7 +6,6 @@ Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in environment.
 """
 import os
 import sys
-import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from core.database import supabase
