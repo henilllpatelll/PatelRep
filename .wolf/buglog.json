@@ -1431,6 +1431,22 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-14T19:31:59-05:00"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-06-15T01:09:44.865Z",
+      "error_message": "Wrong reference: Text should be cleanType",
+      "file": "apps/mobile/app/(app)/my-rooms/[roomId].tsx",
+      "root_cause": "Used \"Text\" instead of \"cleanType\"",
+      "fix": "Changed Text → cleanType",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T01:09:44.865Z"
     }
   ]
 }

@@ -395,7 +395,6 @@ export default function RoomDetailScreen() {
           </View>
           <View style={styles.heroMeta}>
             {roomType ? <Text style={styles.heroMetaText}>{roomType}</Text> : null}
-            <Text style={styles.heroMetaText}>Floor {room.floor}</Text>
             {cleanType ? (
               <View
                 accessible

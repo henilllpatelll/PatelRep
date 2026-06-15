@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-14T23:14:11.083Z
-> Files: 7 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T01:09:44.840Z
+> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -561,7 +561,7 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~11862 tok)
+- `[roomId].tsx` — STATUS_COLOR (~11841 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -849,9 +849,8 @@
 
 ## apps/web/lib/utils/
 
-- `roomType.ts` — Code-only room type resolver for web room cards/details; never falls back to room type name. (~91 tok)
 - `roomType.test.ts` — node:test coverage for room type code resolution and no-name fallback. (~104 tok)
-
+- `roomType.ts` — Code-only room type resolver for web room cards/details; never falls back to room type name. (~91 tok)
 
 ## apps/web/stores/
 
@@ -887,3 +886,4 @@
 
 
 ## youtubeMobileResearch.md
+
