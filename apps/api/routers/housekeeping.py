@@ -1679,6 +1679,7 @@ async def import_hk_details(
     applied = 0
     skipped_active = 0
     not_found: list[str] = []
+    room_ids_processed: list[str] = []
 
     for row in rows:
         room_id = room_map.get(row.room_number)
@@ -1716,6 +1717,20 @@ async def import_hk_details(
             lambda payload: supabase.table("room_status").upsert(payload, on_conflict="room_id"),
         )
         applied += 1
+        room_ids_processed.append(room_id)
+
+    # Cancel any pending late-checkout requests for imported rooms — Opera is the
+    # source of truth so yesterday's housekeeping flags no longer apply.
+    if room_ids_processed:
+        try:
+            supabase.table("late_checkout_requests") \
+                .update({"status": "cancelled"}) \
+                .eq("tenant_id", current_user.hotel_id) \
+                .eq("status", "pending") \
+                .in_("room_id", room_ids_processed) \
+                .execute()
+        except Exception:
+            pass
 
     if not_found:
         warnings.append(f"Rooms not found in system: {', '.join(not_found[:20])}")
@@ -1771,6 +1786,7 @@ async def import_task_sheet(
     applied = 0
     skipped_active = 0
     not_found: list[str] = []
+    room_ids_processed: list[str] = []
 
     for row in rows:
         room_id = room_map.get(row.room_number)
@@ -1839,6 +1855,20 @@ async def import_task_sheet(
         }).execute()
 
         applied += 1
+        room_ids_processed.append(room_id)
+
+    # Cancel any pending late-checkout requests for imported rooms — Opera is the
+    # source of truth so yesterday's housekeeping flags no longer apply.
+    if room_ids_processed:
+        try:
+            supabase.table("late_checkout_requests") \
+                .update({"status": "cancelled"}) \
+                .eq("tenant_id", current_user.hotel_id) \
+                .eq("status", "pending") \
+                .in_("room_id", room_ids_processed) \
+                .execute()
+        except Exception:
+            pass
 
     if not_found:
         warnings.append(f"Rooms not found in system: {', '.join(not_found[:20])}")
