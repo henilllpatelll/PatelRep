@@ -20,7 +20,7 @@ def get_supabase() -> Client:
     global _supabase_client
     if _supabase_client is None:
         _supabase_client = create_client(
-            settings.supabase_url,
+            settings.supabase_project_url,
             settings.supabase_service_role_key,
             _build_client_options(),
         )
@@ -30,7 +30,7 @@ def get_supabase() -> Client:
 def get_supabase_user_client(jwt_token: str) -> Client:
     """Returns a Supabase client authenticated as the user (respects RLS)."""
     client = create_client(
-        settings.supabase_url,
+        settings.supabase_project_url,
         settings.supabase_service_role_key,
         _build_client_options(),
     )

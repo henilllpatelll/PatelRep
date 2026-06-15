@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from jose.exceptions import JWKError
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ async def _fetch_jwks() -> dict:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 r = await client.get(
-                    f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
+                    f"{settings.supabase_project_url}/auth/v1/.well-known/jwks.json"
                 )
                 _jwks_cache = r.json()
                 _jwks_cache_time = now
@@ -50,7 +51,7 @@ async def _decode_token(token: str) -> dict:
             algorithms=["HS256"],
             audience="authenticated"
         )
-    except JWTError:
+    except (JWTError, JWKError):
         pass
     # Fall back to ES256 via JWKS (newer Supabase projects)
     try:
@@ -61,7 +62,7 @@ async def _decode_token(token: str) -> dict:
             algorithms=["ES256"],
             audience="authenticated"
         )
-    except JWTError as e:
+    except (JWTError, JWKError) as e:
         logger.warning("JWT verification failed: %s", e)
         raise HTTPException(status_code=401, detail="Invalid token")
 

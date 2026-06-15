@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     supabase_storage_timeout_seconds: float = 30.0
     feedback_webhook_url: str = ""
 
+    @property
+    def supabase_project_url(self) -> str:
+        """Supabase project root URL, even if env accidentally includes /rest/v1."""
+        url = self.supabase_url.rstrip("/")
+        if url.endswith("/rest/v1"):
+            return url[: -len("/rest/v1")]
+        return url
+
 
 @lru_cache()
 def get_settings() -> Settings:
