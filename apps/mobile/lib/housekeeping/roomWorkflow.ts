@@ -189,10 +189,15 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
   if (isBlocked(room)) return { kind: "blocked", label: "Blocked", disabled: true };
   if (isReady(room)) return { kind: "ready", label: "Ready", disabled: true };
   if (isSubmitted(room)) return { kind: "submitted", label: "Waiting", allowUndo: true, disabled: true };
+  if (room.dnd_flag) return { kind: "review", label: "Review" };
   if (room.status === "OCCUPIED" && isDepartureClean(room)) {
     return { kind: "guest_checkout", label: "Review", targetStatus: "DIRTY", allowUndo: true };
   }
-  if (isNeedsAttention(room, now)) return { kind: "review", label: "Review" };
+  if (isNeedsAttention(room, now)) {
+    return room.status === "PICKUP"
+      ? { kind: "review", label: "Review", targetStatus: "IN_PROGRESS" }
+      : { kind: "review", label: "Review" };
+  }
 
   if (room.status === "IN_PROGRESS") {
     return { kind: "done", label: "Done", targetStatus: "CLEAN", allowUndo: true };

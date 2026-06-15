@@ -44,6 +44,11 @@ def _is_missing_stripped_column_error(exc: Exception) -> bool:
     return ("42703" in err or "PGRST204" in err) and "stripped" in err
 
 
+def _is_missing_stay_reset_column_error(exc: Exception) -> bool:
+    err = str(exc)
+    return ("42703" in err or "PGRST204" in err) and "stay_reset_at" in err
+
+
 def _without_clean_type(payload: dict) -> dict:
     return {key: value for key, value in payload.items() if key != "clean_type"}
 
@@ -254,17 +259,23 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
     activity_start, activity_end = _activity_day_window_utc(activity_date)
 
     # Fetch per-room stay boundary (set when a DEP room passes inspection)
-    rs_result = (
-        supabase.table("room_status")
-        .select("room_id, stay_reset_at")
-        .eq("tenant_id", hotel_id)
-        .in_("room_id", room_ids)
-        .execute()
-    )
-    stay_reset_by_room: dict[str, str | None] = {
-        r["room_id"]: r.get("stay_reset_at")
-        for r in (rs_result.data or [])
-    }
+    try:
+        rs_result = (
+            supabase.table("room_status")
+            .select("room_id, stay_reset_at")
+            .eq("tenant_id", hotel_id)
+            .in_("room_id", room_ids)
+            .execute()
+        )
+        stay_reset_by_room: dict[str, str | None] = {
+            r["room_id"]: r.get("stay_reset_at")
+            for r in (rs_result.data or [])
+        }
+    except Exception as exc:
+        if not _is_missing_stay_reset_column_error(exc):
+            raise
+        logger.warning("room_status.stay_reset_at column missing; loading board without stay-boundary note filtering")
+        stay_reset_by_room = {room_id: None for room_id in room_ids}
 
     # Lower bound for the bulk query: earliest stay_reset_at across all rooms,
     # or today's activity start when no resets exist yet.
@@ -596,7 +607,7 @@ async def get_my_rooms(
         "room_id, tenant_id, status, assigned_to, "
         "clean_type, vip_flag, dnd_flag, checkin_time, checkout_time, actual_checkout_at, fo_status, "
         "risk_level, predicted_ready_at, "
-        "rooms(id, room_number, floor, room_types(name, code, base_clean_minutes))"
+        "rooms!inner(id, room_number, floor, room_types(name, code, base_clean_minutes))"
     )
     try:
         result = (
@@ -622,12 +633,15 @@ async def get_my_rooms(
         assignment = assignment_map.get(room.get("room_id")) or {}
         clean_type = assignment.get("clean_type") or room.get("clean_type")
         nested_room = room.get("rooms") or {}
+        nested_room_types = (nested_room.get("room_types") or {}) if isinstance(nested_room, dict) else {}
         room_id = room.get("room_id", "")
         rows.append({
             **room,
             "id": room_id,  # mobile app uses room.id for navigation / API calls
             "room_number": nested_room.get("room_number"),
             "floor": nested_room.get("floor"),
+            "room_type_code": nested_room_types.get("code"),
+            "room_type_name": nested_room_types.get("name"),
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
             "assignment_id": assignment.get("id"),
             "assignment_date": assignment.get("assignment_date"),

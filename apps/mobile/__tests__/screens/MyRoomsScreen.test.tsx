@@ -22,7 +22,9 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     actual_checkout_at: null,
     clean_type: null,
     clean_type_label: null,
-    rooms: { room_types: { name: "King" } },
+    room_type_code: "KS",
+    room_type_name: "King Suite",
+    rooms: { room_types: { name: "King Suite", code: "KS" } },
     ...overrides,
   };
 }
@@ -130,6 +132,27 @@ describe("MyRoomsScreen", () => {
     expect(getAllByLabelText("Departure clean type").length).toBeGreaterThanOrEqual(1);
     expect(getAllByLabelText("Full clean type").length).toBeGreaterThanOrEqual(1);
     expect(getAllByLabelText("Light clean type").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows the room type code on room cards instead of the room type name", async () => {
+    mockRooms = [
+      makeRoom({
+        id: "code-room",
+        room_number: "201",
+        room_type_code: "KS",
+        room_type_name: "King Suite",
+        rooms: { room_types: { name: "King Suite" } },
+      }),
+    ];
+    mockStore.myRooms = mockRooms;
+    mockApiGet.mockResolvedValue({ data: mockRooms });
+
+    const { getByText, queryByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
+
+    expect(getByText("KS")).toBeTruthy();
+    expect(queryByText("King Suite")).toBeNull();
   });
 
   it("matches web clean-type labels for inspected full and light rooms", async () => {

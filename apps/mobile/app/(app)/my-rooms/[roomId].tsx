@@ -133,7 +133,7 @@ function getPrimaryLabel(room: Room): string {
   const action = getRoomAction(room);
   if (action.kind === "start") return "Start Cleaning";
   if (action.kind === "done") return "Mark Clean";
-  if (action.kind === "review") return "Review room";
+  if (action.kind === "review") return room.status === "PICKUP" ? "Start Cleaning" : "Review room";
   if (action.kind === "guest_checkout") return "Guest Checked Out — Start Cleaning";
   if (action.kind === "submitted") return "Submitted - Waiting for Supervisor";
   if (action.kind === "ready") return "Ready";
@@ -349,7 +349,7 @@ export default function RoomDetailScreen() {
   const showUndo = isOnline && Boolean(action.allowUndo);
   const statusColor = STATUS_COLOR[status] ?? C.ink3;
   const statusLabel = STATUS_LABEL[status] ?? status.replace(/_/g, " ");
-  const roomType = room.rooms?.room_types?.code ?? null;
+  const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
   const cleanType = getCleanTypeLabel(room);
   const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
   const hideCleanTypeIcon = room.status === "PICKUP" && (room.clean_type === "FULL" || room.clean_type === "LIGHT");

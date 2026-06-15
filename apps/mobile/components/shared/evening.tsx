@@ -148,7 +148,7 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
   const meta = getStatusMeta(room.status);
   const timing = getPrimaryTimingLine(room);
   const badges = getRoomBadges(room);
-  const roomType = room.rooms?.room_types?.code ?? null;
+  const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card} testID={`room-card-${room.room_number}`}>

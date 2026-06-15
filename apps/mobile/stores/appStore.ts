@@ -70,6 +70,8 @@ export interface Room {
   updated_at?: string | null;
   last_cleaned_at?: string | null;
   last_inspected_at?: string | null;
+  room_type_code?: string | null;
+  room_type_name?: string | null;
   rooms?: {
     room_types?: { name?: string; code?: string; base_clean_minutes?: number } | null;
   } | null;

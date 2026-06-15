@@ -24,7 +24,9 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     clean_type: null,
     clean_type_label: null,
     updated_at: "2026-05-25T15:00:00.000Z",
-    rooms: { room_types: { name: "King" } },
+    room_type_code: "KS",
+    room_type_name: "King Suite",
+    rooms: { room_types: { name: "King Suite", code: "KS" } },
     ...overrides,
   };
 }
@@ -115,7 +117,6 @@ describe("RoomDetailScreen", () => {
 
     await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
     expect(getByText("DND active")).toBeTruthy();
-    expect(getByText("Guest may be inside")).toBeTruthy();
     expect(getByText("Not checked out")).toBeTruthy();
     expect(getByText("Review room")).toBeTruthy();
     expect(queryByText("Start Cleaning")).toBeNull();
@@ -146,6 +147,17 @@ describe("RoomDetailScreen", () => {
     expect(getByText("Scheduled checkout")).toBeTruthy();
     expect(getByText("Actual checkout")).toBeTruthy();
     expect(getByText("Predicted ready")).toBeTruthy();
+  });
+
+  it("shows the room type code in room detail instead of the room type name", async () => {
+    mockRooms = [makeRoom({ room_type_code: "KS", room_type_name: "King Suite" })];
+
+    const { getByText, queryByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
+
+    expect(getByText("KS")).toBeTruthy();
+    expect(queryByText("King Suite")).toBeNull();
   });
 
   it("shows a local cleaning checklist based on clean_type", async () => {

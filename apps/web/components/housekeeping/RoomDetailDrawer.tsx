@@ -32,6 +32,7 @@ import { cleanSessionsApi } from '@/lib/api/cleanSessions'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
+import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { Button } from '@/components/ui/Button'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
@@ -427,7 +428,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   }, [isOpen])
 
   const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
-  const roomTypeName = room?.rooms?.room_types?.code ?? room?.room_type_name ?? ''
+  const roomTypeName = getRoomTypeCode(room) ?? ''
   const vipFlag = !!room?.vip_flag
   const guestName: string | null = room?.guest_name ?? null
   const cleanTypeLabel = getCleanTypeLabel(room?.clean_type)

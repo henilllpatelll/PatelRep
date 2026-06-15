@@ -3,6 +3,7 @@
 import { Clock, LogOut, User, Wrench, MessageSquare, ClipboardList, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
+import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 import { Pill } from '@/components/ui/primitives'
 
@@ -121,7 +122,7 @@ export function RoomCard({
   const vipFlag: boolean = !!room.vip_flag
   const openWorkOrder: string | number | null = room.open_work_order_number ?? null
   const openWorkOrderTitle: string | null = room.open_work_order_title ?? null
-  const roomTypeName: string | null = room.rooms?.room_types?.code ?? null
+  const roomTypeName: string | null = getRoomTypeCode(room)
   const cleanTypeLabel = getCleanTypeShortLabel(room.clean_type)
   const workOrderLabel = openWorkOrder
     ? `WO-${openWorkOrder}${openWorkOrderTitle ? `: ${openWorkOrderTitle}` : ''}`

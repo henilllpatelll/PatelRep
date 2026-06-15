@@ -26,7 +26,7 @@ export interface BoardRoomRaw {
     id?: string;
     room_number?: string | null;
     floor?: number | null;
-    room_types?: { name?: string | null; base_clean_minutes?: number | null } | null;
+    room_types?: { name?: string | null; code?: string | null; base_clean_minutes?: number | null } | null;
   } | null;
 }
 

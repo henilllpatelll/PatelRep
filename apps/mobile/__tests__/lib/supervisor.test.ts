@@ -38,7 +38,7 @@ describe("normalizeBoardRooms", () => {
           id: "r-101",
           room_number: "101",
           floor: 1,
-          room_types: { name: "King", base_clean_minutes: 25 },
+          room_types: { name: "King Suite", code: "KS", base_clean_minutes: 25 },
         },
       },
     ];
@@ -47,7 +47,7 @@ describe("normalizeBoardRooms", () => {
       roomId: "r-101",
       roomNumber: "101",
       floor: 1,
-      roomType: "King",
+      roomType: "KS",
       baseCleanMinutes: 25,
       status: "DIRTY",
       vip: true,

@@ -20,13 +20,19 @@ SUPERVISOR = CurrentUser(
 
 
 class FakeDB:
-    def __init__(self, rows=None, missing_room_status_clean_type=False):
+    def __init__(
+        self,
+        rows=None,
+        missing_room_status_clean_type=False,
+        missing_room_status_stay_reset=False,
+    ):
         self.rows = rows or {}
         self.upserts = []
         self.updates = []
         self.inserts = []
         self.deletes = []
         self.missing_room_status_clean_type = missing_room_status_clean_type
+        self.missing_room_status_stay_reset = missing_room_status_stay_reset
 
     def table(self, name):
         return FakeQuery(self, name)
@@ -47,9 +53,11 @@ class FakeQuery:
         self.limit_count = None
         self.single = False
         self.conflict_columns = []
+        self.select_args = ()
 
-    def select(self, *_args, **_kwargs):
+    def select(self, *args, **_kwargs):
         self.action = "select"
+        self.select_args = args
         return self
 
     def update(self, payload):
@@ -113,6 +121,8 @@ class FakeQuery:
             matched = matched[:self.limit_count]
 
         if self.action == "select":
+            if self._has_missing_stay_reset_column_select():
+                raise Exception("Error 42703: column room_status.stay_reset_at does not exist")
             return SimpleNamespace(data=matched[0] if self.single and matched else matched)
 
         if self.action == "update":
@@ -172,6 +182,11 @@ class FakeQuery:
             return False
         payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
         return any(isinstance(payload, dict) and "clean_type" in payload for payload in payload_rows)
+
+    def _has_missing_stay_reset_column_select(self):
+        if not self.db.missing_room_status_stay_reset or self.table_name != "room_status":
+            return False
+        return "stay_reset_at" in " ".join(str(arg) for arg in self.select_args)
 
     def _matched(self, rows):
         matched = rows
@@ -372,6 +387,48 @@ async def test_board_includes_latest_note_and_open_work_order_for_room_cards(mon
     assert room["open_work_order_title"] == "A/C not cooling"
     assert room["open_work_order_priority"] == "urgent"
     assert room["open_work_order_status"] == "open"
+
+
+@pytest.mark.asyncio
+async def test_board_loads_when_stay_reset_column_is_missing(monkeypatch):
+    room_id = "22222222-2222-4222-8222-222222222222"
+    db = FakeDB(
+        {
+            "room_status": [{
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "assigned_to": None,
+                "status": "DIRTY",
+                "rooms": {"floor": 1, "room_number": "101"},
+            }],
+            "room_assignments": [],
+            "room_readiness_predictions": [],
+            "room_status_history": [{
+                "room_id": room_id,
+                "tenant_id": SUPERVISOR.hotel_id,
+                "notes": "Needs extra towels",
+                "from_status": "DIRTY",
+                "to_status": "DIRTY",
+                "changed_by": SUPERVISOR.user_id,
+                "change_source": "app",
+                "created_at": "2026-05-24T14:00:00+00:00",
+            }],
+            "work_orders": [],
+        },
+        missing_room_status_stay_reset=True,
+    )
+    monkeypatch.setattr(housekeeping_router, "supabase", db)
+
+    response = await housekeeping_router.get_housekeeping_board(
+        board_date=date(2026, 5, 24),
+        shift_id=None,
+        include_predictions=False,
+        current_user=SUPERVISOR,
+    )
+
+    room = response["data"][0]
+    assert room["room_id"] == room_id
+    assert room["latest_note"] == "Needs extra towels"
 
 
 @pytest.mark.asyncio
