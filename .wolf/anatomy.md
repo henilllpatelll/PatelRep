@@ -858,6 +858,8 @@
 ## apps/web/components/housekeeping/
 
 - `AssignmentSidebar.tsx` — AssignmentSidebar (~1160 tok)
+- `RoomCard.tsx` — Housekeeping room board card UI with status, clean type, assignment, timing, tasks, and guest request indicators (~3390 tok)
+- `RoomDetailDrawer.tsx` — Housekeeping room detail drawer with status, checkout controls, notes, work orders, active guest requests/tasks, clean evidence, prediction, and history sections (~10800 tok)
 - `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~7586 tok)
 
 ## apps/web/components/settings/
@@ -892,6 +894,8 @@
 
 - `housekeepingBoardFilters.test.ts` — Declares rooms (~1586 tok)
 - `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~640 tok)
+- `lateCheckoutRequests.test.mjs` — Node test coverage for pending late-checkout request indexing and room annotation (~650 tok)
+- `lateCheckoutRequests.ts` — Utility helpers for indexing pending late-checkout requests by room and annotating room rows for board/detail display (~430 tok)
 
 ## apps/web/stores/
 

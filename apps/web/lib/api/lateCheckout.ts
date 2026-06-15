@@ -19,8 +19,8 @@ export interface LateCheckoutRequest {
 
 export const lateCheckoutApi = {
   list: (params?: { status?: LateCheckoutStatus }) =>
-    apiClient.get('/late-checkout/requests', { params }),
+    apiClient.get('/late-checkout/requests', { params }) as Promise<{ data: LateCheckoutRequest[] }>,
 
   resolve: (id: string, data: { status: 'approved' | 'denied'; confirmed_time?: string; notes?: string }) =>
-    apiClient.patch(`/late-checkout/requests/${id}`, data),
+    apiClient.patch(`/late-checkout/requests/${id}`, data) as Promise<{ data: LateCheckoutRequest | null }>,
 }

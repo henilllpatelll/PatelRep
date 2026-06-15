@@ -9,12 +9,14 @@ import { housekeepingApi } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { guestRequestsApi } from '@/lib/api/guest_requests'
 import { tasksApi } from '@/lib/api/tasks'
+import { lateCheckoutApi } from '@/lib/api/lateCheckout'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
 import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
 import type { CleanType } from '@/lib/utils/cleanType'
+import { getPendingLateCheckoutByRoom, withPendingLateCheckout } from '@/lib/utils/lateCheckoutRequests'
 import {
   filterHousekeepingBoardRooms,
   getHousekeepingBoardFilterCounts,
@@ -280,6 +282,13 @@ export function RoomStatusBoard() {
     staleTime: 15_000,
   })
 
+  const { data: lateCheckoutData } = useQuery({
+    queryKey: ['late-checkout-requests-board', 'pending'],
+    queryFn: () => lateCheckoutApi.list({ status: 'pending' }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
   const openTasksByRoom = useMemo<Record<string, number>>(() => {
     const all: any[] = (tasksData as any)?.data ?? []
     return all
@@ -289,6 +298,15 @@ export function RoomStatusBoard() {
         return acc
       }, {})
   }, [tasksData])
+
+  const pendingLateCheckoutByRoom = useMemo(
+    () => getPendingLateCheckoutByRoom(lateCheckoutData?.data ?? []),
+    [lateCheckoutData],
+  )
+
+  const withLateCheckout = useCallback((room: any) => {
+    return withPendingLateCheckout(room, pendingLateCheckoutByRoom)
+  }, [pendingLateCheckoutByRoom])
 
   const hkNameById = useMemo(() =>
     ((staffData?.data?.staff ?? []) as any[]).reduce<Record<string, string>>(
@@ -357,6 +375,10 @@ export function RoomStatusBoard() {
       return rooms.find((r: any) => r.room_id === prev.room_id) ?? prev
     })
   }, [boardData, setLastSyncedAt, setPredictions, setRooms])
+
+  useEffect(() => {
+    setSelectedRoom((prev: any) => prev ? withLateCheckout(prev) : prev)
+  }, [withLateCheckout])
 
   // -- Supabase Realtime subscription ------------------------------------------
   useEffect(() => {
@@ -573,17 +595,18 @@ export function RoomStatusBoard() {
                           status: getEffectiveRoomStatusForCleanType(room.status, pendingCleanType, room.fo_status),
                         }
                       : room
+                    const visibleRoom = withLateCheckout(cardRoom)
                     return (
                       <RoomCard
                         key={room.room_id}
-                        room={cardRoom}
+                        room={visibleRoom}
                         assignmentMode={assignmentMode}
                         guestRequestCount={guestRequestsByRoom[room.room_id] ?? 0}
                         openTaskCount={openTasksByRoom[room.room_id] ?? 0}
                         onStatusChange={(roomId: string, newStatus: string) =>
                           handleStatusChange(roomId, newStatus)
                         }
-                        onOpenDetail={() => setSelectedRoom(room)}
+                        onOpenDetail={() => setSelectedRoom(visibleRoom)}
                         onAssign={assignmentMode ? handleTapAssign : undefined}
                         pendingAssignee={pendingAssignments[room.room_id] ?? null}
                         assignedToName={assignmentMode ? (roomAssignedNames[room.room_id] ?? null) : null}

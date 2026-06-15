@@ -131,6 +131,8 @@ export function RoomCard({
   const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
   const checkoutTime = formatTime(room.actual_checkout_at ?? room.checkout_time)
   const checkoutLabel = room.actual_checkout_at ? 'Out' : 'Due'
+  const lateCheckoutTime: string | null =
+    room.late_checkout_requested_time ?? room.late_checkout_request?.requested_time ?? null
   const etaTime = formatTime(prediction?.predicted_ready_at)
 
   // ── Event handlers ─────────────────────────────────────────────────────────
@@ -252,6 +254,12 @@ export function RoomCard({
         <div className="flex items-center gap-0.5">
           <Clock className="w-3 h-3 text-ink3" />
           <span className="text-[11px] font-mono text-ink3">{checkoutLabel} {checkoutTime}</span>
+        </div>
+      )}
+      {lateCheckoutTime && (
+        <div className="flex items-center gap-0.5 text-[11px] text-[var(--alert)]">
+          <LogOut className="w-3 h-3 shrink-0" />
+          <span className="font-mono font-semibold">Late {lateCheckoutTime}</span>
         </div>
       )}
       {workOrderLabel && (

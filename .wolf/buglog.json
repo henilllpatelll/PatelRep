@@ -2195,6 +2195,94 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-15T00:00:00Z"
+    },
+    {
+      "id": "bug-134",
+      "timestamp": "2026-06-15T18:59:34.1709721Z",
+      "error_message": "npm run type-check --workspace=@patelrep/web failed with No workspaces found",
+      "file": "package.json",
+      "root_cause": "Root package.json does not declare npm workspaces, so workspace-qualified npm commands fail despite the web package name.",
+      "fix": "Run web checks from apps/web, e.g. npm run type-check and npm run lint with workdir apps/web.",
+      "tags": [
+        "web",
+        "npm",
+        "verification",
+        "command-shape"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T18:59:34.1775113Z"
+    },
+    {
+      "id": "bug-135",
+      "timestamp": "2026-06-15T19:04:30.063Z",
+      "error_message": "Late checkout quick-blocker requested time did not show on the web room board card or room detail drawer",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/components/housekeeping/RoomCard.tsx, apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "The web housekeeping board only rendered room checkout_time from room rows and never fetched pending late_checkout_requests.requested_time created by the quick-blocker flow.",
+      "fix": "Fetch pending late-checkout requests on the board, index them by room_id, annotate room rows with late_checkout_requested_time, and render that time on RoomCard and RoomDetailDrawer.",
+      "tags": [
+        "web",
+        "housekeeping",
+        "late-checkout",
+        "room-board",
+        "room-detail"
+      ],
+      "related_bugs": [
+        "bug-133"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T19:04:30.064Z"
+    },
+    {
+      "id": "bug-136",
+      "timestamp": "2026-06-15T19:10:23.143Z",
+      "error_message": "Expo web verification for mobile app failed: missing react-dom/react-native-web dependencies",
+      "file": "apps/mobile/package.json",
+      "root_cause": "The mobile package declares an Expo web script but does not currently include the required Expo web dependencies, so `expo start --web` exits before serving a clickable mobile web app.",
+      "fix": "Did not add verification-only dependencies; used the mobile quick-blocker side-effect path against the local backend instead.",
+      "tags": [
+        "mobile",
+        "expo-web",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T19:10:23.144Z"
+    },
+    {
+      "id": "bug-137",
+      "timestamp": "2026-06-15T19:13:27.461Z",
+      "error_message": "Inline Node live verification failed: Cannot determine intended module format because both require() and top-level await are present",
+      "file": "verification command",
+      "root_cause": "Node 22 treats stdin with top-level await as ESM but the script also used CommonJS require.",
+      "fix": "Wrapped the inline script in an async IIFE and kept CommonJS require.",
+      "tags": [
+        "verification",
+        "node",
+        "command-shape"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T19:13:27.461Z"
+    },
+    {
+      "id": "bug-138",
+      "timestamp": "2026-06-15T19:13:27.461Z",
+      "error_message": "Root Playwright verification failed: Cannot find module '@playwright/test'",
+      "file": "package.json, apps/web/package.json",
+      "root_cause": "Playwright is installed in apps/web, not the repository root.",
+      "fix": "Reran the verification script from apps/web while writing artifacts back to the repo .wolf/runtime-logs directory.",
+      "tags": [
+        "verification",
+        "playwright",
+        "web",
+        "command-shape"
+      ],
+      "related_bugs": [
+        "bug-134"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-15T19:13:27.461Z"
     }
   ]
 }

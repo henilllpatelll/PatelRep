@@ -440,6 +440,8 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const checkinTime = formatCheckinTime(prediction?.checkin_time ?? room?.checkin_time)
   const scheduledCheckoutTime = formatCheckinTime(room?.checkout_time)
   const actualCheckoutTime = formatCheckinTime(room?.actual_checkout_at)
+  const lateCheckoutTime: string | null =
+    room?.late_checkout_requested_time ?? room?.late_checkout_request?.requested_time ?? null
   const canMarkCheckout = (canSupervise || role === 'front_desk') && !!roomId
   const isCheckedOut = !!room?.actual_checkout_at || (room?.fo_status === 'VAC' && room?.clean_type === 'DEP')
   const canMarkStayover = canMarkCheckout && !isCheckedOut && room?.clean_type === 'DEP' && room?.fo_status === 'OCC' && !stayoverSuccess
@@ -508,6 +510,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   Checked out: {actualCheckoutTime}
                 </span>
               )}
+              {lateCheckoutTime && (
+                <span className="text-xs font-semibold text-[var(--alert)]">
+                  Late checkout: {lateCheckoutTime}
+                </span>
+              )}
               {cleanTypeLabel && (
                 <span className="text-xs text-gray-500">
                   Service: {cleanTypeLabel}
@@ -550,6 +557,17 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             {actionNote && (
               <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800 mb-3">
                 {actionNote}
+              </div>
+            )}
+            {lateCheckoutTime && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2 text-xs text-[var(--alert)]">
+                <LogOut className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Late checkout requested</p>
+                  <p className="mt-0.5 text-[11px] text-gray-600">
+                    Housekeeper reported guest says {lateCheckoutTime}.
+                  </p>
+                </div>
               </div>
             )}
             {canMarkCheckout && (
