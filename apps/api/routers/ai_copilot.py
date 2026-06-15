@@ -70,13 +70,42 @@ def detect_intent(message: str, intent_hint: Optional[str] = None) -> str:
     return top_intent
 
 
+def _layout_to_context_text(layout: Optional[dict]) -> str:
+    if not layout:
+        return ""
+    buildings = layout.get("buildings", {})
+    routing_rules = layout.get("routing_rules", [])
+    lines = ["Hotel physical layout:"]
+    for bname, bdata in buildings.items():
+        b_label = bdata.get("name", f"Building {bname}")
+        b_pos = bdata.get("position", "")
+        floors = bdata.get("floors", {})
+        floor_parts = []
+        for fnum in sorted(floors.keys()):
+            fdata = floors[fnum]
+            rooms = fdata.get("rooms", [])
+            amenities = fdata.get("amenities", {})
+            fd = f"Floor {fnum}: {rooms[0]}-{rooms[-1]}" if rooms else f"Floor {fnum}"
+            if amenities:
+                fd += f" ({', '.join(f'{k}: {v}' for k, v in amenities.items())})"
+            floor_parts.append(fd)
+        lines.append(f"- {b_label} ({b_pos}): {'; '.join(floor_parts)}")
+    if routing_rules:
+        lines.append("Routing notes:")
+        for rule in routing_rules:
+            lines.append(f"  • {rule}")
+    return "\n".join(lines)
+
+
 def _get_hotel_context(hotel_id: str) -> dict:
     hotel = supabase.table("tenants")\
-        .select("name")\
+        .select("name, layout")\
         .eq("id", hotel_id)\
         .maybe_single()\
         .execute()
-    hotel_name = (hotel.data or {}).get("name", "the hotel") if hotel else "the hotel"
+    hotel_data = (hotel.data or {}) if hotel else {}
+    hotel_name = hotel_data.get("name", "the hotel")
+    layout_text = _layout_to_context_text(hotel_data.get("layout"))
     from datetime import datetime, timezone
     now_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
     shift = supabase.table("shifts")\
@@ -90,9 +119,10 @@ def _get_hotel_context(hotel_id: str) -> dict:
     if shift.data:
         s = shift.data[0]
         return {"hotel_name": hotel_name, "shift_name": s["name"],
-                "shift_start": s["start_time"][:5], "shift_end": s["end_time"][:5]}
+                "shift_start": s["start_time"][:5], "shift_end": s["end_time"][:5],
+                "layout_text": layout_text}
     return {"hotel_name": hotel_name, "shift_name": "Current Shift",
-            "shift_start": "07:00", "shift_end": "15:00"}
+            "shift_start": "07:00", "shift_end": "15:00", "layout_text": layout_text}
 
 
 def _resolve_room_id(hotel_id: str, room_number: str) -> Optional[str]:
@@ -393,9 +423,16 @@ async def housekeeping_shift_briefing(
     start = time.time()
     credits = 0
     try:
+        hotel = supabase.table("tenants")\
+            .select("layout")\
+            .eq("id", current_user.hotel_id)\
+            .maybe_single()\
+            .execute()
+        layout_text = _layout_to_context_text((hotel.data or {}).get("layout") if hotel else None)
         result = generate_shift_briefing(
             [room.model_dump() for room in request.rooms],
             request.language,
+            layout_context=layout_text,
         )
         credits = await check_and_deduct_credits(current_user.hotel_id, "housekeeping_briefing")
         latency = int((time.time() - start) * 1000)

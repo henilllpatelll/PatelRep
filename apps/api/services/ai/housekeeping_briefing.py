@@ -20,6 +20,8 @@ saves them time on the floor. Be concrete and use room numbers.
 
 Respond in {language_name}.
 
+{layout_section}
+
 Return ONLY a JSON object (no markdown) with this shape:
 {{
   "headline": "One sentence: the single most important thing right now (max 18 words)",
@@ -30,12 +32,22 @@ Return ONLY a JSON object (no markdown) with this shape:
 
 Ordering rules: departures with checked-out guests first, VIPs early,
 rooms with arrivals soon before others, do-not-disturb and occupied rooms last
-(they cannot be entered yet). Never tell staff to enter a DND or occupied room."""
+(they cannot be entered yet). Group rooms by corridor section to minimise walking.
+Never tell staff to enter a DND or occupied room."""
 
 
-def generate_shift_briefing(rooms: list[dict], language: str = "en") -> dict:
+def generate_shift_briefing(
+    rooms: list[dict],
+    language: str = "en",
+    layout_context: str = "",
+) -> dict:
     """Returns {"briefing": {...}, "prompt_tokens": int, "completion_tokens": int}."""
     language_name = "Spanish" if language == "es" else "English"
+    layout_section = (
+        f"Property layout context (use this to minimise walking):\n{layout_context}"
+        if layout_context
+        else ""
+    )
 
     room_lines = []
     for room in rooms[:40]:
@@ -64,7 +76,10 @@ def generate_shift_briefing(rooms: list[dict], language: str = "en") -> dict:
     response = claude.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=600,
-        system=_SYSTEM_PROMPT.format(language_name=language_name),
+        system=_SYSTEM_PROMPT.format(
+            language_name=language_name,
+            layout_section=layout_section,
+        ),
         messages=[{"role": "user", "content": "Today's assignment:\n" + "\n".join(room_lines)}],
     )
 

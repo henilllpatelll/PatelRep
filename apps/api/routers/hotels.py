@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Any
+from fastapi import APIRouter, Body, Depends, HTTPException
 from middleware.auth import get_current_user, get_current_user_no_hotel, require_role, CurrentUser
 from models.requests import CreateHotelRequest, UpdateHotelRequest
 from core.database import supabase
@@ -145,6 +146,40 @@ async def update_hotel(
         raise HTTPException(status_code=404, detail="Hotel not found")
 
     return {"data": result.data[0]}
+
+
+@router.get("/{hotel_id}/layout")
+async def get_hotel_layout(
+    hotel_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    if current_user.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    result = supabase.table("tenants").select("layout").eq("id", hotel_id).maybe_single().execute()
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+    return {"data": {"layout": result.data.get("layout")}}
+
+
+@router.put("/{hotel_id}/layout")
+async def set_hotel_layout(
+    hotel_id: str,
+    layout: Any = Body(...),
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """
+    Store or replace the hotel's spatial layout JSON.
+    The layout is injected into AI assignment suggestions and copilot context
+    so the AI can reason about building proximity and optimal routing.
+    """
+    if current_user.hotel_id != hotel_id:
+        raise HTTPException(status_code=403, detail="Access denied to this hotel")
+    if not isinstance(layout, dict):
+        raise HTTPException(status_code=422, detail="Layout must be a JSON object")
+    result = supabase.table("tenants").update({"layout": layout}).eq("id", hotel_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+    return {"data": {"updated": True}}
 
 
 @router.get("/{hotel_id}/stats")

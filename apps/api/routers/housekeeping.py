@@ -987,12 +987,12 @@ async def suggest_assignments(
     """
     target_date = board_date or date.today()
 
-    # --- 1. Rooms needing work ---
+    # --- 1. Rooms needing work (include building for proximity grouping) ---
     rooms_result = (
         supabase.table("room_status")
         .select(
             "room_id, status, vip_flag, checkin_time, "
-            "rooms(id, room_number, floor, room_types(name, code, base_clean_minutes))"
+            "rooms(id, room_number, floor, building, room_types(name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
@@ -1011,9 +1011,7 @@ async def suggest_assignments(
     # --- 2. Active housekeepers on shift ---
     hk_query = (
         supabase.table("shift_assignments")
-        .select(
-            "user_id"
-        )
+        .select("user_id")
         .eq("tenant_id", current_user.hotel_id)
         .eq("work_date", target_date.isoformat())
     )
@@ -1023,8 +1021,6 @@ async def suggest_assignments(
     hk_result = hk_query.execute()
     hk_rows = hk_result.data or []
 
-    # Only include housekeepers (role filter would require joining user_profiles.role)
-    # We keep all shift-assigned staff and let the supervisor adjust.
     housekeepers = []
     seen_user_ids: set[str] = set()
     for row in hk_rows:
@@ -1037,6 +1033,7 @@ async def suggest_assignments(
                 "preferred_name": "",
                 "assigned_rooms": [],
                 "assigned_minutes": 0,
+                "building_affinity": None,  # set during distribution
             })
 
     if not housekeepers:
@@ -1047,43 +1044,86 @@ async def suggest_assignments(
             }
         }
 
-    # --- 3. Sort rooms by priority ---
-    def _room_sort_key(r: dict) -> tuple:
-        # VIP first (is_vip=True sorts before False in ascending — negate)
-        vip_sort = 0 if r.get("vip_flag") else 1
-        # Earliest checkin_time first; None goes last
-        checkin = r.get("checkin_time") or "9999-99-99T99:99:99"
-        floor = (r.get("rooms") or {}).get("floor") or 999
-        return (vip_sort, checkin, floor)
+    # --- 3. Separate VIP rooms (always assigned first, building-agnostic) ---
+    vip_rooms = [r for r in rooms if r.get("vip_flag")]
+    regular_rooms = [r for r in rooms if not r.get("vip_flag")]
 
-    rooms.sort(key=_room_sort_key)
+    def _sort_by_building_floor_room(r: dict) -> tuple:
+        info = r.get("rooms") or {}
+        building = info.get("building") or "Z"
+        floor = info.get("floor") or 999
+        try:
+            room_num = int(info.get("room_number") or 9999)
+        except (ValueError, TypeError):
+            room_num = 9999
+        return (building, floor, room_num)
 
-    # --- 4. Weighted round-robin distribution ---
-    for room in rooms:
-        room_info = room.get("rooms") or {}
-        rt_info = room_info.get("room_types") or {}
+    regular_rooms.sort(key=_sort_by_building_floor_room)
+
+    # --- 4. Building-affinity distribution ---
+    # Group regular rooms by building so housekeepers stay in one building per shift.
+    from collections import defaultdict
+    building_buckets: dict = defaultdict(list)
+    for room in regular_rooms:
+        b = (room.get("rooms") or {}).get("building") or "unknown"
+        building_buckets[b].append(room)
+
+    n_hk = len(housekeepers)
+    total_regular = len(regular_rooms)
+
+    # Allocate housekeepers to buildings proportionally by room count.
+    building_hk_map: dict = {}
+    hk_pool = list(housekeepers)
+    allocated = 0
+    buildings_sorted = sorted(building_buckets.keys())
+    for i, b in enumerate(buildings_sorted):
+        b_count = len(building_buckets[b])
+        if i == len(buildings_sorted) - 1:
+            # Last building gets remaining housekeepers
+            share = len(hk_pool) - allocated
+        else:
+            share = max(1, round(n_hk * b_count / total_regular)) if total_regular else 1
+            share = min(share, len(hk_pool) - allocated - (len(buildings_sorted) - i - 1))
+        share = max(1, share)
+        building_hk_map[b] = hk_pool[allocated:allocated + share]
+        for hk in building_hk_map[b]:
+            hk["building_affinity"] = b
+        allocated += share
+
+    def _assign_room(hk_list: list, room: dict) -> None:
+        info = room.get("rooms") or {}
+        rt_info = info.get("room_types") or {}
         base_minutes: int = rt_info.get("base_clean_minutes") or 30
-
-        # Pick housekeeper with the fewest assigned minutes so far
-        target_hk = min(housekeepers, key=lambda h: h["assigned_minutes"])
-
+        target_hk = min(hk_list, key=lambda h: h["assigned_minutes"])
         target_hk["assigned_rooms"].append({
             "room_id": room.get("room_id"),
-            "room_number": room_info.get("room_number", ""),
+            "room_number": info.get("room_number", ""),
+            "floor": info.get("floor"),
+            "building": info.get("building"),
             "status": room.get("status"),
-            "room_type": rt_info.get("name", ""),
+            "room_type": rt_info.get("code", rt_info.get("name", "")),
             "base_clean_minutes": base_minutes,
             "is_vip": room.get("vip_flag", False),
         })
         target_hk["assigned_minutes"] += base_minutes
 
-    # --- 5. Build response (strip internal tracking fields) ---
+    # Assign VIP rooms first (pick least-loaded housekeeper across all)
+    for room in vip_rooms:
+        _assign_room(housekeepers, room)
+
+    # Assign regular rooms to building-allocated housekeepers
+    for b in buildings_sorted:
+        for room in building_buckets[b]:
+            _assign_room(building_hk_map.get(b, housekeepers), room)
+
+    # --- 5. Build response ---
     suggestions = [
         {
             "housekeeper": {
                 "id": hk["id"],
                 "full_name": hk["full_name"],
                 "preferred_name": hk["preferred_name"],
+                "building_affinity": hk["building_affinity"],
             },
             "rooms": hk["assigned_rooms"],
             "room_count": len(hk["assigned_rooms"]),
@@ -1092,6 +1132,11 @@ async def suggest_assignments(
         for hk in housekeepers
     ]
 
+    buildings_used = sorted({r.get("building_affinity") for r in suggestions if r.get("building_affinity")})
+    building_note = (
+        f" across buildings {', '.join(str(b) for b in buildings_used)}" if buildings_used else ""
+    )
+
     return {
         "data": {
             "suggestions": suggestions,
@@ -1099,7 +1144,7 @@ async def suggest_assignments(
             "shift_id": shift_id,
             "message": (
                 f"Suggested assignments for {len(rooms)} room(s) "
-                f"across {len(housekeepers)} housekeeper(s)"
+                f"across {len(housekeepers)} housekeeper(s){building_note}"
             ),
         }
     }
