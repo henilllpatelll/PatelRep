@@ -117,15 +117,6 @@ export function SignalChips({ snapshot, t }: { snapshot: ShiftSnapshot; t: Trans
       fg: statusTokens.cleanLine,
     });
   }
-  if (snapshot.vipLeft > 0) {
-    chips.push({
-      key: "vip",
-      icon: "star-outline",
-      label: t("home.signal.vip", { count: snapshot.vipLeft }),
-      bg: "rgba(194,154,74,0.18)",
-      fg: "#D0A85A",
-    });
-  }
   if (chips.length === 0) return null;
   return (
     <View style={styles.signalRow}>
@@ -143,7 +134,6 @@ export function SignalChips({ snapshot, t }: { snapshot: ShiftSnapshot; t: Trans
 
 function getFocusReason(room: Room, t: Translate): string {
   if (room.status === "IN_PROGRESS") return t("home.focus.reasonInProgress");
-  if (room.vip_flag) return t("home.focus.reasonVip");
   if (isArrivalSoon(room)) return t("home.focus.reasonArrival");
   if (room.clean_type === "DEP") return t("home.focus.reasonDeparture");
   return t("home.focus.reasonDefault");

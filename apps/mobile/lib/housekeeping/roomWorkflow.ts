@@ -1,7 +1,6 @@
 import type { Room } from "@/stores/appStore";
 
 export type RoomBadgeKey =
-  | "vip"
   | "dnd"
   | "work_order"
   | "note"
@@ -152,16 +151,14 @@ export function getRoomQueueBucket(room: Room, now: Date = new Date()): RoomQueu
   return "needs_attention";
 }
 
-function getCleaningQueueScore(room: Room, now: Date): number {
+export function getCleaningQueueScore(room: Room, now: Date): number {
   if (room.status === "IN_PROGRESS" && !isNeedsAttention(room, now)) return 0;
   if (!isCleanable(room, now)) return 100;
   if (isDepartureClean(room) && isArrivalSoon(room, now)) return 10;
-  if (room.vip_flag) return 20;
-  if (isDepartureClean(room) && Boolean(room.actual_checkout_at)) return 30;
-  if (room.status === "DIRTY" && !room.clean_type) return 40;
-  if (isFullOrLightService(room)) return 50;
-  if (room.status === "PICKUP") return 60;
-  return 70;
+  if (isDepartureClean(room)) return 20;
+  if (room.status === "DIRTY" && !room.clean_type) return 30;
+  if (isFullOrLightService(room) || room.status === "PICKUP") return 40;
+  return 50;
 }
 
 export function compareRoomsForCleaningQueue(a: Room, b: Room, now: Date = new Date()): number {
@@ -229,7 +226,6 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
 export function getRoomBadges(room: Room, now: Date = new Date()): RoomBadge[] {
   const badges: RoomBadge[] = [];
   if (room.dnd_flag) badges.push({ key: "dnd", label: "DND" });
-  if (room.vip_flag) badges.push({ key: "vip", label: "VIP" });
   if (hasOpenWorkOrder(room)) badges.push({ key: "work_order", label: "WO" });
   if (hasLatestNote(room)) badges.push({ key: "note", label: "Note" });
   if (room.risk_level === "HIGH") badges.push({ key: "risk", label: "Risk" });
@@ -310,14 +306,6 @@ export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): Befo
       key: "arrival",
       label: "Arrival soon",
       detail: "Prioritize once the room is safe to enter.",
-      severity: "info",
-    });
-  }
-  if (room.vip_flag) {
-    warnings.push({
-      key: "vip",
-      label: "VIP room",
-      detail: "Presentation matters. Leave time for a final pass.",
       severity: "info",
     });
   }

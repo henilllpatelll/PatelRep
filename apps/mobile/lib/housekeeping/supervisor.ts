@@ -38,7 +38,6 @@ export interface FloorRoom {
   baseCleanMinutes: number;
   status: string;
   foStatus: "OCC" | "VAC" | null;
-  vip: boolean;
   dnd: boolean;
   assignedTo: string | null;
   assignmentId: string | null;
@@ -79,7 +78,6 @@ export function normalizeBoardRooms(rows: BoardRoomRaw[]): FloorRoom[] {
         baseCleanMinutes: room.room_types?.base_clean_minutes ?? 30,
         status: row.status,
         foStatus: row.fo_status ?? null,
-        vip: Boolean(row.vip_flag),
         dnd: Boolean(row.dnd_flag),
         assignedTo: row.assigned_to ?? null,
         assignmentId: row.assignment_id ?? null,
@@ -113,7 +111,6 @@ export interface FloorSnapshot {
   ooo: number;
   unassigned: number;
   dnd: number;
-  vip: number;
 }
 
 export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
@@ -126,7 +123,6 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     ooo: 0,
     unassigned: 0,
     dnd: 0,
-    vip: 0,
   };
   for (const room of rooms) {
     if (room.status === "INSPECTED") snapshot.ready += 1;
@@ -136,7 +132,6 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     else if (isActionable(room.status)) snapshot.toClean += 1;
     if (isActionable(room.status) && !room.assignedTo) snapshot.unassigned += 1;
     if (room.dnd && !isOutOfOrder(room.status)) snapshot.dnd += 1;
-    if (room.vip && room.status !== "INSPECTED" && !isOutOfOrder(room.status)) snapshot.vip += 1;
   }
   return snapshot;
 }

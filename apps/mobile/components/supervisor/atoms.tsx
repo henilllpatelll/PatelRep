@@ -88,7 +88,6 @@ export function RoomStatusTile({
         <View style={styles.tileTopRow}>
           <Text style={[styles.tileNumber, { color: meta.fg }]}>{room.roomNumber}</Text>
           <View style={styles.tileIcons}>
-            {room.vip ? <Ionicons name="star" size={10} color={C.brass} /> : null}
             {room.dnd ? <Ionicons name="moon" size={10} color={C.ink3} /> : null}
             {room.openWorkOrder ? <Ionicons name="construct" size={10} color={C.caution} /> : null}
             {room.latestNote ? <Ionicons name="chatbox" size={10} color={C.info} /> : null}

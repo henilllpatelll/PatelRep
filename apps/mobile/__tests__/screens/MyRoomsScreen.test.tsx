@@ -121,7 +121,7 @@ describe("MyRoomsScreen", () => {
     expect(getAllByText(/rooms\.remaining/).length).toBeGreaterThanOrEqual(1);
     expect(getAllByText(/rooms\.doneTab/).length).toBeGreaterThanOrEqual(1);
     expect(getByText("ai.smartOrder")).toBeTruthy();
-    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+    expect(getByText("SKIPPED — DND")).toBeTruthy();
   });
 
   it("renders departure, full, and light clean-type labels", async () => {
@@ -175,18 +175,18 @@ describe("MyRoomsScreen", () => {
     expect(queryByText("Light")).toBeNull();
   });
 
-  it("shows DND departure rooms as Needs Attention with Review, not Start", async () => {
+  it("shows DND departure rooms in the SKIPPED section with DND action, not Start", async () => {
     mockRooms = [mockRooms[1]];
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
-    const { getByText, queryByText } = render(<MyRoomsScreen />);
+    const { getByText, getAllByText, queryByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("NEEDS ATTENTION")).toBeTruthy());
+    await waitFor(() => expect(getByText("SKIPPED — DND")).toBeTruthy());
     expect(getByText("102")).toBeTruthy();
-    expect(getByText("DND")).toBeTruthy();
-    expect(getByText("Review")).toBeTruthy();
+    expect(getAllByText("DND").length).toBeGreaterThanOrEqual(1);
     expect(queryByText("Start")).toBeNull();
+    expect(queryByText("Review")).toBeNull();
   });
 
   it("puts checked-out departure rooms in the smart queue with a Start action", async () => {
@@ -198,7 +198,7 @@ describe("MyRoomsScreen", () => {
 
     await waitFor(() => expect(getByText("Start")).toBeTruthy());
     expect(getByText("101")).toBeTruthy();
-    expect(getByText("NEEDS ATTENTION")).toBeTruthy();
+    expect(getByText("SKIPPED — DND")).toBeTruthy();
     expect(getByText("102")).toBeTruthy();
   });
 

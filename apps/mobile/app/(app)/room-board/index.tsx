@@ -140,13 +140,6 @@ export default function RoomBoardScreen() {
           bg: C.surface3,
           line: C.line,
         },
-        snapshot.vip > 0 && {
-          key: "vip",
-          label: t("roomBoard.signalVip", { count: snapshot.vip }),
-          fg: C.brass,
-          bg: C.brassSoft,
-          line: C.brassLine,
-        },
       ].filter(Boolean) as HeroSignal[],
     [snapshot, t],
   );

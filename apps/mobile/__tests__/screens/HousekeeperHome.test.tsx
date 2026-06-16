@@ -166,11 +166,10 @@ describe("HousekeeperHomeScreen", () => {
     // Pace line: done count + est minutes left (108 + 112 cleanable, 25m each) + finish time
     expect(getByText(/1 of 4 rooms done · ~50m left · on track for/)).toBeTruthy();
 
-    // Signal chips: 115 needs review (high risk) and is the one VIP still open
+    // Signal chips: 115 needs review (high risk)
     expect(getByTestId("signal-review")).toBeTruthy();
     expect(getByText("1 waiting on review")).toBeTruthy();
-    expect(getByTestId("signal-vip")).toBeTruthy();
-    expect(getByText("1 VIP")).toBeTruthy();
+    expect(queryByTestId("signal-vip")).toBeNull();
 
     // Focus card recommends the first startable room (112), not the in-progress room (108)
     expect(getByTestId("focus-card")).toBeTruthy();

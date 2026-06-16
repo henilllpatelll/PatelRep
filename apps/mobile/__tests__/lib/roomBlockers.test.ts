@@ -106,17 +106,18 @@ describe("runBlockerSideEffect", () => {
     );
   });
 
-  it("late checkout creates a front-desk confirmation task with the guest's time", async () => {
+  it("late checkout posts a late-checkout request with the room and requested time", async () => {
     const occupied = room({ status: "OCCUPIED" });
     const late = getBlockersForRoom(occupied).find((b) => b.key === "late_checkout")!;
 
     await runBlockerSideEffect(occupied, late, "1:30 PM");
 
     expect(mockApiPost).toHaveBeenCalledWith(
-      "/tasks",
+      "/late-checkout/requests",
       expect.objectContaining({
-        title: "Confirm late checkout — Room 214 (guest says 1:30 PM)",
-        task_type: "general",
+        room_id: "room-1",
+        room_number: "214",
+        requested_time: "1:30 PM",
       }),
     );
     expect(buildBlockerNote(late, "1:30 PM")).toBe("BLOCKER: Late checkout — guest says 1:30 PM");

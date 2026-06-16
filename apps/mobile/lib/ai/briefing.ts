@@ -1,8 +1,8 @@
 import { api } from "@/lib/api/client";
 import type { Room } from "@/stores/appStore";
 import {
-  compareRoomsForCleaningQueue,
   getBeforeEnterWarnings,
+  getCleaningQueueScore,
   getRoomQueueBucket,
   isArrivalSoon,
 } from "@/lib/housekeeping/roomWorkflow";
@@ -43,15 +43,104 @@ export function estimateCleanMinutes(room: Room): number {
   return 25;
 }
 
-/** Actionable rooms (cleanable now or already started), in suggested order,
- *  with per-room ETAs. This is the deterministic engine behind "smart order". */
+// -- Proximity routing helpers --
+
+// Elevator/stair cost expressed in "corridor-step" units so floor changes
+// are penalised proportionally to the walking detour they cause.
+const FLOOR_TRAVEL_COST = 15;
+
+function roomSuffix(room: Room): number {
+  const digits = room.room_number.replace(/\D/g, "");
+  const n = parseInt(digits, 10) || 0;
+  // Last two digits give the in-floor corridor position for standard numbering
+  // (101-116 = Building A, 117-139 = Building B in the pilot hotel).
+  const suffix = n % 100;
+  return suffix > 0 ? suffix : n;
+}
+
+function roomProximityDistance(a: Room, b: Room): number {
+  const floorDiff = Math.abs((a.floor || 0) - (b.floor || 0));
+  const posDiff = Math.abs(roomSuffix(a) - roomSuffix(b));
+  return floorDiff * FLOOR_TRAVEL_COST + posDiff;
+}
+
+function nearestNeighborRoute(rooms: Room[], startFrom: Room | null): Room[] {
+  if (rooms.length <= 1) return [...rooms];
+
+  const unvisited = [...rooms];
+  const route: Room[] = [];
+
+  if (startFrom !== null) {
+    let minDist = Infinity;
+    let nearestIdx = 0;
+    for (let i = 0; i < unvisited.length; i++) {
+      const d = roomProximityDistance(startFrom, unvisited[i]);
+      if (d < minDist) { minDist = d; nearestIdx = i; }
+    }
+    route.push(unvisited.splice(nearestIdx, 1)[0]);
+  } else {
+    route.push(unvisited.splice(0, 1)[0]);
+  }
+
+  while (unvisited.length > 0) {
+    const current = route[route.length - 1];
+    let minDist = Infinity;
+    let nearestIdx = 0;
+    for (let i = 0; i < unvisited.length; i++) {
+      const d = roomProximityDistance(current, unvisited[i]);
+      if (d < minDist) { minDist = d; nearestIdx = i; }
+    }
+    route.push(unvisited.splice(nearestIdx, 1)[0]);
+  }
+
+  return route;
+}
+
+/** Actionable rooms in an efficient cleaning order.
+ *
+ *  Algorithm:
+ *  1. Group rooms by priority tier (getCleaningQueueScore buckets).
+ *  2. Within each tier, secondary-sort by checkout time then room number,
+ *     then apply a greedy nearest-neighbor pass to minimise corridor and
+ *     floor travel.
+ *  3. Chain tiers so the starting position of the next tier is the last
+ *     room cleaned in the previous tier, preserving continuity of movement.
+ *
+ *  Priority is never compromised: a higher-tier room always comes before an
+ *  adjacent lower-tier room regardless of physical proximity. */
 export function buildSmartQueue(rooms: Room[], now: Date = new Date()): SmartQueueEntry[] {
   const actionable = rooms.filter((room) => {
     const bucket = getRoomQueueBucket(room, now);
     return bucket === "next_to_clean" || bucket === "in_progress";
   });
 
-  const ordered = [...actionable].sort((a, b) => compareRoomsForCleaningQueue(a, b, now));
+  if (actionable.length === 0) return [];
+
+  // Group into discrete priority tiers
+  const tierMap = new Map<number, Room[]>();
+  for (const room of actionable) {
+    const score = getCleaningQueueScore(room, now);
+    if (!tierMap.has(score)) tierMap.set(score, []);
+    tierMap.get(score)!.push(room);
+  }
+
+  const sortedScores = [...tierMap.keys()].sort((a, b) => a - b);
+  const ordered: Room[] = [];
+  let lastRoom: Room | null = null;
+
+  for (const score of sortedScores) {
+    const tier = tierMap.get(score)!;
+    // Secondary sort gives a stable starting sequence for the greedy pass
+    tier.sort((a, b) => {
+      const at = a.actual_checkout_at ? new Date(a.actual_checkout_at).getTime() : 0;
+      const bt = b.actual_checkout_at ? new Date(b.actual_checkout_at).getTime() : 0;
+      if (at !== bt) return at - bt;
+      return a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: "base" });
+    });
+    const routed = nearestNeighborRoute(tier, lastRoom);
+    ordered.push(...routed);
+    lastRoom = routed[routed.length - 1] ?? lastRoom;
+  }
 
   let elapsed = 0;
   return ordered.map((room, index) => {
@@ -81,8 +170,6 @@ export function buildLocalBriefing(rooms: Room[], t: Translate, now: Date = new 
     headline = attention.length > 0
       ? t("ai.briefing.onlyAttentionLeft", { count: attention.length })
       : t("ai.briefing.allClear");
-  } else if (first.vip_flag) {
-    headline = t("ai.briefing.startVip", { room: first.room_number });
   } else if (isArrivalSoon(first, now)) {
     headline = t("ai.briefing.startArrival", { room: first.room_number });
   } else {
@@ -111,7 +198,6 @@ function toBriefingPayload(rooms: Room[], now: Date) {
     room_number: room.room_number,
     status: room.status,
     clean_type: room.clean_type ?? null,
-    vip_flag: Boolean(room.vip_flag),
     dnd_flag: Boolean(room.dnd_flag),
     guest_may_be_inside: getBeforeEnterWarnings(room, now).some((w) => w.key === "occupied"),
     open_work_order: Boolean(room.open_work_order_id || room.open_work_order_number),
@@ -172,9 +258,6 @@ export function buildRoomInsight(room: Room, allRooms: Room[], t: Translate, now
   }
   lines.push({ key: "eta", text: t("ai.insight.eta", { minutes: eta }) });
 
-  if (room.vip_flag) {
-    lines.push({ key: "vip", text: t("ai.insight.vip") });
-  }
   if (isArrivalSoon(room, now)) {
     lines.push({ key: "arrival", text: t("ai.insight.arrival") });
   }

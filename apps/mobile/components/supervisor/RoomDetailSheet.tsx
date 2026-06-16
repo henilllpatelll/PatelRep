@@ -83,11 +83,6 @@ export function RoomDetailSheet({
               </Text>
             </View>
           ) : null}
-          {room.vip ? (
-            <View style={[styles.flagChip, styles.flagBrass]}>
-              <Text style={[styles.flagText, { color: C.brass }]}>VIP</Text>
-            </View>
-          ) : null}
           {room.dnd ? (
             <View style={[styles.flagChip, styles.flagNeutral]}>
               <Text style={[styles.flagText, { color: C.ink2 }]}>{t("roomBoard.sheet.dnd")}</Text>

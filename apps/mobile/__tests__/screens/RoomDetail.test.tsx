@@ -118,7 +118,8 @@ describe("RoomDetailScreen", () => {
     await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
     expect(getByText("DND active")).toBeTruthy();
     expect(getByText("Not checked out")).toBeTruthy();
-    expect(getByText("Review room")).toBeTruthy();
+    // DND rooms are in the "skipped" bucket → action kind is "view" → button says "View"
+    expect(getByText("View")).toBeTruthy();
     expect(queryByText("Start Cleaning")).toBeNull();
   });
 

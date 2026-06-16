@@ -157,11 +157,6 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
         <View style={styles.cardTopRow}>
           <StatusPill status={room.status} />
           <CleanTypeTag room={room} />
-          {room.vip_flag ? (
-            <View style={styles.vipBadge}>
-              <Text style={styles.vipText}>VIP</Text>
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.cardTitleRow}>
@@ -330,16 +325,6 @@ const styles = StyleSheet.create({
 
   cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   cleanTypeText: { fontSize: 10, fontWeight: "800" },
-
-  vipBadge: {
-    backgroundColor: C.brassSoft,
-    borderWidth: 1,
-    borderColor: C.brassLine,
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  vipText: { fontSize: 9, fontWeight: "800", color: C.brass },
 
   aiCard: {
     backgroundColor: shellTokens.bg,

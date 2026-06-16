@@ -294,7 +294,6 @@ export default function AssignmentsScreen() {
                         <Text style={styles.unassignedMeta}>
                           {t("roomBoard.floor", { floor: room.floor })}
                           {room.cleanTypeLabel ? ` · ${room.cleanTypeLabel}` : ""}
-                          {room.vip ? " · VIP" : ""}
                         </Text>
                       </View>
                       <Ionicons name="person-add-outline" size={17} color={C.accent} />

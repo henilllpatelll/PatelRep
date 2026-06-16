@@ -17,7 +17,6 @@ export interface ShiftSnapshot {
   done: number;
   remaining: number;
   pct: number;
-  vipLeft: number;
   attention: number;
   arrivals: number;
   dndCount: number;
@@ -38,7 +37,6 @@ export function buildShiftSnapshot(rooms: Room[], locale: string, now: Date = ne
   const minutesLeft = queue.reduce((sum, entry) => sum + entry.estimateMinutes, 0);
 
   const open = rooms.filter((room) => !DONE_STATUSES.has(room.status));
-  const vipLeft = open.filter((room) => room.vip_flag).length;
   const attention = rooms.filter((room) => getRoomQueueBucket(room, now) === "needs_attention").length;
   const arrivals = open.filter((room) => isArrivalSoon(room, now)).length;
   const dndCount = open.filter((room) => room.dnd_flag).length;
@@ -56,7 +54,7 @@ export function buildShiftSnapshot(rooms: Room[], locale: string, now: Date = ne
   else if (pct < 75) stage = "mid";
   else stage = "late";
 
-  return { total, done, remaining, pct, vipLeft, attention, arrivals, dndCount, minutesLeft, finishByLabel, stage };
+  return { total, done, remaining, pct, attention, arrivals, dndCount, minutesLeft, finishByLabel, stage };
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -83,7 +81,6 @@ export function getCompanionCheckin(snapshot: ShiftSnapshot, t: Translate): Comp
     if (snapshot.attention > 0) tip = t("home.companion.tipAttention", { count: snapshot.attention });
     else if (snapshot.dndCount > 0) tip = t("home.companion.tipDnd", { count: snapshot.dndCount });
     else if (snapshot.arrivals > 0) tip = t("home.companion.tipArrivals", { count: snapshot.arrivals });
-    else if (snapshot.vipLeft > 0) tip = t("home.companion.tipVip", { count: snapshot.vipLeft });
     else if (snapshot.stage === "mid" || snapshot.stage === "late") tip = t("home.companion.tipBreather");
   }
 

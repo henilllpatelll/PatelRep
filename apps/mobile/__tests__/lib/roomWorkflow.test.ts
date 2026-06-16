@@ -16,6 +16,7 @@ import {
   isSkipped,
   isSubmitted,
 } from "@/lib/housekeeping/roomWorkflow";
+import { buildSmartQueue } from "@/lib/ai/briefing";
 
 const now = new Date("2026-06-09T12:00:00.000Z");
 
@@ -82,11 +83,10 @@ describe("roomWorkflow helpers", () => {
     expect(isBlocked(room({ status: "OOO" }))).toBe(true);
   });
 
-  it("builds compact operational badges with unsafe warnings louder than VIP", () => {
+  it("builds compact operational badges", () => {
     expect(
       getRoomBadges(
         room({
-          vip_flag: true,
           dnd_flag: true,
           open_work_order_id: "wo-1",
           latest_note: "Key issue",
@@ -96,10 +96,10 @@ describe("roomWorkflow helpers", () => {
         }),
         now,
       ).map((badge) => badge.label),
-    ).toEqual(["DND", "VIP", "WO", "Note", "Risk", "Arrival Soon", "Not Checked Out"]);
+    ).toEqual(["DND", "WO", "Note", "Risk", "Arrival Soon", "Not Checked Out"]);
   });
 
-  it("sorts cleanable queue by floor urgency, not by attention flags", () => {
+  it("sorts cleanable queue: arrival-soon DEP → other DEP → vanilla dirty → stayover/pickup", () => {
     const rooms = [
       room({ id: "pickup", room_number: "104", floor: 1, status: "PICKUP" }),
       room({ id: "normal", room_number: "102", floor: 1, status: "DIRTY" }),
@@ -124,13 +124,16 @@ describe("roomWorkflow helpers", () => {
       room({ id: "full", room_number: "106", floor: 1, status: "DIRTY", clean_type: "FULL" }),
     ];
 
+    // vip_flag no longer a priority factor; vip room is plain DIRTY (score 30)
+    // normal (102) sorts before vip (103) in same tier by room number
+    // pickup (104) sorts before full (106) in same tier by room number
     expect(rooms.sort((a, b) => compareRoomsForCleaningQueue(a, b, now)).map((r) => r.id)).toEqual([
       "arrival",
-      "vip",
       "checked-out",
       "normal",
-      "full",
+      "vip",
       "pickup",
+      "full",
     ]);
   });
 
@@ -176,6 +179,67 @@ describe("roomWorkflow helpers", () => {
     // stale fo_status should not flag "guest may be inside" once cleaning has started
     const warnings = getBeforeEnterWarnings(inProgressDep, now);
     expect(warnings.find((w) => w.key === "occupied" || w.key === "checkout")).toBeUndefined();
+  });
+
+  it("buildSmartQueue routes same-tier rooms by corridor proximity", () => {
+    // Rooms in scrambled order — all same priority (score 40, vanilla DIRTY)
+    // Expected: greedy nearest-neighbor sweeps 109→111→113→115 without backtracking
+    const scattered = [
+      room({ id: "115", room_number: "115", floor: 1, status: "DIRTY" }),
+      room({ id: "109", room_number: "109", floor: 1, status: "DIRTY" }),
+      room({ id: "113", room_number: "113", floor: 1, status: "DIRTY" }),
+      room({ id: "111", room_number: "111", floor: 1, status: "DIRTY" }),
+    ];
+    const queue = buildSmartQueue(scattered, now);
+    expect(queue.map((e) => e.room.id)).toEqual(["109", "111", "113", "115"]);
+    expect(queue.map((e) => e.position)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("buildSmartQueue completes one floor before crossing to the next", () => {
+    const mixed = [
+      room({ id: "201", room_number: "201", floor: 2, status: "DIRTY" }),
+      room({ id: "103", room_number: "103", floor: 1, status: "DIRTY" }),
+      room({ id: "205", room_number: "205", floor: 2, status: "DIRTY" }),
+      room({ id: "101", room_number: "101", floor: 1, status: "DIRTY" }),
+    ];
+    const queue = buildSmartQueue(mixed, now);
+    const floors = queue.map((e) => e.room.floor);
+    // First two rooms should be the same floor, second two the other floor
+    expect(floors[0]).toBe(floors[1]);
+    expect(floors[2]).toBe(floors[3]);
+    expect(floors[0]).not.toBe(floors[2]);
+  });
+
+  it("buildSmartQueue respects priority tiers regardless of physical proximity", () => {
+    // DEP rooms (score 10/20) always before PICKUP (score 40) regardless of distance
+    const arrivalSoon = room({
+      id: "arrival",
+      room_number: "110",
+      floor: 1,
+      status: "DIRTY",
+      clean_type: "DEP",
+      actual_checkout_at: "2026-06-09T09:00:00.000Z",
+      checkin_time: "2026-06-09T13:00:00.000Z", // arrival in 1h — score 10
+    });
+    const depFar = room({
+      id: "dep-far",
+      room_number: "203",
+      floor: 2,
+      status: "DIRTY",
+      clean_type: "DEP",
+      actual_checkout_at: "2026-06-09T09:00:00.000Z", // score 20, far away
+    });
+    const pickupNearby = room({
+      id: "pickup-nearby",
+      room_number: "111",
+      floor: 1,
+      status: "PICKUP", // score 40, adjacent to arrivalSoon
+    });
+    const queue = buildSmartQueue([pickupNearby, depFar, arrivalSoon], now);
+    // Priority must win: arrival-soon DEP → other DEP → PICKUP
+    expect(queue[0].room.id).toBe("arrival");
+    expect(queue[1].room.id).toBe("dep-far");
+    expect(queue[2].room.id).toBe("pickup-nearby");
   });
 
   it("detects useful timing and before-enter warnings", () => {

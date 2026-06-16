@@ -50,7 +50,6 @@ describe("normalizeBoardRooms", () => {
       roomType: "KS",
       baseCleanMinutes: 25,
       status: "DIRTY",
-      vip: true,
       dnd: false,
       assignedTo: "hk-1",
       assignmentId: "as-1",
@@ -104,7 +103,6 @@ describe("buildFloorSnapshot", () => {
       ooo: 1,
       unassigned: 3, // 101, 102, 108 — actionable without an assignee
       dnd: 1, // OOO room with DND does not count
-      vip: 1, // INSPECTED VIP no longer needs attention
     });
   });
 });
