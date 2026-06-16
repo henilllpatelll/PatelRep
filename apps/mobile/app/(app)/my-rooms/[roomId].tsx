@@ -163,6 +163,7 @@ export default function RoomDetailScreen() {
   const [timeEntryKey, setTimeEntryKey] = useState<string | null>(null);
   const [timeText, setTimeText] = useState("");
   const [blockerBusy, setBlockerBusy] = useState<string | null>(null);
+  const [lastBlockerKey, setLastBlockerKey] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
   const [removableLatestNote, setRemovableLatestNote] = useState<{
@@ -211,6 +212,7 @@ export default function RoomDetailScreen() {
 
   useEffect(() => {
     setRemovableLatestNote(null);
+    setLastBlockerKey(null);
   }, [room?.id]);
 
   function updateLocalRoom(roomIdToUpdate: string, patch: Partial<Room>) {
@@ -309,6 +311,7 @@ export default function RoomDetailScreen() {
       const formattedTime = blocker.needsTime ? formatBlockerTimeInput(time) : time;
       await runBlockerSideEffect(room, blocker, formattedTime);
       await submitNote(buildBlockerNote(blocker, formattedTime));
+      setLastBlockerKey(blocker.key);
       setTimeEntryKey(null);
       setTimeText("");
     } catch (err: unknown) {
@@ -362,6 +365,11 @@ export default function RoomDetailScreen() {
     });
     setRemovableLatestNote(null);
     setNoteSuccess(false);
+  }
+
+  function handleBlockerUndo() {
+    removeLatestNote();
+    setLastBlockerKey(null);
   }
 
   if (loading) {
@@ -525,15 +533,21 @@ export default function RoomDetailScreen() {
               {blockers.map((blocker) => {
                 const busy = blockerBusy === blocker.key;
                 const open = timeEntryKey === blocker.key;
+                const activated = lastBlockerKey === blocker.key && canRemoveLatestNote;
                 return (
                   <TouchableOpacity
                     key={blocker.key}
                     style={[
                       styles.blockerBtn,
                       open && styles.blockerBtnOpen,
+                      activated && styles.blockerBtnActivated,
                       (noteLoading || blockerBusy != null) && !busy && styles.btnDisabled,
                     ]}
                     onPress={() => {
+                      if (activated) {
+                        handleBlockerUndo();
+                        return;
+                      }
                       if (blocker.needsTime) {
                         setTimeEntryKey(open ? null : blocker.key);
                         setTimeText("");
@@ -547,7 +561,10 @@ export default function RoomDetailScreen() {
                     {busy ? (
                       <ActivityIndicator size="small" color={C.accent} />
                     ) : (
-                      <Text style={styles.blockerText}>{t(blocker.labelKey)}</Text>
+                      <View style={styles.blockerBtnContent}>
+                        <Text style={[styles.blockerText, activated && styles.blockerTextActivated]}>{t(blocker.labelKey)}</Text>
+                        {activated ? <Ionicons name="arrow-undo-outline" size={13} color={C.accent} /> : null}
+                      </View>
                     )}
                   </TouchableOpacity>
                 );
@@ -900,8 +917,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
   },
+  blockerBtnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   blockerText: { fontSize: 13, fontWeight: "800", color: C.ink2 },
+  blockerTextActivated: { color: C.accent },
   blockerBtnOpen: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
+  blockerBtnActivated: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
   blockerBtnCustom: {
     minWidth: "47%",
     flexGrow: 1,

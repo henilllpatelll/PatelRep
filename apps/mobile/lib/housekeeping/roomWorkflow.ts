@@ -76,6 +76,12 @@ function hasLatestNote(room: Room): boolean {
   return Boolean(room.latest_note?.trim());
 }
 
+function hasBlockingNote(room: Room): boolean {
+  const note = room.latest_note?.trim();
+  if (!note) return false;
+  return !note.startsWith("FLAG: ");
+}
+
 function isDepartureClean(room: Room): boolean {
   return room.clean_type === "DEP" || room.clean_type_label?.toLowerCase().includes("departure") === true;
 }
@@ -125,7 +131,7 @@ export function isNeedsAttention(room: Room, now: Date = new Date()): boolean {
     isGuestMayBeInside(room) ||
       (!isVacantDeparture && hasOpenWorkOrder(room)) ||
       room.risk_level === "HIGH" ||
-      (!isVacantDeparture && hasLatestNote(room)),
+      (!isVacantDeparture && hasBlockingNote(room)),
   );
 }
 

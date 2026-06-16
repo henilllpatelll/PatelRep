@@ -270,6 +270,20 @@ describe("roomWorkflow helpers", () => {
     expect(queue[2].room.id).toBe("123");
   });
 
+  it("FLAG notes do not move a room out of smart order; BLOCKER notes do", () => {
+    const flagNote = room({ status: "DIRTY", latest_note: "FLAG: Pet room (work order created)" });
+    expect(isNeedsAttention(flagNote, now)).toBe(false);
+    expect(getRoomQueueBucket(flagNote, now)).toBe("next_to_clean");
+
+    const blockerNote = room({ status: "DIRTY", latest_note: "BLOCKER: Guest inside" });
+    expect(isNeedsAttention(blockerNote, now)).toBe(true);
+    expect(getRoomQueueBucket(blockerNote, now)).toBe("needs_attention");
+
+    // Custom (freeform) notes still count as blocking
+    const customNote = room({ status: "DIRTY", latest_note: "Left extra blanket on bed" });
+    expect(isNeedsAttention(customNote, now)).toBe(true);
+  });
+
   it("hasRoomInProgress blocks starting a second room", () => {
     const ip = room({ id: "ip", room_number: "101", status: "IN_PROGRESS" });
     const dirty = room({ id: "dirty", room_number: "102", status: "DIRTY" });
