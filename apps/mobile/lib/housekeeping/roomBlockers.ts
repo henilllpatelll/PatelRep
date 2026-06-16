@@ -143,7 +143,7 @@ export async function runBlockerSideEffect(room: Room, blocker: RoomBlocker, tim
   if (blocker.sideEffect === "work_order") {
     await createWorkOrder({
       room_id: room.id,
-      title: `Deep vacuum and change filter — Room ${room.room_number}`,
+      title: "Vacuum and change filter (pet room)",
       description: `Auto-created from housekeeping flag: ${buildBlockerNote(blocker, time)}`,
       category: "general",
       priority: "low",
