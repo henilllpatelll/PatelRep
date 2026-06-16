@@ -1,21 +1,16 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-15T17:11:31.914Z
-> Files: 50 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T19:48:32.208Z
+> Files: 32 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
-- `settings.json` (~1416 tok)
 
 ## ../../.claude/plans/
 
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
-- `MEMORY.md` — PatelRep Project Memory (~458 tok)
-- `project_hotel_layout.md` (~506 tok)
-- `reference_railway.md` — Railway Infrastructure (new account, 2026-06-15) (~345 tok)
-- `reference_test_account.md` (~125 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -34,14 +29,6 @@
 
 ## ./
 
-- `AGENTS.md` — OpenWolf (~2153 tok)
-- `CLAUDE.md` — OpenWolf (~2969 tok)
-- `FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md` — Frontend Playwright Audit - 2026-05-23 (~2398 tok)
-- `playwright.config.ts` — Declares BASE_URL (~310 tok)
-- `playwright.mobile.config.ts` — Declares BASE_URL (~242 tok)
-- `railway.toml` (~63 tok)
-- `README.md` — Project documentation (~344 tok)
-- `UI_UX_FIXES_BACKLOG.md` — UI/UX Fixes Backlog — PatelRep (~5526 tok)
 
 ## .claude/
 
@@ -435,12 +422,9 @@
 
 ## .github/workflows/
 
-- `ci.yml` — CI: CI (~1331 tok)
-- `deploy-check.yml` — CI: Deploy Health Check (~353 tok)
 
 ## .planning/
 
-- `STATE.md` — GSD State (~592 tok)
 
 ## .wolf/
 
@@ -471,7 +455,6 @@
 
 ## apps/api/
 
-- `main.py` — API: 1 endpoints (~2445 tok)
 
 ## apps/api/core/
 
@@ -481,37 +464,28 @@
 
 ## apps/api/models/
 
-- `requests.py` — Pydantic: SanitizedBaseModel (~7445 tok)
 
 ## apps/api/routers/
 
-- `ai_copilot.py` — API: 1 endpoints (~8355 tok)
-- `hotels.py` — API: 7 endpoints (~2580 tok)
-- `housekeeping.py` — from: and (~20718 tok)
-- `late_checkout.py` — API: 3 endpoints (~1213 tok)
-- `rooms.py` — API: 4 endpoints (~10276 tok)
+- `housekeeping.py` — Declares from (~21191 tok)
 
 ## apps/api/scripts/
 
-- `seed_hotel_layout.py` — main (~2977 tok)
 
 ## apps/api/services/
 
 
 ## apps/api/services/ai/
 
-- `housekeeping_briefing.py` — AI shift briefing for housekeepers. (~1113 tok)
 
 ## apps/api/services/opera/
 
 
 ## apps/api/tests/load/
 
-- `load_test.py` — from: get_auth_token (~5962 tok)
 
 ## apps/api/tests/smoke/
 
-- `test_load_auth_state.py` — enc, test_token_from_playwright_local_storage_state, test_session_from_playwright_local_storage_stat (~1128 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -527,14 +501,15 @@
 
 ## apps/mobile/
 
-- `eas.json` (~593 tok)
 
 ## apps/mobile/__tests__/components/
 
 
 ## apps/mobile/__tests__/lib/
 
-- `roomWorkflow.test.ts` — now: room (~1911 tok)
+- `roomBlockers.test.ts` — mockApiPost: room (~1472 tok)
+- `roomWorkflow.test.ts` — now: room (~4145 tok)
+- `supervisor.test.ts` — API routes: GET (1 endpoints) (~2288 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -544,6 +519,10 @@
 
 ## apps/mobile/__tests__/screens/
 
+- `GuestRequestsList.test.tsx` — mockApiGet (~577 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2460 tok)
+- `MyRoomsScreen.test.tsx` — mockRouterPush (~2327 tok)
+- `RoomDetail.test.tsx` — mockSetMyRooms (~2579 tok)
 
 ## apps/mobile/android/
 
@@ -568,6 +547,7 @@
 
 ## apps/mobile/app/(app)/assignments/
 
+- `index.tsx` — AssignmentsScreen (~6408 tok)
 
 ## apps/mobile/app/(app)/clean/
 
@@ -577,10 +557,10 @@
 
 ## apps/mobile/app/(app)/guest-requests/
 
-- `index.tsx` — STATUS_TONES (~3008 tok)
 
 ## apps/mobile/app/(app)/home/
 
+- `index.tsx` — firstName (~5358 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -596,8 +576,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~12849 tok)
-- `index.tsx` — DONE_SECTIONS (~3770 tok)
+- `[roomId].tsx` — STATUS_COLOR (~13245 tok)
+- `index.tsx` — DONE_SECTIONS (~3853 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -613,6 +593,7 @@
 
 ## apps/mobile/app/(app)/room-board/
 
+- `index.tsx` — SEGMENTS (~3467 tok)
 
 ## apps/mobile/app/(app)/room-status/
 
@@ -640,6 +621,7 @@
 
 ## apps/mobile/components/home/
 
+- `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2866 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
@@ -655,10 +637,12 @@
 
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4333 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4214 tok)
 
 ## apps/mobile/components/supervisor/
 
+- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~1878 tok)
+- `RoomDetailSheet.tsx` — formatClock — renders modal (~3370 tok)
 
 ## apps/mobile/components/supervisor/HousekeeperPicker.tsx
 
@@ -683,6 +667,8 @@
 
 ## apps/mobile/lib/ai/
 
+- `briefing.ts` — Room numbers in suggested cleaning order (~3287 tok)
+- `companion.ts` — Sum of per-room estimates for everything still cleanable (~1189 tok)
 
 ## apps/mobile/lib/api/
 
@@ -695,8 +681,9 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1887 tok)
-- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 19 more (~3234 tok)
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1881 tok)
+- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 21 more (~3280 tok)
+- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2448 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -724,15 +711,12 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1409 tok)
 
 ## apps/mobile/stores/appStore.ts
 
 
 ## apps/web/
 
-- `Dockerfile` — Docker container definition (~382 tok)
-- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~584 tok)
 
 ## apps/web/app/
 
@@ -847,7 +831,6 @@
 
 ## apps/web/components/dashboard/
 
-- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~4922 tok)
 
 ## apps/web/components/engineering/
 
@@ -858,9 +841,9 @@
 ## apps/web/components/housekeeping/
 
 - `AssignmentSidebar.tsx` — AssignmentSidebar (~1160 tok)
-- `RoomCard.tsx` — Housekeeping room board card UI with status, clean type, assignment, timing, tasks, and guest request indicators (~3390 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~4039 tok)
 - `RoomDetailDrawer.tsx` — Housekeeping room detail drawer with status, checkout controls, notes, work orders, active guest requests/tasks, clean evidence, prediction, and history sections (~10800 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~7586 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~8139 tok)
 
 ## apps/web/components/settings/
 
@@ -882,7 +865,6 @@
 
 ## apps/web/lib/api/
 
-- `lateCheckout.ts` — API routes: GET, PATCH (2 endpoints) (~208 tok)
 
 ## apps/web/lib/hooks/
 
@@ -899,7 +881,6 @@
 
 ## apps/web/stores/
 
-- `housekeepingStore.ts` — Exports RoomPrediction, HousekeepingStore, useHousekeepingStore (~1455 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -909,11 +890,9 @@
 
 ## e2e/
 
-- `mobile-usability.spec.ts` — Mobile Usability Testing — PatelRep Production (~3796 tok)
 
 ## e2e/agent-browser/
 
-- `config.json` (~451 tok)
 
 ## e2e/agent-browser/scripts/
 
@@ -923,7 +902,6 @@
 
 ## e2e/helpers/
 
-- `rbac-users.ts` — RBAC test user helpers. (~1926 tok)
 
 ## graphify-out/
 
@@ -933,8 +911,8 @@
 
 ## supabase/migrations/
 
-- `060_hotel_layout.sql` — 060_hotel_layout.sql (~66 tok)
-- `061_late_checkout_requests.sql` — ============================================================================= (~488 tok)
+- `062_late_checkout_cancelled_status.sql` — ============================================================================= (~167 tok)
+- `063_latest_room_notes_rpc.sql` — Returns the single most-recent staff note per room, respecting the (~402 tok)
 
 ## youtubeMobileResearch.md
 

@@ -258,62 +258,64 @@ def _attach_room_activity(rows: list[dict], hotel_id: str, activity_date: date) 
 
     activity_start, activity_end = _activity_day_window_utc(activity_date)
 
-    # Fetch per-room stay boundary (set when a DEP room passes inspection)
+    # DISTINCT ON (room_id) in the DB — no date lower bound, works for stays of
+    # any length. stay_reset_at join enforces the DEP-inspection boundary per room.
+    latest_note_by_room: dict[str, dict] = {}
     try:
-        rs_result = (
-            supabase.table("room_status")
-            .select("room_id, stay_reset_at")
+        note_result = supabase.rpc("get_latest_room_notes", {
+            "p_tenant_id": hotel_id,
+            "p_room_ids": room_ids,
+            "p_activity_end": activity_end,
+        }).execute()
+        for note in note_result.data or []:
+            room_id = note.get("room_id")
+            note_text = (note.get("notes") or "").strip()
+            if room_id and note_text:
+                latest_note_by_room[room_id] = note
+    except Exception as exc:
+        logger.warning("get_latest_room_notes RPC unavailable, falling back to today-only scan (run migration 063): %s", exc)
+        try:
+            rs_result = (
+                supabase.table("room_status")
+                .select("room_id, stay_reset_at")
+                .eq("tenant_id", hotel_id)
+                .in_("room_id", room_ids)
+                .execute()
+            )
+            stay_reset_by_room: dict[str, str | None] = {
+                r["room_id"]: r.get("stay_reset_at") for r in (rs_result.data or [])
+            }
+        except Exception:
+            stay_reset_by_room = {rid: None for rid in room_ids}
+        note_fallback = (
+            supabase.table("room_status_history")
+            .select("room_id, notes, from_status, to_status, changed_by, change_source, created_at")
             .eq("tenant_id", hotel_id)
             .in_("room_id", room_ids)
+            .gte("created_at", activity_start)
+            .lt("created_at", activity_end)
+            .order("created_at", desc=True)
+            .limit(max(len(room_ids) * 4, 50))
             .execute()
         )
-        stay_reset_by_room: dict[str, str | None] = {
-            r["room_id"]: r.get("stay_reset_at")
-            for r in (rs_result.data or [])
-        }
-    except Exception as exc:
-        if not _is_missing_stay_reset_column_error(exc):
-            raise
-        logger.warning("room_status.stay_reset_at column missing; loading board without stay-boundary note filtering")
-        stay_reset_by_room = {room_id: None for room_id in room_ids}
-
-    # Lower bound for the bulk query: earliest stay_reset_at across all rooms,
-    # or today's activity start when no resets exist yet.
-    reset_times = [t for t in stay_reset_by_room.values() if t]
-    query_start = min(reset_times) if reset_times else activity_start
-
-    latest_note_by_room: dict[str, dict] = {}
-    note_result = (
-        supabase.table("room_status_history")
-        .select("room_id, notes, from_status, to_status, changed_by, change_source, created_at")
-        .eq("tenant_id", hotel_id)
-        .in_("room_id", room_ids)
-        .gte("created_at", query_start)
-        .lt("created_at", activity_end)
-        .order("created_at", desc=True)
-        .limit(max(len(room_ids) * 4, 50))
-        .execute()
-    )
-    for note in note_result.data or []:
-        room_id = note.get("room_id")
-        note_text = (note.get("notes") or "").strip()
-        from_status = note.get("from_status")
-        to_status = note.get("to_status")
-        is_task_sheet_marker = _clean_type_from_task_sheet_note(note_text) is not None
-        is_staff_note = (
-            bool(note.get("changed_by"))
-            and note.get("change_source", "app") == "app"
-            and bool(from_status)
-            and from_status == to_status
-        )
-        if is_task_sheet_marker:
-            continue
-        # Skip notes older than this room's last DEP inspection
-        room_reset = stay_reset_by_room.get(room_id)
-        if room_reset and (note.get("created_at") or "") < room_reset:
-            continue
-        if room_id and note_text and is_staff_note and room_id not in latest_note_by_room:
-            latest_note_by_room[room_id] = note
+        for note in note_fallback.data or []:
+            room_id = note.get("room_id")
+            note_text = (note.get("notes") or "").strip()
+            from_status = note.get("from_status")
+            to_status = note.get("to_status")
+            if _clean_type_from_task_sheet_note(note_text) is not None:
+                continue
+            is_staff_note = (
+                bool(note.get("changed_by"))
+                and note.get("change_source", "app") == "app"
+                and bool(from_status)
+                and from_status == to_status
+            )
+            room_reset = stay_reset_by_room.get(room_id)
+            if room_reset and (note.get("created_at") or "") < room_reset:
+                continue
+            if room_id and note_text and is_staff_note and room_id not in latest_note_by_room:
+                latest_note_by_room[room_id] = note
 
     open_work_order_by_room: dict[str, dict] = {}
     work_order_result = (
@@ -1693,6 +1695,7 @@ async def import_hk_details(
             else row.our_status
         )
 
+        now_iso = datetime.now(timezone.utc).isoformat()
         update_data: dict = {
             "room_id": room_id,
             "tenant_id": current_user.hotel_id,
@@ -1711,6 +1714,8 @@ async def import_hk_details(
             "stripped_by": None,
             "stripped_at": None,
         }
+        if resolved_status == "INSPECTED":
+            update_data["stay_reset_at"] = now_iso
 
         _execute_room_status_clean_type_write(
             update_data,

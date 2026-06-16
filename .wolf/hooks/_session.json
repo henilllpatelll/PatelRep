@@ -1,98 +1,72 @@
 {
-  "session_id": "session-2026-06-15-1155",
-  "started": "2026-06-15T16:55:54.473Z",
+  "session_id": "session-2026-06-16-1423",
+  "started": "2026-06-16T19:23:12.283Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/late_checkout.py": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
       "count": 1,
-      "tokens": 1213,
-      "first_read": "2026-06-15T16:57:03.420Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/housekeeping/roomBlockers.ts": {
-      "count": 1,
-      "tokens": 1887,
-      "first_read": "2026-06-15T16:57:03.515Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py": {
-      "count": 4,
-      "tokens": 7439,
-      "first_read": "2026-06-15T16:57:12.930Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/stores/appStore.ts": {
-      "count": 1,
-      "tokens": 1409,
-      "first_read": "2026-06-15T16:57:29.863Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/[roomId].tsx": {
-      "count": 2,
-      "tokens": 12849,
-      "first_read": "2026-06-15T16:58:11.446Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/lib/api/client.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-06-15T16:58:11.471Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/index.tsx": {
-      "count": 1,
-      "tokens": 3770,
-      "first_read": "2026-06-15T16:59:11.276Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
-      "count": 1,
-      "tokens": 20718,
-      "first_read": "2026-06-15T16:59:23.776Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/main.py": {
-      "count": 2,
-      "tokens": 2445,
-      "first_read": "2026-06-15T17:00:01.599Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/supabase/migrations/061_late_checkout_requests.sql": {
-      "count": 1,
-      "tokens": 488,
-      "first_read": "2026-06-15T17:00:22.136Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/api/lateCheckout.ts": {
-      "count": 1,
-      "tokens": 208,
-      "first_read": "2026-06-15T17:00:22.634Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/FrontDeskDashboard.tsx": {
-      "count": 1,
-      "tokens": 4922,
-      "first_read": "2026-06-15T17:07:25.267Z"
+      "tokens": 10800,
+      "first_read": "2026-06-16T19:24:31.061Z"
     },
     "C:/Users/Henil/projects/PatelRep/apps/api/routers/rooms.py": {
       "count": 1,
-      "tokens": 10276,
-      "first_read": "2026-06-15T17:09:18.905Z"
+      "tokens": 0,
+      "first_read": "2026-06-16T19:24:45.062Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/api/requirements.txt": {
+    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
+      "count": 3,
+      "tokens": 21147,
+      "first_read": "2026-06-16T19:25:16.598Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/my-rooms/[roomId].tsx": {
+      "count": 1,
+      "tokens": 13245,
+      "first_read": "2026-06-16T19:26:36.485Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/supabase/migrations/059_stay_reset_at.sql": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-06-15T17:10:24.929Z"
+      "first_read": "2026-06-16T19:41:27.747Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 41,
-      "at": "2026-06-15T17:11:20.519Z"
+      "tokens": 288,
+      "at": "2026-06-16T19:30:37.748Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/api/models/requests.py",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
       "action": "edit",
-      "tokens": 46,
-      "at": "2026-06-15T17:11:31.938Z"
+      "tokens": 286,
+      "at": "2026-06-16T19:32:50.800Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/supabase/migrations/063_latest_room_notes_rpc.sql",
+      "action": "create",
+      "tokens": 430,
+      "at": "2026-06-16T19:39:12.656Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+      "action": "edit",
+      "tokens": 761,
+      "at": "2026-06-16T19:39:36.622Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py",
+      "action": "edit",
+      "tokens": 213,
+      "at": "2026-06-16T19:48:32.242Z"
     }
   ],
   "edit_counts": {
-    "apps/api/models/requests.py": 2
+    "apps/api/routers/housekeeping.py": 4,
+    "supabase/migrations/063_latest_room_notes_rpc.sql": 1
   },
-  "anatomy_hits": 12,
+  "anatomy_hits": 3,
   "anatomy_misses": 2,
-  "repeated_reads_warned": 5,
+  "repeated_reads_warned": 2,
   "cerebrum_warnings": 0,
-  "stop_count": 2
+  "stop_count": 7
 }

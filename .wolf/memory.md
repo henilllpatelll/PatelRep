@@ -1,4 +1,7 @@
 ﻿# Memory
+| 2026-06-16 | Extended latest_note lookback from activity_start (today only) to 14 days in _attach_room_activity; query_start = min(reset_times + [14_days_ago]); limit bumped to max(N*10,200). Engineering WOs already date-filter-free. stay_reset_at only set on DEP inspection (correct). | apps/api/routers/housekeeping.py | complete | ~20 tok |
+| 2026-06-16 | Smart order now proximity-routes rooms via greedy nearest-neighbor within priority tiers — exports getCleaningQueueScore, adds roomSuffix/roomProximityDistance/nearestNeighborRoute in briefing.ts, 3 new tests pass | roomWorkflow.ts, briefing.ts, __tests__/lib/roomWorkflow.test.ts | complete | ~50 tok |
+| 2026-06-15 | Assign mode UX fixes: purple card click opens room details (not blocked), remove button shows spinner, silent skip for already-assigned rooms (no toast) | RoomCard.tsx, RoomStatusBoard.tsx | complete | ~25 tok |
 | 15:30 | Added Building A/B filter to room board and assign mode | housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx | complete | ~80 tok |
 | 2026-06-10 | Restyled clean-type labels (Departure/Light/Full) on My Rooms room cards to pill badges matching IMG_6396: DEP → stone pill (oooSoft/oooLine/ooo) with arrow-back icon, LIGHT/FULL → amber pill (cautionSoft/cautionLine/caution). | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~30 tok |
 | 2026-06-10 | Open decisions complete: removed my-rooms/index from HIDDEN_APP_ROUTES; hotel-tz fix in get_sessions_summary (dateutil, midnight→UTC bounds); handleMaintenanceBlocker in clean/[roomId].tsx; ChevronUp/Down ordering in CleaningChecklistEditor; 058_clean_photos_private.sql + signed URLs in clean_sessions.py. 52 tests pass. | roleTabs.ts, clean_sessions.py, clean/[roomId].tsx, CleaningChecklistEditor.tsx, 058_clean_photos_private.sql | complete | ~180 tok |
@@ -5316,3 +5319,205 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:08 | Finished late-checkout web display verification and OpenWolf bookkeeping | apps/web; .wolf/anatomy.md; .wolf/cerebrum.md; .wolf/buglog.json | Build/lint/type/test pass; browser reaches local app but board visual auth blocked by login redirect | ~5500 |
 | 14:16 | Attempted to run mobile Expo web for live late-checkout click path | apps/mobile/package.json | Blocked by missing react-dom/react-native-web; logged verification blocker | ~5000 |
 | 14:23 | Performed live late-checkout verification against local backend and web UI | .wolf/runtime-logs/late-checkout-live-created.json; .wolf/runtime-logs/late-checkout-web-confirm.png | Created pending request for room 102 at 2:47 PM; web card/detail confirmed visible | ~7000 |
+| 14:26 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 3→3 lines | ~48 |
+| 14:26 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+10 lines) | ~180 |
+
+| 14:27 | Fixed guest_checkout action targetStatus DIRTY→IN_PROGRESS | apps/mobile/lib/housekeeping/roomWorkflow.ts, __tests__/lib/roomWorkflow.test.ts | Bug fixed + regression test added | ~3k || 14:27 | Session end: 4 writes across 3 files (requests.py, roomWorkflow.ts, roomWorkflow.test.ts) | 17 reads | ~42927 tok |
+| 14:31 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | added 1 condition(s) | ~89 |
+| 14:31 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | modified if() | ~190 |
+| 14:31 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+13 lines) | ~396 |
+| 14:32 | Session end: 7 writes across 3 files (requests.py, roomWorkflow.ts, roomWorkflow.test.ts) | 17 reads | ~43602 tok |
+| 14:35 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | inline fix | ~24 |
+| 14:35 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 3→3 lines | ~30 |
+| 14:35 | Session end: 9 writes across 3 files (requests.py, roomWorkflow.ts, roomWorkflow.test.ts) | 17 reads | ~43656 tok |
+| 14:36 | Session end: 9 writes across 3 files (requests.py, roomWorkflow.ts, roomWorkflow.test.ts) | 17 reads | ~43656 tok |
+| 14:40 | Session end: 9 writes across 3 files (requests.py, roomWorkflow.ts, roomWorkflow.test.ts) | 17 reads | ~43656 tok |
+
+## Session: 2026-06-15 14:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:45 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 10→11 lines | ~61 |
+| 14:45 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | added 1 condition(s) | ~94 |
+| 14:45 | Edited apps/mobile/app/(app)/home/index.tsx | 9→10 lines | ~42 |
+| 14:45 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~113 |
+| 14:45 | Session end: 4 writes across 1 files (index.tsx) | 4 reads | ~310 tok |
+| 14:46 | Session end: 4 writes across 1 files (index.tsx) | 4 reads | ~310 tok |
+| 14:56 | Created supabase/migrations/062_late_checkout_cancelled_status.sql | — | ~167 |
+| 14:56 | Edited apps/api/routers/housekeeping.py | expanded (+15 lines) | ~520 |
+| 14:56 | Edited apps/api/routers/housekeeping.py | 12→13 lines | ~102 |
+| 14:57 | Edited apps/api/routers/housekeeping.py | expanded (+14 lines) | ~406 |
+| 14:57 | Session end: 8 writes across 3 files (index.tsx, 062_late_checkout_cancelled_status.sql, housekeeping.py) | 9 reads | ~22591 tok |
+| 14:59 | Session end: 8 writes across 3 files (index.tsx, 062_late_checkout_cancelled_status.sql, housekeeping.py) | 9 reads | ~22591 tok |
+| 15:06 | Session end: 8 writes across 3 files (index.tsx, 062_late_checkout_cancelled_status.sql, housekeeping.py) | 11 reads | ~26411 tok |
+| 15:07 | Session end: 8 writes across 3 files (index.tsx, 062_late_checkout_cancelled_status.sql, housekeeping.py) | 11 reads | ~26411 tok |
+| 15:08 | Session end: 8 writes across 3 files (index.tsx, 062_late_checkout_cancelled_status.sql, housekeeping.py) | 11 reads | ~26411 tok |
+
+## Session: 2026-06-15 15:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:12 | Edited apps/web/components/housekeeping/RoomCard.tsx | added 1 condition(s) | ~96 |
+| 15:12 | Edited apps/web/components/housekeeping/RoomCard.tsx | modified if() | ~330 |
+| 15:12 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | modified if() | ~22 |
+| 15:13 | Session end: 3 writes across 2 files (RoomCard.tsx, RoomStatusBoard.tsx) | 2 reads | ~11424 tok |
+| 15:15 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~29 |
+| 15:15 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→3 lines | ~48 |
+| 15:15 | Session end: 5 writes across 2 files (RoomCard.tsx, RoomStatusBoard.tsx) | 2 reads | ~11501 tok |
+| 15:21 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 14→16 lines | ~199 |
+| 15:21 | Session end: 6 writes across 2 files (RoomCard.tsx, RoomStatusBoard.tsx) | 2 reads | ~11700 tok |
+| 15:23 | Session end: 6 writes across 2 files (RoomCard.tsx, RoomStatusBoard.tsx) | 2 reads | ~11700 tok |
+
+## Session: 2026-06-15 15:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:31 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: r | ~158 |
+| 15:31 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added nullish coalescing | ~216 |
+| 15:31 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~23 |
+| 15:31 | Edited apps/web/components/housekeeping/RoomCard.tsx | 2→2 lines | ~64 |
+| 15:31 | Session end: 4 writes across 2 files (RoomStatusBoard.tsx, RoomCard.tsx) | 3 reads | ~13483 tok |
+| 15:33 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~23 |
+| 15:33 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 2 condition(s) | ~250 |
+| 15:33 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | inline fix | ~23 |
+| 15:33 | Session end: 7 writes across 2 files (RoomStatusBoard.tsx, RoomCard.tsx) | 3 reads | ~13779 tok |
+| 15:42 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: next | ~312 |
+| 15:42 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 17→18 lines | ~293 |
+| 15:42 | Session end: 9 writes across 2 files (RoomStatusBoard.tsx, RoomCard.tsx) | 3 reads | ~14491 tok |
+| 15:56 | Session end: 9 writes across 2 files (RoomStatusBoard.tsx, RoomCard.tsx) | 3 reads | ~14491 tok |
+
+## Session: 2026-06-16 10:57
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:09 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | inline fix | ~20 |
+| 11:10 | Edited apps/mobile/lib/ai/briefing.ts | 6→6 lines | ~40 |
+| 11:10 | Edited apps/mobile/lib/ai/briefing.ts | added nullish coalescing | ~1116 |
+| 11:10 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | added 1 import(s) | ~124 |
+| 11:10 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+59 lines) | ~722 |
+| 11:11 | Session end: 5 writes across 3 files (roomWorkflow.ts, briefing.ts, roomWorkflow.test.ts) | 6 reads | ~11498 tok |
+| 11:24 | Session end: 5 writes across 3 files (roomWorkflow.ts, briefing.ts, roomWorkflow.test.ts) | 6 reads | ~11498 tok |
+
+## Session: 2026-06-16 11:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:33 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 8→7 lines | ~30 |
+| 11:33 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | modified getCleaningQueueScore() | ~130 |
+| 11:33 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 3→2 lines | ~41 |
+| 11:33 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | reduced (-8 lines) | ~71 |
+| 11:33 | Edited apps/mobile/lib/ai/briefing.ts | 2→2 lines | ~41 |
+| 11:33 | Edited apps/mobile/lib/ai/briefing.ts | 3→1 lines | ~12 |
+| 11:33 | Edited apps/mobile/lib/ai/briefing.ts | 2→1 lines | ~11 |
+| 11:33 | Edited apps/mobile/lib/ai/briefing.ts | 4→1 lines | ~10 |
+| 11:33 | Edited apps/mobile/lib/ai/companion.ts | 6→5 lines | ~26 |
+| 11:34 | Edited apps/mobile/lib/ai/companion.ts | 5→4 lines | ~90 |
+| 11:34 | Edited apps/mobile/lib/ai/companion.ts | inline fix | ~31 |
+| 11:34 | Edited apps/mobile/lib/ai/companion.ts | 3→2 lines | ~61 |
+| 11:34 | Edited apps/mobile/components/home/CompanionHome.tsx | removed 10 lines | ~11 |
+| 11:34 | Edited apps/mobile/components/home/CompanionHome.tsx | 3→2 lines | ~41 |
+| 11:34 | Edited apps/mobile/components/shared/evening.tsx | — | ~0 |
+| 11:34 | Edited apps/mobile/components/shared/evening.tsx | removed 11 lines | ~4 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 4→3 lines | ~20 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 3→2 lines | ~22 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 4→3 lines | ~11 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 4→3 lines | ~10 |
+| 11:35 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 3→2 lines | ~42 |
+| 11:35 | Edited apps/mobile/components/supervisor/atoms.tsx | 2→1 lines | ~24 |
+| 11:35 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | removed 6 lines | ~7 |
+| 11:35 | Edited apps/mobile/app/(app)/room-board/index.tsx | reduced (-7 lines) | ~70 |
+| 11:35 | Edited apps/mobile/app/(app)/assignments/index.tsx | 2→1 lines | ~24 |
+| 11:35 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 16→15 lines | ~131 |
+| 11:35 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 34→37 lines | ~388 |
+| 11:36 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 29→31 lines | ~325 |
+| 11:36 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | 5→4 lines | ~62 |
+| 11:36 | Edited apps/mobile/__tests__/lib/supervisor.test.ts | 10→9 lines | ~61 |
+| 11:36 | Edited apps/mobile/__tests__/lib/supervisor.test.ts | 4→3 lines | ~37 |
+| 11:40 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 2→2 lines | ~30 |
+| 11:40 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 13→13 lines | ~156 |
+| 11:40 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 4→4 lines | ~59 |
+| 11:42 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 5→5 lines | ~78 |
+| 11:42 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 5→5 lines | ~76 |
+| 11:44 | Edited apps/mobile/__tests__/screens/RoomDetail.test.tsx | 5→6 lines | ~106 |
+| 11:45 | Session end: 37 writes across 14 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 15 reads | ~15784 tok |
+| 11:49 | Edited apps/mobile/__tests__/lib/roomBlockers.test.ts | 15→16 lines | ~178 |
+| 11:49 | Edited apps/mobile/__tests__/screens/GuestRequestsList.test.tsx | 3→6 lines | ~57 |
+| 11:49 | Session end: 39 writes across 16 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 18 reads | ~16019 tok |
+| 11:50 | Session end: 39 writes across 16 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 18 reads | ~16019 tok |
+| 11:51 | Session end: 39 writes across 16 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 18 reads | ~16019 tok |
+| 11:53 | Session end: 39 writes across 16 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 18 reads | ~15954 tok |
+| 11:56 | Session end: 39 writes across 16 files (roomWorkflow.ts, briefing.ts, companion.ts, CompanionHome.tsx, evening.tsx) | 18 reads | ~15954 tok |
+
+## Session: 2026-06-16 12:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:03 | Edited apps/mobile/lib/ai/briefing.ts | modified roomSuffix() | ~381 |
+| 12:04 | smart order building penalty | apps/mobile/lib/ai/briefing.ts | added BUILDING_CROSS_COST=50 + getBuilding() to roomProximityDistance | ~500 |
+| 12:04 | Session end: 1 writes across 1 files (briefing.ts) | 2 reads | ~3361 tok |
+| 12:09 | Session end: 1 writes across 1 files (briefing.ts) | 3 reads | ~6567 tok |
+
+## Session: 2026-06-16 12:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:44 | Edited apps/mobile/lib/ai/briefing.ts | added 1 condition(s) | ~318 |
+| 12:45 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | modified 120() | ~576 |
+| 12:46 | Session end: 2 writes across 2 files (briefing.ts, roomWorkflow.test.ts) | 4 reads | ~14238 tok |
+| 13:05 | Edited apps/mobile/lib/ai/briefing.ts | modified getTime() | ~152 |
+| 13:07 | Session end: 3 writes across 2 files (briefing.ts, roomWorkflow.test.ts) | 6 reads | ~14955 tok |
+| 13:12 | Session end: 3 writes across 2 files (briefing.ts, roomWorkflow.test.ts) | 6 reads | ~14955 tok |
+
+## Session: 2026-06-16 13:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:27 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | modified hasRoomInProgress() | ~76 |
+| 13:27 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~31 |
+| 13:27 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→5 lines | ~92 |
+| 13:27 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 9→12 lines | ~176 |
+| 13:27 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→2 lines | ~54 |
+| 13:28 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 18→19 lines | ~115 |
+| 13:28 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+13 lines) | ~226 |
+| 13:29 | Session end: 7 writes across 3 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts) | 5 reads | ~14119 tok |
+| 13:36 | Session end: 7 writes across 3 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts) | 5 reads | ~14119 tok |
+| 13:38 | Session end: 7 writes across 3 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts) | 6 reads | ~14119 tok |
+| 13:39 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | "Deep vacuum and change fi" → "Vacuum and change filter " | ~23 |
+| 13:40 | Session end: 8 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~14142 tok |
+| 13:41 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | "Vacuum and change filter " → "Vacuum and change filter " | ~15 |
+| 13:41 | Session end: 9 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~14157 tok |
+| 13:42 | Session end: 9 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~14157 tok |
+| 13:49 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 5→3 lines | ~34 |
+| 13:49 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~16 |
+| 13:49 | Session end: 11 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~14207 tok |
+| 13:51 | Session end: 11 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~14207 tok |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→2 lines | ~42 |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→4 lines | ~29 |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 4→5 lines | ~63 |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified removeLatestNote() | ~125 |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~514 |
+| 13:55 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→5 lines | ~101 |
+| 13:56 | Session end: 17 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~28040 tok |
+| 14:03 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | added 1 condition(s) | ~71 |
+| 14:03 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | hasLatestNote() → hasBlockingNote() | ~42 |
+| 14:03 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+14 lines) | ~231 |
+| 14:03 | Session end: 20 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~28384 tok |
+| 14:06 | Session end: 20 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~28384 tok |
+| 14:20 | Session end: 20 writes across 4 files (roomWorkflow.ts, [roomId].tsx, roomWorkflow.test.ts, roomBlockers.ts) | 6 reads | ~28384 tok |
+
+## Session: 2026-06-16 14:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:30 | Edited apps/api/routers/housekeeping.py | 17→22 lines | ~288 |
+| 14:30 | Session end: 1 writes across 1 files (housekeeping.py) | 4 reads | ~45407 tok |
+| 14:32 | Edited apps/api/routers/housekeeping.py | 22→22 lines | ~286 |
+| 14:32 | Session end: 2 writes across 1 files (housekeeping.py) | 4 reads | ~45693 tok |
+| 14:39 | Created supabase/migrations/063_latest_room_notes_rpc.sql | — | ~402 |
+| 14:39 | Edited apps/api/routers/housekeeping.py | modified warning() | ~761 |
+| 14:39 | Session end: 4 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 4 reads | ~46884 tok |
+| 14:41 | Session end: 4 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~46884 tok |
+| 14:44 | Session end: 4 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~46884 tok |
+| 14:45 | Session end: 4 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~46884 tok |
+| 14:48 | Edited apps/api/routers/housekeeping.py | 18→21 lines | ~213 |
+| 14:48 | Session end: 5 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~47170 tok |
