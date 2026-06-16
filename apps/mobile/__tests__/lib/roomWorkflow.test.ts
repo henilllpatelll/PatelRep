@@ -242,6 +242,33 @@ describe("roomWorkflow helpers", () => {
     expect(queue[2].room.id).toBe("pickup-nearby");
   });
 
+  it("buildSmartQueue does not carry lastRoom across tiers when nothing is in progress", () => {
+    // Bug: the end of tier-1 (DEP rooms) was used as the startFrom for tier-2 (PICKUP rooms).
+    // If the last DEP room was near 123, the algorithm picked 123 before 118 even though
+    // 118 < 123 and Claudia had not cleaned anything yet.
+    // Fix: tier chaining is disabled when no room is IN_PROGRESS.
+    const dep105 = room({ id: "105", room_number: "105", floor: 1, status: "DIRTY", clean_type: "DEP", actual_checkout_at: "2026-06-09T09:00:00.000Z" });
+    const dep125 = room({ id: "125", room_number: "125", floor: 1, status: "DIRTY", clean_type: "DEP", actual_checkout_at: "2026-06-09T09:30:00.000Z" });
+    const dirty118 = room({ id: "118", room_number: "118", floor: 1, status: "DIRTY" });
+    const dirty123 = room({ id: "123", room_number: "123", floor: 1, status: "DIRTY" });
+    const queue = buildSmartQueue([dep105, dep125, dirty118, dirty123], now);
+    // DEP rooms come first (higher priority), then DIRTY rooms in numeric order from their own start
+    expect(queue.map((e) => e.room.id)).toEqual(["105", "125", "118", "123"]);
+  });
+
+  it("buildSmartQueue chains tiers when a room is in progress", () => {
+    // When a room is IN_PROGRESS (housekeeper has a known position), tier chaining is active.
+    const inProg = room({ id: "ip", room_number: "120", floor: 1, status: "IN_PROGRESS" });
+    const dirty118 = room({ id: "118", room_number: "118", floor: 1, status: "DIRTY" });
+    const dirty123 = room({ id: "123", room_number: "123", floor: 1, status: "DIRTY" });
+    const queue = buildSmartQueue([inProg, dirty118, dirty123], now);
+    // IN_PROGRESS first (score 0), then DIRTY tier starts from room 120 (suffix=20):
+    // distance to 123=3, distance to 118=2 → 118 first, then 123
+    expect(queue[0].room.id).toBe("ip");
+    expect(queue[1].room.id).toBe("118");
+    expect(queue[2].room.id).toBe("123");
+  });
+
   it("detects useful timing and before-enter warnings", () => {
     const arrival = room({
       clean_type: "DEP",

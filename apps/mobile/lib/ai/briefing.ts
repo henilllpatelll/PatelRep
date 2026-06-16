@@ -49,6 +49,11 @@ export function estimateCleanMinutes(room: Room): number {
 // are penalised proportionally to the walking detour they cause.
 const FLOOR_TRAVEL_COST = 15;
 
+// Buildings share no internal corridor — staff must cross the outdoor courtyard.
+// Cost is set above the maximum within-building room spread so the algorithm
+// always prefers finishing one building before starting the other.
+const BUILDING_CROSS_COST = 50;
+
 function roomSuffix(room: Room): number {
   const digits = room.room_number.replace(/\D/g, "");
   const n = parseInt(digits, 10) || 0;
@@ -58,10 +63,16 @@ function roomSuffix(room: Room): number {
   return suffix > 0 ? suffix : n;
 }
 
+// Building A: suffix 01-16 (rooms x01-x16). Building B: suffix 17-39 (rooms x17-x39).
+function getBuilding(room: Room): "A" | "B" {
+  return roomSuffix(room) <= 16 ? "A" : "B";
+}
+
 function roomProximityDistance(a: Room, b: Room): number {
   const floorDiff = Math.abs((a.floor || 0) - (b.floor || 0));
   const posDiff = Math.abs(roomSuffix(a) - roomSuffix(b));
-  return floorDiff * FLOOR_TRAVEL_COST + posDiff;
+  const buildingCross = getBuilding(a) !== getBuilding(b) ? BUILDING_CROSS_COST : 0;
+  return floorDiff * FLOOR_TRAVEL_COST + posDiff + buildingCross;
 }
 
 function nearestNeighborRoute(rooms: Room[], startFrom: Room | null): Room[] {
@@ -126,20 +137,26 @@ export function buildSmartQueue(rooms: Room[], now: Date = new Date()): SmartQue
 
   const sortedScores = [...tierMap.keys()].sort((a, b) => a - b);
   const ordered: Room[] = [];
+  // Only chain tiers when a real physical position exists (an IN_PROGRESS room).
+  // On a fresh day with nothing started, each tier picks its own entry point so
+  // the arbitrary end of one tier does not distort the start of the next.
+  const hasInProgress = actionable.some((r) => r.status === "IN_PROGRESS");
   let lastRoom: Room | null = null;
 
   for (const score of sortedScores) {
     const tier = tierMap.get(score)!;
     // Secondary sort gives a stable starting sequence for the greedy pass
     tier.sort((a, b) => {
-      const at = a.actual_checkout_at ? new Date(a.actual_checkout_at).getTime() : 0;
-      const bt = b.actual_checkout_at ? new Date(b.actual_checkout_at).getTime() : 0;
+      // Rooms with an actual checkout sort before rooms that haven't checked out yet.
+      // null treated as Infinity so "not yet checked out" always comes last.
+      const at = a.actual_checkout_at ? new Date(a.actual_checkout_at).getTime() : Infinity;
+      const bt = b.actual_checkout_at ? new Date(b.actual_checkout_at).getTime() : Infinity;
       if (at !== bt) return at - bt;
       return a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: "base" });
     });
     const routed = nearestNeighborRoute(tier, lastRoom);
     ordered.push(...routed);
-    lastRoom = routed[routed.length - 1] ?? lastRoom;
+    if (hasInProgress) lastRoom = routed[routed.length - 1] ?? lastRoom;
   }
 
   let elapsed = 0;
