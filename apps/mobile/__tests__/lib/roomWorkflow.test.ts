@@ -8,6 +8,7 @@ import {
   getRoomBadges,
   getRoomQueueBucket,
   hasRoomException,
+  hasRoomInProgress,
   isArrivalSoon,
   isBlocked,
   isCleanable,
@@ -267,6 +268,19 @@ describe("roomWorkflow helpers", () => {
     expect(queue[0].room.id).toBe("ip");
     expect(queue[1].room.id).toBe("118");
     expect(queue[2].room.id).toBe("123");
+  });
+
+  it("hasRoomInProgress blocks starting a second room", () => {
+    const ip = room({ id: "ip", room_number: "101", status: "IN_PROGRESS" });
+    const dirty = room({ id: "dirty", room_number: "102", status: "DIRTY" });
+    const clean = room({ id: "clean", room_number: "103", status: "CLEAN" });
+
+    // another room is in progress → returns true when querying from dirty's perspective
+    expect(hasRoomInProgress([ip, dirty, clean], "dirty")).toBe(true);
+    // from the in-progress room's own perspective → should be false (excludes itself)
+    expect(hasRoomInProgress([ip, dirty, clean], "ip")).toBe(false);
+    // no in-progress rooms at all
+    expect(hasRoomInProgress([dirty, clean], "dirty")).toBe(false);
   });
 
   it("detects useful timing and before-enter warnings", () => {

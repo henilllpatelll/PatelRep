@@ -20,7 +20,7 @@ import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
-import { getBeforeEnterWarnings, getRoomAction } from "@/lib/housekeeping/roomWorkflow";
+import { getBeforeEnterWarnings, getRoomAction, hasRoomInProgress } from "@/lib/housekeeping/roomWorkflow";
 import { buildRoomInsight } from "@/lib/ai/briefing";
 import {
   buildBlockerNote,
@@ -383,7 +383,8 @@ export default function RoomDetailScreen() {
   const status = room.status;
   const action = getRoomAction(room);
   const primaryLabel = getPrimaryLabel(room);
-  const primaryDisabled = !action.targetStatus || statusLoading;
+  const startBlockedByInProgress = action.targetStatus === "IN_PROGRESS" && hasRoomInProgress(myRooms, room.id);
+  const primaryDisabled = !action.targetStatus || statusLoading || startBlockedByInProgress;
   const showUndo = isOnline && Boolean(action.allowUndo);
   const statusColor = STATUS_COLOR[status] ?? C.ink3;
   const statusLabel = STATUS_LABEL[status] ?? status.replace(/_/g, " ");
@@ -734,6 +735,9 @@ export default function RoomDetailScreen() {
           ) : null}
           {noteSuccess ? <Text style={styles.noteSuccessText}>Note saved</Text> : null}
         </View>
+        {startBlockedByInProgress ? (
+          <Text style={styles.inProgressBlockText}>Finish your current room before starting another.</Text>
+        ) : null}
         <View style={styles.stickyButtons}>
           <TouchableOpacity
             style={[styles.primaryBtn, primaryDisabled && styles.primaryBtnDisabled]}
@@ -1014,6 +1018,7 @@ const styles = StyleSheet.create({
     borderTopColor: C.line,
     backgroundColor: C.surface,
   },
+  inProgressBlockText: { fontSize: 12, color: C.caution, fontWeight: "700", textAlign: "center" },
   stickyStatusRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
   stickyStatusText: { fontSize: 13, fontWeight: "800" },
   stickyLastAction: { flex: 1, color: C.ink3, fontSize: 11.5, minWidth: 0 },

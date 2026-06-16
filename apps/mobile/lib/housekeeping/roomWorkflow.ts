@@ -254,6 +254,10 @@ export function getPriorityScore(room: Room, now: Date = new Date()): number {
   return BUCKET_ORDER[bucket] * 100 + getCleaningQueueScore(room, now);
 }
 
+export function hasRoomInProgress(rooms: Room[], excludeRoomId: string): boolean {
+  return rooms.some((r) => r.id !== excludeRoomId && r.status === "IN_PROGRESS");
+}
+
 export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): BeforeEnterWarning[] {
   const warnings: BeforeEnterWarning[] = [];
 
