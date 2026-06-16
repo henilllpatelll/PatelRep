@@ -208,9 +208,7 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
     return { kind: "done", label: "Done", targetStatus: "CLEAN", allowUndo: true };
   }
   if (isNeedsAttention(room, now)) {
-    return room.status === "PICKUP"
-      ? { kind: "review", label: "Review", targetStatus: "IN_PROGRESS" }
-      : { kind: "review", label: "Review" };
+    return { kind: "review", label: "Review", targetStatus: "IN_PROGRESS" };
   }
 
   if (isCleanable(room, now)) {

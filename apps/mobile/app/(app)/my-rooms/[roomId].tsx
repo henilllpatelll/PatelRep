@@ -133,7 +133,7 @@ function getPrimaryLabel(room: Room): string {
   const action = getRoomAction(room);
   if (action.kind === "start") return "Start Cleaning";
   if (action.kind === "done") return "Mark Clean";
-  if (action.kind === "review") return room.status === "PICKUP" ? "Start Cleaning" : "Review room";
+  if (action.kind === "review") return "Start Cleaning";
   if (action.kind === "guest_checkout") return "Guest Checked Out — Start Cleaning";
   if (action.kind === "submitted") return "Submitted - Waiting for Supervisor";
   if (action.kind === "ready") return "Ready";
