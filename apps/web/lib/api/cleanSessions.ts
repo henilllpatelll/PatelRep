@@ -28,4 +28,9 @@ export interface CleanSessionDetail {
 export const cleanSessionsApi = {
   getSession: (sessionId: string) =>
     apiClient.get(`/clean-sessions/${sessionId}`),
+
+  listByRoom: (roomId: string, limit = 20) =>
+    apiClient.get('/clean-sessions', { params: { room_id: roomId, limit } }) as Promise<{
+      data: Array<Pick<CleanSessionDetail, 'id' | 'room_id' | 'housekeeper_id' | 'clean_type' | 'duration_seconds' | 'started_at' | 'ended_at' | 'status' | 'checklist_done' | 'checklist_total' | 'notes'>>
+    }>,
 }

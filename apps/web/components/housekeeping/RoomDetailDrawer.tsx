@@ -380,6 +380,20 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     staleTime: 30_000,
   })
 
+  const { data: roomWorkOrdersData, isLoading: roomWoLoading } = useQuery({
+    queryKey: ['room-work-orders', roomId],
+    queryFn: () => engineeringApi.listWorkOrders({ room_id: roomId!, per_page: 50 }),
+    enabled: !!roomId && isOpen && canViewStatusHistory && showStatusHistory,
+    staleTime: 30_000,
+  })
+
+  const { data: roomSessionsData, isLoading: roomSessionsLoading } = useQuery({
+    queryKey: ['room-clean-sessions', roomId],
+    queryFn: () => cleanSessionsApi.listByRoom(roomId!, 20),
+    enabled: !!roomId && isOpen && canViewStatusHistory && showStatusHistory,
+    staleTime: 30_000,
+  })
+
   const { data: roomGuestRequestsData } = useQuery({
     queryKey: ['room-guest-requests', roomId],
     queryFn: () => guestRequestsApi.listRequests({ room_id: roomId! }),
@@ -450,6 +464,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const riskFactors: string[] = prediction?.risk_factors ?? []
 
   const history: any[] = historyData?.data ?? []
+  const roomWorkOrders: any[] = (roomWorkOrdersData as any)?.data ?? []
+  const allGuestRequests: any[] = (roomGuestRequestsData as any)?.data ?? []
+  const allTasks: any[] = (roomTasksData as any)?.data ?? []
+  const roomSessions: any[] = (roomSessionsData as any)?.data ?? []
   const latestAction = lastActionData?.data?.[0] ?? null
   const lastAction = formatLastAction(latestAction, room, currentUser?.id)
   const actionNote = getActionableNote(latestAction)
@@ -990,7 +1008,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             </div>
           )}
 
-          {/* Status History Section */}
+          {/* Room History Section */}
           {canViewStatusHistory && (
           <div className="p-4">
             <button
@@ -999,7 +1017,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               aria-expanded={showStatusHistory}
               className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3"
             >
-              <span>Status History</span>
+              <span>Room History</span>
               {showStatusHistory ? (
                 <ChevronUp className="w-4 h-4 text-gray-400" />
               ) : (
@@ -1007,7 +1025,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               )}
             </button>
 
-            {showStatusHistory && (historyLoading ? (
+            {showStatusHistory && (historyLoading || roomWoLoading || roomSessionsLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-start gap-3 animate-pulse">
@@ -1019,68 +1037,136 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   </div>
                 ))}
               </div>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-gray-400">No history available</p>
-            ) : (
-              <div className="relative">
-                {/* Vertical timeline line */}
-                <div className="absolute left-1 top-2 bottom-2 w-px bg-gray-200" />
+            ) : (() => {
+              type RoomEvent =
+                | { kind: 'note'; timestamp: string; actor: string | null; text: string }
+                | { kind: 'wo'; timestamp: string; title: string; category: string; status: string }
+                | { kind: 'gr'; timestamp: string; title: string; status: string }
+                | { kind: 'task'; timestamp: string; title: string; status: string }
+                | { kind: 'session'; timestamp: string; durationSeconds: number | null; checklistDone: number; checklistTotal: number; status: string }
 
-                <div className="space-y-4">
-                  {history.map((entry: any, index: number) => {
-                    const entryStatus: string = entry.to_status ?? entry.status ?? entry.new_status ?? ''
-                    const fromStatus: string | null = entry.from_status ?? null
-                    const timestamp: string = entry.created_at ?? entry.changed_at ?? ''
-                    const actor: string | null =
-                      entry.actor_name ?? entry.user_profiles?.preferred_name ?? null
-                    const rawNote: string | null = entry.notes ?? entry.note ?? null
-                    const note: string | null = rawNote
-                      ? rawNote.split('|prev_clean_type=')[0] || null
-                      : null
+              const SYSTEM_NOTE_REGEXES = [
+                /Guest checked out/i,
+                /task_sheet_clean_type=/i,
+                /^Undo \w+ back to \w+/i,
+              ]
+              const noteEvents: RoomEvent[] = history
+                .filter((entry: any) => {
+                  const raw: string | null = entry.notes ?? entry.note ?? null
+                  const text = raw ? raw.split('|prev_clean_type=')[0].trim() : null
+                  if (!text) return false
+                  return !SYSTEM_NOTE_REGEXES.some(r => r.test(text))
+                })
+                .map((entry: any): RoomEvent => {
+                  const raw: string = entry.notes ?? entry.note ?? ''
+                  return {
+                    kind: 'note',
+                    timestamp: entry.created_at ?? entry.changed_at ?? '',
+                    actor: entry.actor_name ?? entry.user_profiles?.preferred_name ?? null,
+                    text: raw.split('|prev_clean_type=')[0].trim(),
+                  }
+                })
 
-                    return (
+              const woEvents: RoomEvent[] = roomWorkOrders.map((wo: any): RoomEvent => ({
+                kind: 'wo',
+                timestamp: wo.created_at ?? '',
+                title: wo.title ?? 'Work order',
+                category: wo.category ?? '',
+                status: wo.status ?? '',
+              }))
+
+              const grEvents: RoomEvent[] = allGuestRequests.map((gr: any): RoomEvent => ({
+                kind: 'gr',
+                timestamp: gr.created_at ?? '',
+                title: gr.title ?? 'Guest request',
+                status: gr.status ?? '',
+              }))
+
+              const taskEvents: RoomEvent[] = allTasks.map((t: any): RoomEvent => ({
+                kind: 'task',
+                timestamp: t.created_at ?? '',
+                title: t.title ?? 'Task',
+                status: t.status ?? '',
+              }))
+
+              const sessionEvents: RoomEvent[] = roomSessions.map((s: any): RoomEvent => ({
+                kind: 'session',
+                timestamp: s.started_at ?? '',
+                durationSeconds: s.duration_seconds ?? null,
+                checklistDone: s.checklist_done ?? 0,
+                checklistTotal: s.checklist_total ?? 0,
+                status: s.status ?? '',
+              }))
+
+              const events: RoomEvent[] = [...noteEvents, ...woEvents, ...grEvents, ...taskEvents, ...sessionEvents].sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+              )
+
+              if (events.length === 0) {
+                return <p className="text-sm text-gray-400">No room history yet</p>
+              }
+
+              return (
+                <div className="relative">
+                  <div className="absolute left-1 top-2 bottom-2 w-px bg-gray-200" />
+                  <div className="space-y-4">
+                    {events.map((event, index) => (
                       <div key={index} className="flex items-start gap-3 pl-1">
-                        {/* Timeline dot */}
                         <div className={`relative z-10 w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 border-2 border-white ${
                           index === 0 ? 'bg-gray-700' : 'bg-gray-300'
                         }`} />
-
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                            {event.kind === 'wo' && <Wrench className="w-3 h-3 text-orange-400 shrink-0" />}
+                            {event.kind === 'note' && <MessageSquare className="w-3 h-3 text-blue-400 shrink-0" />}
+                            {event.kind === 'gr' && <MessageSquare className="w-3 h-3 text-violet-400 shrink-0" />}
+                            {event.kind === 'task' && <ClipboardList className="w-3 h-3 text-amber-400 shrink-0" />}
+                            {event.kind === 'session' && <CheckCircle className="w-3 h-3 text-teal-400 shrink-0" />}
                             <span className="text-xs text-gray-400 shrink-0">
-                              {timestamp ? formatHistoryTimestamp(timestamp) : '—'}
+                              {event.timestamp ? formatHistoryTimestamp(event.timestamp) : '—'}
                             </span>
-                            {fromStatus ? (
-                              <>
-                                <span className={`text-xs font-semibold ${getStatusTextClass(fromStatus)}`}>
-                                  {STATUS_LABELS[fromStatus] ?? fromStatus.replace(/_/g, ' ')}
-                                </span>
-                                <span className="text-xs text-gray-400">→</span>
-                                <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
-                                  {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
-                                </span>
-                              </>
-                            ) : (
-                              <span className={`text-xs font-semibold ${getStatusTextClass(entryStatus)}`}>
-                                {STATUS_LABELS[entryStatus] ?? entryStatus.replace(/_/g, ' ')}
-                              </span>
-                            )}
-                            {actor && (
-                              <span className="text-xs text-gray-500 truncate">
-                                — {actor}
-                              </span>
+                            {event.kind === 'note' && event.actor && (
+                              <span className="text-xs text-gray-500 truncate">— {event.actor}</span>
                             )}
                           </div>
-                          {note && (
-                            <p className="text-xs text-gray-500 mt-0.5 leading-snug">{note}</p>
+                          {event.kind === 'note' && (
+                            <p className="text-xs text-gray-700 leading-snug">{event.text}</p>
+                          )}
+                          {event.kind === 'wo' && (
+                            <>
+                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
+                                {event.category}{event.status ? ` · ${event.status.replace(/_/g, ' ')}` : ''}
+                              </p>
+                            </>
+                          )}
+                          {event.kind === 'gr' && (
+                            <>
+                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
+                            </>
+                          )}
+                          {event.kind === 'task' && (
+                            <>
+                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
+                            </>
+                          )}
+                          {event.kind === 'session' && (
+                            <p className="text-xs text-gray-700 leading-snug">
+                              Clean session
+                              {event.durationSeconds != null ? ` · ${Math.round(event.durationSeconds / 60)}m` : ''}
+                              {event.checklistTotal > 0 ? ` · ${event.checklistDone}/${event.checklistTotal} items` : ''}
+                              {event.status === 'abandoned' ? ' · abandoned' : ''}
+                            </p>
                           )}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })())}
           </div>
           )}
           </>}

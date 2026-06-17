@@ -123,6 +123,7 @@ export const engineeringApi = {
     category?: string
     priority?: string
     assigned_to?: string
+    room_id?: string
     page?: number
     per_page?: number
   }) =>

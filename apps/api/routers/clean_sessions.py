@@ -6,7 +6,7 @@ from dateutil import tz as dateutil_tz
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
-from middleware.auth import require_role, CurrentUser
+from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CleanSessionBlockerRequest,
     CompleteCleanSessionRequest,
@@ -234,6 +234,28 @@ async def start_clean_session(
         )
 
     return {"data": session}
+
+
+# ---------------------------------------------------------------------------
+# GET /clean-sessions?room_id=
+# ---------------------------------------------------------------------------
+
+@router.get("")
+async def list_clean_sessions(
+    room_id: str = Query(...),
+    limit: int = Query(20, ge=1, le=50),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    result = (
+        supabase.table("room_clean_sessions")
+        .select("id, room_id, housekeeper_id, clean_type, duration_seconds, started_at, ended_at, status, checklist_done, checklist_total, notes")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("room_id", room_id)
+        .order("started_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return {"data": result.data or []}
 
 
 # ---------------------------------------------------------------------------

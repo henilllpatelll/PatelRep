@@ -154,6 +154,7 @@ async def list_work_orders(
     ] = Query(None),
     priority: Optional[Literal["urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
+    room_id: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     current_user: CurrentUser = Depends(get_current_user),
@@ -177,6 +178,8 @@ async def list_work_orders(
                 q = q.eq("category", category)
             if priority:
                 q = q.eq("priority", priority)
+            if room_id:
+                q = q.eq("room_id", room_id)
             return q
 
         r_mine = _base().eq("assigned_to", current_user.user_id).execute()
@@ -212,6 +215,8 @@ async def list_work_orders(
         query = query.eq("priority", priority)
     if assigned_to:
         query = query.eq("assigned_to", assigned_to)
+    if room_id:
+        query = query.eq("room_id", room_id)
 
     result = query.execute()
     return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
