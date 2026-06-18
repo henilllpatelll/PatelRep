@@ -184,7 +184,7 @@ function AuthListener() {
         writeAppRoleCookie(role)
         fetchProfile()
         setLoading(false)
-      } else if (event === 'TOKEN_REFRESH_FAILED') {
+      } else if ((event as string) === 'TOKEN_REFRESH_FAILED') {
         clear()
         clearHotel()
         writeAppRoleCookie(null)
