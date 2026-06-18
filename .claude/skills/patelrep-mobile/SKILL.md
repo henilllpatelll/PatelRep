@@ -1,6 +1,6 @@
 ---
 name: patelrep-mobile
-description: Expo SDK 51 React Native patterns and conventions for PatelRep apps/mobile/
+description: Expo SDK 54 React Native patterns and conventions for PatelRep apps/mobile/
 metadata:
   filePattern: "apps/mobile/**"
   priority: 10
@@ -8,7 +8,7 @@ metadata:
 
 # PatelRep Mobile Layer
 
-You are working on the **React Native + Expo SDK 51** staff app at `apps/mobile/`.
+You are working on the **React Native + Expo SDK 54** staff app at `apps/mobile/`.
 
 ## Structure
 
@@ -17,15 +17,16 @@ apps/mobile/
 ├── app/
 │   ├── _layout.tsx          Root layout — auth hydration, SplashScreen, i18n init
 │   ├── (auth)/              login.tsx, callback.tsx (magic link)
-│   └── (app)/               Protected tab navigator (tab bar: Rooms, Tasks, Copilot, Logbook, Notifications)
+│   └── (app)/               Protected tab navigator (tab bar: Copilot, My Rooms, Profile, Tasks, Work Orders)
 │       ├── my-rooms/        index.tsx (room list), [roomId].tsx (detail + status update)
 │       ├── work-orders/     index.tsx (tabs: Open/Mine/Done), [woId].tsx (detail + claim/complete)
 │       ├── tasks/           index.tsx
 │       ├── copilot/         index.tsx (AI chat stub)
-│       ├── logbook/         index.tsx
-│       └── notifications/   index.tsx
+│       └── profile/         index.tsx
 ├── lib/
-│   ├── api.ts               Axios wrapper with JWT + 401 retry (NEVER bypass this for API calls)
+│   ├── api/
+│   │   ├── client.ts        Axios wrapper with JWT + 401 retry (NEVER bypass this for API calls)
+│   │   └── workOrders.ts    Typed work order API client
 │   ├── supabase.ts          Supabase JS client for auth only
 │   ├── notifications.ts     Expo Push token registration + handlers
 │   ├── i18n.ts              react-i18next setup
@@ -49,9 +50,9 @@ apps/mobile/
 ## CRITICAL: Auth & API Rules
 
 - **Auth**: Use `lib/supabase.ts` only for session management (`supabase.auth.*`)
-- **All data**: Use `lib/api.ts` (`api.get`, `api.post`, `api.patch`, `api.delete`) — never call Supabase directly for data
-- `api.ts` automatically attaches `Authorization: Bearer <token>` from current session
-- `api.ts` has 401 auto-retry: refreshes token once then re-issues the request
+- **All data**: Use `lib/api/client.ts` (`api.get`, `api.post`, `api.patch`, `api.delete`) — never call Supabase directly for data
+- `client.ts` automatically attaches `Authorization: Bearer <token>` from current session
+- `client.ts` has 401 auto-retry: refreshes token once then re-issues the request
 - API base URL: `EXPO_PUBLIC_API_URL` (e.g., `https://api.patelrep.com/v1`)
 
 ## API Call Pattern

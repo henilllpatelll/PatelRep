@@ -1,6 +1,6 @@
 ---
 name: patelrep-api
-description: FastAPI backend patterns and conventions for PatelRep apps/api/
+description: FastAPI backend patterns and conventions for PatelRep apps/api/ (Python 3.13)
 metadata:
   filePattern: "apps/api/**"
   priority: 10
@@ -8,7 +8,7 @@ metadata:
 
 # PatelRep API Layer
 
-You are working on the **FastAPI Python 3.12** backend at `apps/api/`.
+You are working on the **FastAPI Python 3.13** backend at `apps/api/`.
 
 ## Structure
 
@@ -27,7 +27,8 @@ apps/api/
 ├── routers/             One file per domain
 ├── services/
 │   ├── ai/              sop_rag.py, predictions.py, failure_predictions.py
-│   └── opera/           auth.py, sync.py, webhooks.py
+│   ├── opera/           auth.py, sync.py, webhooks.py
+│   └── policy.py        Shared business rules used across 2+ domains
 └── tests/smoke/         21 smoke tests against live endpoints
 ```
 

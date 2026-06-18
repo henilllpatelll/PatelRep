@@ -43,6 +43,12 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.wolf/hooks/session-start.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "cd \"C:/Users/Henil/projects/PatelRep\" && { netstat -an 2>/dev/null | grep -qE \"[:.]3000[^0-9]\" || nohup npm run dev:web >>/tmp/patelrep-dev-web.log 2>&1 & } && { netstat -an 2>/dev/null | grep -qE \"[:.]8000[^0-9]\" || nohup npm run dev:api >>/tmp/patelrep-dev-api.log 2>&1 & }",
+            "async": true,
+            "statusMessage": "Starting dev servers..."
           }
         ]
       }

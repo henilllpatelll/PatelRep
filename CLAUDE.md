@@ -35,7 +35,7 @@ node apps/web/.next/standalone/server.js
 ```
 PatelRep/
 ├── apps/
-│   ├── api/              FastAPI Python 3.12 (Railway, Dockerfile)
+│   ├── api/              FastAPI Python 3.13 (Railway, Dockerfile)
 │   │   ├── main.py       App factory + router registry (add new domains here)
 │   │   ├── core/         config.py (Pydantic Settings), database.py (Supabase singleton)
 │   │   ├── routers/      21 domain files — one per domain, most business logic lives here

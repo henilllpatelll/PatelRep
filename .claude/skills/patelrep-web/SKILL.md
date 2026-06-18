@@ -1,6 +1,6 @@
 ---
 name: patelrep-web
-description: Next.js 14 App Router patterns and conventions for PatelRep apps/web/
+description: Next.js 16 App Router patterns and conventions for PatelRep apps/web/
 metadata:
   filePattern: "apps/web/**"
   priority: 10
@@ -8,7 +8,7 @@ metadata:
 
 # PatelRep Web Layer
 
-You are working on the **Next.js 14 App Router** web dashboard at `apps/web/`.
+You are working on the **Next.js 16 App Router** web dashboard at `apps/web/`.
 
 ## Structure
 
@@ -22,18 +22,27 @@ apps/web/
 │       ├── engineering/  Work orders, assets, PM schedules
 │       ├── scheduling/   Weekly calendar, shifts
 │       ├── staff/        Staff list, invitations
+│       ├── ai/           AI Copilot chat
+│       ├── tasks/        Task list
+│       ├── guest-requests/ Guest request kanban
+│       ├── logbook/      Shift logbook
+│       ├── lost-found/   Lost & found
 │       ├── sop/          SOP library, RAG query modal
 │       ├── reports/      Analytics, maintenance PDF
 │       ├── billing/      Subscription, usage
 │       └── settings/     Hotel profile, integrations (Opera)
 ├── components/
 │   ├── shared/           Header, Sidebar, Providers
+│   ├── dashboard/        Role-specific views: HousekeeperDashboard, SupervisorDashboard,
+│   │                     EngineerDashboard, ChiefEngineerDashboard, FrontDeskDashboard
 │   ├── housekeeping/     RoomCard, RoomStatusBoard, AssignmentSidebar, etc.
 │   ├── engineering/      WorkOrderCard, AssetDetail, etc.
 │   └── ai/               SOPQueryModal, PredictionPanel
 ├── lib/
 │   ├── api/              Typed API clients (housekeepingApi, staffApi, etc.)
-│   ├── hooks/            useAuth.ts, useRole.ts
+│   ├── hooks/            useAuth.ts, useRole.ts, useCountUp.ts, useModalFocusTrap.ts
+│   ├── ai/               clientFastPath.ts — client-side AI fast-path helpers
+│   ├── supabase/         Supabase client helpers
 │   └── utils/            roomStatus.ts, formatting helpers
 ├── stores/               Zustand: authStore, hotelStore, housekeepingStore, engineeringStore
 └── i18n/locales/         en.json, es.json
