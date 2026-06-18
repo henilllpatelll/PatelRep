@@ -52,9 +52,13 @@ async function getToken(): Promise<string | null> {
   const storeToken = useAuthStore.getState().session?.access_token
   if (storeToken) return storeToken
   // Fallback: read from Supabase client storage (covers cold-load before authStore hydrates)
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token || null
+  try {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token || null
+  } catch {
+    return null
+  }
 }
 
 interface RequestOptions {

@@ -16,8 +16,13 @@ export function useAuth(): AuthState {
   const supabase = createClient()
 
   const signOut = async (): Promise<void> => {
-    await supabase.auth.signOut()
-    clear()
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Always clear local state even if the server-side sign-out fails
+    } finally {
+      clear()
+    }
   }
 
   return { user, session, loading: isLoading, signOut }

@@ -164,6 +164,9 @@ function AuthListener() {
         fetchProfile()
       }
       setLoading(false)
+    }).catch(() => {
+      // Network error getting session — treat as unauthenticated
+      setLoading(false)
     })
 
     const {
@@ -181,6 +184,13 @@ function AuthListener() {
         writeAppRoleCookie(role)
         fetchProfile()
         setLoading(false)
+      } else if (event === 'TOKEN_REFRESH_FAILED') {
+        clear()
+        clearHotel()
+        writeAppRoleCookie(null)
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          router.replace('/login?reason=session-expired')
+        }
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         setUser(session.user)
         setSession(session)
@@ -205,6 +215,9 @@ function AuthListener() {
         clear()
         clearHotel()
         writeAppRoleCookie(null)
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          router.replace('/login?reason=session-expired')
+        }
       }
     })
 
