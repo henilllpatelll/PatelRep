@@ -171,6 +171,8 @@
     "dndAlert": "Do Not Disturb",
     "vipGuest": "VIP Guest",
     "noRooms": "No rooms assigned",
+    "pullToRefreshHint": "Pull to refresh if your supervisor adds assignments.",
+    "apiError": "API error: {{error}}",
     "floor": "Floor {{floor}}",
     "eta": "Ready by {{time}}",
     "reportIssue": "Report Issue",
@@ -188,12 +190,210 @@
     "allRoomsDone": "All rooms handled",
     "allRoomsDoneHint": "Everything is submitted, ready, or blocked — see the Done tab.",
     "nothingDoneYet": "Nothing finished yet",
-    "nothingDoneYetHint": "Rooms show here once they're submitted, inspected, or blocked."
+    "nothingDoneYetHint": "Rooms show here once they're submitted, inspected, or blocked.",
+    "detail": {
+      "roomEyebrow": "Room",
+      "status": {
+        "DIRTY": "Vacant Dirty",
+        "OCCUPIED": "Occupied Dirty",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "In Progress",
+        "CLEAN": "Submitted",
+        "INSPECTED": "Ready",
+        "OOO": "Out of Order / Out of Service",
+        "OUT_OF_ORDER": "Out of Order / Out of Service",
+        "OUT_OF_SERVICE": "Out of Order / Out of Service",
+        "UNKNOWN": "{{status}}"
+      },
+      "cleanType": {
+        "DEP": "Departure",
+        "FULL": "Full",
+        "LIGHT": "Light"
+      },
+      "cleanTypeAccessibility": "{{type}} clean type",
+      "departure": {
+        "title": "Departure Room",
+        "subtitle": "Guest checked out — full turnover required"
+      },
+      "beforeEnter": "Before you enter",
+      "removeNote": "Remove note",
+      "warnings": {
+        "dnd": {
+          "label": "DND active",
+          "detail": "Do not enter until front desk clears the room."
+        },
+        "checkout": {
+          "label": "Not checked out",
+          "detail": "Guest has not officially checked out. Knock and confirm before entering."
+        },
+        "occupied": {
+          "label": "Guest may be inside",
+          "detail": "Confirm access before entering."
+        },
+        "workOrder": {
+          "label": "Open work order",
+          "detail": "Engineering has an open item."
+        },
+        "risk": {
+          "label": "High risk",
+          "detail": "Review room context before completing."
+        },
+        "note": {
+          "label": "Latest note"
+        },
+        "arrival": {
+          "label": "Arrival soon",
+          "detail": "Prioritize once the room is safe to enter."
+        }
+      },
+      "reservationTiming": "Reservation / Timing",
+      "noReservationTiming": "No reservation timing attached.",
+      "timing": {
+        "guest": "Guest",
+        "foStatus": "FO status",
+        "checkin": "Check-in",
+        "scheduledCheckout": "Scheduled checkout",
+        "actualCheckout": "Actual checkout",
+        "cleaningStarted": "Cleaning started",
+        "predictedReady": "Predicted ready"
+      },
+      "blockerSections": {
+        "roomFlags": "Room Flags",
+        "quickBlockers": "Quick Blockers"
+      },
+      "customFlag": {
+        "short": "Custom",
+        "title": "Custom Flag",
+        "placeholder": "Type anything to flag for your supervisor...",
+        "add": "Add Flag"
+      },
+      "cleaningChecklist": "Cleaning Checklist",
+      "checklist": {
+        "stripBed": "Strip bed",
+        "trashRemoved": "Trash removed",
+        "bathroomCleaned": "Bathroom cleaned",
+        "amenitiesRestocked": "Amenities restocked",
+        "floorsCleaned": "Floors cleaned",
+        "finalPresentation": "Final presentation",
+        "bedMade": "Bed made",
+        "towelsReplaced": "Towels replaced",
+        "towelsRefreshed": "Towels refreshed",
+        "bedRefreshed": "Bed refreshed",
+        "bathroomChecked": "Bathroom checked",
+        "amenitiesToppedOff": "Amenities topped off"
+      },
+      "lastAction": {
+        "started": "Started",
+        "markedClean": "Marked clean",
+        "markedReady": "Marked ready",
+        "returnedToCleaning": "Returned to cleaning",
+        "markedOutOfOrder": "Marked out of order",
+        "markedPickup": "Marked pickup",
+        "updated": "Updated",
+        "byYou": " by you",
+        "at": "{{action}}{{actor}} at {{time}}",
+        "only": "{{action}}{{actor}}"
+      },
+      "primary": {
+        "startCleaning": "Start Cleaning",
+        "markClean": "Mark Clean",
+        "guestCheckedOutStart": "Guest Checked Out — Start Cleaning",
+        "submitted": "Submitted - Waiting for Supervisor",
+        "ready": "Ready",
+        "blocked": "Blocked",
+        "view": "View",
+        "undo": "Undo"
+      },
+      "alerts": {
+        "offlineTitle": "Offline",
+        "updateRoomFailed": "Failed to update room",
+        "undoFailed": "Failed to undo",
+        "notesNeedConnection": "Notes need a connection. Status changes will still queue offline.",
+        "saveNoteFailed": "Failed to save note",
+        "blockersNeedConnection": "Quick blockers need a connection. Status changes will still queue offline.",
+        "reportBlockerFailed": "Failed to report blocker",
+        "dndNeedsConnection": "DND changes need a connection.",
+        "updateDndFailed": "Failed to update DND",
+        "serviceNeedsConnection": "Service changes need a connection.",
+        "updateServiceFailed": "Failed to update service status"
+      },
+      "finishCurrentRoom": "Finish your current room before starting another.",
+      "checklistGateHint": "Complete checklist first — {{done}} of {{total}} done."
+    },
+    "detailActions": {
+      "title": "Actions",
+      "addNote": "Add Note",
+      "workOrder": "Work Order",
+      "lostFound": "Lost & Found",
+      "supplies": "Supplies",
+      "clearDnd": "Clear DND",
+      "skipDnd": "Skip (DND)",
+      "restoreService": "Restore Service",
+      "declineService": "Decline Service",
+      "notePlaceholder": "Leave a note for your supervisor or team...",
+      "saveNote": "Save Note",
+      "cancel": "Cancel",
+      "noteSaved": "Note saved"
+    },
+    "sections": {
+      "needsAttention": "Needs Attention",
+      "skippedDnd": "Skipped — DND",
+      "submitted": "Submitted",
+      "ready": "Ready",
+      "blocked": "Blocked / Out of Service"
+    },
+    "card": {
+      "status": {
+        "DIRTY": "Vacant Dirty",
+        "OCCUPIED": "Occupied Dirty",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "In Progress",
+        "CLEAN": "Submitted",
+        "INSPECTED": "Ready",
+        "OOO": "Out of Order",
+        "OUT_OF_ORDER": "Out of Order",
+        "OUT_OF_SERVICE": "Out of Service",
+        "UNKNOWN": "{{status}}"
+      },
+      "cleanType": {
+        "DEP": "Departure",
+        "FULL": "Full",
+        "LIGHT": "Light",
+        "FULL_DONE": "Full Done",
+        "LIGHT_DONE": "Light Done"
+      },
+      "cleanTypeAccessibility": "{{type}} clean type",
+      "timing": {
+        "checkedOut": "Checked out",
+        "dueOut": "Due out",
+        "arrival": "Arrival",
+        "unknown": "{{label}}"
+      },
+      "badges": {
+        "dnd": "DND",
+        "work_order": "WO",
+        "note": "Note",
+        "risk": "Risk",
+        "arrival": "Arrival Soon",
+        "checkout": "Not Checked Out"
+      },
+      "action": {
+        "start": "Start",
+        "done": "Done",
+        "review": "Review",
+        "waiting": "Waiting",
+        "ready": "Ready",
+        "blocked": "Blocked",
+        "view": "View",
+        "dnd": "DND"
+      }
+    }
   },
   "workOrders": {
     "title": "Work orders",
     "kicker": "Engineering",
     "allRooms": "Rooms",
+    "newWorkOrder": "New WO",
     "detailKicker": "Work order",
     "summary": "{{open}} open · {{active}} in progress",
     "sectionBench": "On your bench",
@@ -315,6 +515,10 @@
     "justNow": "Just now",
     "minutesAgo": "{{minutes}}m ago",
     "hoursAgo": "{{hours}}h ago",
+    "failChecklistLabel": "Mark items that failed",
+    "detail": {
+      "title": "Room {{room}} Inspection"
+    },
     "result": {
       "passed": "Passed",
       "failed": "Failed",
@@ -535,6 +739,13 @@
       "OUT_OF_ORDER": "Out of Order",
       "OUT_OF_SERVICE": "Out of Service"
     },
+    "legend": {
+      "dirty": "Dirty",
+      "pickup": "Pickup",
+      "submitted": "Submitted",
+      "ready": "Ready",
+      "ooo": "OOO"
+    },
     "sheet": {
       "assignedTo": "Assigned to",
       "assign": "Assign",
@@ -564,6 +775,10 @@
     "checkout": "Checkout {{time}}",
     "noRoomsMatch": "No rooms match",
     "noRoomsMatchHint": "Try a different filter or search term.",
+    "roomActionTitle": "Room {{room}}",
+    "createWo": "Create Work Order",
+    "placeOOO": "Place On OOO",
+    "oooError": "Could not place room on OOO. Try again.",
     "statusLabels": {
       "DIRTY": "Dirty",
       "IN_PROGRESS": "In Progress",
@@ -606,6 +821,7 @@
     "applyAll": "Assign all",
     "applying": "Assigning…",
     "suggestEmpty": "Nothing to balance right now.",
+    "suggestShiftGap": "AI balance uses today's clock-in schedule, which isn't populated yet. Your manual assignments are still active — use them to continue.",
     "suggestError": "Could not get suggestions. Try again.",
     "applyError": "Could not save the assignments. Try again.",
     "unassignedSection": "Needs a housekeeper",
@@ -617,7 +833,10 @@
     "reassign": "Reassign",
     "removeAssignment": "Remove assignment",
     "noAssignments": "No assignments yet",
-    "noAssignmentsHint": "Pull to refresh or check back after morning setup."
+    "noAssignmentsHint": "Pull to refresh or check back after morning setup.",
+    "assignFloor": "Assign floor",
+    "assignFloorTitle": "Floor {{floor}} — {{count}} rooms",
+    "floorSection": "Floor {{floor}}"
   },
   "logbook": {
     "title": "Shift Logbook",

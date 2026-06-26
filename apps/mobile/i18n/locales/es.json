@@ -171,6 +171,8 @@
     "dndAlert": "No Molestar",
     "vipGuest": "Huésped VIP",
     "noRooms": "Sin cuartos asignados",
+    "pullToRefreshHint": "Desliza para actualizar si tu supervisor agrega asignaciones.",
+    "apiError": "Error de API: {{error}}",
     "floor": "Piso {{floor}}",
     "eta": "Listo a las {{time}}",
     "reportIssue": "Reportar Problema",
@@ -188,12 +190,210 @@
     "allRoomsDone": "Todos los cuartos atendidos",
     "allRoomsDoneHint": "Todo está enviado, listo o bloqueado — mira la pestaña Hechos.",
     "nothingDoneYet": "Nada terminado aún",
-    "nothingDoneYetHint": "Los cuartos aparecen aquí cuando están enviados, inspeccionados o bloqueados."
+    "nothingDoneYetHint": "Los cuartos aparecen aquí cuando están enviados, inspeccionados o bloqueados.",
+    "detail": {
+      "roomEyebrow": "Cuarto",
+      "status": {
+        "DIRTY": "Vacante Sucio",
+        "OCCUPIED": "Ocupado Sucio",
+        "PICKUP": "Recogida",
+        "IN_PROGRESS": "En Progreso",
+        "CLEAN": "Enviado",
+        "INSPECTED": "Listo",
+        "OOO": "Fuera de Orden / Fuera de Servicio",
+        "OUT_OF_ORDER": "Fuera de Orden / Fuera de Servicio",
+        "OUT_OF_SERVICE": "Fuera de Orden / Fuera de Servicio",
+        "UNKNOWN": "{{status}}"
+      },
+      "cleanType": {
+        "DEP": "Salida",
+        "FULL": "Completa",
+        "LIGHT": "Ligera"
+      },
+      "cleanTypeAccessibility": "Tipo de limpieza: {{type}}",
+      "departure": {
+        "title": "Cuarto de Salida",
+        "subtitle": "El huésped salió — limpieza completa requerida"
+      },
+      "beforeEnter": "Antes de entrar",
+      "removeNote": "Quitar nota",
+      "warnings": {
+        "dnd": {
+          "label": "No Molestar activo",
+          "detail": "No entres hasta que recepción libere el cuarto."
+        },
+        "checkout": {
+          "label": "No ha salido",
+          "detail": "El huésped no ha hecho checkout oficialmente. Toca y confirma antes de entrar."
+        },
+        "occupied": {
+          "label": "El huésped puede estar adentro",
+          "detail": "Confirma acceso antes de entrar."
+        },
+        "workOrder": {
+          "label": "Orden de trabajo abierta",
+          "detail": "Ingeniería tiene un pendiente abierto."
+        },
+        "risk": {
+          "label": "Alto riesgo",
+          "detail": "Revisa el contexto del cuarto antes de terminar."
+        },
+        "note": {
+          "label": "Última nota"
+        },
+        "arrival": {
+          "label": "Llegada pronto",
+          "detail": "Prioriza cuando sea seguro entrar al cuarto."
+        }
+      },
+      "reservationTiming": "Reservación / Horarios",
+      "noReservationTiming": "Sin horarios de reservación.",
+      "timing": {
+        "guest": "Huésped",
+        "foStatus": "Estado FO",
+        "checkin": "Check-in",
+        "scheduledCheckout": "Checkout programado",
+        "actualCheckout": "Checkout real",
+        "cleaningStarted": "Limpieza iniciada",
+        "predictedReady": "Listo estimado"
+      },
+      "blockerSections": {
+        "roomFlags": "Alertas del Cuarto",
+        "quickBlockers": "Bloqueos Rápidos"
+      },
+      "customFlag": {
+        "short": "Personalizado",
+        "title": "Alerta Personalizada",
+        "placeholder": "Escribe cualquier cosa para avisar a tu supervisor...",
+        "add": "Agregar Alerta"
+      },
+      "cleaningChecklist": "Lista de Limpieza",
+      "checklist": {
+        "stripBed": "Quitar sábanas",
+        "trashRemoved": "Basura retirada",
+        "bathroomCleaned": "Baño limpiado",
+        "amenitiesRestocked": "Amenidades repuestas",
+        "floorsCleaned": "Pisos limpiados",
+        "finalPresentation": "Presentación final",
+        "bedMade": "Cama hecha",
+        "towelsReplaced": "Toallas cambiadas",
+        "towelsRefreshed": "Toallas renovadas",
+        "bedRefreshed": "Cama retocada",
+        "bathroomChecked": "Baño revisado",
+        "amenitiesToppedOff": "Amenidades completadas"
+      },
+      "lastAction": {
+        "started": "Iniciado",
+        "markedClean": "Marcado limpio",
+        "markedReady": "Marcado listo",
+        "returnedToCleaning": "Regresado a limpieza",
+        "markedOutOfOrder": "Marcado fuera de orden",
+        "markedPickup": "Marcado recogida",
+        "updated": "Actualizado",
+        "byYou": " por ti",
+        "at": "{{action}}{{actor}} a las {{time}}",
+        "only": "{{action}}{{actor}}"
+      },
+      "primary": {
+        "startCleaning": "Empezar Limpieza",
+        "markClean": "Marcar Limpio",
+        "guestCheckedOutStart": "Huésped Salió — Empezar Limpieza",
+        "submitted": "Enviado - Esperando Supervisor",
+        "ready": "Listo",
+        "blocked": "Bloqueado",
+        "view": "Ver",
+        "undo": "Deshacer"
+      },
+      "alerts": {
+        "offlineTitle": "Sin conexión",
+        "updateRoomFailed": "No se pudo actualizar el cuarto",
+        "undoFailed": "No se pudo deshacer",
+        "notesNeedConnection": "Las notas necesitan conexión. Los cambios de estado se guardarán para sincronizar.",
+        "saveNoteFailed": "No se pudo guardar la nota",
+        "blockersNeedConnection": "Los bloqueos rápidos necesitan conexión. Los cambios de estado se guardarán para sincronizar.",
+        "reportBlockerFailed": "No se pudo reportar el bloqueo",
+        "dndNeedsConnection": "Los cambios de No Molestar necesitan conexión.",
+        "updateDndFailed": "No se pudo actualizar No Molestar",
+        "serviceNeedsConnection": "Los cambios de servicio necesitan conexión.",
+        "updateServiceFailed": "No se pudo actualizar el estado del servicio"
+      },
+      "finishCurrentRoom": "Termina tu cuarto actual antes de empezar otro.",
+      "checklistGateHint": "Completa la lista primero — {{done}} de {{total}} listos."
+    },
+    "detailActions": {
+      "title": "Acciones",
+      "addNote": "Agregar Nota",
+      "workOrder": "Orden de Trabajo",
+      "lostFound": "Objetos Perdidos",
+      "supplies": "Suministros",
+      "clearDnd": "Quitar No Molestar",
+      "skipDnd": "Omitir (No Molestar)",
+      "restoreService": "Restaurar Servicio",
+      "declineService": "Rechazar Servicio",
+      "notePlaceholder": "Deja una nota para tu supervisor o equipo...",
+      "saveNote": "Guardar Nota",
+      "cancel": "Cancelar",
+      "noteSaved": "Nota guardada"
+    },
+    "sections": {
+      "needsAttention": "Necesitan Atención",
+      "skippedDnd": "Omitidos — No Molestar",
+      "submitted": "Enviados",
+      "ready": "Listos",
+      "blocked": "Bloqueados / Fuera de Servicio"
+    },
+    "card": {
+      "status": {
+        "DIRTY": "Vacante Sucio",
+        "OCCUPIED": "Ocupado Sucio",
+        "PICKUP": "Recogida",
+        "IN_PROGRESS": "En Progreso",
+        "CLEAN": "Enviado",
+        "INSPECTED": "Listo",
+        "OOO": "Fuera de Orden",
+        "OUT_OF_ORDER": "Fuera de Orden",
+        "OUT_OF_SERVICE": "Fuera de Servicio",
+        "UNKNOWN": "{{status}}"
+      },
+      "cleanType": {
+        "DEP": "Salida",
+        "FULL": "Completa",
+        "LIGHT": "Ligera",
+        "FULL_DONE": "Completa Hecha",
+        "LIGHT_DONE": "Ligera Hecha"
+      },
+      "cleanTypeAccessibility": "Tipo de limpieza: {{type}}",
+      "timing": {
+        "checkedOut": "Checkout hecho",
+        "dueOut": "Salida prevista",
+        "arrival": "Llegada",
+        "unknown": "{{label}}"
+      },
+      "badges": {
+        "dnd": "No Molestar",
+        "work_order": "OT",
+        "note": "Nota",
+        "risk": "Riesgo",
+        "arrival": "Llegada Pronto",
+        "checkout": "No Ha Salido"
+      },
+      "action": {
+        "start": "Empezar",
+        "done": "Hecho",
+        "review": "Revisar",
+        "waiting": "En Espera",
+        "ready": "Listo",
+        "blocked": "Bloqueado",
+        "view": "Ver",
+        "dnd": "No Molestar"
+      }
+    }
   },
   "workOrders": {
     "title": "Órdenes de trabajo",
     "kicker": "Mantenimiento",
     "allRooms": "Cuartos",
+    "newWorkOrder": "Nueva OT",
     "detailKicker": "Orden de trabajo",
     "summary": "{{open}} abiertas · {{active}} en progreso",
     "sectionBench": "En tu banco",
@@ -315,6 +515,10 @@
     "justNow": "Justo ahora",
     "minutesAgo": "hace {{minutes}}m",
     "hoursAgo": "hace {{hours}}h",
+    "failChecklistLabel": "Marca los items que fallaron",
+    "detail": {
+      "title": "Inspección Cuarto {{room}}"
+    },
     "result": {
       "passed": "Aprobado",
       "failed": "Reprobado",
@@ -535,6 +739,13 @@
       "OUT_OF_ORDER": "Fuera de Orden",
       "OUT_OF_SERVICE": "Fuera de Servicio"
     },
+    "legend": {
+      "dirty": "Sucio",
+      "pickup": "Recogida",
+      "submitted": "Enviado",
+      "ready": "Listo",
+      "ooo": "FDS"
+    },
     "sheet": {
       "assignedTo": "Asignado a",
       "assign": "Asignar",
@@ -564,6 +775,10 @@
     "checkout": "Salida {{time}}",
     "noRoomsMatch": "Sin cuartos que coincidan",
     "noRoomsMatchHint": "Prueba otro filtro o término de búsqueda.",
+    "roomActionTitle": "Cuarto {{room}}",
+    "createWo": "Crear Orden de Trabajo",
+    "placeOOO": "Poner Fuera de Servicio",
+    "oooError": "No se pudo poner el cuarto fuera de servicio. Intenta de nuevo.",
     "statusLabels": {
       "DIRTY": "Sucio",
       "IN_PROGRESS": "En Progreso",
@@ -606,6 +821,7 @@
     "applyAll": "Asignar todo",
     "applying": "Asignando…",
     "suggestEmpty": "No hay nada que balancear por ahora.",
+    "suggestShiftGap": "El balance de IA usa el horario de entrada de hoy, que aún no está registrado. Tus asignaciones manuales siguen activas.",
     "suggestError": "No se pudieron obtener sugerencias. Intenta de nuevo.",
     "applyError": "No se pudieron guardar las asignaciones. Intenta de nuevo.",
     "unassignedSection": "Necesitan camarera",
@@ -617,7 +833,10 @@
     "reassign": "Reasignar",
     "removeAssignment": "Quitar asignación",
     "noAssignments": "Sin asignaciones aún",
-    "noAssignmentsHint": "Jala para actualizar o vuelve después de la preparación matutina."
+    "noAssignmentsHint": "Jala para actualizar o vuelve después de la preparación matutina.",
+    "assignFloor": "Asignar piso",
+    "assignFloorTitle": "Piso {{floor}} — {{count}} cuartos",
+    "floorSection": "Piso {{floor}}"
   },
   "logbook": {
     "title": "Bitácora de Turno",

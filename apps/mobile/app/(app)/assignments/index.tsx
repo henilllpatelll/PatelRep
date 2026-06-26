@@ -28,6 +28,7 @@ import {
   buildFloorSnapshot,
   buildNameById,
   buildTeamLoads,
+  groupByFloor,
   isActionable,
   normalizeBoardRooms,
   sortRoomsByNumber,
@@ -56,6 +57,7 @@ export default function AssignmentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
+  const [floorPickerRooms, setFloorPickerRooms] = useState<FloorRoom[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<AssignmentSuggestion[] | null>(null);
@@ -117,6 +119,10 @@ export default function AssignmentsScreen() {
     () => sortRoomsByNumber(rooms.filter((room) => isActionable(room.status) && !room.assignedTo)),
     [rooms],
   );
+  const unassignedByFloor = useMemo(
+    () => groupByFloor(rooms.filter((room) => isActionable(room.status) && !room.assignedTo)),
+    [rooms],
+  );
   const assignedCount = rooms.filter((room) => room.assignedTo != null).length;
 
   const signals = useMemo<HeroSignal[]>(
@@ -144,7 +150,14 @@ export default function AssignmentsScreen() {
       if (result.suggestions.length > 0) {
         setSuggestions(result.suggestions);
       } else {
-        setSuggestNotice(result.message || t("assignments.suggestEmpty"));
+        // If rooms are already manually assigned but shift schedule is empty, the AI
+        // returns "no housekeepers on shift". Surface a more helpful explanation.
+        const hasAssignments = rooms.some((r) => r.assignedTo != null);
+        setSuggestNotice(
+          hasAssignments
+            ? t("assignments.suggestShiftGap")
+            : result.message || t("assignments.suggestEmpty"),
+        );
       }
     } catch {
       setSuggestNotice(t("assignments.suggestError"));
@@ -178,6 +191,22 @@ export default function AssignmentsScreen() {
 
   const assignTo = useCallback(
     async (member: AssignableStaff) => {
+      if (floorPickerRooms) {
+        setSaving(true);
+        try {
+          await saveAssignments(
+            localDate(),
+            floorPickerRooms.map((room) => ({ room_id: room.roomId, housekeeper_id: member.userId })),
+          );
+          setFloorPickerRooms(null);
+          await loadData();
+        } catch (err) {
+          console.warn("Floor assign failed:", err);
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
       if (!pickerRoom) return;
       setSaving(true);
       try {
@@ -192,7 +221,7 @@ export default function AssignmentsScreen() {
         setSaving(false);
       }
     },
-    [pickerRoom, loadData],
+    [pickerRoom, floorPickerRooms, loadData],
   );
 
   const onAssignedRoomPress = useCallback(
@@ -271,35 +300,50 @@ export default function AssignmentsScreen() {
             </View>
           ) : null}
 
-          {unassigned.length > 0 ? (
+          {unassignedByFloor.length > 0 ? (
             <View>
               <SectionLabel hint={t("assignments.roomCount", { count: unassigned.length })}>
                 {t("assignments.unassignedSection")}
               </SectionLabel>
               <View style={styles.rows}>
-                {unassigned.map((room) => {
-                  const meta = getStatusMeta(room.status);
-                  return (
-                    <TouchableOpacity
-                      key={room.roomId}
-                      style={styles.unassignedRow}
-                      onPress={() => setPickerRoom(room)}
-                      activeOpacity={0.8}
-                      testID={`unassigned-${room.roomNumber}`}
-                    >
-                      <StatusRail status={room.status} />
-                      <Text style={styles.unassignedNumber}>{room.roomNumber}</Text>
-                      <View style={styles.unassignedBody}>
-                        <Text style={[styles.unassignedStatus, { color: meta.fg }]}>{meta.label}</Text>
-                        <Text style={styles.unassignedMeta}>
-                          {t("roomBoard.floor", { floor: room.floor })}
-                          {room.cleanTypeLabel ? ` · ${room.cleanTypeLabel}` : ""}
-                        </Text>
-                      </View>
-                      <Ionicons name="person-add-outline" size={17} color={C.accent} />
-                    </TouchableOpacity>
-                  );
-                })}
+                {unassignedByFloor.map(({ floor, rooms: floorRooms }) => (
+                  <View key={floor} style={styles.floorGroup}>
+                    <View style={styles.floorHeader}>
+                      <Text style={styles.floorLabel}>{t("assignments.floorSection", { floor })}</Text>
+                      <TouchableOpacity
+                        style={styles.assignFloorBtn}
+                        onPress={() => setFloorPickerRooms(floorRooms)}
+                        activeOpacity={0.8}
+                        testID={`assign-floor-${floor}`}
+                      >
+                        <Ionicons name="people-outline" size={13} color={C.accent} />
+                        <Text style={styles.assignFloorText}>{t("assignments.assignFloor")}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {floorRooms.map((room) => {
+                      const meta = getStatusMeta(room.status);
+                      return (
+                        <TouchableOpacity
+                          key={room.roomId}
+                          style={styles.unassignedRow}
+                          onPress={() => setPickerRoom(room)}
+                          activeOpacity={0.8}
+                          testID={`unassigned-${room.roomNumber}`}
+                        >
+                          <StatusRail status={room.status} />
+                          <Text style={styles.unassignedNumber}>{room.roomNumber}</Text>
+                          <View style={styles.unassignedBody}>
+                            <Text style={[styles.unassignedStatus, { color: meta.fg }]}>{meta.label}</Text>
+                            <Text style={styles.unassignedMeta}>
+                              {room.cleanTypeLabel ? room.cleanTypeLabel : ""}
+                            </Text>
+                          </View>
+                          <Ionicons name="person-add-outline" size={17} color={C.accent} />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
             </View>
           ) : null}
@@ -337,13 +381,18 @@ export default function AssignmentsScreen() {
       </ScrollView>
 
       <HousekeeperPicker
-        visible={pickerRoom != null}
+        visible={pickerRoom != null || floorPickerRooms != null}
         roomNumber={pickerRoom?.roomNumber ?? null}
-        staff={staff}
+        customTitle={
+          floorPickerRooms
+            ? t("assignments.assignFloorTitle", { floor: floorPickerRooms[0]?.floor ?? 0, count: floorPickerRooms.length })
+            : null
+        }
+        staff={staff.filter((member) => member.role === "housekeeper")}
         loads={teamLoads}
         saving={saving}
         onSelect={(member) => void assignTo(member)}
-        onClose={() => setPickerRoom(null)}
+        onClose={() => { setPickerRoom(null); setFloorPickerRooms(null); }}
       />
 
       {/* AI suggestion review sheet */}
@@ -512,6 +561,28 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   noticeText: { flex: 1, fontSize: 12.5, lineHeight: 18, color: C.ink2 },
+
+  floorGroup: { gap: 6 },
+  floorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+    marginTop: 4,
+  },
+  floorLabel: { fontSize: 11, fontWeight: "800", color: C.ink3, textTransform: "uppercase", letterSpacing: 0.5 },
+  assignFloorBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.accentLine,
+    backgroundColor: C.surface,
+  },
+  assignFloorText: { fontSize: 11.5, fontWeight: "700", color: C.accent },
 
   unassignedRow: {
     position: "relative",

@@ -12,6 +12,7 @@ import type { AssignableStaff, TeamLoad } from "@/lib/housekeeping/supervisor";
 export function HousekeeperPicker({
   visible,
   roomNumber,
+  customTitle,
   staff,
   loads,
   saving,
@@ -20,6 +21,7 @@ export function HousekeeperPicker({
 }: {
   visible: boolean;
   roomNumber: string | null;
+  customTitle?: string | null;
   staff: AssignableStaff[];
   loads: TeamLoad[];
   saving: boolean;
@@ -35,7 +37,7 @@ export function HousekeeperPicker({
       <View style={styles.sheet}>
         <View style={styles.grabber} />
         <Text style={styles.title}>
-          {roomNumber ? t("picker.title", { room: roomNumber }) : t("picker.titleGeneric")}
+          {customTitle ?? (roomNumber ? t("picker.title", { room: roomNumber }) : t("picker.titleGeneric"))}
         </Text>
         <Text style={styles.subtitle}>{t("picker.subtitle")}</Text>
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>

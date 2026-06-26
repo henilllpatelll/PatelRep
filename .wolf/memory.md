@@ -1,7 +1,13 @@
 ﻿# Memory
+| 2026-06-25 | WORKFLOW_FINDINGS_2026-06-25: fixed B7 (checklist gate), B2 (12s timeout on submitBlocker), B4 (suggestShiftGap), B5 (housekeeper-only picker filter), B1 (signOut scope:local + router.replace). Wired CreateWorkOrderModal to Orders tab (roomId optional). Inspection fail checklist + tappable done rows. OOO action on engineer room tap. Come Back Later 2PM/3PM presets. i18n en+es updated. TS clean. Remaining: #12 Room Board legend, #13 section-assign (LOW). | [roomId].tsx, roomBlockers.ts, assignments/index.tsx, work-orders/index.tsx, CreateWorkOrderModal.tsx, inspect/index.tsx, room-status/index.tsx, profile/index.tsx, workOrders.ts, en.json, es.json | complete | ~200 tok |
+| 2026-06-24 | ROLE 3 ENGINEERING: bug-195 fix (useFocusEffect on WO list so completed WOs clear on focus). G14 lowChip in WorkOrderCard. G15 optimistic claim (online + offline unified). G20/G21 room cards tappable for engineers + CreateWorkOrderModal (new file). G23 search bar in WO list header with row filtering. TS clean. G22/G24/G17 already implemented. | WorkOrderCard.tsx, work-orders/index.tsx, room-status/index.tsx, CreateWorkOrderModal.tsx | complete | ~70 tok |
+| 2026-06-24 | ROLE 2 SUPERVISOR: bug-193 fix (tz_offset on inspections endpoint), bug-194 fix (AI suggest fallback to user_profiles), TS fix (vip on FloorSnapshot). G8 passedToday tile, G9 active room in TeamLoadRow, G10 avg min, G11 improved assign tile, G12 ShiftNoteModal, G13 BroadcastModal. | supervisor.ts, SupervisorHome.tsx, atoms.tsx, housekeeping.py, inspect/index.tsx, date.ts | complete | ~80 tok |
+| 2026-06-24 | ROLE 1 HOUSEKEEPING: Fixed statusLoading stuck bug (12s safety timeout). Added G1 DEP departure banner + card border, G2 DND hidden for vacant rooms (showDndChip), G4 "Cleaning started" in timingRows, G5 SupplyRequestModal (new file). G6 already done, G3/G7 need API work. | [roomId].tsx, evening.tsx, SupplyRequestModal.tsx | complete | ~60 tok |
+| 2026-06-24 | Full workflow QA test: Claudia (housekeeping), Sandra (supervisor), Miguel (engineering) on Android emulator. Logged 3 new bugs (193-195). See WORKFLOW_FINDINGS_2026-06-24.md for full report. | buglog.json, .wolf/designqc-captures/ | complete | ~120 tok |
 | 2026-06-16 | Extended latest_note lookback from activity_start (today only) to 14 days in _attach_room_activity; query_start = min(reset_times + [14_days_ago]); limit bumped to max(N*10,200). Engineering WOs already date-filter-free. stay_reset_at only set on DEP inspection (correct). | apps/api/routers/housekeeping.py | complete | ~20 tok |
 | 2026-06-16 | Smart order now proximity-routes rooms via greedy nearest-neighbor within priority tiers — exports getCleaningQueueScore, adds roomSuffix/roomProximityDistance/nearestNeighborRoute in briefing.ts, 3 new tests pass | roomWorkflow.ts, briefing.ts, __tests__/lib/roomWorkflow.test.ts | complete | ~50 tok |
 | 2026-06-15 | Assign mode UX fixes: purple card click opens room details (not blocked), remove button shows spinner, silent skip for already-assigned rooms (no toast) | RoomCard.tsx, RoomStatusBoard.tsx | complete | ~25 tok |
+| 15:07 | Room History: notes + work orders merged into one timeline; status transitions excluded; list_work_orders now accepts room_id filter | RoomDetailDrawer.tsx, work_orders.py, engineering.ts | complete | ~20 tok |
 | 15:30 | Added Building A/B filter to room board and assign mode | housekeepingBoardFilters.ts, housekeepingStore.ts, RoomStatusBoard.tsx, AssignmentSidebar.tsx | complete | ~80 tok |
 | 2026-06-10 | Restyled clean-type labels (Departure/Light/Full) on My Rooms room cards to pill badges matching IMG_6396: DEP → stone pill (oooSoft/oooLine/ooo) with arrow-back icon, LIGHT/FULL → amber pill (cautionSoft/cautionLine/caution). | apps/mobile/app/(app)/my-rooms/index.tsx | complete | ~30 tok |
 | 2026-06-10 | Open decisions complete: removed my-rooms/index from HIDDEN_APP_ROUTES; hotel-tz fix in get_sessions_summary (dateutil, midnight→UTC bounds); handleMaintenanceBlocker in clean/[roomId].tsx; ChevronUp/Down ordering in CleaningChecklistEditor; 058_clean_photos_private.sql + signed URLs in clean_sessions.py. 52 tests pass. | roleTabs.ts, clean_sessions.py, clean/[roomId].tsx, CleaningChecklistEditor.tsx, 058_clean_photos_private.sql | complete | ~180 tok |
@@ -5521,3 +5527,320 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 14:45 | Session end: 4 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~46884 tok |
 | 14:48 | Edited apps/api/routers/housekeeping.py | 18→21 lines | ~213 |
 | 14:48 | Session end: 5 writes across 2 files (housekeeping.py, 063_latest_room_notes_rpc.sql) | 5 reads | ~47170 tok |
+
+## Session: 2026-06-16 15:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~12 |
+| 15:03 | Session end: 1 writes across 1 files (RoomDetailDrawer.tsx) | 1 reads | ~10812 tok |
+| 15:07 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: raw, raw | ~1031 |
+| 15:08 | Session end: 2 writes across 1 files (RoomDetailDrawer.tsx) | 4 reads | ~36352 tok |
+| 15:11 | Edited apps/api/routers/work_orders.py | modified _base() | ~708 |
+| 15:11 | Edited apps/web/lib/api/engineering.ts | 8→9 lines | ~54 |
+| 15:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: room_id, per_page | ~170 |
+| 15:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: roomWorkOrders | ~51 |
+| 15:12 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified trim() | ~1276 |
+| 15:13 | Session end: 7 writes across 3 files (RoomDetailDrawer.tsx, work_orders.py, engineering.ts) | 6 reads | ~38392 tok |
+| 15:17 | Session end: 7 writes across 3 files (RoomDetailDrawer.tsx, work_orders.py, engineering.ts) | 6 reads | ~38392 tok |
+| 15:25 | Session end: 7 writes across 3 files (RoomDetailDrawer.tsx, work_orders.py, engineering.ts) | 6 reads | ~38392 tok |
+| 15:30 | Session end: 7 writes across 3 files (RoomDetailDrawer.tsx, work_orders.py, engineering.ts) | 6 reads | ~38392 tok |
+| 15:33 | Edited apps/api/routers/clean_sessions.py | modified list_clean_sessions() | ~262 |
+| 15:33 | Edited apps/api/routers/clean_sessions.py | inline fix | ~21 |
+| 15:34 | Edited apps/web/lib/api/cleanSessions.ts | 4→9 lines | ~136 |
+| 15:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | expanded (+7 lines) | ~174 |
+| 15:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: allGuestRequests, allTasks, roomSessions | ~94 |
+| 15:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~27 |
+| 15:34 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | modified trim() | ~1936 |
+| 15:35 | Session end: 14 writes across 5 files (RoomDetailDrawer.tsx, work_orders.py, engineering.ts, clean_sessions.py, cleanSessions.ts) | 8 reads | ~41523 tok |
+
+## Session: 2026-06-16 15:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:46 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 condition(s) | ~168 |
+| 19:46 | Session end: 20 writes across 1 files (RoomDetailDrawer.tsx) | 2 reads | ~29445 tok |
+| 19:55 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | includes() → test() | ~164 |
+| 19:55 | Session end: 21 writes across 1 files (RoomDetailDrawer.tsx) | 2 reads | ~29609 tok |
+| 20:05 | Session end: 21 writes across 1 files (RoomDetailDrawer.tsx) | 3 reads | ~29609 tok |
+| 20:20 | Session end: 21 writes across 1 files (RoomDetailDrawer.tsx) | 3 reads | ~29609 tok |
+
+## Session: 2026-06-17 20:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:35 | Edited apps/web/components/shared/Providers.tsx | added 1 condition(s) | ~81 |
+| 20:35 | Session end: 1 writes across 1 files (Providers.tsx) | 2 reads | ~81 tok |
+| 20:43 | Edited apps/web/components/shared/Providers.tsx | modified if() | ~176 |
+| 20:43 | Edited apps/web/components/shared/Providers.tsx | added 2 condition(s) | ~100 |
+| 20:43 | Edited apps/web/lib/hooks/useAuth.ts | added error handling | ~63 |
+| 20:43 | Edited apps/web/lib/api/client.ts | added error handling | ~80 |
+| 20:43 | Session end: 5 writes across 3 files (Providers.tsx, useAuth.ts, client.ts) | 15 reads | ~11143 tok |
+
+## Session: 2026-06-18 13:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-18 13:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-18 13:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:10 | Edited apps/web/components/shared/Providers.tsx | inline fix | ~19 |
+| 14:11 | Session end: 1 writes across 1 files (Providers.tsx) | 1 reads | ~2640 tok |
+| 14:13 | Session end: 1 writes across 1 files (Providers.tsx) | 1 reads | ~2640 tok |
+| 14:17 | Session end: 1 writes across 1 files (Providers.tsx) | 1 reads | ~2640 tok |
+| 14:29 | Session end: 1 writes across 1 files (Providers.tsx) | 2 reads | ~2640 tok |
+| 14:34 | Edited .claude/settings.json | expanded (+6 lines) | ~202 |
+| 14:35 | Session end: 2 writes across 2 files (Providers.tsx, settings.json) | 3 reads | ~2842 tok |
+| 14:39 | Session end: 2 writes across 2 files (Providers.tsx, settings.json) | 3 reads | ~2842 tok |
+| 14:41 | Session end: 2 writes across 2 files (Providers.tsx, settings.json) | 3 reads | ~2842 tok |
+| 14:43 | Edited .claude/skills/patelrep-api/SKILL.md | inline fix | ~24 |
+| 14:43 | Edited .claude/skills/patelrep-web/SKILL.md | 14 → 16 | ~22 |
+| 14:43 | Edited .claude/skills/patelrep-mobile/SKILL.md | 51 → 54 | ~24 |
+| 14:43 | Edited .claude/skills/patelrep-api/SKILL.md | 3.12 → 3.13 | ~19 |
+| 14:43 | Edited .claude/skills/patelrep-api/SKILL.md | 3→4 lines | ~58 |
+| 14:43 | Edited .claude/skills/patelrep-web/SKILL.md | 14 → 16 | ~21 |
+| 14:43 | Edited .claude/skills/patelrep-web/SKILL.md | 8→13 lines | ~174 |
+| 14:44 | Edited .claude/skills/patelrep-web/SKILL.md | 5→7 lines | ~118 |
+| 14:44 | Edited .claude/skills/patelrep-web/SKILL.md | 4→6 lines | ~97 |
+| 14:44 | Edited .claude/skills/patelrep-mobile/SKILL.md | 51 → 54 | ~22 |
+| 14:44 | Edited .claude/skills/patelrep-mobile/SKILL.md | 7→6 lines | ~116 |
+| 14:44 | Edited .claude/skills/patelrep-mobile/SKILL.md | 3→5 lines | ~64 |
+| 14:44 | Edited .claude/skills/patelrep-mobile/SKILL.md | 4→4 lines | ~103 |
+| 14:44 | Edited CLAUDE.md | 3.12 → 3.13 | ~18 |
+| 14:44 | Session end: 16 writes across 4 files (Providers.tsx, settings.json, SKILL.md, CLAUDE.md) | 6 reads | ~3785 tok |
+| 14:46 | Session end: 16 writes across 4 files (Providers.tsx, settings.json, SKILL.md, CLAUDE.md) | 6 reads | ~3785 tok |
+
+## Session: 2026-06-18 14:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-18 14:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-24 17:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-24 17:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:29 | Edited apps/mobile/components/engineering/EngineerHome.tsx | "/engineering/pm-schedules" → "/assets/pm-schedules" | ~19 |
+| 18:29 | Session end: 1 writes across 1 files (EngineerHome.tsx) | 10 reads | ~26568 tok |
+| 18:38 | Session end: 1 writes across 1 files (EngineerHome.tsx) | 19 reads | ~33573 tok |
+| 18:45 | Session end: 1 writes across 1 files (EngineerHome.tsx) | 19 reads | ~33573 tok |
+| 18:46 | Session end: 1 writes across 1 files (EngineerHome.tsx) | 19 reads | ~33573 tok |
+| 18:46 | Session end: 1 writes across 1 files (EngineerHome.tsx) | 19 reads | ~33573 tok |
+
+## Session: 2026-06-24 18:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-25 19:16
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-25 19:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-25 20:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:13 | Created apps/mobile/components/housekeeping/SupplyRequestModal.tsx | — | ~1859 |
+
+## Session: 2026-06-25 21:15
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 import(s) | ~64 |
+| 21:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→4 lines | ~72 |
+| 21:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~105 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 2 condition(s) | ~226 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added optional chaining | ~261 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+10 lines) | ~142 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | expanded (+6 lines) | ~463 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→3 lines | ~122 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: actionChipSupply | ~90 |
+| 21:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 1→6 lines | ~162 |
+| 21:18 | Edited apps/mobile/components/shared/evening.tsx | modified RoomQueueCard() | ~179 |
+| 21:18 | Edited apps/mobile/components/shared/evening.tsx | CSS: cardDep, borderColor, borderWidth | ~75 |
+| 21:20 | Session end: 12 writes across 2 files ([roomId].tsx, evening.tsx) | 2 reads | ~19470 tok |
+| 21:23 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 21→22 lines | ~161 |
+| 21:24 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 2→3 lines | ~34 |
+| 21:24 | Edited apps/mobile/lib/housekeeping/supervisor.ts | added 1 condition(s) | ~298 |
+| 21:24 | Edited apps/api/routers/housekeeping.py | modified in() | ~572 |
+| 21:24 | Edited apps/api/routers/housekeeping.py | modified list_inspections() | ~548 |
+| 21:24 | Edited apps/mobile/lib/utils/date.ts | modified localDate() | ~101 |
+| 21:25 | Edited apps/mobile/app/(app)/inspect/index.tsx | inline fix | ~18 |
+| 21:25 | Edited apps/mobile/app/(app)/inspect/index.tsx | "/housekeeping/inspections" → "/housekeeping/inspections" | ~40 |
+| 21:25 | Created apps/mobile/components/supervisor/ShiftNoteModal.tsx | — | ~1133 |
+| 21:25 | Created apps/mobile/components/supervisor/BroadcastModal.tsx | — | ~1480 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | added 3 import(s) | ~81 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | added 1 import(s) | ~72 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | inline fix | ~28 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | 6→5 lines | ~102 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | added nullish coalescing | ~367 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | CSS: ready | ~859 |
+| 21:26 | Edited apps/mobile/components/home/SupervisorHome.tsx | 4→7 lines | ~62 |
+| 21:27 | Edited apps/mobile/components/home/SupervisorHome.tsx | CSS: actionCardReady | ~67 |
+| 21:27 | Edited apps/mobile/components/home/SupervisorHome.tsx | expanded (+8 lines) | ~130 |
+| 21:27 | Edited apps/mobile/components/supervisor/atoms.tsx | added nullish coalescing | ~482 |
+| 21:27 | Edited apps/mobile/components/supervisor/atoms.tsx | 1→4 lines | ~93 |
+| 21:28 | Session end: 33 writes across 10 files ([roomId].tsx, evening.tsx, supervisor.ts, housekeeping.py, date.ts) | 9 reads | ~51989 tok |
+
+## Session: 2026-06-25 21:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:28 | Created apps/mobile/components/engineering/CreateWorkOrderModal.tsx | — | ~2335 |
+| 23:28 | Edited apps/mobile/components/engineering/WorkOrderCard.tsx | 6→11 lines | ~146 |
+| 23:28 | Edited apps/mobile/components/engineering/WorkOrderCard.tsx | expanded (+12 lines) | ~118 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | 11→12 lines | ~76 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | 8→9 lines | ~141 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | expanded (+7 lines) | ~107 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | modified if() | ~233 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | added nullish coalescing | ~135 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | added 1 condition(s) | ~554 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | CSS: defaultValue | ~312 |
+| 23:29 | Edited apps/mobile/app/(app)/work-orders/index.tsx | expanded (+16 lines) | ~114 |
+| 23:30 | Edited apps/mobile/app/(app)/room-status/index.tsx | added 1 import(s) | ~85 |
+| 23:30 | Edited apps/mobile/app/(app)/room-status/index.tsx | added optional chaining | ~79 |
+| 23:30 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: roomId, roomNumber, 82 | ~190 |
+| 23:30 | Edited apps/mobile/app/(app)/room-status/index.tsx | 7→7 lines | ~48 |
+| 23:30 | Edited apps/mobile/app/(app)/room-status/index.tsx | expanded (+10 lines) | ~91 |
+| 23:32 | Session end: 16 writes across 3 files (CreateWorkOrderModal.tsx, WorkOrderCard.tsx, index.tsx) | 5 reads | ~21701 tok |
+| 23:33 | Session end: 16 writes across 3 files (CreateWorkOrderModal.tsx, WorkOrderCard.tsx, index.tsx) | 5 reads | ~21701 tok |
+| 23:33 | Edited apps/mobile/lib/navigation/roleTabs.ts | 6→7 lines | ~142 |
+| 23:33 | Session end: 17 writes across 4 files (CreateWorkOrderModal.tsx, WorkOrderCard.tsx, index.tsx, roleTabs.ts) | 7 reads | ~21843 tok |
+
+## Session: 2026-06-25 23:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:53 | Fixed mobile room-detail quick-action Spanish leak | apps/mobile/app/(app)/my-rooms/[roomId].tsx; apps/mobile/i18n/locales/en.json; apps/mobile/i18n/locales/es.json; apps/mobile/__tests__/screens/RoomDetail.test.tsx | Focused RoomDetail Jest and mobile type-check pass; full mobile Jest still has unrelated existing failures logged as bug-197 | ~13700 |
+| 10:11 | Expanded mobile room-detail Spanish coverage | apps/mobile/app/(app)/my-rooms/[roomId].tsx; apps/mobile/i18n/locales/en.json; apps/mobile/i18n/locales/es.json; apps/mobile/__tests__/screens/RoomDetail.test.tsx | Hero/status/clean type/departure/timing/flags/checklist/primary action/alerts moved to i18n; focused test and type-check pass; full mobile Jest still has unrelated failures | ~16400 |
+| 10:44 | Fixed mobile room-card Spanish leaks | apps/mobile/components/shared/evening.tsx; apps/mobile/app/(app)/my-rooms/index.tsx; apps/mobile/i18n/locales/en.json; apps/mobile/i18n/locales/es.json; apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | Card status/clean type/timing/badges/actions and My Rooms section headers moved to i18n; focused MyRooms test and mobile type-check pass; full mobile Jest still has unrelated baseline failures | ~9800 |
+| 11:15 | Fixed room-detail Start Cleaning/Undo stuck loading | apps/mobile/lib/api/client.ts; apps/mobile/app/(app)/my-rooms/[roomId].tsx; apps/mobile/__tests__/lib/api/client.test.ts; apps/mobile/__tests__/screens/RoomDetail.test.tsx | API requests now timeout after 12s; Undo shares the status-action loading guard; focused tests and type-check pass; full mobile Jest still has unrelated baseline failures | ~7600 |
+| 14:20 | Fixed My Rooms header date Spanish leak | apps/mobile/app/(app)/my-rooms/index.tsx; apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | Header date now formats from active i18n language; focused MyRooms test and mobile type-check pass | ~2400 |
+
+## Session: 2026-06-25 13:30
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-25 13:33
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:43 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | inline fix | ~22 |
+| 13:44 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→3 lines | ~32 |
+| 13:44 | Session end: 2 writes across 1 files ([roomId].tsx) | 1 reads | ~13988 tok |
+| 13:46 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→3 lines | ~60 |
+| 13:46 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | modified updateRoomStatus() | ~86 |
+| 13:46 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | added 1 condition(s) | ~242 |
+| 13:46 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 5→5 lines | ~77 |
+| 13:47 | Session end: 6 writes across 1 files ([roomId].tsx) | 1 reads | ~14453 tok |
+
+## Session: 2026-06-25 14:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-25 15:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:34 | Created .planning/WORKFLOW_FINDINGS_2026-06-25.md | — | ~1966 |
+| 15:34 | Session end: 1 writes across 1 files (WORKFLOW_FINDINGS_2026-06-25.md) | 48 reads | ~2106 tok |
+
+## Session: 2026-06-26 20:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-26 20:12
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:16 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | 3→3 lines | ~29 |
+| 20:16 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 2→3 lines | ~86 |
+| 20:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | CSS: done, total | ~102 |
+| 20:17 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→7 lines | ~104 |
+| 20:17 | Edited apps/mobile/app/(app)/assignments/index.tsx | modified if() | ~150 |
+| 20:17 | Edited apps/mobile/app/(app)/assignments/index.tsx | 5→5 lines | ~61 |
+| 20:17 | Edited apps/mobile/app/(app)/profile/index.tsx | CSS: scope | ~68 |
+| 20:17 | Edited apps/mobile/components/engineering/CreateWorkOrderModal.tsx | modified CreateWorkOrderModal() | ~72 |
+| 20:17 | Edited apps/mobile/components/engineering/CreateWorkOrderModal.tsx | 10→11 lines | ~120 |
+| 20:17 | Edited apps/mobile/components/engineering/CreateWorkOrderModal.tsx | 7→9 lines | ~110 |
+| 20:17 | Edited apps/mobile/app/(app)/work-orders/index.tsx | added 1 import(s) | ~62 |
+| 20:17 | Edited apps/mobile/app/(app)/work-orders/index.tsx | 1→2 lines | ~30 |
+| 20:18 | Edited apps/mobile/app/(app)/work-orders/index.tsx | expanded (+12 lines) | ~293 |
+| 20:18 | Edited apps/mobile/app/(app)/work-orders/index.tsx | modified return() | ~215 |
+| 20:18 | Edited apps/mobile/app/(app)/work-orders/index.tsx | expanded (+10 lines) | ~102 |
+| 20:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | 3→5 lines | ~108 |
+| 20:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | 4→5 lines | ~51 |
+| 20:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | 9→10 lines | ~107 |
+| 20:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | inline fix | ~22 |
+| 20:18 | Edited apps/mobile/app/(app)/inspect/index.tsx | expanded (+6 lines) | ~350 |
+| 20:19 | Edited apps/mobile/app/(app)/inspect/index.tsx | added nullish coalescing | ~510 |
+| 20:19 | Edited apps/mobile/app/(app)/inspect/index.tsx | added optional chaining | ~496 |
+| 20:19 | Edited apps/mobile/app/(app)/inspect/index.tsx | expanded (+12 lines) | ~174 |
+| 20:19 | Edited apps/mobile/app/(app)/inspect/index.tsx | 3→3 lines | ~51 |
+| 20:19 | Edited apps/mobile/app/(app)/room-status/index.tsx | 2→3 lines | ~71 |
+| 20:20 | Edited apps/mobile/app/(app)/room-status/index.tsx | added error handling | ~427 |
+| 20:20 | Edited apps/mobile/i18n/locales/en.json | 3→7 lines | ~84 |
+| 20:20 | Edited apps/mobile/i18n/locales/en.json | 2→3 lines | ~79 |
+| 20:20 | Edited apps/mobile/i18n/locales/en.json | 6→10 lines | ~66 |
+| 20:20 | Edited apps/mobile/i18n/locales/en.json | 1→2 lines | ~47 |
+| 20:20 | Edited apps/mobile/i18n/locales/en.json | 1→2 lines | ~16 |
+| 20:21 | Edited apps/mobile/i18n/locales/es.json | 1→2 lines | ~47 |
+| 20:21 | Edited apps/mobile/i18n/locales/es.json | 1→2 lines | ~17 |
+| 20:21 | Edited apps/mobile/i18n/locales/es.json | 1→2 lines | ~59 |
+| 20:21 | Edited apps/mobile/i18n/locales/es.json | 2→6 lines | ~94 |
+| 20:21 | Edited apps/mobile/i18n/locales/es.json | 2→6 lines | ~50 |
+| 20:22 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→2 lines | ~54 |
+| 20:22 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 3→5 lines | ~107 |
+| 20:22 | Edited apps/mobile/app/(app)/my-rooms/[roomId].tsx | 6→6 lines | ~72 |
+| 20:22 | Edited apps/mobile/app/(app)/room-status/index.tsx | 10→11 lines | ~45 |
+| 20:22 | Edited apps/mobile/lib/api/workOrders.ts | 3→3 lines | ~23 |
+| 20:23 | Session end: 41 writes across 7 files (roomBlockers.ts, [roomId].tsx, index.tsx, CreateWorkOrderModal.tsx, en.json) | 13 reads | ~48704 tok |
+| 20:25 | Session end: 41 writes across 7 files (roomBlockers.ts, [roomId].tsx, index.tsx, CreateWorkOrderModal.tsx, en.json) | 13 reads | ~48704 tok |
+
+## Session: 2026-06-26 20:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:31 | Edited apps/mobile/i18n/locales/en.json | expanded (+7 lines) | ~60 |
+| 20:31 | Edited apps/mobile/i18n/locales/en.json | 3→6 lines | ~75 |
+| 20:31 | Edited apps/mobile/i18n/locales/es.json | expanded (+7 lines) | ~61 |
+| 20:31 | Edited apps/mobile/i18n/locales/es.json | 3→6 lines | ~80 |
+| 20:31 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | added nullish coalescing | ~254 |
+| 20:31 | Edited apps/mobile/app/(app)/room-board/index.tsx | added 1 import(s) | ~82 |
+| 20:31 | Edited apps/mobile/app/(app)/room-board/index.tsx | modified ColorLegend() | ~497 |
+| 20:32 | Edited apps/mobile/app/(app)/room-board/index.tsx | 2→4 lines | ~36 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | 11→12 lines | ~69 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | 2→3 lines | ~59 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | 4→8 lines | ~85 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | added 1 condition(s) | ~277 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | CSS: rooms, cleanTypeLabel | ~696 |
+| 20:32 | Edited apps/mobile/app/(app)/assignments/index.tsx | CSS: floor, count | ~173 |
+| 20:33 | Edited apps/mobile/app/(app)/assignments/index.tsx | expanded (+22 lines) | ~264 |
+| session | #12 Room Board color legend — 5-status dot+label row below segmented control | room-board/index.tsx, en.json, es.json | done | ~800 |
+| session | #13 Section-assign shortcut — unassigned rooms grouped by floor, Assign floor button per floor triggers bulk picker | assignments/index.tsx, HousekeeperPicker.tsx, en.json, es.json | done | ~1200 |
+| 20:34 | Session end: 15 writes across 4 files (en.json, es.json, HousekeeperPicker.tsx, index.tsx) | 12 reads | ~55827 tok |

@@ -34,6 +34,7 @@ import {
 import { C, R, shellTokens } from "@/components/shared/tokens";
 import { SectionLabel } from "@/components/shared/mobileHandoff";
 import { HeroSignalRow, RoomStatusTile, type HeroSignal } from "@/components/supervisor/atoms";
+import { STATUS_META } from "@/components/shared/evening";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
 
@@ -43,6 +44,51 @@ import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
    the room sheet: flags, timing, the latest note, and the assign action. */
 
 const SEGMENTS: BoardSegment[] = ["all", "toClean", "working", "ready"];
+
+/* ─── Status color legend ───────────────────────────────────────────────────
+   5 grouped entries matching the tile color contract. Shown once below the
+   segmented control so supervisors can read the board without prior context. */
+
+const LEGEND_ENTRIES = [
+  { key: "dirty",     status: "DIRTY",     labelKey: "roomBoard.legend.dirty"     },
+  { key: "pickup",    status: "PICKUP",    labelKey: "roomBoard.legend.pickup"    },
+  { key: "submitted", status: "CLEAN",     labelKey: "roomBoard.legend.submitted" },
+  { key: "ready",     status: "INSPECTED", labelKey: "roomBoard.legend.ready"     },
+  { key: "ooo",       status: "OOO",       labelKey: "roomBoard.legend.ooo"       },
+] as const;
+
+function ColorLegend({ t }: { t: (key: string) => string }) {
+  return (
+    <View style={legendStyles.row} testID="color-legend">
+      {LEGEND_ENTRIES.map(({ key, status, labelKey }) => {
+        const meta = STATUS_META[status];
+        return (
+          <View key={key} style={legendStyles.item}>
+            <View style={[legendStyles.dot, { backgroundColor: meta.fg }]} />
+            <Text style={legendStyles.label}>{t(labelKey)}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const legendStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line2,
+    backgroundColor: C.paper,
+  },
+  item: { flexDirection: "row", alignItems: "center", gap: 5 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  label: { fontSize: 11, fontWeight: "600", color: C.ink3 },
+});
 
 const SEGMENT_LABEL_KEYS: Record<BoardSegment, string> = {
   all: "roomBoard.segAll",
@@ -239,6 +285,8 @@ export default function RoomBoardScreen() {
             );
           })}
         </View>
+
+        <ColorLegend t={t} />
 
         <View style={styles.body}>
           {floors.map(({ floor, rooms: floorRooms }) => (
