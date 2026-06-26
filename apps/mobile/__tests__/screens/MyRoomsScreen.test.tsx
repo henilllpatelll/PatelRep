@@ -5,6 +5,14 @@ import type { Room } from "@/stores/appStore";
 const mockRouterPush = jest.fn();
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
+const mockT = (key: string, opts?: Record<string, unknown>) => {
+  if (opts && key === "rooms.sections.floor") return `Floor ${opts.floor}`;
+  if (key === "rooms.sections.building.A") return "Building A";
+  if (key === "rooms.sections.building.B") return "Building B";
+  if (key === "rooms.sections.building.unknown") return "Other";
+  return key;
+};
+let mockLanguage = "en";
 
 function makeRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -45,7 +53,7 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({ t: mockT, i18n: { language: mockLanguage, resolvedLanguage: mockLanguage } }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -83,6 +91,7 @@ const mockApiGet = api.get as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLanguage = "en";
   mockRooms = [
     makeRoom({
       id: "cleanable",
@@ -110,28 +119,37 @@ beforeEach(() => {
 });
 
 describe("MyRoomsScreen", () => {
-  it("renders the shell header progress and smart-order queue by default", async () => {
-    const { getAllByText, getByText } = render(<MyRoomsScreen />);
+  it("formats the header date using the active language", async () => {
+    mockLanguage = "es";
+    const expectedSpanishDate = new Date().toLocaleDateString("es-US", { weekday: "long", month: "long", day: "numeric" });
+    const expectedEnglishDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+    const { getByText, queryByText } = render(<MyRoomsScreen />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
+    expect(getByText(expectedSpanishDate)).toBeTruthy();
+    expect(queryByText(expectedEnglishDate)).toBeNull();
+  });
+
+  it("renders building-grouped sections for remaining rooms", async () => {
+    const { getByText } = render(<MyRoomsScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
     expect(getByText("rooms.title")).toBeTruthy();
     expect(getByText("1/6")).toBeTruthy();
     expect(getByText("17%")).toBeTruthy();
-    expect(getAllByText(/rooms\.remaining/).length).toBeGreaterThanOrEqual(1);
-    expect(getAllByText(/rooms\.doneTab/).length).toBeGreaterThanOrEqual(1);
-    expect(getByText("ai.smartOrder")).toBeTruthy();
-    expect(getByText("SKIPPED — DND")).toBeTruthy();
+    // All test rooms are 101–108 (suffix 01–08 = Building A, Floor 1)
+    expect(getByText("Building A")).toBeTruthy();
+    expect(getByText("Floor 1")).toBeTruthy();
   });
 
-  it("renders departure, full, and light clean-type labels", async () => {
+  it("renders translated departure, full, and light clean-type labels", async () => {
     const { getAllByLabelText } = render(<MyRoomsScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    expect(getAllByLabelText("Departure clean type").length).toBeGreaterThanOrEqual(1);
-    expect(getAllByLabelText("Full clean type").length).toBeGreaterThanOrEqual(1);
-    expect(getAllByLabelText("Light clean type").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByLabelText("rooms.card.cleanTypeAccessibility").length).toBeGreaterThanOrEqual(3);
   });
 
   it("shows the room type code on room cards instead of the room type name", async () => {
@@ -167,39 +185,40 @@ describe("MyRoomsScreen", () => {
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/housekeeping/my-rooms?date=2026-06-09"));
 
-    // Inspected rooms live in the Done tab
     fireEvent.press(getByText(/rooms\.doneTab/));
-    expect(getByText("Full Done")).toBeTruthy();
-    expect(getByText("Light Done")).toBeTruthy();
+    expect(getByText("rooms.card.cleanType.FULL_DONE")).toBeTruthy();
+    expect(getByText("rooms.card.cleanType.LIGHT_DONE")).toBeTruthy();
     expect(queryByText("Full")).toBeNull();
     expect(queryByText("Light")).toBeNull();
   });
 
-  it("shows DND departure rooms in the SKIPPED section with DND action, not Start", async () => {
-    mockRooms = [mockRooms[1]];
+  it("DND rooms appear in their building/floor group (dimmed) with no Start action", async () => {
+    mockRooms = [mockRooms[1]]; // room 102, dnd_flag: true
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
     const { getByText, getAllByText, queryByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("SKIPPED — DND")).toBeTruthy());
+    await waitFor(() => expect(getByText("Building A")).toBeTruthy());
+    expect(getByText("Floor 1")).toBeTruthy();
     expect(getByText("102")).toBeTruthy();
-    expect(getAllByText("DND").length).toBeGreaterThanOrEqual(1);
-    expect(queryByText("Start")).toBeNull();
-    expect(queryByText("Review")).toBeNull();
+    expect(getAllByText("rooms.card.badges.dnd").length).toBeGreaterThanOrEqual(1);
+    // Exception rooms have no action label
+    expect(queryByText("rooms.card.action.start")).toBeNull();
+    expect(queryByText("rooms.card.action.review")).toBeNull();
   });
 
-  it("puts checked-out departure rooms in the smart queue with a Start action", async () => {
-    mockRooms = [mockRooms[0], mockRooms[1]];
+  it("cleanable departure rooms appear in their building/floor group with a Start action", async () => {
+    mockRooms = [mockRooms[0]]; // room 101, checked out
     mockStore.myRooms = mockRooms;
     mockApiGet.mockResolvedValue({ data: mockRooms });
 
     const { getByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("Start")).toBeTruthy());
+    await waitFor(() => expect(getByText("Building A")).toBeTruthy());
+    expect(getByText("Floor 1")).toBeTruthy();
     expect(getByText("101")).toBeTruthy();
-    expect(getByText("SKIPPED — DND")).toBeTruthy();
-    expect(getByText("102")).toBeTruthy();
+    expect(getByText("rooms.card.action.start")).toBeTruthy();
   });
 
   it("Done tab shows submitted, ready, and blocked rooms only", async () => {
@@ -213,18 +232,17 @@ describe("MyRoomsScreen", () => {
 
     const { getByText, queryByText } = render(<MyRoomsScreen />);
 
-    await waitFor(() => expect(getByText("ai.smartOrder")).toBeTruthy());
-    expect(queryByText("SUBMITTED")).toBeNull();
+    await waitFor(() => expect(getByText("Building A")).toBeTruthy());
+    expect(queryByText("rooms.sections.submitted")).toBeNull();
 
     fireEvent.press(getByText(/rooms\.doneTab/));
 
-    expect(getByText("SUBMITTED")).toBeTruthy();
-    expect(getByText("READY")).toBeTruthy();
-    expect(getByText("BLOCKED / OUT OF SERVICE")).toBeTruthy();
+    expect(getByText("rooms.sections.submitted")).toBeTruthy();
+    expect(getByText("rooms.sections.ready")).toBeTruthy();
+    expect(getByText("rooms.sections.blocked")).toBeTruthy();
     expect(getByText("107")).toBeTruthy();
     expect(getByText("104")).toBeTruthy();
     expect(getByText("108")).toBeTruthy();
-    // active queue rooms are not in the Done tab
     expect(queryByText("101")).toBeNull();
     expect(queryByText("103")).toBeNull();
   });

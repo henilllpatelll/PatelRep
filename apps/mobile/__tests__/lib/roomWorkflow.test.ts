@@ -100,7 +100,7 @@ describe("roomWorkflow helpers", () => {
     ).toEqual(["DND", "WO", "Note", "Risk", "Arrival Soon", "Not Checked Out"]);
   });
 
-  it("sorts cleanable queue: arrival-soon DEP → other DEP → vanilla dirty → stayover/pickup", () => {
+  it("sorts cleanable queue: arrival-soon DEP → other DEP → vanilla dirty → full → stayover/pickup", () => {
     const rooms = [
       room({ id: "pickup", room_number: "104", floor: 1, status: "PICKUP" }),
       room({ id: "normal", room_number: "102", floor: 1, status: "DIRTY" }),
@@ -127,14 +127,14 @@ describe("roomWorkflow helpers", () => {
 
     // vip_flag no longer a priority factor; vip room is plain DIRTY (score 30)
     // normal (102) sorts before vip (103) in same tier by room number
-    // pickup (104) sorts before full (106) in same tier by room number
+    // PICKUP rooms are needs_attention (isGuestMayBeInside=true) → score 100, after all cleanable rooms
     expect(rooms.sort((a, b) => compareRoomsForCleaningQueue(a, b, now)).map((r) => r.id)).toEqual([
       "arrival",
       "checked-out",
       "normal",
       "vip",
-      "pickup",
       "full",
+      "pickup",
     ]);
   });
 
@@ -212,7 +212,7 @@ describe("roomWorkflow helpers", () => {
   });
 
   it("buildSmartQueue respects priority tiers regardless of physical proximity", () => {
-    // DEP rooms (score 10/20) always before PICKUP (score 40) regardless of distance
+    // DEP rooms (score 10/20) always before vanilla DIRTY (score 30) regardless of distance
     const arrivalSoon = room({
       id: "arrival",
       room_number: "110",
@@ -230,17 +230,17 @@ describe("roomWorkflow helpers", () => {
       clean_type: "DEP",
       actual_checkout_at: "2026-06-09T09:00:00.000Z", // score 20, far away
     });
-    const pickupNearby = room({
-      id: "pickup-nearby",
+    const dirtyNearby = room({
+      id: "dirty-nearby",
       room_number: "111",
       floor: 1,
-      status: "PICKUP", // score 40, adjacent to arrivalSoon
+      status: "DIRTY", // score 30, adjacent to arrivalSoon (no clean_type = vanilla dirty)
     });
-    const queue = buildSmartQueue([pickupNearby, depFar, arrivalSoon], now);
-    // Priority must win: arrival-soon DEP → other DEP → PICKUP
+    const queue = buildSmartQueue([dirtyNearby, depFar, arrivalSoon], now);
+    // Priority must win: arrival-soon DEP → other DEP → nearby vanilla DIRTY
     expect(queue[0].room.id).toBe("arrival");
     expect(queue[1].room.id).toBe("dep-far");
-    expect(queue[2].room.id).toBe("pickup-nearby");
+    expect(queue[2].room.id).toBe("dirty-nearby");
   });
 
   it("buildSmartQueue does not carry lastRoom across tiers when nothing is in progress", () => {
@@ -313,5 +313,17 @@ describe("roomWorkflow helpers", () => {
       "Latest note",
       "Arrival soon",
     ]);
+  });
+
+  it("warns 'guest may be inside' for PICKUP rooms regardless of fo_status", () => {
+    const pickup = room({ status: "PICKUP", clean_type: "FULL", fo_status: undefined });
+    const warnings = getBeforeEnterWarnings(pickup, now);
+    expect(warnings.find((w) => w.key === "occupied")).toBeDefined();
+  });
+
+  it("does NOT warn 'guest may be inside' for PICKUP rooms that are IN_PROGRESS", () => {
+    const inProgress = room({ status: "IN_PROGRESS", clean_type: "FULL", fo_status: undefined });
+    const warnings = getBeforeEnterWarnings(inProgress, now);
+    expect(warnings.find((w) => w.key === "occupied")).toBeUndefined();
   });
 });

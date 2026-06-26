@@ -268,6 +268,31 @@
         "add": "Agregar Alerta"
       },
       "cleaningChecklist": "Lista de Limpieza",
+      "lostFoundLink": "Reportar objeto encontrado",
+      "cleanSuccess": "Cuarto marcado limpio",
+      "knock": {
+        "title": "Antes de Entrar",
+        "cta": "Ya toqué — entrando ahora",
+        "steps": {
+          "step1": "Toca firmemente tres veces y anuncia \"Servicio de limpieza\".",
+          "step2": "Espera 10 segundos. Escucha si hay respuesta.",
+          "step3": "Toca de nuevo y reanúncia \"Servicio de limpieza\".",
+          "step4": "Espera otros 10 segundos.",
+          "step5": "Solo entra si no hay respuesta. Si la puerta se abre, da un paso atrás y discúlpate."
+        }
+      },
+      "damageBanner": {
+        "text": "Cuarto de salida — documenta cualquier daño preexistente antes de limpiar.",
+        "addPhoto": "Tomar Foto",
+        "skip": "Omitir",
+        "uploading": "Subiendo…",
+        "uploadError": "Falló la subida. Intenta de nuevo."
+      },
+      "linen": {
+        "title": "Intercambio de Ropa",
+        "dirtyOut": "Ropa sucia retirada",
+        "cleanIn": "Ropa limpia colocada"
+      },
       "checklist": {
         "stripBed": "Quitar sábanas",
         "trashRemoved": "Basura retirada",
@@ -280,7 +305,37 @@
         "towelsRefreshed": "Toallas renovadas",
         "bedRefreshed": "Cama retocada",
         "bathroomChecked": "Baño revisado",
-        "amenitiesToppedOff": "Amenidades completadas"
+        "amenitiesToppedOff": "Amenidades completadas",
+        "lostFoundCheck": "Revisar objetos olvidados por el huésped",
+        "stripAllLinens": "Quitar toda la ropa de cama",
+        "freshLinens": "Colocar sábanas y fundas limpias",
+        "replaceAllTowels": "Cambiar todas las toallas (baño, manos, cara)",
+        "cleanBathroomDep": "Limpiar baño a fondo — inodoro, lavabo, ducha/tina",
+        "restockToiletries": "Reponer artículos de baño al estándar",
+        "wipeMirrors": "Limpiar espejos y superficies de vidrio",
+        "emptyTrashDep": "Vaciar todos los botes de basura y reciclaje",
+        "dustSurfaces": "Quitar polvo de muebles, lámparas y cabecera",
+        "wipeTvRemote": "Limpiar control remoto y superficies de contacto frecuente",
+        "resetTv": "Sintonizar TV en canal de bienvenida",
+        "checkSafe": "Verificar caja fuerte — vacía y desbloqueada",
+        "checkAc": "Ajustar A/C a temperatura estándar (22 °C / 72 °F)",
+        "restockMinibar": "Reponer minibar y artículos de escritorio",
+        "vacuumDep": "Aspirar alfombra y tapetes",
+        "mopHardFloor": "Trapear pisos duros si aplica",
+        "cleanDoorHandles": "Desinfectar manijas y apagadores",
+        "restockStationery": "Revisar papelería, bolígrafos y bloc",
+        "finalSweepDep": "Revisión visual final — nada dejado atrás",
+        "markCleanItem": "Marcar cuarto limpio en el sistema",
+        "makeBedPickup": "Tender cama — estirar y meter sábanas",
+        "replaceTowelsUsed": "Cambiar toallas usadas por limpias",
+        "cleanToiletSink": "Limpiar inodoro y lavabo",
+        "restockToiletriesNeeded": "Reponer artículos de baño según necesidad",
+        "emptyTrashPickup": "Vaciar bote de basura",
+        "dustSurfacesQuick": "Quitar polvo rápidamente",
+        "vacuumIfNeeded": "Aspirar o limpiar manchas si es necesario",
+        "tidyDesk": "Ordenar escritorio y superficies",
+        "finalVisualCheck": "Revisión visual final",
+        "markCleanPickup": "Marcar cuarto limpio en el sistema"
       },
       "lastAction": {
         "started": "Iniciado",
@@ -315,7 +370,8 @@
         "dndNeedsConnection": "Los cambios de No Molestar necesitan conexión.",
         "updateDndFailed": "No se pudo actualizar No Molestar",
         "serviceNeedsConnection": "Los cambios de servicio necesitan conexión.",
-        "updateServiceFailed": "No se pudo actualizar el estado del servicio"
+        "updateServiceFailed": "No se pudo actualizar el estado del servicio",
+        "dndEscalationTitle": "Supervisora notificada — se registraron 2 intentos sin respuesta."
       },
       "finishCurrentRoom": "Termina tu cuarto actual antes de empezar otro.",
       "checklistGateHint": "Completa la lista primero — {{done}} de {{total}} listos."
@@ -336,8 +392,12 @@
       "noteSaved": "Nota guardada"
     },
     "sections": {
-      "needsAttention": "Necesitan Atención",
-      "skippedDnd": "Omitidos — No Molestar",
+      "floor": "Piso {{floor}}",
+      "building": {
+        "A": "Edificio A",
+        "B": "Edificio B",
+        "unknown": "Otro"
+      },
       "submitted": "Enviados",
       "ready": "Listos",
       "blocked": "Bloqueados / Fuera de Servicio"

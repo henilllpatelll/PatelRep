@@ -93,7 +93,7 @@ function isFullOrLightService(room: Room): boolean {
 function isGuestMayBeInside(room: Room): boolean {
   if (room.actual_checkout_at) return false;
   if (room.status === "IN_PROGRESS") return false; // housekeeper is already inside cleaning
-  return room.status === "OCCUPIED" || room.fo_status === "OCC" || Boolean(room.guest_name && isDepartureClean(room));
+  return room.status === "OCCUPIED" || room.status === "PICKUP" || room.fo_status === "OCC" || Boolean(room.guest_name && isDepartureClean(room));
 }
 
 export function isArrivalSoon(room: Room, now: Date = new Date()): boolean {
@@ -260,6 +260,129 @@ export function getPriorityScore(room: Room, now: Date = new Date()): number {
 
 export function hasRoomInProgress(rooms: Room[], excludeRoomId: string): boolean {
   return rooms.some((r) => r.id !== excludeRoomId && r.status === "IN_PROGRESS");
+}
+
+// ─── Floor-grouped routing (My Rooms view) ────────────────────────────────────
+
+export type Building = "A" | "B" | "unknown";
+
+export interface BuildingFloorGroup {
+  floor: number;
+  rooms: Room[];
+}
+
+export interface BuildingGroup {
+  building: Building;
+  floors: BuildingFloorGroup[];
+}
+
+/** True when the housekeeper actively cannot enter: DND active, service declined,
+ *  or a BLOCKER note on the room (Guest inside / Can't enter / DND on door tap). */
+export function isFloorException(room: Room): boolean {
+  if (room.dnd_flag) return true;
+  if (room.do_not_service) return true;
+  const note = room.latest_note?.trim();
+  return Boolean(note && note.startsWith("BLOCKER: "));
+}
+
+const REMAINING_STATUSES = new Set<Room["status"]>(["DIRTY", "PICKUP", "OCCUPIED", "IN_PROGRESS"]);
+
+/** Derives building from room suffix (01–16 = A west wing, 17–39 = B east wing). */
+function getBuildingFromRoomNumber(roomNumber: string): Building {
+  const suffix = parseInt(roomNumber, 10) % 100;
+  if (suffix >= 1 && suffix <= 16) return "A";
+  if (suffix >= 17 && suffix <= 39) return "B";
+  return "unknown";
+}
+
+const BUILDING_ORDER: Record<Building, number> = { A: 0, B: 1, unknown: 2 };
+
+function withinFloorScore(room: Room): number {
+  const exceptionOffset = isFloorException(room) ? 10 : 0;
+  if (room.status === "IN_PROGRESS") return exceptionOffset + 0;
+  if (room.status === "DIRTY") return exceptionOffset + 1;
+  if (room.status === "PICKUP") return exceptionOffset + 2;
+  if (room.status === "OCCUPIED") return exceptionOffset + 3;
+  return exceptionOffset + 4;
+}
+
+function compareWithinFloor(a: Room, b: Room): number {
+  const scoreDelta = withinFloorScore(a) - withinFloorScore(b);
+  if (scoreDelta !== 0) return scoreDelta;
+  // Room-number ascending = zigzag corridor order for A, north-arm-first for B
+  return a.room_number.localeCompare(b.room_number, undefined, { numeric: true, sensitivity: "base" });
+}
+
+/** Groups remaining rooms by building (A west → B east), then by floor within
+ *  each building. Within each floor: IN_PROGRESS first, Dirty → Pickup → Occupied
+ *  by room number (zigzag for A, north-arm-first for B). Exception rooms (DND /
+ *  blocker / declined service) sink to the bottom of their floor group. */
+export function buildBuildingGroups(rooms: Room[]): BuildingGroup[] {
+  const byBuilding = new Map<Building, Map<number, Room[]>>();
+
+  for (const room of rooms) {
+    if (!REMAINING_STATUSES.has(room.status)) continue;
+    const building = getBuildingFromRoomNumber(room.room_number);
+    const floor = room.floor ?? 0;
+    if (!byBuilding.has(building)) byBuilding.set(building, new Map());
+    const floorMap = byBuilding.get(building)!;
+    if (!floorMap.has(floor)) floorMap.set(floor, []);
+    floorMap.get(floor)!.push(room);
+  }
+
+  const groups: BuildingGroup[] = [];
+  for (const [building, floorMap] of byBuilding) {
+    const floors: BuildingFloorGroup[] = [];
+    for (const [floor, floorRooms] of floorMap) {
+      floors.push({ floor, rooms: floorRooms.sort(compareWithinFloor) });
+    }
+    groups.push({ building, floors: floors.sort((a, b) => a.floor - b.floor) });
+  }
+  return groups.sort((a, b) => BUILDING_ORDER[a.building] - BUILDING_ORDER[b.building]);
+}
+
+// ─── Checklist constants ───────────────────────────────────────────────────────
+
+export const LOST_FOUND_CHECK_KEY = "rooms.detail.checklist.lostFoundCheck";
+
+export const DEPARTURE_CHECKLIST: readonly string[] = [
+  "rooms.detail.checklist.lostFoundCheck",
+  "rooms.detail.checklist.stripAllLinens",
+  "rooms.detail.checklist.freshLinens",
+  "rooms.detail.checklist.replaceAllTowels",
+  "rooms.detail.checklist.cleanBathroomDep",
+  "rooms.detail.checklist.restockToiletries",
+  "rooms.detail.checklist.wipeMirrors",
+  "rooms.detail.checklist.emptyTrashDep",
+  "rooms.detail.checklist.dustSurfaces",
+  "rooms.detail.checklist.wipeTvRemote",
+  "rooms.detail.checklist.resetTv",
+  "rooms.detail.checklist.checkSafe",
+  "rooms.detail.checklist.checkAc",
+  "rooms.detail.checklist.restockMinibar",
+  "rooms.detail.checklist.vacuumDep",
+  "rooms.detail.checklist.mopHardFloor",
+  "rooms.detail.checklist.cleanDoorHandles",
+  "rooms.detail.checklist.restockStationery",
+  "rooms.detail.checklist.finalSweepDep",
+  "rooms.detail.checklist.markCleanItem",
+] as const;
+
+export const STAYOVER_CHECKLIST: readonly string[] = [
+  "rooms.detail.checklist.makeBedPickup",
+  "rooms.detail.checklist.replaceTowelsUsed",
+  "rooms.detail.checklist.cleanToiletSink",
+  "rooms.detail.checklist.restockToiletriesNeeded",
+  "rooms.detail.checklist.emptyTrashPickup",
+  "rooms.detail.checklist.dustSurfacesQuick",
+  "rooms.detail.checklist.vacuumIfNeeded",
+  "rooms.detail.checklist.tidyDesk",
+  "rooms.detail.checklist.finalVisualCheck",
+  "rooms.detail.checklist.markCleanPickup",
+] as const;
+
+export function getChecklistForRoom(room: Room): readonly string[] {
+  return room.clean_type === "DEP" ? DEPARTURE_CHECKLIST : STAYOVER_CHECKLIST;
 }
 
 export function getBeforeEnterWarnings(room: Room, now: Date = new Date()): BeforeEnterWarning[] {

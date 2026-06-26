@@ -268,6 +268,31 @@
         "add": "Add Flag"
       },
       "cleaningChecklist": "Cleaning Checklist",
+      "lostFoundLink": "Report found item",
+      "cleanSuccess": "Room marked clean",
+      "knock": {
+        "title": "Before You Enter",
+        "cta": "I've knocked — entering now",
+        "steps": {
+          "step1": "Knock firmly three times and announce \"Housekeeping\".",
+          "step2": "Wait 10 seconds. Listen for a response.",
+          "step3": "Knock again and re-announce \"Housekeeping\".",
+          "step4": "Wait another 10 seconds.",
+          "step5": "Only enter if no response. If the door opens, step back and apologize."
+        }
+      },
+      "damageBanner": {
+        "text": "Departure room — document any pre-existing damage before cleaning.",
+        "addPhoto": "Add Photo",
+        "skip": "Skip",
+        "uploading": "Uploading…",
+        "uploadError": "Photo upload failed. Try again."
+      },
+      "linen": {
+        "title": "Linen Exchange",
+        "dirtyOut": "Dirty linens removed",
+        "cleanIn": "Clean linens placed"
+      },
       "checklist": {
         "stripBed": "Strip bed",
         "trashRemoved": "Trash removed",
@@ -280,7 +305,37 @@
         "towelsRefreshed": "Towels refreshed",
         "bedRefreshed": "Bed refreshed",
         "bathroomChecked": "Bathroom checked",
-        "amenitiesToppedOff": "Amenities topped off"
+        "amenitiesToppedOff": "Amenities topped off",
+        "lostFoundCheck": "Check for lost & found items",
+        "stripAllLinens": "Strip all bed linens",
+        "freshLinens": "Apply fresh sheet set & pillowcases",
+        "replaceAllTowels": "Replace all towels (bath, hand, face)",
+        "cleanBathroomDep": "Deep-clean bathroom — toilet, sink, shower/tub",
+        "restockToiletries": "Restock toiletries to standard par",
+        "wipeMirrors": "Wipe mirrors and glass surfaces",
+        "emptyTrashDep": "Empty all trash and recycling bins",
+        "dustSurfaces": "Dust all surfaces — furniture, lamps, headboard",
+        "wipeTvRemote": "Wipe TV remote and high-touch surfaces",
+        "resetTv": "Reset TV to welcome channel",
+        "checkSafe": "Check in-room safe — cleared and unlocked",
+        "checkAc": "Set A/C to standard temp (72°F / 22°C)",
+        "restockMinibar": "Restock minibar and stationery",
+        "vacuumDep": "Vacuum carpet and rugs",
+        "mopHardFloor": "Mop hard floors if applicable",
+        "cleanDoorHandles": "Disinfect door handles and light switches",
+        "restockStationery": "Check stationery, pens, notepad",
+        "finalSweepDep": "Final visual sweep — nothing left behind",
+        "markCleanItem": "Mark room clean in system",
+        "makeBedPickup": "Make bed — straighten and tuck",
+        "replaceTowelsUsed": "Replace used towels with fresh",
+        "cleanToiletSink": "Clean toilet and sink",
+        "restockToiletriesNeeded": "Restock toiletries as needed",
+        "emptyTrashPickup": "Empty trash bin",
+        "dustSurfacesQuick": "Quick dust of surfaces",
+        "vacuumIfNeeded": "Vacuum or spot-clean carpet if needed",
+        "tidyDesk": "Tidy desk and surfaces",
+        "finalVisualCheck": "Final visual check",
+        "markCleanPickup": "Mark room clean in system"
       },
       "lastAction": {
         "started": "Started",
@@ -315,7 +370,8 @@
         "dndNeedsConnection": "DND changes need a connection.",
         "updateDndFailed": "Failed to update DND",
         "serviceNeedsConnection": "Service changes need a connection.",
-        "updateServiceFailed": "Failed to update service status"
+        "updateServiceFailed": "Failed to update service status",
+        "dndEscalationTitle": "Supervisor notified — 2 unanswered knock attempts logged."
       },
       "finishCurrentRoom": "Finish your current room before starting another.",
       "checklistGateHint": "Complete checklist first — {{done}} of {{total}} done."
@@ -336,8 +392,12 @@
       "noteSaved": "Note saved"
     },
     "sections": {
-      "needsAttention": "Needs Attention",
-      "skippedDnd": "Skipped — DND",
+      "floor": "Floor {{floor}}",
+      "building": {
+        "A": "Building A",
+        "B": "Building B",
+        "unknown": "Other"
+      },
       "submitted": "Submitted",
       "ready": "Ready",
       "blocked": "Blocked / Out of Service"

@@ -18,30 +18,49 @@ import { getRooms, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import { ProgressBar, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
-import { buildSmartQueue } from "@/lib/ai/briefing";
 import { localDate } from "@/lib/utils/date";
 import {
-  compareRoomsForCleaningQueue,
+  buildBuildingGroups,
   getRoomAction,
-  getRoomQueueBucket,
-  isSkipped,
-  type RoomQueueBucket,
+  isFloorException,
 } from "@/lib/housekeeping/roomWorkflow";
 
 type ViewMode = "remaining" | "done";
 
-const DONE_SECTIONS: Array<{ bucket: RoomQueueBucket; title: string }> = [
-  { bucket: "submitted", title: "SUBMITTED" },
-  { bucket: "ready", title: "READY" },
-  { bucket: "blocked", title: "BLOCKED / OUT OF SERVICE" },
-];
+const DONE_STATUSES = new Set<Room["status"]>(["CLEAN", "INSPECTED", "OOO", "OUT_OF_ORDER", "OUT_OF_SERVICE"]);
 
-function dayLabel() {
-  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+function dateLocale(language?: string) {
+  return language?.toLowerCase().startsWith("es") ? "es-US" : "en-US";
+}
+
+function dayLabel(language?: string) {
+  return new Date().toLocaleDateString(dateLocale(language), { weekday: "long", month: "long", day: "numeric" });
+}
+
+function getRoomActionLabelKey(room: Room): string {
+  const action = getRoomAction(room);
+  switch (action.kind) {
+    case "start":
+      return "rooms.card.action.start";
+    case "done":
+      return "rooms.card.action.done";
+    case "review":
+    case "guest_checkout":
+      return "rooms.card.action.review";
+    case "submitted":
+      return "rooms.card.action.waiting";
+    case "ready":
+      return "rooms.card.action.ready";
+    case "blocked":
+      return "rooms.card.action.blocked";
+    case "view":
+    default:
+      return "rooms.card.action.view";
+  }
 }
 
 export default function MyRoomsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isOnline, myRooms, setMyRooms } = useAppStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
@@ -87,41 +106,28 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const groupedRooms = useMemo(() => {
-    const now = new Date();
-    const groups: Record<RoomQueueBucket, Room[]> = {
-      next_to_clean: [],
-      needs_attention: [],
-      in_progress: [],
-      skipped: [],
-      submitted: [],
-      ready: [],
-      blocked: [],
-    };
+  const buildingGroups = useMemo(() => buildBuildingGroups(myRooms), [myRooms]);
 
-    myRooms.forEach((room) => {
-      groups[getRoomQueueBucket(room, now)].push(room);
-    });
-
-    Object.values(groups).forEach((rooms) => rooms.sort((a, b) => compareRoomsForCleaningQueue(a, b, now)));
-    return groups;
+  const doneGroups = useMemo(() => {
+    const submitted: Room[] = [];
+    const ready: Room[] = [];
+    const blocked: Room[] = [];
+    for (const room of myRooms) {
+      if (room.status === "CLEAN") submitted.push(room);
+      else if (room.status === "INSPECTED") ready.push(room);
+      else if (room.status === "OOO" || room.status === "OUT_OF_ORDER" || room.status === "OUT_OF_SERVICE") blocked.push(room);
+    }
+    return { submitted, ready, blocked };
   }, [myRooms]);
 
-  const smartQueue = useMemo(() => buildSmartQueue(myRooms), [myRooms]);
-
   const counts = useMemo(() => {
-    const bucketCounts = {
-      next_to_clean: groupedRooms.next_to_clean.length,
-      needs_attention: groupedRooms.needs_attention.length,
-      in_progress: groupedRooms.in_progress.length,
-      skipped: groupedRooms.skipped.length,
-      submitted: groupedRooms.submitted.length,
-      ready: groupedRooms.ready.length,
-      blocked: groupedRooms.blocked.length,
-    };
-    const completed = bucketCounts.submitted + bucketCounts.ready;
-    return { ...bucketCounts, completed, total: myRooms.length };
-  }, [groupedRooms, myRooms.length]);
+    const completed = myRooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").length;
+    const remaining = buildingGroups.reduce(
+      (sum, bg) => sum + bg.floors.reduce((s, f) => s + f.rooms.length, 0),
+      0,
+    );
+    return { remaining, completed, blocked: doneGroups.blocked.length, total: myRooms.length };
+  }, [myRooms, buildingGroups, doneGroups.blocked.length]);
 
   const openRoom = useCallback((room: Room) => {
     router.push(`/(app)/my-rooms/${room.id}`);
@@ -137,6 +143,12 @@ export default function MyRoomsScreen() {
 
   const progressPercent = counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
 
+  const DONE_SECTION_LIST = [
+    { key: "submitted" as const, titleKey: "rooms.sections.submitted", rooms: doneGroups.submitted },
+    { key: "ready" as const, titleKey: "rooms.sections.ready", rooms: doneGroups.ready },
+    { key: "blocked" as const, titleKey: "rooms.sections.blocked", rooms: doneGroups.blocked },
+  ];
+
   return (
     <View style={styles.container}>
       {!isOnline ? (
@@ -146,12 +158,11 @@ export default function MyRoomsScreen() {
         </View>
       ) : null}
 
-      {/* Evening Lobby shell header */}
       <View style={[styles.shellHeader, { paddingTop: (isOnline ? insets.top : 0) + 12 }]}>
         <View style={styles.shellTopRow}>
           <View style={styles.shellTitleBlock}>
             <Text style={styles.shellTitle}>{t("rooms.title")}</Text>
-            <Text style={styles.shellDate}>{dayLabel()}</Text>
+            <Text style={styles.shellDate}>{dayLabel(i18n.resolvedLanguage ?? i18n.language)}</Text>
           </View>
           <View style={styles.shellCountBlock}>
             <Text style={styles.shellCountValue}>
@@ -167,7 +178,6 @@ export default function MyRoomsScreen() {
           </View>
         ) : null}
 
-        {/* Remaining / Done toggle */}
         <View style={styles.modeToggle}>
           {(
             [
@@ -175,7 +185,7 @@ export default function MyRoomsScreen() {
                 key: "remaining" as const,
                 label: t("rooms.remaining"),
                 icon: "sparkles" as const,
-                count: counts.next_to_clean + counts.in_progress + counts.needs_attention + counts.skipped,
+                count: counts.remaining,
               },
               {
                 key: "done" as const,
@@ -211,67 +221,55 @@ export default function MyRoomsScreen() {
         {counts.total === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t("rooms.noRooms")}</Text>
-            <Text style={styles.emptyText}>Pull to refresh if your supervisor adds assignments.</Text>
-            {apiError ? <Text style={styles.errorText}>API error: {apiError}</Text> : null}
+            <Text style={styles.emptyText}>{t("rooms.pullToRefreshHint")}</Text>
+            {apiError ? <Text style={styles.errorText}>{t("rooms.apiError", { error: apiError })}</Text> : null}
           </View>
         ) : viewMode === "remaining" ? (
           <View style={styles.sections}>
-            {smartQueue.length > 0 ? (
-              <View style={styles.section}>
-                <SectionHeader
-                  title={t("ai.smartOrder")}
-                />
-                <View style={styles.sectionList}>
-                  {smartQueue.map((entry) => (
-                    <RoomQueueCard
-                      key={entry.room.id}
-                      room={entry.room}
-                      position={entry.position}
-                      estimateMinutes={entry.estimateMinutes}
-                      actionLabel={getRoomAction(entry.room).label}
-                      onPress={() => openRoom(entry.room)}
-                    />
+            {buildingGroups.length > 0 ? (
+              buildingGroups.map((buildingGroup) => (
+                <View key={buildingGroup.building} style={styles.buildingSection}>
+                  <SectionHeader
+                    title={t(`rooms.sections.building.${buildingGroup.building}`)}
+                    hint={String(buildingGroup.floors.reduce((s, f) => s + f.rooms.length, 0))}
+                  />
+                  {buildingGroup.floors.map((floorGroup) => (
+                    <View key={floorGroup.floor} style={styles.section}>
+                      <Text style={styles.floorLabel}>
+                        {t("rooms.sections.floor", { floor: floorGroup.floor })}
+                      </Text>
+                      <View style={styles.sectionList}>
+                        {floorGroup.rooms.map((room) => {
+                          const exception = isFloorException(room);
+                          return (
+                            <RoomQueueCard
+                              key={room.id}
+                              room={room}
+                              actionLabel={exception ? undefined : t(getRoomActionLabelKey(room))}
+                              onPress={() => openRoom(room)}
+                              dimmed={exception}
+                            />
+                          );
+                        })}
+                      </View>
+                    </View>
                   ))}
                 </View>
-              </View>
-            ) : null}
-
-            {groupedRooms.needs_attention.length > 0 ? (
-              <View style={styles.section}>
-                <SectionHeader title="NEEDS ATTENTION" hint={String(groupedRooms.needs_attention.length)} />
-                <View style={styles.sectionList}>
-                  {groupedRooms.needs_attention.map((room) => (
-                    <RoomQueueCard key={room.id} room={room} actionLabel={getRoomAction(room).label} onPress={() => openRoom(room)} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {groupedRooms.skipped.length > 0 ? (
-              <View style={styles.section}>
-                <SectionHeader title="SKIPPED — DND" hint={String(groupedRooms.skipped.length)} />
-                <View style={styles.sectionList}>
-                  {groupedRooms.skipped.map((room) => (
-                    <RoomQueueCard key={room.id} room={room} actionLabel="DND" onPress={() => openRoom(room)} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {smartQueue.length === 0 && groupedRooms.needs_attention.length === 0 && groupedRooms.skipped.length === 0 ? (
+              ))
+            ) : (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>
                 <Text style={styles.emptyText}>{t("rooms.allRoomsDoneHint")}</Text>
               </View>
-            ) : null}
+            )}
           </View>
         ) : (
           <View style={styles.sections}>
-            {DONE_SECTIONS.filter((section) => groupedRooms[section.bucket].length > 0).map((section) => (
-              <View key={section.bucket} style={styles.section}>
-                <SectionHeader title={section.title} hint={String(groupedRooms[section.bucket].length)} />
+            {DONE_SECTION_LIST.filter((s) => s.rooms.length > 0).map((section) => (
+              <View key={section.key} style={styles.section}>
+                <SectionHeader title={t(section.titleKey)} hint={String(section.rooms.length)} />
                 <View style={styles.sectionList}>
-                  {groupedRooms[section.bucket].map((room) => (
+                  {section.rooms.map((room) => (
                     <RoomQueueCard key={room.id} room={room} onPress={() => openRoom(room)} />
                   ))}
                 </View>
@@ -340,7 +338,17 @@ const styles = StyleSheet.create({
   modeTextActive: { color: shellTokens.ink },
 
   sections: { gap: 20 },
-  section: { gap: 9 },
+  buildingSection: { gap: 10 },
+  section: { gap: 6, paddingLeft: 4 },
+  floorLabel: {
+    color: shellTokens.ink3,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    paddingTop: 4,
+    paddingBottom: 2,
+  },
   sectionList: { gap: 12 },
 
   emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
