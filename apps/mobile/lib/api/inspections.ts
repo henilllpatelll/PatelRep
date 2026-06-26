@@ -21,9 +21,10 @@ export async function submitInspection(payload: {
   overall_result: "passed" | "failed" | "conditional";
   notes?: string;
   items?: InspectionItem[];
-}): Promise<void> {
-  await api.post<{ data: unknown }>("/housekeeping/inspections", {
+}): Promise<{ id: string }> {
+  const res = await api.post<{ data: { id: string } }>("/housekeeping/inspections", {
     ...payload,
     items: payload.items ?? [],
   });
+  return { id: res.data?.id ?? "" };
 }

@@ -72,3 +72,34 @@ export async function suggestAssignments(date: string): Promise<SuggestAssignmen
   );
   return res.data;
 }
+
+/* ─── Late checkout requests ───────────────────────────────────────────────── */
+
+export interface LateCheckoutRequest {
+  id: string;
+  room_id: string;
+  status: "pending" | "approved" | "denied";
+  requested_time: string | null;
+}
+
+export async function fetchLateCheckouts(): Promise<LateCheckoutRequest[]> {
+  const res = await api.get<{ data: LateCheckoutRequest[] }>(
+    "/late-checkout/requests?status=pending&status=approved",
+  );
+  return res.data ?? [];
+}
+
+/* ─── Re-clean after failed inspection ────────────────────────────────────── */
+
+export async function triggerReclean(inspectionId: string): Promise<void> {
+  await api.post(`/housekeeping/inspections/${inspectionId}/reclean`, {});
+}
+
+/* ─── Direct message to one housekeeper ───────────────────────────────────── */
+
+export async function sendDirectMessage(
+  recipientId: string,
+  message: string,
+): Promise<void> {
+  await api.post("/notifications/direct", { recipient_id: recipientId, message });
+}

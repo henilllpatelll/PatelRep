@@ -19,10 +19,12 @@ import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import {
   fetchAssignableStaff,
   fetchBoard,
+  fetchLateCheckouts,
   removeAssignment,
   saveAssignments,
   suggestAssignments,
   type AssignmentSuggestion,
+  type LateCheckoutRequest,
 } from "@/lib/api/housekeepingSupervisor";
 import {
   buildFloorSnapshot,
@@ -63,18 +65,25 @@ export default function AssignmentsScreen() {
   const [suggestions, setSuggestions] = useState<AssignmentSuggestion[] | null>(null);
   const [suggestNotice, setSuggestNotice] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [lateCoByRoom, setLateCoByRoom] = useState<Map<string, LateCheckoutRequest>>(new Map());
 
   const loadData = useCallback(async () => {
     if (!isOnline) {
       setLoading(false);
       return;
     }
-    const [boardRes, staffRes] = await Promise.allSettled([
+    const [boardRes, staffRes, lateCoRes] = await Promise.allSettled([
       fetchBoard(localDate()),
       fetchAssignableStaff(),
+      fetchLateCheckouts(),
     ]);
     if (boardRes.status === "fulfilled") setRooms(normalizeBoardRooms(boardRes.value));
     if (staffRes.status === "fulfilled") setStaff(staffRes.value);
+    if (lateCoRes.status === "fulfilled") {
+      const m = new Map<string, LateCheckoutRequest>();
+      for (const req of lateCoRes.value) m.set(req.room_id, req);
+      setLateCoByRoom(m);
+    }
     setLoading(false);
   }, [isOnline]);
 
@@ -334,9 +343,33 @@ export default function AssignmentsScreen() {
                           <Text style={styles.unassignedNumber}>{room.roomNumber}</Text>
                           <View style={styles.unassignedBody}>
                             <Text style={[styles.unassignedStatus, { color: meta.fg }]}>{meta.label}</Text>
-                            <Text style={styles.unassignedMeta}>
-                              {room.cleanTypeLabel ? room.cleanTypeLabel : ""}
-                            </Text>
+                            <View style={styles.unassignedChips}>
+                              {room.cleanTypeLabel ? (
+                                <Text style={styles.unassignedMeta}>{room.cleanTypeLabel}</Text>
+                              ) : null}
+                              {room.vip ? (
+                                <View style={styles.vipChip}>
+                                  <Text style={styles.vipChipText}>★ VIP</Text>
+                                </View>
+                              ) : null}
+                              {lateCoByRoom.has(room.roomId) ? (
+                                <TouchableOpacity
+                                  style={styles.lateCoChip}
+                                  activeOpacity={0.75}
+                                  onPress={() => {
+                                    const req = lateCoByRoom.get(room.roomId);
+                                    Alert.alert(
+                                      t("assignments.lateCoTitle"),
+                                      req?.requested_time
+                                        ? t("assignments.lateCoTime", { time: req.requested_time })
+                                        : t("assignments.lateCoNoTime"),
+                                    );
+                                  }}
+                                >
+                                  <Text style={styles.lateCoChipText}>⏰ {t("assignments.lateCo")}</Text>
+                                </TouchableOpacity>
+                              ) : null}
+                            </View>
                           </View>
                           <Ionicons name="person-add-outline" size={17} color={C.accent} />
                         </TouchableOpacity>
@@ -511,7 +544,7 @@ function HousekeeperLoadCard({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.paper },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.paper },
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: C.paper },
   scrollContent: { paddingBottom: 28 },
 
   topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600, backgroundColor: shellTokens.bg },
@@ -601,7 +634,12 @@ const styles = StyleSheet.create({
   unassignedNumber: { fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "800", color: C.ink },
   unassignedBody: { flex: 1, minWidth: 0, gap: 1 },
   unassignedStatus: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
+  unassignedChips: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   unassignedMeta: { fontSize: 11.5, color: C.ink3 },
+  vipChip: { backgroundColor: C.brassSoft, borderWidth: 1, borderColor: C.brassLine, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
+  vipChipText: { fontSize: 10, fontWeight: "800", color: C.brass },
+  lateCoChip: { backgroundColor: C.cautionSoft, borderWidth: 1, borderColor: C.cautionLine, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
+  lateCoChipText: { fontSize: 10, fontWeight: "800", color: C.caution },
 
   loadCard: {
     backgroundColor: C.surface,

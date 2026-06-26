@@ -121,7 +121,11 @@
       "noTeamYetHint": "Use Assign to split today's rooms, or let AI balance the load.",
       "emptyBoardTitle": "Board is empty",
       "emptyBoardHint": "Rooms appear after the morning Opera import.",
-      "openBoard": "Open Room Board"
+      "openBoard": "Open Room Board",
+      "signalBehind": "{{count}} behind schedule",
+      "passedToday": "Passed today",
+      "shiftNote": "Shift Note",
+      "messageTeam": "Message Team"
     },
     "frontDesk": {
       "shiftMeta": "Front Desk",
@@ -559,6 +563,8 @@
     "doneAgo": "Done {{time}}",
     "modalTitlePass": "Pass Room {{room}}?",
     "modalTitleFail": "Fail Room {{room}}?",
+    "modalTitleTouchup": "Touch-up Room {{room}}?",
+    "confirmTouchup": "Confirm Touch-up",
     "notesOptional": "Notes (optional)",
     "failNotesPlaceholder": "Describe what needs attention…",
     "passNotesPlaceholder": "Any observations…",
@@ -578,6 +584,13 @@
     "failChecklistLabel": "Mark items that failed",
     "detail": {
       "title": "Room {{room}} Inspection"
+    },
+    "reclean": {
+      "title": "Send Room {{room}} Back?",
+      "body": "This will reset the room to Dirty and notify {{housekeeper}} with the fail notes.",
+      "confirm": "Send Back",
+      "sending": "Sending…",
+      "error": "Could not send re-clean. Try again."
     },
     "result": {
       "passed": "Passed",
@@ -811,14 +824,20 @@
       "assign": "Assign",
       "reassign": "Reassign",
       "removeAssignment": "Remove assignment",
-      "removeConfirmTitle": "Remove Room {{room}} assignment?",
-      "removeConfirmBody": "The room goes back to the unassigned list.",
+      "removeConfirmTitle": "Remove assignment for Room {{room}}?",
+      "removeConfirmBody": "The room will move back to unassigned.",
       "checkout": "Checkout",
       "arrival": "Arrival",
       "latestNote": "Latest note",
       "openWorkOrder": "Open work order",
-      "highRisk": "High risk",
-      "dnd": "DND"
+      "highRisk": "High Risk",
+      "dnd": "DND",
+      "dndOverride": "Override DND — Check on guest",
+      "dndOverrideTitle": "Wellness check — Room {{room}}",
+      "dndOverrideBody": "This creates a supervisor wellness-check task. Use only if DND has been active for 2+ hours with no response.",
+      "dndOverrideConfirm": "Create check task",
+      "dndOverrideCreated": "Wellness check task created.",
+      "dndOverrideError": "Could not create task. Try again."
     }
   },
   "roomStatus": {
@@ -896,7 +915,11 @@
     "noAssignmentsHint": "Pull to refresh or check back after morning setup.",
     "assignFloor": "Assign floor",
     "assignFloorTitle": "Floor {{floor}} — {{count}} rooms",
-    "floorSection": "Floor {{floor}}"
+    "floorSection": "Floor {{floor}}",
+    "lateCo": "Late CO",
+    "lateCoTitle": "Late Checkout",
+    "lateCoTime": "Guest requested checkout by {{time}}",
+    "lateCoNoTime": "Late checkout requested — time not specified"
   },
   "logbook": {
     "title": "Shift Logbook",
@@ -964,6 +987,27 @@
     "timePlaceholder": "e.g. 1:30 PM",
     "report": "Report"
   },
+  "directMessage": {
+    "title": "Message {{name}}",
+    "hint": "Message goes straight to their phone as a notification.",
+    "placeholder": "e.g. Skip 207, start 310 first",
+    "send": "Send",
+    "sending": "Sending…",
+    "sendError": "Could not send message. Try again."
+  },
+  "endShift": {
+    "shortLabel": "End Shift",
+    "title": "End-of-Shift Summary",
+    "subtitle": "This summary will be sent to the GM.",
+    "statReady": "Ready",
+    "statSubmitted": "Submitted",
+    "statOoo": "OOO",
+    "notesLabel": "Supervisor notes",
+    "notesPlaceholder": "Anything for the incoming shift…",
+    "submit": "Submit Summary",
+    "submitting": "Submitting…",
+    "submitError": "Could not submit summary. Try again."
+  },
   "picker": {
     "title": "Assign Room {{room}}",
     "titleGeneric": "Assign room",
@@ -971,6 +1015,7 @@
     "load": "{{count}} rooms today · ~{{minutes}}m left",
     "noRooms": "No rooms yet today",
     "noStaff": "No housekeeping staff found",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "saved": "Assigned ✓"
   }
 }

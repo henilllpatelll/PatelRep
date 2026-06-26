@@ -121,7 +121,11 @@
       "noTeamYetHint": "Usa Asignar para repartir los cuartos de hoy, o deja que la IA balancee la carga.",
       "emptyBoardTitle": "El tablero está vacío",
       "emptyBoardHint": "Los cuartos aparecen después de la importación matutina de Opera.",
-      "openBoard": "Abrir tablero de cuartos"
+      "openBoard": "Abrir tablero de cuartos",
+      "signalBehind": "{{count}} con retraso",
+      "passedToday": "Aprobados hoy",
+      "shiftNote": "Nota de turno",
+      "messageTeam": "Mensaje al equipo"
     },
     "frontDesk": {
       "shiftMeta": "Recepción",
@@ -559,6 +563,8 @@
     "doneAgo": "Listo {{time}}",
     "modalTitlePass": "¿Aprobar Cuarto {{room}}?",
     "modalTitleFail": "¿Rechazar Cuarto {{room}}?",
+    "modalTitleTouchup": "¿Retoque en Cuarto {{room}}?",
+    "confirmTouchup": "Confirmar Retoque",
     "notesOptional": "Notas (opcional)",
     "failNotesPlaceholder": "Describe qué necesita atención…",
     "passNotesPlaceholder": "Cualquier observación…",
@@ -578,6 +584,13 @@
     "failChecklistLabel": "Marca los items que fallaron",
     "detail": {
       "title": "Inspección Cuarto {{room}}"
+    },
+    "reclean": {
+      "title": "¿Regresar Cuarto {{room}}?",
+      "body": "Esto restablece el cuarto a Sucio y notifica a {{housekeeper}} con las notas del fallo.",
+      "confirm": "Regresar",
+      "sending": "Enviando…",
+      "error": "No se pudo enviar el re-limpiado. Inténtalo de nuevo."
     },
     "result": {
       "passed": "Aprobado",
@@ -811,14 +824,20 @@
       "assign": "Asignar",
       "reassign": "Reasignar",
       "removeAssignment": "Quitar asignación",
-      "removeConfirmTitle": "¿Quitar la asignación del cuarto {{room}}?",
-      "removeConfirmBody": "El cuarto vuelve a la lista de sin asignar.",
+      "removeConfirmTitle": "¿Quitar asignación del cuarto {{room}}?",
+      "removeConfirmBody": "El cuarto volverá a sin asignar.",
       "checkout": "Salida",
       "arrival": "Llegada",
       "latestNote": "Última nota",
       "openWorkOrder": "Orden de trabajo abierta",
-      "highRisk": "Riesgo alto",
-      "dnd": "No molestar"
+      "highRisk": "Alto riesgo",
+      "dnd": "No molestar",
+      "dndOverride": "Revisar No Molestar — Verificar huésped",
+      "dndOverrideTitle": "Revisión de bienestar — Cuarto {{room}}",
+      "dndOverrideBody": "Esto crea una tarea de revisión de bienestar. Úsalo solo si el No Molestar lleva 2+ horas sin respuesta.",
+      "dndOverrideConfirm": "Crear tarea",
+      "dndOverrideCreated": "Tarea de revisión creada.",
+      "dndOverrideError": "No se pudo crear la tarea. Inténtalo de nuevo."
     }
   },
   "roomStatus": {
@@ -896,7 +915,32 @@
     "noAssignmentsHint": "Jala para actualizar o vuelve después de la preparación matutina.",
     "assignFloor": "Asignar piso",
     "assignFloorTitle": "Piso {{floor}} — {{count}} cuartos",
-    "floorSection": "Piso {{floor}}"
+    "floorSection": "Piso {{floor}}",
+    "lateCo": "Salida Tard.",
+    "lateCoTitle": "Salida tardía",
+    "lateCoTime": "El huésped solicitó salir a las {{time}}",
+    "lateCoNoTime": "Salida tardía solicitada — hora no especificada"
+  },
+  "directMessage": {
+    "title": "Mensaje a {{name}}",
+    "hint": "El mensaje llega directo a su teléfono como notificación.",
+    "placeholder": "Ej. Salta el 207, empieza el 310 primero",
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "sendError": "No se pudo enviar el mensaje. Inténtalo de nuevo."
+  },
+  "endShift": {
+    "shortLabel": "Fin turno",
+    "title": "Resumen de Fin de Turno",
+    "subtitle": "Este resumen se enviará a la gerencia.",
+    "statReady": "Listo",
+    "statSubmitted": "Enviado",
+    "statOoo": "FdS",
+    "notesLabel": "Notas del supervisor",
+    "notesPlaceholder": "Algo para el turno entrante…",
+    "submit": "Enviar resumen",
+    "submitting": "Enviando…",
+    "submitError": "No se pudo enviar el resumen. Inténtalo de nuevo."
   },
   "logbook": {
     "title": "Bitácora de Turno",
@@ -971,6 +1015,7 @@
     "load": "{{count}} cuartos hoy · ~{{minutes}}m restantes",
     "noRooms": "Sin cuartos por hoy",
     "noStaff": "No se encontró personal de housekeeping",
-    "saving": "Guardando…"
+    "saving": "Guardando…",
+    "saved": "Asignado ✓"
   }
 }

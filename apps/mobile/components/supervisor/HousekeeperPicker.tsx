@@ -1,4 +1,6 @@
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Modal, Platform, ScrollView, StyleSheet, Text, ToastAndroid, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { C, R } from "@/components/shared/tokens";
@@ -29,12 +31,31 @@ export function HousekeeperPicker({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const loadById = new Map(loads.map((load) => [load.housekeeperId, load]));
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const prevSaving = useRef(false);
+
+  useEffect(() => {
+    if (prevSaving.current && !saving && savedId) {
+      if (Platform.OS === "android") {
+        ToastAndroid.show(t("picker.saved"), ToastAndroid.SHORT);
+      }
+      const timer = setTimeout(() => setSavedId(null), 600);
+      return () => clearTimeout(timer);
+    }
+    prevSaving.current = saving;
+  }, [saving, savedId, t]);
+
+  const handleSelect = (member: AssignableStaff) => {
+    setSavedId(member.userId);
+    onSelect(member);
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(28, insets.bottom + 14) }]}>
         <View style={styles.grabber} />
         <Text style={styles.title}>
           {customTitle ?? (roomNumber ? t("picker.title", { room: roomNumber }) : t("picker.titleGeneric"))}
@@ -50,7 +71,7 @@ export function HousekeeperPicker({
                 <TouchableOpacity
                   key={member.userId}
                   style={[styles.row, saving && styles.rowDimmed]}
-                  onPress={() => onSelect(member)}
+                  onPress={() => handleSelect(member)}
                   disabled={saving}
                   activeOpacity={0.8}
                   testID={`picker-${member.userId}`}
@@ -64,7 +85,11 @@ export function HousekeeperPicker({
                         : t("picker.noRooms")}
                     </Text>
                   </View>
-                  <Ionicons name="person-add-outline" size={17} color={C.accent} />
+                  {savedId === member.userId ? (
+                    <Ionicons name="checkmark-circle" size={20} color={C.ready} />
+                  ) : (
+                    <Ionicons name="person-add-outline" size={17} color={C.accent} />
+                  )}
                 </TouchableOpacity>
               );
             })
@@ -86,7 +111,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 28,
     maxHeight: "70%",
   },
   grabber: {

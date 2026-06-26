@@ -107,15 +107,15 @@ export function TeamLoadRow({
   load,
   summary,
   onPress,
+  onMessage,
 }: {
   load: TeamLoad;
   /** Pre-localized "{done} of {total} done · ~{m}m left" line */
   summary: string;
   onPress?: () => void;
+  onMessage?: () => void;
 }) {
-  // G9: find room currently being cleaned
   const activeRoom = load.rooms.find((r) => r.status === "IN_PROGRESS") ?? null;
-  // G10: avg estimated time per completed room
   const avgMin = load.done > 0
     ? Math.round(load.rooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").reduce((acc, r) => acc + r.baseCleanMinutes, 0) / load.done)
     : null;
@@ -124,7 +124,7 @@ export function TeamLoadRow({
     <TouchableOpacity
       style={styles.loadRow}
       onPress={onPress}
-      disabled={!onPress}
+      disabled={!onPress && !onMessage}
       activeOpacity={0.8}
       testID={`team-load-${load.housekeeperId}`}
     >
@@ -133,10 +133,15 @@ export function TeamLoadRow({
         <View style={styles.loadTitleRow}>
           <Text style={styles.loadName} numberOfLines={1}>{load.name}</Text>
           {load.inProgress > 0 ? <View style={styles.loadActiveDot} /> : null}
+          {load.overAssigned ? (
+            <View style={styles.overAssignedChip}>
+              <Text style={styles.overAssignedText}>⚠ Over</Text>
+            </View>
+          ) : null}
           <Text style={styles.loadCount}>{load.done}/{load.total}</Text>
           {avgMin !== null ? <Text style={styles.loadAvg}>~{avgMin}m</Text> : null}
         </View>
-        <ProgressBar value={load.done} total={load.total} color={C.ready} />
+        <ProgressBar value={load.done} total={load.total} color={load.overAssigned ? C.caution : C.ready} />
         <View style={styles.loadMetaRow}>
           <Text style={styles.loadSummary}>{summary}</Text>
           {activeRoom ? (
@@ -144,7 +149,19 @@ export function TeamLoadRow({
           ) : null}
         </View>
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={14} color={C.ink4} /> : null}
+      {onMessage ? (
+        <TouchableOpacity
+          style={styles.messageBtn}
+          onPress={onMessage}
+          hitSlop={8}
+          accessibilityLabel={`Message ${load.name}`}
+          testID={`message-${load.housekeeperId}`}
+        >
+          <Ionicons name="chatbubble-outline" size={16} color={C.info} />
+        </TouchableOpacity>
+      ) : onPress ? (
+        <Ionicons name="chevron-forward" size={14} color={C.ink4} />
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -206,4 +223,13 @@ const styles = StyleSheet.create({
   loadSummary: { fontSize: 11.5, color: C.ink3, flex: 1 },
   loadCurrentRoom: { fontSize: 11.5, fontWeight: "700", color: C.caution },
   loadAvg: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: C.ink3 },
+  overAssignedChip: {
+    backgroundColor: C.cautionSoft, borderWidth: 1, borderColor: C.cautionLine,
+    borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  overAssignedText: { fontSize: 9.5, fontWeight: "800", color: C.caution },
+  messageBtn: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: C.infoSoft,
+    borderWidth: 1, borderColor: C.infoLine, alignItems: "center", justifyContent: "center",
+  },
 });

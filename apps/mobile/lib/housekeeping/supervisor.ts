@@ -114,9 +114,25 @@ export interface FloorSnapshot {
   unassigned: number;
   dnd: number;
   vip: number;
+  behindSchedule: number;
+}
+
+function isBehindSchedule(room: FloorRoom, nowMs: number): boolean {
+  if (room.status === "INSPECTED" || room.status === "CLEAN" || isOutOfOrder(room.status)) return false;
+  if (!isActionable(room.status) && room.status !== "DIRTY" && room.status !== "PICKUP") return false;
+  // Departure rooms: behind if checkout_time < now
+  if (room.checkoutTime) {
+    const coMs = new Date(room.checkoutTime).getTime();
+    if (!Number.isNaN(coMs) && coMs < nowMs) return true;
+  }
+  // Stayover/all rooms: behind if it's past 1 PM and room is still unstarted
+  const nowDate = new Date(nowMs);
+  if (nowDate.getHours() >= 13 && room.status !== "IN_PROGRESS") return true;
+  return false;
 }
 
 export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
+  const nowMs = Date.now();
   const snapshot: FloorSnapshot = {
     total: rooms.length,
     ready: 0,
@@ -127,6 +143,7 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     unassigned: 0,
     dnd: 0,
     vip: 0,
+    behindSchedule: 0,
   };
   for (const room of rooms) {
     if (room.status === "INSPECTED") snapshot.ready += 1;
@@ -137,6 +154,7 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     if (isActionable(room.status) && !room.assignedTo) snapshot.unassigned += 1;
     if (room.dnd && !isOutOfOrder(room.status)) snapshot.dnd += 1;
     if (room.vip && !isOutOfOrder(room.status)) snapshot.vip += 1;
+    if (isBehindSchedule(room, nowMs)) snapshot.behindSchedule += 1;
   }
   return snapshot;
 }
@@ -185,7 +203,10 @@ export interface TeamLoad {
   done: number;
   inProgress: number;
   minutesLeft: number;
+  overAssigned: boolean;
 }
+
+const MAX_SHIFT_MINUTES = 480;
 
 export function buildTeamLoads(rooms: FloorRoom[], nameById: Map<string, string>): TeamLoad[] {
   const byHousekeeper = new Map<string, TeamLoad>();
@@ -201,6 +222,7 @@ export function buildTeamLoads(rooms: FloorRoom[], nameById: Map<string, string>
         done: 0,
         inProgress: 0,
         minutesLeft: 0,
+        overAssigned: false,
       };
       byHousekeeper.set(room.assignedTo, load);
     }
@@ -211,7 +233,11 @@ export function buildTeamLoads(rooms: FloorRoom[], nameById: Map<string, string>
     if (isActionable(room.status)) load.minutesLeft += room.baseCleanMinutes;
   }
   const loads = [...byHousekeeper.values()];
-  for (const load of loads) load.rooms = sortRoomsByNumber(load.rooms);
+  for (const load of loads) {
+    load.rooms = sortRoomsByNumber(load.rooms);
+    load.overAssigned = load.minutesLeft > MAX_SHIFT_MINUTES;
+    load.minutesLeft = Math.min(load.minutesLeft, MAX_SHIFT_MINUTES);
+  }
   return loads.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 

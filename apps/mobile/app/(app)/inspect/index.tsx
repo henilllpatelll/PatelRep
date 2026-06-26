@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { api } from "@/lib/api/client";
 import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
+import { triggerReclean } from "@/lib/api/housekeepingSupervisor";
 import { localDate, localTzOffset } from "@/lib/utils/date";
 import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
 
@@ -63,11 +64,13 @@ export default function InspectScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<Tab>("queue");
   const [template, setTemplate] = useState<InspectionTemplate | undefined>();
-  const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" } | null>(null);
+  const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" | "conditional" } | null>(null);
   const [confirmNotes, setConfirmNotes] = useState("");
   const [failedItems, setFailedItems] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [detailRecord, setDetailRecord] = useState<InspectionRecord | null>(null);
+  const [reclean, setReclean] = useState<{ room: ReadyRoom; inspectionId: string; notes: string } | null>(null);
+  const [recleaning, setRecleaning] = useState(false);
 
   const load = useCallback(async () => {
     const today = localDate();
@@ -137,7 +140,7 @@ export default function InspectScreen() {
     [queue.length, loading, t],
   );
 
-  const openConfirm = useCallback((room: ReadyRoom, result: "passed" | "failed") => {
+  const openConfirm = useCallback((room: ReadyRoom, result: "passed" | "failed" | "conditional") => {
     setConfirm({ room, result });
     setConfirmNotes("");
     setFailedItems({});
@@ -149,21 +152,26 @@ export default function InspectScreen() {
     try {
       const items = (template?.items ?? []).map((item) => ({
         template_item_id: item.id,
-        result: (confirm.result === "passed"
+        result: (confirm.result === "passed" || confirm.result === "conditional"
           ? "pass"
           : failedItems[item.id] ? "fail" : "pass") as "pass" | "fail" | "na",
       }));
-      await submitInspection({
+      const { id: inspectionId } = await submitInspection({
         room_id: confirm.room.room_id,
         template_id: template?.id,
         overall_result: confirm.result,
         notes: confirmNotes.trim() || undefined,
         items,
       });
-      setQueue((prev) => prev.filter((room) => room.room_id !== confirm.room.room_id));
+      const savedRoom = confirm.room;
+      const savedNotes = confirmNotes.trim();
+      const wasFailure = confirm.result === "failed" || confirm.result === "conditional";
+      setQueue((prev) => prev.filter((room) => room.room_id !== savedRoom.room_id));
       setConfirm(null);
-      // Pull the authoritative record (inspector name, timestamps) from the API.
       await load();
+      if (wasFailure && inspectionId) {
+        setReclean({ room: savedRoom, inspectionId, notes: savedNotes });
+      }
     } catch {
       Alert.alert(t("inspect.submitError"));
     } finally {
@@ -223,7 +231,7 @@ export default function InspectScreen() {
             {tab === "queue" ? (
               queue.length === 0 ? (
                 <View style={styles.empty}>
-                  <Ionicons name="shield-checkmark-outline" size={30} color={C.ink4} />
+                  <Ionicons name="shield-checkmark-outline" size={48} color={C.ink4} />
                   <Text style={styles.emptyTitle}>{t("inspect.queueEmpty")}</Text>
                   <Text style={styles.emptyHint}>{t("inspect.queueEmptyHint")}</Text>
                 </View>
@@ -239,15 +247,7 @@ export default function InspectScreen() {
                         {room.clean_type ? ` · ${room.clean_type}` : ""}
                       </Text>
                     </View>
-                    <View style={styles.queueActions}>
-                      <TouchableOpacity
-                        style={[styles.actionBtn, styles.failBtn]}
-                        onPress={() => openConfirm(room, "failed")}
-                        activeOpacity={0.78}
-                        accessibilityLabel={t("inspect.confirmFail")}
-                      >
-                        <Ionicons name="close" size={20} color={C.alert} />
-                      </TouchableOpacity>
+                    <View style={styles.queueActions} collapsable={false}>
                       <TouchableOpacity
                         style={[styles.actionBtn, styles.passBtn]}
                         onPress={() => openConfirm(room, "passed")}
@@ -256,13 +256,29 @@ export default function InspectScreen() {
                       >
                         <Ionicons name="checkmark" size={20} color="#fff" />
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.touchupBtn]}
+                        onPress={() => openConfirm(room, "conditional")}
+                        activeOpacity={0.78}
+                        accessibilityLabel={t("inspect.confirmTouchup")}
+                      >
+                        <Ionicons name="flash" size={17} color={C.caution} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.failBtn]}
+                        onPress={() => openConfirm(room, "failed")}
+                        activeOpacity={0.78}
+                        accessibilityLabel={t("inspect.confirmFail")}
+                      >
+                        <Ionicons name="close" size={20} color={C.alert} />
+                      </TouchableOpacity>
                     </View>
                   </View>
                 ))
               )
             ) : records.length === 0 ? (
               <View style={styles.empty}>
-                <Ionicons name="moon-outline" size={30} color={C.ink4} />
+                <Ionicons name="moon-outline" size={48} color={C.ink4} />
                 <Text style={styles.emptyTitle}>{t("inspect.noneDoneYet")}</Text>
                 <Text style={styles.emptyHint}>{t("inspect.pullToRefresh")}</Text>
               </View>
@@ -294,6 +310,53 @@ export default function InspectScreen() {
           </View>
         </ScrollView>
       )}
+
+      <Modal visible={!!reclean} animationType="slide" transparent onRequestClose={() => setReclean(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReclean(null)}>
+          <TouchableOpacity style={styles.modalSheet} activeOpacity={1}>
+            <View style={styles.grabber} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {t("inspect.reclean.title", { room: reclean?.room.room_number })}
+              </Text>
+              <TouchableOpacity onPress={() => setReclean(null)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={C.ink3} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalBody}>{t("inspect.reclean.body", { housekeeper: reclean?.room.cleaned_by ?? "—" })}</Text>
+            {reclean?.notes ? (
+              <View style={styles.recleanNotesCard}>
+                <Text style={styles.recleanNotesText}>{reclean.notes}</Text>
+              </View>
+            ) : null}
+            <View style={styles.confirmRow}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setReclean(null)}>
+                <Text style={styles.cancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, styles.confirmFail, recleaning && styles.dimmed]}
+                disabled={recleaning}
+                onPress={async () => {
+                  if (!reclean || recleaning) return;
+                  setRecleaning(true);
+                  try {
+                    await triggerReclean(reclean.inspectionId);
+                    setReclean(null);
+                  } catch {
+                    Alert.alert(t("inspect.reclean.error"));
+                  } finally {
+                    setRecleaning(false);
+                  }
+                }}
+              >
+                <Text style={styles.confirmText}>
+                  {recleaning ? t("inspect.reclean.sending") : t("inspect.reclean.confirm")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={!!detailRecord} animationType="slide" transparent onRequestClose={() => setDetailRecord(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDetailRecord(null)}>
@@ -336,7 +399,9 @@ export default function InspectScreen() {
               <Text style={styles.modalTitle}>
                 {confirm?.result === "passed"
                   ? t("inspect.modalTitlePass", { room: confirm?.room.room_number })
-                  : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
+                  : confirm?.result === "conditional"
+                    ? t("inspect.modalTitleTouchup", { room: confirm?.room.room_number })
+                    : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
               </Text>
               <TouchableOpacity onPress={() => setConfirm(null)} hitSlop={10}>
                 <Ionicons name="close" size={22} color={C.ink3} />
@@ -390,7 +455,7 @@ export default function InspectScreen() {
               <TouchableOpacity
                 style={[
                   styles.confirmBtn,
-                  confirm?.result === "passed" ? styles.confirmPass : styles.confirmFail,
+                  confirm?.result === "passed" ? styles.confirmPass : confirm?.result === "conditional" ? styles.confirmTouchup : styles.confirmFail,
                   submitting && styles.dimmed,
                 ]}
                 onPress={handleConfirm}
@@ -401,7 +466,9 @@ export default function InspectScreen() {
                     ? t("inspect.submitting")
                     : confirm?.result === "passed"
                       ? t("inspect.confirmPass")
-                      : t("inspect.confirmFail")}
+                      : confirm?.result === "conditional"
+                        ? t("inspect.confirmTouchup")
+                        : t("inspect.confirmFail")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -503,6 +570,7 @@ const styles = StyleSheet.create({
   },
   passBtn: { backgroundColor: C.ready, borderColor: C.ready },
   failBtn: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  touchupBtn: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
 
   doneRow: {
     flexDirection: "row",
@@ -579,6 +647,7 @@ const styles = StyleSheet.create({
   confirmBtn: { flex: 2, minHeight: 46, borderRadius: R.md, alignItems: "center", justifyContent: "center" },
   confirmPass: { backgroundColor: C.ready },
   confirmFail: { backgroundColor: C.alert },
+  confirmTouchup: { backgroundColor: C.caution },
   confirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   dimmed: { opacity: 0.5 },
 
@@ -593,4 +662,7 @@ const styles = StyleSheet.create({
   checklistLabel: { fontSize: 13.5, color: C.ink, flex: 1 },
   checklistLabelFail: { color: C.alert, textDecorationLine: "line-through" },
   detailMeta: { fontSize: 12.5, color: C.ink3, marginTop: 4 },
+  modalBody: { fontSize: 14, lineHeight: 20, color: C.ink2, marginBottom: 12 },
+  recleanNotesCard: { backgroundColor: C.alertSoft, borderRadius: 10, padding: 12, marginBottom: 12 },
+  recleanNotesText: { fontSize: 12.5, color: C.alert },
 });

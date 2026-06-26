@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-06-26 | SUPERVISOR AUDIT FIXES: BUG1 (suggest_assignments fallback → user_roles is_active, not user_profiles); BUG2 (HousekeeperPicker success checkmark + ToastAndroid); BUG3 (inspect ScrollView collapsable=false on queueActions); BUG4 (TeamLoad minutesLeft capped 480min + overAssigned flag); BUG5 (RoomDetailSheet maxHeight 78→90%); BUG6 (board query falls back to room_status.assigned_to); GAP1 (POST /inspections/{id}/reclean API endpoint — resets DIRTY + creates task); GAP5 (Touch-up conditional button in inspect — 3rd outcome); GAP7 (★ VIP chip on unassigned rows in Assignments); locales en+es updated. | housekeeping.py, HousekeeperPicker.tsx, inspect/index.tsx, supervisor.ts, RoomDetailSheet.tsx, assignments/index.tsx, en.json, es.json | complete | ~280 tok |
 | 09:30 | OPTIMISTIC SAVE: room assignments in HousekeeperBar now fire-and-confirm — pending state clears and "Saved" shows instantly on tap; API saves in background; failure restores pending assignments and shows error. Removed saveLoading state + spinner. TS clean. | apps/web/app/(dashboard)/housekeeping/page.tsx |
 | 2026-06-26 | QA FIX SESSION (10 items): Knock modal (KnockModal.tsx), L&F mandatory check (ChecklistSection), 20/10-item expanded checklists (roomWorkflow.ts), damage photo banner, linen stepper, DND attempt counter + supervisor escalation (appStore.ts + roomBlockers.ts), declined service front desk alert, iOS/Android clean success toast, note form above chips bug fix, home useFocusEffect + refreshRooms. en.json + es.json updated. Tests fixed. TS clean. | KnockModal.tsx, ChecklistSection.tsx, [roomId].tsx, roomWorkflow.ts, roomBlockers.ts, appStore.ts, workOrders.ts, home/index.tsx, en.json, es.json, RoomDetail.test.tsx, HousekeeperHome.test.tsx | complete | ~300 tok |
 | 10:01 | HOUSEKEEPING WORKFLOW QA (emulator, claudia@gmail.com): Tested full housekeeper loop on Android emulator — Home/My Rooms/Room Detail/Start Cleaning/Checklist/Mark Clean/Add Note/Work Order/Supplies/Come Back Later. 15 gaps vs. standard hotel procedure logged in WORKFLOW_FINDINGS_2026-06-25.md. | all mobile screens | complete | ~180 tok |
@@ -5953,3 +5954,127 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 10:35 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 7→12 lines | ~242 |
 | 10:35 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 6→7 lines | ~65 |
 | 10:36 | Session end: 17 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~49647 tok |
+
+## Session: 2026-06-26 10:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:19 | Created .planning/supervisor-workflow-audit.md | — | ~3067 |
+| 11:20 | Supervisor workflow QA — Sandra login, all 5 tabs tested, 6 bugs + 9 gaps documented | .planning/supervisor-workflow-audit.md | ~6 bugs found, AI Balance broken, inspect touch issue, 9 procedural gaps logged | ~8000 tok |
+| 11:20 | Session end: 1 writes across 1 files (supervisor-workflow-audit.md) | 7 reads | ~22405 tok |
+
+## Session: 2026-06-26 11:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:30 | Edited apps/api/routers/housekeeping.py | modified in() | ~345 |
+| 11:30 | Edited apps/api/routers/housekeeping.py | 2→2 lines | ~50 |
+| 11:30 | Edited apps/api/routers/housekeeping.py | modified trigger_reclean() | ~830 |
+| 11:32 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | added 1 import(s) | ~130 |
+| 11:32 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | added 2 condition(s) | ~295 |
+| 11:33 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | onSelect() → handleSelect() | ~305 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | expanded (+8 lines) | ~404 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | inline fix | ~35 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | inline fix | ~29 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~123 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | modified t() | ~96 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | CSS: confirmTouchup | ~79 |
+| 11:33 | Edited apps/mobile/app/(app)/inspect/index.tsx | 6→6 lines | ~82 |
+| 11:34 | Edited apps/mobile/app/(app)/inspect/index.tsx | CSS: touchupBtn | ~61 |
+| 11:34 | Edited apps/mobile/app/(app)/inspect/index.tsx | CSS: confirmTouchup | ~40 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 9→12 lines | ~65 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | 9→10 lines | ~70 |
+| 11:34 | Edited apps/mobile/lib/housekeeping/supervisor.ts | modified for() | ~102 |
+| 11:34 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | 9→9 lines | ~56 |
+| 11:34 | Edited apps/mobile/app/(app)/assignments/index.tsx | expanded (+7 lines) | ~270 |
+| 11:34 | Edited apps/mobile/app/(app)/assignments/index.tsx | 3→6 lines | ~148 |
+| 11:35 | Edited apps/mobile/i18n/locales/en.json | 2→4 lines | ~53 |
+| 11:35 | Edited apps/mobile/i18n/locales/en.json | 3→4 lines | ~16 |
+| 11:35 | Edited apps/mobile/i18n/locales/es.json | 2→4 lines | ~58 |
+| 11:35 | Edited apps/mobile/i18n/locales/es.json | 3→4 lines | ~17 |
+| 11:36 | Session end: 25 writes across 7 files (housekeeping.py, HousekeeperPicker.tsx, index.tsx, supervisor.ts, RoomDetailSheet.tsx) | 13 reads | ~72467 tok |
+| 11:38 | Session end: 25 writes across 7 files (housekeeping.py, HousekeeperPicker.tsx, index.tsx, supervisor.ts, RoomDetailSheet.tsx) | 13 reads | ~72467 tok |
+
+## Session: 2026-06-26 11:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:44 | Edited apps/api/routers/housekeeping.py | modified upload_inspection_photo() | ~1043 |
+| 11:44 | Session end: 1 writes across 1 files (housekeeping.py) | 17 reads | ~78163 tok |
+| 11:47 | Session end: 1 writes across 1 files (housekeeping.py) | 17 reads | ~78163 tok |
+
+## Session: 2026-06-26 11:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-26 11:48
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:50 | Edited apps/api/routers/notifications.py | 5→5 lines | ~70 |
+| 11:50 | Edited apps/api/routers/notifications.py | modified mark_all_read() | ~442 |
+| 11:50 | Edited apps/mobile/lib/api/inspections.ts | added optional chaining | ~115 |
+| 11:50 | Edited apps/mobile/lib/api/housekeepingSupervisor.ts | added nullish coalescing | ~351 |
+| 11:50 | Edited apps/mobile/lib/housekeeping/supervisor.ts | added 6 condition(s) | ~535 |
+| 11:51 | Edited apps/mobile/components/supervisor/atoms.tsx | CSS: caution | ~641 |
+| 11:51 | Edited apps/mobile/components/supervisor/atoms.tsx | expanded (+9 lines) | ~150 |
+| 11:51 | Created apps/mobile/components/supervisor/DirectMessageModal.tsx | — | ~1104 |
+| 11:51 | Created apps/mobile/components/supervisor/EndShiftModal.tsx | — | ~1464 |
+| 11:51 | Edited apps/mobile/components/home/SupervisorHome.tsx | added 2 import(s) | ~81 |
+| 11:51 | Edited apps/mobile/components/home/SupervisorHome.tsx | CSS: id, name | ~80 |
+| 11:52 | Edited apps/mobile/components/home/SupervisorHome.tsx | expanded (+7 lines) | ~143 |
+| 11:52 | Edited apps/mobile/components/home/SupervisorHome.tsx | expanded (+6 lines) | ~259 |
+| 11:52 | Edited apps/mobile/components/home/SupervisorHome.tsx | CSS: id, name | ~150 |
+| 11:52 | Edited apps/mobile/components/home/SupervisorHome.tsx | added optional chaining | ~145 |
+| 11:52 | Edited apps/mobile/components/home/SupervisorHome.tsx | CSS: quickActionBtnReady | ~49 |
+| 11:52 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | added 1 import(s) | ~140 |
+| 11:52 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | added error handling | ~554 |
+| 11:53 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | expanded (+6 lines) | ~112 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | 8→10 lines | ~66 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | added 1 condition(s) | ~235 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | added optional chaining | ~450 |
+| 11:53 | Edited apps/mobile/app/(app)/assignments/index.tsx | CSS: lateCoChip, lateCoChipText | ~127 |
+| 11:53 | Edited apps/mobile/app/(app)/inspect/index.tsx | added 1 import(s) | ~50 |
+| 11:53 | Edited apps/mobile/app/(app)/inspect/index.tsx | CSS: room, inspectionId, notes | ~72 |
+| 11:54 | Edited apps/mobile/app/(app)/inspect/index.tsx | record() → setReclean() | ~294 |
+| 11:54 | Edited apps/mobile/app/(app)/inspect/index.tsx | added error handling | ~700 |
+| 11:54 | Edited apps/mobile/i18n/locales/en.json | 2→3 lines | ~27 |
+| 11:54 | Edited apps/mobile/i18n/locales/en.json | 2→6 lines | ~66 |
+| 11:54 | Edited apps/mobile/i18n/locales/en.json | expanded (+7 lines) | ~98 |
+| 11:54 | Edited apps/mobile/i18n/locales/en.json | expanded (+45 lines) | ~496 |
+| 11:55 | Edited apps/mobile/i18n/locales/es.json | 2→3 lines | ~29 |
+| 11:55 | Edited apps/mobile/i18n/locales/es.json | expanded (+49 lines) | ~585 |
+| 11:55 | Edited apps/mobile/i18n/locales/es.json | expanded (+7 lines) | ~127 |
+| 11:56 | Session end: 34 writes across 12 files (notifications.py, inspections.ts, housekeepingSupervisor.ts, supervisor.ts, atoms.tsx) | 13 reads | ~85862 tok |
+
+## Session: 2026-06-26 12:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:05 | Edited apps/mobile/i18n/locales/en.json | 3→6 lines | ~58 |
+| 12:05 | Edited apps/mobile/i18n/locales/es.json | 3→6 lines | ~62 |
+| 12:05 | Edited apps/mobile/components/home/SupervisorHome.tsx | inline fix | ~26 |
+| 12:05 | Edited apps/mobile/components/home/SupervisorHome.tsx | 8→8 lines | ~206 |
+| 12:05 | Edited apps/mobile/app/(app)/inspect/index.tsx | 26→26 lines | ~404 |
+| 12:05 | Edited apps/mobile/app/(app)/inspect/index.tsx | 2→3 lines | ~17 |
+| 12:05 | Edited apps/mobile/app/(app)/inspect/index.tsx | 4→3 lines | ~48 |
+| 12:05 | Edited apps/mobile/app/(app)/inspect/index.tsx | 30 → 48 | ~25 |
+| 12:06 | Edited apps/mobile/app/(app)/inspect/index.tsx | 30 → 48 | ~21 |
+| 12:06 | Edited apps/mobile/app/(app)/inspect/index.tsx | 6→6 lines | ~96 |
+| 12:06 | Edited apps/mobile/app/(app)/inspect/index.tsx | 3→6 lines | ~110 |
+| 12:06 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | added 1 import(s) | ~75 |
+| 12:06 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | 2→3 lines | ~28 |
+| 12:06 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | inline fix | ~26 |
+| 12:06 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | 9→8 lines | ~50 |
+| 12:06 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | added 1 import(s) | ~68 |
+| 12:07 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | 2→3 lines | ~43 |
+| 12:07 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | inline fix | ~26 |
+| 12:07 | Edited apps/mobile/components/supervisor/HousekeeperPicker.tsx | 9→8 lines | ~50 |
+| 12:07 | Edited apps/mobile/app/(app)/assignments/index.tsx | inline fix | ~14 |
+| 12:07 | Session end: 20 writes across 6 files (en.json, es.json, SupervisorHome.tsx, index.tsx, RoomDetailSheet.tsx) | 8 reads | ~53019 tok |
+| 12:11 | Edited apps/mobile/i18n/locales/en.json | expanded (+6 lines) | ~265 |
+| 12:11 | Edited apps/mobile/i18n/locales/en.json | removed 25 lines | ~4 |
+| 12:11 | Edited apps/mobile/i18n/locales/es.json | expanded (+6 lines) | ~275 |
+| 12:11 | Edited apps/mobile/i18n/locales/es.json | removed 25 lines | ~4 |
+| 12:12 | Session end: 24 writes across 6 files (en.json, es.json, SupervisorHome.tsx, index.tsx, RoomDetailSheet.tsx) | 9 reads | ~57614 tok |

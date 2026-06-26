@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T15:35:36.673Z
-> Files: 69 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T17:11:51.899Z
+> Files: 75 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -430,6 +430,7 @@
 
 ## .planning/
 
+- `supervisor-workflow-audit.md` — Housekeeping Supervisor Workflow Audit (~2875 tok)
 - `WORKFLOW_FINDINGS_2026-06-25.md` — Workflow QA Findings — 2026-06-25 (~1843 tok)
 
 ## .wolf/
@@ -474,7 +475,8 @@
 ## apps/api/routers/
 
 - `clean_sessions.py` — API: 6 endpoints (~5844 tok)
-- `housekeeping.py` — Declares from (~21762 tok)
+- `housekeeping.py` — Declares from (~23701 tok)
+- `notifications.py` — API: 4 endpoints (~776 tok)
 - `work_orders.py` — API: 6 endpoints (~5055 tok)
 
 ## apps/api/scripts/
@@ -558,7 +560,7 @@
 
 ## apps/mobile/app/(app)/assignments/
 
-- `index.tsx` — AssignmentsScreen (~7258 tok)
+- `index.tsx` — AssignmentsScreen (~7938 tok)
 
 ## apps/mobile/app/(app)/clean/
 
@@ -578,7 +580,7 @@
 
 ## apps/mobile/app/(app)/inspect/
 
-- `index.tsx` — RESULT_META — renders modal (~6708 tok)
+- `index.tsx` — RESULT_META (~7853 tok)
 
 ## apps/mobile/app/(app)/logbook/
 
@@ -640,7 +642,7 @@
 ## apps/mobile/components/home/
 
 - `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2866 tok)
-- `SupervisorHome.tsx` — firstName (~4331 tok)
+- `SupervisorHome.tsx` — firstName (~4810 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
@@ -666,10 +668,12 @@
 
 ## apps/mobile/components/supervisor/
 
-- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~2150 tok)
+- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~2441 tok)
 - `BroadcastModal.tsx` — QUICK_MESSAGES — renders modal (~1480 tok)
-- `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1291 tok)
-- `RoomDetailSheet.tsx` — formatClock — renders modal (~3370 tok)
+- `DirectMessageModal.tsx` — DirectMessageModal — renders modal (~1104 tok)
+- `EndShiftModal.tsx` — EndShiftModal — renders modal (~1464 tok)
+- `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1573 tok)
+- `RoomDetailSheet.tsx` — formatClock — renders modal (~3935 tok)
 - `ShiftNoteModal.tsx` — ShiftNoteModal — renders modal (~1133 tok)
 
 ## apps/mobile/components/supervisor/HousekeeperPicker.tsx
@@ -689,8 +693,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~10531 tok)
-- `es.json` (~11219 tok)
+- `en.json` (~11087 tok)
+- `es.json` (~11803 tok)
 
 ## apps/mobile/lib/
 
@@ -702,6 +706,8 @@
 
 ## apps/mobile/lib/api/
 
+- `housekeepingSupervisor.ts` — API routes: POST, DELETE (4 endpoints) (~914 tok)
+- `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~251 tok)
 - `workOrders.ts` — Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. (~970 tok)
 
 ## apps/mobile/lib/api/housekeepingSupervisor.ts
@@ -714,7 +720,7 @@
 
 - `roomBlockers.ts` — i18n key under blockers.* for the button label (~2157 tok)
 - `roomWorkflow.ts` — True when the housekeeper actively cannot enter: DND active, service declined, (~4738 tok)
-- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2491 tok)
+- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2801 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 

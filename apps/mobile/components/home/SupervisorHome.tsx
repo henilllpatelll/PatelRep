@@ -19,6 +19,8 @@ import { getGreetingKey } from "@/lib/ai/companion";
 import { fetchAssignableStaff, fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
 import BroadcastModal from "@/components/supervisor/BroadcastModal";
+import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
+import EndShiftModal from "@/components/supervisor/EndShiftModal";
 import {
   buildFloorSnapshot,
   buildNameById,
@@ -54,6 +56,8 @@ export function SupervisorHome({ name }: { name: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const [showShiftNote, setShowShiftNote] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
+  const [showEndShift, setShowEndShift] = useState(false);
+  const [messageTarget, setMessageTarget] = useState<{ id: string; name: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!isOnline) {
@@ -139,6 +143,13 @@ export function SupervisorHome({ name }: { name: string }) {
           fg: C.brass,
           bg: C.brassSoft,
           line: C.brassLine,
+        },
+        snapshot.behindSchedule > 0 && {
+          key: "behind",
+          label: t("home.supervisor.signalBehind", { count: snapshot.behindSchedule }),
+          fg: C.alert,
+          bg: C.alertSoft,
+          line: C.alertLine,
         },
       ].filter(Boolean) as HeroSignal[],
     [snapshot, t],
@@ -226,7 +237,7 @@ export function SupervisorHome({ name }: { name: string }) {
                 <Ionicons name="checkmark-done-outline" size={16} color={passedToday > 0 ? C.ready : C.ink3} />
                 <Text style={[styles.actionCount, passedToday > 0 && { color: C.ready }]}>{passedToday}</Text>
               </View>
-              <Text style={styles.actionLabel}>Passed today</Text>
+              <Text style={styles.actionLabel}>{t("home.supervisor.passedToday")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -234,12 +245,18 @@ export function SupervisorHome({ name }: { name: string }) {
           <View style={styles.quickActionsRow}>
             <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowShiftNote(true)} activeOpacity={0.82}>
               <Ionicons name="book-outline" size={14} color={C.info} />
-              <Text style={[styles.quickActionText, { color: C.info }]}>Shift Note</Text>
+              <Text style={[styles.quickActionText, { color: C.info }]}>{t("home.supervisor.shiftNote")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.quickActionBtn, styles.quickActionBtnCaution]} onPress={() => setShowBroadcast(true)} activeOpacity={0.82}>
               <Ionicons name="megaphone-outline" size={14} color={C.caution} />
-              <Text style={[styles.quickActionText, { color: C.caution }]}>Message Team</Text>
+              <Text style={[styles.quickActionText, { color: C.caution }]}>{t("home.supervisor.messageTeam")}</Text>
             </TouchableOpacity>
+            {(snapshot.ready >= snapshot.total - 5 || snapshot.toClean + snapshot.inProgress <= 4) && snapshot.total > 0 ? (
+              <TouchableOpacity style={[styles.quickActionBtn, styles.quickActionBtnReady]} onPress={() => setShowEndShift(true)} activeOpacity={0.82}>
+                <Ionicons name="checkmark-done-outline" size={14} color={C.ready} />
+                <Text style={[styles.quickActionText, { color: C.ready }]}>{t("endShift.shortLabel")}</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {/* The team's live progress */}
@@ -259,6 +276,7 @@ export function SupervisorHome({ name }: { name: string }) {
                       minutes: load.minutesLeft,
                     })}
                     onPress={() => router.push("/(app)/assignments" as never)}
+                    onMessage={() => setMessageTarget({ id: load.housekeeperId, name: load.name })}
                   />
                 ))}
               </View>
@@ -289,6 +307,13 @@ export function SupervisorHome({ name }: { name: string }) {
 
       <ShiftNoteModal visible={showShiftNote} onClose={() => setShowShiftNote(false)} />
       <BroadcastModal visible={showBroadcast} onClose={() => setShowBroadcast(false)} />
+      <EndShiftModal visible={showEndShift} snapshot={snapshot} onClose={() => setShowEndShift(false)} />
+      <DirectMessageModal
+        visible={messageTarget != null}
+        recipientId={messageTarget?.id ?? null}
+        recipientName={messageTarget?.name ?? null}
+        onClose={() => setMessageTarget(null)}
+      />
     </View>
   );
 }
@@ -352,6 +377,7 @@ const styles = StyleSheet.create({
     borderRadius: R.md, paddingVertical: 12,
   },
   quickActionBtnCaution: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
+  quickActionBtnReady: { backgroundColor: C.readySoft, borderColor: C.readyLine },
   quickActionText: { fontSize: 13, fontWeight: "800" },
 
   emptyCard: {

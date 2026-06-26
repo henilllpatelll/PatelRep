@@ -526,7 +526,7 @@ async def get_housekeeping_board(
         rooms_with_predictions.append({
             **room,
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
-            "assigned_to": assignment.get("assigned_to") if assignment else None,
+            "assigned_to": assignment.get("assigned_to") if assignment else room.get("assigned_to"),
             "assignment_id": assignment.get("id") if assignment else None,
             "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
             "assignment_shift_id": assignment.get("shift_id") if assignment else None,
@@ -1039,23 +1039,27 @@ async def suggest_assignments(
             })
 
     if not housekeepers:
-        # No shift records — fall back to all active housekeepers for this property
+        # No shift records — fall back to all active housekeeper/supervisor roles.
+        # Matches the same source as extractAssignableStaff on the mobile client.
         fallback_result = (
-            supabase.table("user_profiles")
-            .select("id, full_name, preferred_name")
+            supabase.table("user_roles")
+            .select("user_id, user_profiles(full_name, preferred_name)")
             .eq("tenant_id", current_user.hotel_id)
-            .eq("role", "housekeeper")
-            .eq("status", "active")
+            .in_("role", ["housekeeper", "housekeeping_supervisor"])
+            .eq("is_active", True)
             .execute()
         )
         for row in (fallback_result.data or []):
-            uid = row.get("id")
+            uid = row.get("user_id")
+            profile = (row.get("user_profiles") or {})
+            if isinstance(profile, list):
+                profile = profile[0] if profile else {}
             if uid and uid not in seen_user_ids:
                 seen_user_ids.add(uid)
                 housekeepers.append({
                     "id": uid,
-                    "full_name": row.get("full_name") or "",
-                    "preferred_name": row.get("preferred_name") or "",
+                    "full_name": profile.get("full_name") or "",
+                    "preferred_name": profile.get("preferred_name") or "",
                     "assigned_rooms": [],
                     "assigned_minutes": 0,
                     "building_affinity": None,
@@ -1430,6 +1434,76 @@ async def submit_inspection(
 
 
 # ---------------------------------------------------------------------------
+# POST /housekeeping/inspections/{inspection_id}/reclean
+# ---------------------------------------------------------------------------
+
+@router.post("/inspections/{inspection_id}/reclean")
+async def trigger_reclean(
+    inspection_id: str,
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    """After a failed inspection, reset room to DIRTY and create a re-clean task."""
+    inspection_row = (
+        supabase.table("inspections")
+        .select("room_id, overall_result, notes, inspected_by")
+        .eq("id", inspection_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not inspection_row or not inspection_row.data:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    insp = inspection_row.data
+    if insp.get("overall_result") not in ("failed", "conditional"):
+        raise HTTPException(status_code=400, detail="Only failed/conditional inspections can trigger re-clean")
+
+    room_id = insp["room_id"]
+
+    # Find today's housekeeper assignment for this room
+    today_iso = date.today().isoformat()
+    assign_row = (
+        supabase.table("room_assignments")
+        .select("assigned_to")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("room_id", room_id)
+        .eq("assignment_date", today_iso)
+        .maybe_single()
+        .execute()
+    )
+    original_housekeeper = (assign_row.data or {}).get("assigned_to") if assign_row else None
+
+    # Reset room status to DIRTY
+    supabase.table("room_status").update({"status": "DIRTY"})\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    room_row = supabase.table("rooms").select("room_number").eq("id", room_id).maybe_single().execute()
+    room_number = (room_row.data or {}).get("room_number", room_id) if room_row else room_id
+    fail_notes = insp.get("notes") or ""
+    task_title = f"Re-clean Room {room_number}"
+    task_desc = f"Inspection failed. {fail_notes}".strip() if fail_notes else f"Inspection failed — room needs re-cleaning."
+
+    task_data = {
+        "tenant_id": current_user.hotel_id,
+        "title": task_title,
+        "description": task_desc,
+        "task_type": "housekeeping",
+        "priority": "high",
+        "room_id": room_id,
+        "assigned_to": original_housekeeper,
+        "created_by": current_user.user_id,
+        "sla_minutes": 60,
+        "due_at": datetime.now(timezone.utc).isoformat(),
+    }
+    task = supabase.table("tasks").insert(task_data).execute()
+
+    return {"data": {"room_id": room_id, "task": task.data[0] if task.data else None}}
+
+
+# ---------------------------------------------------------------------------
 # GET /housekeeping/inspections
 # ---------------------------------------------------------------------------
 
@@ -1669,6 +1743,112 @@ async def update_inspection_template(
 # ---------------------------------------------------------------------------
 # DELETE /housekeeping/inspections/templates/{template_id}
 # ---------------------------------------------------------------------------
+
+@router.post("/inspections/{inspection_id}/photos")
+async def upload_inspection_photo(
+    inspection_id: str,
+    photo: UploadFile = File(...),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Upload a photo for a failed/conditional inspection."""
+    insp = (
+        supabase.table("inspections")
+        .select("id")
+        .eq("id", inspection_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not insp or not insp.data:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    file_bytes = await photo.read()
+    ext = "jpg"
+    if photo.filename and "." in photo.filename:
+        ext = photo.filename.rsplit(".", 1)[-1]
+    path = f"{current_user.hotel_id}/inspections/{inspection_id}/photo.{ext}"
+
+    supabase.storage.from_("work-order-photos").upload(
+        path,
+        file_bytes,
+        {"content-type": photo.content_type or "image/jpeg", "upsert": "true"},
+    )
+    public_url = supabase.storage.from_("work-order-photos").get_public_url(path)
+    return {"data": {"url": public_url}}
+
+
+@router.post("/end-shift-summary")
+async def submit_end_shift_summary(
+    body: dict,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Submit an end-of-shift summary to the logbook and notify GMs."""
+    notes = (body.get("notes") or "").strip()
+    stats = body.get("stats") or {}
+    ready = int(stats.get("ready", 0))
+    total = int(stats.get("total", 0))
+    inspected = int(stats.get("inspected", 0))
+    failed = int(stats.get("failed", 0))
+    ooo = int(stats.get("ooo", 0))
+
+    content = (
+        f"End-of-shift: {ready}/{total} rooms ready, "
+        f"{inspected} passed inspection, {failed} failed, {ooo} OOO."
+    )
+    if notes:
+        content += f"\n\nNotes: {notes}"
+
+    dept_res = (
+        supabase.table("departments")
+        .select("id")
+        .eq("tenant_id", current_user.hotel_id)
+        .ilike("name", "%housekeep%")
+        .maybe_single()
+        .execute()
+    )
+    dept_id = (dept_res.data or {}).get("id") if dept_res else None
+    if not dept_id:
+        any_dept = (
+            supabase.table("departments")
+            .select("id")
+            .eq("tenant_id", current_user.hotel_id)
+            .limit(1)
+            .execute()
+        )
+        dept_id = (any_dept.data[0] if any_dept and any_dept.data else {}).get("id")
+    if not dept_id:
+        raise HTTPException(status_code=422, detail="No department found for this hotel")
+
+    entry = supabase.table("logbook_entries").insert({
+        "tenant_id": current_user.hotel_id,
+        "department_id": dept_id,
+        "author_id": current_user.user_id,
+        "content": content,
+    }).execute()
+
+    gm_users = (
+        supabase.table("user_roles")
+        .select("user_id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("role", "gm")
+        .execute()
+    )
+    if gm_users and gm_users.data:
+        notifs = [
+            {
+                "tenant_id": current_user.hotel_id,
+                "user_id": gm["user_id"],
+                "title": "End-of-shift summary submitted",
+                "body": f"{ready}/{total} rooms ready." + (f" {notes[:80]}" if notes else ""),
+                "type": "shift_summary",
+            }
+            for gm in gm_users.data
+        ]
+        if notifs:
+            supabase.table("notifications").insert(notifs).execute()
+
+    return {"data": entry.data[0] if entry.data else None}
+
 
 @router.delete("/inspections/templates/{template_id}", status_code=204)
 async def delete_inspection_template(

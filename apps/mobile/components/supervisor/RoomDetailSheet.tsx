@@ -1,10 +1,12 @@
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, R, monoFont } from "@/components/shared/tokens";
 import { StatusPill } from "@/components/shared/evening";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { isActionable, type FloorRoom } from "@/lib/housekeeping/supervisor";
+import { api } from "@/lib/api/client";
 
 /* ─── Room detail sheet — what the supervisor needs before acting ──────────
    Status, flags, timing, the latest staff note, the open work order, and
@@ -36,6 +38,7 @@ export function RoomDetailSheet({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   if (!room) return null;
 
   const checkout = formatClock(room.checkoutTime, locale);
@@ -60,7 +63,7 @@ export function RoomDetailSheet({
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(30, insets.bottom + 16) }]}>
         <View style={styles.grabber} />
 
         <View style={styles.titleRow}>
@@ -179,6 +182,41 @@ export function RoomDetailSheet({
             </View>
           ) : null}
 
+          {room.dnd ? (
+            <TouchableOpacity
+              style={styles.dndOverrideBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                Alert.alert(
+                  t("roomBoard.sheet.dndOverrideTitle", { room: room.roomNumber }),
+                  t("roomBoard.sheet.dndOverrideBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("roomBoard.sheet.dndOverrideConfirm"),
+                      onPress: async () => {
+                        try {
+                          await api.post("/tasks", {
+                            title: `Supervisor wellness check — Room ${room.roomNumber}`,
+                            task_type: "housekeeping",
+                            priority: "high",
+                            room_id: room.roomId,
+                          });
+                          Alert.alert(t("roomBoard.sheet.dndOverrideCreated"));
+                        } catch {
+                          Alert.alert(t("roomBoard.sheet.dndOverrideError"));
+                        }
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Ionicons name="moon-outline" size={15} color={C.ink2} />
+              <Text style={styles.dndOverrideText}>{t("roomBoard.sheet.dndOverride")}</Text>
+            </TouchableOpacity>
+          ) : null}
+
           {room.assignmentId ? (
             <TouchableOpacity
               style={[styles.removeRow, saving && styles.dimmed]}
@@ -204,8 +242,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 30,
-    maxHeight: "78%",
+    maxHeight: "90%",
   },
   grabber: {
     alignSelf: "center",
@@ -299,5 +336,11 @@ const styles = StyleSheet.create({
     minHeight: 42,
   },
   removeText: { fontSize: 12.5, fontWeight: "700", color: C.alert },
+  dndOverrideBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    minHeight: 42, borderRadius: R.md, borderWidth: 1, borderColor: C.line2,
+    backgroundColor: C.surface2,
+  },
+  dndOverrideText: { fontSize: 12.5, fontWeight: "700", color: C.ink2 },
   dimmed: { opacity: 0.5 },
 });
