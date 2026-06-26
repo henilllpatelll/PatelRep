@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T19:48:32.208Z
-> Files: 32 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T15:35:36.673Z
+> Files: 69 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -29,9 +29,11 @@
 
 ## ./
 
+- `CLAUDE.md` — OpenWolf (~2969 tok)
 
 ## .claude/
 
+- `settings.json` (~960 tok)
 
 ## .claude/rules/
 
@@ -41,12 +43,15 @@
 
 ## .claude/skills/patelrep-api/
 
+- `SKILL.md` — PatelRep API Layer (~1145 tok)
 
 ## .claude/skills/patelrep-mobile/
 
+- `SKILL.md` — PatelRep Mobile Layer (~1702 tok)
 
 ## .claude/skills/patelrep-web/
 
+- `SKILL.md` — PatelRep Web Layer (~1434 tok)
 
 ## .claude/skills/ui-ux-pro-max/
 
@@ -425,6 +430,7 @@
 
 ## .planning/
 
+- `WORKFLOW_FINDINGS_2026-06-25.md` — Workflow QA Findings — 2026-06-25 (~1843 tok)
 
 ## .wolf/
 
@@ -467,7 +473,9 @@
 
 ## apps/api/routers/
 
-- `housekeeping.py` — Declares from (~21191 tok)
+- `clean_sessions.py` — API: 6 endpoints (~5844 tok)
+- `housekeeping.py` — Declares from (~21762 tok)
+- `work_orders.py` — API: 6 endpoints (~5055 tok)
 
 ## apps/api/scripts/
 
@@ -507,9 +515,10 @@
 
 ## apps/mobile/__tests__/lib/
 
-- `roomBlockers.test.ts` — mockApiPost: room (~1472 tok)
-- `roomWorkflow.test.ts` — now: room (~4145 tok)
-- `supervisor.test.ts` — API routes: GET (1 endpoints) (~2288 tok)
+- `roleTabs.test.ts` (~378 tok)
+- `roomBlockers.test.ts` — mockApiPost: room (~1476 tok)
+- `roomWorkflow.test.ts` — now: room (~4356 tok)
+- `supervisor.test.ts` — API routes: GET (1 endpoints) (~2310 tok)
 
 ## apps/mobile/__tests__/lib/offline/
 
@@ -519,10 +528,12 @@
 
 ## apps/mobile/__tests__/screens/
 
+- `EngineerHome.test.tsx` — mockList (~1611 tok)
 - `GuestRequestsList.test.tsx` — mockApiGet (~577 tok)
-- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2460 tok)
-- `MyRoomsScreen.test.tsx` — mockRouterPush (~2327 tok)
-- `RoomDetail.test.tsx` — mockSetMyRooms (~2579 tok)
+- `HousekeeperHome.test.tsx` — mockSetMyRooms (~2504 tok)
+- `MyRoomsScreen.test.tsx` — mockRouterPush (~2556 tok)
+- `RoomDetail.test.tsx` — mockSetMyRooms (~3553 tok)
+- `WorkOrdersList.test.tsx` — mockList (~894 tok)
 
 ## apps/mobile/android/
 
@@ -547,7 +558,7 @@
 
 ## apps/mobile/app/(app)/assignments/
 
-- `index.tsx` — AssignmentsScreen (~6408 tok)
+- `index.tsx` — AssignmentsScreen (~7258 tok)
 
 ## apps/mobile/app/(app)/clean/
 
@@ -560,13 +571,14 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — firstName (~5358 tok)
+- `index.tsx` — firstName (~5451 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
 
 ## apps/mobile/app/(app)/inspect/
 
+- `index.tsx` — RESULT_META — renders modal (~6708 tok)
 
 ## apps/mobile/app/(app)/logbook/
 
@@ -576,8 +588,8 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `[roomId].tsx` — STATUS_COLOR (~13245 tok)
-- `index.tsx` — DONE_SECTIONS (~3853 tok)
+- `[roomId].tsx` — Knock protocol required before entering occupied or stayover rooms. (~14950 tok)
+- `index.tsx` — DONE_STATUSES (~4059 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -590,13 +602,15 @@
 
 ## apps/mobile/app/(app)/profile/
 
+- `index.tsx` — KNOWN_ROLES (~4427 tok)
 
 ## apps/mobile/app/(app)/room-board/
 
-- `index.tsx` — SEGMENTS (~3467 tok)
+- `index.tsx` — SEGMENTS (~3982 tok)
 
 ## apps/mobile/app/(app)/room-status/
 
+- `index.tsx` — Raw board row: room_status spread + nested rooms join (no flat fields). (~5312 tok)
 
 ## apps/mobile/app/(app)/scheduling/
 
@@ -612,22 +626,30 @@
 
 ## apps/mobile/app/(app)/work-orders/
 
+- `index.tsx` — WorkOrdersScreen (~5258 tok)
 
 ## apps/mobile/app/(auth)/
 
 
 ## apps/mobile/components/engineering/
 
+- `CreateWorkOrderModal.tsx` — CATEGORIES — renders modal (~2380 tok)
+- `EngineerHome.tsx` — One tile per live work order — the engineer's version of the shift mosaic. (~7005 tok)
+- `WorkOrderCard.tsx` — Render the inline Claim action (open, unassigned, viewer can claim). (~3110 tok)
 
 ## apps/mobile/components/home/
 
 - `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2866 tok)
+- `SupervisorHome.tsx` — firstName (~4331 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
 
 ## apps/mobile/components/housekeeping/
 
+- `ChecklistSection.tsx` — LinenStepper (~2763 tok)
+- `KnockModal.tsx` — KNOCK_STEPS — renders modal (~960 tok)
+- `SupplyRequestModal.tsx` — SUPPLY_ITEMS — renders modal (~1859 tok)
 
 ## apps/mobile/components/housekeeping/FoundItemModal.tsx
 
@@ -635,14 +657,20 @@
 ## apps/mobile/components/housekeeping/ReportIssueModal.tsx
 
 
+## apps/mobile/components/housekeeping/SupplyRequestModal.tsx
+
+
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4214 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4750 tok)
 
 ## apps/mobile/components/supervisor/
 
-- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~1878 tok)
+- `atoms.tsx` — Dark-hero signal chip spec, the same idiom the Orders hero uses. (~2150 tok)
+- `BroadcastModal.tsx` — QUICK_MESSAGES — renders modal (~1480 tok)
+- `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1291 tok)
 - `RoomDetailSheet.tsx` — formatClock — renders modal (~3370 tok)
+- `ShiftNoteModal.tsx` — ShiftNoteModal — renders modal (~1133 tok)
 
 ## apps/mobile/components/supervisor/HousekeeperPicker.tsx
 
@@ -661,6 +689,8 @@
 
 ## apps/mobile/i18n/locales/
 
+- `en.json` (~10531 tok)
+- `es.json` (~11219 tok)
 
 ## apps/mobile/lib/
 
@@ -672,6 +702,7 @@
 
 ## apps/mobile/lib/api/
 
+- `workOrders.ts` — Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. (~970 tok)
 
 ## apps/mobile/lib/api/housekeepingSupervisor.ts
 
@@ -681,9 +712,9 @@
 
 ## apps/mobile/lib/housekeeping/
 
-- `roomBlockers.ts` — i18n key under blockers.* for the button label (~1881 tok)
-- `roomWorkflow.ts` — Exports RoomBadgeKey, RoomActionKind, RoomQueueBucket, RoomBadge + 21 more (~3280 tok)
-- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2448 tok)
+- `roomBlockers.ts` — i18n key under blockers.* for the button label (~2157 tok)
+- `roomWorkflow.ts` — True when the housekeeper actively cannot enter: DND active, service declined, (~4738 tok)
+- `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2491 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
 
@@ -693,6 +724,7 @@
 
 ## apps/mobile/lib/navigation/
 
+- `roleTabs.ts` — Exports RoleTabKey, RoleTabDef, ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole (~1276 tok)
 
 ## apps/mobile/lib/offline/
 
@@ -705,12 +737,14 @@
 
 ## apps/mobile/lib/utils/
 
+- `date.ts` — JS getTimezoneOffset(): positive for UTC-behind zones (e.g. 300 for CDT UTC-5). (~237 tok)
 
 ## apps/mobile/package.json
 
 
 ## apps/mobile/stores/
 
+- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1701 tok)
 
 ## apps/mobile/stores/appStore.ts
 
@@ -756,6 +790,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
+- `page.tsx` — SHIFTS (~8750 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -842,7 +877,7 @@
 
 - `AssignmentSidebar.tsx` — AssignmentSidebar (~1160 tok)
 - `RoomCard.tsx` — STATUS_BORDER (~4039 tok)
-- `RoomDetailDrawer.tsx` — Housekeeping room detail drawer with status, checkout controls, notes, work orders, active guest requests/tasks, clean evidence, prediction, and history sections (~10800 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~15481 tok)
 - `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~8139 tok)
 
 ## apps/web/components/settings/
@@ -850,6 +885,7 @@
 
 ## apps/web/components/shared/
 
+- `Providers.tsx` — SUPABASE_DB_ROLES (~2624 tok)
 
 ## apps/web/components/ui/
 
@@ -865,9 +901,13 @@
 
 ## apps/web/lib/api/
 
+- `cleanSessions.ts` — API routes: GET (2 endpoints) (~336 tok)
+- `client.ts` — Exports ApiClientError, apiClient (~1518 tok)
+- `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~2483 tok)
 
 ## apps/web/lib/hooks/
 
+- `useAuth.ts` — Exports AuthState, useAuth (~214 tok)
 
 ## apps/web/lib/supabase/
 

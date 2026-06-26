@@ -57,7 +57,7 @@ describe("getBlockersForRoom", () => {
     const comeBackLater = pickupBlockers.find((b) => b.key === "come_back_later");
 
     expect(keys).toEqual(["declined_service", "come_back_later", "guest_inside", "dnd_sign"]);
-    expect(comeBackLater?.timePresets).toEqual(["11:00 AM", "12:00 PM", "1:00 PM"]);
+    expect(comeBackLater?.timePresets).toEqual(["11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM"]);
   });
 
   it("gives vacant dirty rooms room-condition flags, never guest blockers", () => {
@@ -83,7 +83,7 @@ describe("runBlockerSideEffect", () => {
     expect(mockCreateWorkOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         room_id: "room-1",
-        title: "Deep vacuum and change filter — Room 214",
+        title: "Vacuum and change filter (pet room)",
         priority: "low",
         category: "general",
       }),

@@ -77,9 +77,9 @@ function HousekeeperBar() {
     pendingAssignments,
     pendingAssignmentCleanTypes,
     clearPendingAssignments,
+    setPendingAssignment,
   } = useHousekeepingStore()
 
-  const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -94,36 +94,42 @@ function HousekeeperBar() {
   const pendingCount = Object.keys(pendingAssignments).length
   const hasPending = pendingCount > 0
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!hasPending) return
-    setSaveLoading(true)
-    try {
-      await housekeepingApi.saveAssignments({
-        date: selectedDate,
-        shift_id: null,
-        assignments: Object.entries(pendingAssignments)
-          .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
-          .map(([roomId, housekeeperId]) => ({
-            room_id: roomId,
-            housekeeper_id: housekeeperId,
-            ...(pendingAssignmentCleanTypes[roomId]
-              ? { clean_type: pendingAssignmentCleanTypes[roomId] }
-              : {}),
-          })),
-        is_ai_suggested: false,
-      })
-      clearPendingAssignments()
+
+    const pendingSnapshot = { ...pendingAssignments }
+    const cleanTypeSnapshot = { ...pendingAssignmentCleanTypes }
+    const assignmentsPayload = Object.entries(pendingAssignments)
+      .filter(([roomId, housekeeperId]) => !!roomId && !!housekeeperId)
+      .map(([roomId, housekeeperId]) => ({
+        room_id: roomId,
+        housekeeper_id: housekeeperId,
+        ...(pendingAssignmentCleanTypes[roomId]
+          ? { clean_type: pendingAssignmentCleanTypes[roomId] }
+          : {}),
+      }))
+
+    clearPendingAssignments()
+    setSaveSuccess(true)
+    setTimeout(() => setSaveSuccess(false), 2500)
+
+    housekeepingApi.saveAssignments({
+      date: selectedDate,
+      shift_id: null,
+      assignments: assignmentsPayload,
+      is_ai_suggested: false,
+    }).then(() => {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
       queryClient.invalidateQueries({ queryKey: ['staff-list'] })
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2500)
-    } catch (err: any) {
+    }).catch((err: any) => {
+      Object.entries(pendingSnapshot).forEach(([roomId, housekeeperId]) => {
+        setPendingAssignment(roomId, housekeeperId, cleanTypeSnapshot[roomId as keyof typeof cleanTypeSnapshot])
+      })
+      setSaveSuccess(false)
       setSaveError(err?.message || 'Failed to save. Please try again.')
       setTimeout(() => setSaveError(null), 4000)
-    } finally {
-      setSaveLoading(false)
-    }
+    })
   }
 
   function getInitials(name: string) {
@@ -148,14 +154,9 @@ function HousekeeperBar() {
           {hasPending && (
             <button
               onClick={handleSave}
-              disabled={saveLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity"
             >
-              {saveLoading ? (
-                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span></>
-              )}
+              Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span>
             </button>
           )}
         </div>

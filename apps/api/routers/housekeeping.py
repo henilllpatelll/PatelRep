@@ -1010,7 +1010,7 @@ async def suggest_assignments(
             }
         }
 
-    # --- 2. Active housekeepers on shift ---
+    # --- 2. Active housekeepers on shift (fallback: all active housekeeper profiles) ---
     hk_query = (
         supabase.table("shift_assignments")
         .select("user_id")
@@ -1035,14 +1035,37 @@ async def suggest_assignments(
                 "preferred_name": "",
                 "assigned_rooms": [],
                 "assigned_minutes": 0,
-                "building_affinity": None,  # set during distribution
+                "building_affinity": None,
             })
+
+    if not housekeepers:
+        # No shift records — fall back to all active housekeepers for this property
+        fallback_result = (
+            supabase.table("user_profiles")
+            .select("id, full_name, preferred_name")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("role", "housekeeper")
+            .eq("status", "active")
+            .execute()
+        )
+        for row in (fallback_result.data or []):
+            uid = row.get("id")
+            if uid and uid not in seen_user_ids:
+                seen_user_ids.add(uid)
+                housekeepers.append({
+                    "id": uid,
+                    "full_name": row.get("full_name") or "",
+                    "preferred_name": row.get("preferred_name") or "",
+                    "assigned_rooms": [],
+                    "assigned_minutes": 0,
+                    "building_affinity": None,
+                })
 
     if not housekeepers:
         return {
             "data": {
                 "suggestions": [],
-                "message": "No housekeepers found on shift for this date",
+                "message": "No active housekeepers found for this property",
             }
         }
 
@@ -1416,12 +1439,31 @@ async def list_inspections(
     date_to: Optional[date] = Query(None),
     room_id: Optional[str] = Query(None),
     result: Optional[str] = Query(None),  # passed|failed|conditional
+    tz_offset: Optional[int] = Query(None),  # client UTC offset in minutes (JS getTimezoneOffset)
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """List inspection records with optional filters."""
+    """List inspection records with optional filters.
+
+    tz_offset: JS Date.getTimezoneOffset() value (positive = behind UTC, e.g. 300 for CDT).
+    When provided, local-day boundaries are converted to UTC so inspections done
+    in the evening don't fall outside the 'today' window due to UTC date rollover.
+    """
+    from datetime import timedelta as _td
     today = date.today()
     from_date = date_from or today
     to_date = date_to or today
+
+    if tz_offset is not None:
+        # Convert local midnight/end-of-day to UTC using the client timezone offset.
+        # JS getTimezoneOffset() = -utc_offset_minutes, so CDT(UTC-5) = 300.
+        offset_delta = _td(minutes=tz_offset)
+        start_utc = datetime.combine(from_date, datetime.min.time()) + offset_delta
+        end_utc = datetime.combine(to_date, datetime.max.time().replace(microsecond=0)) + offset_delta
+        start_str = start_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        end_str = end_utc.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    else:
+        start_str = f"{from_date.isoformat()}T00:00:00+00:00"
+        end_str = f"{to_date.isoformat()}T23:59:59+00:00"
 
     query = (
         supabase.table("inspections")
@@ -1430,8 +1472,8 @@ async def list_inspections(
             "rooms!inner(room_number)"
         )
         .eq("tenant_id", current_user.hotel_id)
-        .gte("completed_at", f"{from_date.isoformat()}T00:00:00+00:00")
-        .lte("completed_at", f"{to_date.isoformat()}T23:59:59+00:00")
+        .gte("completed_at", start_str)
+        .lte("completed_at", end_str)
         .order("completed_at", desc=True)
     )
 

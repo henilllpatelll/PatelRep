@@ -5,10 +5,11 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +20,7 @@ import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
 import { countQueueSignals, splitWorkbench, type WorkOrder } from "@/lib/engineering/workOrders";
 import { C, R, shellTokens } from "@/components/shared/tokens";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
+import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
 
 /* ─── Orders tab — one bench, one scroll ────────────────────────────────────
    No tabs to hop between: the engineer's own active work sits on top ("On
@@ -47,6 +49,8 @@ export default function WorkOrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [showCreateWo, setShowCreateWo] = useState(false);
 
   const loadQueues = useCallback(async () => {
     const [openRes, progressRes, holdRes] = await Promise.allSettled([
@@ -72,6 +76,13 @@ export default function WorkOrdersScreen() {
   useEffect(() => {
     loadQueues().finally(() => setLoading(false));
   }, [loadQueues]);
+
+  // Reload queues whenever this tab gains focus so completed WOs don't linger.
+  useFocusEffect(
+    useCallback(() => {
+      loadQueues();
+    }, [loadQueues])
+  );
 
   useEffect(() => {
     if (doneExpanded && !doneLoaded) loadDone();
@@ -105,21 +116,22 @@ export default function WorkOrdersScreen() {
   const claim = useCallback(
     async (wo: WorkOrder) => {
       setClaimingId(wo.id);
+      // Optimistic update for both online and offline paths
+      setOpen((prev) => prev.filter((o) => o.id !== wo.id));
+      setActive((prev) => [
+        { ...wo, status: "in_progress", assigned_to: user?.id ?? null, started_at: new Date().toISOString() },
+        ...prev,
+      ]);
       try {
         if (isOnline) {
           await claimWorkOrder(wo.id);
-          await loadQueues();
+          await loadQueues(); // confirm server state
         } else {
           await enqueueAction("work_order", "claim", {}, wo.id);
-          setOpen((prev) => prev.filter((o) => o.id !== wo.id));
-          setActive((prev) => [
-            { ...wo, status: "in_progress", assigned_to: user?.id ?? null, started_at: new Date().toISOString() },
-            ...prev,
-          ]);
         }
       } catch (err) {
         console.warn("Claim failed:", err);
-        await loadQueues();
+        await loadQueues(); // revert on failure
       } finally {
         setClaimingId(null);
       }
@@ -130,6 +142,19 @@ export default function WorkOrdersScreen() {
   const { bench, queue, team } = useMemo(
     () => splitWorkbench(open, active, user?.id),
     [open, active, user?.id]
+  );
+
+  const matchesSearch = useCallback(
+    (wo: WorkOrder): boolean => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        wo.title.toLowerCase().includes(q) ||
+        (wo.description ?? "").toLowerCase().includes(q) ||
+        (wo.rooms?.room_number ?? "").includes(q)
+      );
+    },
+    [search]
   );
 
   // Hero signals — built from live open + active queues, nonzero only.
@@ -144,37 +169,43 @@ export default function WorkOrdersScreen() {
   }, [open, active, t]);
 
   const rows = useMemo<Row[]>(() => {
+    const filteredBench = bench.filter(matchesSearch);
+    const filteredQueue = queue.filter(matchesSearch);
+    const filteredTeam = team.filter(matchesSearch);
     const list: Row[] = [];
-    if (bench.length === 0 && queue.length === 0 && team.length === 0) {
+    if (filteredBench.length === 0 && filteredQueue.length === 0 && filteredTeam.length === 0 && !search) {
       list.push({ type: "allEmpty", key: "all-empty" });
     } else {
-      if (bench.length > 0) {
-        list.push({ type: "section", key: "s-bench", title: t("workOrders.sectionBench"), hint: String(bench.length) });
-        for (const wo of bench) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+      if (filteredBench.length > 0) {
+        list.push({ type: "section", key: "s-bench", title: t("workOrders.sectionBench"), hint: String(filteredBench.length) });
+        for (const wo of filteredBench) list.push({ type: "wo", key: wo.id, wo, claimable: false });
       }
-      list.push({ type: "section", key: "s-queue", title: t("workOrders.sectionQueue"), hint: String(queue.length) });
-      if (queue.length === 0) {
-        list.push({ type: "queueEmpty", key: "queue-empty" });
-      } else {
-        for (const wo of queue) {
-          list.push({ type: "wo", key: wo.id, wo, claimable: wo.status === "open" && !wo.assigned_to });
+      if (!search || filteredQueue.length > 0) {
+        list.push({ type: "section", key: "s-queue", title: t("workOrders.sectionQueue"), hint: String(filteredQueue.length) });
+        if (filteredQueue.length === 0 && !search) {
+          list.push({ type: "queueEmpty", key: "queue-empty" });
+        } else {
+          for (const wo of filteredQueue) {
+            list.push({ type: "wo", key: wo.id, wo, claimable: wo.status === "open" && !wo.assigned_to });
+          }
         }
       }
-      if (team.length > 0) {
-        list.push({ type: "section", key: "s-team", title: t("workOrders.sectionTeam"), hint: String(team.length) });
-        for (const wo of team) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+      if (filteredTeam.length > 0) {
+        list.push({ type: "section", key: "s-team", title: t("workOrders.sectionTeam"), hint: String(filteredTeam.length) });
+        for (const wo of filteredTeam) list.push({ type: "wo", key: wo.id, wo, claimable: false });
       }
     }
     list.push({ type: "doneToggle", key: "done-toggle" });
     if (doneExpanded) {
-      if (doneLoaded && done.length === 0) {
+      const filteredDone = done.filter(matchesSearch);
+      if (doneLoaded && filteredDone.length === 0) {
         list.push({ type: "doneEmpty", key: "done-empty" });
       } else {
-        for (const wo of done) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+        for (const wo of filteredDone) list.push({ type: "wo", key: wo.id, wo, claimable: false });
       }
     }
     return list;
-  }, [bench, queue, team, done, doneExpanded, doneLoaded, t]);
+  }, [bench, queue, team, done, doneExpanded, doneLoaded, search, matchesSearch, t]);
 
   const header = (
     <View>
@@ -182,17 +213,29 @@ export default function WorkOrdersScreen() {
       <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
         <View style={styles.heroTopRow}>
           <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
-          <TouchableOpacity
-            style={styles.heroRoomsBtn}
-            onPress={() => router.push("/(app)/room-status" as never)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t("workOrders.allRooms")}
-            testID="wo-all-rooms"
-          >
-            <Ionicons name="bed-outline" size={14} color={shellTokens.ink} />
-            <Text style={styles.heroRoomsText}>{t("workOrders.allRooms")}</Text>
-          </TouchableOpacity>
+          <View style={styles.heroTopButtons}>
+            <TouchableOpacity
+              style={styles.heroRoomsBtn}
+              onPress={() => router.push("/(app)/room-status" as never)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t("workOrders.allRooms")}
+              testID="wo-all-rooms"
+            >
+              <Ionicons name="bed-outline" size={14} color={shellTokens.ink} />
+              <Text style={styles.heroRoomsText}>{t("workOrders.allRooms")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.heroNewWoBtn}
+              onPress={() => setShowCreateWo(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              testID="wo-new"
+            >
+              <Ionicons name="add" size={14} color={shellTokens.ink} />
+              <Text style={styles.heroRoomsText}>{t("workOrders.newWorkOrder")}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.heroTitle}>{t("workOrders.title")}</Text>
         <Text style={styles.heroSummary}>
@@ -206,6 +249,22 @@ export default function WorkOrdersScreen() {
               </View>
             ))}
           </View>
+        ) : null}
+      </View>
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={15} color={C.ink4} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("workOrders.searchPlaceholder", { defaultValue: "Search work orders…" })}
+          placeholderTextColor={C.ink4}
+          returnKeyType="search"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch("")} hitSlop={8} accessibilityRole="button">
+            <Ionicons name="close-circle" size={16} color={C.ink4} />
+          </TouchableOpacity>
         ) : null}
       </View>
     </View>
@@ -298,6 +357,14 @@ export default function WorkOrdersScreen() {
           renderItem={renderRow}
         />
       )}
+      <CreateWorkOrderModal
+        visible={showCreateWo}
+        onClose={() => setShowCreateWo(false)}
+        onCreated={() => {
+          setShowCreateWo(false);
+          loadQueues();
+        }}
+      />
     </View>
   );
 }
@@ -316,6 +383,16 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 26,
   },
   heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroTopButtons: { flexDirection: "row", alignItems: "center", gap: 8 },
+  heroNewWoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: C.accent,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    minHeight: 32,
+  },
   heroKicker: {
     color: shellTokens.ink3,
     fontSize: 11,
@@ -345,6 +422,22 @@ const styles = StyleSheet.create({
     paddingVertical: 3.5,
   },
   signalText: { fontSize: 11, fontWeight: "800" },
+
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.md,
+  },
+  searchInput: { flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 0 },
 
   sectionRow: {
     flexDirection: "row",

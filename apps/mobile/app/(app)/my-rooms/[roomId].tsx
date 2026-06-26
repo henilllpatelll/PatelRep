@@ -4,10 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -20,14 +22,24 @@ import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import ReportIssueModal from "@/components/housekeeping/ReportIssueModal";
 import FoundItemModal from "@/components/housekeeping/FoundItemModal";
-import { getBeforeEnterWarnings, getRoomAction, hasRoomInProgress } from "@/lib/housekeeping/roomWorkflow";
+import SupplyRequestModal from "@/components/housekeeping/SupplyRequestModal";
+import KnockModal from "@/components/housekeeping/KnockModal";
+import ChecklistSection from "@/components/housekeeping/ChecklistSection";
+import {
+  getBeforeEnterWarnings,
+  getChecklistForRoom,
+  getRoomAction,
+  hasRoomInProgress,
+  LOST_FOUND_CHECK_KEY,
+} from "@/lib/housekeeping/roomWorkflow";
 import { buildRoomInsight } from "@/lib/ai/briefing";
 import {
   buildBlockerNote,
   formatBlockerTimeInput,
   getBlockersForRoom,
-  getSectionLabelForRoom,
   runBlockerSideEffect,
+  sendDeclinedServiceAlert,
+  sendSupervisorEscalation,
   type RoomBlocker,
 } from "@/lib/housekeeping/roomBlockers";
 
@@ -43,35 +55,34 @@ const STATUS_COLOR: Record<string, string> = {
   OUT_OF_SERVICE: C.ooo,
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  DIRTY: "Vacant Dirty",
-  OCCUPIED: "Occupied Dirty",
-  PICKUP: "Pickup",
-  IN_PROGRESS: "In Progress",
-  CLEAN: "Submitted",
-  INSPECTED: "Ready",
-  OOO: "Out of Order / Out of Service",
-  OUT_OF_ORDER: "Out of Order / Out of Service",
-  OUT_OF_SERVICE: "Out of Order / Out of Service",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  DIRTY: "rooms.detail.status.DIRTY",
+  OCCUPIED: "rooms.detail.status.OCCUPIED",
+  PICKUP: "rooms.detail.status.PICKUP",
+  IN_PROGRESS: "rooms.detail.status.IN_PROGRESS",
+  CLEAN: "rooms.detail.status.CLEAN",
+  INSPECTED: "rooms.detail.status.INSPECTED",
+  OOO: "rooms.detail.status.OOO",
+  OUT_OF_ORDER: "rooms.detail.status.OUT_OF_ORDER",
+  OUT_OF_SERVICE: "rooms.detail.status.OUT_OF_SERVICE",
 };
 
-const CLEAN_TYPE_LABEL: Record<string, string> = {
-  DEP: "Departure",
-  FULL: "Full",
-  LIGHT: "Light",
+const CLEAN_TYPE_LABEL_KEYS: Record<string, string> = {
+  DEP: "rooms.detail.cleanType.DEP",
+  FULL: "rooms.detail.cleanType.FULL",
+  LIGHT: "rooms.detail.cleanType.LIGHT",
 };
 
-const CLEAN_TYPE_META: Record<string, { icon: ComponentProps<typeof Ionicons>["name"]; bg: string; fg: string; border: string }> = {
+const CLEAN_TYPE_META: Record<
+  string,
+  { icon: ComponentProps<typeof Ionicons>["name"]; bg: string; fg: string; border: string }
+> = {
   DEP: { icon: "log-out-outline", bg: C.alertSoft, fg: C.alert, border: C.alertLine },
   FULL: { icon: "refresh-circle-outline", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
   LIGHT: { icon: "flash-outline", bg: C.cautionSoft, fg: C.caution, border: C.cautionLine },
 };
 
-const CHECKLISTS: Record<string, string[]> = {
-  DEP: ["Strip bed", "Trash removed", "Bathroom cleaned", "Amenities restocked", "Floors cleaned", "Final presentation"],
-  FULL: ["Bed made", "Bathroom cleaned", "Towels replaced", "Trash removed", "Amenities restocked", "Floors cleaned"],
-  LIGHT: ["Towels refreshed", "Trash removed", "Bed refreshed", "Bathroom checked", "Amenities topped off"],
-};
+const STATUS_ACTION_TIMEOUT_MS = 12000;
 
 function formatTime(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -87,7 +98,10 @@ function formatLastActionTime(iso: string | null | undefined): string | null {
   try {
     const date = new Date(iso);
     const now = new Date();
-    const isToday = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
     if (isToday) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
     return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
   } catch {
@@ -95,56 +109,102 @@ function formatLastActionTime(iso: string | null | undefined): string | null {
   }
 }
 
-function getActionLabel(status: string): string {
+function getActionLabelKey(status: string): string {
   switch (status) {
-    case "IN_PROGRESS":
-      return "Started";
-    case "CLEAN":
-      return "Marked clean";
-    case "INSPECTED":
-      return "Marked ready";
-    case "DIRTY":
-      return "Returned to cleaning";
-    case "OOO":
-    case "OUT_OF_ORDER":
-    case "OUT_OF_SERVICE":
-      return "Marked out of order";
-    case "PICKUP":
-      return "Marked pickup";
-    default:
-      return "Updated";
+    case "IN_PROGRESS": return "rooms.detail.lastAction.started";
+    case "CLEAN": return "rooms.detail.lastAction.markedClean";
+    case "INSPECTED": return "rooms.detail.lastAction.markedReady";
+    case "DIRTY": return "rooms.detail.lastAction.returnedToCleaning";
+    case "OOO": case "OUT_OF_ORDER": case "OUT_OF_SERVICE": return "rooms.detail.lastAction.markedOutOfOrder";
+    case "PICKUP": return "rooms.detail.lastAction.markedPickup";
+    default: return "rooms.detail.lastAction.updated";
   }
 }
 
-function buildLastAction(entry: { to_status?: string; created_at?: string; changed_by?: string } | null, room: Room, userId?: string): string | null {
+function buildLastAction(
+  entry: { to_status?: string; created_at?: string; changed_by?: string } | null,
+  room: Room,
+  userId: string | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string | null {
   const status = entry?.to_status ?? room.status;
   const timestamp = entry?.created_at ?? room.updated_at ?? room.last_cleaned_at ?? room.last_inspected_at ?? null;
   if (!timestamp) return null;
-  const actor = entry?.changed_by && entry.changed_by === userId ? " by you" : "";
+  const actor = entry?.changed_by && entry.changed_by === userId ? t("rooms.detail.lastAction.byYou") : "";
   const time = formatLastActionTime(timestamp);
-  return `${getActionLabel(status)}${actor}${time ? ` at ${time}` : ""}`;
+  return time
+    ? t("rooms.detail.lastAction.at", { action: t(getActionLabelKey(status)), actor, time })
+    : t("rooms.detail.lastAction.only", { action: t(getActionLabelKey(status)), actor });
 }
 
-function getCleanTypeLabel(room: Room): string | null {
-  return room.clean_type_label ?? (room.clean_type ? CLEAN_TYPE_LABEL[room.clean_type] ?? room.clean_type : null);
+function getCleanTypeKey(room: Room): string | null {
+  return room.clean_type ? CLEAN_TYPE_LABEL_KEYS[room.clean_type] ?? null : null;
 }
 
-function getPrimaryLabel(room: Room): string {
+function getPrimaryLabelKey(room: Room): string {
   const action = getRoomAction(room);
-  if (action.kind === "start") return "Start Cleaning";
-  if (action.kind === "done") return "Mark Clean";
-  if (action.kind === "review") return "Start Cleaning";
-  if (action.kind === "guest_checkout") return "Guest Checked Out — Start Cleaning";
-  if (action.kind === "submitted") return "Submitted - Waiting for Supervisor";
-  if (action.kind === "ready") return "Ready";
-  if (action.kind === "blocked") return "Blocked";
-  return "View";
+  if (action.kind === "start") return "rooms.detail.primary.startCleaning";
+  if (action.kind === "done") return "rooms.detail.primary.markClean";
+  if (action.kind === "review") return "rooms.detail.primary.startCleaning";
+  if (action.kind === "guest_checkout") return "rooms.detail.primary.guestCheckedOutStart";
+  if (action.kind === "submitted") return "rooms.detail.primary.submitted";
+  if (action.kind === "ready") return "rooms.detail.primary.ready";
+  if (action.kind === "blocked") return "rooms.detail.primary.blocked";
+  return "rooms.detail.primary.view";
+}
+
+function getWarningCopy(
+  warning: { key: string; label: string; detail: string },
+  room: Room,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): { label: string; detail: string } {
+  switch (warning.key) {
+    case "dnd":
+      return { label: t("rooms.detail.warnings.dnd.label"), detail: t("rooms.detail.warnings.dnd.detail") };
+    case "checkout":
+      return { label: t("rooms.detail.warnings.checkout.label"), detail: t("rooms.detail.warnings.checkout.detail") };
+    case "occupied":
+      return { label: t("rooms.detail.warnings.occupied.label"), detail: t("rooms.detail.warnings.occupied.detail") };
+    case "work_order": {
+      const number = room.open_work_order_number ? ` #${room.open_work_order_number}` : "";
+      return {
+        label: t("rooms.detail.warnings.workOrder.label"),
+        detail: room.open_work_order_title
+          ? `${room.open_work_order_title}${number}.`
+          : t("rooms.detail.warnings.workOrder.detail"),
+      };
+    }
+    case "risk":
+      return { label: t("rooms.detail.warnings.risk.label"), detail: t("rooms.detail.warnings.risk.detail") };
+    case "note":
+      return { label: t("rooms.detail.warnings.note.label"), detail: room.latest_note?.trim() ?? warning.detail };
+    case "arrival":
+      return { label: t("rooms.detail.warnings.arrival.label"), detail: t("rooms.detail.warnings.arrival.detail") };
+    default:
+      return { label: warning.label, detail: warning.detail };
+  }
+}
+
+/** Knock protocol required before entering occupied or stayover rooms. */
+function needsKnockProtocol(room: Room): boolean {
+  if (room.status === "PICKUP") return true;
+  if (room.status === "OCCUPIED") return true;
+  return room.status === "DIRTY" && room.fo_status === "OCC" && !room.actual_checkout_at;
 }
 
 export default function RoomDetailScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { t } = useTranslation();
-  const { isOnline, myRooms, setMyRooms, enqueueAction, user } = useAppStore();
+  const {
+    isOnline,
+    myRooms,
+    setMyRooms,
+    enqueueAction,
+    user,
+    incrementDndAttempt,
+    resetDndAttempt,
+    refreshRooms,
+  } = useAppStore();
   const insets = useSafeAreaInsets();
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -155,8 +215,10 @@ export default function RoomDetailScreen() {
   const [noteText, setNoteText] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteSuccess, setNoteSuccess] = useState(false);
+  const [cleanSuccess, setCleanSuccess] = useState(false);
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [showFoundItem, setShowFoundItem] = useState(false);
+  const [showSupplyRequest, setShowSupplyRequest] = useState(false);
   const [dndLoading, setDndLoading] = useState(false);
   const [declineLoading, setDeclineLoading] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
@@ -166,16 +228,26 @@ export default function RoomDetailScreen() {
   const [lastBlockerKey, setLastBlockerKey] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
+  const [showKnockModal, setShowKnockModal] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<Room["status"] | null>(null);
+  const [linenOut, setLinenOut] = useState(0);
+  const [linenIn, setLinenIn] = useState(0);
   const [removableLatestNote, setRemovableLatestNote] = useState<{
     text: string;
     previousText: string | null;
     previousAt: string | null;
   } | null>(null);
+
   const noteSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cleanSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusLoadingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevRoomRef = useRef<Room | null>(null);
 
   useEffect(
     () => () => {
       if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
+      if (cleanSuccessTimer.current) clearTimeout(cleanSuccessTimer.current);
+      clearStatusLoadingTimer();
     },
     [],
   );
@@ -183,9 +255,9 @@ export default function RoomDetailScreen() {
   useEffect(() => {
     const found = myRooms.find((candidate) => candidate.id === roomId) ?? null;
     setRoom(found);
-    setLastAction(found ? buildLastAction(null, found, user?.id) : null);
+    setLastAction(found ? buildLastAction(null, found, user?.id, t) : null);
     setLoading(false);
-  }, [roomId, myRooms, user?.id]);
+  }, [roomId, myRooms, t, user?.id]);
 
   useEffect(() => {
     if (!room || !isOnline) return;
@@ -195,19 +267,19 @@ export default function RoomDetailScreen() {
         const res = await api.get<{ data: Array<{ to_status?: string; created_at?: string; changed_by?: string }> }>(
           `/rooms/${room!.id}/history?limit=1`,
         );
-        if (!cancelled) setLastAction(buildLastAction(res.data?.[0] ?? null, room!, user?.id));
+        if (!cancelled) setLastAction(buildLastAction(res.data?.[0] ?? null, room!, user?.id, t));
       } catch {
         // Last action is helpful context, not a blocker for cleaning.
       }
     }
     void loadHistory();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOnline, room?.id, user?.id]);
+    return () => { cancelled = true; };
+  }, [isOnline, room?.id, t, user?.id]);
 
   useEffect(() => {
     setCheckedItems({});
+    setLinenOut(0);
+    setLinenIn(0);
   }, [room?.clean_type, room?.id]);
 
   useEffect(() => {
@@ -216,29 +288,69 @@ export default function RoomDetailScreen() {
   }, [room?.id]);
 
   function updateLocalRoom(roomIdToUpdate: string, patch: Partial<Room>) {
-    const updatedRooms = myRooms.map((candidate) => (candidate.id === roomIdToUpdate ? { ...candidate, ...patch } : candidate));
+    const updatedRooms = myRooms.map((candidate) =>
+      candidate.id === roomIdToUpdate ? { ...candidate, ...patch } : candidate,
+    );
     setMyRooms(updatedRooms);
     setRoom((current) => (current?.id === roomIdToUpdate ? { ...current, ...patch } : current));
+  }
+
+  function clearStatusLoadingTimer() {
+    if (statusLoadingTimer.current) {
+      clearTimeout(statusLoadingTimer.current);
+      statusLoadingTimer.current = null;
+    }
+  }
+
+  function startStatusLoading() {
+    clearStatusLoadingTimer();
+    setStatusLoading(true);
+    statusLoadingTimer.current = setTimeout(() => {
+      statusLoadingTimer.current = null;
+      setStatusLoading(false);
+    }, STATUS_ACTION_TIMEOUT_MS);
+  }
+
+  function stopStatusLoading() {
+    clearStatusLoadingTimer();
+    setStatusLoading(false);
   }
 
   async function updateRoomStatus(nextStatus: Room["status"]) {
     if (!room) return;
     const previous = room;
+    prevRoomRef.current = previous;
     const updatedAt = new Date().toISOString();
     updateLocalRoom(room.id, { status: nextStatus, updated_at: updatedAt });
-    setStatusLoading(true);
+    startStatusLoading();
+
+    const payload: Record<string, unknown> = { status: nextStatus };
+    if (room.clean_type === "DEP" && nextStatus === "CLEAN") {
+      payload.linen_out = linenOut;
+      payload.linen_in = linenIn;
+    }
 
     try {
       if (isOnline) {
-        await api.patch(`/rooms/${room.id}/status`, { status: nextStatus });
+        await api.patch(`/rooms/${room.id}/status`, payload);
+        if (nextStatus === "CLEAN") {
+          void refreshRooms();
+          if (Platform.OS === "android") {
+            ToastAndroid.show(t("rooms.detail.cleanSuccess"), ToastAndroid.SHORT);
+          } else {
+            setCleanSuccess(true);
+            if (cleanSuccessTimer.current) clearTimeout(cleanSuccessTimer.current);
+            cleanSuccessTimer.current = setTimeout(() => setCleanSuccess(false), 2000);
+          }
+        }
       } else {
-        await enqueueAction({ type: "room_status", entityId: room.id, payload: { status: nextStatus } });
+        await enqueueAction({ type: "room_status", entityId: room.id, payload });
       }
     } catch (err: unknown) {
       updateLocalRoom(previous.id, previous);
-      Alert.alert("Error", (err as Error).message ?? "Failed to update room");
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateRoomFailed"));
     } finally {
-      setStatusLoading(false);
+      stopStatusLoading();
     }
   }
 
@@ -246,37 +358,53 @@ export default function RoomDetailScreen() {
     if (!room) return;
     const action = getRoomAction(room);
     if (!action.targetStatus) return;
+
+    if (action.targetStatus === "IN_PROGRESS" && needsKnockProtocol(room)) {
+      setPendingStatusUpdate("IN_PROGRESS");
+      setShowKnockModal(true);
+      return;
+    }
+
     void updateRoomStatus(action.targetStatus);
+  }
+
+  function handleKnockConfirm() {
+    setShowKnockModal(false);
+    if (pendingStatusUpdate) {
+      void updateRoomStatus(pendingStatusUpdate);
+      setPendingStatusUpdate(null);
+    }
   }
 
   function handleUndo() {
     if (!room || !isOnline) return;
-    // Undo rolls room status back through history — always confirm first so an
-    // accidental tap can't distort the housekeeping flow or clean-time analytics.
-    Alert.alert(t("rooms.undoConfirmTitle", "Undo last status?"), t("rooms.undoConfirmBody", "This rolls the room back to its previous status."), [
-      { text: t("common.cancel", "Cancel"), style: "cancel" },
-      {
-        text: t("rooms.undoConfirm", "Undo"),
-        style: "destructive",
-        onPress: () => {
-          setStatusLoading(true);
-          api
-            .post<{ data: { status?: Room["status"] } }>(`/rooms/${room.id}/status/undo`, {})
-            .then((response) => {
-              const nextStatus = response.data?.status;
-              if (nextStatus) updateLocalRoom(room.id, { status: nextStatus, updated_at: new Date().toISOString() });
-            })
-            .catch((err: unknown) => Alert.alert("Error", (err as Error).message ?? "Failed to undo"))
-            .finally(() => setStatusLoading(false));
-        },
-      },
-    ]);
+    void undoRoomStatus();
+  }
+
+  async function undoRoomStatus() {
+    if (!room) return;
+    const failsafe = room;
+    const snapshot = prevRoomRef.current;
+    if (snapshot) {
+      updateLocalRoom(room.id, snapshot);
+      prevRoomRef.current = null;
+    }
+    try {
+      const response = await api.post<{ data: { status?: Room["status"] } }>(`/rooms/${room.id}/status/undo`, {});
+      const nextStatus = response.data?.status;
+      if (nextStatus && nextStatus !== snapshot?.status) {
+        updateLocalRoom(room.id, { status: nextStatus, updated_at: new Date().toISOString() });
+      }
+    } catch (err: unknown) {
+      updateLocalRoom(failsafe.id, failsafe);
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.undoFailed"));
+    }
   }
 
   async function submitNote(text: string) {
     if (!room || !text.trim()) return;
     if (!isOnline) {
-      Alert.alert("Offline", "Notes need a connection. Status changes will still queue offline.");
+      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.notesNeedConnection"));
       return;
     }
 
@@ -294,7 +422,7 @@ export default function RoomDetailScreen() {
       if (noteSuccessTimer.current) clearTimeout(noteSuccessTimer.current);
       noteSuccessTimer.current = setTimeout(() => setNoteSuccess(false), 4000);
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to save note");
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.saveNoteFailed"));
     } finally {
       setNoteLoading(false);
     }
@@ -303,19 +431,35 @@ export default function RoomDetailScreen() {
   async function submitBlocker(blocker: RoomBlocker, time?: string) {
     if (!room) return;
     if (!isOnline) {
-      Alert.alert("Offline", "Quick blockers need a connection. Status changes will still queue offline.");
+      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.blockersNeedConnection"));
       return;
     }
     setBlockerBusy(blocker.key);
     try {
       const formattedTime = blocker.needsTime ? formatBlockerTimeInput(time) : time;
       await runBlockerSideEffect(room, blocker, formattedTime);
-      await submitNote(buildBlockerNote(blocker, formattedTime));
+      await Promise.race([
+        submitNote(buildBlockerNote(blocker, formattedTime)),
+        new Promise<void>((resolve) => setTimeout(resolve, 12000)),
+      ]);
       setLastBlockerKey(blocker.key);
       setTimeEntryKey(null);
       setTimeText("");
+
+      if (blocker.key === "come_back_later") {
+        const newCount = incrementDndAttempt(room.id);
+        if (newCount >= 2) {
+          Alert.alert(t("rooms.detail.alerts.dndEscalationTitle"));
+          await sendSupervisorEscalation(room.room_number);
+          resetDndAttempt(room.id);
+        }
+      }
+
+      if (blocker.key === "declined_service") {
+        await sendDeclinedServiceAlert(room.room_number);
+      }
     } catch (err: unknown) {
-      Alert.alert("Error", (err as Error).message ?? "Failed to report blocker");
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.reportBlockerFailed"));
     } finally {
       setBlockerBusy(null);
     }
@@ -323,7 +467,7 @@ export default function RoomDetailScreen() {
 
   async function handleToggleDnd() {
     if (!room || !isOnline) {
-      Alert.alert("Offline", "DND changes need a connection.");
+      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.dndNeedsConnection"));
       return;
     }
     const next = !room.dnd_flag;
@@ -333,7 +477,7 @@ export default function RoomDetailScreen() {
       await api.patch(`/rooms/${room.id}/dnd`, { dnd: next });
     } catch (err: unknown) {
       updateLocalRoom(room.id, { dnd_flag: !next });
-      Alert.alert("Error", (err as Error).message ?? "Failed to update DND");
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateDndFailed"));
     } finally {
       setDndLoading(false);
     }
@@ -341,7 +485,7 @@ export default function RoomDetailScreen() {
 
   async function handleToggleDeclineService() {
     if (!room || !isOnline) {
-      Alert.alert("Offline", "Service changes need a connection.");
+      Alert.alert(t("rooms.detail.alerts.offlineTitle"), t("rooms.detail.alerts.serviceNeedsConnection"));
       return;
     }
     const next = !room.do_not_service;
@@ -351,7 +495,7 @@ export default function RoomDetailScreen() {
       await api.patch(`/rooms/${room.id}/decline-service`, { decline: next });
     } catch (err: unknown) {
       updateLocalRoom(room.id, { do_not_service: !next });
-      Alert.alert("Error", (err as Error).message ?? "Failed to update service status");
+      Alert.alert(t("common.error"), (err as Error).message ?? t("rooms.detail.alerts.updateServiceFailed"));
     } finally {
       setDeclineLoading(false);
     }
@@ -372,6 +516,12 @@ export default function RoomDetailScreen() {
     setLastBlockerKey(null);
   }
 
+  function handleCheckItem(key: string, newVal: boolean) {
+    // The L&F check item is one-way — once checked it records the check and cannot be undone.
+    if (key === LOST_FOUND_CHECK_KEY && !newVal) return;
+    setCheckedItems((current) => ({ ...current, [key]: newVal }));
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -390,14 +540,15 @@ export default function RoomDetailScreen() {
 
   const status = room.status;
   const action = getRoomAction(room);
-  const primaryLabel = getPrimaryLabel(room);
+  const primaryLabel = t(getPrimaryLabelKey(room));
   const startBlockedByInProgress = action.targetStatus === "IN_PROGRESS" && hasRoomInProgress(myRooms, room.id);
-  const primaryDisabled = !action.targetStatus || statusLoading || startBlockedByInProgress;
+  const primaryDisabled = !action.targetStatus || startBlockedByInProgress;
   const showUndo = isOnline && Boolean(action.allowUndo);
   const statusColor = STATUS_COLOR[status] ?? C.ink3;
-  const statusLabel = STATUS_LABEL[status] ?? status.replace(/_/g, " ");
+  const statusLabel = t(STATUS_LABEL_KEYS[status] ?? "rooms.detail.status.UNKNOWN", { status: status.replace(/_/g, " ") });
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
-  const cleanType = getCleanTypeLabel(room);
+  const cleanTypeKey = getCleanTypeKey(room);
+  const cleanType = cleanTypeKey ? t(cleanTypeKey) : room.clean_type_label ?? null;
   const cleanTypeMeta = room.clean_type ? CLEAN_TYPE_META[room.clean_type] : null;
   const hideCleanTypeIcon = room.status === "PICKUP" && (room.clean_type === "FULL" || room.clean_type === "LIGHT");
   const warnings = [...getBeforeEnterWarnings(room)].sort((a, b) => {
@@ -406,26 +557,35 @@ export default function RoomDetailScreen() {
     return 0;
   });
   const canRemoveLatestNote = Boolean(removableLatestNote && room.latest_note?.trim() === removableLatestNote.text);
-  const checklist = CHECKLISTS[room.clean_type ?? ""] ?? CHECKLISTS.LIGHT;
+  const checklist = getChecklistForRoom(room);
   const insight = buildRoomInsight(room, myRooms, t);
   const checkedCount = checklist.filter((item) => checkedItems[item]).length;
+  const checklistIncomplete = action.kind === "done" && checkedCount < checklist.length;
+  const primaryDisabledFinal = primaryDisabled || checklistIncomplete;
   const blockers = getBlockersForRoom(room);
-  const sectionLabel = getSectionLabelForRoom(room);
+  const sectionLabel = t(
+    room.status === "DIRTY" || room.status === "IN_PROGRESS"
+      ? "rooms.detail.blockerSections.roomFlags"
+      : "rooms.detail.blockerSections.quickBlockers",
+  );
+  const showDndChip = status === "OCCUPIED" || status === "PICKUP" || room.dnd_flag;
+  const isDepRoom = room.clean_type === "DEP" && (status === "DIRTY" || status === "IN_PROGRESS" || status === "OCCUPIED");
   const timingRows = [
-    { label: "Guest", value: room.guest_name },
-    { label: "FO status", value: room.fo_status },
-    { label: "Check-in", value: formatTime(room.checkin_time) },
-    { label: "Scheduled checkout", value: formatTime(room.checkout_time) },
-    { label: "Actual checkout", value: formatTime(room.actual_checkout_at) },
-    { label: "Predicted ready", value: formatTime(room.predicted_ready_at) },
-  ].filter((row): row is { label: string; value: string } => Boolean(row.value));
+    { labelKey: "rooms.detail.timing.guest", value: room.guest_name },
+    { labelKey: "rooms.detail.timing.foStatus", value: room.fo_status },
+    { labelKey: "rooms.detail.timing.checkin", value: formatTime(room.checkin_time) },
+    { labelKey: "rooms.detail.timing.scheduledCheckout", value: formatTime(room.checkout_time) },
+    { labelKey: "rooms.detail.timing.actualCheckout", value: formatTime(room.actual_checkout_at) },
+    status === "IN_PROGRESS" ? { labelKey: "rooms.detail.timing.cleaningStarted", value: formatTime(room.updated_at) } : null,
+    { labelKey: "rooms.detail.timing.predictedReady", value: formatTime(room.predicted_ready_at) },
+  ].filter((row): row is { labelKey: string; value: string } => Boolean(row?.value));
 
   return (
     <View style={styles.root}>
       <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.push("/(app)/my-rooms" as never)} style={styles.backBtn} hitSlop={10}>
           <Ionicons name="chevron-back" size={20} color={C.accent} />
-          <Text style={styles.backLabel}>My rooms</Text>
+          <Text style={styles.backLabel}>{t("rooms.title")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -433,7 +593,7 @@ export default function RoomDetailScreen() {
         <View style={styles.hero}>
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.roomEyebrow}>Room</Text>
+              <Text style={styles.roomEyebrow}>{t("rooms.detail.roomEyebrow")}</Text>
               <Text style={styles.roomNum}>{room.room_number}</Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -445,21 +605,30 @@ export default function RoomDetailScreen() {
             {cleanType ? (
               <View
                 accessible
-                accessibilityLabel={`${cleanType} clean type`}
+                accessibilityLabel={t("rooms.detail.cleanTypeAccessibility", { type: cleanType })}
                 style={[
                   styles.cleanTypeChip,
-                  cleanTypeMeta && {
-                    backgroundColor: cleanTypeMeta.bg,
-                    borderColor: cleanTypeMeta.border,
-                  },
+                  cleanTypeMeta && { backgroundColor: cleanTypeMeta.bg, borderColor: cleanTypeMeta.border },
                 ]}
               >
-                {cleanTypeMeta && !hideCleanTypeIcon ? <Ionicons name={cleanTypeMeta.icon} size={12} color={cleanTypeMeta.fg} /> : null}
+                {cleanTypeMeta && !hideCleanTypeIcon ? (
+                  <Ionicons name={cleanTypeMeta.icon} size={12} color={cleanTypeMeta.fg} />
+                ) : null}
                 <Text style={[styles.cleanTypeChipText, cleanTypeMeta && { color: cleanTypeMeta.fg }]}>{cleanType}</Text>
               </View>
             ) : null}
           </View>
         </View>
+
+        {isDepRoom ? (
+          <View style={styles.depBanner}>
+            <Ionicons name="log-out-outline" size={16} color={C.alert} />
+            <View style={styles.depBannerCopy}>
+              <Text style={styles.depBannerTitle}>{t("rooms.detail.departure.title")}</Text>
+              <Text style={styles.depBannerSub}>{t("rooms.detail.departure.subtitle")}</Text>
+            </View>
+          </View>
+        ) : null}
 
         {insight.lines.length > 0 ? (
           <View style={styles.aiInsightCard}>
@@ -473,11 +642,7 @@ export default function RoomDetailScreen() {
                 <Text style={styles.aiInsightText}>{line.text}</Text>
               </View>
             ))}
-            <TouchableOpacity
-              style={styles.aiAskBtn}
-              onPress={() => router.push("/(app)/copilot")}
-              activeOpacity={0.82}
-            >
+            <TouchableOpacity style={styles.aiAskBtn} onPress={() => router.push("/(app)/copilot")} activeOpacity={0.82}>
               <Ionicons name="chatbubble-ellipses-outline" size={13} color={C.ai} />
               <Text style={styles.aiAskText}>{t("ai.askAboutRoom")}</Text>
             </TouchableOpacity>
@@ -486,22 +651,23 @@ export default function RoomDetailScreen() {
 
         {warnings.length > 0 ? (
           <View style={styles.warningSection}>
-            <Text style={styles.warningTitle}>Before you enter</Text>
+            <Text style={styles.warningTitle}>{t("rooms.detail.beforeEnter")}</Text>
             {warnings.map((warning) => {
               const critical = warning.severity === "critical";
+              const warningCopy = getWarningCopy(warning, room, t);
               return (
                 <View key={warning.key} style={[styles.warningRow, critical && styles.warningRowCritical]}>
                   <Ionicons name={critical ? "warning" : "alert-circle-outline"} size={16} color={critical ? C.alert : C.caution} />
                   <View style={styles.warningCopy}>
                     <View style={styles.warningHeaderRow}>
-                      <Text style={[styles.warningLabel, critical && styles.warningLabelCritical]}>{warning.label}</Text>
+                      <Text style={[styles.warningLabel, critical && styles.warningLabelCritical]}>{warningCopy.label}</Text>
                       {warning.key === "note" && canRemoveLatestNote ? (
                         <TouchableOpacity onPress={removeLatestNote} activeOpacity={0.8}>
-                          <Text style={styles.removeNoteText}>Remove note</Text>
+                          <Text style={styles.removeNoteText}>{t("rooms.detail.removeNote")}</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
-                    <Text style={styles.warningDetail}>{warning.detail}</Text>
+                    <Text style={styles.warningDetail}>{warningCopy.detail}</Text>
                   </View>
                 </View>
               );
@@ -509,20 +675,19 @@ export default function RoomDetailScreen() {
           </View>
         ) : null}
 
-
         <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Reservation / Timing</Text>
+          <Text style={styles.sectionTitle}>{t("rooms.detail.reservationTiming")}</Text>
           {timingRows.length > 0 ? (
             <View style={styles.infoGrid}>
               {timingRows.map((row, idx) => (
-                <View key={row.label} style={[styles.infoRow, idx === timingRows.length - 1 && styles.infoRowLast]}>
-                  <Text style={styles.infoLabel}>{row.label}</Text>
+                <View key={row.labelKey} style={[styles.infoRow, idx === timingRows.length - 1 && styles.infoRowLast]}>
+                  <Text style={styles.infoLabel}>{t(row.labelKey)}</Text>
                   <Text style={styles.infoValue}>{row.value}</Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.mutedText}>No reservation timing attached.</Text>
+            <Text style={styles.mutedText}>{t("rooms.detail.noReservationTiming")}</Text>
           )}
         </View>
 
@@ -544,10 +709,7 @@ export default function RoomDetailScreen() {
                       (noteLoading || blockerBusy != null) && !busy && styles.btnDisabled,
                     ]}
                     onPress={() => {
-                      if (activated) {
-                        handleBlockerUndo();
-                        return;
-                      }
+                      if (activated) { handleBlockerUndo(); return; }
                       if (blocker.needsTime) {
                         setTimeEntryKey(open ? null : blocker.key);
                         setTimeText("");
@@ -569,13 +731,9 @@ export default function RoomDetailScreen() {
                   </TouchableOpacity>
                 );
               })}
-              <TouchableOpacity
-                style={styles.blockerBtnCustom}
-                onPress={() => setCustomOpen(true)}
-                activeOpacity={0.82}
-              >
+              <TouchableOpacity style={styles.blockerBtnCustom} onPress={() => setCustomOpen(true)} activeOpacity={0.82}>
                 <Ionicons name="pencil-outline" size={13} color={C.ink3} />
-                <Text style={styles.blockerText}>Custom</Text>
+                <Text style={styles.blockerText}>{t("rooms.detail.customFlag.short")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -625,66 +783,16 @@ export default function RoomDetailScreen() {
           </View>
         ) : null}
 
+        {/* Actions — note form renders ABOVE chips to keep chip positions stable when form opens */}
         <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionChip} onPress={() => setNoteOpen((value) => !value)} activeOpacity={0.82}>
-              <Ionicons name="chatbubble-outline" size={14} color={C.info} />
-              <Text style={[styles.actionChipText, { color: C.info }]}>Add Note</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, styles.actionChipWork]} onPress={() => setShowReportIssue(true)} activeOpacity={0.82}>
-              <Ionicons name="build-outline" size={14} color={C.brass} />
-              <Text style={[styles.actionChipText, { color: C.brass }]}>Work Order</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionChip, styles.actionChipFound]} onPress={() => setShowFoundItem(true)} activeOpacity={0.82}>
-              <Ionicons name="bag-outline" size={14} color={C.caution} />
-              <Text style={[styles.actionChipText, { color: C.caution }]}>Lost & Found</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionChip, styles.actionChipDnd, room.dnd_flag && styles.actionChipDndActive]}
-              onPress={() => void handleToggleDnd()}
-              disabled={dndLoading}
-              activeOpacity={0.82}
-            >
-              {dndLoading ? (
-                <ActivityIndicator size="small" color={room.dnd_flag ? C.alert : C.ink3} />
-              ) : (
-                <>
-                  <Ionicons name={room.dnd_flag ? "close-circle-outline" : "hand-left-outline"} size={14} color={room.dnd_flag ? C.alert : C.ink3} />
-                  <Text style={[styles.actionChipText, { color: room.dnd_flag ? C.alert : C.ink3 }]}>
-                    {room.dnd_flag ? "Clear DND" : "Skip (DND)"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-            {room.status === "PICKUP" ? (
-              <TouchableOpacity
-                style={[styles.actionChip, styles.actionChipDnd, room.do_not_service && styles.actionChipDndActive]}
-                onPress={() => void handleToggleDeclineService()}
-                disabled={declineLoading}
-                activeOpacity={0.82}
-              >
-                {declineLoading ? (
-                  <ActivityIndicator size="small" color={room.do_not_service ? C.alert : C.ink3} />
-                ) : (
-                  <>
-                    <Ionicons name={room.do_not_service ? "refresh-outline" : "close-outline"} size={14} color={room.do_not_service ? C.alert : C.ink3} />
-                    <Text style={[styles.actionChipText, { color: room.do_not_service ? C.alert : C.ink3 }]}>
-                      {room.do_not_service ? "Restore Service" : "Decline Service"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
+          <Text style={styles.sectionTitle}>{t("rooms.detailActions.title")}</Text>
           {noteOpen ? (
             <View style={styles.noteForm}>
               <TextInput
                 style={styles.noteInput}
                 value={noteText}
                 onChangeText={setNoteText}
-                placeholder="Leave a note for your supervisor or team..."
+                placeholder={t("rooms.detailActions.notePlaceholder")}
                 placeholderTextColor={C.ink3}
                 multiline
                 numberOfLines={2}
@@ -702,71 +810,119 @@ export default function RoomDetailScreen() {
                   ) : (
                     <>
                       <Ionicons name="send" size={13} color="#fff" />
-                      <Text style={styles.noteSendText}>Save Note</Text>
+                      <Text style={styles.noteSendText}>{t("rooms.detailActions.saveNote")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setNoteOpen(false)}>
-                  <Text style={styles.noteCancelText}>Cancel</Text>
+                  <Text style={styles.noteCancelText}>{t("rooms.detailActions.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : null}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionChip} onPress={() => setNoteOpen((v) => !v)} activeOpacity={0.82}>
+              <Ionicons name="chatbubble-outline" size={14} color={C.info} />
+              <Text style={[styles.actionChipText, { color: C.info }]}>{t("rooms.detailActions.addNote")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionChip, styles.actionChipWork]} onPress={() => setShowReportIssue(true)} activeOpacity={0.82}>
+              <Ionicons name="build-outline" size={14} color={C.brass} />
+              <Text style={[styles.actionChipText, { color: C.brass }]}>{t("rooms.detailActions.workOrder")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionChip, styles.actionChipFound]} onPress={() => setShowFoundItem(true)} activeOpacity={0.82}>
+              <Ionicons name="bag-outline" size={14} color={C.caution} />
+              <Text style={[styles.actionChipText, { color: C.caution }]}>{t("rooms.detailActions.lostFound")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionChip, styles.actionChipSupply]} onPress={() => setShowSupplyRequest(true)} activeOpacity={0.82}>
+              <Ionicons name="cube-outline" size={14} color={C.accent} />
+              <Text style={[styles.actionChipText, { color: C.accent }]}>{t("rooms.detailActions.supplies")}</Text>
+            </TouchableOpacity>
+            {showDndChip ? (
+              <TouchableOpacity
+                style={[styles.actionChip, styles.actionChipDnd, room.dnd_flag && styles.actionChipDndActive]}
+                onPress={() => void handleToggleDnd()}
+                disabled={dndLoading}
+                activeOpacity={0.82}
+              >
+                {dndLoading ? (
+                  <ActivityIndicator size="small" color={room.dnd_flag ? C.alert : C.ink3} />
+                ) : (
+                  <>
+                    <Ionicons name={room.dnd_flag ? "close-circle-outline" : "hand-left-outline"} size={14} color={room.dnd_flag ? C.alert : C.ink3} />
+                    <Text style={[styles.actionChipText, { color: room.dnd_flag ? C.alert : C.ink3 }]}>
+                      {room.dnd_flag ? t("rooms.detailActions.clearDnd") : t("rooms.detailActions.skipDnd")}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
+            {room.status === "PICKUP" ? (
+              <TouchableOpacity
+                style={[styles.actionChip, styles.actionChipDnd, room.do_not_service && styles.actionChipDndActive]}
+                onPress={() => void handleToggleDeclineService()}
+                disabled={declineLoading}
+                activeOpacity={0.82}
+              >
+                {declineLoading ? (
+                  <ActivityIndicator size="small" color={room.do_not_service ? C.alert : C.ink3} />
+                ) : (
+                  <>
+                    <Ionicons name={room.do_not_service ? "refresh-outline" : "close-outline"} size={14} color={room.do_not_service ? C.alert : C.ink3} />
+                    <Text style={[styles.actionChipText, { color: room.do_not_service ? C.alert : C.ink3 }]}>
+                      {room.do_not_service ? t("rooms.detailActions.restoreService") : t("rooms.detailActions.declineService")}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
 
-        <View style={styles.cardSection}>
-          <View style={styles.checklistHeader}>
-            <Text style={styles.sectionTitle}>Cleaning Checklist</Text>
-            <Text style={styles.checklistCount}>{checkedCount}/{checklist.length}</Text>
-          </View>
-          <View style={styles.checklist}>
-            {checklist.map((item) => {
-              const checked = Boolean(checkedItems[item]);
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.checkRow}
-                  onPress={() => setCheckedItems((current) => ({ ...current, [item]: !current[item] }))}
-                  activeOpacity={0.78}
-                >
-                  <View style={[styles.checkBox, checked && styles.checkBoxActive]}>
-                    {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-                  </View>
-                  <Text style={[styles.checkText, checked && styles.checkTextDone]}>{item}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        <ChecklistSection
+          room={room}
+          checklist={checklist}
+          checkedItems={checkedItems}
+          onCheck={handleCheckItem}
+          linenOut={linenOut}
+          linenIn={linenIn}
+          onLinenOut={setLinenOut}
+          onLinenIn={setLinenIn}
+          onReportFoundItem={() => setShowFoundItem(true)}
+        />
       </ScrollView>
 
       <View style={[styles.stickyAction, { paddingBottom: insets.bottom + 12 }]}>
-        {/* Compact status line — lives with the controls that change it */}
         <View style={styles.stickyStatusRow}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <Text style={[styles.stickyStatusText, { color: statusColor }]}>{statusLabel}</Text>
           {lastAction ? (
-            <Text style={styles.stickyLastAction} numberOfLines={1}>
-              · {lastAction}
-            </Text>
+            <Text style={styles.stickyLastAction} numberOfLines={1}>· {lastAction}</Text>
           ) : null}
-          {noteSuccess ? <Text style={styles.noteSuccessText}>Note saved</Text> : null}
+          {cleanSuccess ? (
+            <Text style={styles.cleanSuccessText}>{t("rooms.detail.cleanSuccess")}</Text>
+          ) : noteSuccess ? (
+            <Text style={styles.noteSuccessText}>{t("rooms.detailActions.noteSaved")}</Text>
+          ) : null}
         </View>
         {startBlockedByInProgress ? (
-          <Text style={styles.inProgressBlockText}>Finish your current room before starting another.</Text>
+          <Text style={styles.inProgressBlockText}>{t("rooms.detail.finishCurrentRoom")}</Text>
+        ) : checklistIncomplete ? (
+          <Text style={styles.inProgressBlockText}>
+            {t("rooms.detail.checklistGateHint", { done: checkedCount, total: checklist.length })}
+          </Text>
         ) : null}
         <View style={styles.stickyButtons}>
           <TouchableOpacity
-            style={[styles.primaryBtn, primaryDisabled && styles.primaryBtnDisabled]}
+            style={[styles.primaryBtn, primaryDisabledFinal && styles.primaryBtnDisabled]}
             onPress={handlePrimaryAction}
-            disabled={primaryDisabled}
+            disabled={primaryDisabledFinal}
             activeOpacity={0.86}
           >
-            {statusLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>{primaryLabel}</Text>}
+            <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
           </TouchableOpacity>
           {showUndo ? (
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleUndo} disabled={statusLoading} activeOpacity={0.82}>
-              <Text style={styles.secondaryBtnText}>Undo</Text>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleUndo} activeOpacity={0.82}>
+              <Text style={styles.secondaryBtnText}>{t("rooms.detail.primary.undo")}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -774,16 +930,19 @@ export default function RoomDetailScreen() {
 
       <ReportIssueModal visible={showReportIssue} roomId={room.id} roomNumber={room.room_number} onClose={() => setShowReportIssue(false)} />
       <FoundItemModal visible={showFoundItem} roomId={room.id} roomNumber={room.room_number} onClose={() => setShowFoundItem(false)} />
+      <SupplyRequestModal visible={showSupplyRequest} roomId={room.id} roomNumber={room.room_number} onClose={() => setShowSupplyRequest(false)} />
+
+      <KnockModal visible={showKnockModal} onConfirm={handleKnockConfirm} />
 
       <Modal visible={customOpen} transparent animationType="slide" onRequestClose={() => setCustomOpen(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCustomOpen(false)}>
           <TouchableOpacity style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]} activeOpacity={1}>
-            <Text style={styles.modalTitle}>Custom Flag</Text>
+            <Text style={styles.modalTitle}>{t("rooms.detail.customFlag.title")}</Text>
             <TextInput
               style={styles.modalInput}
               value={customText}
               onChangeText={setCustomText}
-              placeholder="Type anything to flag for your supervisor..."
+              placeholder={t("rooms.detail.customFlag.placeholder")}
               placeholderTextColor={C.ink3}
               multiline
               numberOfLines={3}
@@ -806,12 +965,12 @@ export default function RoomDetailScreen() {
                 ) : (
                   <>
                     <Ionicons name="send" size={13} color="#fff" />
-                    <Text style={styles.noteSendText}>Add Flag</Text>
+                    <Text style={styles.noteSendText}>{t("rooms.detail.customFlag.add")}</Text>
                   </>
                 )}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setCustomOpen(false)}>
-                <Text style={styles.noteCancelText}>Cancel</Text>
+                <Text style={styles.noteCancelText}>{t("rooms.detailActions.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -848,6 +1007,11 @@ const styles = StyleSheet.create({
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   heroMetaText: { color: shellTokens.ink2, backgroundColor: shellTokens.raised, borderWidth: 1, borderColor: shellTokens.line, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: "700" },
 
+  depBanner: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.alertSoft, borderWidth: 1.5, borderColor: C.alertLine, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  depBannerCopy: { flex: 1 },
+  depBannerTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.9, color: C.alert, textTransform: "uppercase" },
+  depBannerSub: { fontSize: 12, color: C.alert, fontWeight: "600", marginTop: 1 },
+
   aiInsightCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.aiLine, borderRadius: 16, padding: 14, gap: 8 },
   aiInsightHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   aiInsightTitle: { color: C.ai, fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
@@ -855,31 +1019,14 @@ const styles = StyleSheet.create({
   aiInsightDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.ai, marginTop: 6 },
   aiInsightText: { flex: 1, color: C.ink2, fontSize: 13, lineHeight: 18 },
   aiAskBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 3,
-    minHeight: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.aiLine,
-    backgroundColor: C.aiSoft,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    marginTop: 3, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: C.aiLine, backgroundColor: C.aiSoft,
   },
   aiAskText: { color: C.ai, fontSize: 12.5, fontWeight: "800" },
 
-  checklistHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  checklistCount: { fontFamily: monoFont, color: C.ink3, fontSize: 12, fontWeight: "800" },
   cleanTypeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: C.surface2,
-    borderWidth: 1,
-    borderColor: C.line2,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4,
   },
   cleanTypeChipText: { color: C.ink2, fontSize: 12, fontWeight: "800" },
 
@@ -904,18 +1051,12 @@ const styles = StyleSheet.create({
   infoValue: { color: C.ink, fontSize: 13, fontWeight: "700", textAlign: "right", flexShrink: 1 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   noteSuccessText: { fontSize: 12, color: C.ready, fontWeight: "700" },
+  cleanSuccessText: { fontSize: 12, color: C.ready, fontWeight: "800" },
 
   blockerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   blockerBtn: {
-    minWidth: "47%",
-    flexGrow: 1,
-    backgroundColor: C.surface2,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    alignItems: "center",
+    minWidth: "47%", flexGrow: 1, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line,
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10, alignItems: "center",
   },
   blockerBtnContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   blockerText: { fontSize: 13, fontWeight: "800", color: C.ink2 },
@@ -923,34 +1064,16 @@ const styles = StyleSheet.create({
   blockerBtnOpen: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
   blockerBtnActivated: { borderColor: C.accentLine, backgroundColor: C.accentSoft },
   blockerBtnCustom: {
-    minWidth: "47%",
-    flexGrow: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    backgroundColor: C.surface2,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderStyle: "dashed",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    minWidth: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5,
+    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line, borderStyle: "dashed",
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10,
   },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
   modalTitle: { fontSize: 15, fontWeight: "900", color: C.ink },
   modalInput: {
-    minHeight: 88,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    fontSize: 14,
-    color: C.ink,
-    textAlignVertical: "top",
+    minHeight: 88, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2,
+    paddingHorizontal: 12, paddingTop: 10, fontSize: 14, color: C.ink, textAlignVertical: "top",
   },
   btnDisabled: { opacity: 0.5 },
 
@@ -958,57 +1081,32 @@ const styles = StyleSheet.create({
   timeEntryLabel: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
   timeChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   timeChip: {
-    minHeight: 40,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
-    paddingHorizontal: 13,
-    alignItems: "center",
-    justifyContent: "center",
+    minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: C.line,
+    backgroundColor: C.surface2, paddingHorizontal: 13, alignItems: "center", justifyContent: "center",
   },
   timeChipActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
   timeChipText: { color: C.ink2, fontSize: 12.5, fontWeight: "700" },
   timeChipTextActive: { color: C.accent },
   timeEntryActions: { flexDirection: "row", gap: 8, alignItems: "center" },
   timeInput: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface2,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: C.ink,
+    flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: C.line,
+    backgroundColor: C.surface2, paddingHorizontal: 12, fontSize: 13, color: C.ink,
   },
   timeSendBtn: {
-    minHeight: 44,
-    borderRadius: 10,
-    backgroundColor: C.accent,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
+    minHeight: 44, borderRadius: 10, backgroundColor: C.accent,
+    paddingHorizontal: 16, alignItems: "center", justifyContent: "center",
   },
   timeSendText: { color: "#fff", fontSize: 13, fontWeight: "800" },
 
   actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionChip: {
-    flex: 1,
-    minWidth: "47%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    backgroundColor: C.infoSoft,
-    borderRadius: 10,
-    minHeight: 46,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: C.infoLine,
+    flex: 1, minWidth: "47%", flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, backgroundColor: C.infoSoft, borderRadius: 10, minHeight: 46, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: C.infoLine,
   },
   actionChipWork: { backgroundColor: C.brassSoft, borderColor: C.brassLine },
   actionChipFound: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
+  actionChipSupply: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
   actionChipDnd: { backgroundColor: C.surface2, borderColor: C.line },
   actionChipDndActive: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
   actionChipText: { fontSize: 12, fontWeight: "800" },
@@ -1019,24 +1117,9 @@ const styles = StyleSheet.create({
   noteSendText: { color: "#fff", fontSize: 12, fontWeight: "800" },
   noteCancelText: { fontSize: 12, color: C.ink3, fontWeight: "700" },
 
-  checklist: { gap: 8 },
-  checkRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10 },
-  checkBox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2, alignItems: "center", justifyContent: "center" },
-  checkBoxActive: { backgroundColor: C.ready, borderColor: C.ready },
-  checkText: { color: C.ink, fontSize: 14, fontWeight: "700" },
-  checkTextDone: { color: C.ink3, textDecorationLine: "line-through" },
-
   stickyAction: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    gap: 9,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: C.line,
-    backgroundColor: C.surface,
+    position: "absolute", left: 0, right: 0, bottom: 0, gap: 9,
+    paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.surface,
   },
   inProgressBlockText: { fontSize: 12, color: C.caution, fontWeight: "700", textAlign: "center" },
   stickyStatusRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0 },
@@ -1047,14 +1130,8 @@ const styles = StyleSheet.create({
   primaryBtnDisabled: { backgroundColor: C.ink4 },
   primaryBtnText: { color: "#fff", fontSize: 15, fontWeight: "900", textAlign: "center" },
   secondaryBtn: {
-    minHeight: 52,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.surface,
-    paddingHorizontal: 18,
+    minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, paddingHorizontal: 18,
   },
   secondaryBtnText: { color: C.ink2, fontSize: 14, fontWeight: "800" },
 });

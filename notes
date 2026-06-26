@@ -46,7 +46,7 @@ Would floor map make this easier and how does one upload or tell the program wha
 
 
 *
-all housekeeping history for rooms kept until the room shows up as a departure then reset history once the room is inspected, do not reset until the room is inspected. Engineering history should always stay as its not guest dependent its more the room itself so it can be used analytically.
+all housekeeping history for rooms kept until the room shows up as a departure clean then reset history once that departure clean is inspected, do not reset until the room is inspected. Engineering history should always stay as its not guest dependent its more the room itself
 *
 
 Breakfast inventory tracking

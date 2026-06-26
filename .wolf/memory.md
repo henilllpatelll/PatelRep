@@ -1,4 +1,7 @@
 ﻿# Memory
+| 09:30 | OPTIMISTIC SAVE: room assignments in HousekeeperBar now fire-and-confirm — pending state clears and "Saved" shows instantly on tap; API saves in background; failure restores pending assignments and shows error. Removed saveLoading state + spinner. TS clean. | apps/web/app/(dashboard)/housekeeping/page.tsx |
+| 2026-06-26 | QA FIX SESSION (10 items): Knock modal (KnockModal.tsx), L&F mandatory check (ChecklistSection), 20/10-item expanded checklists (roomWorkflow.ts), damage photo banner, linen stepper, DND attempt counter + supervisor escalation (appStore.ts + roomBlockers.ts), declined service front desk alert, iOS/Android clean success toast, note form above chips bug fix, home useFocusEffect + refreshRooms. en.json + es.json updated. Tests fixed. TS clean. | KnockModal.tsx, ChecklistSection.tsx, [roomId].tsx, roomWorkflow.ts, roomBlockers.ts, appStore.ts, workOrders.ts, home/index.tsx, en.json, es.json, RoomDetail.test.tsx, HousekeeperHome.test.tsx | complete | ~300 tok |
+| 10:01 | HOUSEKEEPING WORKFLOW QA (emulator, claudia@gmail.com): Tested full housekeeper loop on Android emulator — Home/My Rooms/Room Detail/Start Cleaning/Checklist/Mark Clean/Add Note/Work Order/Supplies/Come Back Later. 15 gaps vs. standard hotel procedure logged in WORKFLOW_FINDINGS_2026-06-25.md. | all mobile screens | complete | ~180 tok |
 | 2026-06-25 | WORKFLOW_FINDINGS_2026-06-25: fixed B7 (checklist gate), B2 (12s timeout on submitBlocker), B4 (suggestShiftGap), B5 (housekeeper-only picker filter), B1 (signOut scope:local + router.replace). Wired CreateWorkOrderModal to Orders tab (roomId optional). Inspection fail checklist + tappable done rows. OOO action on engineer room tap. Come Back Later 2PM/3PM presets. i18n en+es updated. TS clean. Remaining: #12 Room Board legend, #13 section-assign (LOW). | [roomId].tsx, roomBlockers.ts, assignments/index.tsx, work-orders/index.tsx, CreateWorkOrderModal.tsx, inspect/index.tsx, room-status/index.tsx, profile/index.tsx, workOrders.ts, en.json, es.json | complete | ~200 tok |
 | 2026-06-24 | ROLE 3 ENGINEERING: bug-195 fix (useFocusEffect on WO list so completed WOs clear on focus). G14 lowChip in WorkOrderCard. G15 optimistic claim (online + offline unified). G20/G21 room cards tappable for engineers + CreateWorkOrderModal (new file). G23 search bar in WO list header with row filtering. TS clean. G22/G24/G17 already implemented. | WorkOrderCard.tsx, work-orders/index.tsx, room-status/index.tsx, CreateWorkOrderModal.tsx | complete | ~70 tok |
 | 2026-06-24 | ROLE 2 SUPERVISOR: bug-193 fix (tz_offset on inspections endpoint), bug-194 fix (AI suggest fallback to user_profiles), TS fix (vip on FloorSnapshot). G8 passedToday tile, G9 active room in TeamLoadRow, G10 avg min, G11 improved assign tile, G12 ShiftNoteModal, G13 BroadcastModal. | supervisor.ts, SupervisorHome.tsx, atoms.tsx, housekeeping.py, inspect/index.tsx, date.ts | complete | ~80 tok |
@@ -5844,3 +5847,109 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | session | #12 Room Board color legend — 5-status dot+label row below segmented control | room-board/index.tsx, en.json, es.json | done | ~800 |
 | session | #13 Section-assign shortcut — unassigned rooms grouped by floor, Assign floor button per floor triggers bulk picker | assignments/index.tsx, HousekeeperPicker.tsx, en.json, es.json | done | ~1200 |
 | 20:34 | Session end: 15 writes across 4 files (en.json, es.json, HousekeeperPicker.tsx, index.tsx) | 12 reads | ~55827 tok |
+| 20:42 | Session end: 15 writes across 4 files (en.json, es.json, HousekeeperPicker.tsx, index.tsx) | 12 reads | ~55827 tok |
+| 20:47 | Loaded browser/e2e/OpenWolf/mobile instructions and found existing workflow QA findings doc to verify | .wolf/OPENWOLF.md, .wolf/cerebrum.md, .wolf/anatomy.md, .planning/WORKFLOW_FINDINGS_2026-06-25.md | ready for emulator workflow validation | ~4000 |
+| 20:59 | Exercised Android dev-client launch/reset path and found bundle reload timeout after app-data clear | mobile-test-screenshots/ | emulator connected, dev client needs fresh Metro start | ~2500 |
+| 21:12 | Verified supplied role credentials and read-only PatelRep API data; documented emulator dev-client timeout blocker | .planning/WORKFLOW_FINDINGS_2026-06-25.md, .wolf/buglog.json, .wolf/cerebrum.md | Claudia/Sandra/Miguel auth OK; backend data OK; emulator bundle still blocked | ~3200 |
+
+## Session: 2026-06-26 21:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-26 22:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:47 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | modified hasRoomInProgress() | ~541 |
+| 23:47 | Edited apps/mobile/lib/housekeeping/roomBlockers.ts | added error handling | ~339 |
+| 23:47 | Edited apps/mobile/stores/appStore.ts | added 1 import(s) | ~69 |
+| 23:47 | Edited apps/mobile/stores/appStore.ts | expanded (+6 lines) | ~262 |
+| 23:47 | Edited apps/mobile/stores/appStore.ts | added error handling | ~227 |
+| 23:47 | Edited apps/mobile/lib/api/workOrders.ts | added optional chaining | ~63 |
+| 23:47 | Created apps/mobile/components/housekeeping/KnockModal.tsx | — | ~960 |
+| 23:48 | Created apps/mobile/components/housekeeping/ChecklistSection.tsx | — | ~2763 |
+| 23:51 | Created apps/mobile/app/(app)/my-rooms/[roomId].tsx | — | ~14950 |
+
+## Session: 2026-06-26 23:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:54 | Edited apps/mobile/i18n/locales/en.json | expanded (+55 lines) | ~973 |
+| 23:54 | Edited apps/mobile/i18n/locales/en.json | 3→4 lines | ~68 |
+| 23:55 | Edited apps/mobile/i18n/locales/es.json | expanded (+55 lines) | ~1043 |
+| 23:55 | Edited apps/mobile/i18n/locales/es.json | 3→4 lines | ~76 |
+| 23:55 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~16 |
+| 23:55 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~23 |
+| 23:55 | Edited apps/mobile/app/(app)/home/index.tsx | added 1 condition(s) | ~196 |
+| 23:59 | Edited apps/mobile/__tests__/screens/RoomDetail.test.tsx | expanded (+9 lines) | ~248 |
+| 23:59 | Edited apps/mobile/__tests__/screens/RoomDetail.test.tsx | 3→3 lines | ~67 |
+| 23:59 | Edited apps/mobile/__tests__/screens/RoomDetail.test.tsx | "rooms.detail.checklist.st" → "rooms.detail.checklist.lo" | ~22 |
+| 23:59 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | 3→7 lines | ~72 |
+| 23:59 | Edited apps/mobile/__tests__/screens/HousekeeperHome.test.tsx | CSS: refreshRooms | ~73 |
+| 00:03 | Edited apps/mobile/__tests__/lib/roleTabs.test.ts | 24→27 lines | ~208 |
+| 00:03 | Edited apps/mobile/__tests__/lib/roomBlockers.test.ts | inline fix | ~31 |
+| 00:03 | Edited apps/mobile/__tests__/lib/roomBlockers.test.ts | "Deep vacuum and change fi" → "Vacuum and change filter " | ~16 |
+| 00:03 | Edited apps/mobile/__tests__/lib/supervisor.test.ts | 2→3 lines | ~38 |
+| 00:03 | Edited apps/mobile/__tests__/screens/WorkOrdersList.test.tsx | CSS: useFocusEffect, cb | ~35 |
+| 00:03 | Edited apps/mobile/__tests__/screens/EngineerHome.test.tsx | "/engineering/pm-schedules" → "/assets/pm-schedules" | ~20 |
+| 00:04 | Session end: 18 writes across 10 files (en.json, es.json, index.tsx, RoomDetail.test.tsx, HousekeeperHome.test.tsx) | 13 reads | ~45781 tok |
+
+## Session: 2026-06-26 09:26
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 13→13 lines | ~102 |
+| 09:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | expanded (+6 lines) | ~427 |
+| 09:29 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 13→8 lines | ~126 |
+| 09:30 | Session end: 3 writes across 1 files (page.tsx) | 1 reads | ~9405 tok |
+
+## Session: 2026-06-26 09:34
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:36 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | inline fix | ~42 |
+| 09:36 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | expanded (+12 lines) | ~267 |
+| 09:37 | Session end: 2 writes across 2 files (roomWorkflow.ts, roomWorkflow.test.ts) | 4 reads | ~25347 tok |
+| 09:47 | Session end: 2 writes across 2 files (roomWorkflow.ts, roomWorkflow.test.ts) | 4 reads | ~25347 tok |
+| 09:52 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | added optional chaining | ~668 |
+| 09:53 | Created apps/mobile/app/(app)/my-rooms/index.tsx | — | ~3610 |
+| 09:54 | Edited apps/mobile/components/shared/evening.tsx | modified RoomQueueCard() | ~243 |
+| 09:54 | Edited apps/mobile/components/shared/evening.tsx | CSS: cardDimmed, opacity | ~152 |
+| 09:54 | Edited apps/mobile/i18n/locales/en.json | 7→6 lines | ~46 |
+| 09:54 | Edited apps/mobile/i18n/locales/es.json | 7→6 lines | ~47 |
+| 09:55 | Created apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | — | ~2461 |
+| 09:55 | Session end: 9 writes across 7 files (roomWorkflow.ts, roomWorkflow.test.ts, index.tsx, evening.tsx, en.json) | 9 reads | ~64759 tok |
+| 10:03 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | added 3 condition(s) | ~921 |
+| 10:03 | Session end: 10 writes across 7 files (roomWorkflow.ts, roomWorkflow.test.ts, index.tsx, evening.tsx, en.json) | 10 reads | ~65680 tok |
+| 10:04 | Session end: 10 writes across 7 files (roomWorkflow.ts, roomWorkflow.test.ts, index.tsx, evening.tsx, en.json) | 10 reads | ~65680 tok |
+
+## Session: 2026-06-26 10:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:07 | Edited apps/mobile/i18n/locales/en.json | 6→11 lines | ~77 |
+| 10:07 | Edited apps/mobile/i18n/locales/es.json | 6→11 lines | ~78 |
+| 10:07 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 5→5 lines | ~32 |
+| 10:08 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | buildFloorGroups() → buildBuildingGroups() | ~34 |
+| 10:08 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 5→8 lines | ~122 |
+| 10:08 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | expanded (+7 lines) | ~527 |
+| 10:08 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | expanded (+10 lines) | ~89 |
+| 10:08 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | added 3 condition(s) | ~100 |
+| 10:08 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | header() → 108() | ~157 |
+| 10:09 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 8→9 lines | ~128 |
+| 10:09 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 8→9 lines | ~122 |
+| 10:09 | Edited apps/mobile/__tests__/screens/MyRoomsScreen.test.tsx | 2→2 lines | ~39 |
+| 10:12 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 37→37 lines | ~400 |
+| 10:13 | Edited apps/mobile/__tests__/lib/roomWorkflow.test.ts | 31→31 lines | ~339 |
+| 10:13 | Building-grouped My Rooms: wired buildBuildingGroups into index.tsx, added building i18n keys, fixed 3 pre-existing test failures | index.tsx, roomWorkflow.test.ts, MyRoomsScreen.test.tsx, en.json, es.json | 127/127 pass | ~200 |
+| 10:13 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:16 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:21 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:22 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:25 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:32 | Session end: 14 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~48947 tok |
+| 10:35 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | CSS: building | ~165 |
+| 10:35 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 7→12 lines | ~242 |
+| 10:35 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 6→7 lines | ~65 |
+| 10:36 | Session end: 17 writes across 5 files (en.json, es.json, index.tsx, MyRoomsScreen.test.tsx, roomWorkflow.test.ts) | 9 reads | ~49647 tok |

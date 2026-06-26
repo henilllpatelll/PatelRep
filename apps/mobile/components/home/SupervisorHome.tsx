@@ -14,9 +14,11 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
+import { localDate, localTzOffset, dynamicShiftMeta } from "@/lib/utils/date";
 import { getGreetingKey } from "@/lib/ai/companion";
 import { fetchAssignableStaff, fetchBoard } from "@/lib/api/housekeepingSupervisor";
+import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
+import BroadcastModal from "@/components/supervisor/BroadcastModal";
 import {
   buildFloorSnapshot,
   buildNameById,
@@ -25,6 +27,7 @@ import {
   sortRoomsByNumber,
   type FloorRoom,
 } from "@/lib/housekeeping/supervisor";
+import { api } from "@/lib/api/client";
 import { C, R, shellTokens } from "@/components/shared/tokens";
 import { getStatusMeta } from "@/components/shared/evening";
 import { Avatar, IconButton, SectionLabel } from "@/components/shared/mobileHandoff";
@@ -46,20 +49,32 @@ export function SupervisorHome({ name }: { name: string }) {
 
   const [rooms, setRooms] = useState<FloorRoom[]>([]);
   const [nameById, setNameById] = useState<Map<string, string>>(new Map());
+  const [passedToday, setPassedToday] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showShiftNote, setShowShiftNote] = useState(false);
+  const [showBroadcast, setShowBroadcast] = useState(false);
 
   const load = useCallback(async () => {
     if (!isOnline) {
       setLoading(false);
       return;
     }
-    const [boardRes, staffRes] = await Promise.allSettled([
-      fetchBoard(localDate()),
+    const today = localDate();
+    const tzOffset = localTzOffset();
+    const [boardRes, staffRes, inspectRes] = await Promise.allSettled([
+      fetchBoard(today),
       fetchAssignableStaff(),
+      api.get<{ data: Array<{ overall_result: string }> }>(
+        `/housekeeping/inspections?date_from=${today}&date_to=${today}&tz_offset=${tzOffset}`
+      ),
     ]);
     if (boardRes.status === "fulfilled") setRooms(normalizeBoardRooms(boardRes.value));
     if (staffRes.status === "fulfilled") setNameById(buildNameById(staffRes.value));
+    if (inspectRes.status === "fulfilled") {
+      const records = inspectRes.value.data ?? [];
+      setPassedToday(records.filter((r) => r.overall_result === "passed").length);
+    }
     setLoading(false);
   }, [isOnline]);
 
@@ -184,14 +199,8 @@ export function SupervisorHome({ name }: { name: string }) {
               testID="action-inspect"
             >
               <View style={styles.actionTopRow}>
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={16}
-                  color={snapshot.submitted > 0 ? C.info : C.ink3}
-                />
-                <Text style={[styles.actionCount, snapshot.submitted > 0 && { color: C.info }]}>
-                  {snapshot.submitted}
-                </Text>
+                <Ionicons name="shield-checkmark-outline" size={16} color={snapshot.submitted > 0 ? C.info : C.ink3} />
+                <Text style={[styles.actionCount, snapshot.submitted > 0 && { color: C.info }]}>{snapshot.submitted}</Text>
               </View>
               <Text style={styles.actionLabel}>{t("home.supervisor.toInspect")}</Text>
             </TouchableOpacity>
@@ -202,16 +211,34 @@ export function SupervisorHome({ name }: { name: string }) {
               testID="action-assign"
             >
               <View style={styles.actionTopRow}>
-                <Ionicons
-                  name="person-add-outline"
-                  size={16}
-                  color={snapshot.unassigned > 0 ? C.alert : C.ink3}
-                />
-                <Text style={[styles.actionCount, snapshot.unassigned > 0 && { color: C.alert }]}>
-                  {snapshot.unassigned}
-                </Text>
+                <Ionicons name="person-add-outline" size={16} color={snapshot.unassigned > 0 ? C.alert : C.ink3} />
+                <Text style={[styles.actionCount, snapshot.unassigned > 0 && { color: C.alert }]}>{snapshot.unassigned}</Text>
               </View>
               <Text style={styles.actionLabel}>{t("home.supervisor.unassignedRooms")}</Text>
+            </TouchableOpacity>
+            {/* G8 — Passed today */}
+            <TouchableOpacity
+              style={[styles.actionCard, passedToday > 0 && styles.actionCardReady]}
+              onPress={() => router.push("/(app)/inspect" as never)}
+              activeOpacity={0.82}
+            >
+              <View style={styles.actionTopRow}>
+                <Ionicons name="checkmark-done-outline" size={16} color={passedToday > 0 ? C.ready : C.ink3} />
+                <Text style={[styles.actionCount, passedToday > 0 && { color: C.ready }]}>{passedToday}</Text>
+              </View>
+              <Text style={styles.actionLabel}>Passed today</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* G12 + G13 — Quick supervisor actions */}
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowShiftNote(true)} activeOpacity={0.82}>
+              <Ionicons name="book-outline" size={14} color={C.info} />
+              <Text style={[styles.quickActionText, { color: C.info }]}>Shift Note</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickActionBtn, styles.quickActionBtnCaution]} onPress={() => setShowBroadcast(true)} activeOpacity={0.82}>
+              <Ionicons name="megaphone-outline" size={14} color={C.caution} />
+              <Text style={[styles.quickActionText, { color: C.caution }]}>Message Team</Text>
             </TouchableOpacity>
           </View>
 
@@ -259,6 +286,9 @@ export function SupervisorHome({ name }: { name: string }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <ShiftNoteModal visible={showShiftNote} onClose={() => setShowShiftNote(false)} />
+      <BroadcastModal visible={showBroadcast} onClose={() => setShowBroadcast(false)} />
     </View>
   );
 }
@@ -309,11 +339,20 @@ const styles = StyleSheet.create({
   },
   actionCardInfo: { borderColor: C.infoLine, backgroundColor: C.infoSoft },
   actionCardAlert: { borderColor: C.alertLine, backgroundColor: C.alertSoft },
+  actionCardReady: { borderColor: C.readyLine, backgroundColor: C.readySoft },
   actionTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   actionCount: { fontSize: 26, lineHeight: 30, fontWeight: "700", color: C.ink },
   actionLabel: { fontSize: 11.5, fontWeight: "600", color: C.ink2 },
 
   rows: { gap: 8 },
+  quickActionsRow: { flexDirection: "row", gap: 10 },
+  quickActionBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    backgroundColor: C.infoSoft, borderWidth: 1, borderColor: C.infoLine,
+    borderRadius: R.md, paddingVertical: 12,
+  },
+  quickActionBtnCaution: { backgroundColor: C.cautionSoft, borderColor: C.cautionLine },
+  quickActionText: { fontSize: 13, fontWeight: "800" },
 
   emptyCard: {
     backgroundColor: C.surface,

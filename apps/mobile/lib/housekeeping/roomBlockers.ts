@@ -62,7 +62,7 @@ const PICKUP_BLOCKERS: RoomBlocker[] = [
     labelKey: "blockers.comeBackLater",
     note: "BLOCKER: Come back later — {time}",
     needsTime: true,
-    timePresets: ["11:00 AM", "12:00 PM", "1:00 PM"],
+    timePresets: ["11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM"],
   },
   { key: "guest_inside", labelKey: "blockers.guestInside", note: "BLOCKER: Guest inside" },
   { key: "dnd_sign", labelKey: "blockers.dndSign", note: "FLAG: DND sign on door" },
@@ -135,6 +135,30 @@ export function formatBlockerTimeInput(input: string | undefined): string {
   }
 
   return `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+}
+
+/** Notify housekeeping supervisor when a room has had 2+ unanswered DND attempts. */
+export async function sendSupervisorEscalation(roomNumber: string): Promise<void> {
+  try {
+    await api.post("/notifications/push", {
+      message: `Room ${roomNumber} has had 2 unanswered attempts — DND escalation`,
+      target_role: "housekeeping_supervisor",
+    });
+  } catch {
+    console.warn("[escalation] DND escalation notification failed for room", roomNumber);
+  }
+}
+
+/** Notify front desk when a guest in a pickup room has declined housekeeping service. */
+export async function sendDeclinedServiceAlert(roomNumber: string): Promise<void> {
+  try {
+    await api.post("/notifications/push", {
+      message: `Room ${roomNumber}: guest declined housekeeping service`,
+      target_role: "front_desk",
+    });
+  } catch {
+    console.warn("[escalation] Declined service notification failed for room", roomNumber);
+  }
 }
 
 /** Runs the blocker's side effect. The room note itself is posted by the

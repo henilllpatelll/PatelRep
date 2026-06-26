@@ -20,18 +20,20 @@ describe("getTabsForRole", () => {
     ]);
   });
 
-  it("maps engineer to Orders, Rooms, and Assets", () => {
+  it("maps engineer to Orders, Rooms, Assets, and Profile", () => {
     expect(getTabsForRole("engineer").map((tab) => tab.key)).toEqual([
       "home",
       "orders",
       "rooms",
       "assets",
+      "me",
     ]);
     expect(getTabsForRole("engineer").map((tab) => tab.titleKey)).toEqual([
       "tabs.home",
       "tabs.orders",
       "tabs.rooms",
       "tabs.assets",
+      "tabs.profile",
     ]);
   });
 
@@ -41,6 +43,7 @@ describe("getTabsForRole", () => {
       "orders",
       "rooms",
       "assets",
+      "me",
     ]);
     expect(getTabsForRole("chief_engineer")).toEqual(getTabsForRole("engineer"));
   });

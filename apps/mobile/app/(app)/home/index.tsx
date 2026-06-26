@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
@@ -33,7 +33,7 @@ function firstName(name?: string | null) {
 export default function HousekeeperHomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { user, isOnline, myRooms, setMyRooms } = useAppStore();
+  const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
   const isEngineer = effectiveRole === "engineer" || effectiveRole === "chief_engineer";
   const [loading, setLoading] = useState(myRooms.length === 0);
@@ -71,6 +71,14 @@ export default function HousekeeperHomeScreen() {
       sub.remove();
     };
   }, [effectiveRole, loadRooms]);
+
+  // Refresh room counts when navigating back from the room detail screen
+  // so the home counter reflects the latest status immediately.
+  useFocusEffect(
+    useCallback(() => {
+      if (effectiveRole === "housekeeper") void refreshRooms();
+    }, [effectiveRole, refreshRooms]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

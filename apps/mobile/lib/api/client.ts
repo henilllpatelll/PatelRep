@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://api.patelrep.com/v1";
+const API_TIMEOUT_MS = 12000;
+const API_TIMEOUT_MESSAGE = "Request timed out. Please try again.";
 
 async function getAuthHeader(): Promise<Record<string, string>> {
   const {
@@ -24,12 +26,36 @@ async function request<T>(
   isRetry = false
 ): Promise<T> {
   const headers = await getAuthHeader();
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  let didTimeout = false;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      didTimeout = true;
+      controller?.abort();
+      reject(new Error(API_TIMEOUT_MESSAGE));
+    }, API_TIMEOUT_MS);
   });
+
+  let response: Response;
+  try {
+    response = await Promise.race([
+      fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller?.signal,
+      }),
+      timeoutPromise,
+    ]);
+  } catch (err) {
+    if (didTimeout || controller?.signal.aborted) {
+      throw new Error(API_TIMEOUT_MESSAGE);
+    }
+    throw err;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 
   if (response.status === 401 && !isRetry) {
     const { data, error } = await supabase.auth.refreshSession();

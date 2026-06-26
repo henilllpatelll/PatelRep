@@ -1,11 +1,12 @@
 import React from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { StyleSheet } from "react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { Alert, StyleSheet } from "react-native";
 import type { Room } from "@/stores/appStore";
 import { C } from "@/components/shared/tokens";
 
 const mockSetMyRooms = jest.fn();
 const mockEnqueueAction = jest.fn();
+const mockT = (key: string) => key;
 
 function makeRoom(overrides: Partial<Room> = {}): Room {
   return {
@@ -41,7 +42,7 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({ t: mockT }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: ({ name }: { name: string }) => {
@@ -52,6 +53,12 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 jest.mock("@/components/housekeeping/ReportIssueModal", () => () => null);
 jest.mock("@/components/housekeeping/FoundItemModal", () => () => null);
+jest.mock("@/components/housekeeping/SupplyRequestModal", () => () => null);
+jest.mock("@/components/housekeeping/KnockModal", () => () => null);
+jest.mock("expo-image-picker", () => ({
+  requestCameraPermissionsAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
+}));
 jest.mock("@/lib/api/client", () => ({
   api: {
     get: jest.fn(),
@@ -66,6 +73,9 @@ jest.mock("@/stores/appStore", () => ({
     setMyRooms: mockSetMyRooms,
     enqueueAction: mockEnqueueAction,
     user: { id: "user-1" },
+    refreshRooms: jest.fn(),
+    incrementDndAttempt: jest.fn().mockReturnValue(1),
+    resetDndAttempt: jest.fn(),
   }),
 }));
 
@@ -94,12 +104,12 @@ describe("RoomDetailScreen", () => {
     const { getByText, queryByText } = render(<RoomDetailScreen />);
 
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith("/rooms/room-1/history?limit=1"));
-    await waitFor(() => expect(getByText(/Marked clean/)).toBeTruthy());
+    await waitFor(() => expect(getByText(/rooms\.detail\.lastAction\.at/)).toBeTruthy());
     expect(queryByText("Current Status")).toBeNull();
     expect(queryByText("Status History")).toBeNull();
   });
 
-  it("shows Before you enter near the top for unsafe rooms and does not offer Start", async () => {
+  it("shows translated Before you enter copy near the top for unsafe rooms and does not offer Start", async () => {
     mockRooms = [
       makeRoom({
         // OCCUPIED departure: the only case that warns "Not checked out"
@@ -115,11 +125,11 @@ describe("RoomDetailScreen", () => {
 
     const { getByText, queryByText } = render(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByText("Before you enter")).toBeTruthy());
-    expect(getByText("DND active")).toBeTruthy();
-    expect(getByText("Not checked out")).toBeTruthy();
+    await waitFor(() => expect(getByText("rooms.detail.beforeEnter")).toBeTruthy());
+    expect(getByText("rooms.detail.warnings.dnd.label")).toBeTruthy();
+    expect(getByText("rooms.detail.warnings.checkout.label")).toBeTruthy();
     // DND rooms are in the "skipped" bucket → action kind is "view" → button says "View"
-    expect(getByText("View")).toBeTruthy();
+    expect(getByText("rooms.detail.primary.view")).toBeTruthy();
     expect(queryByText("Start Cleaning")).toBeNull();
   });
 
@@ -139,15 +149,15 @@ describe("RoomDetailScreen", () => {
 
     const { getByText } = render(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByText("Reservation / Timing")).toBeTruthy());
-    expect(getByText("Guest")).toBeTruthy();
+    await waitFor(() => expect(getByText("rooms.detail.reservationTiming")).toBeTruthy());
+    expect(getByText("rooms.detail.timing.guest")).toBeTruthy();
     expect(getByText("Taylor Guest")).toBeTruthy();
-    expect(getByText("FO status")).toBeTruthy();
+    expect(getByText("rooms.detail.timing.foStatus")).toBeTruthy();
     expect(getByText("VAC")).toBeTruthy();
-    expect(getByText("Check-in")).toBeTruthy();
-    expect(getByText("Scheduled checkout")).toBeTruthy();
-    expect(getByText("Actual checkout")).toBeTruthy();
-    expect(getByText("Predicted ready")).toBeTruthy();
+    expect(getByText("rooms.detail.timing.checkin")).toBeTruthy();
+    expect(getByText("rooms.detail.timing.scheduledCheckout")).toBeTruthy();
+    expect(getByText("rooms.detail.timing.actualCheckout")).toBeTruthy();
+    expect(getByText("rooms.detail.timing.predictedReady")).toBeTruthy();
   });
 
   it("shows the room type code in room detail instead of the room type name", async () => {
@@ -166,8 +176,8 @@ describe("RoomDetailScreen", () => {
 
     const { getByLabelText, getByText } = render(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByText("Cleaning Checklist")).toBeTruthy());
-    const fullChip = getByLabelText("Full clean type");
+    await waitFor(() => expect(getByText("rooms.detail.cleaningChecklist")).toBeTruthy());
+    const fullChip = getByLabelText("rooms.detail.cleanTypeAccessibility");
     expect(fullChip).toBeTruthy();
     expect(StyleSheet.flatten(fullChip.props.style)).toEqual(
       expect.objectContaining({
@@ -175,9 +185,9 @@ describe("RoomDetailScreen", () => {
         borderColor: C.cautionLine,
       }),
     );
-    expect(getByText("Bed made")).toBeTruthy();
-    expect(getByText("Towels replaced")).toBeTruthy();
-    expect(getByText("Floors cleaned")).toBeTruthy();
+    expect(getByText("rooms.detail.checklist.makeBedPickup")).toBeTruthy();
+    expect(getByText("rooms.detail.checklist.replaceTowelsUsed")).toBeTruthy();
+    expect(getByText("rooms.detail.checklist.vacuumIfNeeded")).toBeTruthy();
   });
 
   it("removes Full and Light clean-type symbols from pickup room hero chips", async () => {
@@ -185,24 +195,51 @@ describe("RoomDetailScreen", () => {
 
     const { getByLabelText, queryByTestId, rerender } = render(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByLabelText("Full clean type")).toBeTruthy());
+    await waitFor(() => expect(getByLabelText("rooms.detail.cleanTypeAccessibility")).toBeTruthy());
     expect(queryByTestId("icon-refresh-circle-outline")).toBeNull();
 
     mockRooms = [makeRoom({ status: "PICKUP", clean_type: "LIGHT", clean_type_label: "Light" })];
     rerender(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByLabelText("Light clean type")).toBeTruthy());
+    await waitFor(() => expect(getByLabelText("rooms.detail.cleanTypeAccessibility")).toBeTruthy());
     expect(queryByTestId("icon-flash-outline")).toBeNull();
   });
 
-  it("keeps room detail actions compact and button-driven", async () => {
+  it("keeps room detail actions compact, button-driven, and translated", async () => {
     const { getByText } = render(<RoomDetailScreen />);
 
-    await waitFor(() => expect(getByText("Add Note")).toBeTruthy());
-    expect(getByText("Work Order")).toBeTruthy();
-    expect(getByText("Lost & Found")).toBeTruthy();
+    await waitFor(() => expect(getByText("rooms.detailActions.addNote")).toBeTruthy());
+    expect(getByText("rooms.detailActions.workOrder")).toBeTruthy();
+    expect(getByText("rooms.detailActions.lostFound")).toBeTruthy();
+    expect(getByText("rooms.detailActions.supplies")).toBeTruthy();
     expect(mockApiPost).not.toHaveBeenCalled();
     expect(mockSetMyRooms).not.toHaveBeenCalled();
+  });
+
+  it("translates the hero status, clean type, departure banner, checklist, and primary action", async () => {
+    mockRooms = [
+      makeRoom({
+        status: "DIRTY",
+        clean_type: "DEP",
+        clean_type_label: "Departure",
+        actual_checkout_at: "2026-06-09T10:00:00.000Z",
+      }),
+    ];
+
+    const { getAllByText, getByText, queryByText } = render(<RoomDetailScreen />);
+
+    await waitFor(() => expect(getByText("rooms.detail.roomEyebrow")).toBeTruthy());
+    expect(getAllByText("rooms.detail.status.DIRTY").length).toBeGreaterThan(0);
+    expect(getByText("rooms.detail.cleanType.DEP")).toBeTruthy();
+    expect(getByText("rooms.detail.departure.title")).toBeTruthy();
+    expect(getByText("rooms.detail.departure.subtitle")).toBeTruthy();
+    expect(getByText("rooms.detail.cleaningChecklist")).toBeTruthy();
+    expect(getByText("rooms.detail.checklist.lostFoundCheck")).toBeTruthy();
+    expect(getByText("rooms.detail.primary.startCleaning")).toBeTruthy();
+    expect(queryByText("Vacant Dirty")).toBeNull();
+    expect(queryByText("Departure")).toBeNull();
+    expect(queryByText("Guest checked out — full turnover required")).toBeNull();
+    expect(queryByText("Start Cleaning")).toBeNull();
   });
 
   it("lets housekeepers remove the latest quick-blocker note instead of showing Undo", async () => {
@@ -216,15 +253,15 @@ describe("RoomDetailScreen", () => {
     await waitFor(() =>
       expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Guest inside" }),
     );
-    expect(getByText("Latest note")).toBeTruthy();
+    await waitFor(() => expect(getByText("rooms.detail.warnings.note.label")).toBeTruthy());
     expect(getByText("BLOCKER: Guest inside")).toBeTruthy();
-    expect(getByText("Remove note")).toBeTruthy();
+    expect(getByText("rooms.detail.removeNote")).toBeTruthy();
     expect(queryByText("Undo")).toBeNull();
 
-    fireEvent.press(getByText("Remove note"));
+    fireEvent.press(getByText("rooms.detail.removeNote"));
 
     expect(queryByText("BLOCKER: Guest inside")).toBeNull();
-    expect(queryByText("Remove note")).toBeNull();
+    expect(queryByText("rooms.detail.removeNote")).toBeNull();
   });
 
   it("formats typed come-back-later time before saving the blocker note", async () => {
@@ -240,5 +277,33 @@ describe("RoomDetailScreen", () => {
     await waitFor(() =>
       expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/notes", { text: "BLOCKER: Come back later — 1:30 PM" }),
     );
+  });
+
+  it("clears undo loading if the undo request hangs", async () => {
+    jest.useFakeTimers();
+    mockRooms = [makeRoom({ status: "IN_PROGRESS", clean_type: "DEP", actual_checkout_at: "2026-06-09T10:00:00.000Z" })];
+    mockApiPost.mockImplementation(() => new Promise(() => {}));
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      buttons?.find((button) => button.text === "rooms.undoConfirm")?.onPress?.();
+    });
+
+    try {
+      const { getByText } = render(<RoomDetailScreen />);
+
+      await waitFor(() => expect(getByText("rooms.detail.primary.markClean")).toBeTruthy());
+      await act(async () => {
+        fireEvent.press(getByText("rooms.detail.primary.undo"));
+        await Promise.resolve();
+      });
+
+      expect(mockApiPost).toHaveBeenCalledWith("/rooms/room-1/status/undo", {});
+      act(() => {
+        jest.advanceTimersByTime(12000);
+      });
+      await waitFor(() => expect(getByText("rooms.detail.primary.markClean")).toBeTruthy());
+    } finally {
+      alertSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 });

@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import { api } from "@/lib/api/client";
 import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
-import { localDate } from "@/lib/utils/date";
+import { localDate, localTzOffset } from "@/lib/utils/date";
 import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
 
 /* ─── Inspect — the quality gate ────────────────────────────────────────────
@@ -65,13 +65,15 @@ export default function InspectScreen() {
   const [template, setTemplate] = useState<InspectionTemplate | undefined>();
   const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" } | null>(null);
   const [confirmNotes, setConfirmNotes] = useState("");
+  const [failedItems, setFailedItems] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [detailRecord, setDetailRecord] = useState<InspectionRecord | null>(null);
 
   const load = useCallback(async () => {
     const today = localDate();
     const [queueRes, recordsRes, templatesRes] = await Promise.allSettled([
       api.get<{ data: ReadyRoom[] }>(`/housekeeping/ready-for-inspection?date=${today}`),
-      api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}`),
+      api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}&tz_offset=${localTzOffset()}`),
       listInspectionTemplates(),
     ]);
     if (queueRes.status === "fulfilled") setQueue(queueRes.value.data ?? []);
@@ -138,16 +140,18 @@ export default function InspectScreen() {
   const openConfirm = useCallback((room: ReadyRoom, result: "passed" | "failed") => {
     setConfirm({ room, result });
     setConfirmNotes("");
+    setFailedItems({});
   }, []);
 
   const handleConfirm = useCallback(async () => {
     if (!confirm || submitting) return;
     setSubmitting(true);
     try {
-      const itemResult = confirm.result === "passed" ? "pass" : "fail";
       const items = (template?.items ?? []).map((item) => ({
         template_item_id: item.id,
-        result: itemResult as "pass" | "fail" | "na",
+        result: (confirm.result === "passed"
+          ? "pass"
+          : failedItems[item.id] ? "fail" : "pass") as "pass" | "fail" | "na",
       }));
       await submitInspection({
         room_id: confirm.room.room_id,
@@ -165,7 +169,7 @@ export default function InspectScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [confirm, submitting, template, confirmNotes, t, load]);
+  }, [confirm, submitting, template, confirmNotes, failedItems, t, load]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "queue", label: t("inspect.toInspect"), count: queue.length },
@@ -266,7 +270,12 @@ export default function InspectScreen() {
               records.map((record) => {
                 const meta = RESULT_META[record.overall_result] ?? RESULT_META.conditional;
                 return (
-                  <View key={record.id} style={styles.doneRow}>
+                  <TouchableOpacity
+                    key={record.id}
+                    style={styles.doneRow}
+                    onPress={() => setDetailRecord(record)}
+                    activeOpacity={0.8}
+                  >
                     <Text style={styles.doneRoomNumber}>{record.room_number}</Text>
                     <View style={styles.doneBody}>
                       <Text style={styles.doneInspector} numberOfLines={1}>{record.inspector_name}</Text>
@@ -277,13 +286,47 @@ export default function InspectScreen() {
                         {t(`inspect.result.${record.overall_result}`)}
                       </Text>
                     </View>
-                  </View>
+                    <Ionicons name="chevron-forward" size={14} color={C.ink4} />
+                  </TouchableOpacity>
                 );
               })
             )}
           </View>
         </ScrollView>
       )}
+
+      <Modal visible={!!detailRecord} animationType="slide" transparent onRequestClose={() => setDetailRecord(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDetailRecord(null)}>
+          <TouchableOpacity style={styles.modalSheet} activeOpacity={1}>
+            <View style={styles.grabber} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {t("inspect.detail.title", { room: detailRecord?.room_number })}
+              </Text>
+              <TouchableOpacity onPress={() => setDetailRecord(null)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={C.ink3} />
+              </TouchableOpacity>
+            </View>
+            {detailRecord ? (
+              <>
+                <Text style={styles.detailMeta}>
+                  {detailRecord.inspector_name} · {formatClock(detailRecord.completed_at)}
+                </Text>
+                {(() => {
+                  const meta = RESULT_META[detailRecord.overall_result] ?? RESULT_META.conditional;
+                  return (
+                    <View style={[styles.resultPill, { backgroundColor: meta.bg, borderColor: meta.line, alignSelf: "flex-start", marginTop: 8 }]}>
+                      <Text style={[styles.resultText, { color: meta.fg }]}>
+                        {t(`inspect.result.${detailRecord.overall_result}`)}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </>
+            ) : null}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={!!confirm} animationType="slide" transparent onRequestClose={() => setConfirm(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
@@ -300,6 +343,31 @@ export default function InspectScreen() {
               </TouchableOpacity>
             </View>
 
+            {confirm?.result === "failed" && template?.items && template.items.length > 0 ? (
+              <>
+                <Text style={styles.fieldLabel}>{t("inspect.failChecklistLabel")}</Text>
+                <View style={styles.checklistWrap}>
+                  {template.items.map((item) => {
+                    const failed = Boolean(failedItems[item.id]);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.checklistRow}
+                        onPress={() => setFailedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.checkBox, failed && styles.checkBoxFail]}>
+                          {failed ? <Ionicons name="close" size={12} color="#fff" /> : null}
+                        </View>
+                        <Text style={[styles.checklistLabel, failed && styles.checklistLabelFail]}>
+                          {item.description}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
             <Text style={styles.fieldLabel}>{t("inspect.notesOptional")}</Text>
             <TextInput
               style={styles.notesInput}
@@ -513,4 +581,16 @@ const styles = StyleSheet.create({
   confirmFail: { backgroundColor: C.alert },
   confirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   dimmed: { opacity: 0.5 },
+
+  checklistWrap: { gap: 6, marginBottom: 12 },
+  checklistRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  checkBox: {
+    width: 22, height: 22, borderRadius: 6, borderWidth: 1.5,
+    borderColor: C.line, backgroundColor: C.surface2,
+    alignItems: "center", justifyContent: "center",
+  },
+  checkBoxFail: { backgroundColor: C.alert, borderColor: C.alert },
+  checklistLabel: { fontSize: 13.5, color: C.ink, flex: 1 },
+  checklistLabelFail: { color: C.alert, textDecorationLine: "line-through" },
+  detailMeta: { fontSize: 12.5, color: C.ink3, marginTop: 4 },
 });

@@ -103,6 +103,7 @@ describe("buildFloorSnapshot", () => {
       ooo: 1,
       unassigned: 3, // 101, 102, 108 — actionable without an assignee
       dnd: 1, // OOO room with DND does not count
+      vip: 2, // r-106 (INSPECTED) and r-108 (DIRTY), OOO room not counted
     });
   });
 });

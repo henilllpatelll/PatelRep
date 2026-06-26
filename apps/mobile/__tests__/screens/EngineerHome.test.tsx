@@ -153,6 +153,6 @@ describe("EngineerHome", () => {
       fireEvent.press(getByText(label));
       expect(router.push).toHaveBeenLastCalledWith(href);
     }
-    expect(mockApiGet).toHaveBeenCalledWith("/engineering/pm-schedules");
+    expect(mockApiGet).toHaveBeenCalledWith("/assets/pm-schedules");
   });
 });

@@ -113,6 +113,13 @@ export function TeamLoadRow({
   summary: string;
   onPress?: () => void;
 }) {
+  // G9: find room currently being cleaned
+  const activeRoom = load.rooms.find((r) => r.status === "IN_PROGRESS") ?? null;
+  // G10: avg estimated time per completed room
+  const avgMin = load.done > 0
+    ? Math.round(load.rooms.filter((r) => r.status === "CLEAN" || r.status === "INSPECTED").reduce((acc, r) => acc + r.baseCleanMinutes, 0) / load.done)
+    : null;
+
   return (
     <TouchableOpacity
       style={styles.loadRow}
@@ -127,9 +134,15 @@ export function TeamLoadRow({
           <Text style={styles.loadName} numberOfLines={1}>{load.name}</Text>
           {load.inProgress > 0 ? <View style={styles.loadActiveDot} /> : null}
           <Text style={styles.loadCount}>{load.done}/{load.total}</Text>
+          {avgMin !== null ? <Text style={styles.loadAvg}>~{avgMin}m</Text> : null}
         </View>
         <ProgressBar value={load.done} total={load.total} color={C.ready} />
-        <Text style={styles.loadSummary}>{summary}</Text>
+        <View style={styles.loadMetaRow}>
+          <Text style={styles.loadSummary}>{summary}</Text>
+          {activeRoom ? (
+            <Text style={styles.loadCurrentRoom} numberOfLines={1}>In {activeRoom.roomNumber}</Text>
+          ) : null}
+        </View>
       </View>
       {onPress ? <Ionicons name="chevron-forward" size={14} color={C.ink4} /> : null}
     </TouchableOpacity>
@@ -189,5 +202,8 @@ const styles = StyleSheet.create({
   loadName: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: "700", color: C.ink },
   loadActiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.caution },
   loadCount: { fontFamily: monoFont, fontSize: 12, fontWeight: "800", color: C.ink3 },
-  loadSummary: { fontSize: 11.5, color: C.ink3 },
+  loadMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
+  loadSummary: { fontSize: 11.5, color: C.ink3, flex: 1 },
+  loadCurrentRoom: { fontSize: 11.5, fontWeight: "700", color: C.caution },
+  loadAvg: { fontFamily: monoFont, fontSize: 11, fontWeight: "700", color: C.ink3 },
 });

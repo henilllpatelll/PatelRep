@@ -8,15 +8,16 @@ import type {
 } from "@/lib/engineering/workOrders";
 
 export interface CreateWorkOrderPayload {
-  room_id: string;
+  room_id?: string;
   title: string;
   description?: string;
   category: string;
   priority: "urgent" | "normal" | "low";
 }
 
-export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<void> {
-  await api.post<{ data: unknown }>("/work-orders", payload);
+export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {
+  const res = await api.post<{ data: { id?: string } | null }>("/work-orders", payload);
+  return res.data?.id ?? null;
 }
 
 export async function listWorkOrders(status: WorkOrderStatus): Promise<WorkOrder[]> {

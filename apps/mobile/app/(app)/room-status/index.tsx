@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,7 +99,10 @@ export default function RoomStatusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
-  const { isOnline } = useAppStore();
+  const { isOnline, user } = useAppStore();
+  const isEngineer = user?.role === "engineer" || user?.role === "chief_engineer";
+  const [woModal, setWoModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
+  const [oooLoading, setOooLoading] = useState<string | null>(null);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -259,7 +264,35 @@ export default function RoomStatusScreen() {
                   const occupied = isOccupiedRoom(room);
                   const hasMetaRow = Boolean(room.guest_name || room.checkout_time || room.vip_flag || room.dnd_flag);
                   return (
-                    <View key={room.id} style={styles.roomCard}>
+                    <TouchableOpacity
+                      key={room.id}
+                      style={styles.roomCard}
+                      onPress={isEngineer ? () => {
+                        Alert.alert(t("roomStatus.roomActionTitle", { room: room.room_number }), undefined, [
+                          {
+                            text: t("roomStatus.createWo"),
+                            onPress: () => setWoModal({ roomId: room.id, roomNumber: room.room_number }),
+                          },
+                          {
+                            text: t("roomStatus.placeOOO"),
+                            onPress: async () => {
+                              setOooLoading(room.id);
+                              try {
+                                await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
+                                await loadRooms();
+                              } catch {
+                                Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                              } finally {
+                                setOooLoading(null);
+                              }
+                            },
+                          },
+                          { text: t("common.cancel"), style: "cancel" },
+                        ]);
+                      } : undefined}
+                      activeOpacity={isEngineer ? 0.82 : 1}
+                      accessibilityRole={isEngineer ? "button" : undefined}
+                    >
                       <StatusRail status={room.status} />
                       <View style={styles.cardBody}>
                         <View style={styles.cardTopRow}>
@@ -297,7 +330,7 @@ export default function RoomStatusScreen() {
                           </View>
                         ) : null}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -313,6 +346,16 @@ export default function RoomStatusScreen() {
           ) : null}
         </View>
       </ScrollView>
+
+      {woModal ? (
+        <CreateWorkOrderModal
+          visible={Boolean(woModal)}
+          roomId={woModal.roomId}
+          roomNumber={woModal.roomNumber}
+          onClose={() => setWoModal(null)}
+          onCreated={() => setWoModal(null)}
+        />
+      ) : null}
     </View>
   );
 }

@@ -67,6 +67,16 @@ export default function MyRoomsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("remaining");
+  const [collapsedBuildings, setCollapsedBuildings] = useState<Set<string>>(new Set());
+
+  const toggleBuilding = useCallback((building: string) => {
+    setCollapsedBuildings((prev) => {
+      const next = new Set(prev);
+      if (next.has(building)) next.delete(building);
+      else next.add(building);
+      return next;
+    });
+  }, []);
 
   const loadRooms = useCallback(async () => {
     if (isOnline) {
@@ -227,13 +237,18 @@ export default function MyRoomsScreen() {
         ) : viewMode === "remaining" ? (
           <View style={styles.sections}>
             {buildingGroups.length > 0 ? (
-              buildingGroups.map((buildingGroup) => (
+              buildingGroups.map((buildingGroup) => {
+                const collapsed = collapsedBuildings.has(buildingGroup.building);
+                return (
                 <View key={buildingGroup.building} style={styles.buildingSection}>
-                  <SectionHeader
-                    title={t(`rooms.sections.building.${buildingGroup.building}`)}
-                    hint={String(buildingGroup.floors.reduce((s, f) => s + f.rooms.length, 0))}
-                  />
-                  {buildingGroup.floors.map((floorGroup) => (
+                  <TouchableOpacity onPress={() => toggleBuilding(buildingGroup.building)} activeOpacity={0.75}>
+                    <SectionHeader
+                      title={t(`rooms.sections.building.${buildingGroup.building}`)}
+                      hint={String(buildingGroup.floors.reduce((s, f) => s + f.rooms.length, 0))}
+                      action={<Ionicons name={collapsed ? "chevron-forward" : "chevron-down"} size={15} color={shellTokens.ink3} />}
+                    />
+                  </TouchableOpacity>
+                  {!collapsed && buildingGroup.floors.map((floorGroup) => (
                     <View key={floorGroup.floor} style={styles.section}>
                       <Text style={styles.floorLabel}>
                         {t("rooms.sections.floor", { floor: floorGroup.floor })}
@@ -255,7 +270,8 @@ export default function MyRoomsScreen() {
                     </View>
                   ))}
                 </View>
-              ))
+                );
+              })
             ) : (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>

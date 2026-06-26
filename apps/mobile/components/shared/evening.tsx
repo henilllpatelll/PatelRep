@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
 import type { Room } from "@/stores/appStore";
 import {
@@ -34,12 +35,19 @@ export function getStatusMeta(status: string): StatusMeta {
   return STATUS_META[status] ?? { label: status.replace(/_/g, " "), bg: C.surface3, fg: C.ink3, border: C.line };
 }
 
+function getStatusLabelKey(status: string): string {
+  return `rooms.card.status.${STATUS_META[status] ? status : "UNKNOWN"}`;
+}
+
 export function StatusPill({ status, label }: { status: string; label?: string }) {
+  const { t } = useTranslation();
   const meta = getStatusMeta(status);
   return (
     <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.border }]}>
       <View style={[styles.statusDot, { backgroundColor: meta.fg }]} />
-      <Text style={[styles.statusPillText, { color: meta.fg }]}>{label ?? meta.label}</Text>
+      <Text style={[styles.statusPillText, { color: meta.fg }]}>
+        {label ?? t(getStatusLabelKey(status), { status: meta.label })}
+      </Text>
     </View>
   );
 }
@@ -109,6 +117,13 @@ export function Chip({
 /* ─── Clean type display (mirrors web board styling contract) ─────────────── */
 
 const CLEAN_TYPE_LABEL: Record<string, string> = { DEP: "Departure", FULL: "Full", LIGHT: "Light" };
+const CLEAN_TYPE_LABEL_KEY: Record<string, string> = {
+  DEP: "rooms.card.cleanType.DEP",
+  FULL: "rooms.card.cleanType.FULL",
+  LIGHT: "rooms.card.cleanType.LIGHT",
+  FULL_DONE: "rooms.card.cleanType.FULL_DONE",
+  LIGHT_DONE: "rooms.card.cleanType.LIGHT_DONE",
+};
 
 export function getCleanTypeDisplay(room: Room): string | null {
   const label = room.clean_type_label ?? (room.clean_type ? CLEAN_TYPE_LABEL[room.clean_type] ?? room.clean_type : null);
@@ -119,17 +134,43 @@ export function getCleanTypeDisplay(room: Room): string | null {
   return label;
 }
 
+function getCleanTypeDisplayKey(room: Room): string | null {
+  if (!room.clean_type) return null;
+  if (room.status === "INSPECTED" && room.clean_type === "FULL") return CLEAN_TYPE_LABEL_KEY.FULL_DONE;
+  if (room.status === "INSPECTED" && room.clean_type === "LIGHT") return CLEAN_TYPE_LABEL_KEY.LIGHT_DONE;
+  return CLEAN_TYPE_LABEL_KEY[room.clean_type] ?? null;
+}
+
 function CleanTypeTag({ room }: { room: Room }) {
-  const display = getCleanTypeDisplay(room);
-  if (!display) return null;
+  const { t } = useTranslation();
+  const displayKey = getCleanTypeDisplayKey(room);
+  if (!displayKey) return null;
+  const display = t(displayKey);
   const done = room.status === "INSPECTED";
   const color = done ? C.ready : room.clean_type === "DEP" ? C.alert : C.caution;
   return (
-    <View accessible accessibilityLabel={`${display} clean type`} style={styles.cleanTypeRow}>
+    <View accessible accessibilityLabel={t("rooms.card.cleanTypeAccessibility", { type: display })} style={styles.cleanTypeRow}>
       {room.clean_type === "DEP" ? <Ionicons name="log-out-outline" size={10} color={color} /> : null}
       <Text style={[styles.cleanTypeText, { color }]}>{display}</Text>
     </View>
   );
+}
+
+function getTimingLabelKey(label: string): string {
+  switch (label) {
+    case "Checked out":
+      return "rooms.card.timing.checkedOut";
+    case "Due out":
+      return "rooms.card.timing.dueOut";
+    case "Arrival":
+      return "rooms.card.timing.arrival";
+    default:
+      return "rooms.card.timing.unknown";
+  }
+}
+
+function getBadgeLabelKey(key: string): string {
+  return `rooms.card.badges.${key}`;
 }
 
 /* ─── Room queue card — the operational work card ─────────────────────────── */
@@ -142,16 +183,17 @@ interface RoomQueueCardProps {
   /** Estimated minutes for this room (smart order mode) */
   estimateMinutes?: number;
   actionLabel?: string;
+  /** Muted card for exception rooms (DND / blocker note) — still tappable */
+  dimmed?: boolean;
 }
 
-export function RoomQueueCard({ room, onPress, position, estimateMinutes, actionLabel }: RoomQueueCardProps) {
-  const meta = getStatusMeta(room.status);
+export function RoomQueueCard({ room, onPress, position, estimateMinutes, actionLabel, dimmed }: RoomQueueCardProps) {
+  const { t } = useTranslation();
   const timing = getPrimaryTimingLine(room);
   const badges = getRoomBadges(room);
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
-
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card} testID={`room-card-${room.room_number}`}>
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, dimmed && styles.cardDimmed]} testID={`room-card-${room.room_number}`}>
       <StatusRail status={room.status} />
       <View style={styles.cardBody}>
         <View style={styles.cardTopRow}>
@@ -174,7 +216,7 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
               <View style={styles.timingRow}>
                 <Ionicons name="time-outline" size={12} color={C.ink3} />
                 <Text style={styles.timingText}>
-                  {timing.label}: {timing.value}
+                  {t(getTimingLabelKey(timing.label), { label: timing.label })}: {timing.value}
                 </Text>
               </View>
             ) : null}
@@ -184,7 +226,9 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
                 const loud = badge.key === "dnd";
                 return (
                   <View key={badge.key} style={[styles.badge, loud && styles.badgeCritical]}>
-                    <Text style={[styles.badgeText, loud && styles.badgeCriticalText]}>{badge.label}</Text>
+                    <Text style={[styles.badgeText, loud && styles.badgeCriticalText]}>
+                      {t(getBadgeLabelKey(badge.key), { label: badge.label })}
+                    </Text>
                   </View>
                 );
               })}
@@ -305,6 +349,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
+  },
+  cardDimmed: {
+    backgroundColor: C.surface2,
+    borderColor: C.line2,
+    shadowOpacity: 0,
+    elevation: 0,
+    opacity: 0.7,
   },
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 14, gap: 8 },
   cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },

@@ -150,7 +150,7 @@ export function EngineerHome({ name }: { name: string }) {
       listWorkOrders("on_hold"),
       listWorkOrders("completed"),
       getFailurePredictions(),
-      api.get<{ data: PMScheduleLite[] }>("/engineering/pm-schedules"),
+      api.get<{ data: PMScheduleLite[] }>("/assets/pm-schedules"),
     ];
     const [openRes, progressRes, holdRes, doneRes, predRes, pmRes] = await Promise.allSettled(requests);
     if (openRes.status === "fulfilled") setOpen(openRes.value as WorkOrder[]);

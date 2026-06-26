@@ -166,7 +166,8 @@ export default function ProfileScreen() {
         text: t("profile.signOut"),
         style: "destructive",
         onPress: async () => {
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: "local" });
+          router.replace("/(auth)/login" as never);
         },
       },
     ]);

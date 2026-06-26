@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor, screen } from "@testing-library/react-nativ
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
+  useFocusEffect: jest.fn((cb: () => void) => cb()),
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),

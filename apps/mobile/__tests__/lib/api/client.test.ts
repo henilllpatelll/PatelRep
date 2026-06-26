@@ -67,4 +67,27 @@ describe('API client', () => {
     await expect(api.get('/test')).rejects.toThrow('Server error');
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('aborts requests that exceed the mobile API timeout', async () => {
+    jest.useFakeTimers();
+    (global.fetch as jest.Mock).mockImplementation((_url, init: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      });
+    });
+
+    try {
+      const request = api.get('/slow-room-status');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(12000);
+      await Promise.resolve();
+
+      await expect(request).rejects.toThrow('Request timed out. Please try again.');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

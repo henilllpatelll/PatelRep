@@ -48,6 +48,7 @@ const ENGINEER_TABS: RoleTabDef[] = [
   { key: "orders", name: "work-orders/index", titleKey: "tabs.orders", icon: "construct-outline" },
   { key: "rooms", name: "room-status/index", titleKey: "tabs.rooms", icon: "bed-outline" },
   { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
+  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
 const SUPERVISOR_TABS: RoleTabDef[] = [

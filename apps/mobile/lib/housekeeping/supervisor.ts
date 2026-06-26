@@ -39,6 +39,7 @@ export interface FloorRoom {
   status: string;
   foStatus: "OCC" | "VAC" | null;
   dnd: boolean;
+  vip: boolean;
   assignedTo: string | null;
   assignmentId: string | null;
   cleanType: string | null;
@@ -79,6 +80,7 @@ export function normalizeBoardRooms(rows: BoardRoomRaw[]): FloorRoom[] {
         status: row.status,
         foStatus: row.fo_status ?? null,
         dnd: Boolean(row.dnd_flag),
+        vip: Boolean(row.vip_flag),
         assignedTo: row.assigned_to ?? null,
         assignmentId: row.assignment_id ?? null,
         cleanType: row.clean_type ?? null,
@@ -111,6 +113,7 @@ export interface FloorSnapshot {
   ooo: number;
   unassigned: number;
   dnd: number;
+  vip: number;
 }
 
 export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
@@ -123,6 +126,7 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     ooo: 0,
     unassigned: 0,
     dnd: 0,
+    vip: 0,
   };
   for (const room of rooms) {
     if (room.status === "INSPECTED") snapshot.ready += 1;
@@ -132,6 +136,7 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     else if (isActionable(room.status)) snapshot.toClean += 1;
     if (isActionable(room.status) && !room.assignedTo) snapshot.unassigned += 1;
     if (room.dnd && !isOutOfOrder(room.status)) snapshot.dnd += 1;
+    if (room.vip && !isOutOfOrder(room.status)) snapshot.vip += 1;
   }
   return snapshot;
 }

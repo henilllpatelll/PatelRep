@@ -93,6 +93,11 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
                 <Ionicons name="flash" size={9} color={C.alert} />
                 <Text style={styles.urgentChipText}>{t("workOrders.chipUrgent")}</Text>
               </View>
+            ) : wo.priority === "low" ? (
+              <View style={styles.lowChip}>
+                <Ionicons name="arrow-down" size={9} color={C.ink4} />
+                <Text style={styles.lowChipText}>LOW</Text>
+              </View>
             ) : null}
             {onHold ? (
               <View style={styles.holdChip}>
@@ -224,6 +229,18 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   urgentChipText: { color: C.alert, fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
+  lowChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: C.surface3,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  lowChipText: { color: C.ink4, fontSize: 9.5, fontWeight: "800", letterSpacing: 0.4 },
   holdChip: {
     backgroundColor: C.cautionSoft,
     borderWidth: 1,

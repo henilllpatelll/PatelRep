@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
+import { localDate } from "@/lib/utils/date";
 import type { UserProfile } from "@/lib/supabase";
 
 const QUEUE_STORAGE_KEY = "@patelrep/offline_queue";
@@ -30,6 +31,12 @@ interface AppState {
   // Rooms (housekeeper view)
   myRooms: Room[];
   setMyRooms: (rooms: Room[]) => void;
+  refreshRooms: () => Promise<void>;
+
+  // DND / come-back-later attempt tracking per room
+  dndAttemptCounts: Record<string, number>;
+  incrementDndAttempt: (roomId: string) => number;
+  resetDndAttempt: (roomId: string) => void;
 
   // Notifications badge
   unreadCount: number;
@@ -95,6 +102,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   myRooms: [],
   setMyRooms: (myRooms) => set({ myRooms }),
+  refreshRooms: async () => {
+    try {
+      const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
+      set({ myRooms: result.data });
+    } catch {
+      // Silently preserve local state on refresh failure.
+    }
+  },
+
+  dndAttemptCounts: {},
+  incrementDndAttempt: (roomId) => {
+    const current = get().dndAttemptCounts[roomId] ?? 0;
+    const next = current + 1;
+    set((state) => ({ dndAttemptCounts: { ...state.dndAttemptCounts, [roomId]: next } }));
+    return next;
+  },
+  resetDndAttempt: (roomId) => {
+    set((state) => {
+      const counts = { ...state.dndAttemptCounts };
+      delete counts[roomId];
+      return { dndAttemptCounts: counts };
+    });
+  },
 
   unreadCount: 0,
   setUnreadCount: (unreadCount) => set({ unreadCount }),
