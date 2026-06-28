@@ -1,4 +1,6 @@
 ﻿# Memory
+| 2026-06-28 | BUG-231 fix: EngineerHome.tsx QUICK_LINKS rooms href was /(app)/rooms (no such route) → fixed to /(app)/room-status. BUG-232 fix: room-status action sheet now context-aware — isOutOfOrderRoom() toggles removeOoo/DIRTY vs placeOOO/OOO. Added i18n keys in en+es. TS clean. | EngineerHome.tsx, room-status/index.tsx, en.json, es.json | complete | ~80 tok |
+| 2026-06-26 | ENGINEERING WORKFLOW AUDIT (emulator, miguel@gmail.com): Full end-to-end test of engineering mobile workflow cross-referenced vs Quore/HotSOS/ALICE standards. 3 bugs logged (231=Rooms quick-action crash patelrep:///, 232=OOO room shows PLACE ON OOO label, 233=search+filter combo unconfirmed). 20+ workflow gaps documented: no room field on WO creation, no Arrived-on-site timestamp, no Emergency priority, no escalation action, no PM completion on mobile, Assets web-only, no OOO reason code. Full report delivered in session. | apps/mobile work-orders, rooms, home screens | complete | ~400 tok |
 | 2026-06-26 | SUPERVISOR AUDIT FIXES: BUG1 (suggest_assignments fallback → user_roles is_active, not user_profiles); BUG2 (HousekeeperPicker success checkmark + ToastAndroid); BUG3 (inspect ScrollView collapsable=false on queueActions); BUG4 (TeamLoad minutesLeft capped 480min + overAssigned flag); BUG5 (RoomDetailSheet maxHeight 78→90%); BUG6 (board query falls back to room_status.assigned_to); GAP1 (POST /inspections/{id}/reclean API endpoint — resets DIRTY + creates task); GAP5 (Touch-up conditional button in inspect — 3rd outcome); GAP7 (★ VIP chip on unassigned rows in Assignments); locales en+es updated. | housekeeping.py, HousekeeperPicker.tsx, inspect/index.tsx, supervisor.ts, RoomDetailSheet.tsx, assignments/index.tsx, en.json, es.json | complete | ~280 tok |
 | 09:30 | OPTIMISTIC SAVE: room assignments in HousekeeperBar now fire-and-confirm — pending state clears and "Saved" shows instantly on tap; API saves in background; failure restores pending assignments and shows error. Removed saveLoading state + spinner. TS clean. | apps/web/app/(dashboard)/housekeeping/page.tsx |
 | 2026-06-26 | QA FIX SESSION (10 items): Knock modal (KnockModal.tsx), L&F mandatory check (ChecklistSection), 20/10-item expanded checklists (roomWorkflow.ts), damage photo banner, linen stepper, DND attempt counter + supervisor escalation (appStore.ts + roomBlockers.ts), declined service front desk alert, iOS/Android clean success toast, note form above chips bug fix, home useFocusEffect + refreshRooms. en.json + es.json updated. Tests fixed. TS clean. | KnockModal.tsx, ChecklistSection.tsx, [roomId].tsx, roomWorkflow.ts, roomBlockers.ts, appStore.ts, workOrders.ts, home/index.tsx, en.json, es.json, RoomDetail.test.tsx, HousekeeperHome.test.tsx | complete | ~300 tok |
@@ -6078,3 +6080,20 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 12:11 | Edited apps/mobile/i18n/locales/es.json | expanded (+6 lines) | ~275 |
 | 12:11 | Edited apps/mobile/i18n/locales/es.json | removed 25 lines | ~4 |
 | 12:12 | Session end: 24 writes across 6 files (en.json, es.json, SupervisorHome.tsx, index.tsx, RoomDetailSheet.tsx) | 9 reads | ~57614 tok |
+| 12:16 | Edited apps/api/routers/housekeeping.py | inline fix | ~36 |
+| 12:16 | Session end: 25 writes across 7 files (en.json, es.json, SupervisorHome.tsx, index.tsx, RoomDetailSheet.tsx) | 10 reads | ~81351 tok |
+
+## Session: 2026-06-26 14:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-26 15:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:49 | Edited apps/mobile/components/engineering/EngineerHome.tsx | inline fix | ~31 |
+| 12:49 | Edited apps/mobile/app/(app)/room-status/index.tsx | modified t() | ~392 |
+| 12:49 | Edited apps/mobile/i18n/locales/en.json | 3→5 lines | ~63 |
+| 12:50 | Edited apps/mobile/i18n/locales/es.json | 3→5 lines | ~78 |
+| 12:51 | Session end: 4 writes across 4 files (EngineerHome.tsx, index.tsx, en.json, es.json) | 6 reads | ~41222 tok |

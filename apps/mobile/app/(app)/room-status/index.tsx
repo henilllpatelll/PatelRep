@@ -268,20 +268,21 @@ export default function RoomStatusScreen() {
                       key={room.id}
                       style={styles.roomCard}
                       onPress={isEngineer ? () => {
+                        const isOoo = isOutOfOrderRoom(room);
                         Alert.alert(t("roomStatus.roomActionTitle", { room: room.room_number }), undefined, [
                           {
                             text: t("roomStatus.createWo"),
                             onPress: () => setWoModal({ roomId: room.id, roomNumber: room.room_number }),
                           },
                           {
-                            text: t("roomStatus.placeOOO"),
+                            text: isOoo ? t("roomStatus.removeOoo") : t("roomStatus.placeOOO"),
                             onPress: async () => {
                               setOooLoading(room.id);
                               try {
-                                await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
+                                await api.patch(`/rooms/${room.id}/status`, { status: isOoo ? "DIRTY" : "OOO" });
                                 await loadRooms();
                               } catch {
-                                Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                                Alert.alert(t("common.error"), isOoo ? t("roomStatus.removeOooError") : t("roomStatus.oooError"));
                               } finally {
                                 setOooLoading(null);
                               }

@@ -858,6 +858,8 @@
     "createWo": "Create Work Order",
     "placeOOO": "Place On OOO",
     "oooError": "Could not place room on OOO. Try again.",
+    "removeOoo": "Return to Service",
+    "removeOooError": "Could not return room to service. Try again.",
     "statusLabels": {
       "DIRTY": "Dirty",
       "IN_PROGRESS": "In Progress",

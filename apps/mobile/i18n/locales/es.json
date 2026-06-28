@@ -858,6 +858,8 @@
     "createWo": "Crear Orden de Trabajo",
     "placeOOO": "Poner Fuera de Servicio",
     "oooError": "No se pudo poner el cuarto fuera de servicio. Intenta de nuevo.",
+    "removeOoo": "Devolver a Servicio",
+    "removeOooError": "No se pudo devolver el cuarto a servicio. Intenta de nuevo.",
     "statusLabels": {
       "DIRTY": "Sucio",
       "IN_PROGRESS": "En Progreso",

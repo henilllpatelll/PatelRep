@@ -47,7 +47,7 @@ type PMScheduleLite = { id: string; status: "due" | "upcoming" | "overdue" | "co
 
 const QUICK_LINKS = [
   { key: "orders", labelKey: "home.engineer.quickOrders", href: "/(app)/work-orders", icon: "construct-outline" },
-  { key: "rooms", labelKey: "home.engineer.quickRooms", href: "/(app)/rooms", icon: "bed-outline" },
+  { key: "rooms", labelKey: "home.engineer.quickRooms", href: "/(app)/room-status", icon: "bed-outline" },
   { key: "assets", labelKey: "home.engineer.quickAssets", href: "/(app)/assets", icon: "cube-outline" },
   { key: "pm", labelKey: "home.engineer.quickPm", href: "/(app)/pm-schedules", icon: "calendar-outline" },
 ] as const;
