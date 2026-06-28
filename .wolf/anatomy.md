@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T17:58:56.946Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T18:54:04.649Z
 > Files: 78 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
@@ -476,7 +476,7 @@
 ## apps/api/routers/
 
 - `clean_sessions.py` — API: 6 endpoints (~5844 tok)
-- `housekeeping.py` — Declares from (~23701 tok)
+- `housekeeping.py` — Declares from (~23710 tok)
 - `notifications.py` — API: 4 endpoints (~776 tok)
 - `work_orders.py` — API: 6 endpoints (~5070 tok)
 
@@ -631,7 +631,7 @@
 ## apps/mobile/app/(app)/work-orders/
 
 - `[woId].tsx` — STATUS_TONE (~10329 tok)
-- `index.tsx` — WorkOrdersScreen (~5258 tok)
+- `index.tsx` — WorkOrdersScreen (~4984 tok)
 
 ## apps/mobile/app/(auth)/
 

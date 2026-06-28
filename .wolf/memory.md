@@ -6141,3 +6141,15 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 13:33 | Edited apps/mobile/app/(app)/work-orders/index.tsx | reduced (-13 lines) | ~118 |
+| 13:33 | Edited apps/mobile/app/(app)/work-orders/index.tsx | 3→2 lines | ~32 |
+| 13:33 | Edited apps/mobile/app/(app)/work-orders/index.tsx | reduced (-11 lines) | ~23 |
+| 13:33 | Session end: 3 writes across 1 files (index.tsx) | 2 reads | ~9141 tok |
+
+## Session: 2026-06-28 13:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:54 | Edited apps/api/routers/housekeeping.py | 18→19 lines | ~180 |
+
+| 13:54 | fixed stale assigned_to after HK import | apps/api/routers/housekeeping.py | bug-244 logged | ~200 || 13:54 | Session end: 1 writes across 1 files (housekeeping.py) | 1 reads | ~23881 tok |

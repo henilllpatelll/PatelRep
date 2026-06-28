@@ -1484,7 +1484,7 @@ async def trigger_reclean(
     room_number = (room_row.data or {}).get("room_number", room_id) if room_row else room_id
     fail_notes = insp.get("notes") or ""
     task_title = f"Re-clean Room {room_number}"
-    task_desc = f"Inspection failed. {fail_notes}".strip() if fail_notes else f"Inspection failed — room needs re-cleaning."
+    task_desc = f"Inspection failed. {fail_notes}".strip() if fail_notes else "Inspection failed — room needs re-cleaning."
 
     task_data = {
         "tenant_id": current_user.hotel_id,
@@ -1935,6 +1935,7 @@ async def import_hk_details(
             "stripped": False,
             "stripped_by": None,
             "stripped_at": None,
+            "assigned_to": None,
         }
         if resolved_status == "INSPECTED":
             update_data["stay_reset_at"] = now_iso

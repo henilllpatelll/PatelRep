@@ -213,29 +213,16 @@ export default function WorkOrdersScreen() {
       <View style={[styles.hero, { paddingTop: insets.top + 14 }]}>
         <View style={styles.heroTopRow}>
           <Text style={styles.heroKicker}>{t("workOrders.kicker")}</Text>
-          <View style={styles.heroTopButtons}>
-            <TouchableOpacity
-              style={styles.heroRoomsBtn}
-              onPress={() => router.push("/(app)/room-status" as never)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t("workOrders.allRooms")}
-              testID="wo-all-rooms"
-            >
-              <Ionicons name="bed-outline" size={14} color={shellTokens.ink} />
-              <Text style={styles.heroRoomsText}>{t("workOrders.allRooms")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.heroNewWoBtn}
-              onPress={() => setShowCreateWo(true)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              testID="wo-new"
-            >
-              <Ionicons name="add" size={14} color={shellTokens.ink} />
-              <Text style={styles.heroRoomsText}>{t("workOrders.newWorkOrder")}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.heroNewWoBtn}
+            onPress={() => setShowCreateWo(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            testID="wo-new"
+          >
+            <Ionicons name="add" size={14} color={shellTokens.ink} />
+            <Text style={styles.heroRoomsText}>{t("workOrders.newWorkOrder")}</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.heroTitle}>{t("workOrders.title")}</Text>
         <Text style={styles.heroSummary}>
@@ -383,7 +370,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 26,
   },
   heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heroTopButtons: { flexDirection: "row", alignItems: "center", gap: 8 },
   heroNewWoBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -399,17 +385,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-  },
-  heroRoomsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: shellTokens.raised,
-    borderWidth: 1,
-    borderColor: shellTokens.line,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    minHeight: 32,
   },
   heroRoomsText: { color: shellTokens.ink, fontSize: 11.5, fontWeight: "700" },
   heroTitle: { color: shellTokens.ink, fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
