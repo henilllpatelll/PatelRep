@@ -20,6 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore } from "@/stores/appStore";
+import { api } from "@/lib/api/client";
 import {
   addWorkOrderComment,
   claimWorkOrder,
@@ -109,7 +110,7 @@ export default function WorkOrderDetailScreen() {
   const [notes, setNotes] = useState("");
   const [parts, setParts] = useState("");
   const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState<"claim" | "complete" | "hold" | "resume" | "comment" | "photo" | null>(null);
+  const [busy, setBusy] = useState<"claim" | "complete" | "hold" | "resume" | "comment" | "photo" | "arrive" | "escalate" | null>(null);
   const [now, setNow] = useState(() => new Date());
 
   const load = useCallback(async () => {
@@ -228,6 +229,47 @@ export default function WorkOrderDetailScreen() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function handleArrive() {
+    if (!wo || busy) return;
+    setBusy("arrive");
+    try {
+      const timeStr = new Date().toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
+      await addWorkOrderComment(wo.id, `Engineer arrived on site — ${timeStr}`);
+      await load();
+    } catch (err) {
+      Alert.alert(t("common.error"), (err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleEscalate() {
+    if (!wo || busy) return;
+    Alert.alert(
+      t("workOrders.escalateTitle"),
+      t("workOrders.escalateConfirm"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("workOrders.escalateConfirmBtn"),
+          style: "destructive",
+          onPress: async () => {
+            setBusy("escalate");
+            try {
+              await api.patch(`/work-orders/${wo.id}`, { priority: "urgent" });
+              await addWorkOrderComment(wo.id, "Escalated to chief engineer");
+              await load();
+            } catch (err) {
+              Alert.alert(t("common.error"), (err as Error).message);
+            } finally {
+              setBusy(null);
+            }
+          },
+        },
+      ]
+    );
   }
 
   async function handleAddPhoto() {
@@ -408,6 +450,25 @@ export default function WorkOrderDetailScreen() {
           </View>
         ) : null}
 
+        {wo.status === "in_progress" && isMine ? (
+          <TouchableOpacity
+            style={styles.arriveBtn}
+            onPress={handleArrive}
+            disabled={busy === "arrive"}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+          >
+            {busy === "arrive" ? (
+              <ActivityIndicator size="small" color={C.ink2} />
+            ) : (
+              <>
+                <Ionicons name="location-outline" size={15} color={C.ink2} />
+                <Text style={styles.arriveBtnText}>{t("workOrders.arrivedOnSite")}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : null}
+
         {/* Details */}
         {wo.description ? (
           <View>
@@ -525,6 +586,25 @@ export default function WorkOrderDetailScreen() {
             </View>
           </View>
         </View>
+
+        {(canComplete || (wo.status === "in_progress" && isMine)) && wo.priority !== "urgent" ? (
+          <TouchableOpacity
+            style={styles.escalateBtn}
+            onPress={handleEscalate}
+            disabled={busy === "escalate"}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+          >
+            {busy === "escalate" ? (
+              <ActivityIndicator size="small" color={C.alert} />
+            ) : (
+              <>
+                <Ionicons name="alert-circle-outline" size={15} color={C.alert} />
+                <Text style={styles.escalateBtnText}>{t("workOrders.escalate")}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : null}
 
         {/* Wrap-up — completion notes & parts */}
         {showWrapUp ? (
@@ -863,4 +943,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   disabled: { opacity: 0.45 },
+  arriveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 44,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface,
+  },
+  arriveBtnText: { color: C.ink2, fontSize: 13, fontWeight: "700" },
+  escalateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 44,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.alertLine,
+    backgroundColor: C.alertSoft,
+  },
+  escalateBtnText: { color: C.alert, fontSize: 13, fontWeight: "700" },
 });

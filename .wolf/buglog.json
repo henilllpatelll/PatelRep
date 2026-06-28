@@ -3871,6 +3871,102 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-28T17:49:42.374Z"
+    },
+    {
+      "id": "bug-236",
+      "timestamp": "2026-06-28T17:55:39.974Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Had \"normal\"",
+      "fix": "Changed to \"emergency\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T17:55:39.974Z"
+    },
+    {
+      "id": "bug-237",
+      "timestamp": "2026-06-28T17:57:26.293Z",
+      "error_message": "Missing error handling in function",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T17:57:26.293Z"
+    },
+    {
+      "id": "bug-238",
+      "timestamp": "2026-06-28T17:57:36.698Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: {(canComplete || (wo.status === \"in_progress\" && isMine)) &&; <TouchableOpacity",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-28T17:57:48.374Z"
+    },
+    {
+      "id": "bug-239",
+      "timestamp": "2026-06-28T17:58:03.186Z",
+      "error_message": "CSS fix: text, onPress, status",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "text: isOoo ? t(\"roomStatus.removeOoo\") : t(\"roomStatus.placeOOO\"), → t(\"roomStatus.oooAddReason\"),; onPress: async () => { → () => {; status: isOoo ? \"DIRTY\" : \"OOO\" → \"OOO\"",
+      "fix": "Changed text: isOoo ? t(\"roomStatus.removeOoo\") : t(\"roomStatus.placeOOO\"), → t(\"roomStatus.oooAddReason\"),; onPress: async () => { → () => {; status: isOoo ? \"DIRTY\" : \"OOO\" → \"OOO\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T17:58:03.186Z"
+    },
+    {
+      "id": "bug-240",
+      "timestamp": "2026-06-28T17:58:06.890Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "Had \"/engineering/pm-schedules\"",
+      "fix": "Changed to \"/assets/pm-schedules\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T17:58:06.890Z"
+    },
+    {
+      "id": "bug-241",
+      "timestamp": "2026-06-28T17:58:15.077Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T17:58:15.077Z"
     }
   ]
 }

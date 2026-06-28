@@ -12,7 +12,9 @@ export interface CreateWorkOrderPayload {
   title: string;
   description?: string;
   category: string;
-  priority: "urgent" | "normal" | "low";
+  priority: "urgent" | "normal" | "low" | "emergency";
+  location_text?: string;
+  source?: "guest" | "staff_patrol" | "pm" | "self";
 }
 
 export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {

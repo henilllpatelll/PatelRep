@@ -271,9 +271,11 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
         "appliance",
         "structural",
         "safety",
+        "doors_locks",
+        "painting",
         "general",
     ]
-    priority: Literal["urgent", "normal", "low"] = "normal"
+    priority: Literal["urgent", "normal", "low", "emergency"] = "normal"
     room_id: Optional[UUID4] = None
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     asset_id: Optional[UUID4] = None
@@ -281,6 +283,7 @@ class CreateWorkOrderRequest(SanitizedBaseModel):
     nl_input: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     use_ai: bool = False
     guest_reported: bool = False
+    source: Literal["guest", "staff_patrol", "pm", "self"] = "self"
 
 
 class CompleteWorkOrderRequest(SanitizedBaseModel):
@@ -301,10 +304,12 @@ class UpdateWorkOrderRequest(SanitizedBaseModel):
             "appliance",
             "structural",
             "safety",
+            "doors_locks",
+            "painting",
             "general",
         ]
     ] = None
-    priority: Optional[Literal["urgent", "normal", "low"]] = None
+    priority: Optional[Literal["urgent", "normal", "low", "emergency"]] = None
     status: Optional[
         Literal["open", "in_progress", "on_hold", "completed", "cancelled"]
     ] = None

@@ -1,4 +1,6 @@
 ﻿# Memory
+| 2026-06-28 | OOO reason-code prompt: room-status/index.tsx — added Platform import, split OOO button into remove (unchanged) vs place (two-step Alert with Skip/Add Reason; iOS uses Alert.prompt, Android falls back to no-reason OOO); 5 new i18n keys in roomStatus.* en+es | apps/mobile/app/(app)/room-status/index.tsx, i18n/locales/en.json, i18n/locales/es.json | complete | ~40 tok |
+| 2026-06-28 | backend WO model changes: added doors_locks+painting categories, emergency priority, source field (guest/staff_patrol/pm/self) to CreateWorkOrderRequest+UpdateWorkOrderRequest; SLA_MINUTES["emergency"]=30; source written to wo_data on insert | apps/api/models/requests.py, apps/api/routers/work_orders.py | complete | ~30 tok |
 | 2026-06-28 | BUG-231 fix: EngineerHome.tsx QUICK_LINKS rooms href was /(app)/rooms (no such route) → fixed to /(app)/room-status. BUG-232 fix: room-status action sheet now context-aware — isOutOfOrderRoom() toggles removeOoo/DIRTY vs placeOOO/OOO. Added i18n keys in en+es. TS clean. | EngineerHome.tsx, room-status/index.tsx, en.json, es.json | complete | ~80 tok |
 | 2026-06-26 | ENGINEERING WORKFLOW AUDIT (emulator, miguel@gmail.com): Full end-to-end test of engineering mobile workflow cross-referenced vs Quore/HotSOS/ALICE standards. 3 bugs logged (231=Rooms quick-action crash patelrep:///, 232=OOO room shows PLACE ON OOO label, 233=search+filter combo unconfirmed). 20+ workflow gaps documented: no room field on WO creation, no Arrived-on-site timestamp, no Emergency priority, no escalation action, no PM completion on mobile, Assets web-only, no OOO reason code. Full report delivered in session. | apps/mobile work-orders, rooms, home screens | complete | ~400 tok |
 | 2026-06-26 | SUPERVISOR AUDIT FIXES: BUG1 (suggest_assignments fallback → user_roles is_active, not user_profiles); BUG2 (HousekeeperPicker success checkmark + ToastAndroid); BUG3 (inspect ScrollView collapsable=false on queueActions); BUG4 (TeamLoad minutesLeft capped 480min + overAssigned flag); BUG5 (RoomDetailSheet maxHeight 78→90%); BUG6 (board query falls back to room_status.assigned_to); GAP1 (POST /inspections/{id}/reclean API endpoint — resets DIRTY + creates task); GAP5 (Touch-up conditional button in inspect — 3rd outcome); GAP7 (★ VIP chip on unassigned rows in Assignments); locales en+es updated. | housekeeping.py, HousekeeperPicker.tsx, inspect/index.tsx, supervisor.ts, RoomDetailSheet.tsx, assignments/index.tsx, en.json, es.json | complete | ~280 tok |
@@ -6097,3 +6099,45 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 12:49 | Edited apps/mobile/i18n/locales/en.json | 3→5 lines | ~63 |
 | 12:50 | Edited apps/mobile/i18n/locales/es.json | 3→5 lines | ~78 |
 | 12:51 | Session end: 4 writes across 4 files (EngineerHome.tsx, index.tsx, en.json, es.json) | 6 reads | ~41222 tok |
+| 12:52 | Session end: 4 writes across 4 files (EngineerHome.tsx, index.tsx, en.json, es.json) | 6 reads | ~41222 tok |
+| 12:55 | Edited apps/api/models/requests.py | 18→21 lines | ~201 |
+| 12:55 | Edited apps/api/models/requests.py | 13→15 lines | ~110 |
+| 12:55 | Edited apps/api/routers/work_orders.py | inline fix | ~21 |
+| 12:55 | Edited apps/mobile/lib/api/workOrders.ts | 7→9 lines | ~74 |
+| 12:55 | Edited apps/api/routers/work_orders.py | 2→3 lines | ~26 |
+| 12:56 | Created apps/mobile/components/engineering/CreateWorkOrderModal.tsx | — | ~3021 |
+
+| 17:56 | CreateWorkOrderModal: added emergency priority, doors_locks/painting categories, location field, source selector; updated CreateWorkOrderPayload types | apps/mobile/components/engineering/CreateWorkOrderModal.tsx, apps/mobile/lib/api/workOrders.ts | done | ~1200 || 12:56 | Session end: 10 writes across 8 files (EngineerHome.tsx, index.tsx, en.json, es.json, requests.py) | 14 reads | ~60662 tok |
+| 12:56 | Session end: 10 writes across 8 files (EngineerHome.tsx, index.tsx, en.json, es.json, requests.py) | 14 reads | ~60708 tok |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | added 1 import(s) | ~78 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | inline fix | ~39 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | added error handling | ~360 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | expanded (+19 lines) | ~204 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | expanded (+19 lines) | ~227 |
+| 12:57 | Edited apps/mobile/app/(app)/room-status/index.tsx | 11→12 lines | ~48 |
+| 12:57 | Edited apps/mobile/app/(app)/work-orders/[woId].tsx | expanded (+24 lines) | ~187 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | 10→11 lines | ~58 |
+| 12:58 | Edited apps/mobile/app/(app)/room-status/index.tsx | added 1 condition(s) | ~1248 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | "/engineering/pm-schedules" → "/assets/pm-schedules" | ~23 |
+| 12:58 | Edited apps/mobile/i18n/locales/en.json | 2→7 lines | ~94 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | 1→2 lines | ~41 |
+| 12:58 | Edited apps/mobile/i18n/locales/es.json | 2→7 lines | ~107 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | added error handling | ~160 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | expanded (+18 lines) | ~268 |
+| 12:58 | Edited apps/mobile/app/(app)/pm-schedules/index.tsx | expanded (+14 lines) | ~166 |
+| 12:58 | Edited apps/mobile/i18n/locales/en.json | 2→7 lines | ~90 |
+| 12:58 | Edited apps/mobile/i18n/locales/en.json | 4→6 lines | ~49 |
+| 12:58 | Edited apps/mobile/i18n/locales/es.json | 2→7 lines | ~93 |
+| 12:58 | Edited apps/mobile/i18n/locales/es.json | 4→6 lines | ~57 |
+| 12:59 | Added arrive/escalate actions to WO detail + Log Complete to PM Schedules + fixed PM endpoint | apps/mobile/app/(app)/work-orders/[woId].tsx, apps/mobile/app/(app)/pm-schedules/index.tsx, i18n en/es | done | ~3000 |
+| 12:59 | Session end: 30 writes across 9 files (EngineerHome.tsx, index.tsx, en.json, es.json, requests.py) | 14 reads | ~64528 tok |
+
+## Session: 2026-06-28 13:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-28 13:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

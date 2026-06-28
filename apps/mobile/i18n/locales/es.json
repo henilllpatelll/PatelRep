@@ -474,6 +474,11 @@
     "complete": "Marcar completada",
     "hold": "Poner en pausa",
     "resume": "Reanudar trabajo",
+    "arrivedOnSite": "Llegué al Lugar",
+    "escalate": "Escalar a Ingeniero Jefe",
+    "escalateTitle": "Escalar Orden de Trabajo",
+    "escalateConfirm": "Esto marcará la orden como urgente y notificará al ingeniero jefe.",
+    "escalateConfirmBtn": "Escalar",
     "chipUrgent": "URGENTE",
     "chipOnHold": "EN PAUSA",
     "chipGuest": "Huésped",
@@ -735,7 +740,9 @@
     "noSchedulesConfigured": "Sin programas de MP configurados.",
     "noItemsFound": "Sin elementos {{filter}} encontrados.",
     "done": "Listo",
-    "upcoming": "Próximo"
+    "upcoming": "Próximo",
+    "logComplete": "Registrar Completado",
+    "completeError": "No se pudo marcar el PM como completado. Intenta de nuevo."
   },
   "engineerRooms": {
     "kicker": "Mantenimiento",
@@ -860,6 +867,11 @@
     "oooError": "No se pudo poner el cuarto fuera de servicio. Intenta de nuevo.",
     "removeOoo": "Devolver a Servicio",
     "removeOooError": "No se pudo devolver el cuarto a servicio. Intenta de nuevo.",
+    "oooReasonTitle": "Razón de Fuera de Servicio",
+    "oooReasonHint": "¿Agregar razón para poner este cuarto fuera de servicio?",
+    "oooNoReason": "Omitir",
+    "oooAddReason": "Agregar Razón",
+    "oooReasonPlaceholder": "Ej. falla de HVAC, daño por agua...",
     "statusLabels": {
       "DIRTY": "Sucio",
       "IN_PROGRESS": "En Progreso",

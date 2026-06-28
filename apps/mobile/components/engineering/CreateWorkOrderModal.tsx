@@ -23,13 +23,23 @@ const CATEGORIES = [
   { key: "appliance", label: "Appliance" },
   { key: "structural", label: "Structural" },
   { key: "safety", label: "Safety" },
+  { key: "doors_locks", label: "Doors & Locks" },
+  { key: "painting", label: "Painting" },
   { key: "general", label: "General" },
 ] as const;
 
 const PRIORITIES = [
+  { key: "emergency" as const, label: "Emergency", color: "#CC0000" },
   { key: "urgent" as const, label: "Urgent", color: C.alert },
   { key: "normal" as const, label: "Normal", color: C.accent },
   { key: "low" as const, label: "Low", color: C.ink3 },
+];
+
+const SOURCES: { key: "guest" | "staff_patrol" | "pm" | "self"; label: string }[] = [
+  { key: "guest", label: "Guest Report" },
+  { key: "staff_patrol", label: "Staff Patrol" },
+  { key: "pm", label: "PM Trigger" },
+  { key: "self", label: "Internal" },
 ];
 
 interface Props {
@@ -44,15 +54,19 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
   const [category, setCategory] = useState("general");
-  const [priority, setPriority] = useState<"urgent" | "normal" | "low">("normal");
+  const [priority, setPriority] = useState<"urgent" | "normal" | "low" | "emergency">("normal");
+  const [source, setSource] = useState<"guest" | "staff_patrol" | "pm" | "self">("self");
   const [loading, setLoading] = useState(false);
 
   function reset() {
     setTitle("");
     setDescription("");
+    setLocation("");
     setCategory("general");
     setPriority("normal");
+    setSource("self");
   }
 
   async function submit() {
@@ -66,6 +80,8 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
         description: description.trim() || undefined,
         category,
         priority,
+        location_text: location.trim() || undefined,
+        source,
       });
       reset();
       onCreated?.();
@@ -112,6 +128,19 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
             textAlignVertical="top"
           />
 
+          {!roomId ? (
+            <>
+              <Text style={styles.sectionLabel}>Location</Text>
+              <TextInput
+                style={styles.input}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="Room number or area (e.g. 204, Lobby HVAC)"
+                placeholderTextColor={C.ink3}
+              />
+            </>
+          ) : null}
+
           <Text style={styles.sectionLabel}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
             {CATEGORIES.map((cat) => {
@@ -146,6 +175,23 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
                   <Text style={[styles.priorityText, active && { color: p.color, fontWeight: "800" }]}>
                     {p.label}
                   </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.sectionLabel}>Reported By</Text>
+          <View style={styles.sourceRow}>
+            {SOURCES.map((s) => {
+              const active = source === s.key;
+              return (
+                <TouchableOpacity
+                  key={s.key}
+                  style={[styles.sourceBtn, active && styles.sourceBtnActive]}
+                  onPress={() => setSource(s.key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.sourceText, active && styles.sourceTextActive]}>{s.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -240,6 +286,21 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface2,
   },
   priorityText: { fontSize: 13, fontWeight: "700", color: C.ink3 },
+  sourceRow: { flexDirection: "row", gap: 6 },
+  sourceBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 38,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.surface2,
+    paddingHorizontal: 4,
+  },
+  sourceBtnActive: { backgroundColor: C.accentSoft, borderColor: C.accentLine },
+  sourceText: { fontSize: 11, fontWeight: "700", color: C.ink3, textAlign: "center" },
+  sourceTextActive: { color: C.accent },
   actions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 4 },
   submitBtn: {
     flex: 1,

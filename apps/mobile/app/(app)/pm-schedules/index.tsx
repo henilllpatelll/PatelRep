@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -60,11 +61,12 @@ export default function PMSchedulesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "due" | "overdue">("all");
+  const [completing, setCompleting] = useState<string | null>(null);
 
   const loadSchedules = useCallback(async () => {
     if (!isOnline) { setLoading(false); return; }
     try {
-      const res = await api.get<{ data: PMSchedule[] }>("/engineering/pm-schedules");
+      const res = await api.get<{ data: PMSchedule[] }>("/assets/pm-schedules");
       setSchedules(res.data ?? []);
     } catch {
       setSchedules([]);
@@ -80,6 +82,19 @@ export default function PMSchedulesScreen() {
     await loadSchedules();
     setRefreshing(false);
   }, [loadSchedules]);
+
+  const handleComplete = useCallback(async (scheduleId: string) => {
+    if (completing) return;
+    setCompleting(scheduleId);
+    try {
+      await api.post(`/assets/pm-schedules/${scheduleId}/complete`, {});
+      await loadSchedules();
+    } catch {
+      Alert.alert(t("common.error"), t("pmSchedules.completeError"));
+    } finally {
+      setCompleting(null);
+    }
+  }, [completing, loadSchedules, t]);
 
   const filtered = filter === "all"
     ? schedules
@@ -183,6 +198,24 @@ export default function PMSchedulesScreen() {
                   </View>
                 ) : null}
               </View>
+              {schedule.status !== "completed" ? (
+                <TouchableOpacity
+                  style={[styles.completeBtn, completing === schedule.id && styles.completeBtnLoading]}
+                  onPress={() => void handleComplete(schedule.id)}
+                  disabled={completing !== null}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                >
+                  {completing === schedule.id ? (
+                    <ActivityIndicator size="small" color={C.ready} />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={14} color={C.ready} />
+                      <Text style={styles.completeBtnText}>{t("pmSchedules.logComplete")}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </View>
           );
         })}
@@ -286,4 +319,18 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
   emptyText: { fontSize: 13, color: C.ink3, textAlign: "center" },
+  completeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 38,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.readyLine,
+    backgroundColor: C.readySoft,
+    marginTop: 4,
+  },
+  completeBtnLoading: { opacity: 0.6 },
+  completeBtnText: { color: C.ready, fontSize: 12.5, fontWeight: "700" },
 });

@@ -23,7 +23,7 @@ MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
-SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
+SLA_MINUTES = {"urgent": 60, "emergency": 30, "normal": 240, "low": 480}
 
 
 def _ensure_engineer_can_update_work_order(
@@ -130,6 +130,7 @@ async def create_work_order(
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
         "guest_reported": request.guest_reported,
+        "source": request.source,
     }
     result = supabase.table("work_orders").insert(wo_data).execute()
     return {"data": result.data[0] if result.data else None}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -276,16 +277,77 @@ export default function RoomStatusScreen() {
                           },
                           {
                             text: isOoo ? t("roomStatus.removeOoo") : t("roomStatus.placeOOO"),
-                            onPress: async () => {
+                            onPress: isOoo ? async () => {
                               setOooLoading(room.id);
                               try {
-                                await api.patch(`/rooms/${room.id}/status`, { status: isOoo ? "DIRTY" : "OOO" });
+                                await api.patch(`/rooms/${room.id}/status`, { status: "DIRTY" });
                                 await loadRooms();
                               } catch {
-                                Alert.alert(t("common.error"), isOoo ? t("roomStatus.removeOooError") : t("roomStatus.oooError"));
+                                Alert.alert(t("common.error"), t("roomStatus.removeOooError"));
                               } finally {
                                 setOooLoading(null);
                               }
+                            } : () => {
+                              Alert.alert(
+                                t("roomStatus.oooReasonTitle"),
+                                t("roomStatus.oooReasonHint"),
+                                [
+                                  { text: t("common.cancel"), style: "cancel" },
+                                  {
+                                    text: t("roomStatus.oooNoReason"),
+                                    onPress: async () => {
+                                      setOooLoading(room.id);
+                                      try {
+                                        await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
+                                        await loadRooms();
+                                      } catch {
+                                        Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                                      } finally {
+                                        setOooLoading(null);
+                                      }
+                                    },
+                                  },
+                                  {
+                                    text: t("roomStatus.oooAddReason"),
+                                    onPress: () => {
+                                      if (Platform.OS === "ios") {
+                                        Alert.prompt(
+                                          t("roomStatus.oooReasonTitle"),
+                                          t("roomStatus.oooReasonPlaceholder"),
+                                          async (reason: string) => {
+                                            setOooLoading(room.id);
+                                            try {
+                                              await api.patch(`/rooms/${room.id}/status`, {
+                                                status: "OOO",
+                                                notes: reason.trim() || undefined,
+                                              });
+                                              await loadRooms();
+                                            } catch {
+                                              Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                                            } finally {
+                                              setOooLoading(null);
+                                            }
+                                          },
+                                          "plain-text"
+                                        );
+                                      } else {
+                                        // Android: just place OOO without reason (prompt not available)
+                                        void (async () => {
+                                          setOooLoading(room.id);
+                                          try {
+                                            await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
+                                            await loadRooms();
+                                          } catch {
+                                            Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                                          } finally {
+                                            setOooLoading(null);
+                                          }
+                                        })();
+                                      }
+                                    },
+                                  },
+                                ]
+                              );
                             },
                           },
                           { text: t("common.cancel"), style: "cancel" },

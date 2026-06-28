@@ -474,6 +474,11 @@
     "complete": "Mark complete",
     "hold": "Put on hold",
     "resume": "Resume work",
+    "arrivedOnSite": "Arrived on Site",
+    "escalate": "Escalate to Chief Engineer",
+    "escalateTitle": "Escalate Work Order",
+    "escalateConfirm": "This will mark the order urgent and notify the chief engineer.",
+    "escalateConfirmBtn": "Escalate",
     "chipUrgent": "URGENT",
     "chipOnHold": "ON HOLD",
     "chipGuest": "Guest",
@@ -735,7 +740,9 @@
     "noSchedulesConfigured": "No PM schedules configured.",
     "noItemsFound": "No {{filter}} items found.",
     "done": "Done",
-    "upcoming": "Upcoming"
+    "upcoming": "Upcoming",
+    "logComplete": "Log Complete",
+    "completeError": "Could not mark PM complete. Try again."
   },
   "engineerRooms": {
     "kicker": "Engineering",
@@ -860,6 +867,11 @@
     "oooError": "Could not place room on OOO. Try again.",
     "removeOoo": "Return to Service",
     "removeOooError": "Could not return room to service. Try again.",
+    "oooReasonTitle": "OOO Reason",
+    "oooReasonHint": "Add a reason for placing this room out of order?",
+    "oooNoReason": "Skip",
+    "oooAddReason": "Add Reason",
+    "oooReasonPlaceholder": "e.g. HVAC failure, water damage...",
     "statusLabels": {
       "DIRTY": "Dirty",
       "IN_PROGRESS": "In Progress",

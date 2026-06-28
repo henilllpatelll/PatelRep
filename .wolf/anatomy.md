@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-26T17:11:51.899Z
-> Files: 75 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T17:58:56.946Z
+> Files: 78 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -471,13 +471,14 @@
 
 ## apps/api/models/
 
+- `requests.py` — Pydantic: SanitizedBaseModel (~7500 tok)
 
 ## apps/api/routers/
 
 - `clean_sessions.py` — API: 6 endpoints (~5844 tok)
 - `housekeeping.py` — Declares from (~23701 tok)
 - `notifications.py` — API: 4 endpoints (~776 tok)
-- `work_orders.py` — API: 6 endpoints (~5055 tok)
+- `work_orders.py` — API: 6 endpoints (~5070 tok)
 
 ## apps/api/scripts/
 
@@ -601,6 +602,7 @@
 
 ## apps/mobile/app/(app)/pm-schedules/
 
+- `index.tsx` — dueTone (~3710 tok)
 
 ## apps/mobile/app/(app)/profile/
 
@@ -612,7 +614,7 @@
 
 ## apps/mobile/app/(app)/room-status/
 
-- `index.tsx` — Raw board row: room_status spread + nested rooms join (no flat fields). (~5312 tok)
+- `index.tsx` — Raw board row: room_status spread + nested rooms join (no flat fields). (~6402 tok)
 
 ## apps/mobile/app/(app)/scheduling/
 
@@ -628,6 +630,7 @@
 
 ## apps/mobile/app/(app)/work-orders/
 
+- `[woId].tsx` — STATUS_TONE (~10329 tok)
 - `index.tsx` — WorkOrdersScreen (~5258 tok)
 
 ## apps/mobile/app/(auth)/
@@ -635,8 +638,8 @@
 
 ## apps/mobile/components/engineering/
 
-- `CreateWorkOrderModal.tsx` — CATEGORIES — renders modal (~2380 tok)
-- `EngineerHome.tsx` — One tile per live work order — the engineer's version of the shift mosaic. (~7005 tok)
+- `CreateWorkOrderModal.tsx` — CATEGORIES — renders modal (~3021 tok)
+- `EngineerHome.tsx` — One tile per live work order — the engineer's version of the shift mosaic. (~7007 tok)
 - `WorkOrderCard.tsx` — Render the inline Claim action (open, unassigned, viewer can claim). (~3110 tok)
 
 ## apps/mobile/components/home/
@@ -693,8 +696,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~11087 tok)
-- `es.json` (~11803 tok)
+- `en.json` (~11291 tok)
+- `es.json` (~12030 tok)
 
 ## apps/mobile/lib/
 
@@ -708,7 +711,7 @@
 
 - `housekeepingSupervisor.ts` — API routes: POST, DELETE (4 endpoints) (~914 tok)
 - `inspections.ts` — Exports InspectionTemplate, listInspectionTemplates, InspectionItem, submitInspection (~251 tok)
-- `workOrders.ts` — Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. (~970 tok)
+- `workOrders.ts` — Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. (~998 tok)
 
 ## apps/mobile/lib/api/housekeepingSupervisor.ts
 
