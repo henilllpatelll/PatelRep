@@ -526,9 +526,9 @@ async def get_housekeeping_board(
         rooms_with_predictions.append({
             **room,
             "status": effective_room_status(room.get("status"), clean_type, room.get("fo_status")),
-            "assigned_to": assignment.get("assigned_to") if assignment else room.get("assigned_to"),
+            "assigned_to": assignment.get("assigned_to") if assignment else None,
             "assignment_id": assignment.get("id") if assignment else None,
-            "assignment_date": assignment.get("assignment_date") if assignment else target_date.isoformat(),
+            "assignment_date": assignment.get("assignment_date") if assignment else None,
             "assignment_shift_id": assignment.get("shift_id") if assignment else None,
             **_clean_type_payload(clean_type),
             "prediction": pred_map.get(room.get("room_id")),
