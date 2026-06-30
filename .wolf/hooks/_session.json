@@ -1,211 +1,73 @@
 {
-  "session_id": "session-2026-06-26-1202",
-  "started": "2026-06-26T17:02:15.307Z",
+  "session_id": "session-2026-06-30-2309",
+  "started": "2026-06-30T04:09:20.047Z",
   "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/auth/callback/page.tsx": {
       "count": 1,
-      "tokens": 4791,
-      "first_read": "2026-06-26T17:03:00.567Z"
+      "tokens": 1509,
+      "first_read": "2026-06-30T04:10:11.542Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/atoms.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(auth)/login/page.tsx": {
       "count": 1,
-      "tokens": 2441,
-      "first_read": "2026-06-26T17:03:01.135Z"
+      "tokens": 4458,
+      "first_read": "2026-06-30T04:10:22.076Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/middleware.ts": {
       "count": 1,
-      "tokens": 3895,
-      "first_read": "2026-06-26T17:03:07.216Z"
+      "tokens": 0,
+      "first_read": "2026-06-30T04:10:22.337Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/proxy.ts": {
       "count": 1,
-      "tokens": 1534,
-      "first_read": "2026-06-26T17:03:07.503Z"
+      "tokens": 989,
+      "first_read": "2026-06-30T04:11:22.920Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/assignments/index.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/next.config.mjs": {
       "count": 1,
-      "tokens": 7931,
-      "first_read": "2026-06-26T17:03:13.268Z"
+      "tokens": 0,
+      "first_read": "2026-06-30T04:11:50.999Z"
     },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx": {
-      "count": 2,
-      "tokens": 7810,
-      "first_read": "2026-06-26T17:03:13.291Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json": {
-      "count": 4,
-      "tokens": 11254,
-      "first_read": "2026-06-26T17:03:49.711Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json": {
-      "count": 3,
-      "tokens": 11975,
-      "first_read": "2026-06-26T17:04:27.262Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/room-board/index.tsx": {
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx": {
       "count": 1,
-      "tokens": 3982,
-      "first_read": "2026-06-26T17:10:16.995Z"
+      "tokens": 0,
+      "first_read": "2026-06-30T04:12:41.759Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/shared/Providers.tsx": {
+      "count": 1,
+      "tokens": 2624,
+      "first_read": "2026-06-30T04:13:23.493Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/stores/authStore.ts": {
+      "count": 1,
+      "tokens": 549,
+      "first_read": "2026-06-30T04:13:30.527Z"
+    },
+    "C:/Users/Henil/.claude/projects/C--Users-Henil-projects-PatelRep/memory/reference_test_account.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-06-30T04:13:38.537Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
       "action": "edit",
-      "tokens": 58,
-      "at": "2026-06-26T17:05:04.337Z"
+      "tokens": 22,
+      "at": "2026-06-30T04:17:04.240Z"
     },
     {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dashboard/page.tsx",
       "action": "edit",
-      "tokens": 62,
-      "at": "2026-06-26T17:05:10.134Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx",
-      "action": "edit",
-      "tokens": 26,
-      "at": "2026-06-26T17:05:14.173Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/home/SupervisorHome.tsx",
-      "action": "edit",
-      "tokens": 206,
-      "at": "2026-06-26T17:05:21.358Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 404,
-      "at": "2026-06-26T17:05:32.973Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 17,
-      "at": "2026-06-26T17:05:37.119Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 48,
-      "at": "2026-06-26T17:05:49.022Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 25,
-      "at": "2026-06-26T17:05:54.916Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 21,
-      "at": "2026-06-26T17:06:08.258Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 96,
-      "at": "2026-06-26T17:06:23.054Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/inspect/index.tsx",
-      "action": "edit",
-      "tokens": 110,
-      "at": "2026-06-26T17:06:30.335Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx",
-      "action": "edit",
-      "tokens": 75,
-      "at": "2026-06-26T17:06:35.375Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx",
-      "action": "edit",
-      "tokens": 28,
-      "at": "2026-06-26T17:06:39.158Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx",
-      "action": "edit",
-      "tokens": 26,
-      "at": "2026-06-26T17:06:42.892Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/RoomDetailSheet.tsx",
-      "action": "edit",
-      "tokens": 50,
-      "at": "2026-06-26T17:06:48.146Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx",
-      "action": "edit",
-      "tokens": 68,
-      "at": "2026-06-26T17:06:55.524Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx",
-      "action": "edit",
-      "tokens": 43,
-      "at": "2026-06-26T17:07:02.895Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx",
-      "action": "edit",
-      "tokens": 26,
-      "at": "2026-06-26T17:07:09.789Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/components/supervisor/HousekeeperPicker.tsx",
-      "action": "edit",
-      "tokens": 50,
-      "at": "2026-06-26T17:07:15.640Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/app/(app)/assignments/index.tsx",
-      "action": "edit",
-      "tokens": 14,
-      "at": "2026-06-26T17:07:20.845Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
-      "action": "edit",
-      "tokens": 265,
-      "at": "2026-06-26T17:11:27.942Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/en.json",
-      "action": "edit",
-      "tokens": 4,
-      "at": "2026-06-26T17:11:35.017Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 275,
-      "at": "2026-06-26T17:11:44.302Z"
-    },
-    {
-      "file": "C:/Users/Henil/projects/PatelRep/apps/mobile/i18n/locales/es.json",
-      "action": "edit",
-      "tokens": 4,
-      "at": "2026-06-26T17:11:51.920Z"
+      "tokens": 16,
+      "at": "2026-06-30T04:17:07.563Z"
     }
   ],
   "edit_counts": {
-    "apps/mobile/i18n/locales/en.json": 3,
-    "apps/mobile/i18n/locales/es.json": 3,
-    "apps/mobile/components/home/SupervisorHome.tsx": 2,
-    "apps/mobile/app/(app)/inspect/index.tsx": 7,
-    "apps/mobile/components/supervisor/RoomDetailSheet.tsx": 4,
-    "apps/mobile/components/supervisor/HousekeeperPicker.tsx": 4,
-    "apps/mobile/app/(app)/assignments/index.tsx": 1
+    "apps/web/app/(dashboard)/dashboard/page.tsx": 2
   },
-  "anatomy_hits": 9,
-  "anatomy_misses": 0,
-  "repeated_reads_warned": 6,
+  "anatomy_hits": 5,
+  "anatomy_misses": 4,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
   "stop_count": 2
 }

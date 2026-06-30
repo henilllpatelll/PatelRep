@@ -5,24 +5,24 @@
     "semantic_hash": "018fc29fdcac8ac192b75cb25406165d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\playwright.config.ts": {
-    "mtime": 1779031345.7242286,
-    "ast_hash": "150e02998b31de89c1ba4b48c582b868",
-    "semantic_hash": "150e02998b31de89c1ba4b48c582b868"
+    "mtime": 1781534487.9421213,
+    "ast_hash": "1ba649fa169f4a55b0a75388ee62de01",
+    "semantic_hash": "1ba649fa169f4a55b0a75388ee62de01"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\playwright.mobile.config.ts": {
-    "mtime": 1779031345.7253299,
-    "ast_hash": "2384ed1cb15c44d2399377c2069bf5a3",
-    "semantic_hash": "2384ed1cb15c44d2399377c2069bf5a3"
+    "mtime": 1781534512.8964026,
+    "ast_hash": "1994f74ae1df833f3dcd67857b5a57c8",
+    "semantic_hash": "1994f74ae1df833f3dcd67857b5a57c8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.claude\\settings.json": {
-    "mtime": 1780580660.5946443,
-    "ast_hash": "d97c974a79ee8ef52e67cd71b1716ee9",
-    "semantic_hash": "d97c974a79ee8ef52e67cd71b1716ee9"
+    "mtime": 1781811287.5456064,
+    "ast_hash": "19bfaca122a8f399b38001a576c4216a",
+    "semantic_hash": "19bfaca122a8f399b38001a576c4216a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1781218425.3539186,
-    "ast_hash": "df274c479be9cfac73a79c4b6670aa0b",
-    "semantic_hash": "df274c479be9cfac73a79c4b6670aa0b"
+    "mtime": 1782784280.745924,
+    "ast_hash": "4bc0a300c258b646b53959b18f1cfd35",
+    "semantic_hash": "4bc0a300c258b646b53959b18f1cfd35"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,14 +90,14 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1781218864.5778918,
-    "ast_hash": "91801efd68830ad1809f07ecf0fbbac9",
-    "semantic_hash": "91801efd68830ad1809f07ecf0fbbac9"
+    "mtime": 1782788408.6360974,
+    "ast_hash": "ae03ad3c804b8d766357b7cef2418709",
+    "semantic_hash": "ae03ad3c804b8d766357b7cef2418709"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
-    "mtime": 1781073755.4448695,
-    "ast_hash": "dcc69e62893b5d45e2c0d164639092c3",
-    "semantic_hash": "dcc69e62893b5d45e2c0d164639092c3"
+    "mtime": 1781548894.3038127,
+    "ast_hash": "be8df71a25a5308a702309e5c21cbdbc",
+    "semantic_hash": "be8df71a25a5308a702309e5c21cbdbc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\pyrightconfig.json": {
     "mtime": 1779031345.335894,
@@ -105,14 +105,14 @@
     "semantic_hash": "1b7c6e496a48bf5ffd62c8bb91e60e99"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\core\\config.py": {
-    "mtime": 1780005848.0846255,
-    "ast_hash": "657c8a7945fefa360ac71dbb65114dea",
-    "semantic_hash": "657c8a7945fefa360ac71dbb65114dea"
+    "mtime": 1781493397.604184,
+    "ast_hash": "8dd07b8c3fb719ee1040ad488a3663bf",
+    "semantic_hash": "8dd07b8c3fb719ee1040ad488a3663bf"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\core\\database.py": {
-    "mtime": 1779951886.645069,
-    "ast_hash": "2cdd2fd9372874c103eafc32dd2bcca6",
-    "semantic_hash": "2cdd2fd9372874c103eafc32dd2bcca6"
+    "mtime": 1781493402.1201777,
+    "ast_hash": "1e1cc4168cd91d658f6893a731d57be1",
+    "semantic_hash": "1e1cc4168cd91d658f6893a731d57be1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\core\\__init__.py": {
     "mtime": 1772804442.2996156,
@@ -120,9 +120,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\auth.py": {
-    "mtime": 1780555137.59528,
-    "ast_hash": "89dfddd360ae1e1d0ae969763404447c",
-    "semantic_hash": "89dfddd360ae1e1d0ae969763404447c"
+    "mtime": 1781493407.4192748,
+    "ast_hash": "46aaa547f2d1c6b7ae000225fc920c47",
+    "semantic_hash": "46aaa547f2d1c6b7ae000225fc920c47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\credits.py": {
     "mtime": 1779031345.3298113,
@@ -140,9 +140,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\models\\requests.py": {
-    "mtime": 1781158988.1083858,
-    "ast_hash": "e13803feaf27f440d3c16d3bf06d3b38",
-    "semantic_hash": "e13803feaf27f440d3c16d3bf06d3b38"
+    "mtime": 1782783895.2585168,
+    "ast_hash": "be90565c12ae38d3397dc96384cd75f1",
+    "semantic_hash": "be90565c12ae38d3397dc96384cd75f1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\models\\responses.py": {
     "mtime": 1773343729.6601162,
@@ -155,14 +155,14 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\ai_copilot.py": {
-    "mtime": 1781158988.1103892,
-    "ast_hash": "010806b30b1fd0fd31f26b85c9e1d72c",
-    "semantic_hash": "010806b30b1fd0fd31f26b85c9e1d72c"
+    "mtime": 1782783895.2595263,
+    "ast_hash": "2d13069fb0a55e60b4587bbfc8e5f012",
+    "semantic_hash": "2d13069fb0a55e60b4587bbfc8e5f012"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\assets.py": {
-    "mtime": 1779031345.341424,
-    "ast_hash": "47731faa7813dcf84872f9628a786327",
-    "semantic_hash": "47731faa7813dcf84872f9628a786327"
+    "mtime": 1782783895.2602308,
+    "ast_hash": "927e2de1aa4ea25141ac75331d034112",
+    "semantic_hash": "927e2de1aa4ea25141ac75331d034112"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\auth.py": {
     "mtime": 1779031345.3425193,
@@ -180,14 +180,14 @@
     "semantic_hash": "076703e9035fb46211037c07172cb197"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\hotels.py": {
-    "mtime": 1779031345.3450437,
-    "ast_hash": "f99717751be0ca972e6bc309f35ed338",
-    "semantic_hash": "f99717751be0ca972e6bc309f35ed338"
+    "mtime": 1782783895.2612832,
+    "ast_hash": "72202ba4e21e97ba6938a8a23874ce19",
+    "semantic_hash": "72202ba4e21e97ba6938a8a23874ce19"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\housekeeping.py": {
-    "mtime": 1781126300.984869,
-    "ast_hash": "350a32833dafef0acf5eeab1b42c9bce",
-    "semantic_hash": "350a32833dafef0acf5eeab1b42c9bce"
+    "mtime": 1782673356.596589,
+    "ast_hash": "fe8fb0e2d24ee422fb2acd6db9ae1161",
+    "semantic_hash": "fe8fb0e2d24ee422fb2acd6db9ae1161"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\integrations.py": {
     "mtime": 1779031345.3450437,
@@ -195,14 +195,14 @@
     "semantic_hash": "36cfb2683c1d6b6f968e9f61f161fda3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\internal.py": {
-    "mtime": 1779462094.2895794,
-    "ast_hash": "7b22553719085fe147949479be6713dc",
-    "semantic_hash": "7b22553719085fe147949479be6713dc"
+    "mtime": 1782784089.499308,
+    "ast_hash": "e4c1cb5f3963c9930d5698f454a45b53",
+    "semantic_hash": "e4c1cb5f3963c9930d5698f454a45b53"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\logbook.py": {
-    "mtime": 1779950935.1252112,
-    "ast_hash": "6d6e112d928191163b4568332d432c43",
-    "semantic_hash": "6d6e112d928191163b4568332d432c43"
+    "mtime": 1782783895.263283,
+    "ast_hash": "d56c7091b51bb5633e39d4a27c889984",
+    "semantic_hash": "d56c7091b51bb5633e39d4a27c889984"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\lost_found.py": {
     "mtime": 1779951886.645069,
@@ -210,44 +210,44 @@
     "semantic_hash": "39e67b212b395e4f437428910557c822"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\notifications.py": {
-    "mtime": 1779950905.869725,
-    "ast_hash": "05890c653ad58cfc6b5bd6a7fe0acca1",
-    "semantic_hash": "05890c653ad58cfc6b5bd6a7fe0acca1"
+    "mtime": 1782783895.2642834,
+    "ast_hash": "f664a1a0fd308b2485fd23e8f47c3796",
+    "semantic_hash": "f664a1a0fd308b2485fd23e8f47c3796"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\onboarding.py": {
-    "mtime": 1779031345.3499746,
-    "ast_hash": "3852e91c8167b40b24f5f41eb8b845a4",
-    "semantic_hash": "3852e91c8167b40b24f5f41eb8b845a4"
+    "mtime": 1782784097.770402,
+    "ast_hash": "99bc0cbc5e6417925f90f7116fbd5771",
+    "semantic_hash": "99bc0cbc5e6417925f90f7116fbd5771"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\reports.py": {
-    "mtime": 1780467437.7580922,
-    "ast_hash": "4c192cc80419ce95c4ddc31fecb41271",
-    "semantic_hash": "4c192cc80419ce95c4ddc31fecb41271"
+    "mtime": 1782783895.2662838,
+    "ast_hash": "c01c02602f1b9ff0290910ece1a2f524",
+    "semantic_hash": "c01c02602f1b9ff0290910ece1a2f524"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\rooms.py": {
-    "mtime": 1781073601.838144,
-    "ast_hash": "2c2106bfd201ae7334e83a99ef7332e0",
-    "semantic_hash": "2c2106bfd201ae7334e83a99ef7332e0"
+    "mtime": 1782783895.267283,
+    "ast_hash": "33b851491d02ba0b99901110dab7786e",
+    "semantic_hash": "33b851491d02ba0b99901110dab7786e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\scheduling.py": {
-    "mtime": 1779031345.3504834,
-    "ast_hash": "8311695c682e0b59cf4ffc370a1a37ca",
-    "semantic_hash": "8311695c682e0b59cf4ffc370a1a37ca"
+    "mtime": 1782783895.2682838,
+    "ast_hash": "7398103d774ebe2828e6c1200628f396",
+    "semantic_hash": "7398103d774ebe2828e6c1200628f396"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\sop.py": {
-    "mtime": 1779031345.3504834,
-    "ast_hash": "e79d8c72ab713f8482334cf16e62130b",
-    "semantic_hash": "e79d8c72ab713f8482334cf16e62130b"
+    "mtime": 1782783895.2708132,
+    "ast_hash": "367d0c01f80bc567cd0619b3be3fcbf3",
+    "semantic_hash": "367d0c01f80bc567cd0619b3be3fcbf3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\staff.py": {
-    "mtime": 1779950912.9521306,
-    "ast_hash": "10ad3c47e74f08dc1a000072b014c32e",
-    "semantic_hash": "10ad3c47e74f08dc1a000072b014c32e"
+    "mtime": 1782783895.2728753,
+    "ast_hash": "5dfc0ed7b1dddcc119376673ad4f9be3",
+    "semantic_hash": "5dfc0ed7b1dddcc119376673ad4f9be3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\tasks.py": {
-    "mtime": 1781201725.08269,
-    "ast_hash": "5ee1b0c147357b3af15801c78def9576",
-    "semantic_hash": "5ee1b0c147357b3af15801c78def9576"
+    "mtime": 1782783895.2748802,
+    "ast_hash": "ed886f871e739944c1dc42538b569a28",
+    "semantic_hash": "ed886f871e739944c1dc42538b569a28"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\webhooks.py": {
     "mtime": 1779031345.3560116,
@@ -255,9 +255,9 @@
     "semantic_hash": "df5392b2124ef760855816e10b07bdce"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\work_orders.py": {
-    "mtime": 1780467416.9600382,
-    "ast_hash": "769f9a129387e6bc4f52aeb9d7d23e09",
-    "semantic_hash": "769f9a129387e6bc4f52aeb9d7d23e09"
+    "mtime": 1782783895.2748802,
+    "ast_hash": "c6803b4054bc94b6b7604e3fa51ddacf",
+    "semantic_hash": "c6803b4054bc94b6b7604e3fa51ddacf"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\__init__.py": {
     "mtime": 1772804505.5938804,
@@ -270,9 +270,9 @@
     "semantic_hash": "cfb0fc94c7efe27949468700d7d0e817"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\policy.py": {
-    "mtime": 1779462049.8739045,
-    "ast_hash": "78d20a6c0488ad8b15679d1d29187eec",
-    "semantic_hash": "78d20a6c0488ad8b15679d1d29187eec"
+    "mtime": 1782783895.2748802,
+    "ast_hash": "c4432948dc83f762ce123d5affc4dd9a",
+    "semantic_hash": "c4432948dc83f762ce123d5affc4dd9a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\assignment_parser.py": {
     "mtime": 1779642257.7562861,
@@ -355,9 +355,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\load\\load_test.py": {
-    "mtime": 1779031345.3560116,
-    "ast_hash": "e65d4f05024c63ec342f9558c391c00d",
-    "semantic_hash": "e65d4f05024c63ec342f9558c391c00d"
+    "mtime": 1782783895.2790277,
+    "ast_hash": "a495370506761288ed0570e5db937931",
+    "semantic_hash": "a495370506761288ed0570e5db937931"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\load\\__init__.py": {
     "mtime": 1779031345.3560116,
@@ -390,9 +390,9 @@
     "semantic_hash": "6e42a8f150563c7217e6c69f1268e77e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_housekeeping_assignments.py": {
-    "mtime": 1780256749.029447,
-    "ast_hash": "9b6fd02a27754dba068a4156f5882461",
-    "semantic_hash": "9b6fd02a27754dba068a4156f5882461"
+    "mtime": 1781487529.1839526,
+    "ast_hash": "e2aecf0c7606bf6c4dec4e784842af9f",
+    "semantic_hash": "e2aecf0c7606bf6c4dec4e784842af9f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_integrations_security.py": {
     "mtime": 1779585078.8984475,
@@ -400,9 +400,9 @@
     "semantic_hash": "034f8fe1878872b474f00ad86f33f41c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_load_auth_state.py": {
-    "mtime": 1779031345.3721118,
-    "ast_hash": "279eee164d8e0b62ff9de4b84710cb2c",
-    "semantic_hash": "279eee164d8e0b62ff9de4b84710cb2c"
+    "mtime": 1781534511.407015,
+    "ast_hash": "03abf8a2e26da61041c404c64b27170f",
+    "semantic_hash": "03abf8a2e26da61041c404c64b27170f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_notes_regressions.py": {
     "mtime": 1779031345.3721118,
@@ -445,12 +445,12 @@
     "semantic_hash": "229a63878072efdb417bc1f2cf5b9503"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\eas.json": {
-    "mtime": 1780550991.2942295,
-    "ast_hash": "b53672c1b6593e986e98e190387763af",
-    "semantic_hash": "b53672c1b6593e986e98e190387763af"
+    "mtime": 1781534495.2084818,
+    "ast_hash": "1c9f2d61b254ca78632d297016fde539",
+    "semantic_hash": "1c9f2d61b254ca78632d297016fde539"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\expo-env.d.ts": {
-    "mtime": 1781212571.2666402,
+    "mtime": 1782671380.4584517,
     "ast_hash": "0dd9dccdb4b08595bc83df70d6a154d3",
     "semantic_hash": "0dd9dccdb4b08595bc83df70d6a154d3"
   },
@@ -530,44 +530,44 @@
     "semantic_hash": "548a8ebdefe809a524046c27ce24e234"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\_layout.tsx": {
-    "mtime": 1780689097.7471714,
-    "ast_hash": "2094a0fe56ff020172c45b49543a92a8",
-    "semantic_hash": "2094a0fe56ff020172c45b49543a92a8"
+    "mtime": 1781487529.198613,
+    "ast_hash": "3e57577fd708e7dca642d14f504727e3",
+    "semantic_hash": "3e57577fd708e7dca642d14f504727e3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\_layout.tsx": {
-    "mtime": 1781183954.5376678,
-    "ast_hash": "61b70e4063275584b03517f94d61f5b8",
-    "semantic_hash": "61b70e4063275584b03517f94d61f5b8"
+    "mtime": 1781487529.1933446,
+    "ast_hash": "b54424b5929b35a6cb2abc91552dcd33",
+    "semantic_hash": "b54424b5929b35a6cb2abc91552dcd33"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\copilot\\index.tsx": {
-    "mtime": 1781184767.9650261,
+    "mtime": 1781395610.055395,
     "ast_hash": "4013fbec9e05829048d6836f3153485d",
     "semantic_hash": "4013fbec9e05829048d6836f3153485d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\my-rooms\\[roomId].tsx": {
-    "mtime": 1781207861.8167853,
-    "ast_hash": "b09926c36c168c3939f79f29d577ec6a",
-    "semantic_hash": "b09926c36c168c3939f79f29d577ec6a"
+    "mtime": 1782449491.8897502,
+    "ast_hash": "a51b007f2f4bc77474ae058cc4cf185a",
+    "semantic_hash": "a51b007f2f4bc77474ae058cc4cf185a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\profile\\index.tsx": {
-    "mtime": 1781131499.9843476,
-    "ast_hash": "d843ad61924ab0812c6ce5b50e5bb333",
-    "semantic_hash": "d843ad61924ab0812c6ce5b50e5bb333"
+    "mtime": 1782784005.213209,
+    "ast_hash": "9bec201c02459c966958a59c69924d63",
+    "semantic_hash": "9bec201c02459c966958a59c69924d63"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\tasks\\index.tsx": {
-    "mtime": 1781218424.9430392,
-    "ast_hash": "c0bbd43f5f2a8bda719b35aaa5e758a9",
-    "semantic_hash": "c0bbd43f5f2a8bda719b35aaa5e758a9"
+    "mtime": 1781389787.6786058,
+    "ast_hash": "43a671e86ec1bf6b26b4e8ad36c24c97",
+    "semantic_hash": "43a671e86ec1bf6b26b4e8ad36c24c97"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\work-orders\\index.tsx": {
-    "mtime": 1781133321.825273,
-    "ast_hash": "2f0f764460985b51a66f5c6380f86b95",
-    "semantic_hash": "2f0f764460985b51a66f5c6380f86b95"
+    "mtime": 1782671613.137286,
+    "ast_hash": "388dfd9668bc848c441f9f6691b4ee46",
+    "semantic_hash": "388dfd9668bc848c441f9f6691b4ee46"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\work-orders\\[woId].tsx": {
-    "mtime": 1781055028.6909173,
-    "ast_hash": "7c440cd2744fe1a10ae84fdac623e049",
-    "semantic_hash": "7c440cd2744fe1a10ae84fdac623e049"
+    "mtime": 1782669474.178557,
+    "ast_hash": "a6e04f9f16181ae55e3e257df8cab247",
+    "semantic_hash": "a6e04f9f16181ae55e3e257df8cab247"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(auth)\\login.tsx": {
     "mtime": 1780604978.213061,
@@ -600,14 +600,14 @@
     "semantic_hash": "b813f0c7b96c9bc9fa5eddb1ec7924d4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\i18n\\locales\\en.json": {
-    "mtime": 1781218435.4634461,
-    "ast_hash": "005db79083e8888e46c8bd9299a72b6c",
-    "semantic_hash": "005db79083e8888e46c8bd9299a72b6c"
+    "mtime": 1782784067.3650336,
+    "ast_hash": "cbe036a9257eda5309ea047dd7c7e328",
+    "semantic_hash": "cbe036a9257eda5309ea047dd7c7e328"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\i18n\\locales\\es.json": {
-    "mtime": 1781218435.4670913,
-    "ast_hash": "1172e6c1508cbd23706ce719fa5dc02d",
-    "semantic_hash": "1172e6c1508cbd23706ce719fa5dc02d"
+    "mtime": 1782784072.7178094,
+    "ast_hash": "f1660904860ec66f53f57bcb413ab041",
+    "semantic_hash": "f1660904860ec66f53f57bcb413ab041"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\notifications.ts": {
     "mtime": 1779646755.2762625,
@@ -615,34 +615,34 @@
     "semantic_hash": "dcf9f41ec80ee9ea39233aca86a438fd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\supabase.ts": {
-    "mtime": 1780689081.9610662,
-    "ast_hash": "54580e98f21e569169401e728fddfcd2",
-    "semantic_hash": "54580e98f21e569169401e728fddfcd2"
+    "mtime": 1782784005.2211192,
+    "ast_hash": "b042d744245cd09e486f71013b387ca9",
+    "semantic_hash": "b042d744245cd09e486f71013b387ca9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\client.ts": {
-    "mtime": 1781131499.989863,
-    "ast_hash": "3985bbedd85e9ad498f4d818a0668c28",
-    "semantic_hash": "3985bbedd85e9ad498f4d818a0668c28"
+    "mtime": 1782404022.6008646,
+    "ast_hash": "1b1d8bc7187a422e38d0f1951a37d949",
+    "semantic_hash": "1b1d8bc7187a422e38d0f1951a37d949"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\workOrders.ts": {
-    "mtime": 1780842893.2950234,
-    "ast_hash": "64b65dbd10684bd0d2c214590990ff66",
-    "semantic_hash": "64b65dbd10684bd0d2c214590990ff66"
+    "mtime": 1782669341.828681,
+    "ast_hash": "08355ab56aad860e129ab2a001c19455",
+    "semantic_hash": "08355ab56aad860e129ab2a001c19455"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\offline\\db.ts": {
-    "mtime": 1781131499.9918637,
-    "ast_hash": "a611f1fa49a04e9e182f22369a5ccc85",
-    "semantic_hash": "a611f1fa49a04e9e182f22369a5ccc85"
+    "mtime": 1781487529.2094207,
+    "ast_hash": "94420a2b2aeec64fd917d70d76f47263",
+    "semantic_hash": "94420a2b2aeec64fd917d70d76f47263"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\offline\\sync.ts": {
-    "mtime": 1781131499.994051,
-    "ast_hash": "b2a7f113de39d1f43d13ba46ed08ce56",
-    "semantic_hash": "b2a7f113de39d1f43d13ba46ed08ce56"
+    "mtime": 1781395195.3362122,
+    "ast_hash": "fbeb1f4829399831ca102843c9794a10",
+    "semantic_hash": "fbeb1f4829399831ca102843c9794a10"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\stores\\appStore.ts": {
-    "mtime": 1781055028.5331376,
-    "ast_hash": "530e4f86a1a1cb9c8a94cca281cfde14",
-    "semantic_hash": "530e4f86a1a1cb9c8a94cca281cfde14"
+    "mtime": 1782449250.152262,
+    "ast_hash": "696eacb6db8aaa2ad85b7d6bb5317c05",
+    "semantic_hash": "696eacb6db8aaa2ad85b7d6bb5317c05"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\components\\OfflineBanner.test.tsx": {
     "mtime": 1779031345.376837,
@@ -660,9 +660,9 @@
     "semantic_hash": "9d735f641d4096cf4b11afde3825eac1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\api\\client.test.ts": {
-    "mtime": 1779031345.3826375,
-    "ast_hash": "2d423c0b9cf5f058eddca59121cc2a31",
-    "semantic_hash": "2d423c0b9cf5f058eddca59121cc2a31"
+    "mtime": 1782404053.2280219,
+    "ast_hash": "ccbbc97fb7eb4ce35745c7aaa46462e8",
+    "semantic_hash": "ccbbc97fb7eb4ce35745c7aaa46462e8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\offline\\sync.test.ts": {
     "mtime": 1780667652.4926417,
@@ -670,19 +670,19 @@
     "semantic_hash": "e775d3aa762f5a1ed045e27d1a2d2e88"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\RoomDetail.test.tsx": {
-    "mtime": 1781207809.508749,
-    "ast_hash": "2e98a067fe92d66ecd7d537c5ee34c48",
-    "semantic_hash": "2e98a067fe92d66ecd7d537c5ee34c48"
+    "mtime": 1782449966.8693528,
+    "ast_hash": "4e17a13aee63c697bfe8140d252d97bf",
+    "semantic_hash": "4e17a13aee63c697bfe8140d252d97bf"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\WorkOrderDetail.test.tsx": {
-    "mtime": 1779480236.1751714,
-    "ast_hash": "5018491de06c963149bb9c7553f97f5f",
-    "semantic_hash": "5018491de06c963149bb9c7553f97f5f"
+    "mtime": 1782784005.2211192,
+    "ast_hash": "be746606670a83e115649abf5003290a",
+    "semantic_hash": "be746606670a83e115649abf5003290a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\WorkOrdersList.test.tsx": {
-    "mtime": 1781133370.8769877,
-    "ast_hash": "a1c544f677fd699eae698cb2b5b16c92",
-    "semantic_hash": "a1c544f677fd699eae698cb2b5b16c92"
+    "mtime": 1782450229.7479515,
+    "ast_hash": "2116769f68d79eb1581834d97c0abc9a",
+    "semantic_hash": "2116769f68d79eb1581834d97c0abc9a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\.eslintrc.json": {
     "mtime": 1773344209.2844546,
@@ -695,14 +695,14 @@
     "semantic_hash": "413498eb5da50bbce93910bdb4a1a2b4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\next-env.d.ts": {
-    "mtime": 1781155596.9369946,
-    "ast_hash": "b698cdd97fe8e3bd16dcd74899ad7cef",
-    "semantic_hash": "b698cdd97fe8e3bd16dcd74899ad7cef"
+    "mtime": 1781812286.9252193,
+    "ast_hash": "29f60a376e12bf72b67d4994fcc84214",
+    "semantic_hash": "29f60a376e12bf72b67d4994fcc84214"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\next.config.mjs": {
-    "mtime": 1779951331.643353,
-    "ast_hash": "584e994c7d2e9e7b97ffa0db4b55eff8",
-    "semantic_hash": "584e994c7d2e9e7b97ffa0db4b55eff8"
+    "mtime": 1781534486.2045074,
+    "ast_hash": "a7c996cd66e5d981541363e843239a47",
+    "semantic_hash": "a7c996cd66e5d981541363e843239a47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\package.json": {
     "mtime": 1779666464.8735456,
@@ -715,12 +715,12 @@
     "semantic_hash": "762a94d1749c8e97eebf3f94102e8eb2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\proxy.ts": {
-    "mtime": 1780673243.8951473,
-    "ast_hash": "42ecf2bb0c91a0b178e6e758084195dd",
-    "semantic_hash": "42ecf2bb0c91a0b178e6e758084195dd"
+    "mtime": 1782782948.957762,
+    "ast_hash": "52417ea835b19c2f7f57aa36e6f8245f",
+    "semantic_hash": "52417ea835b19c2f7f57aa36e6f8245f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\tailwind.config.ts": {
-    "mtime": 1781158129.1271243,
+    "mtime": 1781395610.068674,
     "ast_hash": "ff61c9a163ae11a82ce3cec569c18a3a",
     "semantic_hash": "ff61c9a163ae11a82ce3cec569c18a3a"
   },
@@ -750,9 +750,9 @@
     "semantic_hash": "3e27f2492cc6f907bb22b64a1ad7455a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(auth)\\login\\page.tsx": {
-    "mtime": 1780524704.7407217,
-    "ast_hash": "a269b12f05080e5b5da30b844cff2353",
-    "semantic_hash": "a269b12f05080e5b5da30b844cff2353"
+    "mtime": 1782782976.4743886,
+    "ast_hash": "b12f9259c43a65eb74dc8a696592d1fd",
+    "semantic_hash": "b12f9259c43a65eb74dc8a696592d1fd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\error.tsx": {
     "mtime": 1779630098.2267556,
@@ -765,9 +765,9 @@
     "semantic_hash": "7d94bb0ceb283a3834a90f06d81966e4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\ai\\page.tsx": {
-    "mtime": 1779630098.2217555,
-    "ast_hash": "b8ccedce1db6ba116545664361cff84e",
-    "semantic_hash": "b8ccedce1db6ba116545664361cff84e"
+    "mtime": 1782784192.997957,
+    "ast_hash": "663a1709b550420a5e01ddc382fb3e56",
+    "semantic_hash": "663a1709b550420a5e01ddc382fb3e56"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\billing\\page.tsx": {
     "mtime": 1779630098.2227557,
@@ -775,9 +775,9 @@
     "semantic_hash": "2a4eb77be1515c24d36a434e69c73479"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\dashboard\\page.tsx": {
-    "mtime": 1779630098.2227557,
-    "ast_hash": "e1eb62f71752cf0332ebcbf046312cca",
-    "semantic_hash": "e1eb62f71752cf0332ebcbf046312cca"
+    "mtime": 1782784193.0239744,
+    "ast_hash": "82d4cf45e7a4a27c2b4e46d932a4c995",
+    "semantic_hash": "82d4cf45e7a4a27c2b4e46d932a4c995"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\page.tsx": {
     "mtime": 1779031345.4218473,
@@ -785,24 +785,24 @@
     "semantic_hash": "0a521869b8c3c935b5f95bddae7c711a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\assets\\page.tsx": {
-    "mtime": 1779630098.2237554,
-    "ast_hash": "17b0d3f2959b1975730dc9d6bcf94fb9",
-    "semantic_hash": "17b0d3f2959b1975730dc9d6bcf94fb9"
+    "mtime": 1782784193.0515552,
+    "ast_hash": "8f8a9ca8c38f72a68ff96fafbf26e7fb",
+    "semantic_hash": "8f8a9ca8c38f72a68ff96fafbf26e7fb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\pm-schedules\\page.tsx": {
-    "mtime": 1779630098.2247596,
-    "ast_hash": "3b49623eff4ed60a886fcf2a87983b17",
-    "semantic_hash": "3b49623eff4ed60a886fcf2a87983b17"
+    "mtime": 1782784193.0803008,
+    "ast_hash": "297cdead4d31f0b31628164020c5e0f3",
+    "semantic_hash": "297cdead4d31f0b31628164020c5e0f3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\predictions\\page.tsx": {
-    "mtime": 1779630098.225755,
-    "ast_hash": "830e40cb02ec330d2289f99825ec6398",
-    "semantic_hash": "830e40cb02ec330d2289f99825ec6398"
+    "mtime": 1782784193.1201715,
+    "ast_hash": "5e547ce99a7620cd2781de76fe812c0d",
+    "semantic_hash": "5e547ce99a7620cd2781de76fe812c0d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\work-orders\\page.tsx": {
-    "mtime": 1780183931.1291313,
-    "ast_hash": "7b3dab0fb79a5481e43170d4aeeead63",
-    "semantic_hash": "7b3dab0fb79a5481e43170d4aeeead63"
+    "mtime": 1782784193.1510465,
+    "ast_hash": "fd311549868640ee1a9a71cb40385244",
+    "semantic_hash": "fd311549868640ee1a9a71cb40385244"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\guest-requests\\page.tsx": {
     "mtime": 1780449989.2497656,
@@ -810,9 +810,9 @@
     "semantic_hash": "3ba2f013709b4d46c2dca22f6e199a50"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\page.tsx": {
-    "mtime": 1780270271.1090097,
-    "ast_hash": "eaa64b0005d947affd2e8b1e6c461984",
-    "semantic_hash": "eaa64b0005d947affd2e8b1e6c461984"
+    "mtime": 1782484190.2832315,
+    "ast_hash": "2d4b0f29f58288ef6bef064eadfb1cf2",
+    "semantic_hash": "2d4b0f29f58288ef6bef064eadfb1cf2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\assignments\\page.tsx": {
     "mtime": 1780061974.8288832,
@@ -825,9 +825,9 @@
     "semantic_hash": "6d539b61c127acc4b470a4d0781e9f8a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\rooms\\page.tsx": {
-    "mtime": 1780076820.7792492,
-    "ast_hash": "ffbb07fec0ed973508c4cbf6ed482d60",
-    "semantic_hash": "ffbb07fec0ed973508c4cbf6ed482d60"
+    "mtime": 1781487529.2164593,
+    "ast_hash": "d7e958f52e9e558aa50a03d967872f61",
+    "semantic_hash": "d7e958f52e9e558aa50a03d967872f61"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\logbook\\page.tsx": {
     "mtime": 1780252971.2497911,
@@ -840,14 +840,14 @@
     "semantic_hash": "6c3dfa4191594866fb428a774b09fbfb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\onboarding\\page.tsx": {
-    "mtime": 1779630098.2343102,
-    "ast_hash": "fef73e7e0a14a0378586df12d2c0a15d",
-    "semantic_hash": "fef73e7e0a14a0378586df12d2c0a15d"
+    "mtime": 1782784280.6194417,
+    "ast_hash": "20c0fd2e25bd4322a4c4cc60b46095e0",
+    "semantic_hash": "20c0fd2e25bd4322a4c4cc60b46095e0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\reports\\page.tsx": {
-    "mtime": 1780467518.808523,
-    "ast_hash": "f96a3fe745a74927750349b4b802457a",
-    "semantic_hash": "f96a3fe745a74927750349b4b802457a"
+    "mtime": 1782784193.2211308,
+    "ast_hash": "f78116c3cb6b986a96da21fe56215382",
+    "semantic_hash": "f78116c3cb6b986a96da21fe56215382"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\scheduling\\page.tsx": {
     "mtime": 1780252460.3889763,
@@ -875,19 +875,19 @@
     "semantic_hash": "729e12faca156a298cb26c8e24d4489d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\staff\\page.tsx": {
-    "mtime": 1780252974.6602607,
-    "ast_hash": "f3ba9e7a8f8f7101f29e61233c22220c",
-    "semantic_hash": "f3ba9e7a8f8f7101f29e61233c22220c"
+    "mtime": 1782784271.6073942,
+    "ast_hash": "b0624d0f83243c847a40a3676b258da2",
+    "semantic_hash": "b0624d0f83243c847a40a3676b258da2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\tasks\\page.tsx": {
-    "mtime": 1780238481.2649322,
-    "ast_hash": "5c8227aa556c9044d6071c7c4e4d5023",
-    "semantic_hash": "5c8227aa556c9044d6071c7c4e4d5023"
+    "mtime": 1781395610.0596473,
+    "ast_hash": "83acad136191307d8e875e8eed5149e8",
+    "semantic_hash": "83acad136191307d8e875e8eed5149e8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\auth\\callback\\page.tsx": {
-    "mtime": 1779630098.242765,
-    "ast_hash": "ab94d272ea70f4355238bc263d4745ef",
-    "semantic_hash": "ab94d272ea70f4355238bc263d4745ef"
+    "mtime": 1782782992.4940002,
+    "ast_hash": "ef93b1a2287996f3f9d0f9e29308cf97",
+    "semantic_hash": "ef93b1a2287996f3f9d0f9e29308cf97"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\auth\\reset-password\\page.tsx": {
     "mtime": 1780252460.3929772,
@@ -895,9 +895,9 @@
     "semantic_hash": "32a38443f8a4e3dcc33cae9a56650d23"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ai\\AICopilotBubble.tsx": {
-    "mtime": 1780686316.8154192,
-    "ast_hash": "ff83fedb6e004a405f5b338985cca4c2",
-    "semantic_hash": "ff83fedb6e004a405f5b338985cca4c2"
+    "mtime": 1782784193.2550452,
+    "ast_hash": "1f4c9feea24ed7cceb2829b59f56a5b0",
+    "semantic_hash": "1f4c9feea24ed7cceb2829b59f56a5b0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ai\\cards.tsx": {
     "mtime": 1779642289.2019186,
@@ -925,14 +925,14 @@
     "semantic_hash": "dbd0509a48539f7e4909913779cc5a3a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\FrontDeskDashboard.tsx": {
-    "mtime": 1779913044.379282,
-    "ast_hash": "ab724f9066281222b7dce99773fe2728",
-    "semantic_hash": "ab724f9066281222b7dce99773fe2728"
+    "mtime": 1781548894.3146417,
+    "ast_hash": "0f7b9a71ec363b73515b2147304d7ca5",
+    "semantic_hash": "0f7b9a71ec363b73515b2147304d7ca5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\HousekeeperDashboard.tsx": {
-    "mtime": 1780973150.8041542,
-    "ast_hash": "16f503dd4d15292d60141f3f2b9cd7c5",
-    "semantic_hash": "16f503dd4d15292d60141f3f2b9cd7c5"
+    "mtime": 1781487529.2214596,
+    "ast_hash": "bbf09714dee2afa2c9b70ecde7d5e309",
+    "semantic_hash": "bbf09714dee2afa2c9b70ecde7d5e309"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\LiveOpsGrid.tsx": {
     "mtime": 1779992957.2087834,
@@ -945,9 +945,9 @@
     "semantic_hash": "e9209fa1ce22849bbce36e85fb0e00f9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\SupervisorDashboard.tsx": {
-    "mtime": 1779992966.0767913,
-    "ast_hash": "4a2e0131b7a5b7d8f080b5d2ed6d79a3",
-    "semantic_hash": "4a2e0131b7a5b7d8f080b5d2ed6d79a3"
+    "mtime": 1781389770.6197329,
+    "ast_hash": "a615b536bdce8e49c9029dc144a5a360",
+    "semantic_hash": "a615b536bdce8e49c9029dc144a5a360"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\TrendChartsRow.tsx": {
     "mtime": 1779630098.2541394,
@@ -960,19 +960,19 @@
     "semantic_hash": "b5793eb9e201251b2afc3060783b5539"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\FailurePredictionSidebar.tsx": {
-    "mtime": 1779630098.255363,
-    "ast_hash": "791e6b6eee51e1c0a3302e4f0e900972",
-    "semantic_hash": "791e6b6eee51e1c0a3302e4f0e900972"
+    "mtime": 1782784193.2845974,
+    "ast_hash": "4d4a6070a450e835f821622262d91cec",
+    "semantic_hash": "4d4a6070a450e835f821622262d91cec"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\WorkOrderCard.tsx": {
-    "mtime": 1781158129.1068113,
+    "mtime": 1781395610.061641,
     "ast_hash": "73d208cf7e1a5caf0843e83c7d19db2a",
     "semantic_hash": "73d208cf7e1a5caf0843e83c7d19db2a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\WorkOrderDetailDrawer.tsx": {
-    "mtime": 1780465763.1956244,
-    "ast_hash": "c75131d0ffbd1d4fbd2eee4bea23ab2c",
-    "semantic_hash": "c75131d0ffbd1d4fbd2eee4bea23ab2c"
+    "mtime": 1782784193.3026,
+    "ast_hash": "3de9cf575c0754c93106bd944eb701d8",
+    "semantic_hash": "3de9cf575c0754c93106bd944eb701d8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\WorkOrderList.tsx": {
     "mtime": 1773534828.4452238,
@@ -980,9 +980,9 @@
     "semantic_hash": "49aebce91eaa3b0c569d985d7eba1f98"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\AssignmentSidebar.tsx": {
-    "mtime": 1779660259.1473658,
-    "ast_hash": "0910ffa7b9caf7de97a542b1f40f7e26",
-    "semantic_hash": "0910ffa7b9caf7de97a542b1f40f7e26"
+    "mtime": 1781535771.5672863,
+    "ast_hash": "56131e2101794e51d51fc73d6aa7ad63",
+    "semantic_hash": "56131e2101794e51d51fc73d6aa7ad63"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\InspectionModal.tsx": {
     "mtime": 1781126476.834961,
@@ -995,19 +995,19 @@
     "semantic_hash": "cf318cf7ac07a1af06c90192230dfc30"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomCard.tsx": {
-    "mtime": 1781158129.10981,
-    "ast_hash": "8ee1f4ec6721ffcd897c7c0a7fd699cc",
-    "semantic_hash": "8ee1f4ec6721ffcd897c7c0a7fd699cc"
+    "mtime": 1781555482.93984,
+    "ast_hash": "ae4870b149853e4f5ea7355e8ac16b93",
+    "semantic_hash": "ae4870b149853e4f5ea7355e8ac16b93"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomDetailDrawer.tsx": {
-    "mtime": 1781126447.2994533,
-    "ast_hash": "7446acfc3749ef6adcb2dfc3f4941ee5",
-    "semantic_hash": "7446acfc3749ef6adcb2dfc3f4941ee5"
+    "mtime": 1781657735.6370566,
+    "ast_hash": "14a53c1c5be0bcbb8b6395b3cfd0c143",
+    "semantic_hash": "14a53c1c5be0bcbb8b6395b3cfd0c143"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomStatusBoard.tsx": {
-    "mtime": 1780453549.9409423,
-    "ast_hash": "0446034d2030d34242ce3f6ea0191db6",
-    "semantic_hash": "0446034d2030d34242ce3f6ea0191db6"
+    "mtime": 1781556164.6431396,
+    "ast_hash": "58f1abd55a861a7169712a06ba236c39",
+    "semantic_hash": "58f1abd55a861a7169712a06ba236c39"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\DashboardShell.tsx": {
     "mtime": 1780006411.9166207,
@@ -1020,9 +1020,9 @@
     "semantic_hash": "e44d402009fd057994fc51cba24eb773"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Header.tsx": {
-    "mtime": 1781158129.1138215,
-    "ast_hash": "f6cbe9bb5783fe56d7eeb957e3d5c64f",
-    "semantic_hash": "f6cbe9bb5783fe56d7eeb957e3d5c64f"
+    "mtime": 1781494074.4388213,
+    "ast_hash": "1301136ae448b836f1659d30bd8b4fc1",
+    "semantic_hash": "1301136ae448b836f1659d30bd8b4fc1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\KebabMenu.tsx": {
     "mtime": 1779031345.6512003,
@@ -1030,24 +1030,24 @@
     "semantic_hash": "0e2f12b74c76e9ef961a6b6442efe7f7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\PageHeader.tsx": {
-    "mtime": 1781158129.1158125,
+    "mtime": 1781395610.0641606,
     "ast_hash": "45f4deb317e15b288a7606d2eac6baa0",
     "semantic_hash": "45f4deb317e15b288a7606d2eac6baa0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\PageTransition.tsx": {
-    "mtime": 1781158129.1178105,
+    "mtime": 1781395610.0641606,
     "ast_hash": "67092ebab1f607e33209ae7872a7b658",
     "semantic_hash": "67092ebab1f607e33209ae7872a7b658"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Providers.tsx": {
-    "mtime": 1781062869.863216,
-    "ast_hash": "38b5442a8d70dbe5192287022b3956b7",
-    "semantic_hash": "38b5442a8d70dbe5192287022b3956b7"
+    "mtime": 1781809843.0319152,
+    "ast_hash": "eb9c6de2c90ea0cb819056750a6bc2b0",
+    "semantic_hash": "eb9c6de2c90ea0cb819056750a6bc2b0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Sidebar.tsx": {
-    "mtime": 1781158129.1188154,
-    "ast_hash": "7f73e6eedb2160175029be57dc90504e",
-    "semantic_hash": "7f73e6eedb2160175029be57dc90504e"
+    "mtime": 1782783631.0604067,
+    "ast_hash": "f40fc0db08dc2eb2d8df529e68a0a66b",
+    "semantic_hash": "f40fc0db08dc2eb2d8df529e68a0a66b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\TweaksPanel.tsx": {
     "mtime": 1779630715.0720744,
@@ -1060,27 +1060,27 @@
     "semantic_hash": "029bfb27a20702bf2512589ce2503067"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Button.tsx": {
-    "mtime": 1781158129.1208115,
+    "mtime": 1781395610.06516,
     "ast_hash": "1096788189905aa7ee4dd917394d1c43",
     "semantic_hash": "1096788189905aa7ee4dd917394d1c43"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Card.tsx": {
-    "mtime": 1781158129.121811,
+    "mtime": 1781395610.06516,
     "ast_hash": "9f0f89a5697f6dbcdd51d16e204f1c68",
     "semantic_hash": "9f0f89a5697f6dbcdd51d16e204f1c68"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Input.tsx": {
-    "mtime": 1781158129.1230555,
+    "mtime": 1781395610.0666654,
     "ast_hash": "beee83e13b5b4d2b39216947a688e3e3",
     "semantic_hash": "beee83e13b5b4d2b39216947a688e3e3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\primitives.tsx": {
-    "mtime": 1781158129.1251154,
+    "mtime": 1781395610.0676708,
     "ast_hash": "b4c0cd2bcab5f47d7d294624f11d3f5b",
     "semantic_hash": "b4c0cd2bcab5f47d7d294624f11d3f5b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Skeleton.tsx": {
-    "mtime": 1781158129.1240659,
+    "mtime": 1781395610.0666654,
     "ast_hash": "653551b799bdb37e3cdc4beeacb02ee6",
     "semantic_hash": "653551b799bdb37e3cdc4beeacb02ee6"
   },
@@ -1110,14 +1110,14 @@
     "semantic_hash": "4bf92bd98f9dd4267fdaf328a237fb7e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\client.ts": {
-    "mtime": 1781126545.4478233,
-    "ast_hash": "b0a158be97cde3e27ba156bd2c1050b0",
-    "semantic_hash": "b0a158be97cde3e27ba156bd2c1050b0"
+    "mtime": 1781660609.5195067,
+    "ast_hash": "cea50147d1f5e7eb4f045857b236c97c",
+    "semantic_hash": "cea50147d1f5e7eb4f045857b236c97c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\engineering.ts": {
-    "mtime": 1780467459.9072177,
-    "ast_hash": "2c1ff6e1b33a23aebaf0a62b6932d531",
-    "semantic_hash": "2c1ff6e1b33a23aebaf0a62b6932d531"
+    "mtime": 1781640701.7132123,
+    "ast_hash": "204448a7c1c94aea0ee92806e8e3cdbe",
+    "semantic_hash": "204448a7c1c94aea0ee92806e8e3cdbe"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\guest_requests.ts": {
     "mtime": 1780449999.0458052,
@@ -1170,9 +1170,9 @@
     "semantic_hash": "b0584154fbc8ffc8f79e6286efe47de7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\staff.ts": {
-    "mtime": 1779031345.6733,
-    "ast_hash": "e75588e403e8ee8fc5df727e163a6eda",
-    "semantic_hash": "e75588e403e8ee8fc5df727e163a6eda"
+    "mtime": 1782784193.3739197,
+    "ast_hash": "3c1bdadc4b3c7aab386bceaa3e4db222",
+    "semantic_hash": "3c1bdadc4b3c7aab386bceaa3e4db222"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\tasks.ts": {
     "mtime": 1779630098.2679007,
@@ -1180,9 +1180,9 @@
     "semantic_hash": "2962113d4c3228638a9473010d7ae0b9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\hooks\\useAuth.ts": {
-    "mtime": 1779630098.2689066,
-    "ast_hash": "01ec9106b9832615919a1b6b1753d2c9",
-    "semantic_hash": "01ec9106b9832615919a1b6b1753d2c9"
+    "mtime": 1781660603.5084784,
+    "ast_hash": "202bb5fb35cf957e2b6252efa4b9d7c3",
+    "semantic_hash": "202bb5fb35cf957e2b6252efa4b9d7c3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\hooks\\useCountUp.ts": {
     "mtime": 1779031345.676072,
@@ -1195,9 +1195,9 @@
     "semantic_hash": "c431eb99066d23a38d531d394de5f31c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\hooks\\useRole.ts": {
-    "mtime": 1779031345.6779933,
-    "ast_hash": "6fa0c56bc05e4e292eff8aba64bf0943",
-    "semantic_hash": "6fa0c56bc05e4e292eff8aba64bf0943"
+    "mtime": 1782783622.205109,
+    "ast_hash": "23dd34b77f27e7156153353b1fa749ee",
+    "semantic_hash": "23dd34b77f27e7156153353b1fa749ee"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\supabase\\client.ts": {
     "mtime": 1779081990.2979937,
@@ -1245,14 +1245,14 @@
     "semantic_hash": "d5fc3afa79f0c3df711898805e5da7b2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\roomStatus.ts": {
-    "mtime": 1780062523.5625527,
-    "ast_hash": "f3aaef2874302272865f2a7d4fec6513",
-    "semantic_hash": "f3aaef2874302272865f2a7d4fec6513"
+    "mtime": 1782784193.4217708,
+    "ast_hash": "49e5f4e8e514d1818a6eaf622311003d",
+    "semantic_hash": "49e5f4e8e514d1818a6eaf622311003d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\stores\\authStore.ts": {
-    "mtime": 1779031345.6888316,
-    "ast_hash": "a7c7e9f7308c7fa1b37565e816add70a",
-    "semantic_hash": "a7c7e9f7308c7fa1b37565e816add70a"
+    "mtime": 1782783618.708131,
+    "ast_hash": "a750aa1a3c0daee9ff616a618178041a",
+    "semantic_hash": "a750aa1a3c0daee9ff616a618178041a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\stores\\engineeringStore.ts": {
     "mtime": 1773182755.0206535,
@@ -1265,9 +1265,9 @@
     "semantic_hash": "3d2bc4e3eb1561a464d1b7b6bc3c26ec"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\stores\\housekeepingStore.ts": {
-    "mtime": 1780238202.105402,
-    "ast_hash": "89f3bc4a6547b6522144a9eb8b1884ce",
-    "semantic_hash": "89f3bc4a6547b6522144a9eb8b1884ce"
+    "mtime": 1781535725.798168,
+    "ast_hash": "a077a1e28257198e0b44431b3de1f249",
+    "semantic_hash": "a077a1e28257198e0b44431b3de1f249"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\stores\\uiPreferencesStore.ts": {
     "mtime": 1779630685.6208313,
@@ -1435,14 +1435,14 @@
     "semantic_hash": "ceb1ffa4d3e50d33e788536789015d3a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\mobile-usability.spec.ts": {
-    "mtime": 1779031345.7155347,
-    "ast_hash": "43c6f0c7ce7d9bb31d6c140ee3679553",
-    "semantic_hash": "43c6f0c7ce7d9bb31d6c140ee3679553"
+    "mtime": 1781534514.1901064,
+    "ast_hash": "770c00fef6992e89f75e271ce1e98934",
+    "semantic_hash": "770c00fef6992e89f75e271ce1e98934"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\agent-browser\\config.json": {
-    "mtime": 1779421917.991315,
-    "ast_hash": "6cc3b9976b1c2044e03532849ad7c1f6",
-    "semantic_hash": "6cc3b9976b1c2044e03532849ad7c1f6"
+    "mtime": 1781534489.1188743,
+    "ast_hash": "248bb12b0c0984a688444f7efda17860",
+    "semantic_hash": "248bb12b0c0984a688444f7efda17860"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\agent-browser\\scripts\\auth-setup.ps1": {
     "mtime": 1779585069.1553388,
@@ -1470,9 +1470,9 @@
     "semantic_hash": "f44bc0b61b379d4b8c7ee3bffebf753c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\e2e\\helpers\\rbac-users.ts": {
-    "mtime": 1779180399.9997807,
-    "ast_hash": "ab4aa12dc1692bf54f9f0ca9e249c562",
-    "semantic_hash": "ab4aa12dc1692bf54f9f0ca9e249c562"
+    "mtime": 1781534499.118896,
+    "ast_hash": "cba4a63a9629a4a3be9ef09d4347970c",
+    "semantic_hash": "cba4a63a9629a4a3be9ef09d4347970c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\seed.sql": {
     "mtime": 1772804605.8868043,
@@ -1700,14 +1700,14 @@
     "semantic_hash": "44f49f06a22c58618a15b34f28f217ce"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\AGENTS.md": {
-    "mtime": 1779031345.3232772,
-    "ast_hash": "f372858c5c34ecd7fb3f895a520db5d7",
-    "semantic_hash": "f372858c5c34ecd7fb3f895a520db5d7"
+    "mtime": 1781534481.939934,
+    "ast_hash": "ddd13b17dad33087147bedabfe282e8f",
+    "semantic_hash": "ddd13b17dad33087147bedabfe282e8f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\CLAUDE.md": {
-    "mtime": 1780256140.2928302,
-    "ast_hash": "a9a2930342da214d05844439771e36a3",
-    "semantic_hash": "a9a2930342da214d05844439771e36a3"
+    "mtime": 1781811869.1641753,
+    "ast_hash": "8eff38f5c1bd5ca50d7bae6f72bd8f32",
+    "semantic_hash": "8eff38f5c1bd5ca50d7bae6f72bd8f32"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\C\uf03aUsersHenilprojectsPatelRep.wolfmemory.md": {
     "mtime": 1779472488.2294724,
@@ -1720,19 +1720,19 @@
     "semantic_hash": "e1f17b778a87ac6da35aac7776ef6041"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\FRONTEND_PLAYWRIGHT_AUDIT_2026-05-23.md": {
-    "mtime": 1779517879.526786,
-    "ast_hash": "52a118875a4792ff399081437a6c110b",
-    "semantic_hash": "52a118875a4792ff399081437a6c110b"
+    "mtime": 1781534538.1321442,
+    "ast_hash": "d82b6cb0e268e3d0ec69849e1292b768",
+    "semantic_hash": "d82b6cb0e268e3d0ec69849e1292b768"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\README.md": {
-    "mtime": 1779031345.3260283,
-    "ast_hash": "786fd83b94789fa9080aa764147a39ed",
-    "semantic_hash": "786fd83b94789fa9080aa764147a39ed"
+    "mtime": 1781534533.1494052,
+    "ast_hash": "451497e4721a4944c50e9ca6678f1d4f",
+    "semantic_hash": "451497e4721a4944c50e9ca6678f1d4f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\UI_UX_FIXES_BACKLOG.md": {
-    "mtime": 1779578422.2565238,
-    "ast_hash": "c945944c0b17ca66b76aaaafbe1a63e0",
-    "semantic_hash": "c945944c0b17ca66b76aaaafbe1a63e0"
+    "mtime": 1781534535.7873952,
+    "ast_hash": "135eeb10231ae589e940018d96140574",
+    "semantic_hash": "135eeb10231ae589e940018d96140574"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.claude\\rules\\openwolf.md": {
     "mtime": 1779031345.1882303,
@@ -1750,14 +1750,14 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1781218563.5697186,
-    "ast_hash": "4e0d9be0237dfaa8512ba23da1f66272",
-    "semantic_hash": "4e0d9be0237dfaa8512ba23da1f66272"
+    "mtime": 1782784280.7398899,
+    "ast_hash": "e61f02aa7ac62523c3bbf7329b78077b",
+    "semantic_hash": "e61f02aa7ac62523c3bbf7329b78077b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
-    "mtime": 1781218574.22245,
-    "ast_hash": "977676102aaed063c93b348d09cd4b90",
-    "semantic_hash": "977676102aaed063c93b348d09cd4b90"
+    "mtime": 1782672880.9807682,
+    "ast_hash": "a616726b1e964ed8ba6bd21d24781d47",
+    "semantic_hash": "a616726b1e964ed8ba6bd21d24781d47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\identity.md": {
     "mtime": 1779031345.3155138,
@@ -1765,9 +1765,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1781218864.581419,
-    "ast_hash": "cff4be2522ebabcfc41986ec098c000c",
-    "semantic_hash": "cff4be2522ebabcfc41986ec098c000c"
+    "mtime": 1782788408.639102,
+    "ast_hash": "edb3c10f7cc578af7d379f28c7132d04",
+    "semantic_hash": "edb3c10f7cc578af7d379f28c7132d04"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -1985,9 +1985,9 @@
     "semantic_hash": "3d0c03cfea43dbab0129fae348dbda51"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\departments\\page.tsx": {
-    "mtime": 1779850052.0264554,
-    "ast_hash": "1ef73d921f35d032987bc98dfcf11ad4",
-    "semantic_hash": "1ef73d921f35d032987bc98dfcf11ad4"
+    "mtime": 1782783668.148094,
+    "ast_hash": "c0aae87b42c8045c76a7de51721c6963",
+    "semantic_hash": "c0aae87b42c8045c76a7de51721c6963"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\front-desk\\page.tsx": {
     "mtime": 1779850076.9961104,
@@ -2010,14 +2010,14 @@
     "semantic_hash": "3617d2eccf744440148c5f0980d10556"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\rooms\\page.tsx": {
-    "mtime": 1779912911.4182327,
-    "ast_hash": "d75d0fbd7ed1beb5382feb928ea5f856",
-    "semantic_hash": "d75d0fbd7ed1beb5382feb928ea5f856"
+    "mtime": 1781487529.2194607,
+    "ast_hash": "9c61d136612479d47e4201764984a16b",
+    "semantic_hash": "9c61d136612479d47e4201764984a16b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\RoleForm.tsx": {
-    "mtime": 1779850110.454075,
-    "ast_hash": "aa3cbb91ec0718616c36a47cf2a6a14f",
-    "semantic_hash": "aa3cbb91ec0718616c36a47cf2a6a14f"
+    "mtime": 1782784193.3457239,
+    "ast_hash": "e449c8fa2b62a006190fda6fd4fd52ec",
+    "semantic_hash": "e449c8fa2b62a006190fda6fd4fd52ec"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\RoomsImportModal.tsx": {
     "mtime": 1780183046.261757,
@@ -2095,14 +2095,14 @@
     "semantic_hash": "2bf586ccf23d95acd6df4a68ca650bd7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\housekeepingBoardFilters.test.ts": {
-    "mtime": 1780238250.2408373,
-    "ast_hash": "6a2cb7b2a500f2179008fc2719f79030",
-    "semantic_hash": "6a2cb7b2a500f2179008fc2719f79030"
+    "mtime": 1781535787.5375504,
+    "ast_hash": "c56495e3788da0f6f5aafd2bd8a45c93",
+    "semantic_hash": "c56495e3788da0f6f5aafd2bd8a45c93"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\housekeepingBoardFilters.ts": {
-    "mtime": 1780059592.5033345,
-    "ast_hash": "102fa7e8f8fa5424c5210f425dd81cd2",
-    "semantic_hash": "102fa7e8f8fa5424c5210f425dd81cd2"
+    "mtime": 1781535693.5526185,
+    "ast_hash": "8ee18b4d267de28b1e091df36beb76c9",
+    "semantic_hash": "8ee18b4d267de28b1e091df36beb76c9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\046_actual_checkout_at.sql": {
     "mtime": 1779983599.7399218,
@@ -2285,7 +2285,7 @@
     "semantic_hash": "bce9d3de5bf5e7b82bd2ec9f205158a5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\FeedbackButton.tsx": {
-    "mtime": 1781158129.1118114,
+    "mtime": 1781395610.0631528,
     "ast_hash": "6cc9cc095b1c15d5b8c870218a2a0678",
     "semantic_hash": "6cc9cc095b1c15d5b8c870218a2a0678"
   },
@@ -4675,9 +4675,9 @@
     "semantic_hash": "c303b5162f8361dd5df3d337e70119e4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\dashboard.png": {
-    "mtime": 1780367538.19071,
-    "ast_hash": "ddefd11a0e32175af114e6fe1c1d21b1",
-    "semantic_hash": "ddefd11a0e32175af114e6fe1c1d21b1"
+    "mtime": 1781490073.0375504,
+    "ast_hash": "80287b12dcf358d5ea47f76c27c3301a",
+    "semantic_hash": "80287b12dcf358d5ea47f76c27c3301a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\guest-requests\\GuestRequestDrawer.tsx": {
     "mtime": 1780452147.2397876,
@@ -4735,9 +4735,9 @@
     "semantic_hash": "758e8087dde01cc57262a5722cfd1533"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\domTranslations.ts": {
-    "mtime": 1780537832.4360647,
-    "ast_hash": "12cf2d8b463053fa9de751dca35cacd3",
-    "semantic_hash": "12cf2d8b463053fa9de751dca35cacd3"
+    "mtime": 1781395610.068674,
+    "ast_hash": "0f2166f8e93b8920b70c074cc4ae9e3e",
+    "semantic_hash": "0f2166f8e93b8920b70c074cc4ae9e3e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\index.ts": {
     "mtime": 1780520656.614303,
@@ -4745,14 +4745,14 @@
     "semantic_hash": "fadb0ff4aa319a654f1557b8919d3286"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\locales\\en.ts": {
-    "mtime": 1780524704.7366438,
-    "ast_hash": "69e69508600f7f38d1e3b72d30e2eb93",
-    "semantic_hash": "69e69508600f7f38d1e3b72d30e2eb93"
+    "mtime": 1782783641.5332942,
+    "ast_hash": "9aa3da51d1051100b5b5a453a382909f",
+    "semantic_hash": "9aa3da51d1051100b5b5a453a382909f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\locales\\es.ts": {
-    "mtime": 1780525744.5455544,
-    "ast_hash": "813345ee7692b2097f1f9a8069f72323",
-    "semantic_hash": "813345ee7692b2097f1f9a8069f72323"
+    "mtime": 1782783644.3901217,
+    "ast_hash": "e6c05f93cf90e4e509d53b1c1ff02119",
+    "semantic_hash": "e6c05f93cf90e4e509d53b1c1ff02119"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\053_fix_jwt_role_claim.sql": {
     "mtime": 1780555115.2765207,
@@ -4935,24 +4935,24 @@
     "semantic_hash": "ac956b3c95de8f738b996ace0d16ccdc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\STATE.md": {
-    "mtime": 1781213047.2116091,
-    "ast_hash": "cd0c1466bda7ed7b0a287e10c2483a97",
-    "semantic_hash": "cd0c1466bda7ed7b0a287e10c2483a97"
+    "mtime": 1782784244.3859882,
+    "ast_hash": "c54385b05faf5fd7a8bef1ee3a6a3bd8",
+    "semantic_hash": "c54385b05faf5fd7a8bef1ee3a6a3bd8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\assets\\index.tsx": {
-    "mtime": 1780663582.7280858,
-    "ast_hash": "925736cc235a395aa88d9e66d2ab4f71",
-    "semantic_hash": "925736cc235a395aa88d9e66d2ab4f71"
+    "mtime": 1781394388.2171638,
+    "ast_hash": "e5f342a8b0f97696831d3dc3b33805d7",
+    "semantic_hash": "e5f342a8b0f97696831d3dc3b33805d7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\home\\index.tsx": {
-    "mtime": 1781213773.0456822,
-    "ast_hash": "676adb35401b01170512ed7c633711fe",
-    "semantic_hash": "676adb35401b01170512ed7c633711fe"
+    "mtime": 1782784005.213209,
+    "ast_hash": "f5e42da06f65372feba8a350e8e785ec",
+    "semantic_hash": "f5e42da06f65372feba8a350e8e785ec"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\inspect\\index.tsx": {
-    "mtime": 1780688509.4985583,
-    "ast_hash": "bbd2e823ca6365f7a692f84b9b3badf8",
-    "semantic_hash": "bbd2e823ca6365f7a692f84b9b3badf8"
+    "mtime": 1782493589.7194457,
+    "ast_hash": "80b53569c32e67ab564c59aa232d18b6",
+    "semantic_hash": "80b53569c32e67ab564c59aa232d18b6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\lost-found\\index.tsx": {
     "mtime": 1780663680.2014153,
@@ -4980,34 +4980,34 @@
     "semantic_hash": "df5756f5d9f8ffff41479ae2ea531b81"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\shared\\mobileHandoff.tsx": {
-    "mtime": 1781133163.993775,
-    "ast_hash": "5b53c73a3a3d81cbf12740b3dda6ba76",
-    "semantic_hash": "5b53c73a3a3d81cbf12740b3dda6ba76"
+    "mtime": 1781487529.2041137,
+    "ast_hash": "2a13b980cb096fbf1f99026500b63641",
+    "semantic_hash": "2a13b980cb096fbf1f99026500b63641"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\navigation\\roleTabs.ts": {
-    "mtime": 1781131499.990864,
-    "ast_hash": "dbcce88194836d961007742102c6b25a",
-    "semantic_hash": "dbcce88194836d961007742102c6b25a"
+    "mtime": 1782784005.2211192,
+    "ast_hash": "fe9e946f9df84792e12fe39e8866a7e5",
+    "semantic_hash": "fe9e946f9df84792e12fe39e8866a7e5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\roleTabs.test.ts": {
-    "mtime": 1781131499.973809,
-    "ast_hash": "af2263ab914fd7ebd80e727a5e3d439c",
-    "semantic_hash": "af2263ab914fd7ebd80e727a5e3d439c"
+    "mtime": 1782784005.2211192,
+    "ast_hash": "09ec9738a64142797a10c08813034dbf",
+    "semantic_hash": "09ec9738a64142797a10c08813034dbf"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\HousekeeperHome.test.tsx": {
-    "mtime": 1781213755.4126954,
-    "ast_hash": "d31959118e927b3dbe45a553e177ac08",
-    "semantic_hash": "d31959118e927b3dbe45a553e177ac08"
+    "mtime": 1782449978.9441278,
+    "ast_hash": "8dbaba1d2dd83cba97ca3aaa58f38141",
+    "semantic_hash": "8dbaba1d2dd83cba97ca3aaa58f38141"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\InspectorQueue.test.tsx": {
-    "mtime": 1780669352.4559171,
-    "ast_hash": "10acd3b652494cff3ea9693e0ea8d57c",
-    "semantic_hash": "10acd3b652494cff3ea9693e0ea8d57c"
+    "mtime": 1781389787.6614084,
+    "ast_hash": "6c133b8bf175010f8a9309d8f4eaa4b9",
+    "semantic_hash": "6c133b8bf175010f8a9309d8f4eaa4b9"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\ProfileHandoff.test.tsx": {
-    "mtime": 1781131499.9758189,
-    "ast_hash": "a41d60849d077dd2f08963e19c28a831",
-    "semantic_hash": "a41d60849d077dd2f08963e19c28a831"
+    "mtime": 1781389787.662421,
+    "ast_hash": "2edfac3b87b3ad8375105e4b8e3c9f56",
+    "semantic_hash": "2edfac3b87b3ad8375105e4b8e3c9f56"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\design_handoff_mobile\\mobile-domains.jsx": {
     "mtime": 1780597010.80188,
@@ -5080,14 +5080,14 @@
     "semantic_hash": "c90a404aea4e1ab999ebcdba50eb6353"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\inspections.ts": {
-    "mtime": 1780688461.6417317,
-    "ast_hash": "910b5109e7b9db2b9eae7c0067082a98",
-    "semantic_hash": "910b5109e7b9db2b9eae7c0067082a98"
+    "mtime": 1782492619.5264244,
+    "ast_hash": "ba69bc26474ebaf7341e3553e8e489bc",
+    "semantic_hash": "ba69bc26474ebaf7341e3553e8e489bc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\utils\\date.ts": {
-    "mtime": 1780667375.6121075,
-    "ast_hash": "208d8efa3b404c3f35600c12294f974c",
-    "semantic_hash": "208d8efa3b404c3f35600c12294f974c"
+    "mtime": 1782354296.1306353,
+    "ast_hash": "92ef4d4a442c2e2d7131d1e9c61ff2ed",
+    "semantic_hash": "92ef4d4a442c2e2d7131d1e9c61ff2ed"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\routeGuard.test.mjs": {
     "mtime": 1780673243.893142,
@@ -5095,9 +5095,9 @@
     "semantic_hash": "7b57b6c77aa263d631a0d58f6bb2587c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\routeGuard.ts": {
-    "mtime": 1780672574.6938105,
-    "ast_hash": "cf04643bad1779e1b8270e08bb74ae8d",
-    "semantic_hash": "cf04643bad1779e1b8270e08bb74ae8d"
+    "mtime": 1782784229.959181,
+    "ast_hash": "55418bce5e7c7f27b5ab42f1b688c92c",
+    "semantic_hash": "55418bce5e7c7f27b5ab42f1b688c92c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\alerts\\index.tsx": {
     "mtime": 1780683832.5989172,
@@ -5105,14 +5105,14 @@
     "semantic_hash": "63afbe512fc8183dace4014612216ac5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\assignments\\index.tsx": {
-    "mtime": 1780688488.8239827,
-    "ast_hash": "d22f6a24d3d9991fba9ba3c7ea039e5b",
-    "semantic_hash": "d22f6a24d3d9991fba9ba3c7ea039e5b"
+    "mtime": 1782493640.673242,
+    "ast_hash": "beb63c76a8c7acf67b6ca60c550e4ee7",
+    "semantic_hash": "beb63c76a8c7acf67b6ca60c550e4ee7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\guest-requests\\index.tsx": {
-    "mtime": 1781133336.7474163,
-    "ast_hash": "f756a3668f2fdbfd705724a50809d940",
-    "semantic_hash": "f756a3668f2fdbfd705724a50809d940"
+    "mtime": 1781536523.1832428,
+    "ast_hash": "1ea013c055d6033a16e0589447719104",
+    "semantic_hash": "1ea013c055d6033a16e0589447719104"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\guest-requests\\[requestId].tsx": {
     "mtime": 1781133355.7194104,
@@ -5130,24 +5130,24 @@
     "semantic_hash": "e7813a9b9a66a7ac616ff3170fbcbe45"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\pm-schedules\\index.tsx": {
-    "mtime": 1780683887.103883,
-    "ast_hash": "800584993cba10afb4f5db7142842c26",
-    "semantic_hash": "800584993cba10afb4f5db7142842c26"
+    "mtime": 1782669506.7828555,
+    "ast_hash": "b7863a952d5ef0e21aac978f79ecf3a7",
+    "semantic_hash": "b7863a952d5ef0e21aac978f79ecf3a7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\room-board\\index.tsx": {
-    "mtime": 1780683921.2283669,
-    "ast_hash": "60b1b7bba5583ce3debcad0a10c9c69f",
-    "semantic_hash": "60b1b7bba5583ce3debcad0a10c9c69f"
+    "mtime": 1782437526.2627914,
+    "ast_hash": "fb8add12ce5ee8e17a6e91266de0e2cd",
+    "semantic_hash": "fb8add12ce5ee8e17a6e91266de0e2cd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\room-status\\index.tsx": {
-    "mtime": 1781055028.6889222,
-    "ast_hash": "058e03fcbf6904dfebe82d14c5eebf0c",
-    "semantic_hash": "058e03fcbf6904dfebe82d14c5eebf0c"
+    "mtime": 1782784005.2178857,
+    "ast_hash": "10118b6b3c4142d7718643d9814906f7",
+    "semantic_hash": "10118b6b3c4142d7718643d9814906f7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\staff\\index.tsx": {
-    "mtime": 1780688477.5024045,
-    "ast_hash": "eb9962ab22146cfbf214ea8fb37421e4",
-    "semantic_hash": "eb9962ab22146cfbf214ea8fb37421e4"
+    "mtime": 1782784005.2188923,
+    "ast_hash": "50f5f529eea3632251f571f3792d053a",
+    "semantic_hash": "50f5f529eea3632251f571f3792d053a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\guestRequests.ts": {
     "mtime": 1780689171.777146,
@@ -5170,14 +5170,14 @@
     "semantic_hash": "aa4ed653953fc58f0a11a14ae81914b4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.github\\workflows\\ci.yml": {
-    "mtime": 1780779652.5398216,
-    "ast_hash": "9a38f89035127cd8d5fad51ee74b2619",
-    "semantic_hash": "9a38f89035127cd8d5fad51ee74b2619"
+    "mtime": 1781534485.0047987,
+    "ast_hash": "71c581424a8c1f477cfc433da9b9c83b",
+    "semantic_hash": "71c581424a8c1f477cfc433da9b9c83b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.github\\workflows\\deploy-check.yml": {
-    "mtime": 1780779659.659683,
-    "ast_hash": "326bc19d246b4d275a9092fe97807e14",
-    "semantic_hash": "326bc19d246b4d275a9092fe97807e14"
+    "mtime": 1781534494.0927732,
+    "ast_hash": "fcc80f32866894466117ad8b264dc264",
+    "semantic_hash": "fcc80f32866894466117ad8b264dc264"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.githooks\\pre-push": {
     "mtime": 1780784033.2725444,
@@ -5245,17 +5245,17 @@
     "semantic_hash": "4b9cbf6b7fc1842ea2df0b8000dea4d7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\housekeeping\\roomWorkflow.ts": {
-    "mtime": 1781147292.8854008,
-    "ast_hash": "0ba8ed00b15f9c9accad43af6699815b",
-    "semantic_hash": "0ba8ed00b15f9c9accad43af6699815b"
+    "mtime": 1782774149.3390653,
+    "ast_hash": "b5c2d6f73e24e76f1b224cefcd3ac9f7",
+    "semantic_hash": "b5c2d6f73e24e76f1b224cefcd3ac9f7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\roomWorkflow.test.ts": {
-    "mtime": 1781159148.7654748,
-    "ast_hash": "25e4c80e419642bab2236c1b12496138",
-    "semantic_hash": "25e4c80e419642bab2236c1b12496138"
+    "mtime": 1782486787.1117208,
+    "ast_hash": "d0ed6c869caf5463c634fabe730a68ce",
+    "semantic_hash": "d0ed6c869caf5463c634fabe730a68ce"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\components\\MobileVisualTokens.test.ts": {
-    "mtime": 1781184990.5407882,
+    "mtime": 1781395610.0523946,
     "ast_hash": "3b91940ad1b7c991a454dc43ef1bc8e5",
     "semantic_hash": "3b91940ad1b7c991a454dc43ef1bc8e5"
   },
@@ -5265,9 +5265,9 @@
     "semantic_hash": "93859740b40c1f043f6cb43feb04143b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\clean_sessions.py": {
-    "mtime": 1781129302.0118892,
-    "ast_hash": "09d4579cf7fc4aa9ea10ce4113b40bee",
-    "semantic_hash": "09d4579cf7fc4aa9ea10ce4113b40bee"
+    "mtime": 1781642031.418127,
+    "ast_hash": "df1f6a8a2acbd096bd903f45085aa1f1",
+    "semantic_hash": "df1f6a8a2acbd096bd903f45085aa1f1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\shifts.py": {
     "mtime": 1781073740.2298338,
@@ -5275,9 +5275,9 @@
     "semantic_hash": "9f031525b70d8263edfc14097f3397c8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\room_status_transitions.py": {
-    "mtime": 1781073560.4219508,
-    "ast_hash": "822e2f1a100f3e32b102d10f59f27b2f",
-    "semantic_hash": "822e2f1a100f3e32b102d10f59f27b2f"
+    "mtime": 1782784081.4437244,
+    "ast_hash": "4b270bc6404697c87c256b91fa8aebc8",
+    "semantic_hash": "4b270bc6404697c87c256b91fa8aebc8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\fake_supabase.py": {
     "mtime": 1781073948.8944848,
@@ -5315,9 +5315,9 @@
     "semantic_hash": "27d9048f58d5f83a2bfdc6639d30a280"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\cleanSessions.ts": {
-    "mtime": 1781126555.0242515,
-    "ast_hash": "a0cb1f20ebed899008ba229868db6186",
-    "semantic_hash": "a0cb1f20ebed899008ba229868db6186"
+    "mtime": 1781642041.9639163,
+    "ast_hash": "adc6eef5fe4f4179899f0cdf1ffb215b",
+    "semantic_hash": "adc6eef5fe4f4179899f0cdf1ffb215b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\054_cleaning_checklists.sql": {
     "mtime": 1781073360.9139552,
@@ -5345,63 +5345,518 @@
     "semantic_hash": "049c68f08c6c771a29d972f0c7a7a4eb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\my-rooms\\index.tsx": {
-    "mtime": 1781201880.0911918,
-    "ast_hash": "14d831aa3de53bdcd355d110e52ca000",
-    "semantic_hash": "14d831aa3de53bdcd355d110e52ca000"
+    "mtime": 1782773515.4226,
+    "ast_hash": "05c23d62c634fc7f9ef0680bcef1cac2",
+    "semantic_hash": "05c23d62c634fc7f9ef0680bcef1cac2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\MyRoomsScreen.test.tsx": {
-    "mtime": 1781201933.7783544,
-    "ast_hash": "4004430215b9e0b458ff84a04b74b50b",
-    "semantic_hash": "4004430215b9e0b458ff84a04b74b50b"
+    "mtime": 1782486552.6721258,
+    "ast_hash": "88c2cd36aea483df8ad2fd6f5217d015",
+    "semantic_hash": "88c2cd36aea483df8ad2fd6f5217d015"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\TasksVariationA.test.tsx": {
-    "mtime": 1781218496.3788025,
-    "ast_hash": "955ff1c216636b879241ef96018903d6",
-    "semantic_hash": "955ff1c216636b879241ef96018903d6"
+    "mtime": 1781389787.6637254,
+    "ast_hash": "f77a3ccd2cd8c28312d43cece06ba85a",
+    "semantic_hash": "f77a3ccd2cd8c28312d43cece06ba85a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\GuestRequestsList.test.tsx": {
-    "mtime": 1781133393.5212176,
-    "ast_hash": "ffb9ee120d0d5d2dd0a9e9fb8bd47d44",
-    "semantic_hash": "ffb9ee120d0d5d2dd0a9e9fb8bd47d44"
+    "mtime": 1781628566.9951456,
+    "ast_hash": "2f8557ab6bb23d54bf06b90591afb9e5",
+    "semantic_hash": "2f8557ab6bb23d54bf06b90591afb9e5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\housekeeping_briefing.py": {
-    "mtime": 1781158324.7324996,
-    "ast_hash": "f6449f2d569f474e83fad082042b98e3",
-    "semantic_hash": "f6449f2d569f474e83fad082042b98e3"
+    "mtime": 1781532228.044644,
+    "ast_hash": "6efde35eea358e851d7880693d3c2858",
+    "semantic_hash": "6efde35eea358e851d7880693d3c2858"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\shared\\evening.tsx": {
-    "mtime": 1781183954.5406716,
-    "ast_hash": "3cb3de271065982beb58837bbd2045d9",
-    "semantic_hash": "3cb3de271065982beb58837bbd2045d9"
+    "mtime": 1782774170.5690775,
+    "ast_hash": "91b48ea27864c77cbd313a807e44d937",
+    "semantic_hash": "91b48ea27864c77cbd313a807e44d937"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\ai\\briefing.ts": {
-    "mtime": 1781159034.7421544,
-    "ast_hash": "f051beb4f09ff9a8eea8e88995908c30",
-    "semantic_hash": "f051beb4f09ff9a8eea8e88995908c30"
+    "mtime": 1781633138.7618895,
+    "ast_hash": "c028147510682b1677530c08bf196fc6",
+    "semantic_hash": "c028147510682b1677530c08bf196fc6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\ai\\tasks.ts": {
-    "mtime": 1781184764.2913923,
-    "ast_hash": "6541b0235763c99a3829f7a5cabab4a0",
-    "semantic_hash": "6541b0235763c99a3829f7a5cabab4a0"
+    "mtime": 1781395195.333259,
+    "ast_hash": "9320bcf2e419cac1303ed6dbc4cb50bd",
+    "semantic_hash": "9320bcf2e419cac1303ed6dbc4cb50bd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\housekeeping\\roomBlockers.ts": {
-    "mtime": 1781209276.7609177,
-    "ast_hash": "18de2a13b773285356c5446fe1d73125",
-    "semantic_hash": "18de2a13b773285356c5446fe1d73125"
+    "mtime": 1782449230.382428,
+    "ast_hash": "db5decef74bfa64285c45910ef48fd42",
+    "semantic_hash": "db5decef74bfa64285c45910ef48fd42"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\roomBlockers.test.ts": {
-    "mtime": 1781209259.2321525,
-    "ast_hash": "73015c9ba3c24d0a9652d6482edc4680",
-    "semantic_hash": "73015c9ba3c24d0a9652d6482edc4680"
+    "mtime": 1782450220.5593886,
+    "ast_hash": "55b0be0140b3ccee65977d6d698010b0",
+    "semantic_hash": "55b0be0140b3ccee65977d6d698010b0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\ai\\companion.ts": {
-    "mtime": 1781213526.2324295,
-    "ast_hash": "448afbc588a503aa36100855a1ced76a",
-    "semantic_hash": "448afbc588a503aa36100855a1ced76a"
+    "mtime": 1781627654.0835817,
+    "ast_hash": "984d107315a98d468ba818b1d0a66fcb",
+    "semantic_hash": "984d107315a98d468ba818b1d0a66fcb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\tasks\\TaskCard.tsx": {
-    "mtime": 1781215628.9531772,
-    "ast_hash": "9ce1265a8009b764f765e3639b765683",
-    "semantic_hash": "9ce1265a8009b764f765e3639b765683"
+    "mtime": 1781389787.693243,
+    "ast_hash": "d263d2453cd748dbcdd2c731768c1006",
+    "semantic_hash": "d263d2453cd748dbcdd2c731768c1006"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\vercel.json": {
+    "mtime": 1781492772.7176845,
+    "ast_hash": "8f54e6a694592b1c80a8b72076abcea4",
+    "semantic_hash": "8f54e6a694592b1c80a8b72076abcea4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\late-checkout-live-created.json": {
+    "mtime": 1781550677.6954582,
+    "ast_hash": "f48e76a13827dd23f89e321c0b57e4d9",
+    "semantic_hash": "f48e76a13827dd23f89e321c0b57e4d9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\late-checkout-web-confirm.json": {
+    "mtime": 1781550771.9671082,
+    "ast_hash": "3c200cd1ebc9f3f1378bfe1191b68ef9",
+    "semantic_hash": "3c200cd1ebc9f3f1378bfe1191b68ef9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\late_checkout.py": {
+    "mtime": 1781548894.309624,
+    "ast_hash": "7165293f4a1ba23038fbd8440fc07442",
+    "semantic_hash": "7165293f4a1ba23038fbd8440fc07442"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\scripts\\seed_hotel_layout.py": {
+    "mtime": 1781534792.015426,
+    "ast_hash": "d73e1c414b66784d0305899ff533cb2f",
+    "semantic_hash": "d73e1c414b66784d0305899ff533cb2f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_auth_decode.py": {
+    "mtime": 1781493420.335332,
+    "ast_hash": "da6d37d92609eb1618ebf472c0a8cbf4",
+    "semantic_hash": "da6d37d92609eb1618ebf472c0a8cbf4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\engineering\\CreateWorkOrderModal.tsx": {
+    "mtime": 1782669375.377143,
+    "ast_hash": "52002b9ffeff45a83e97e75baa470bc4",
+    "semantic_hash": "52002b9ffeff45a83e97e75baa470bc4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\engineering\\EngineerHome.tsx": {
+    "mtime": 1782668970.0062363,
+    "ast_hash": "89de42ea9dafb4f13bb813d92bd4d92e",
+    "semantic_hash": "89de42ea9dafb4f13bb813d92bd4d92e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\engineering\\WorkOrderCard.tsx": {
+    "mtime": 1782774195.6099765,
+    "ast_hash": "510f60212dcac1dca256feb734293b98",
+    "semantic_hash": "510f60212dcac1dca256feb734293b98"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\home\\CompanionHome.tsx": {
+    "mtime": 1781627663.2456658,
+    "ast_hash": "f80f85b0aaec906c11050aaaf6b3b5b6",
+    "semantic_hash": "f80f85b0aaec906c11050aaaf6b3b5b6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\home\\SupervisorHome.tsx": {
+    "mtime": 1782774200.8059692,
+    "ast_hash": "59ec8672bfa8fafc212e14c5cadef272",
+    "semantic_hash": "59ec8672bfa8fafc212e14c5cadef272"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\housekeeping\\ChecklistSection.tsx": {
+    "mtime": 1782449302.8269775,
+    "ast_hash": "c52128d405218449750535b9259db953",
+    "semantic_hash": "c52128d405218449750535b9259db953"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\housekeeping\\KnockModal.tsx": {
+    "mtime": 1782449269.563968,
+    "ast_hash": "dc43dab16ca2849741a6044065ed9081",
+    "semantic_hash": "dc43dab16ca2849741a6044065ed9081"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\housekeeping\\SupplyRequestModal.tsx": {
+    "mtime": 1782353621.902817,
+    "ast_hash": "a278c62fb649e24fb390a894fa3d0efc",
+    "semantic_hash": "a278c62fb649e24fb390a894fa3d0efc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\atoms.tsx": {
+    "mtime": 1782492667.9133618,
+    "ast_hash": "20f52fb3a465202f5d555b4044143494",
+    "semantic_hash": "20f52fb3a465202f5d555b4044143494"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\BroadcastModal.tsx": {
+    "mtime": 1782354346.1967604,
+    "ast_hash": "5b267ed2f16b0a2b99d846299f74a3d1",
+    "semantic_hash": "5b267ed2f16b0a2b99d846299f74a3d1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\DirectMessageModal.tsx": {
+    "mtime": 1782492683.733994,
+    "ast_hash": "9c783c18bf7aac9127dcab201f95e037",
+    "semantic_hash": "9c783c18bf7aac9127dcab201f95e037"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\EndShiftModal.tsx": {
+    "mtime": 1782492702.59329,
+    "ast_hash": "e8890e7fecd23791804de4a3f50e06ba",
+    "semantic_hash": "e8890e7fecd23791804de4a3f50e06ba"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\HousekeeperPicker.tsx": {
+    "mtime": 1782493635.4692729,
+    "ast_hash": "a20ccf8be71cf4e3c06eb3cd824d2170",
+    "semantic_hash": "a20ccf8be71cf4e3c06eb3cd824d2170"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\RoomDetailSheet.tsx": {
+    "mtime": 1782774288.0434885,
+    "ast_hash": "b261605f1bb6317b6a53b0f0fd219667",
+    "semantic_hash": "b261605f1bb6317b6a53b0f0fd219667"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\supervisor\\ShiftNoteModal.tsx": {
+    "mtime": 1782354327.6098187,
+    "ast_hash": "3aae62abe30c6f3495d7cbbd40735760",
+    "semantic_hash": "3aae62abe30c6f3495d7cbbd40735760"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\api\\housekeepingSupervisor.ts": {
+    "mtime": 1782492628.5140853,
+    "ast_hash": "fd54202f166d9c8bf73c06c4e4d3b6b9",
+    "semantic_hash": "fd54202f166d9c8bf73c06c4e4d3b6b9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\engineering\\workOrders.ts": {
+    "mtime": 1781395195.3346884,
+    "ast_hash": "57c523d8956b59c8c163864057cb3333",
+    "semantic_hash": "57c523d8956b59c8c163864057cb3333"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\housekeeping\\supervisor.ts": {
+    "mtime": 1782492643.3568184,
+    "ast_hash": "ef29798421530b26b59268d8b4f23221",
+    "semantic_hash": "ef29798421530b26b59268d8b4f23221"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\engineeringWorkOrders.test.ts": {
+    "mtime": 1781394388.2126515,
+    "ast_hash": "017992607d95a62860fc431ddcfde3ca",
+    "semantic_hash": "017992607d95a62860fc431ddcfde3ca"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\supervisor.test.ts": {
+    "mtime": 1782450225.157996,
+    "ast_hash": "a76644ecf4d4f87bc0861e9c77e1265c",
+    "semantic_hash": "a76644ecf4d4f87bc0861e9c77e1265c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\lib\\toAppRole.test.ts": {
+    "mtime": 1781389787.6588519,
+    "ast_hash": "67b38bffa04ffed2c2743a5c9c9c8b4b",
+    "semantic_hash": "67b38bffa04ffed2c2743a5c9c9c8b4b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\EngineerHome.test.tsx": {
+    "mtime": 1782450235.9773433,
+    "ast_hash": "22c311a9fcaff82e2b2a6bb23513263a",
+    "semantic_hash": "22c311a9fcaff82e2b2a6bb23513263a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\RoomStatusList.test.tsx": {
+    "mtime": 1781394388.214652,
+    "ast_hash": "7573dbe071a6a3b7eefc950b8d0aac7e",
+    "semantic_hash": "7573dbe071a6a3b7eefc950b8d0aac7e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\lateCheckout.ts": {
+    "mtime": 1781549919.1428814,
+    "ast_hash": "eb06973ac238c801eaa818c03814a3bf",
+    "semantic_hash": "eb06973ac238c801eaa818c03814a3bf"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\lateCheckoutRequests.test.mjs": {
+    "mtime": 1781550169.0225792,
+    "ast_hash": "3121fe8fdf2298e4c3f56462079e6163",
+    "semantic_hash": "3121fe8fdf2298e4c3f56462079e6163"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\lateCheckoutRequests.ts": {
+    "mtime": 1781550169.0202956,
+    "ast_hash": "a91a95dabaf071665dfa295689a5f9c1",
+    "semantic_hash": "a91a95dabaf071665dfa295689a5f9c1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\roomType.test.ts": {
+    "mtime": 1781487529.226979,
+    "ast_hash": "1a5373a677d04167872d4b4acac53535",
+    "semantic_hash": "1a5373a677d04167872d4b4acac53535"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\roomType.ts": {
+    "mtime": 1781487529.2279804,
+    "ast_hash": "6cde873c331849383ec7bca02732e865",
+    "semantic_hash": "6cde873c331849383ec7bca02732e865"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\059_stay_reset_at.sql": {
+    "mtime": 1781487529.3263774,
+    "ast_hash": "f5c5250d109cedaae9f2804a16adc84a",
+    "semantic_hash": "f5c5250d109cedaae9f2804a16adc84a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\060_hotel_layout.sql": {
+    "mtime": 1781532084.2449963,
+    "ast_hash": "20de5f2be358ec0a49ad30b5050d303f",
+    "semantic_hash": "20de5f2be358ec0a49ad30b5050d303f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\061_late_checkout_requests.sql": {
+    "mtime": 1781548894.3183105,
+    "ast_hash": "484f6d0c941123f26ed42066bafb0816",
+    "semantic_hash": "484f6d0c941123f26ed42066bafb0816"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\062_late_checkout_cancelled_status.sql": {
+    "mtime": 1781553391.928893,
+    "ast_hash": "ea32b64b21e5c218f57db3603ebad78f",
+    "semantic_hash": "ea32b64b21e5c218f57db3603ebad78f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\063_latest_room_notes_rpc.sql": {
+    "mtime": 1781638752.4795299,
+    "ast_hash": "d86683b498fdac3f0c0b028c87964551",
+    "semantic_hash": "d86683b498fdac3f0c0b028c87964551"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\mobile-audit-report.md": {
+    "mtime": 1782684067.6037192,
+    "ast_hash": "dccd2213244fbea65635a7a234927976",
+    "semantic_hash": "dccd2213244fbea65635a7a234927976"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\supervisor-workflow-audit.md": {
+    "mtime": 1782490797.5898917,
+    "ast_hash": "56f4a4cf79791574838e426f25c6e582",
+    "semantic_hash": "56f4a4cf79791574838e426f25c6e582"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\WORKFLOW_FINDINGS_2026-06-25.md": {
+    "mtime": 1782439966.6515322,
+    "ast_hash": "d49c077f6897fda5e3af3e965ff95555",
+    "semantic_hash": "d49c077f6897fda5e3af3e965ff95555"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-20-25-389Z.yml": {
+    "mtime": 1781490025.3919032,
+    "ast_hash": "3ebe91901943eeba43587815f40c9617",
+    "semantic_hash": "3ebe91901943eeba43587815f40c9617"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-21-08-872Z.yml": {
+    "mtime": 1781490068.8740435,
+    "ast_hash": "7fa620ea4069a7df3e3c7cdceb8c9c6d",
+    "semantic_hash": "7fa620ea4069a7df3e3c7cdceb8c9c6d"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-21-37-016Z.yml": {
+    "mtime": 1781490097.019364,
+    "ast_hash": "6cd3cd30475d6098295a2b0d49f0edd9",
+    "semantic_hash": "6cd3cd30475d6098295a2b0d49f0edd9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-22-22-925Z.yml": {
+    "mtime": 1781490142.926585,
+    "ast_hash": "c07eadfd36053a4102278673cceaee97",
+    "semantic_hash": "c07eadfd36053a4102278673cceaee97"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-22-40-858Z.yml": {
+    "mtime": 1781490160.8605738,
+    "ast_hash": "0f0bb325c14ba5911baeb42d2c4a20bf",
+    "semantic_hash": "0f0bb325c14ba5911baeb42d2c4a20bf"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-23-03-905Z.yml": {
+    "mtime": 1781490183.9071648,
+    "ast_hash": "84e4454b08239d5d75cc46d700f4d2f5",
+    "semantic_hash": "84e4454b08239d5d75cc46d700f4d2f5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-23-08-268Z.yml": {
+    "mtime": 1781490188.2704513,
+    "ast_hash": "c27a85f32fb09cb77a3413251041737e",
+    "semantic_hash": "c27a85f32fb09cb77a3413251041737e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-23-42-237Z.yml": {
+    "mtime": 1781490222.2393062,
+    "ast_hash": "3a96f41c2d3feab3328dc4895e6bc45e",
+    "semantic_hash": "3a96f41c2d3feab3328dc4895e6bc45e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-24-10-269Z.yml": {
+    "mtime": 1781490250.27073,
+    "ast_hash": "84e4454b08239d5d75cc46d700f4d2f5",
+    "semantic_hash": "84e4454b08239d5d75cc46d700f4d2f5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-24-44-850Z.yml": {
+    "mtime": 1781490284.8521678,
+    "ast_hash": "523cf90dffcfc9a9055edd5eec2d44cc",
+    "semantic_hash": "523cf90dffcfc9a9055edd5eec2d44cc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-24-48-706Z.yml": {
+    "mtime": 1781490288.7081885,
+    "ast_hash": "4c5a4d879ffbb349c7822c63e4eb5bf5",
+    "semantic_hash": "4c5a4d879ffbb349c7822c63e4eb5bf5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-24-58-479Z.yml": {
+    "mtime": 1781490298.4806488,
+    "ast_hash": "b707be7918321b7f25f77333020056ff",
+    "semantic_hash": "b707be7918321b7f25f77333020056ff"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-25-02-147Z.yml": {
+    "mtime": 1781490302.148838,
+    "ast_hash": "908e4b145fd4c30e8b9b69ced77873d9",
+    "semantic_hash": "908e4b145fd4c30e8b9b69ced77873d9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-25-12-587Z.yml": {
+    "mtime": 1781490312.5882401,
+    "ast_hash": "ad4c27864f9098d1cbca64fe35388835",
+    "semantic_hash": "ad4c27864f9098d1cbca64fe35388835"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-25-18-172Z.yml": {
+    "mtime": 1781490318.1726346,
+    "ast_hash": "601a7c01aa620553a222bba7bcb51fa2",
+    "semantic_hash": "601a7c01aa620553a222bba7bcb51fa2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-25-34-628Z.yml": {
+    "mtime": 1781490334.6290717,
+    "ast_hash": "a953ee05a71ffc1a84c46b46e2664eaa",
+    "semantic_hash": "a953ee05a71ffc1a84c46b46e2664eaa"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-28-37-382Z.yml": {
+    "mtime": 1781490517.3854809,
+    "ast_hash": "f854e86715f3321d01c70ca302566754",
+    "semantic_hash": "f854e86715f3321d01c70ca302566754"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-29-00-310Z.yml": {
+    "mtime": 1781490540.3118732,
+    "ast_hash": "0b71f635af42b13e3ac0d168f15f4009",
+    "semantic_hash": "0b71f635af42b13e3ac0d168f15f4009"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-56-56-141Z.yml": {
+    "mtime": 1781492216.142634,
+    "ast_hash": "3ebe91901943eeba43587815f40c9617",
+    "semantic_hash": "3ebe91901943eeba43587815f40c9617"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-57-17-306Z.yml": {
+    "mtime": 1781492237.3096402,
+    "ast_hash": "1a500457d53db67b52c2efe6a771f58b",
+    "semantic_hash": "1a500457d53db67b52c2efe6a771f58b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-59-06-768Z.yml": {
+    "mtime": 1781492346.7693238,
+    "ast_hash": "6cd3cd30475d6098295a2b0d49f0edd9",
+    "semantic_hash": "6cd3cd30475d6098295a2b0d49f0edd9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T03-01-47-590Z.yml": {
+    "mtime": 1781492507.5911608,
+    "ast_hash": "6cd3cd30475d6098295a2b0d49f0edd9",
+    "semantic_hash": "6cd3cd30475d6098295a2b0d49f0edd9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T03-05-01-249Z.yml": {
+    "mtime": 1781492701.262862,
+    "ast_hash": "f854e86715f3321d01c70ca302566754",
+    "semantic_hash": "f854e86715f3321d01c70ca302566754"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T03-05-09-866Z.yml": {
+    "mtime": 1781492709.8718543,
+    "ast_hash": "3963ac57a5bf0b765eb55fd09861975b",
+    "semantic_hash": "3963ac57a5bf0b765eb55fd09861975b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\.playwright-cli\\page-2026-06-15T03-08-32-251Z.yml": {
+    "mtime": 1781492912.2546906,
+    "ast_hash": "f854e86715f3321d01c70ca302566754",
+    "semantic_hash": "f854e86715f3321d01c70ca302566754"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\.playwright-cli\\page-2026-06-15T03-08-42-360Z.yml": {
+    "mtime": 1781492922.3635354,
+    "ast_hash": "d070e679fc585531769b92cc0ebd0c79",
+    "semantic_hash": "d070e679fc585531769b92cc0ebd0c79"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\engineering.png": {
+    "mtime": 1781490148.8102224,
+    "ast_hash": "0e2ec479eab95d472a7f057ad808b5f2",
+    "semantic_hash": "0e2ec479eab95d472a7f057ad808b5f2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\guest-requests.png": {
+    "mtime": 1781490195.7871146,
+    "ast_hash": "596386364ce224beca76243ea0f2dc52",
+    "semantic_hash": "596386364ce224beca76243ea0f2dc52"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\housekeeping.png": {
+    "mtime": 1781490110.9427872,
+    "ast_hash": "e1355435cafd8715a6c147a09d68cbc7",
+    "semantic_hash": "e1355435cafd8715a6c147a09d68cbc7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\IMG_6427.jpeg": {
+    "mtime": 1781548894.3018136,
+    "ast_hash": "c72bc29bc1fe72a6d703a37299e6f6bf",
+    "semantic_hash": "c72bc29bc1fe72a6d703a37299e6f6bf"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\login-state.png": {
+    "mtime": 1781490033.497735,
+    "ast_hash": "f9c891e586c4ef27ca62146a87c719ad",
+    "semantic_hash": "f9c891e586c4ef27ca62146a87c719ad"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\prod-dashboard.png": {
+    "mtime": 1781490551.1572452,
+    "ast_hash": "d785cb0f27c6b3bb050aa69a2928a1f2",
+    "semantic_hash": "d785cb0f27c6b3bb050aa69a2928a1f2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\prod-login.png": {
+    "mtime": 1781490522.0730486,
+    "ast_hash": "f2dc65420d1cdeeed6fa808b99c84f6b",
+    "semantic_hash": "f2dc65420d1cdeeed6fa808b99c84f6b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\reports.png": {
+    "mtime": 1781490222.9287574,
+    "ast_hash": "f9aede08f82c7f27916f0c9cb3916abb",
+    "semantic_hash": "f9aede08f82c7f27916f0c9cb3916abb"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\rooms.png": {
+    "mtime": 1781490341.8717296,
+    "ast_hash": "9b857d21baa3342aa77075389cc75137",
+    "semantic_hash": "9b857d21baa3342aa77075389cc75137"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\settings.png": {
+    "mtime": 1781490324.0024965,
+    "ast_hash": "8bc1af74bf9f5f542233d9f01c8cdc90",
+    "semantic_hash": "8bc1af74bf9f5f542233d9f01c8cdc90"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\sop.png": {
+    "mtime": 1781490184.4916697,
+    "ast_hash": "48424e5138086a3091bb39ea2e5a8a5e",
+    "semantic_hash": "48424e5138086a3091bb39ea2e5a8a5e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\sop2.png": {
+    "mtime": 1781490259.8144407,
+    "ast_hash": "1f349bd86d9f1236862c6abc8d0aef22",
+    "semantic_hash": "1f349bd86d9f1236862c6abc8d0aef22"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\tasks.png": {
+    "mtime": 1781490166.451677,
+    "ast_hash": "8a5f37261b7827a1bf9501e7a071880c",
+    "semantic_hash": "8a5f37261b7827a1bf9501e7a071880c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-57-40-045Z.png": {
+    "mtime": 1781492260.0475268,
+    "ast_hash": "1a113f4f99da51084b8ab223d2f3450e",
+    "semantic_hash": "1a113f4f99da51084b8ab223d2f3450e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T02-59-34-706Z.png": {
+    "mtime": 1781492374.708878,
+    "ast_hash": "68359d37147717a00da369f33c41295c",
+    "semantic_hash": "68359d37147717a00da369f33c41295c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-06-15T03-01-52-219Z.png": {
+    "mtime": 1781492512.2209632,
+    "ast_hash": "35285c9a06a11a0e8b0c23c79f3fb730",
+    "semantic_hash": "35285c9a06a11a0e8b0c23c79f3fb730"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\late-checkout-web-confirm.png": {
+    "mtime": 1781550771.9575858,
+    "ast_hash": "d98315be7dc86d9e446de4ecf7e80591",
+    "semantic_hash": "d98315be7dc86d9e446de4ecf7e80591"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\mobile-after-tap-server.png": {
+    "mtime": 1781484863.7377837,
+    "ast_hash": "15ea5462474e9a4dcbeba957029ec80c",
+    "semantic_hash": "15ea5462474e9a4dcbeba957029ec80c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\mobile-current.png": {
+    "mtime": 1781484806.6160657,
+    "ast_hash": "1678848ca532579b5d730af748543ac8",
+    "semantic_hash": "1678848ca532579b5d730af748543ac8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\my-rooms-tab.png": {
+    "mtime": 1781485303.9481125,
+    "ast_hash": "7a6b071c29ce7bc2d843d146d5b440ea",
+    "semantic_hash": "7a6b071c29ce7bc2d843d146d5b440ea"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\runtime-logs\\room-detail.png": {
+    "mtime": 1781485267.2965481,
+    "ast_hash": "56a9ff212d15aa604ec0ffbc777894e8",
+    "semantic_hash": "56a9ff212d15aa604ec0ffbc777894e8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\.playwright-cli\\page-2026-06-15T03-08-46-973Z.png": {
+    "mtime": 1781492926.9744928,
+    "ast_hash": "e24f5ce0e8e7369de652f85509a846da",
+    "semantic_hash": "e24f5ce0e8e7369de652f85509a846da"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\064_merge_chief_engineer.sql": {
+    "mtime": 1782783599.8841374,
+    "ast_hash": "95681fdd9986d17d4e33bdd187e28761",
+    "semantic_hash": "95681fdd9986d17d4e33bdd187e28761"
   }
 }

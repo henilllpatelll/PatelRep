@@ -4017,6 +4017,390 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-28T18:54:22.339Z"
+    },
+    {
+      "id": "bug-245",
+      "timestamp": "2026-06-28T19:02:37.647Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "Had \"assigned_to\"",
+      "fix": "Changed to \"assignment_id\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T19:02:37.647Z"
+    },
+    {
+      "id": "bug-246",
+      "timestamp": "2026-06-28T20:05:46.439Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 11→6 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T20:05:46.439Z"
+    },
+    {
+      "id": "bug-247",
+      "timestamp": "2026-06-28T20:06:15.732Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-28T20:06:15.732Z"
+    },
+    {
+      "id": "bug-248",
+      "timestamp": "2026-06-29T23:01:15.948Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "Had \"claimedElsewhere\"",
+      "fix": "Changed to \"minutesToSla\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-29T23:04:55.812Z"
+    },
+    {
+      "id": "bug-249",
+      "timestamp": "2026-06-29T23:02:11.296Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/i18n/locales/es.json",
+      "root_cause": "Had \"claimedElsewhere\"",
+      "fix": "Changed to \"minutesToSla\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-29T23:05:05.652Z"
+    },
+    {
+      "id": "bug-250",
+      "timestamp": "2026-06-29T23:02:29.768Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/mobile/lib/housekeeping/roomWorkflow.ts",
+      "root_cause": "Condition was: if (room.dnd_flag)",
+      "fix": "Changed to: if (room.vip_flag)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T23:02:29.768Z"
+    },
+    {
+      "id": "bug-251",
+      "timestamp": "2026-06-29T23:03:21.075Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/mobile/components/home/SupervisorHome.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T23:03:21.075Z"
+    },
+    {
+      "id": "bug-252",
+      "timestamp": "2026-06-29T23:04:05.085Z",
+      "error_message": "Wrong operator: === should be &&",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "Used \"===\" instead of \"&&\"",
+      "fix": "Changed operator === → &&",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T23:04:05.085Z"
+    },
+    {
+      "id": "bug-253",
+      "timestamp": "2026-06-29T23:04:15.877Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T23:04:15.877Z"
+    },
+    {
+      "id": "bug-254",
+      "timestamp": "2026-06-29T23:04:39.761Z",
+      "error_message": "Type error",
+      "file": "apps/mobile/components/supervisor/RoomDetailSheet.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-29T23:04:39.761Z"
+    },
+    {
+      "id": "bug-255",
+      "timestamp": "2026-06-30T01:29:16.845Z",
+      "error_message": "Missing error handling in decodeJwtPayload",
+      "file": "apps/web/app/(auth)/login/page.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/util; function decodeJwtPayload(token: string): Record<string, unk",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T01:29:45.582Z"
+    },
+    {
+      "id": "bug-256",
+      "timestamp": "2026-06-30T01:29:30.747Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(auth)/login/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:29:30.747Z"
+    },
+    {
+      "id": "bug-257",
+      "timestamp": "2026-06-30T01:40:04.193Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/utils/routeGuard.ts",
+      "root_cause": "Had 'chief_engineer'",
+      "fix": "Changed to 'front_desk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-30T01:40:15.890Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-06-30T01:40:22.341Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/lib/hooks/useRole.ts",
+      "root_cause": "Had 'chief_engineer'",
+      "fix": "Changed to 'gm'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:40:22.341Z"
+    },
+    {
+      "id": "bug-259",
+      "timestamp": "2026-06-30T01:40:28.129Z",
+      "error_message": "Wrong reference: chief_engineer should be engineer",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Used \"chief_engineer\" instead of \"engineer\"",
+      "fix": "Changed chief_engineer → engineer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:40:28.129Z"
+    },
+    {
+      "id": "bug-260",
+      "timestamp": "2026-06-30T01:40:31.202Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had 'roles.chief_of_maintenance'",
+      "fix": "Changed to 'roles.housekeeper'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:40:31.202Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-06-30T01:40:50.346Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Had 'chief_engineer'",
+      "fix": "Changed to 'engineer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:40:50.346Z"
+    },
+    {
+      "id": "bug-262",
+      "timestamp": "2026-06-30T01:40:57.517Z",
+      "error_message": "CSS fix: SCHEDULE_OVERRIDE",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'chief_engineer'>> = { → Partial<Record<UserRole, 'housekeeping_supervisor'>> = {",
+      "fix": "Changed SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'chief_engineer'>> = { → Partial<Record<UserRole, 'housekeeping_supervisor'>> = {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T01:41:08.268Z"
+    },
+    {
+      "id": "bug-263",
+      "timestamp": "2026-06-30T01:48:01.556Z",
+      "error_message": "Wrong reference: chief_engineer should be engineer",
+      "file": "apps/api/services/room_status_transitions.py",
+      "root_cause": "Used \"chief_engineer\" instead of \"engineer\"",
+      "fix": "Changed chief_engineer → engineer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:48:01.556Z"
+    },
+    {
+      "id": "bug-264",
+      "timestamp": "2026-06-30T01:48:09.626Z",
+      "error_message": "Wrong reference: chief_engineer should be engineer",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Used \"chief_engineer\" instead of \"engineer\"",
+      "fix": "Changed chief_engineer → engineer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:48:09.626Z"
+    },
+    {
+      "id": "bug-265",
+      "timestamp": "2026-06-30T01:48:17.904Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/onboarding.py",
+      "root_cause": "Had \"The GM is inviting staff. Roles available: housek",
+      "fix": "Changed to \"The GM is inviting staff. Roles available: housek",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:48:17.904Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-06-30T01:51:07.706Z",
+      "error_message": "CSS fix: engineer",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "engineer: 'neutral', → 'ai',",
+      "fix": "Changed engineer: 'neutral', → 'ai',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T01:51:07.706Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-06-30T01:51:11.724Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/staff/page.tsx",
+      "root_cause": "Had 'bg-blue-600'",
+      "fix": "Changed to 'bg-sky-600'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T01:51:20.745Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-06-30T03:04:41.620Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(auth)/login/page.tsx",
+      "root_cause": "hover: opacity-80 transition-opacity\">{t('login.forgotPassword') → text-ink-2 transition-colors\" aria-label={showPassword ? 'Hide password' : 'Show password'",
+      "fix": "Changed hover: opacity-80 transition-opacity\">{t('login.forgotPassword') → text-ink-2 transition-colors\" aria-label={showPassword ? 'Hide password' : 'Show password'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T03:04:41.620Z"
     }
   ]
 }

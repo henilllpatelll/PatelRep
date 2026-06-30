@@ -1,4 +1,6 @@
 ﻿# Memory
+| 2026-06-29 | Uniform auth UI: rebrand auth/callback + auth/reset-password to match login's two-column bg-paper design (dropped gray-50/slate/green-100 raw classes → design system CSS vars). Added password show/hide toggle to login + reset-password. Reset-password now has same two-column split layout, LanguageToggle, consistent logo, same inputCls/primaryBtn, password requirements hint. Callback page uses bg-paper + ink tokens, brand logo. | apps/web/app/(auth)/login/page.tsx, apps/web/app/auth/callback/page.tsx, apps/web/app/auth/reset-password/page.tsx | complete | ~40 tok |
+| 2026-06-29 | Web portal role restriction: blocked housekeeper, engineer, chief_engineer from all web routes. Added MOBILE_ONLY_ROLES to routeGuard.ts, mobileOnly flag on RouteAccessDecision, proxy.ts propagates ?mobileOnly=1, login page signs them out + shows banner, auth/callback blocks magic-link logins. | apps/web/lib/utils/routeGuard.ts, apps/web/proxy.ts, apps/web/app/(auth)/login/page.tsx, apps/web/app/auth/callback/page.tsx | complete | ~60 tok |
 | 2026-06-28 | OOO reason-code prompt: room-status/index.tsx — added Platform import, split OOO button into remove (unchanged) vs place (two-step Alert with Skip/Add Reason; iOS uses Alert.prompt, Android falls back to no-reason OOO); 5 new i18n keys in roomStatus.* en+es | apps/mobile/app/(app)/room-status/index.tsx, i18n/locales/en.json, i18n/locales/es.json | complete | ~40 tok |
 | 2026-06-28 | backend WO model changes: added doors_locks+painting categories, emergency priority, source field (guest/staff_patrol/pm/self) to CreateWorkOrderRequest+UpdateWorkOrderRequest; SLA_MINUTES["emergency"]=30; source written to wo_data on insert | apps/api/models/requests.py, apps/api/routers/work_orders.py | complete | ~30 tok |
 | 2026-06-28 | BUG-231 fix: EngineerHome.tsx QUICK_LINKS rooms href was /(app)/rooms (no such route) → fixed to /(app)/room-status. BUG-232 fix: room-status action sheet now context-aware — isOutOfOrderRoom() toggles removeOoo/DIRTY vs placeOOO/OOO. Added i18n keys in en+es. TS clean. | EngineerHome.tsx, room-status/index.tsx, en.json, es.json | complete | ~80 tok |
@@ -6153,3 +6155,154 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 13:54 | Edited apps/api/routers/housekeeping.py | 18→19 lines | ~180 |
 
 | 13:54 | fixed stale assigned_to after HK import | apps/api/routers/housekeeping.py | bug-244 logged | ~200 || 13:54 | Session end: 1 writes across 1 files (housekeeping.py) | 1 reads | ~23881 tok |
+| 13:56 | Session end: 1 writes across 1 files (housekeeping.py) | 1 reads | ~23881 tok |
+
+## Session: 2026-06-28 14:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:02 | Edited apps/api/routers/housekeeping.py | 3→3 lines | ~71 |
+| 14:04 | Session end: 1 writes across 1 files (housekeeping.py) | 2 reads | ~23781 tok |
+| 14:31 | Session end: 1 writes across 1 files (housekeeping.py) | 3 reads | ~23781 tok |
+| 14:43 | Session end: 1 writes across 1 files (housekeeping.py) | 3 reads | ~23781 tok |
+
+## Session: 2026-06-28 14:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:05 | Edited apps/api/services/room_status_transitions.py | 5→7 lines | ~112 |
+| 15:05 | Edited apps/mobile/app/(app)/room-status/index.tsx | 1→2 lines | ~59 |
+| 15:05 | Edited apps/mobile/app/(app)/room-status/index.tsx | modified t() | ~106 |
+| 15:06 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: room, roomId, roomNumber | ~987 |
+| 15:07 | Session end: 4 writes across 2 files (room_status_transitions.py, index.tsx) | 4 reads | ~7612 tok |
+| 17:01 | Created .planning/mobile-audit-report.md | — | ~1512 |
+
+## Session: 2026-06-28 17:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-29 17:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-29 17:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-29 17:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-29 17:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:51 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 1→2 lines | ~65 |
+| 17:51 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | expanded (+15 lines) | ~240 |
+| 17:51 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 6→6 lines | ~87 |
+| 17:51 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | 1→2 lines | ~37 |
+| 17:52 | Session end: 4 writes across 1 files (index.tsx) | 17 reads | ~85923 tok |
+
+## Session: 2026-06-29 17:58
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:00 | Edited apps/mobile/i18n/locales/en.json | 11→12 lines | ~88 |
+| 18:01 | Edited apps/mobile/i18n/locales/en.json | 8→9 lines | ~63 |
+| 18:01 | Edited apps/mobile/i18n/locales/en.json | 5→7 lines | ~92 |
+| 18:01 | Edited apps/mobile/i18n/locales/en.json | 1→2 lines | ~30 |
+| 18:01 | Edited apps/mobile/i18n/locales/es.json | 11→12 lines | ~88 |
+| 18:01 | Edited apps/mobile/i18n/locales/es.json | 8→9 lines | ~66 |
+| 18:02 | Edited apps/mobile/i18n/locales/es.json | 1→2 lines | ~28 |
+| 18:02 | Edited apps/mobile/i18n/locales/es.json | 3→5 lines | ~68 |
+| 18:02 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | 7→8 lines | ~33 |
+| 18:02 | Edited apps/mobile/lib/housekeeping/roomWorkflow.ts | added 1 condition(s) | ~92 |
+| 18:02 | Edited apps/mobile/components/shared/evening.tsx | 12→13 lines | ~186 |
+| 18:02 | Edited apps/mobile/components/shared/evening.tsx | CSS: badgeBrass, badgeBrassText | ~84 |
+| 18:02 | Edited apps/mobile/components/engineering/WorkOrderCard.tsx | 13→16 lines | ~152 |
+| 18:03 | Edited apps/mobile/components/engineering/WorkOrderCard.tsx | CSS: color, fontWeight, minutes | ~264 |
+| 18:03 | Edited apps/mobile/components/engineering/WorkOrderCard.tsx | expanded (+9 lines) | ~104 |
+| 18:03 | Edited apps/mobile/components/home/SupervisorHome.tsx | added optional chaining | ~10 |
+| 18:03 | Edited apps/mobile/app/(app)/room-status/index.tsx | 12→12 lines | ~48 |
+| 18:03 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: notes | ~185 |
+| 18:03 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: notes | ~35 |
+| 18:03 | Edited apps/mobile/app/(app)/room-status/index.tsx | 2→4 lines | ~95 |
+| 18:04 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: roomId, roomNumber, notes | ~467 |
+| 18:04 | Edited apps/mobile/app/(app)/room-status/index.tsx | CSS: status, notes | ~580 |
+| 18:04 | Edited apps/mobile/app/(app)/room-status/index.tsx | expanded (+24 lines) | ~359 |
+| 18:04 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | added 1 import(s) | ~171 |
+| 18:04 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | expanded (+11 lines) | ~270 |
+| 18:04 | Edited apps/mobile/components/supervisor/RoomDetailSheet.tsx | 3→8 lines | ~87 |
+| 18:04 | Edited apps/mobile/i18n/locales/en.json | 1→2 lines | ~26 |
+| 18:05 | Edited apps/mobile/i18n/locales/es.json | 1→2 lines | ~30 |
+| 18:05 | Mobile audit fix pass 2: BUG-235 SupervisorHome deps, ENG-1 category chip, ENG-2 SLA countdown, ENG-3 OOO notes in alert, ENG-4 cross-platform OOO modal, HK-3 VIP badge (brass), SUP-1 Inspect Now CTA, i18n keys en+es | multiple mobile files | all edits applied | ~8k |
+| 18:05 | Session end: 28 writes across 8 files (en.json, es.json, roomWorkflow.ts, evening.tsx, WorkOrderCard.tsx) | 11 reads | ~60216 tok |
+| 18:14 | Session end: 28 writes across 8 files (en.json, es.json, roomWorkflow.ts, evening.tsx, WorkOrderCard.tsx) | 11 reads | ~60216 tok |
+
+## Session: 2026-06-30 20:24
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:28 | Edited apps/web/lib/utils/routeGuard.ts | 6→9 lines | ~141 |
+| 20:28 | Edited apps/web/lib/utils/routeGuard.ts | 3→3 lines | ~47 |
+| 20:29 | Edited apps/web/lib/utils/routeGuard.ts | added 2 condition(s) | ~252 |
+| 20:29 | Edited apps/web/proxy.ts | added 1 condition(s) | ~79 |
+| 20:29 | Edited apps/web/app/(auth)/login/page.tsx | added error handling | ~211 |
+| 20:29 | Edited apps/web/app/(auth)/login/page.tsx | added 1 condition(s) | ~86 |
+| 20:29 | Edited apps/web/app/(auth)/login/page.tsx | added nullish coalescing | ~326 |
+| 20:29 | Edited apps/web/app/(auth)/login/page.tsx | expanded (+7 lines) | ~198 |
+| 20:29 | Edited apps/web/app/auth/callback/page.tsx | added error handling | ~278 |
+| 20:29 | Edited apps/web/app/auth/callback/page.tsx | added 2 condition(s) | ~291 |
+| 20:30 | Session end: 10 writes across 3 files (routeGuard.ts, proxy.ts, page.tsx) | 5 reads | ~3089 tok |
+| 20:34 | Session end: 10 writes across 3 files (routeGuard.ts, proxy.ts, page.tsx) | 5 reads | ~3089 tok |
+| 20:40 | Created supabase/migrations/064_merge_chief_engineer.sql | — | ~545 |
+| 20:40 | Edited apps/web/lib/utils/routeGuard.ts | inline fix | ~31 |
+| 20:40 | Edited apps/web/lib/utils/routeGuard.ts | inline fix | ~23 |
+| 20:40 | Edited apps/web/lib/utils/routeGuard.ts | inline fix | ~16 |
+| 20:40 | Edited apps/web/lib/utils/routeGuard.ts | "chief_engineer" → "engineer" | ~3 |
+| 20:40 | Edited apps/web/stores/authStore.ts | 6→5 lines | ~26 |
+| 20:40 | Edited apps/web/lib/hooks/useRole.ts | 3→3 lines | ~58 |
+| 20:40 | Edited apps/web/components/shared/Sidebar.tsx | 2→1 lines | ~31 |
+| 20:40 | Edited apps/web/components/shared/Sidebar.tsx | 3→2 lines | ~27 |
+| 20:40 | Edited apps/web/i18n/locales/en.ts | 5→2 lines | ~17 |
+| 20:40 | Edited apps/web/i18n/locales/es.ts | 5→2 lines | ~16 |
+| 20:40 | Edited apps/web/app/(dashboard)/staff/page.tsx | inline fix | ~27 |
+| 20:40 | Edited apps/web/app/(dashboard)/staff/page.tsx | 4→3 lines | ~36 |
+| 20:41 | Edited apps/web/app/(dashboard)/settings/departments/page.tsx | inline fix | ~7 |
+| 20:47 | Edited apps/mobile/i18n/locales/en.json | 3→2 lines | ~23 |
+| 20:47 | Edited apps/mobile/i18n/locales/es.json | 3→2 lines | ~23 |
+| 20:48 | Edited apps/api/services/room_status_transitions.py | inline fix | ~16 |
+| 20:48 | Edited apps/api/routers/internal.py | inline fix | ~21 |
+| 20:48 | Edited apps/api/routers/onboarding.py | "The GM is inviting staff." → "The GM is inviting staff." | ~80 |
+| 20:50 | Created apps/web/lib/utils/routeGuard.ts | — | ~1152 |
+| 20:51 | Edited apps/web/app/(dashboard)/staff/page.tsx | 3→2 lines | ~16 |
+| 20:51 | Edited apps/web/app/(dashboard)/staff/page.tsx | 2→1 lines | ~5 |
+| 20:51 | Edited apps/web/app/(dashboard)/staff/page.tsx | 2→1 lines | ~8 |
+| 20:51 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 2→1 lines | ~7 |
+| 20:51 | Session end: 34 writes across 14 files (routeGuard.ts, proxy.ts, page.tsx, 064_merge_chief_engineer.sql, authStore.ts) | 26 reads | ~51874 tok |
+| 21:59 | Session end: 34 writes across 14 files (routeGuard.ts, proxy.ts, page.tsx, 064_merge_chief_engineer.sql, authStore.ts) | 26 reads | ~51874 tok |
+
+## Session: 2026-06-30 22:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 22:04 | Edited apps/web/app/(auth)/login/page.tsx | 3→4 lines | ~59 |
+| 22:04 | Edited apps/web/app/(auth)/login/page.tsx | expanded (+9 lines) | ~606 |
+| 22:05 | Created apps/web/app/auth/callback/page.tsx | — | ~1509 |
+| 22:05 | Created apps/web/app/auth/reset-password/page.tsx | — | ~4085 |
+| 22:06 | Session end: 4 writes across 1 files (page.tsx) | 3 reads | ~12399 tok |
+| 22:22 | Session end: 4 writes across 1 files (page.tsx) | 3 reads | ~12399 tok |
+| 23:08 | Session end: 4 writes across 1 files (page.tsx) | 3 reads | ~12399 tok |
+
+## Session: 2026-06-30 23:09
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:17 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 2→1 lines | ~22 |
+| 23:17 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 4→2 lines | ~16 |
+| 23:17 | Session end: 2 writes across 1 files (page.tsx) | 9 reads | ~10167 tok |
+| 23:57 | Session end: 2 writes across 1 files (page.tsx) | 9 reads | ~10167 tok |

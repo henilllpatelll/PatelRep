@@ -8,7 +8,6 @@ import { TrendChartsRow } from '@/components/dashboard/TrendChartsRow'
 import { HousekeeperDashboard } from '@/components/dashboard/HousekeeperDashboard'
 import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard'
 import { EngineerDashboard } from '@/components/dashboard/EngineerDashboard'
-import { ChiefEngineerDashboard } from '@/components/dashboard/ChiefEngineerDashboard'
 import { FrontDeskDashboard } from '@/components/dashboard/FrontDeskDashboard'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -78,8 +77,6 @@ export default function DashboardPage() {
       return <SupervisorDashboard />
     case 'engineer':
       return <EngineerDashboard />
-    case 'engineer':
-      return <ChiefEngineerDashboard />
     case 'front_desk':
       return <FrontDeskDashboard />
     case 'gm':

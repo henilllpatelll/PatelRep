@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-28T18:54:04.649Z
-> Files: 78 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T04:17:07.546Z
+> Files: 97 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -430,6 +430,7 @@
 
 ## .planning/
 
+- `mobile-audit-report.md` — Mobile App Workflow Audit Report (~1418 tok)
 - `supervisor-workflow-audit.md` — Housekeeping Supervisor Workflow Audit (~2875 tok)
 - `WORKFLOW_FINDINGS_2026-06-25.md` — Workflow QA Findings — 2026-06-25 (~1843 tok)
 
@@ -476,8 +477,10 @@
 ## apps/api/routers/
 
 - `clean_sessions.py` — API: 6 endpoints (~5844 tok)
-- `housekeeping.py` — Declares from (~23710 tok)
+- `housekeeping.py` — Declares from (~23700 tok)
+- `internal.py` — API: 8 endpoints (~5020 tok)
 - `notifications.py` — API: 4 endpoints (~776 tok)
+- `onboarding.py` — API: 3 endpoints (~3712 tok)
 - `work_orders.py` — API: 6 endpoints (~5070 tok)
 
 ## apps/api/scripts/
@@ -485,6 +488,7 @@
 
 ## apps/api/services/
 
+- `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2401 tok)
 
 ## apps/api/services/ai/
 
@@ -592,7 +596,7 @@
 ## apps/mobile/app/(app)/my-rooms/
 
 - `[roomId].tsx` — Knock protocol required before entering occupied or stayover rooms. (~14950 tok)
-- `index.tsx` — DONE_STATUSES (~4059 tok)
+- `index.tsx` — DONE_STATUSES (~4329 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -614,7 +618,7 @@
 
 ## apps/mobile/app/(app)/room-status/
 
-- `index.tsx` — Raw board row: room_status spread + nested rooms join (no flat fields). (~6402 tok)
+- `index.tsx` — Raw board row: room_status spread + nested rooms join (no flat fields). (~6832 tok)
 
 ## apps/mobile/app/(app)/scheduling/
 
@@ -640,12 +644,12 @@
 
 - `CreateWorkOrderModal.tsx` — CATEGORIES — renders modal (~3021 tok)
 - `EngineerHome.tsx` — One tile per live work order — the engineer's version of the shift mosaic. (~7007 tok)
-- `WorkOrderCard.tsx` — Render the inline Claim action (open, unassigned, viewer can claim). (~3110 tok)
+- `WorkOrderCard.tsx` — Render the inline Claim action (open, unassigned, viewer can claim). (~3408 tok)
 
 ## apps/mobile/components/home/
 
 - `CompanionHome.tsx` — A different room mid-clean, surfaced as a gentle resume link (~2866 tok)
-- `SupervisorHome.tsx` — firstName (~4810 tok)
+- `SupervisorHome.tsx` — firstName (~4814 tok)
 
 ## apps/mobile/components/home/SupervisorHome.tsx
 
@@ -667,7 +671,7 @@
 
 ## apps/mobile/components/shared/
 
-- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4750 tok)
+- `evening.tsx` — Striped rail for OCCUPIED, solid status color otherwise. (~4814 tok)
 
 ## apps/mobile/components/supervisor/
 
@@ -676,7 +680,7 @@
 - `DirectMessageModal.tsx` — DirectMessageModal — renders modal (~1104 tok)
 - `EndShiftModal.tsx` — EndShiftModal — renders modal (~1464 tok)
 - `HousekeeperPicker.tsx` — HousekeeperPicker — renders modal (~1573 tok)
-- `RoomDetailSheet.tsx` — formatClock — renders modal (~3935 tok)
+- `RoomDetailSheet.tsx` — formatClock — renders modal (~4152 tok)
 - `ShiftNoteModal.tsx` — ShiftNoteModal — renders modal (~1133 tok)
 
 ## apps/mobile/components/supervisor/HousekeeperPicker.tsx
@@ -696,8 +700,8 @@
 
 ## apps/mobile/i18n/locales/
 
-- `en.json` (~11291 tok)
-- `es.json` (~12030 tok)
+- `en.json` (~11348 tok)
+- `es.json` (~12092 tok)
 
 ## apps/mobile/lib/
 
@@ -722,7 +726,7 @@
 ## apps/mobile/lib/housekeeping/
 
 - `roomBlockers.ts` — i18n key under blockers.* for the button label (~2157 tok)
-- `roomWorkflow.ts` — True when the housekeeper actively cannot enter: DND active, service declined, (~4738 tok)
+- `roomWorkflow.ts` — True when the housekeeper actively cannot enter: DND active, service declined, (~4760 tok)
 - `supervisor.ts` — Rooms a housekeeper still needs to work — the set that should be assigned. (~2801 tok)
 
 ## apps/mobile/lib/housekeeping/roomWorkflow.ts
@@ -760,12 +764,14 @@
 
 ## apps/web/
 
+- `proxy.ts` — API routes: GET (2 endpoints) (~989 tok)
 
 ## apps/web/app/
 
 
 ## apps/web/app/(auth)/login/
 
+- `page.tsx` — decodeJwtPayload — renders form (~4458 tok)
 
 ## apps/web/app/(dashboard)/
 
@@ -778,6 +784,7 @@
 
 ## apps/web/app/(dashboard)/dashboard/
 
+- `page.tsx` — GMDashboard (~917 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
@@ -818,6 +825,7 @@
 
 ## apps/web/app/(dashboard)/onboarding/
 
+- `page.tsx` — STEPS (~18597 tok)
 
 ## apps/web/app/(dashboard)/reports/
 
@@ -833,6 +841,7 @@
 
 ## apps/web/app/(dashboard)/settings/departments/
 
+- `page.tsx` — DEPARTMENTS (~872 tok)
 
 ## apps/web/app/(dashboard)/settings/feedback/
 
@@ -863,12 +872,18 @@
 
 ## apps/web/app/(dashboard)/staff/
 
+- `page.tsx` — ROLE_OPTIONS (~14015 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
 
 ## apps/web/app/auth/callback/
 
+- `page.tsx` — decodeJwtPayload (~1509 tok)
+
+## apps/web/app/auth/reset-password/
+
+- `page.tsx` — Spinner — renders form (~4085 tok)
 
 ## apps/web/components/ai/
 
@@ -895,6 +910,7 @@
 ## apps/web/components/shared/
 
 - `Providers.tsx` — SUPABASE_DB_ROLES (~2624 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4870 tok)
 
 ## apps/web/components/ui/
 
@@ -904,6 +920,8 @@
 
 ## apps/web/i18n/locales/
 
+- `en.ts` — Declares en (~971 tok)
+- `es.ts` — Declares es (~1004 tok)
 
 ## apps/web/lib/ai/
 
@@ -917,6 +935,7 @@
 ## apps/web/lib/hooks/
 
 - `useAuth.ts` — Exports AuthState, useAuth (~214 tok)
+- `useRole.ts` — Exports RoleCapabilities, useRole (~363 tok)
 
 ## apps/web/lib/supabase/
 
@@ -927,9 +946,11 @@
 - `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~640 tok)
 - `lateCheckoutRequests.test.mjs` — Node test coverage for pending late-checkout request indexing and room annotation (~650 tok)
 - `lateCheckoutRequests.ts` — Utility helpers for indexing pending late-checkout requests by room and annotating room rows for board/detail display (~430 tok)
+- `routeGuard.ts` — Roles that only use the mobile app — blocked from all web portal routes (~1152 tok)
 
 ## apps/web/stores/
 
+- `authStore.ts` — Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. (~549 tok)
 
 ## design_handoff_frontend_rework/
 
@@ -962,6 +983,7 @@
 
 - `062_late_checkout_cancelled_status.sql` — ============================================================================= (~167 tok)
 - `063_latest_room_notes_rpc.sql` — Returns the single most-recent staff note per room, respecting the (~402 tok)
+- `064_merge_chief_engineer.sql` — Merge chief_engineer into engineer. (~545 tok)
 
 ## youtubeMobileResearch.md
 
