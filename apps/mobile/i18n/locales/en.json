@@ -402,6 +402,7 @@
         "B": "Building B",
         "unknown": "Other"
       },
+      "nowCleaning": "Now Cleaning",
       "submitted": "Submitted",
       "ready": "Ready",
       "blocked": "Blocked / Out of Service"
@@ -439,7 +440,8 @@
         "note": "Note",
         "risk": "Risk",
         "arrival": "Arrival Soon",
-        "checkout": "Not Checked Out"
+        "checkout": "Not Checked Out",
+        "vip": "VIP"
       },
       "action": {
         "start": "Start",
@@ -496,6 +498,7 @@
     "factDue": "Due",
     "factCompleted": "Done",
     "factOnClock": "On the clock",
+    "minutesToSla": "{{minutes}}m to SLA breach",
     "claimedElsewhere": "Claimed by another engineer.",
     "details": "Details",
     "asset": "Equipment",
@@ -839,6 +842,7 @@
       "openWorkOrder": "Open work order",
       "highRisk": "High Risk",
       "dnd": "DND",
+      "inspectNow": "Inspect Now",
       "dndOverride": "Override DND — Check on guest",
       "dndOverrideTitle": "Wellness check — Room {{room}}",
       "dndOverrideBody": "This creates a supervisor wellness-check task. Use only if DND has been active for 2+ hours with no response.",
@@ -872,6 +876,8 @@
     "oooNoReason": "Skip",
     "oooAddReason": "Add Reason",
     "oooReasonPlaceholder": "e.g. HVAC failure, water damage...",
+    "oooReasonModalTitle": "Add OOO Reason",
+    "oooReasonModalConfirm": "Place OOO",
     "statusLabels": {
       "DIRTY": "Dirty",
       "IN_PROGRESS": "In Progress",
@@ -891,7 +897,6 @@
       "inspector": "Inspector",
       "engineer": "Engineer",
       "housekeeping_supervisor": "HK Supervisor",
-      "chief_engineer": "Engineer",
       "front_desk": "Front Desk",
       "gm": "GM"
     },

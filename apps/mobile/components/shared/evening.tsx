@@ -224,9 +224,10 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
               .filter((badge) => badge.key !== "checkout")
               .map((badge) => {
                 const loud = badge.key === "dnd";
+                const brass = badge.key === "vip";
                 return (
-                  <View key={badge.key} style={[styles.badge, loud && styles.badgeCritical]}>
-                    <Text style={[styles.badgeText, loud && styles.badgeCriticalText]}>
+                  <View key={badge.key} style={[styles.badge, loud && styles.badgeCritical, brass && styles.badgeBrass]}>
+                    <Text style={[styles.badgeText, loud && styles.badgeCriticalText, brass && styles.badgeBrassText]}>
                       {t(getBadgeLabelKey(badge.key), { label: badge.label })}
                     </Text>
                   </View>
@@ -369,8 +370,10 @@ const styles = StyleSheet.create({
   timingText: { color: C.ink2, fontFamily: monoFont, fontSize: 11.5 },
   badge: { backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   badgeCritical: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
+  badgeBrass: { backgroundColor: C.brassSoft, borderColor: C.brassLine },
   badgeText: { color: C.ink2, fontSize: 10, fontWeight: "800" },
   badgeCriticalText: { color: C.alert },
+  badgeBrassText: { color: C.brass },
   cardRight: { alignItems: "flex-end", gap: 4, paddingLeft: 10 },
   actionLabel: { color: C.accent, fontSize: 12, fontWeight: "800" },
 

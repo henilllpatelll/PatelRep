@@ -8,7 +8,7 @@ from core.database import supabase
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
 
-ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer", "front_desk", "housekeeper", "engineer")
+ALL_STAFF_ROLES = ("gm", "housekeeping_supervisor", "engineer", "front_desk", "housekeeper", "engineer")
 
 DEFAULT_DEPARTMENTS = [
     {"name": "Housekeeping", "code": "HK",   "color": "#059669"},

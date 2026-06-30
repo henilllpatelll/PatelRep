@@ -34,7 +34,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'gm', label: 'General Manager' },
   { value: 'housekeeping_supervisor', label: 'Housekeeping Supervisor' },
   { value: 'housekeeper', label: 'Housekeeper' },
-  { value: 'chief_engineer', label: 'Chief Engineer' },
+  { value: 'engineer', label: 'Chief Engineer' },
   { value: 'engineer', label: 'Engineer' },
   { value: 'front_desk', label: 'Front Desk' },
 ]
@@ -42,9 +42,8 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
 const ROLE_LABELS: Record<UserRole, string> = {
   gm: 'General Manager',
   housekeeping_supervisor: 'Housekeeping Supervisor',
-  chief_engineer: 'Chief Engineer',
-  housekeeper: 'Housekeeper',
   engineer: 'Engineer',
+  housekeeper: 'Housekeeper',
   front_desk: 'Front Desk',
 }
 
@@ -52,8 +51,7 @@ const ROLE_TONE: Record<UserRole, 'caution' | 'ready' | 'neutral' | 'ai'> = {
   gm: 'caution',
   housekeeping_supervisor: 'ready',
   housekeeper: 'neutral',
-  chief_engineer: 'ai',
-  engineer: 'neutral',
+  engineer: 'ai',
   front_desk: 'ai',
 }
 
@@ -61,7 +59,6 @@ const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
   gm: 'bg-violet-600',
   housekeeping_supervisor: 'bg-green-600',
   housekeeper: 'bg-teal-600',
-  chief_engineer: 'bg-blue-600',
   engineer: 'bg-sky-600',
   front_desk: 'bg-amber-600',
 }
@@ -71,7 +68,7 @@ const ROLE_AVATAR_COLORS: Record<UserRole, string> = {
 const inviteSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
   email: z.string().email('Enter a valid email address'),
-  role: z.enum(['gm', 'housekeeping_supervisor', 'housekeeper', 'chief_engineer', 'engineer', 'front_desk'], {
+  role: z.enum(['gm', 'housekeeping_supervisor', 'housekeeper', 'engineer', 'front_desk'], {
     errorMap: () => ({ message: 'Select a role' }),
   }),
   department_id: z.string().optional(),
@@ -440,9 +437,9 @@ function InviteModal({
 
 // â”€â”€â”€ Schedule helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'chief_engineer'>> = {
+const SCHEDULE_OVERRIDE: Partial<Record<UserRole, 'housekeeping_supervisor' | 'engineer'>> = {
   housekeeper: 'housekeeping_supervisor',
-  engineer: 'chief_engineer',
+  engineer: 'engineer',
 }
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']

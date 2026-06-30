@@ -136,7 +136,7 @@ export const VALID_TRANSITIONS: Record<string, Record<string, string[]>> = {
 
 const SUPERVISOR_ROLES = new Set([
   'housekeeping_supervisor',
-  'chief_engineer',
+  'engineer',
   'gm',
 ])
 

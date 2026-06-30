@@ -88,6 +88,9 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
           ) : null}
 
           <View style={styles.metaRow}>
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryChipText}>{t(`workOrders.category.${categoryKey}`)}</Text>
+            </View>
             {isUrgent ? (
               <View style={styles.urgentChip}>
                 <Ionicons name="flash" size={9} color={C.alert} />
@@ -138,10 +141,20 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
                 </Text>
               </View>
             ) : due?.kind === "due" ? (
-              <View style={styles.dueRow}>
-                <Ionicons name="time-outline" size={11} color={C.ink3} />
-                <Text style={styles.dueText}>{t("workOrders.dueAt", { time: due.clock })}</Text>
-              </View>
+              (() => {
+                const minutesToSla = wo.due_at ? Math.floor((new Date(wo.due_at).getTime() - Date.now()) / 60000) : null;
+                return isUrgent && minutesToSla != null && minutesToSla > 0 ? (
+                  <View style={styles.dueRow}>
+                    <Ionicons name="timer-outline" size={11} color={C.alert} />
+                    <Text style={[styles.dueText, { color: C.alert, fontWeight: "800" }]}>{t("workOrders.minutesToSla", { minutes: minutesToSla })}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.dueRow}>
+                    <Ionicons name="time-outline" size={11} color={C.ink3} />
+                    <Text style={styles.dueText}>{t("workOrders.dueAt", { time: due.clock })}</Text>
+                  </View>
+                );
+              })()
             ) : ageMinutes != null ? (
               <Text style={styles.ageText}>
                 {t("workOrders.ago", { time: formatDuration(ageMinutes) })}
@@ -217,6 +230,15 @@ const styles = StyleSheet.create({
   description: { color: C.ink3, fontSize: 12.5, lineHeight: 17 },
 
   metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  categoryChip: {
+    backgroundColor: C.surface3,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  categoryChipText: { color: C.ink3, fontSize: 9.5, fontWeight: "700" },
   urgentChip: {
     flexDirection: "row",
     alignItems: "center",

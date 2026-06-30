@@ -402,6 +402,7 @@
         "B": "Edificio B",
         "unknown": "Otro"
       },
+      "nowCleaning": "En Limpieza",
       "submitted": "Enviados",
       "ready": "Listos",
       "blocked": "Bloqueados / Fuera de Servicio"
@@ -439,7 +440,8 @@
         "note": "Nota",
         "risk": "Riesgo",
         "arrival": "Llegada Pronto",
-        "checkout": "No Ha Salido"
+        "checkout": "No Ha Salido",
+        "vip": "VIP"
       },
       "action": {
         "start": "Empezar",
@@ -496,6 +498,7 @@
     "factDue": "Vence",
     "factCompleted": "Lista",
     "factOnClock": "En curso",
+    "minutesToSla": "{{minutes}}m para SLA",
     "claimedElsewhere": "Tomada por otro técnico.",
     "details": "Detalles",
     "asset": "Equipo",
@@ -839,6 +842,7 @@
       "openWorkOrder": "Orden de trabajo abierta",
       "highRisk": "Alto riesgo",
       "dnd": "No molestar",
+      "inspectNow": "Inspeccionar Ahora",
       "dndOverride": "Revisar No Molestar — Verificar huésped",
       "dndOverrideTitle": "Revisión de bienestar — Cuarto {{room}}",
       "dndOverrideBody": "Esto crea una tarea de revisión de bienestar. Úsalo solo si el No Molestar lleva 2+ horas sin respuesta.",
@@ -872,6 +876,8 @@
     "oooNoReason": "Omitir",
     "oooAddReason": "Agregar Razón",
     "oooReasonPlaceholder": "Ej. falla de HVAC, daño por agua...",
+    "oooReasonModalTitle": "Agregar Razón FDS",
+    "oooReasonModalConfirm": "Poner Fuera de Servicio",
     "statusLabels": {
       "DIRTY": "Sucio",
       "IN_PROGRESS": "En Progreso",
@@ -891,7 +897,6 @@
       "inspector": "Inspector",
       "engineer": "Técnico",
       "housekeeping_supervisor": "Supervisora HK",
-      "chief_engineer": "Técnico",
       "front_desk": "Recepcionista",
       "gm": "Gerente"
     },

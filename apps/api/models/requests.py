@@ -148,7 +148,7 @@ class SanitizedBaseModel(BaseModel):
 
 # --- Staff Role Schedules ---
 class CreateRoleScheduleRequest(SanitizedBaseModel):
-    override_role: Literal["housekeeping_supervisor", "chief_engineer"]
+    override_role: Literal["housekeeping_supervisor", "engineer"]
     days_of_week: List[int] = Field(
         min_length=1, max_length=7
     )  # 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
@@ -516,7 +516,7 @@ class InviteStaffRequest(SanitizedBaseModel):
         "gm",
         "housekeeping_supervisor",
         "housekeeper",
-        "chief_engineer",
+        "engineer",
         "engineer",
         "front_desk",
     ]
@@ -535,7 +535,7 @@ class AddStaffDirectRequest(SanitizedBaseModel):
         "gm",
         "housekeeping_supervisor",
         "housekeeper",
-        "chief_engineer",
+        "engineer",
         "engineer",
         "front_desk",
     ]
@@ -557,7 +557,7 @@ class CreateCustomRoleRequest(SanitizedBaseModel):
         "housekeeper",
         "engineer",
         "housekeeping_supervisor",
-        "chief_engineer",
+        "engineer",
         "front_desk",
         "gm",
     ]
@@ -572,7 +572,7 @@ class UpdateCustomRoleRequest(SanitizedBaseModel):
             "housekeeper",
             "engineer",
             "housekeeping_supervisor",
-            "chief_engineer",
+            "engineer",
             "front_desk",
             "gm",
         ]

@@ -557,7 +557,7 @@ async def confirm_guest_requests(
 async def confirm_assignments(
     assignments: list[AssignmentPreview],
     current_user: CurrentUser = Depends(
-        require_role("housekeeping_supervisor", "chief_engineer", "gm")
+        require_role("housekeeping_supervisor", "engineer", "gm")
     )
 ):
     assigned_count = 0

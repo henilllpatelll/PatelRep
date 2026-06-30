@@ -655,7 +655,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
 export default function PMSchedulesPage() {
   const { isGM, role } = useRole()
-  const canEdit = isGM || role === 'chief_engineer'
+  const canEdit = isGM || role === 'engineer'
   const queryClient = useQueryClient()
 
   const [showCreateModal, setShowCreateModal] = useState(false)

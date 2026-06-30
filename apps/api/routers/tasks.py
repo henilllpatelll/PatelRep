@@ -68,7 +68,7 @@ async def create_task(
     current_user: CurrentUser = Depends(
         # housekeeper included so floor quick-blockers (ozone delegation,
         # late-checkout confirmation) can create tasks from the room screen
-        require_role("gm", "housekeeping_supervisor", "front_desk", "chief_engineer", "engineer", "housekeeper")
+        require_role("gm", "housekeeping_supervisor", "front_desk", "engineer", "housekeeper")
     ),
 ):
     if request.use_ai and request.nl_input:

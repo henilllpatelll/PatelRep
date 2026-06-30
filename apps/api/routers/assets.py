@@ -44,7 +44,7 @@ async def list_assets(
 @router.post("")
 async def create_asset(
     request: CreateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     asset_data = {
         "tenant_id": current_user.hotel_id,
@@ -108,7 +108,7 @@ async def get_failure_prediction_history(
 @router.post("/failure-predictions/{prediction_id}/acknowledge")
 async def acknowledge_failure_prediction(
     prediction_id: str,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     result = supabase.table("failure_predictions") \
         .update({
@@ -129,7 +129,7 @@ async def acknowledge_failure_prediction(
 @router.post("/failure-predictions/{prediction_id}/create-work-order")
 async def create_work_order_from_prediction(
     prediction_id: str,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     """Create a work order from a failure prediction."""
     from datetime import timedelta
@@ -208,7 +208,7 @@ async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user
 @router.post("/pm-schedules")
 async def create_pm_schedule(
     request: CreatePMScheduleRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     result = supabase.table("pm_schedules").insert({
         "tenant_id": current_user.hotel_id,
@@ -224,7 +224,7 @@ async def create_pm_schedule(
 @router.post("/pm-schedules/{schedule_id}/complete")
 async def complete_pm_schedule(
     schedule_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
 ):
     """Mark a PM schedule as complete and advance next_due_at by the interval."""
     from datetime import timedelta
@@ -276,7 +276,7 @@ async def complete_pm_schedule(
 async def update_pm_schedule(
     schedule_id: str,
     request: Request,
-    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
 ):
     """Update a PM schedule (reschedule, deactivate, change interval)."""
     body = await request.json()
@@ -303,7 +303,7 @@ async def update_pm_schedule(
 @router.delete("/pm-schedules/{schedule_id}")
 async def deactivate_pm_schedule(
     schedule_id: str,
-    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
 ):
     """Soft-delete (deactivate) a PM schedule."""
     result = supabase.table("pm_schedules")\
@@ -337,7 +337,7 @@ async def list_asset_categories(current_user: CurrentUser = Depends(get_current_
 @router.post("/categories")
 async def create_asset_category(
     request: CreateCategoryRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     """Create a new asset category."""
     result = supabase.table("asset_categories").insert({
@@ -376,7 +376,7 @@ async def get_asset(
 async def update_asset(
     asset_id: str,
     request: UpdateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     update_data = request.model_dump(exclude_none=True)
     if "warranty_expires" in update_data and update_data["warranty_expires"]:
@@ -397,7 +397,7 @@ async def update_asset(
 @router.post("/{asset_id}/run-prediction")
 async def run_asset_prediction(
     asset_id: str,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     """Trigger on-demand AI failure prediction for a single asset."""
     from services.ai.failure_predictions import run_single_asset_prediction

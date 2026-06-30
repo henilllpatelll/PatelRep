@@ -780,7 +780,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
 export default function AssetRegisterPage() {
   const { isGM, role } = useRole()
-  const canEdit = isGM || role === 'chief_engineer'
+  const canEdit = isGM || role === 'engineer'
   const queryClient = useQueryClient()
 
   const [search, setSearch] = useState('')

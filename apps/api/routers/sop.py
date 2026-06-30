@@ -76,7 +76,7 @@ async def upload_sop_document(
     category: str = Form(None),
     description: str = Form(None),
     current_user: CurrentUser = Depends(
-        require_role("gm", "housekeeping_supervisor", "chief_engineer")
+        require_role("gm", "housekeeping_supervisor", "engineer")
     ),
 ):
     safe_filename = _sanitize_pdf_filename(file.filename)

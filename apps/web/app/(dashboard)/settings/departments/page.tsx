@@ -26,7 +26,7 @@ const DEPARTMENTS: DepartmentConfig[] = [
     name: 'Engineering',
     color: 'bg-sky-500',
     description: 'Maintenance and repairs',
-    roles: ['engineer', 'chief_engineer'],
+    roles: ['engineer'],
   },
   {
     name: 'Front Desk',

@@ -50,7 +50,7 @@ async def mark_all_read(current_user: CurrentUser = Depends(get_current_user)):
 async def send_direct_message(
     body: dict = Body(...),
     current_user: CurrentUser = Depends(
-        require_role("gm", "housekeeping_supervisor", "chief_engineer")
+        require_role("gm", "housekeeping_supervisor", "engineer")
     ),
 ):
     """Send a direct in-app message to one staff member."""

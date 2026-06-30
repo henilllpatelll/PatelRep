@@ -102,7 +102,7 @@ async def update_logbook_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
 
     is_author = row.data["author_id"] == current_user.user_id
-    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "chief_engineer")
+    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "engineer")
     if not (is_author or is_privileged):
         raise HTTPException(status_code=403, detail="Not allowed to edit this entry")
 
@@ -154,7 +154,7 @@ async def delete_logbook_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
 
     is_author = row.data["author_id"] == current_user.user_id
-    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "chief_engineer")
+    is_privileged = current_user.role in ("gm", "housekeeping_supervisor", "engineer")
     if not (is_author or is_privileged):
         raise HTTPException(status_code=403, detail="Not allowed to delete this entry")
 
@@ -187,7 +187,7 @@ async def get_shift_summary(
 @router.post("/shift-summary/generate")
 async def generate_shift_summary_endpoint(
     body: dict,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
 ):
     shift_id = body.get("shift_id")
     shift_date = body.get("shift_date")

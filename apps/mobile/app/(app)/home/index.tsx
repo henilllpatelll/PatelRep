@@ -35,7 +35,7 @@ export default function HousekeeperHomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
-  const isEngineer = effectiveRole === "engineer" || effectiveRole === "chief_engineer";
+  const isEngineer = effectiveRole === "engineer" || effectiveRole === "engineer";
   const [loading, setLoading] = useState(myRooms.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [aiBriefing, setAiBriefing] = useState<ShiftBriefing | null>(null);

@@ -12,7 +12,7 @@ from core.database import supabase
 
 router = APIRouter(prefix="/schedules", tags=["scheduling"])
 
-SUPERVISOR_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")
+SUPERVISOR_ROLES = ("gm", "housekeeping_supervisor", "engineer")
 
 
 def _ensure_tenant_row(table: str, row_id: str, hotel_id: str, label: str) -> None:

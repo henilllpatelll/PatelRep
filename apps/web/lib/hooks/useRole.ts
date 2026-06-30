@@ -12,9 +12,9 @@ export interface RoleCapabilities {
   canViewEngineering: boolean
 }
 
-const SUPERVISOR_ROLES: UserRole[] = ['gm', 'housekeeping_supervisor', 'chief_engineer']
+const SUPERVISOR_ROLES: UserRole[] = ['gm', 'housekeeping_supervisor']
 const ASSIGN_ROOMS_ROLES: UserRole[] = ['gm', 'housekeeping_supervisor']
-const ENGINEERING_ROLES: UserRole[] = ['gm', 'chief_engineer', 'engineer']
+const ENGINEERING_ROLES: UserRole[] = ['gm', 'engineer']
 
 function hasRole(role: UserRole | null, allowed: UserRole[]): boolean {
   if (!role) return false

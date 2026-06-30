@@ -651,7 +651,7 @@ async def update_room_decline_service(
 async def update_checkout_time(
     room_id: str,
     request: UpdateCheckoutTimeRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer", "front_desk")),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer", "front_desk")),
 ):
     current_row = (
         supabase.table("room_status")

@@ -78,7 +78,7 @@ export default function DashboardPage() {
       return <SupervisorDashboard />
     case 'engineer':
       return <EngineerDashboard />
-    case 'chief_engineer':
+    case 'engineer':
       return <ChiefEngineerDashboard />
     case 'front_desk':
       return <FrontDeskDashboard />

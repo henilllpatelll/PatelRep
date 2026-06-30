@@ -5,7 +5,6 @@ import type { Session, User } from '@supabase/supabase-js'
 export type UserRole =
   | 'gm'
   | 'housekeeping_supervisor'
-  | 'chief_engineer'
   | 'housekeeper'
   | 'engineer'
   | 'front_desk'

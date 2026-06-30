@@ -642,7 +642,7 @@ export default function ReportsPage() {
     })
   }
   // Maintenance: gm, chief_engineer
-  if (isGM || role === 'chief_engineer') {
+  if (isGM || role === 'engineer') {
     tabs.push({ id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" /> })
   }
   // AI Usage: gm only

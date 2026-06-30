@@ -26,7 +26,7 @@ const KNOWN_ROLES = new Set([
   "inspector",
   "engineer",
   "housekeeping_supervisor",
-  "chief_engineer",
+  "engineer",
   "front_desk",
   "gm",
 ]);

@@ -336,7 +336,7 @@ function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
 
 export default function PredictionsPage() {
   const { isGM, role } = useRole()
-  const canManage = isGM || role === 'chief_engineer'
+  const canManage = isGM || role === 'engineer'
   const queryClient = useQueryClient()
 
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')

@@ -6,7 +6,8 @@ export type RoomBadgeKey =
   | "note"
   | "risk"
   | "arrival"
-  | "checkout";
+  | "checkout"
+  | "vip";
 
 export type RoomActionKind =
   | "start"
@@ -229,6 +230,7 @@ export function getRoomAction(room: Room, now: Date = new Date()): RoomAction {
 
 export function getRoomBadges(room: Room, now: Date = new Date()): RoomBadge[] {
   const badges: RoomBadge[] = [];
+  if (room.vip_flag) badges.push({ key: "vip", label: "VIP" });
   if (room.dnd_flag) badges.push({ key: "dnd", label: "DND" });
   if (hasOpenWorkOrder(room)) badges.push({ key: "work_order", label: "WO" });
   if (hasLatestNote(room)) badges.push({ key: "note", label: "Note" });

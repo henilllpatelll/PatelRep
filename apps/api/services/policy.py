@@ -11,7 +11,7 @@ _ROLE_RANK: dict[str, int] = {
     "engineer": 0,
     "front_desk": 1,
     "housekeeping_supervisor": 2,
-    "chief_engineer": 2,
+    "engineer": 2,
     "gm": 3,
 }
 

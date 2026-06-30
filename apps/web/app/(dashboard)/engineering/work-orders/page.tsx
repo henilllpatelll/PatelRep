@@ -253,7 +253,7 @@ export default function WorkOrdersPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   const isEngineer = role === 'engineer'
-  const canManage = role === 'chief_engineer' || role === 'gm'
+  const canManage = role === 'engineer' || role === 'gm'
 
   // Realtime subscription
   useEffect(() => {

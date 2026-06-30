@@ -116,7 +116,7 @@ ROLE_DISTRIBUTION = [
     ("housekeeping_supervisor", SUPERVISOR_ACTIONS, 4),
     ("front_desk",            FRONT_DESK_ACTIONS,  8),
     ("gm",                    GM_ACTIONS,          2),
-    ("chief_engineer",        ENGINEER_ACTIONS,    1),
+    ("engineer",        ENGINEER_ACTIONS,    1),
 ]
 
 

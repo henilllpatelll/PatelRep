@@ -132,8 +132,8 @@ describe("WorkOrderDetailScreen", () => {
     await waitFor(() => expect(getByText("Occupied")).toBeTruthy());
   });
 
-  it("treats chief_engineer with the same detail permissions as engineer", async () => {
-    mockUser = { id: "chief-1", role: "chief_engineer", language_pref: "en" };
+  it("treats engineer with the same detail permissions as engineer", async () => {
+    mockUser = { id: "chief-1", role: "engineer", language_pref: "en" };
     mockGet.mockResolvedValue({
       id: "wo-1",
       title: "Fix AC",

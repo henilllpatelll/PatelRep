@@ -5,6 +5,17 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
+import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/utils/routeGuard'
+
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return {}
+    const norm = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = norm.padEnd(norm.length + ((4 - (norm.length % 4)) % 4), '=')
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch { return {} }
+}
 
 type Tab = 'password' | 'magic'
 
@@ -30,7 +41,15 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
-  useEffect(() => { setIsHydrated(true) }, [])
+  const mobileOnlyParam = searchParams.get('mobileOnly') === '1'
+
+  useEffect(() => {
+    setIsHydrated(true)
+    if (mobileOnlyParam) {
+      // Sign them out so navigating away doesn't bounce them back into a redirect loop
+      supabase.auth.signOut()
+    }
+  }, []) // intentionally once on mount
 
   const getRedirectPath = (hotelId: string | undefined | null): string => {
     const redirectTo = searchParams.get('redirectTo')
@@ -44,6 +63,17 @@ function LoginContent() {
     setError('')
     const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) { setError(signInError.message); setLoading(false); return }
+
+    // Block floor staff from the web portal immediately after sign-in
+    const claims = decodeJwtPayload(data.session?.access_token ?? '')
+    const userRole = (claims.user_role ?? claims.role) as UserRole | undefined
+    if (userRole && MOBILE_ONLY_ROLES.has(userRole)) {
+      await supabase.auth.signOut()
+      setError('Web portal access is restricted to Front Desk, GM, and Supervisor staff. Housekeepers and engineers should use the PatelRep mobile app.')
+      setLoading(false)
+      return
+    }
+
     const hotelId =
       (data.user?.app_metadata as Record<string, unknown>)?.hotel_id ??
       (data.user?.user_metadata as Record<string, unknown>)?.hotel_id
@@ -137,6 +167,13 @@ function LoginContent() {
               </button>
             ))}
           </div>
+
+          {mobileOnlyParam && (
+            <div className="mb-4 px-4 py-3 bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-[var(--r-md)] text-[13px]" role="alert">
+              <div className="font-semibold text-[var(--caution)] mb-0.5">Web portal is for management staff only</div>
+              <div className="text-ink-2">Housekeepers and engineers should use the PatelRep mobile app.</div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-md)] text-[13px] text-[var(--alert)]" role="alert">

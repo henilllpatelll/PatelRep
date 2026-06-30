@@ -276,7 +276,7 @@ async def _send_wo_assignment_push(engineer_id: str, wo_id: str, title: str) -> 
 async def claim_work_order(
     wo_id: str,
     current_user: CurrentUser = Depends(
-        require_role("engineer", "chief_engineer", "gm")
+        require_role("engineer", "gm")
     ),
 ):
     wo_check = (
@@ -320,7 +320,7 @@ async def complete_work_order(
     wo_id: str,
     request: CompleteWorkOrderRequest,
     current_user: CurrentUser = Depends(
-        require_role("engineer", "chief_engineer", "gm")
+        require_role("engineer", "gm")
     ),
 ):
     wo_check = (
@@ -358,12 +358,12 @@ async def update_work_order(
     wo_id: str,
     request: UpdateWorkOrderRequest,
     current_user: CurrentUser = Depends(
-        require_role("engineer", "chief_engineer", "gm")
+        require_role("engineer", "gm")
     ),
 ):
     if request.status == "cancelled" and current_user.role not in (
         "gm",
-        "chief_engineer",
+        "engineer",
     ):
         raise HTTPException(
             status_code=403, detail="Only GM or Chief Engineer can cancel work orders"
@@ -409,7 +409,7 @@ async def update_work_order(
 @router.delete("/{wo_id}", status_code=204)
 async def delete_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
 ):
     wo_check = (
         supabase.table("work_orders")
@@ -440,7 +440,7 @@ async def upload_work_order_photo(
     photo_type: str = Form("progress"),
     caption: Optional[str] = Form(None),
     current_user: CurrentUser = Depends(
-        require_role("engineer", "chief_engineer", "gm")
+        require_role("engineer", "gm")
     ),
 ):
     if file.content_type not in ALLOWED_PHOTO_TYPES:

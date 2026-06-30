@@ -46,17 +46,15 @@ const NAV_BY_ROLE: Record<UserRole, string[]> = {
   gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeping_supervisor: ['/dashboard','/housekeeping','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
-  chief_engineer: ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  engineer:       ['/dashboard','/engineering','/tasks'],
+  engineer:       ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   front_desk:     ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found'],
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm:                      'roles.gm',
   housekeeping_supervisor: 'roles.housekeeping_supervisor',
-  chief_engineer:          'roles.chief_of_maintenance',
   housekeeper:             'roles.housekeeper',
-  engineer:                'roles.maintenance_tech',
+  engineer:                'roles.engineer',
   front_desk:              'roles.front_desk',
 }
 

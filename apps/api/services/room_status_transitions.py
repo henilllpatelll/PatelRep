@@ -28,11 +28,13 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], set[str] | None] = {
     ("INSPECTED", "DIRTY"):       {"gm", "housekeeping_supervisor"},
 }
 
-# Any status → OOO and OOO → DIRTY are supervisor/GM only
+# Any status → OOO and OOO → DIRTY are management-only.
+# engineer can place rooms OOO for maintenance purposes.
 OOO_SOURCES = {s for s in ("DIRTY", "IN_PROGRESS", "CLEAN", "INSPECTED", "PICKUP")}
+_OOO_ROLES = {"gm", "housekeeping_supervisor", "engineer"}
 for _s in OOO_SOURCES:
-    ALLOWED_TRANSITIONS[(_s, "OOO")] = {"gm", "housekeeping_supervisor"}
-ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = {"gm", "housekeeping_supervisor"}
+    ALLOWED_TRANSITIONS[(_s, "OOO")] = _OOO_ROLES
+ALLOWED_TRANSITIONS[("OOO", "DIRTY")] = _OOO_ROLES
 
 # Statuses a housekeeper may start a cleaning session from
 SESSION_STARTABLE_STATUSES = {"DIRTY", "PICKUP", "OCCUPIED"}

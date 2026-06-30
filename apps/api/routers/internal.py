@@ -325,7 +325,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
     """
     Cron: 3-tier escalation ladder for overdue assigned work orders and urgent tasks.
     Tier 1 (30 min overdue)  → notify supervisor, set escalation_level=1
-    Tier 2 (90 min overdue)  → notify GM/chief_engineer, set escalation_level=2
+    Tier 2 (90 min overdue)  → notify GM/engineer, set escalation_level=2
     Tier 3 (150 min overdue) → auto-set status=escalated, notify GM, set escalation_level=3
     Level tracking prevents duplicate notifications across cron runs.
     """
@@ -367,7 +367,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
             supabase.table("work_orders")\
                 .update({"escalation_level": 2})\
                 .eq("id", wo_id).execute()
-            _notify_role(hotel_id, "chief_engineer", "escalation_tier2",
+            _notify_role(hotel_id, "engineer", "escalation_tier2",
                          f"Urgent: {wo['title']} still unresolved",
                          "Work order is 90+ minutes overdue. Immediate attention required.",
                          {"work_order_id": wo_id})
@@ -380,7 +380,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
             supabase.table("work_orders")\
                 .update({"escalation_level": 1})\
                 .eq("id", wo_id).execute()
-            _notify_role(hotel_id, "chief_engineer", "escalation_tier1",
+            _notify_role(hotel_id, "engineer", "escalation_tier1",
                          f"Overdue: {wo['title']}",
                          "Work order is past SLA and has not been resolved.",
                          {"work_order_id": wo_id})
@@ -401,7 +401,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         hotel_id = task["tenant_id"]
         level = task.get("escalation_level", 0)
         due = task["due_at"]
-        supervisor_role = "housekeeping_supervisor" if task.get("task_type") == "housekeeping" else "chief_engineer"
+        supervisor_role = "housekeeping_supervisor" if task.get("task_type") == "housekeeping" else "engineer"
 
         if due < tier3_cut and level < 3:
             supabase.table("tasks")\

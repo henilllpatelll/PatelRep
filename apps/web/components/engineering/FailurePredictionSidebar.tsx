@@ -197,7 +197,7 @@ function PredictionCard({
 
 export function FailurePredictionSidebar() {
   const { isGM, role } = useRole()
-  const canAcknowledge = isGM || role === 'chief_engineer'
+  const canAcknowledge = isGM || role === 'engineer'
   const queryClient = useQueryClient()
 
   const { data: predictions, isLoading } = useQuery({

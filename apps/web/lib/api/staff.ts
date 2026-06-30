@@ -43,7 +43,7 @@ export interface UpdateStaffData {
 
 export interface RoleSchedule {
   id: string
-  override_role: 'housekeeping_supervisor' | 'chief_engineer'
+  override_role: 'housekeeping_supervisor' | 'engineer'
   days_of_week: number[]  // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   start_date?: string
   end_date?: string
@@ -51,7 +51,7 @@ export interface RoleSchedule {
 }
 
 export interface CreateRoleScheduleData {
-  override_role: 'housekeeping_supervisor' | 'chief_engineer'
+  override_role: 'housekeeping_supervisor' | 'engineer'
   days_of_week: number[]
   start_date?: string
   end_date?: string

@@ -21,6 +21,7 @@ function redirectFromDecision(request: NextRequest, decision: Extract<RouteAcces
   url.search = ''
   if (decision.redirectTo) url.searchParams.set('redirectTo', decision.redirectTo)
   if (decision.unauthorized) url.searchParams.set('unauthorized', decision.unauthorized)
+  if (decision.mobileOnly) url.searchParams.set('mobileOnly', '1')
   return NextResponse.redirect(url)
 }
 

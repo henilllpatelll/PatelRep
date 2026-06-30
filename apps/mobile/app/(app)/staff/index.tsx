@@ -20,7 +20,7 @@ const ROLE_LABEL_KEYS: Record<string, string> = {
   inspector: "staff.roles.inspector",
   engineer: "staff.roles.engineer",
   housekeeping_supervisor: "staff.roles.housekeeping_supervisor",
-  chief_engineer: "staff.roles.chief_engineer",
+  engineer: "staff.roles.engineer",
   front_desk: "staff.roles.front_desk",
   gm: "staff.roles.gm",
 };
@@ -63,7 +63,7 @@ export default function StaffScreen() {
   }, [loadStaff]);
 
   const grouped = groupByRole(staff.filter((m) => m.is_active));
-  const roleOrder = ["gm", "housekeeping_supervisor", "chief_engineer", "housekeeper", "inspector", "engineer", "front_desk"];
+  const roleOrder = ["gm", "housekeeping_supervisor", "engineer", "housekeeper", "inspector", "engineer", "front_desk"];
   const sortedGroups = roleOrder.filter((r) => grouped[r]?.length > 0);
 
   if (loading) {

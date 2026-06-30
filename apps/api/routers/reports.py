@@ -10,7 +10,7 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 @router.get("/daily-summary")
 async def get_daily_summary(
     report_date: Optional[date] = Query(None, alias="date"),
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
 ):
     """Return a daily operational summary: room statuses, task completion, open WOs."""
     target_date = report_date or date.today()
@@ -57,7 +57,7 @@ async def get_staff_performance(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     format: Optional[str] = Query(None),
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
 ):
     """Return staff performance metrics for a date range."""
     today = date.today()
@@ -210,7 +210,7 @@ async def get_staff_performance(
 async def get_maintenance_report(
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
 ):
     """Return work order KPIs for a date range."""
     today = date.today()

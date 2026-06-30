@@ -3,6 +3,24 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/utils/routeGuard'
+
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return {}
+    const norm = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = norm.padEnd(norm.length + ((4 - (norm.length % 4)) % 4), '=')
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch { return {} }
+}
+
+async function checkMobileOnly(supabase: ReturnType<typeof createClient>): Promise<boolean> {
+  const { data } = await supabase.auth.getSession()
+  const claims = decodeJwtPayload(data.session?.access_token ?? '')
+  const role = (claims.user_role ?? claims.role) as UserRole | undefined
+  return !!role && MOBILE_ONLY_ROLES.has(role)
+}
 
 function AuthCallbackContent() {
   const router = useRouter()
@@ -27,6 +45,11 @@ function AuthCallbackContent() {
           setError(verifyError.message)
           return
         }
+        if (await checkMobileOnly(supabase)) {
+          await supabase.auth.signOut()
+          router.replace('/login?mobileOnly=1')
+          return
+        }
         router.replace(redirectTo)
         return
       }
@@ -36,6 +59,11 @@ function AuthCallbackContent() {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
         if (exchangeError) {
           setError(exchangeError.message)
+          return
+        }
+        if (await checkMobileOnly(supabase)) {
+          await supabase.auth.signOut()
+          router.replace('/login?mobileOnly=1')
           return
         }
         router.replace(redirectTo)

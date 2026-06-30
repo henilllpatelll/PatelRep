@@ -2,6 +2,7 @@ import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { C, R, monoFont } from "@/components/shared/tokens";
 import { StatusPill } from "@/components/shared/evening";
 import { Avatar } from "@/components/shared/mobileHandoff";
@@ -217,6 +218,17 @@ export function RoomDetailSheet({
             </TouchableOpacity>
           ) : null}
 
+          {room.status === "CLEAN" ? (
+            <TouchableOpacity
+              style={styles.inspectBtn}
+              onPress={() => { onClose(); router.push("/(app)/inspect" as never); }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
+              <Text style={styles.inspectBtnText}>{t("roomBoard.sheet.inspectNow")}</Text>
+            </TouchableOpacity>
+          ) : null}
+
           {room.assignmentId ? (
             <TouchableOpacity
               style={[styles.removeRow, saving && styles.dimmed]}
@@ -328,6 +340,11 @@ const styles = StyleSheet.create({
   noteLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.7, textTransform: "uppercase", color: C.info },
   noteText: { fontSize: 12.5, lineHeight: 18, color: C.ink },
 
+  inspectBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7,
+    minHeight: 48, borderRadius: R.md, backgroundColor: C.info,
+  },
+  inspectBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   removeRow: {
     flexDirection: "row",
     alignItems: "center",

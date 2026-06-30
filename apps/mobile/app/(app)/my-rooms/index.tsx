@@ -116,7 +116,8 @@ export default function MyRoomsScreen() {
     setRefreshing(false);
   }, [loadRooms]);
 
-  const buildingGroups = useMemo(() => buildBuildingGroups(myRooms), [myRooms]);
+  const inProgressRooms = useMemo(() => myRooms.filter((r) => r.status === "IN_PROGRESS"), [myRooms]);
+  const buildingGroups = useMemo(() => buildBuildingGroups(myRooms.filter((r) => r.status !== "IN_PROGRESS")), [myRooms]);
 
   const doneGroups = useMemo(() => {
     const submitted: Room[] = [];
@@ -236,6 +237,21 @@ export default function MyRoomsScreen() {
           </View>
         ) : viewMode === "remaining" ? (
           <View style={styles.sections}>
+            {inProgressRooms.length > 0 ? (
+              <View style={styles.section}>
+                <SectionHeader title={t("rooms.sections.nowCleaning")} hint={String(inProgressRooms.length)} />
+                <View style={[styles.sectionList, styles.activeSection]}>
+                  {inProgressRooms.map((room) => (
+                    <RoomQueueCard
+                      key={room.id}
+                      room={room}
+                      actionLabel={t("rooms.card.action.done")}
+                      onPress={() => openRoom(room)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
             {buildingGroups.length > 0 ? (
               buildingGroups.map((buildingGroup) => {
                 const collapsed = collapsedBuildings.has(buildingGroup.building);
@@ -272,12 +288,12 @@ export default function MyRoomsScreen() {
                 </View>
                 );
               })
-            ) : (
+            ) : inProgressRooms.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>{t("rooms.allRoomsDone")}</Text>
                 <Text style={styles.emptyText}>{t("rooms.allRoomsDoneHint")}</Text>
               </View>
-            )}
+            ) : null}
           </View>
         ) : (
           <View style={styles.sections}>
@@ -366,6 +382,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sectionList: { gap: 12 },
+  activeSection: { borderLeftWidth: 3, borderLeftColor: C.caution, paddingLeft: 8, borderRadius: 4 },
 
   emptyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 16 },
   emptyTitle: { color: C.ink, fontSize: 15, fontWeight: "700" },

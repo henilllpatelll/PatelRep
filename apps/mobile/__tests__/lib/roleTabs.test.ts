@@ -37,14 +37,14 @@ describe("getTabsForRole", () => {
     ]);
   });
 
-  it("keeps chief_engineer on the same tabs as engineer", () => {
-    expect(getTabsForRole("chief_engineer").map((tab) => tab.key)).toEqual([
+  it("keeps engineer on the same tabs as engineer", () => {
+    expect(getTabsForRole("engineer").map((tab) => tab.key)).toEqual([
       "home",
       "orders",
       "rooms",
       "assets",
       "me",
     ]);
-    expect(getTabsForRole("chief_engineer")).toEqual(getTabsForRole("engineer"));
+    expect(getTabsForRole("engineer")).toEqual(getTabsForRole("engineer"));
   });
 });

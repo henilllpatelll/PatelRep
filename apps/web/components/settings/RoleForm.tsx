@@ -39,7 +39,7 @@ export const BASE_ROLES = [
   { value: 'housekeeper',             label: 'Housekeeper' },
   { value: 'engineer',                label: 'Engineer' },
   { value: 'housekeeping_supervisor', label: 'Housekeeping Supervisor' },
-  { value: 'chief_engineer',          label: 'Chief Engineer' },
+  { value: 'engineer',          label: 'Chief Engineer' },
   { value: 'front_desk',              label: 'Front Desk' },
   { value: 'gm',                      label: 'General Manager' },
 ]

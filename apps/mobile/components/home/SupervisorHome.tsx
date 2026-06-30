@@ -80,7 +80,7 @@ export function SupervisorHome({ name }: { name: string }) {
       setPassedToday(records.filter((r) => r.overall_result === "passed").length);
     }
     setLoading(false);
-  }, [isOnline]);
+  }, [isOnline, user?.hotel_id]);
 
   useEffect(() => {
     load();

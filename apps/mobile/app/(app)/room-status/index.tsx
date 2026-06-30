@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -35,6 +35,7 @@ type BoardRow = {
   dnd_flag?: boolean | null;
   guest_name?: string | null;
   checkout_time?: string | null;
+  notes?: string | null;
   rooms?: { room_number?: string | null; floor?: number | null } | null;
 };
 
@@ -48,6 +49,7 @@ type RoomRow = {
   dnd_flag: boolean;
   guest_name: string | null;
   checkout_time: string | null;
+  notes: string | null;
 };
 
 /** Board rows keep room identity nested under rooms(...) — flatten once here. */
@@ -62,6 +64,7 @@ function normalizeBoardRow(row: BoardRow): RoomRow {
     dnd_flag: Boolean(row.dnd_flag),
     guest_name: row.guest_name ?? null,
     checkout_time: row.checkout_time ?? null,
+    notes: row.notes ?? null,
   };
 }
 
@@ -101,9 +104,12 @@ export default function RoomStatusScreen() {
   const insets = useSafeAreaInsets();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline, user } = useAppStore();
-  const isEngineer = user?.role === "engineer" || user?.role === "chief_engineer";
+  const isEngineer = user?.role === "engineer" || user?.role === "engineer";
+  const canManageOoo = user?.role === "engineer" || user?.role === "gm" || user?.role === "housekeeping_supervisor";
   const [woModal, setWoModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
   const [oooLoading, setOooLoading] = useState<string | null>(null);
+  const [oooReasonModal, setOooReasonModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
+  const [oooReasonText, setOooReasonText] = useState("");
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -270,88 +276,66 @@ export default function RoomStatusScreen() {
                       style={styles.roomCard}
                       onPress={isEngineer ? () => {
                         const isOoo = isOutOfOrderRoom(room);
-                        Alert.alert(t("roomStatus.roomActionTitle", { room: room.room_number }), undefined, [
-                          {
-                            text: t("roomStatus.createWo"),
-                            onPress: () => setWoModal({ roomId: room.id, roomNumber: room.room_number }),
-                          },
-                          {
-                            text: isOoo ? t("roomStatus.removeOoo") : t("roomStatus.placeOOO"),
-                            onPress: isOoo ? async () => {
-                              setOooLoading(room.id);
-                              try {
-                                await api.patch(`/rooms/${room.id}/status`, { status: "DIRTY" });
-                                await loadRooms();
-                              } catch {
-                                Alert.alert(t("common.error"), t("roomStatus.removeOooError"));
-                              } finally {
-                                setOooLoading(null);
-                              }
-                            } : () => {
-                              Alert.alert(
-                                t("roomStatus.oooReasonTitle"),
-                                t("roomStatus.oooReasonHint"),
-                                [
-                                  { text: t("common.cancel"), style: "cancel" },
-                                  {
-                                    text: t("roomStatus.oooNoReason"),
-                                    onPress: async () => {
-                                      setOooLoading(room.id);
-                                      try {
-                                        await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
-                                        await loadRooms();
-                                      } catch {
-                                        Alert.alert(t("common.error"), t("roomStatus.oooError"));
-                                      } finally {
-                                        setOooLoading(null);
-                                      }
-                                    },
-                                  },
-                                  {
-                                    text: t("roomStatus.oooAddReason"),
-                                    onPress: () => {
-                                      if (Platform.OS === "ios") {
-                                        Alert.prompt(
-                                          t("roomStatus.oooReasonTitle"),
-                                          t("roomStatus.oooReasonPlaceholder"),
-                                          async (reason: string) => {
-                                            setOooLoading(room.id);
-                                            try {
-                                              await api.patch(`/rooms/${room.id}/status`, {
-                                                status: "OOO",
-                                                notes: reason.trim() || undefined,
-                                              });
-                                              await loadRooms();
-                                            } catch {
-                                              Alert.alert(t("common.error"), t("roomStatus.oooError"));
-                                            } finally {
-                                              setOooLoading(null);
-                                            }
+
+                        async function applyOoo(notes?: string) {
+                          setOooLoading(room.id);
+                          try {
+                            await api.patch(`/rooms/${room.id}/status`, { status: "OOO", notes });
+                            await loadRooms();
+                          } catch {
+                            Alert.alert(t("common.error"), t("roomStatus.oooError"));
+                          } finally {
+                            setOooLoading(null);
+                          }
+                        }
+
+                        async function returnToService() {
+                          setOooLoading(room.id);
+                          try {
+                            await api.patch(`/rooms/${room.id}/status`, { status: "DIRTY" });
+                            await loadRooms();
+                          } catch {
+                            Alert.alert(t("common.error"), t("roomStatus.removeOooError"));
+                          } finally {
+                            setOooLoading(null);
+                          }
+                        }
+
+                        const oooButtons = canManageOoo
+                          ? isOoo
+                            ? [{ text: t("roomStatus.removeOoo"), onPress: () => void returnToService() }]
+                            : [
+                                {
+                                  text: t("roomStatus.placeOOO"),
+                                  onPress: () =>
+                                    Alert.alert(
+                                      t("roomStatus.oooReasonTitle"),
+                                      t("roomStatus.oooReasonHint"),
+                                      [
+                                        { text: t("common.cancel"), style: "cancel" as const },
+                                        { text: t("roomStatus.oooNoReason"), onPress: () => void applyOoo() },
+                                        {
+                                          text: t("roomStatus.oooAddReason"),
+                                          onPress: () => {
+                                            setOooReasonText("");
+                                            setOooReasonModal({ roomId: room.id, roomNumber: room.room_number });
                                           },
-                                          "plain-text"
-                                        );
-                                      } else {
-                                        // Android: just place OOO without reason (prompt not available)
-                                        void (async () => {
-                                          setOooLoading(room.id);
-                                          try {
-                                            await api.patch(`/rooms/${room.id}/status`, { status: "OOO" });
-                                            await loadRooms();
-                                          } catch {
-                                            Alert.alert(t("common.error"), t("roomStatus.oooError"));
-                                          } finally {
-                                            setOooLoading(null);
-                                          }
-                                        })();
-                                      }
-                                    },
-                                  },
-                                ]
-                              );
-                            },
-                          },
-                          { text: t("common.cancel"), style: "cancel" },
-                        ]);
+                                        },
+                                      ]
+                                    ),
+                                },
+                              ]
+                          : [];
+
+                        Alert.alert(
+                          t("roomStatus.roomActionTitle", { room: room.room_number }),
+                          isOoo && room.notes ? room.notes : undefined,
+                          [
+                            { text: t("roomStatus.createWo"), onPress: () => setWoModal({ roomId: room.id, roomNumber: room.room_number }) },
+                            ...oooButtons,
+                            { text: t("common.cancel"), style: "cancel" },
+                          ]
+                        );
                       } : undefined}
                       activeOpacity={isEngineer ? 0.82 : 1}
                       accessibilityRole={isEngineer ? "button" : undefined}
@@ -419,6 +403,43 @@ export default function RoomStatusScreen() {
           onCreated={() => setWoModal(null)}
         />
       ) : null}
+
+      <Modal visible={Boolean(oooReasonModal)} transparent animationType="fade" onRequestClose={() => setOooReasonModal(null)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setOooReasonModal(null)} />
+        <View style={styles.modalSheet}>
+          <Text style={styles.modalTitle}>{t("roomStatus.oooReasonModalTitle")}</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={oooReasonText}
+            onChangeText={setOooReasonText}
+            placeholder={t("roomStatus.oooReasonPlaceholder")}
+            placeholderTextColor={C.ink4}
+            multiline
+            autoFocus
+          />
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setOooReasonModal(null)}>
+              <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalConfirm}
+              onPress={() => {
+                const modal = oooReasonModal;
+                setOooReasonModal(null);
+                if (modal) {
+                  setOooLoading(modal.roomId);
+                  api.patch(`/rooms/${modal.roomId}/status`, { status: "OOO", notes: oooReasonText.trim() || undefined })
+                    .then(() => loadRooms())
+                    .catch(() => Alert.alert(t("common.error"), t("roomStatus.oooError")))
+                    .finally(() => setOooLoading(null));
+                }
+              }}
+            >
+              <Text style={styles.modalConfirmText}>{t("roomStatus.oooReasonModalConfirm")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -528,4 +549,28 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
   emptyText: { fontSize: 13, color: C.ink3 },
+
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  modalSheet: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: C.paper, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 20, gap: 14,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "700", color: C.ink },
+  modalInput: {
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.line,
+    borderRadius: R.md, padding: 12, fontSize: 14, color: C.ink,
+    minHeight: 80, textAlignVertical: "top",
+  },
+  modalActions: { flexDirection: "row", gap: 10 },
+  modalCancel: {
+    flex: 1, minHeight: 46, alignItems: "center", justifyContent: "center",
+    borderRadius: R.md, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface,
+  },
+  modalCancelText: { color: C.ink3, fontSize: 14, fontWeight: "700" },
+  modalConfirm: {
+    flex: 2, minHeight: 46, alignItems: "center", justifyContent: "center",
+    borderRadius: R.md, backgroundColor: C.primary,
+  },
+  modalConfirmText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });

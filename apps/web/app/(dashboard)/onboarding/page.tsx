@@ -92,7 +92,7 @@ type StaffRole =
   | 'gm'
   | 'housekeeping_supervisor'
   | 'housekeeper'
-  | 'chief_engineer'
+  | 'engineer'
   | 'engineer'
   | 'front_desk'
 
@@ -100,7 +100,6 @@ const ROLE_LABELS: Record<StaffRole, string> = {
   gm: 'GM',
   housekeeping_supervisor: 'Housekeeping Supervisor',
   housekeeper: 'Housekeeper',
-  chief_engineer: 'Chief Engineer',
   engineer: 'Engineer',
   front_desk: 'Front Desk',
 }

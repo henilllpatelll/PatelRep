@@ -84,11 +84,8 @@ const es = {
   roles: {
     gm: 'Gerente General',
     housekeeping_supervisor: 'Supervisor de Limpieza',
-    chief_engineer: 'Jefe de Mantenimiento',
-    chief_of_maintenance: 'Jefe de Mantenimiento',
     housekeeper: 'Camarista',
-    engineer: 'Tecnico',
-    maintenance_tech: 'Tecnico de Mantenimiento',
+    engineer: 'Técnico',
     front_desk: 'Recepcion',
   },
   commands: {
