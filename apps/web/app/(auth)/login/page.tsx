@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
@@ -40,7 +40,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
 
   const searchParams = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const mobileOnlyParam = searchParams.get('mobileOnly') === '1'
 
@@ -50,7 +50,7 @@ function LoginContent() {
       // Sign them out so navigating away doesn't bounce them back into a redirect loop
       supabase.auth.signOut()
     }
-  }, []) // intentionally once on mount
+  }, [mobileOnlyParam, supabase])
 
   const getRedirectPath = (hotelId: string | undefined | null): string => {
     const redirectTo = searchParams.get('redirectTo')
