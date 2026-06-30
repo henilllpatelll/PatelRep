@@ -318,7 +318,6 @@ export function RoomStatusBoard() {
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
-  const [removingRoomIds, setRemovingRoomIds] = useState<Set<string>>(new Set())
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
 
   const assignmentToRoomId = useMemo(() =>
@@ -373,18 +372,6 @@ export function RoomStatusBoard() {
     if (!boardData) return
     const rooms: any[] = (boardData as any)?.data ?? []
     setRooms(rooms)
-    // Clear removal loading for any rooms that no longer have an assignment —
-    // same render as setRooms so purple and spinner disappear together.
-    setRemovingRoomIds((prev) => {
-      if (prev.size === 0) return prev
-      const stillAssigned = new Set(rooms.filter((r: any) => r.assignment_id).map((r: any) => r.room_id))
-      const next = new Set(prev)
-      let changed = false
-      for (const id of next) {
-        if (!stillAssigned.has(id)) { next.delete(id); changed = true }
-      }
-      return changed ? next : prev
-    })
     const preds = rooms
       .filter((r: any) => r.prediction != null)
       .map((r: any) => ({ ...r.prediction, room_id: r.room_id }))
@@ -443,18 +430,32 @@ export function RoomStatusBoard() {
 
   const handleRemoveSavedAssignment = useCallback(async (assignmentId: string) => {
     const roomId = assignmentToRoomId[assignmentId]
-    if (roomId) setRemovingRoomIds((prev) => new Set(prev).add(roomId))
     setAssignError(null)
+
+    const clearAssignment = (room: any) => {
+      if (!roomId || room.room_id !== roomId) return room
+      return { ...room, assignment_id: null, assigned_to: null }
+    }
+
+    const prevBoardData = queryClient.getQueryData(['housekeeping-board', selectedDate, selectedShift])
+    queryClient.setQueryData(
+      ['housekeeping-board', selectedDate, selectedShift],
+      (old: any) => old?.data ? { ...old, data: old.data.map(clearAssignment) } : old,
+    )
+    setSelectedRoom((prev: any) => prev?.room_id === roomId ? clearAssignment(prev) : prev)
+
+    // Optimistic IDs are not yet persisted — no server call needed
+    if (assignmentId.startsWith('optimistic-')) return
+
     try {
       await housekeepingApi.deleteAssignment(assignmentId)
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] }),
-        queryClient.refetchQueries({ queryKey: ['housekeeping-assignments', selectedDate] }),
-      ])
-      // Loading cleared by the boardData useEffect when it confirms the assignment is gone
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
     } catch {
-      // On error the assignment still exists — clear loading immediately
-      if (roomId) setRemovingRoomIds((prev) => { const next = new Set(prev); next.delete(roomId); return next })
+      queryClient.setQueryData(['housekeeping-board', selectedDate, selectedShift], prevBoardData)
+      setSelectedRoom((prev: any) =>
+        prev?.room_id === roomId ? { ...prev, assignment_id: assignmentId } : prev,
+      )
       setAssignError('Failed to remove assignment. Please try again.')
       setTimeout(() => setAssignError(null), 3000)
     }
@@ -635,7 +636,6 @@ export function RoomStatusBoard() {
                         assignedToActive={assignmentMode && !!activeAssigneeId && room.assigned_to === activeAssigneeId}
                         savedAssignmentId={room.assignment_id ?? null}
                         onRemoveSavedAssignment={handleRemoveSavedAssignment}
-                        isRemovingAssignment={removingRoomIds.has(room.room_id)}
                       />
                     )
                   })}

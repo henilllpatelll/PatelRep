@@ -82,7 +82,7 @@ async def get_effective_role(current_user: CurrentUser = Depends(get_current_use
 
 @router.get("")
 async def list_staff(
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer", "front_desk"))
 ):
     """List all active staff members for the hotel."""
     roles_result = supabase.table("user_roles")\

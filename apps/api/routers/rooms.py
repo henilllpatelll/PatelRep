@@ -3,7 +3,7 @@ import asyncio
 import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import ManualCheckoutRequest, UpdateCheckoutTimeRequest, UpdateRoomStatusRequest, UndoRoomStatusRequest, ImportRoomsRequest
@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 class AddRoomNoteRequest(BaseModel):
     text: str
+
+class ReCleanRequest(BaseModel):
+    note: Optional[str] = None
+    reassign_to: Optional[str] = None
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -532,6 +536,246 @@ async def mark_stayover(
 
     updated_rows = update_result.data or []
     return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/checkin
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/checkin")
+async def check_in_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    """Mark a room as OCCUPIED when a guest checks in (from INSPECTED state)."""
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    from_status: str | None = current_row.data.get("status")
+    if from_status != "INSPECTED":
+        raise HTTPException(status_code=400, detail="Room must be INSPECTED before check-in")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_result = (
+        supabase.table("room_status")
+        .update({
+            "status": "OCCUPIED",
+            "fo_status": "OCC",
+            "checkin_time": now_iso,
+            "actual_checkout_at": None,
+            "updated_at": now_iso,
+        })
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .execute()
+    )
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": from_status,
+        "to_status": "OCCUPIED",
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": "Guest checked in",
+    }).execute()
+
+    updated_rows = update_result.data or []
+    return {"data": updated_rows[0] if updated_rows else {}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/welfare-check
+# ---------------------------------------------------------------------------
+
+@router.post("/{room_id}/welfare-check")
+async def request_welfare_check(
+    room_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "front_desk")),
+):
+    """Escalate a DND room for a welfare check — creates a supervisor task and sends notifications."""
+    current_row = (
+        supabase.table("room_status")
+        .select("room_id, status, dnd_flag")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    room_result = (
+        supabase.table("rooms")
+        .select("room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not room_result or not room_result.data:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    room_number = room_result.data.get("room_number") or ""
+    now = datetime.now(timezone.utc)
+
+    # Find a supervisor to assign to
+    supervisor_result = (
+        supabase.table("user_roles")
+        .select("user_id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("role", "housekeeping_supervisor")
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+    )
+    supervisor_id = (supervisor_result.data[0]["user_id"] if supervisor_result.data else None)
+
+    task_payload = {
+        "tenant_id": current_user.hotel_id,
+        "title": f"Welfare check — Room {room_number}",
+        "description": f"Room {room_number} has had DND active for an extended period. Please perform a welfare check.",
+        "task_type": "housekeeping",
+        "priority": "urgent",
+        "room_id": room_id,
+        "created_by": current_user.user_id,
+        "due_at": (now + timedelta(minutes=30)).isoformat(),
+    }
+    if supervisor_id:
+        task_payload["assigned_to"] = supervisor_id
+
+    task_result = supabase.table("tasks").insert(task_payload).execute()
+    task_id = (task_result.data[0]["id"] if task_result.data else None)
+
+    notif_data = {"room_id": room_id, "room_number": room_number, "task_id": task_id}
+    for target_role in ("housekeeping_supervisor", "front_desk"):
+        users = (
+            supabase.table("user_roles")
+            .select("user_id")
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("role", target_role)
+            .eq("is_active", True)
+            .execute()
+        )
+        for row in (users.data or []):
+            supabase.table("notifications").insert({
+                "tenant_id": current_user.hotel_id,
+                "user_id": row["user_id"],
+                "type": "welfare_check_requested",
+                "title": f"Welfare check — Room {room_number}",
+                "body": "DND flag has been active. Please check on the guest.",
+                "data": notif_data,
+                "is_read": False,
+                "push_sent": False,
+            }).execute()
+
+    return {"data": {"room_id": room_id, "task_id": task_id, "notified": True}}
+
+
+# ---------------------------------------------------------------------------
+# POST /rooms/{room_id}/re-clean
+
+
+@router.post("/{room_id}/re-clean")
+async def dispatch_re_clean(
+    room_id: str,
+    request: ReCleanRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Set a CLEAN/INSPECTED room back to DIRTY after a failed inspection and notify the housekeeper."""
+    current_row = (
+        supabase.table("room_status")
+        .select("*")
+        .eq("room_id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not current_row or not current_row.data:
+        raise HTTPException(status_code=404, detail="Room status record not found")
+
+    from_status: str | None = current_row.data.get("status")
+    if from_status not in ("CLEAN", "INSPECTED"):
+        raise HTTPException(status_code=400, detail="Room must be CLEAN or INSPECTED to dispatch a re-clean")
+
+    room_result = (
+        supabase.table("rooms")
+        .select("room_number")
+        .eq("id", room_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_number = (room_result.data or {}).get("room_number", "") if room_result else ""
+
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    # Determine who to notify — reassign_to overrides existing assigned_to
+    assigned_to: str | None = request.reassign_to or current_row.data.get("assigned_to")
+
+    update_payload: dict = {
+        "status": "DIRTY",
+        "updated_at": now_iso,
+        "notes": request.note or "Failed inspection — re-clean required",
+    }
+    if request.reassign_to:
+        update_payload["assigned_to"] = request.reassign_to
+
+    supabase.table("room_status")\
+        .update(update_payload)\
+        .eq("room_id", room_id)\
+        .eq("tenant_id", current_user.hotel_id)\
+        .execute()
+
+    supabase.table("room_status_history").insert({
+        "room_id": room_id,
+        "tenant_id": current_user.hotel_id,
+        "from_status": from_status,
+        "to_status": "DIRTY",
+        "changed_by": current_user.user_id,
+        "change_source": "app",
+        "notes": f"Failed inspection — re-clean dispatched{': ' + request.note if request.note else ''}",
+    }).execute()
+
+    # Create an urgent housekeeping task for the housekeeper
+    task_payload: dict = {
+        "tenant_id": current_user.hotel_id,
+        "title": f"Re-clean required — Room {room_number}",
+        "description": request.note or "Room failed inspection and requires re-cleaning.",
+        "task_type": "housekeeping",
+        "priority": "urgent",
+        "room_id": room_id,
+        "created_by": current_user.user_id,
+        "due_at": (now + timedelta(minutes=60)).isoformat(),
+    }
+    if assigned_to:
+        task_payload["assigned_to"] = assigned_to
+
+    task_result = supabase.table("tasks").insert(task_payload).execute()
+    task_id = (task_result.data[0]["id"] if task_result.data else None)
+
+    if assigned_to:
+        supabase.table("notifications").insert({
+            "tenant_id": current_user.hotel_id,
+            "user_id": assigned_to,
+            "type": "re_clean_dispatched",
+            "title": f"Re-clean — Room {room_number}",
+            "body": request.note or "Room failed inspection. Please re-clean.",
+            "data": {"room_id": room_id, "room_number": room_number, "task_id": task_id},
+            "is_read": False,
+            "push_sent": False,
+        }).execute()
+
+    return {"data": {"room_id": room_id, "task_id": task_id, "assigned_to": assigned_to}}
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T05:16:38.374Z
-> Files: 98 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T22:28:32.988Z
+> Files: 111 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -11,6 +11,8 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/
 
+- `MEMORY.md` — PatelRep Project Memory (~495 tok)
+- `project_workflow_audit_handoff.md` — What was being built (2026-06-30 session) (~1088 tok)
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
@@ -30,6 +32,7 @@
 ## ./
 
 - `CLAUDE.md` — OpenWolf (~2969 tok)
+- `WORKFLOW_AUDIT.md` — PatelRep Web App — Role Workflow Audit (~3208 tok)
 
 ## .claude/
 
@@ -478,9 +481,11 @@
 
 - `clean_sessions.py` — API: 6 endpoints (~5844 tok)
 - `housekeeping.py` — Declares from (~23700 tok)
-- `internal.py` — API: 8 endpoints (~5020 tok)
-- `notifications.py` — API: 4 endpoints (~776 tok)
+- `internal.py` — API: 8 endpoints (~5530 tok)
+- `notifications.py` — API: 5 endpoints (~1140 tok)
 - `onboarding.py` — API: 3 endpoints (~3712 tok)
+- `rooms.py` — API: 4 endpoints (~12894 tok)
+- `staff.py` — API: 8 endpoints (~5265 tok)
 - `work_orders.py` — API: 6 endpoints (~5070 tok)
 
 ## apps/api/scripts/
@@ -785,7 +790,7 @@
 
 ## apps/web/app/(dashboard)/dashboard/
 
-- `page.tsx` — GMDashboard (~917 tok)
+- `page.tsx` — GMDashboard (~2279 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
@@ -807,7 +812,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~8750 tok)
+- `page.tsx` — SHIFTS (~8944 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
@@ -891,9 +896,13 @@
 
 ## apps/web/components/dashboard/
 
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7384 tok)
+- `ROIMetricsStrip.tsx` — getHotelIdFromSession (~835 tok)
+- `SupervisorDashboard.tsx` — QUICK_MESSAGES (~8497 tok)
 
 ## apps/web/components/engineering/
 
+- `CreateWorkOrderModal.tsx` — CATEGORIES (~4917 tok)
 
 ## apps/web/components/guest-requests/
 
@@ -901,17 +910,19 @@
 ## apps/web/components/housekeeping/
 
 - `AssignmentSidebar.tsx` — AssignmentSidebar (~1160 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~4039 tok)
+- `InspectionModal.tsx` — calcOverallResult (~6770 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~3855 tok)
 - `RoomDetailDrawer.tsx` — WO_CATEGORIES (~15481 tok)
-- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~8139 tok)
+- `RoomStatusBoard.tsx` — CLEAN_TYPE_CHIPS (~8086 tok)
 
 ## apps/web/components/settings/
 
 
 ## apps/web/components/shared/
 
-- `Providers.tsx` — SUPABASE_DB_ROLES (~2624 tok)
-- `Sidebar.tsx` — ALL_NAV_ITEMS (~4870 tok)
+- `Header.tsx` — COMMANDS (~5177 tok)
+- `Providers.tsx` — SUPABASE_DB_ROLES (~2656 tok)
+- `Sidebar.tsx` — ALL_NAV_ITEMS (~4876 tok)
 
 ## apps/web/components/ui/
 
@@ -932,6 +943,8 @@
 - `cleanSessions.ts` — API routes: GET (2 endpoints) (~336 tok)
 - `client.ts` — Exports ApiClientError, apiClient (~1518 tok)
 - `engineering.ts` — ─── Work Order types ───────────────────────────────────────────────────────── (~2483 tok)
+- `housekeeping.ts` — API routes: GET, POST, DELETE, PATCH (28 endpoints) (~1870 tok)
+- `notifications.ts` — API routes: GET, PATCH, POST (4 endpoints) (~168 tok)
 
 ## apps/web/lib/hooks/
 
@@ -947,11 +960,11 @@
 - `housekeepingBoardFilters.ts` — Exports CleanTypeFilter, HousekeepingBoardFilterOptions, getHousekeepingBoardFilterCounts, normalize (~640 tok)
 - `lateCheckoutRequests.test.mjs` — Node test coverage for pending late-checkout request indexing and room annotation (~650 tok)
 - `lateCheckoutRequests.ts` — Utility helpers for indexing pending late-checkout requests by room and annotating room rows for board/detail display (~430 tok)
-- `routeGuard.ts` — Roles that only use the mobile app — blocked from all web portal routes (~1152 tok)
+- `routeGuard.ts` — Roles that only use the mobile app — blocked from all web portal routes (~1164 tok)
 
 ## apps/web/stores/
 
-- `authStore.ts` — Day-of-week schedule override. null = use base role. Never persisted — re-fetched each session. (~549 tok)
+- `authStore.ts` — Full name from /auth/me — avoids falling back to email prefix. Never persisted. (~623 tok)
 
 ## design_handoff_frontend_rework/
 

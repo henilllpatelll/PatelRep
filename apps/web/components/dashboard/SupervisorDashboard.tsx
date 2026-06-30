@@ -1,19 +1,119 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Megaphone, Send, X, Check, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { tasksApi, type Task } from '@/lib/api/tasks'
+import { notificationsApi } from '@/lib/api/notifications'
 import { getSupervisorHousekeepingMetrics } from '@/lib/utils/housekeepingDashboardMetrics'
 import { LiveOpsGrid } from './LiveOpsGrid'
 import {
   Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
 } from '@/components/ui/primitives'
+
+// ── BroadcastModal ────────────────────────────────────────────────────────────
+
+const QUICK_MESSAGES = [
+  'Prioritize departures first — VIP arrivals this afternoon.',
+  'All rooms Floor 3 are priority — VIP check-in at 2 PM.',
+  'Team meeting at the front desk in 15 minutes.',
+  'Please report any maintenance issues to the supervisor.',
+]
+
+function BroadcastModal({ onClose }: { onClose: () => void }) {
+  const [text, setText] = useState('')
+  const [sent, setSent] = useState(false)
+  const { mutate, isPending } = useMutation({
+    mutationFn: (msg: string) => notificationsApi.broadcast(msg),
+    onSuccess: () => setSent(true),
+  })
+
+  function handleSend(msg: string) {
+    const trimmed = msg.trim()
+    if (!trimmed) return
+    mutate(trimmed)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
+      <div className="bg-surface border border-line rounded-[var(--r-xl)] shadow-xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center">
+              <Megaphone className="w-4 h-4 text-[var(--accent)]" />
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-ink">Team broadcast</p>
+              <p className="text-[11px] text-ink3">All housekeeping staff on shift</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-ink3 hover:text-ink transition-colors p-1"><X size={16} /></button>
+        </div>
+
+        {sent ? (
+          <div className="flex flex-col items-center gap-3 py-10 px-5">
+            <div className="w-10 h-10 rounded-full bg-[var(--ready-soft)] flex items-center justify-center">
+              <Check className="w-5 h-5 text-[var(--ready)]" />
+            </div>
+            <p className="text-[14px] font-semibold text-ink">Message sent</p>
+            <p className="text-[12px] text-ink3 text-center">Your team will see this in their notifications.</p>
+            <button
+              onClick={onClose}
+              className="mt-2 px-4 py-2 bg-surface-2 border border-line text-[13px] font-medium text-ink rounded-[var(--r-md)] hover:bg-surface-3 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="px-5 pb-5 flex flex-col gap-3">
+            {/* Quick messages */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-medium text-ink3 uppercase tracking-[0.08em]">Quick messages</p>
+              {QUICK_MESSAGES.map((m, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(m)}
+                  disabled={isPending}
+                  className="text-left px-3 py-2.5 bg-surface-2 border border-line rounded-lg text-[12.5px] text-ink2 hover:border-[var(--accent-line)] hover:text-ink hover:bg-[var(--accent-soft)] transition-colors disabled:opacity-50"
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            {/* Free text */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-medium text-ink3 uppercase tracking-[0.08em]">Custom message</p>
+              <div className="flex gap-2">
+                <textarea
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  placeholder="Type a message to all housekeeping staff…"
+                  rows={2}
+                  className="flex-1 resize-none px-3 py-2.5 border border-line rounded-lg text-[13px] bg-surface text-ink placeholder:text-ink4 focus:outline-none focus:border-[var(--accent-line)] transition-colors"
+                />
+                <button
+                  onClick={() => handleSend(text)}
+                  disabled={isPending || !text.trim()}
+                  className="self-end flex items-center gap-1.5 px-3.5 py-2.5 bg-accent text-white text-[12px] font-semibold rounded-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                >
+                  {isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,16 +145,33 @@ function Avatar({ name, size = 30 }: { name: string; size?: number }) {
 // ── StaffProgress ─────────────────────────────────────────────────────────────
 
 interface HKRow {
+  housekeeper_id?: string
+  name?: string
   housekeeper_name?: string
   user_name?: string
   rooms_assigned?: number
+  rooms_done?: number
   rooms_completed?: number
+  in_progress?: number
   avg_clean_minutes?: number
   risk?: boolean
 }
 
 function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
   const rows: HKRow[] = (assignmentsData as any)?.data ?? []
+  const [shiftPct, setShiftPct] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const compute = () => {
+      const now = new Date()
+      const elapsed = Math.max(0, now.getHours() - 8 + now.getMinutes() / 60)
+      setShiftPct(Math.min(1, elapsed / 8))
+    }
+    compute()
+    intervalRef.current = setInterval(compute, 60_000)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [])
 
   return (
     <div className="bg-surface border border-line rounded-[var(--r-lg)] overflow-hidden shadow-card">
@@ -75,12 +192,14 @@ function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
           <p className="text-[12px] text-ink3 px-4 py-3">No assignments today</p>
         ) : (
           rows.map((hk, i) => {
-            const name = hk.housekeeper_name ?? hk.user_name ?? 'Staff'
-            const done = hk.rooms_completed ?? 0
+            const name = hk.name ?? hk.housekeeper_name ?? hk.user_name ?? 'Staff'
+            const done = hk.rooms_done ?? hk.rooms_completed ?? 0
+            const inProgress = hk.in_progress ?? 0
             const total = hk.rooms_assigned ?? 0
-            const mins = hk.avg_clean_minutes
             const pace = total > 0 ? done / total : 0
-            const isRisk = hk.risk || (pace < 0.4 && total > 0)
+            const paceGap = pace - shiftPct
+            const isBehind = shiftPct > 0.25 && paceGap < -0.12 && total > 0
+            const isAhead = paceGap > 0.12 && total > 0
             return (
               <div
                 key={i}
@@ -88,22 +207,19 @@ function StaffProgress({ assignmentsData }: { assignmentsData: unknown }) {
               >
                 <Avatar name={name} size={30} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[13px] font-medium text-ink truncate">{name}</span>
-                    {isRisk && <Pill tone="caution" size="sm">running over</Pill>}
+                    {inProgress > 0 && <Pill tone="progress" size="sm">cleaning now</Pill>}
+                    {isBehind && <Pill tone="caution" size="sm">behind</Pill>}
+                    {isAhead && <Pill tone="ready" size="sm">ahead</Pill>}
                   </div>
-                  {mins != null && (
-                    <div className="text-[11px] text-ink3 mt-0.5">
-                      <Mono>{mins}m avg</Mono>
-                    </div>
-                  )}
                 </div>
                 <div className="w-[110px] shrink-0">
                   <div className="flex justify-between text-[11px] text-ink3 mb-1">
                     <Mono>{done}/{total}</Mono>
                     <span>{total > 0 ? Math.round(pace * 100) : 0}%</span>
                   </div>
-                  <Bar value={done} max={total || 1} tone={isRisk ? 'caution' : 'ready'} height={3} />
+                  <Bar value={done} max={total || 1} tone={isBehind ? 'caution' : 'ready'} height={3} />
                 </div>
               </div>
             )
@@ -356,8 +472,10 @@ function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; ta
 // ── SupervisorDashboard ───────────────────────────────────────────────────────
 
 export function SupervisorDashboard() {
+  const storedFullName = useAuthStore(s => s.fullName)
   const user = useAuthStore(s => s.user)
   const [greeting, setGreeting] = useState('Good morning')
+  const [broadcastOpen, setBroadcastOpen] = useState(false)
   useEffect(() => {
     const h = new Date().getHours()
     if (h < 12) setGreeting('Good morning')
@@ -365,11 +483,9 @@ export function SupervisorDashboard() {
     else setGreeting('Good evening')
   }, [])
 
-  const fullName: string =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    user?.email?.split('@')[0] ||
-    'Supervisor'
-  const firstName = fullName.includes('@') ? fullName.split('@')[0] : fullName.split(' ')[0] || fullName
+  const firstName = storedFullName
+    ? storedFullName.split(' ')[0] || 'Supervisor'
+    : (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] || 'Supervisor'
 
   const { data: summaryData } = useQuery({
     queryKey: ['daily-summary'],
@@ -404,7 +520,7 @@ export function SupervisorDashboard() {
     refetchInterval: 10_000,
   })
 
-  const { data: boardData } = useQuery({
+  const { data: boardData, isLoading: boardLoading } = useQuery({
     queryKey: ['housekeeping-board', todayISO],
     queryFn: () => housekeepingApi.getBoard(todayISO, undefined, false),
     staleTime: 0,
@@ -448,6 +564,13 @@ export function SupervisorDashboard() {
           </p>
         </div>
         <div className="flex gap-2 pb-1 shrink-0">
+          <button
+            onClick={() => setBroadcastOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-line text-[12px] font-semibold text-ink rounded-[var(--r-md)] hover:bg-surface-2 transition-colors"
+          >
+            <Megaphone size={13} />
+            Broadcast
+          </button>
           <Link
             href="/tasks"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-ink text-paper text-[12px] font-semibold rounded-[var(--r-md)] hover:opacity-90 transition-opacity"
@@ -456,6 +579,7 @@ export function SupervisorDashboard() {
           </Link>
         </div>
       </div>
+      {broadcastOpen && <BroadcastModal onClose={() => setBroadcastOpen(false)} />}
 
       {/* Morning briefing */}
       {summary && (
@@ -512,10 +636,18 @@ export function SupervisorDashboard() {
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total Rooms" value={totalRooms} />
-        <Stat label="Assigned" value={assignedTotal} deltaTone={assignedTotal > 0 ? 'caution' : 'ready'} />
-        <Stat label="To Inspect" value={cleanPending} deltaTone={cleanPending > 0 ? 'info' : 'ready'} />
-        <Stat label="Inspected" value={`${inspectedPct}%`} deltaTone="ready" />
+        {boardLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 bg-surface-3 rounded-[var(--r-lg)] animate-pulse" />
+          ))
+        ) : (
+          <>
+            <Stat label="Total Rooms" value={totalRooms} />
+            <Stat label="Assigned" value={assignedTotal} deltaTone={assignedTotal > 0 ? 'caution' : 'ready'} />
+            <Stat label="To Inspect" value={cleanPending} deltaTone={cleanPending > 0 ? 'info' : 'ready'} />
+            <Stat label="Inspected" value={`${inspectedPct}%`} deltaTone="ready" />
+          </>
+        )}
       </div>
 
       {/* Live ops strip */}

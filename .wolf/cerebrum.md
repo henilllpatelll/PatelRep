@@ -174,6 +174,8 @@
 
 ## Do-Not-Repeat
 
+- [2026-06-30] **`GET /housekeeping/assignments` returns `name`, `rooms_done`, `in_progress` — NOT `housekeeper_name`/`rooms_completed`** — The `HKRow` interface in `SupervisorDashboard.tsx` previously read `hk.housekeeper_name` and `hk.rooms_completed`, but the API returns `hk.name` and `hk.rooms_done`. This caused StaffProgress to always show "Staff" and zero counts. Always read `hk.name ?? hk.housekeeper_name` and `hk.rooms_done ?? hk.rooms_completed` with fallbacks. File: `apps/web/components/dashboard/SupervisorDashboard.tsx`.
+
 - [2026-06-28] **HK Details import must reset `assigned_to` on `room_status`** — The import resets Opera truth fields (status, clean_type, flags, notes) but if `assigned_to` is omitted, yesterday's housekeeper (e.g. Claudia) persists on `room_status`. The board falls back to `room_status.assigned_to` when no today-dated `room_assignments` row exists, so every room appears assigned to her even after a fresh import. Always include `"assigned_to": None` in `import_hk_details`'s `update_data`. File: `apps/api/routers/housekeeping.py`.
 
 - [2026-06-07] **`my_rooms_select` must NOT include `id` — room_status uses `room_id` as PK** — Selecting `id` from `room_status` causes PostgreSQL error 42703 (undefined_column) → PostgREST APIError → main.py maps non-PGRST204 errors to HTTP 400. Mobile sees "HTTP 400" because the body is `{error:{}}` not `{detail:...}`. Fix: use `room_id` in select, then add `"id": room["room_id"]` in the loop so mobile navigation (`room.id`) works.

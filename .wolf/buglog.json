@@ -4401,6 +4401,474 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-30T03:04:41.620Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-06-30T06:00:57.865Z",
+      "error_message": "CSS fix: data",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "data: boardData → boardData, isLoading: boardLoading",
+      "fix": "Changed data: boardData → boardData, isLoading: boardLoading",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:00:57.865Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-06-30T06:01:15.624Z",
+      "error_message": "Wrong reference: useAuthStore should be fullName",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Used \"useAuthStore\" instead of \"fullName\"",
+      "fix": "Changed useAuthStore → fullName",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:01:15.624Z"
+    },
+    {
+      "id": "bug-271",
+      "timestamp": "2026-06-30T06:02:24.448Z",
+      "error_message": "CSS fix: front_desk",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "front_desk: ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found'], → ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found','/ai'],",
+      "fix": "Changed front_desk: ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found'], → ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found','/ai'],",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:02:24.448Z"
+    },
+    {
+      "id": "bug-272",
+      "timestamp": "2026-06-30T06:03:19.534Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:03:19.534Z"
+    },
+    {
+      "id": "bug-273",
+      "timestamp": "2026-06-30T06:03:41.068Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "hover: bg-surface-2 transition-colors shrink-0\" → text-ink transition-colors\"",
+      "fix": "Changed hover: bg-surface-2 transition-colors shrink-0\" → text-ink transition-colors\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:03:41.068Z"
+    },
+    {
+      "id": "bug-274",
+      "timestamp": "2026-06-30T06:30:00.000Z",
+      "error_message": "BUG-2: Notification bell has no onClick handler, shows hardcoded badge of 3, no panel",
+      "file": "apps/web/components/shared/Header.tsx",
+      "root_cause": "Bell button had no state, no onClick, no panel component — static decorative element",
+      "fix": "Added notificationsOpen state, useQuery for unread notifications, click-outside handler, dropdown panel with real data from /notifications API; created apps/web/lib/api/notifications.ts",
+      "tags": [
+        "notification-bell",
+        "header",
+        "ux",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:30:00.000Z"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-06-30T06:30:00.000Z",
+      "error_message": "BUG-3: SupervisorDashboard shows zeros for all metrics on initial render",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "Stat strip rendered immediately with boardData=undefined; getSupervisorHousekeepingMetrics returns zeros when boardData is falsy; no loading skeleton was shown",
+      "fix": "Added isLoading: boardLoading from useQuery; stat strip shows 4 skeleton pulse divs while boardLoading=true",
+      "tags": [
+        "supervisor-dashboard",
+        "loading-state",
+        "ux",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:30:00.000Z"
+    },
+    {
+      "id": "bug-276",
+      "timestamp": "2026-06-30T06:30:00.000Z",
+      "error_message": "BUG-5: GM/Supervisor/FrontDesk greeting shows email prefix instead of full name",
+      "file": "apps/web/stores/authStore.ts, apps/web/components/shared/Providers.tsx, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/SupervisorDashboard.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "/auth/me returns user.full_name but Providers.tsx never stored it; greeting fell back to user.email which includes @ → split('@')[0] → email prefix",
+      "fix": "Added fullName field + setFullName to authStore; Providers.tsx now calls setFullName(data.user.full_name); all three dashboard greetings read storedFullName from store with Supabase user_metadata as fallback",
+      "tags": [
+        "greeting",
+        "authstore",
+        "full-name",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:30:00.000Z"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-06-30T06:30:00.000Z",
+      "error_message": "BUG-4: Front Desk staffApi.list() returns 403 on housekeeping board causing console errors",
+      "file": "apps/api/routers/staff.py",
+      "root_cause": "staffApi.list() required gm/housekeeping_supervisor/engineer; front_desk not included; RoomStatusBoard calls staffApi.list() for all roles to get housekeeper names",
+      "fix": "Added front_desk to require_role on GET /staff endpoint so FD can see housekeeper names on the board",
+      "tags": [
+        "staff-rbac",
+        "front-desk",
+        "403",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:30:00.000Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-06-30T06:19:04.768Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const selectedRoom = roomsList.find((r: any) => r.room_id ==; const roomNumber = selectedRoom?.rooms?.room_number | Also: {/* Location — room picker + optional free-text */}; <div className=\"space-y-2\">",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-30T06:19:31.701Z"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-06-30T06:19:20.068Z",
+      "error_message": "Wrong condition in logic",
+      "file": "apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "root_cause": "Condition was: if (!locationText.trim()",
+      "fix": "Changed to: if (!selectedRoomId && !locationText.trim()",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:19:20.068Z"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-06-30T06:19:51.785Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <div key={key} className=\"py-1.5 space-y-1.5\">; <div className=\"flex items-center justify-between gap-3\">",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T06:20:10.687Z"
+    },
+    {
+      "id": "bug-281",
+      "timestamp": "2026-06-30T06:39:59.813Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had '/lost-found'",
+      "fix": "Changed to '/engineering'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:39:59.813Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-06-30T06:55:04.257Z",
+      "error_message": "Missing guard clause",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "No early return/throw for edge case: !trimmed",
+      "fix": "Added guard clause: if (!trimmed)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:55:04.257Z"
+    },
+    {
+      "id": "bug-283",
+      "timestamp": "2026-06-30T06:55:46.999Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:55:46.999Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-06-30T06:56:02.139Z",
+      "error_message": "CSS fix: sm",
+      "file": "apps/web/components/dashboard/ROIMetricsStrip.tsx",
+      "root_cause": "sm: grid-cols-3 gap-4\"> → grid-cols-4 gap-4\">",
+      "fix": "Changed sm: grid-cols-3 gap-4\"> → grid-cols-4 gap-4\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T06:56:10.046Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-06-30T19:13:23.896Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:13:23.896Z"
+    },
+    {
+      "id": "bug-286",
+      "timestamp": "2026-06-30T19:13:33.617Z",
+      "error_message": "Wrong reference: timezone should be timedelta",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Used \"timezone\" instead of \"timedelta\"",
+      "fix": "Changed timezone → timedelta",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:13:33.617Z"
+    },
+    {
+      "id": "bug-287",
+      "timestamp": "2026-06-30T19:13:49.490Z",
+      "error_message": "Wrong return value",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Was returning: {\"status\": \"ok\", \"escalated\": escalated, \"notified",
+      "fix": "Now returns: {\"status\": \"ok\", \"escalated\": escalated, \"notified",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:13:49.490Z"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-06-30T19:14:41.206Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:14:41.206Z"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-06-30T19:15:09.549Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 43→63 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:15:09.549Z"
+    },
+    {
+      "id": "bug-290",
+      "timestamp": "2026-06-30T19:15:25.019Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:15:25.019Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-06-30T19:27:23.512Z",
+      "error_message": "Function not marked async",
+      "file": "apps/api/routers/rooms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:27:23.513Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-06-30T19:28:07.425Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "mutationFn: (payload: Parameters<typeof housekeepingApi.submitInspection>[0]) => → () => housekeepingApi.sendReClean(roomId, reCleanNote.trim() || undefined),",
+      "fix": "Changed mutationFn: (payload: Parameters<typeof housekeepingApi.submitInspection>[0]) => → () => housekeepingApi.sendReClean(roomId, reCleanNote.trim() || undefined),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:28:07.425Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-06-30T19:42:59.892Z",
+      "error_message": "Type error",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:42:59.892Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-06-30T19:43:53.008Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:43:53.008Z"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-06-30T22:20:29.329Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 17→5 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T22:20:29.329Z"
+    },
+    {
+      "id": "bug-296",
+      "timestamp": "2026-06-30T22:20:44.836Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T22:20:44.836Z"
+    },
+    {
+      "id": "bug-297",
+      "timestamp": "2026-06-30T22:21:25.572Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "hover: opacity-80 transition-opacity w-full flex items-center justify-center gap-1\" → opacity-80 transition-opacity w-full\"",
+      "fix": "Changed hover: opacity-80 transition-opacity w-full flex items-center justify-center gap-1\" → opacity-80 transition-opacity w-full\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T22:21:25.572Z"
     }
   ]
 }

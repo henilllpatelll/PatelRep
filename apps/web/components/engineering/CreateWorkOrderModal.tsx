@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Sparkles, ClipboardList, ImagePlus } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
+import { roomsApi } from '@/lib/api/rooms'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -37,6 +38,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('general')
   const [priority, setPriority] = useState<string>('normal')
+  const [selectedRoomId, setSelectedRoomId] = useState('')
   const [locationText, setLocationText] = useState('')
   const [useAI, setUseAI] = useState(false)
   const [nlInput, setNlInput] = useState('')
@@ -44,6 +46,18 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
   const [guestReported, setGuestReported] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+
+  const { data: roomsData } = useQuery({
+    queryKey: ['rooms-picker'],
+    queryFn: () => roomsApi.list(),
+    staleTime: 300_000,
+    enabled: isOpen,
+  })
+  const roomsList: any[] = ((roomsData as any)?.data ?? []).sort((a: any, b: any) => {
+    const fa = a.rooms?.floor ?? 0, fb = b.rooms?.floor ?? 0
+    if (fa !== fb) return fa - fb
+    return parseInt(a.rooms?.room_number ?? '0', 10) - parseInt(b.rooms?.room_number ?? '0', 10)
+  })
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
@@ -57,6 +71,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
       setTitle('')
       setCategory('general')
       setPriority('normal')
+      setSelectedRoomId('')
       setLocationText('')
       setUseAI(false)
       setNlInput('')
@@ -78,10 +93,15 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const selectedRoom = roomsList.find((r: any) => r.room_id === selectedRoomId)
+      const roomNumber = selectedRoom?.rooms?.room_number
       const payload: Parameters<typeof engineeringApi.createWorkOrder>[0] = {
         category,
         priority,
-        location_text: locationText.trim() || undefined,
+        room_id: selectedRoomId || undefined,
+        location_text: selectedRoomId
+          ? (locationText.trim() || (roomNumber ? `Room ${roomNumber}` : undefined))
+          : locationText.trim() || undefined,
         guest_reported: guestReported,
       }
       if (useAI) {
@@ -115,8 +135,8 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
       setValidationError('Please describe the issue for AI to process.')
       return
     }
-    if (!locationText.trim()) {
-      setValidationError('Location is required.')
+    if (!selectedRoomId && !locationText.trim()) {
+      setValidationError('Select a room or enter a location.')
       return
     }
 
@@ -190,17 +210,38 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               </button>
             </div>
 
-            {/* Location — required, shown first */}
-            <div>
-              <label className="block text-sm font-medium text-ink2 mb-1">
-                Location <span className="text-[var(--alert)]">*</span>
-              </label>
-              <Input
-                type="text"
-                value={locationText}
-                onChange={(e) => setLocationText(e.target.value)}
-                placeholder="e.g. Room 214 or Lobby restroom"
-              />
+            {/* Location — room picker + optional free-text */}
+            <div className="space-y-2">
+              <div>
+                <label className="block text-sm font-medium text-ink2 mb-1">
+                  Room <span className="text-[var(--alert)]">*</span>
+                </label>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors"
+                >
+                  <option value="">— not a specific room —</option>
+                  {roomsList.map((r: any) => (
+                    <option key={r.room_id} value={r.room_id}>
+                      Room {r.rooms?.room_number}{r.rooms?.floor != null ? ` · Floor ${r.rooms.floor}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink2 mb-1">
+                  {selectedRoomId ? 'Location detail' : 'Other location'}{' '}
+                  {!selectedRoomId && <span className="text-[var(--alert)]">*</span>}
+                  {selectedRoomId && <span className="text-ink4 font-normal">(optional)</span>}
+                </label>
+                <Input
+                  type="text"
+                  value={locationText}
+                  onChange={(e) => setLocationText(e.target.value)}
+                  placeholder={selectedRoomId ? 'e.g. Bathroom, A/C unit' : 'e.g. Lobby restroom, Pool area'}
+                />
+              </div>
             </div>
 
             {/* Title (only when AI is off) */}

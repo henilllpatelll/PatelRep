@@ -109,6 +109,21 @@ function HousekeeperBar() {
           : {}),
       }))
 
+    // Optimistic: immediately show assigned rooms as purple in the board
+    const boardKey = ['housekeeping-board', selectedDate, selectedShift]
+    const prevBoardData = queryClient.getQueryData(boardKey)
+    queryClient.setQueryData(boardKey, (old: any) => {
+      if (!old?.data) return old
+      return {
+        ...old,
+        data: old.data.map((room: any) => {
+          const housekeeperId = pendingSnapshot[room.room_id]
+          if (!housekeeperId) return room
+          return { ...room, assigned_to: housekeeperId, assignment_id: `optimistic-${room.room_id}` }
+        }),
+      }
+    })
+
     clearPendingAssignments()
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2500)
@@ -123,6 +138,7 @@ function HousekeeperBar() {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
       queryClient.invalidateQueries({ queryKey: ['staff-list'] })
     }).catch((err: any) => {
+      queryClient.setQueryData(boardKey, prevBoardData)
       Object.entries(pendingSnapshot).forEach(([roomId, housekeeperId]) => {
         setPendingAssignment(roomId, housekeeperId, cleanTypeSnapshot[roomId as keyof typeof cleanTypeSnapshot])
       })

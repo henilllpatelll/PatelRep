@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, ArrowRight, X } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, ArrowRight, X, CheckCheck } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/stores/authStore'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
+import { notificationsApi, type Notification } from '@/lib/api/notifications'
 
 const COMMANDS = [
   { labelKey: 'nav.dashboard', href: '/dashboard', hintKey: 'commands.todayOverview' },
@@ -29,15 +31,37 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { user, signOut } = useAuth()
   const { t, i18n } = useTranslation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
   const [dateShiftLabel, setDateShiftLabel] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const notificationsRef = useRef<HTMLDivElement>(null)
   const commandInputRef = useRef<HTMLInputElement>(null)
+
+  const { data: notificationsData, refetch: refetchNotifications } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => notificationsApi.list({ is_read: false, limit: 20 }),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+  const notifications: Notification[] = (notificationsData as any)?.data ?? []
+  const unreadCount = notifications.length
+
+  const handleMarkAllRead = async () => {
+    await notificationsApi.markAllRead()
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread'] })
+  }
+
+  const handleMarkRead = async (id: string) => {
+    await notificationsApi.markRead(id)
+    refetchNotifications()
+  }
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -99,6 +123,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
     requestAnimationFrame(() => commandInputRef.current?.focus())
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [commandOpen])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [notificationsOpen])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -264,15 +300,61 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </button>
 
       {/* Notification bell */}
-      <button
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0"
-        aria-label={t('header.notifications')}
-      >
-        <Bell size={14} />
-        <span className="absolute -top-[3px] -right-[3px] w-[14px] h-[14px] rounded-full bg-accent text-white text-[9px] font-bold font-mono flex items-center justify-center border-2 border-paper">
-          3
-        </span>
-      </button>
+      <div className="relative" ref={notificationsRef}>
+        <button
+          onClick={() => setNotificationsOpen((prev) => !prev)}
+          className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0"
+          aria-label={t('header.notifications')}
+          aria-haspopup="true"
+          aria-expanded={notificationsOpen}
+        >
+          <Bell size={14} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-[3px] -right-[3px] w-[14px] h-[14px] rounded-full bg-accent text-white text-[9px] font-bold font-mono flex items-center justify-center border-2 border-paper">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+
+        {notificationsOpen && (
+          <div className="absolute right-0 mt-1.5 w-80 bg-surface border border-line rounded-xl shadow-pop z-50 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-line-2">
+              <p className="text-[13px] font-semibold text-ink">Notifications</p>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="flex items-center gap-1 text-[11px] text-ink3 hover:text-ink transition-colors"
+                >
+                  <CheckCheck size={12} />
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-[360px] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="px-4 py-6 text-center text-[13px] text-ink3">No new notifications</p>
+              ) : (
+                notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleMarkRead(n.id)}
+                    className="w-full text-left flex gap-3 px-4 py-3 border-b border-line-2 last:border-0 hover:bg-surface-2 transition-colors"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12.5px] font-medium text-ink leading-snug">{n.title}</p>
+                      {n.body && <p className="text-[11.5px] text-ink3 mt-0.5 line-clamp-2">{n.body}</p>}
+                      <p className="text-[10.5px] text-ink4 mt-1 font-mono">
+                        {new Date(n.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* User dropdown */}
       <div className="relative" ref={dropdownRef}>

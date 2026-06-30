@@ -46,6 +46,51 @@ async def mark_all_read(current_user: CurrentUser = Depends(get_current_user)):
     return {"data": {"success": True}}
 
 
+@router.post("/broadcast")
+async def broadcast_message(
+    body: dict = Body(...),
+    current_user: CurrentUser = Depends(
+        require_role("gm", "housekeeping_supervisor")
+    ),
+):
+    """Send a message to all active housekeeping staff on this property."""
+    message = (body.get("message") or "").strip()
+    roles = body.get("roles") or ["housekeeper", "housekeeping_supervisor"]
+    if not message:
+        raise HTTPException(status_code=422, detail="message is required")
+
+    staff_result = (
+        supabase.table("user_roles")
+        .select("user_id")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("is_active", True)
+        .in_("role", roles)
+        .execute()
+    )
+    recipients = [
+        r["user_id"]
+        for r in (staff_result.data or [])
+        if r["user_id"] != current_user.user_id
+    ]
+
+    if not recipients:
+        return {"data": {"sent": 0}}
+
+    rows = [
+        {
+            "tenant_id": current_user.hotel_id,
+            "user_id": uid,
+            "type": "broadcast",
+            "title": "Team message",
+            "body": message,
+            "is_read": False,
+        }
+        for uid in recipients
+    ]
+    supabase.table("notifications").insert(rows).execute()
+    return {"data": {"sent": len(rows)}}
+
+
 @router.post("/direct")
 async def send_direct_message(
     body: dict = Body(...),

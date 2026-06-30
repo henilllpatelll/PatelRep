@@ -431,8 +431,45 @@ async def check_escalations(x_cron_secret: str = Header(None)):
                          {"task_id": task_id})
             notified += 1
 
-    logger.info("Escalation check complete: escalated=%d notified=%d", escalated, notified)
-    return {"status": "ok", "escalated": escalated, "notified": notified}
+    # --- DND Welfare Check Auto-Escalation (8 hours) ---
+    dnd_cutoff = (now - timedelta(hours=8)).isoformat()
+    dnd_rooms = supabase.table("room_status")\
+        .select("room_id, tenant_id, rooms(room_number)")\
+        .eq("dnd_flag", True)\
+        .lt("updated_at", dnd_cutoff)\
+        .execute()
+
+    dnd_notified = 0
+    for room in (dnd_rooms.data or []):
+        hotel_id = room["tenant_id"]
+        room_id = room["room_id"]
+        room_number = (room.get("rooms") or {}).get("room_number", "unknown")
+
+        # Skip if a welfare check task already exists for this room today
+        today_str = now.date().isoformat()
+        existing_task = supabase.table("tasks")\
+            .select("id", count="exact")\
+            .eq("tenant_id", hotel_id)\
+            .eq("room_id", room_id)\
+            .eq("task_type", "housekeeping")\
+            .ilike("title", "Welfare check%")\
+            .gte("created_at", f"{today_str}T00:00:00+00:00")\
+            .execute()
+        if existing_task.count and existing_task.count > 0:
+            continue
+
+        _notify_role(hotel_id, "housekeeping_supervisor", "dnd_welfare_check_auto",
+                     f"Welfare check needed — Room {room_number}",
+                     f"Room {room_number} has had DND active for 8+ hours.",
+                     {"room_id": room_id, "room_number": room_number})
+        _notify_role(hotel_id, "front_desk", "dnd_welfare_check_auto",
+                     f"Welfare check needed — Room {room_number}",
+                     f"Room {room_number} has had DND active for 8+ hours.",
+                     {"room_id": room_id, "room_number": room_number})
+        dnd_notified += 1
+
+    logger.info("Escalation check complete: escalated=%d notified=%d dnd_welfare=%d", escalated, notified, dnd_notified)
+    return {"status": "ok", "escalated": escalated, "notified": notified, "dnd_welfare_notified": dnd_notified}
 
 
 @router.post("/logbook/cleanup-expired")

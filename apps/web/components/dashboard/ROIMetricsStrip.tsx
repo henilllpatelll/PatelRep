@@ -37,8 +37,8 @@ export function ROIMetricsStrip() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[0, 1, 2].map((i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-24 rounded-[var(--r-lg)] bg-surface-3 animate-pulse" />
         ))}
       </div>
@@ -48,13 +48,23 @@ export function ROIMetricsStrip() {
   const summary = summaryData?.data
   const stats = statsData?.data
 
-  const inspectedToday = summary?.room_status_breakdown?.INSPECTED ?? 0
+  const breakdown = summary?.room_status_breakdown ?? {}
+  const inspectedToday = breakdown.INSPECTED ?? 0
   const totalRooms = stats?.room_count ?? 0
   const openWorkOrders = summary?.open_work_orders ?? stats?.open_tasks ?? 0
   const tasksCompleted = summary?.tasks_completed_today ?? 0
 
+  const occupiedRooms = (breakdown.OCCUPIED ?? 0) + (breakdown.PICKUP ?? 0) + (breakdown.IN_PROGRESS ?? 0)
+  const occPct = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <Stat
+        label="Occupancy"
+        value={`${occPct}%`}
+        hint={`${occupiedRooms} of ${totalRooms}`}
+        deltaTone={occPct >= 70 ? 'ready' : occPct >= 40 ? 'caution' : 'alert'}
+      />
       <Stat
         label="Rooms Inspected"
         value={inspectedToday}

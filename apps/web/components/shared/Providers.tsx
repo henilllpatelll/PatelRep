@@ -85,6 +85,7 @@ function AuthListener() {
     setUser,
     setSession,
     setRole,
+    setFullName,
     setEffectiveRole,
     setCustomRoleModules,
     setLoading,
@@ -121,6 +122,9 @@ function AuthListener() {
         if (data.user?.role) {
           setRole(data.user.role)
           writeAppRoleCookie(data.user.role)
+        }
+        if (data.user?.full_name) {
+          setFullName(data.user.full_name)
         }
         await fetchEffectiveRole()
       } catch (err) {

@@ -146,6 +146,15 @@ export const housekeepingApi = {
   undoCheckout: (roomId: string) =>
     apiClient.delete(`/rooms/${roomId}/checkout`),
 
+  markCheckIn: (roomId: string) =>
+    apiClient.post(`/rooms/${roomId}/checkin`, {}),
+
+  requestWelfareCheck: (roomId: string) =>
+    apiClient.post(`/rooms/${roomId}/welfare-check`, {}),
+
+  sendReClean: (roomId: string, note?: string, reassignTo?: string) =>
+    apiClient.post(`/rooms/${roomId}/re-clean`, { note, reassign_to: reassignTo }),
+
   updateCheckoutTime: (roomId: string, checkoutTime: string) =>
     apiClient.patch(`/rooms/${roomId}/checkout-time`, { checkout_time: checkoutTime }),
 

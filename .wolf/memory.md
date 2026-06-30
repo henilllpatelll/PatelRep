@@ -1,4 +1,10 @@
 ﻿# Memory
+| session | Optimistic remove for room assignments: removed removingRoomIds state + spinner; handleRemoveSavedAssignment now updates cache immediately, fires API in background, rolls back on failure | RoomStatusBoard.tsx, RoomCard.tsx | complete | ~30 tok |
+| 08:00 | Finished remaining WORKFLOW_AUDIT items: (1) InspectionModal reCleanStep — reset in useEffect + re-clean branch UI (alert banner + textarea + Skip/Dispatch footer); (2) GMDashboard arrivals/departures — board query, depRooms/readyRooms derivation, 2-col card with checkout/checkin buttons. tsc clean. | InspectionModal.tsx, dashboard/page.tsx | complete | ~80 tok |
+| 07:30 | P3 check-in/checkout + DND welfare: POST /rooms/{id}/checkin, POST /rooms/{id}/welfare-check (rooms.py), DND 8h auto-escalation block in internal.py /escalations/check, markCheckIn + requestWelfareCheck in housekeeping.ts, FD dashboard check-out button (OCCUPIED DEP rooms), check-in button (INSPECTED rooms), DND welfare panel. tsc clean. | rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx | complete | ~120 tok |
+| 06:45 | BUG-4 root cause confirmed via buglog: staffApi.list() returned 403 for front_desk (not in require_role). Fix already applied to staff.py. Board loads correctly for FD; setLastSyncedAt fires from boardData useEffect. tsc passes clean. | apps/api/routers/staff.py | complete | ~50 tok |
+| 06:45 | WORKFLOW_AUDIT P1 fixes continued: room picker on CreateWorkOrderModal (room_id dropdown + optional detail), per-item notes on InspectionModal (auto-show on fail), SupervisorDashboard StaffProgress HKRow field fix (name/rooms_done/in_progress) + shift-pace live calculation | CreateWorkOrderModal.tsx, InspectionModal.tsx, SupervisorDashboard.tsx | complete | ~90 tok |
+| 06:30 | WORKFLOW_AUDIT fixes: BUG-2 notification bell (Header.tsx + notifications.ts), BUG-3 supervisor stat strip skeleton, BUG-4 staff RBAC for FD, BUG-5 fullName in authStore+Providers+3 dashboards, P1 FD AI nav | Header.tsx, notifications.ts, authStore.ts, Providers.tsx, dashboard/page.tsx, SupervisorDashboard.tsx, FrontDeskDashboard.tsx, staff.py, Sidebar.tsx | complete | ~180 tok |
 | 2026-06-29 | Uniform auth UI: rebrand auth/callback + auth/reset-password to match login's two-column bg-paper design (dropped gray-50/slate/green-100 raw classes → design system CSS vars). Added password show/hide toggle to login + reset-password. Reset-password now has same two-column split layout, LanguageToggle, consistent logo, same inputCls/primaryBtn, password requirements hint. Callback page uses bg-paper + ink tokens, brand logo. | apps/web/app/(auth)/login/page.tsx, apps/web/app/auth/callback/page.tsx, apps/web/app/auth/reset-password/page.tsx | complete | ~40 tok |
 | 2026-06-29 | Web portal role restriction: blocked housekeeper, engineer, chief_engineer from all web routes. Added MOBILE_ONLY_ROLES to routeGuard.ts, mobileOnly flag on RouteAccessDecision, proxy.ts propagates ?mobileOnly=1, login page signs them out + shows banner, auth/callback blocks magic-link logins. | apps/web/lib/utils/routeGuard.ts, apps/web/proxy.ts, apps/web/app/(auth)/login/page.tsx, apps/web/app/auth/callback/page.tsx | complete | ~60 tok |
 | 2026-06-28 | OOO reason-code prompt: room-status/index.tsx — added Platform import, split OOO button into remove (unchanged) vs place (two-step Alert with Skip/Add Reason; iOS uses Alert.prompt, Android falls back to no-reason OOO); 5 new i18n keys in roomStatus.* en+es | apps/mobile/app/(app)/room-status/index.tsx, i18n/locales/en.json, i18n/locales/es.json | complete | ~40 tok |
@@ -6309,3 +6315,154 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:16 | Edited apps/api/services/policy.py | 6→5 lines | ~31 |
 | 00:16 | Session end: 3 writes across 2 files (page.tsx, policy.py) | 10 reads | ~10198 tok |
 | 00:17 | Session end: 3 writes across 2 files (page.tsx, policy.py) | 10 reads | ~10198 tok |
+
+## Session: 2026-06-30 00:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:41 | Created WORKFLOW_AUDIT.md | — | ~3422 |
+| 00:41 | Session end: 1 writes across 1 files (WORKFLOW_AUDIT.md) | 38 reads | ~3666 tok |
+
+## Session: 2026-06-30 00:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-30 00:53
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:00 | Edited apps/web/stores/authStore.ts | 17→20 lines | ~248 |
+| 01:00 | Edited apps/web/stores/authStore.ts | 13→15 lines | ~196 |
+| 01:00 | Edited apps/web/components/shared/Providers.tsx | 9→10 lines | ~47 |
+| 01:00 | Edited apps/web/components/shared/Providers.tsx | added 1 condition(s) | ~81 |
+| 01:00 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | modified GMDashboard() | ~172 |
+| 01:00 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | modified SupervisorDashboard() | ~163 |
+| 01:00 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: isLoading | ~68 |
+| 01:01 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | CSS: length | ~201 |
+| 01:01 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | inline fix | ~20 |
+| 01:01 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 5→3 lines | ~51 |
+| 01:02 | Edited apps/api/routers/staff.py | modified list_staff() | ~44 |
+| 01:02 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~31 |
+| 01:02 | Created apps/web/lib/api/notifications.ts | — | ~134 |
+| 01:03 | Edited apps/web/components/shared/Header.tsx | added 2 import(s) | ~198 |
+| 01:03 | Edited apps/web/components/shared/Header.tsx | added optional chaining | ~394 |
+| 01:03 | Edited apps/web/components/shared/Header.tsx | added 2 condition(s) | ~176 |
+| 01:03 | Edited apps/web/components/shared/Header.tsx | CSS: last, hour, minute | ~806 |
+| 01:06 | Session end: 17 writes across 9 files (authStore.ts, Providers.tsx, page.tsx, SupervisorDashboard.tsx, FrontDeskDashboard.tsx) | 17 reads | ~55236 tok |
+| 01:11 | Session end: 17 writes across 9 files (authStore.ts, Providers.tsx, page.tsx, SupervisorDashboard.tsx, FrontDeskDashboard.tsx) | 17 reads | ~55236 tok |
+
+## Session: 2026-06-30 01:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:18 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added 1 import(s) | ~118 |
+| 01:19 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added optional chaining | ~310 |
+| 01:19 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | modified if() | ~108 |
+| 01:19 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added optional chaining | ~219 |
+| 01:19 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 4→4 lines | ~38 |
+| 01:19 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | added optional chaining | ~498 |
+| 01:19 | Edited apps/web/components/housekeeping/InspectionModal.tsx | 5→6 lines | ~115 |
+| 01:19 | Edited apps/web/components/housekeeping/InspectionModal.tsx | modified if() | ~63 |
+| 01:19 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added optional chaining | ~62 |
+| 01:20 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added nullish coalescing | ~1290 |
+| 01:20 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 2→2 lines | ~19 |
+| 01:20 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 1 condition(s) | ~936 |
+
+## Session: 2026-06-30 01:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:39 | Edited apps/web/lib/utils/routeGuard.ts | inline fix | ~24 |
+| 01:39 | Edited apps/web/lib/utils/routeGuard.ts | inline fix | ~26 |
+| 01:39 | Edited apps/web/components/shared/Sidebar.tsx | inline fix | ~47 |
+| 01:40 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | inline fix | ~22 |
+| 01:40 | Session end: 4 writes across 3 files (routeGuard.ts, Sidebar.tsx, SupervisorDashboard.tsx) | 12 reads | ~31462 tok |
+| 01:51 | Session end: 4 writes across 3 files (routeGuard.ts, Sidebar.tsx, SupervisorDashboard.tsx) | 12 reads | ~31462 tok |
+
+## Session: 2026-06-30 01:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:54 | Edited apps/api/routers/notifications.py | modified broadcast_message() | ~381 |
+| 01:54 | Edited apps/web/lib/api/notifications.ts | 8→10 lines | ~119 |
+| 01:54 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 2 import(s) | ~256 |
+| 01:55 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 1 condition(s) | ~1323 |
+| 01:55 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | modified SupervisorDashboard() | ~129 |
+| 01:55 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | expanded (+8 lines) | ~223 |
+| 01:55 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | added optional chaining | ~1089 |
+| 01:56 | Edited apps/web/components/dashboard/ROIMetricsStrip.tsx | expanded (+10 lines) | ~379 |
+| 01:56 | Edited apps/web/components/dashboard/ROIMetricsStrip.tsx | 7→7 lines | ~67 |
+| 01:57 | Team broadcast modal + POST /notifications/broadcast | SupervisorDashboard.tsx, notifications.py, notifications.ts | done | ~700 |
+| 01:57 | FD arrivals & departures widget from board data | FrontDeskDashboard.tsx | done | ~200 |
+| 01:57 | GM OCC% leading stat, ROIMetricsStrip 4-col grid | ROIMetricsStrip.tsx | done | ~100 |
+| 01:57 | Session end: 9 writes across 5 files (notifications.py, notifications.ts, SupervisorDashboard.tsx, FrontDeskDashboard.tsx, ROIMetricsStrip.tsx) | 11 reads | ~49850 tok |
+| 13:16 | Session end: 9 writes across 5 files (notifications.py, notifications.ts, SupervisorDashboard.tsx, FrontDeskDashboard.tsx, ROIMetricsStrip.tsx) | 11 reads | ~49850 tok |
+
+## Session: 2026-06-30 13:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-06-30 14:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:13 | Edited apps/api/routers/rooms.py | modified check_in_room() | ~1564 |
+| 14:13 | Edited apps/api/routers/rooms.py | inline fix | ~15 |
+| 14:13 | Edited apps/api/routers/internal.py | modified in() | ~546 |
+| 14:13 | Edited apps/web/lib/api/housekeeping.ts | expanded (+6 lines) | ~79 |
+| 14:14 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 12→12 lines | ~198 |
+| 14:14 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | modified FrontDeskDashboard() | ~118 |
+| 14:14 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | CSS: roomId, roomId, roomId | ~399 |
+| 14:14 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | CSS: r | ~48 |
+| 14:15 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | expanded (+20 lines) | ~1121 |
+| 14:15 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | added optional chaining | ~618 |
+| 14:16 | Session end: 10 writes across 4 files (rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx) | 6 reads | ~25750 tok |
+| 14:23 | Session end: 10 writes across 4 files (rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx) | 8 reads | ~30122 tok |
+| 14:26 | Edited apps/api/routers/rooms.py | modified AddRoomNoteRequest() | ~44 |
+| 14:27 | Edited apps/api/routers/rooms.py | modified dispatch_re_clean() | ~1046 |
+| 14:27 | Edited apps/web/lib/api/housekeeping.ts | 5→8 lines | ~99 |
+| 14:27 | Edited apps/web/components/housekeeping/InspectionModal.tsx | 7→7 lines | ~123 |
+| 14:27 | Edited apps/web/components/housekeeping/InspectionModal.tsx | modified InspectionModal() | ~230 |
+| 14:28 | Edited apps/web/components/housekeeping/InspectionModal.tsx | added 1 condition(s) | ~284 |
+| 14:28 | Session end: 16 writes across 5 files (rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx, InspectionModal.tsx) | 10 reads | ~50127 tok |
+| 14:32 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_workflow_audit_handoff.md | — | ~1163 |
+| 14:33 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 1→4 lines | ~43 |
+| 14:33 | Session end: 18 writes across 7 files (rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx, InspectionModal.tsx) | 12 reads | ~51419 tok |
+
+## Session: 2026-06-30 14:38
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:42 | Edited apps/web/components/housekeeping/InspectionModal.tsx | modified if() | ~86 |
+| 14:42 | Edited apps/web/components/housekeeping/InspectionModal.tsx | CSS: focus, focus, focus | ~1028 |
+| 14:43 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 5 import(s) | ~318 |
+| 14:43 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added nullish coalescing | ~1658 |
+| 14:45 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_workflow_audit_handoff.md | inline fix | ~8 |
+| 14:45 | Session end: 5 writes across 3 files (InspectionModal.tsx, page.tsx, project_workflow_audit_handoff.md) | 8 reads | ~21401 tok |
+| 15:56 | Session end: 5 writes across 3 files (InspectionModal.tsx, page.tsx, project_workflow_audit_handoff.md) | 10 reads | ~23244 tok |
+
+## Session: 2026-06-30 16:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:16 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_workflow_audit_handoff.md | 8→8 lines | ~56 |
+| 16:16 | Session end: 1 writes across 1 files (project_workflow_audit_handoff.md) | 3 reads | ~9109 tok |
+
+## Session: 2026-06-30 17:11
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 4→3 lines | ~71 |
+| 17:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | reduced (-12 lines) | ~42 |
+| 17:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added optional chaining | ~406 |
+| 17:20 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 2→1 lines | ~22 |
+| 17:20 | Edited apps/web/components/housekeeping/RoomCard.tsx | 15→14 lines | ~126 |
+| 17:21 | Edited apps/web/components/housekeeping/RoomCard.tsx | modified RoomCard() | ~75 |
+| 17:21 | Edited apps/web/components/housekeeping/RoomCard.tsx | 3→3 lines | ~67 |
+| 17:21 | Edited apps/web/components/housekeeping/RoomCard.tsx | modified if() | ~173 |
+| 17:21 | Session end: 8 writes across 2 files (RoomStatusBoard.tsx, RoomCard.tsx) | 5 reads | ~23070 tok |
+| 17:28 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 2 condition(s) | ~616 |
+| 17:28 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 condition(s) | ~345 |
+| 17:28 | Session end: 10 writes across 3 files (RoomStatusBoard.tsx, RoomCard.tsx, page.tsx) | 5 reads | ~24031 tok |

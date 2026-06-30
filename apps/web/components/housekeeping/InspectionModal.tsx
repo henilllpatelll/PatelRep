@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { X, Check, Minus, ClipboardCheck, Loader2, Timer, Camera } from 'lucide-react'
+import { X, Check, Minus, ClipboardCheck, Loader2, Timer, Camera, RotateCcw } from 'lucide-react'
 import { housekeepingApi, InspectionTemplate } from '@/lib/api/housekeeping'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 import { Button } from '@/components/ui/Button'
@@ -66,10 +66,14 @@ function OverallResultBadge({ result }: { result: OverallResult }) {
 
 export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, lastCleanMinutes, lastCleanBaseMinutes, checklistDone = 0, checklistTotal = 0, photoCount = 0, isOpen, onClose, onSuccess }: Props) {
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
+  const [itemNotes, setItemNotes] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState('')
   const [manualOverall, setManualOverall] = useState<OverallResult>('passed')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const pendingResultRef = useRef<OverallResult>('passed')
+  const [reCleanStep, setReCleanStep] = useState(false)
+  const [reCleanNote, setReCleanNote] = useState('')
+  const [reCleanError, setReCleanError] = useState<string | null>(null)
 
   // Fetch templates only when modal is open
   const { data: templatesData, isLoading: templatesLoading } = useQuery({
@@ -87,9 +91,13 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
   useEffect(() => {
     if (isOpen) {
       setItemResults({})
+      setItemNotes({})
       setNotes('')
       setManualOverall('passed')
       setSubmitError(null)
+      setReCleanStep(false)
+      setReCleanNote('')
+      setReCleanError(null)
     }
   }, [isOpen])
 
@@ -106,14 +114,112 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
     mutationFn: (payload: Parameters<typeof housekeepingApi.submitInspection>[0]) =>
       housekeepingApi.submitInspection(payload),
     onSuccess: () => {
-      onSuccess(pendingResultRef.current)
+      if (pendingResultRef.current === 'failed') {
+        // Pre-populate re-clean note from failed item notes
+        const failedNotes = Object.values(itemNotes).filter(Boolean).join('; ')
+        setReCleanNote(failedNotes)
+        setReCleanStep(true)
+      } else {
+        onSuccess(pendingResultRef.current)
+      }
     },
     onError: (err: any) => {
       setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Failed to submit inspection.')
     },
   })
 
+  const reCleanMutation = useMutation({
+    mutationFn: () => housekeepingApi.sendReClean(roomId, reCleanNote.trim() || undefined),
+    onSuccess: () => {
+      onSuccess('failed')
+    },
+    onError: (err: any) => {
+      setReCleanError(err?.response?.data?.detail ?? err?.message ?? 'Failed to dispatch re-clean.')
+    },
+  })
+
   if (!isOpen) return null
+
+  if (reCleanStep) {
+    return (
+      <>
+        <div className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50" aria-hidden="true" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Re-clean Room ${roomNumber}`}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-lg flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <RotateCcw className="w-5 h-5 text-[var(--alert)] shrink-0" />
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">Dispatch Re-clean</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Room {roomNumber} — inspection failed</p>
+                </div>
+              </div>
+              <Button variant="ghost" onClick={onClose} className="p-1.5 rounded-lg" aria-label="Close modal">
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              <div className="flex items-start gap-2 px-3 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
+                <X className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Inspection failed. Send room back for re-cleaning?</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Note for housekeeper <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={reCleanNote}
+                  onChange={(e) => setReCleanNote(e.target.value)}
+                  rows={3}
+                  placeholder="What needs to be fixed…"
+                  className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-surface/50 backdrop-blur-sm"
+                />
+              </div>
+              {reCleanError && (
+                <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
+                  {reCleanError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/60 shrink-0">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Skip (close)
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => reCleanMutation.mutate()}
+                disabled={reCleanMutation.isPending}
+              >
+                {reCleanMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Dispatching…
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4" />
+                    Dispatch Re-clean
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   const items = template?.items ?? []
 
@@ -164,6 +270,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       items: items.map((item, idx) => ({
         template_item_id: item.id,
         result: itemResults[item.id ?? String(idx)] ?? 'na',
+        note: itemNotes[item.id ?? String(idx)]?.trim() || undefined,
       })),
     }
     pendingResultRef.current = calculatedResult
@@ -273,68 +380,74 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                           const current = itemResults[key]
 
                           return (
-                            <div
-                              key={key}
-                              className="flex items-center justify-between gap-3 py-1.5"
-                            >
-                              {/* Description + required indicator */}
-                              <div className="flex items-start gap-2 min-w-0 flex-1">
-                                <span
-                                  className={`mt-0.5 shrink-0 w-3 h-3 rounded-full border-2 ${
-                                    item.is_required
-                                      ? 'border-gray-500 bg-gray-500'
-                                      : 'border-gray-300'
-                                  }`}
+                            <div key={key} className="py-1.5 space-y-1.5">
+                              <div className="flex items-center justify-between gap-3">
+                                {/* Description + required indicator */}
+                                <div className="flex items-start gap-2 min-w-0 flex-1">
+                                  <span
+                                    className={`mt-0.5 shrink-0 w-3 h-3 rounded-full border-2 ${
+                                      item.is_required
+                                        ? 'border-gray-500 bg-gray-500'
+                                        : 'border-gray-300'
+                                    }`}
+                                  />
+                                  <span className="text-sm text-gray-700 leading-tight">
+                                    {item.description}
+                                  </span>
+                                </div>
+
+                                {/* Pass / Fail / N/A toggle */}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setItemResult(key, 'pass')}
+                                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
+                                      current === 'pass'
+                                        ? 'bg-green-100 text-[var(--ready)] border-green-300'
+                                        : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--ready-line)]'
+                                    }`}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    Pass
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setItemResult(key, 'fail')}
+                                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
+                                      current === 'fail'
+                                        ? 'bg-[var(--alert-soft)] text-[var(--alert)] border-red-300'
+                                        : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--alert-line)]'
+                                    }`}
+                                  >
+                                    <X className="w-3 h-3" />
+                                    Fail
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setItemResult(key, 'na')}
+                                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
+                                      current === 'na'
+                                        ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                        : 'bg-surface/70 text-gray-400 border-white/90 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                    N/A
+                                  </button>
+                                </div>
+                              </div>
+                              {/* Per-item note — auto-shown on fail */}
+                              {current === 'fail' && (
+                                <input
+                                  type="text"
+                                  value={itemNotes[key] ?? ''}
+                                  onChange={(e) =>
+                                    setItemNotes((prev) => ({ ...prev, [key]: e.target.value }))
+                                  }
+                                  placeholder="What needs to be fixed…"
+                                  className="w-full text-xs border border-[var(--alert-line)] rounded-md px-2.5 py-1.5 bg-[var(--alert-soft)]/40 text-ink2 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--alert)]/50"
                                 />
-                                <span className="text-sm text-gray-700 leading-tight">
-                                  {item.description}
-                                </span>
-                              </div>
-
-                              {/* Pass / Fail / N/A toggle */}
-                              <div className="flex items-center gap-1 shrink-0">
-                                {/* Pass */}
-                                <button
-                                  type="button"
-                                  onClick={() => setItemResult(key, 'pass')}
-                                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
-                                    current === 'pass'
-                                      ? 'bg-green-100 text-[var(--ready)] border-green-300'
-                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--ready-line)]'
-                                  }`}
-                                >
-                                  <Check className="w-3 h-3" />
-                                  Pass
-                                </button>
-
-                                {/* Fail */}
-                                <button
-                                  type="button"
-                                  onClick={() => setItemResult(key, 'fail')}
-                                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
-                                    current === 'fail'
-                                      ? 'bg-[var(--alert-soft)] text-[var(--alert)] border-red-300'
-                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-[var(--alert-line)]'
-                                  }`}
-                                >
-                                  <X className="w-3 h-3" />
-                                  Fail
-                                </button>
-
-                                {/* N/A */}
-                                <button
-                                  type="button"
-                                  onClick={() => setItemResult(key, 'na')}
-                                  className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
-                                    current === 'na'
-                                      ? 'bg-gray-100 text-gray-600 border-gray-300'
-                                      : 'bg-surface/70 text-gray-400 border-white/90 hover:border-gray-300'
-                                  }`}
-                                >
-                                  <Minus className="w-3 h-3" />
-                                  N/A
-                                </button>
-                              </div>
+                              )}
                             </div>
                           )
                         })}
