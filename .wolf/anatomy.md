@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T04:17:07.546Z
-> Files: 97 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T05:16:38.374Z
+> Files: 98 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -488,6 +488,7 @@
 
 ## apps/api/services/
 
+- `policy.py` — check_action_permitted (~389 tok)
 - `room_status_transitions.py` — Room status transition rules shared by the rooms and clean-sessions routers. (~2401 tok)
 
 ## apps/api/services/ai/

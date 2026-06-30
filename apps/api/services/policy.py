@@ -8,7 +8,6 @@ This is the last line of defence before a side-effect hits the DB.
 # Role authority rank. Higher = more authority.
 _ROLE_RANK: dict[str, int] = {
     "housekeeper": 0,
-    "engineer": 0,
     "front_desk": 1,
     "housekeeping_supervisor": 2,
     "engineer": 2,
