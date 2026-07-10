@@ -409,7 +409,7 @@ async def update_work_order(
 @router.delete("/{wo_id}", status_code=204)
 async def delete_work_order(
     wo_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+    current_user: CurrentUser = Depends(require_role("gm")),
 ):
     wo_check = (
         supabase.table("work_orders")
