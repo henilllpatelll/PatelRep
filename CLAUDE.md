@@ -164,12 +164,13 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 | Service | URL |
 |---|---|
-| API (Railway) | https://patelrep-web-production.up.railway.app |
-| Web (Railway) | https://patelrep-production.up.railway.app |
+| API (Railway) | https://stellar-integrity-production-f507.up.railway.app |
+| Web (Railway) | https://patelrep-production-0ad1.up.railway.app |
 | GitHub | https://github.com/henilllpatelll/PatelRep |
 
-Railway project: `9290c2c7-79a4-49f2-843e-cc4702a00ae5` · env: `659deef4-4f65-4102-bdb7-efd0a896bca3`
-API service: `71d29823-a960-4e1a-ac02-8478b5b6b7d9` · web service: `00570a79-0b54-4c4a-b9f7-42534241add8`
+Railway project: `0369313e-cca1-4907-9887-d7699b883f76` · env: `7a43c126-3802-4279-9ee7-7929c889ddc9`
+API service (`stellar-integrity`): `2f1812b8-7f8f-4d24-a6e4-631d34205254` · web service (`PatelRep`): `e791035c-a89d-4f19-a2d2-d61cc0f418ce`
+Railway account: prishap110113@gmail.com (Prisha Patel) — new trial account opened 2026-07-15
 
 ### Env vars (by tier)
 **API (Railway):** `SUPABASE_URL` `SUPABASE_SERVICE_ROLE_KEY` `SUPABASE_JWT_SECRET` `OPENAI_API_KEY` `ANTHROPIC_API_KEY` `STRIPE_SECRET_KEY` `STRIPE_WEBHOOK_SECRET` `CRON_SECRET` `APP_ENV` `APP_URL`
