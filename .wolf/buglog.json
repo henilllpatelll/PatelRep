@@ -5948,6 +5948,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T15:41:57.575Z"
+    },
+    {
+      "id": "bug-360",
+      "timestamp": "2026-07-16T16:04:15.291Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `9290c2c7-79a4-49f2-843e-cc4702a00ae5`",
+      "fix": "Changed to `0369313e-cca1-4907-9887-d7699b883f76`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:04:15.291Z"
+    },
+    {
+      "id": "bug-361",
+      "timestamp": "2026-07-16T16:20:34.171Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "Had \"status\"",
+      "fix": "Changed to \"predictions.run\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-16T16:21:09.090Z"
     }
   ]
 }

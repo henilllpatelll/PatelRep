@@ -1,4 +1,6 @@
 ﻿# Memory
+| 11:25 | Phase 0+1 final commit fd6c5873: cron_health table (migration 068) applied to production; _record_cron_run() added to all 8 cron endpoints; /health extended with cron/notifications/pms_sync telemetry; schema/work_order_enums.json + test_enum_contracts.py enum drift guard (2 tests pass); Playwright phase1 E2E spec committed; honest occupancy language ("Mark Occupied/Departed") in GMDashboard + FrontDeskDashboard. 229 smoke tests pass. Pushed to main. STATE.md updated. Only remaining item: 48-hour monitoring window expires ~2026-07-18. | apps/api/main.py, apps/api/routers/internal.py, apps/api/tests/smoke/test_enum_contracts.py, schema/work_order_enums.json, supabase/migrations/068_cron_health.sql, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/playwright.phase1.config.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~200 tok |
+| 2026-07-16 | Phase 1 E2E: playwright.phase1.config.ts + e2e/phase1-work-orders.spec.ts (5 authenticated tests: emergency WO, escalation, hold+reason, resume, inspection photo prompt). Occupancy language: "Check out"→"Mark Departed", "Check in"→"Mark Occupied", section labels updated. API field names unchanged. tsc clean. | apps/web/playwright.phase1.config.ts, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~80 tok |
 | 2026-07-16 | Phase 1 contract tests: added RBAC guard tests (housekeeper/housekeeping_supervisor/front_desk blocked, engineer/gm pass), tenant-isolation test (cross-hotel WO → 404, no audit event), audit-reconstruction test (4-step lifecycle in memory mock). 247 API tests pass. | apps/api/tests/test_work_order_transitions.py | complete | ~80 tok |
 | session | Optimistic remove for room assignments: removed removingRoomIds state + spinner; handleRemoveSavedAssignment now updates cache immediately, fires API in background, rolls back on failure | RoomStatusBoard.tsx, RoomCard.tsx | complete | ~30 tok |
 | 00:05 | Queried existing Graphify map and indexed the current web surface; registered the previously unindexed June workflow audit | graphify-out/graph.json, apps/web/**, WORKFLOW_AUDIT.md, .wolf/anatomy.md | Found 169 web files, 38 page/error/layout entries, and a recent authenticated role audit to validate against current source | ~900 |
@@ -6575,3 +6577,39 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 |------|--------|---------|---------|--------|
 | 10:41 | Edited apps/api/tests/test_work_order_transitions.py | 3→3 lines | ~54 |
 | 10:41 | Edited apps/api/tests/test_work_order_transitions.py | modified test_non_management_roles_are_blocked_by_rbac_guard() | ~1206 |
+| 10:47 | Edited .planning/STATE.md | modified smoke() | ~1230 |
+| 10:48 | Session end: 3 writes across 2 files (test_work_order_transitions.py, STATE.md) | 4 reads | ~9804 tok |
+| 10:58 | Session end: 3 writes across 2 files (test_work_order_transitions.py, STATE.md) | 7 reads | ~11726 tok |
+| 11:04 | Edited CLAUDE.md | 2→2 lines | ~39 |
+| 11:04 | Edited CLAUDE.md | modified service() | ~90 |
+| 11:04 | Created .github/workflows/deploy-check.yml | — | ~520 |
+| 11:05 | Session end: 6 writes across 4 files (test_work_order_transitions.py, STATE.md, CLAUDE.md, deploy-check.yml) | 9 reads | ~12384 tok |
+| 11:11 | Session end: 6 writes across 4 files (test_work_order_transitions.py, STATE.md, CLAUDE.md, deploy-check.yml) | 9 reads | ~12384 tok |
+| 11:16 | Session end: 6 writes across 4 files (test_work_order_transitions.py, STATE.md, CLAUDE.md, deploy-check.yml) | 16 reads | ~12574 tok |
+| 11:17 | Created supabase/migrations/068_cron_health.sql | — | ~228 |
+| 11:18 | Edited apps/api/routers/internal.py | modified verify_cron() | ~339 |
+| 11:18 | Created apps/web/playwright.phase1.config.ts | — | ~72 |
+| 11:19 | Created apps/web/e2e/phase1-work-orders.spec.ts | — | ~4506 |
+| 11:19 | Edited apps/web/package.json | 7→8 lines | ~78 |
+| 11:19 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 3→3 lines | ~34 |
+| 11:19 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 8→8 lines | ~126 |
+| 11:19 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 3→3 lines | ~34 |
+
+## Session: 2026-07-16 11:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:20 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 33→33 lines | ~575 |
+| 11:20 | Edited apps/api/routers/internal.py | 2→3 lines | ~34 |
+| 11:20 | Edited apps/api/routers/internal.py | 3→4 lines | ~38 |
+| 11:20 | Edited apps/api/routers/internal.py | 2→3 lines | ~53 |
+| 11:20 | Edited apps/api/routers/internal.py | 1→2 lines | ~36 |
+| 11:20 | Edited apps/api/routers/internal.py | 1→2 lines | ~36 |
+| 11:20 | Edited apps/api/routers/internal.py | 1→2 lines | ~37 |
+| 11:21 | Edited apps/api/routers/internal.py | 1→2 lines | ~36 |
+| 11:21 | Edited apps/api/routers/internal.py | 2→3 lines | ~79 |
+| 11:21 | Edited apps/api/main.py | added 1 condition(s) | ~761 |
+| 11:21 | Created schema/work_order_enums.json | — | ~43 |
+| 11:22 | Created apps/api/tests/smoke/test_enum_contracts.py | — | ~391 |
+| 11:25 | Edited .planning/STATE.md | modified table() | ~1114 |
+| 11:25 | Session end: 13 writes across 6 files (FrontDeskDashboard.tsx, internal.py, main.py, work_order_enums.json, test_enum_contracts.py) | 5 reads | ~14893 tok |

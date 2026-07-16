@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T15:41:57.560Z
-> Files: 19 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T16:25:05.042Z
+> Files: 32 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -30,6 +30,7 @@
 
 ## ./
 
+- `CLAUDE.md` — OpenWolf (~3005 tok)
 - `HOTEL_STANDARDS_GAP_ANALYSIS.md` — PatelRep vs. Modern Hotel Operations Standards — Brutal Gap Analysis (~6188 tok)
 - `railway.toml` (~63 tok)
 
@@ -426,9 +427,11 @@
 
 ## .github/workflows/
 
+- `deploy-check.yml` — CI: Deploy Health Check (~520 tok)
 
 ## .planning/
 
+- `STATE.md` — GSD State (~1099 tok)
 
 ## .wolf/
 
@@ -459,6 +462,7 @@
 
 ## apps/api/
 
+- `main.py` — API: 1 endpoints (~3050 tok)
 
 ## apps/api/core/
 
@@ -471,6 +475,7 @@
 
 ## apps/api/routers/
 
+- `internal.py` — API: 7 endpoints (~6158 tok)
 - `work_orders.py` — API: 6 endpoints (~5043 tok)
 
 ## apps/api/scripts/
@@ -498,6 +503,7 @@
 
 ## apps/api/tests/smoke/
 
+- `test_enum_contracts.py` — test_status_constants_match_json_contract, test_priority_constants_match_json_contract (~391 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -722,6 +728,8 @@
 ## apps/web/
 
 - `Dockerfile` — Docker container definition (~314 tok)
+- `package.json` — Node.js package manifest (~472 tok)
+- `playwright.phase1.config.ts` (~72 tok)
 
 ## apps/web/app/
 
@@ -740,6 +748,7 @@
 
 ## apps/web/app/(dashboard)/dashboard/
 
+- `page.tsx` — GMDashboard (~2282 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
@@ -839,6 +848,7 @@
 
 ## apps/web/components/dashboard/
 
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7387 tok)
 
 ## apps/web/components/engineering/
 
@@ -861,6 +871,7 @@
 ## apps/web/e2e/
 
 - `phase0-public-smoke.spec.ts` — Unauthenticated Phase 0 browser smoke coverage for login hydration and honest API/database health display. (~190 tok)
+- `phase1-work-orders.spec.ts` — Phase 1 — Authenticated E2E tests (~4506 tok)
 
 ## apps/web/i18n/
 
@@ -914,6 +925,10 @@
 ## graphify-out/
 
 
+## schema/
+
+- `work_order_enums.json` (~43 tok)
+
 ## scripts/
 
 - `public-smoke.mjs` — External deployment check for the public login route and API/database readiness response. (~175 tok)
@@ -921,6 +936,7 @@
 ## supabase/migrations/
 
 - `065_work_order_transition_audit.sql` — Canonical work-order constraints and atomic append-only transition audit RPC. (~850 tok)
+- `068_cron_health.sql` — Phase 0: Cron health tracking so /health can report last successful run per job. (~228 tok)
 
 ## youtubeMobileResearch.md
 
