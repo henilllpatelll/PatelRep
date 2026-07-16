@@ -141,22 +141,65 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Health check (no auth required)
 @app.get("/health")
 async def health():
+    from core.database import supabase
+    from datetime import datetime, timedelta, timezone
+
     db_ok = True
     try:
-        # Quick ping to check DB connectivity (rooms is confirmed accessible)
-        from core.database import supabase
-
         supabase.table("rooms").select("id").limit(1).execute()
-        db_ok = True
     except Exception as e:
         db_ok = False
         logger.warning("Health database ping failed: %s", e)
+
+    # Cron staleness: flag jobs that haven't run successfully in 2× their expected interval.
+    # Threshold is 65 min (covers 30-min crons with generous slack).
+    cron_payload: dict = {}
+    try:
+        rows = supabase.table("cron_health").select("job_name, last_success_at").execute()
+        stale_threshold = (datetime.now(timezone.utc) - timedelta(minutes=65)).isoformat()
+        for row in (rows.data or []):
+            last_ok = row.get("last_success_at")
+            cron_payload[row["job_name"]] = "ok" if (last_ok and last_ok > stale_threshold) else "stale"
+    except Exception as e:
+        logger.warning("Health cron_health query failed: %s", e)
+        cron_payload = {"error": "unavailable"}
+
+    # Notification delivery: timestamp of last successful in-app delivery.
+    notif_payload: dict = {}
+    try:
+        notif = supabase.table("notification_deliveries") \
+            .select("created_at") \
+            .eq("status", "delivered") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+        notif_payload["last_delivery"] = (notif.data[0]["created_at"] if notif.data else None)
+    except Exception as e:
+        logger.warning("Health notification_deliveries query failed: %s", e)
+        notif_payload = {"error": "unavailable"}
+
+    # PMS sync: last successful Opera reservation sync.
+    pms_payload: dict = {}
+    try:
+        pms_row = supabase.table("cron_health") \
+            .select("last_success_at") \
+            .eq("job_name", "opera.sync-reservations") \
+            .maybe_single() \
+            .execute()
+        pms_data = pms_row.data if pms_row else None
+        pms_payload["last_sync"] = (pms_data or {}).get("last_success_at")
+    except Exception as e:
+        logger.warning("Health pms_sync query failed: %s", e)
+        pms_payload = {"error": "unavailable"}
 
     payload = {
         "status": "ok" if db_ok else "degraded",
         "env": settings.app_env,
         "db": "ok" if db_ok else "unavailable",
         "version": "1.0.0",
+        "cron": cron_payload,
+        "notifications": notif_payload,
+        "pms_sync": pms_payload,
     }
     return JSONResponse(
         status_code=200 if db_ok else 503,

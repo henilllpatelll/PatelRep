@@ -451,7 +451,7 @@ export function FrontDeskDashboard() {
                           className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg hover:bg-[var(--alert)] hover:text-white transition-colors disabled:opacity-50"
                         >
                           {actionRoomId === rid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
-                          Check out
+                          Mark Departed
                         </button>
                       ) : (
                         <Pill tone={statusTone} size="sm">{statusLabel}</Pill>
@@ -464,7 +464,7 @@ export function FrontDeskDashboard() {
             {readyRoomsList.length > 0 && (
               <div>
                 <p className="px-4 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink3 bg-surface-2 border-t border-line-2">
-                  Ready for check-in ({readyRoomsList.length})
+                  Ready for occupancy ({readyRoomsList.length})
                 </p>
                 <div className="divide-y divide-line-2">
                   {readyRoomsList.map((r: any) => {
@@ -482,7 +482,7 @@ export function FrontDeskDashboard() {
                           className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors disabled:opacity-50"
                         >
                           {actionRoomId === rid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
-                          Check in
+                          Mark Occupied
                         </button>
                       </div>
                     )

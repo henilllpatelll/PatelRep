@@ -99,7 +99,7 @@ function GMDashboard() {
                       className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg hover:bg-[var(--alert)] hover:text-white transition-colors disabled:opacity-50"
                     >
                       <LogOut className="w-3 h-3" />
-                      Check out
+                      Mark Departed
                     </button>
                   )}
                 </div>
@@ -109,14 +109,14 @@ function GMDashboard() {
         </div>
 
         <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
-          <SectionLabel className="mb-3">Ready for check-in ({readyRooms.length})</SectionLabel>
+          <SectionLabel className="mb-3">Ready for occupancy ({readyRooms.length})</SectionLabel>
           {boardLoading ? (
             <div className="flex items-center gap-2 text-ink3 text-sm py-2">
               <Loader2 className="w-4 h-4 animate-spin" />
               Loading…
             </div>
           ) : readyRooms.length === 0 ? (
-            <p className="text-sm text-ink3 py-2">No rooms currently ready for check-in.</p>
+            <p className="text-sm text-ink3 py-2">No rooms currently ready for occupancy.</p>
           ) : (
             <div className="space-y-2">
               {readyRooms.map((room: any) => (
@@ -131,7 +131,7 @@ function GMDashboard() {
                     className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-3 h-3" />
-                    Check in
+                    Mark Occupied
                   </button>
                 </div>
               ))}

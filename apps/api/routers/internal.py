@@ -14,12 +14,31 @@ def verify_cron(x_cron_secret: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid cron secret")
 
 
+def _record_cron_run(job_name: str, *, error: str | None = None) -> None:
+    """Write last success/failure timestamp for health monitoring. Best-effort."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        patch: dict = {"updated_at": now, "run_count": 1}
+        if error:
+            patch["last_failure_at"] = now
+            patch["last_error"] = error[:500]
+        else:
+            patch["last_success_at"] = now
+            patch["last_error"] = None
+        supabase.table("cron_health").upsert(
+            {"job_name": job_name, **patch}, on_conflict="job_name"
+        ).execute()
+    except Exception as exc:
+        logger.warning("cron_health write failed for %s: %s", job_name, exc)
+
+
 @router.post("/predictions/run")
 async def run_predictions(x_cron_secret: str = Header(None)):
     """Cron job: run room readiness predictions for all hotels."""
     verify_cron(x_cron_secret)
     from services.ai.predictions import run_all_hotel_predictions
     result = run_all_hotel_predictions()
+    _record_cron_run("predictions.run")
     return {"status": "ok", **result}
 
 
@@ -52,6 +71,7 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
         }).execute()
         created_count += 1
 
+    _record_cron_run("pm.check-due")
     return {"status": "ok", "pm_work_orders_created": created_count}
 
 
@@ -61,6 +81,7 @@ async def run_failure_predictions(x_cron_secret: str = Header(None)):
     verify_cron(x_cron_secret)
     from services.ai import run_all_hotels_failure_predictions
     result = await run_all_hotels_failure_predictions()
+    _record_cron_run("ai.failure-predictions")
     return {"data": result, "message": f"Failure predictions complete: {result}"}
 
 
@@ -123,6 +144,7 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
                     logger.error("Stripe invoice failed for customer=%s: %s", stripe_cid, e, exc_info=True)
                     errors += 1
 
+    _record_cron_run("billing.monthly-trueup")
     return {"status": "ok", "invoices_created": processed, "errors": errors}
 
 
@@ -166,6 +188,7 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
                          shift["tenant_id"], shift["id"], e, exc_info=True)
             errors += 1
 
+    _record_cron_run("logbook.shift-summary")
     return {"status": "ok", "summaries_generated": generated, "errors": errors}
 
 
@@ -274,6 +297,7 @@ Have a great day!
             logger.error("Daily summary email failed for hotel=%s: %s", hotel_id, e, exc_info=True)
             errors += 1
 
+    _record_cron_run("reports.daily-summary-email")
     return {"status": "ok", "emails_queued": emails_sent, "errors": errors}
 
 
@@ -298,6 +322,7 @@ async def sync_opera_reservations(x_cron_secret: str = Header(None)):
         except Exception as e:
             results.append({"hotel_id": hotel_id, "error": str(e)})
 
+    _record_cron_run("opera.sync-reservations")
     return {"status": "ok", "results": results, "hotels_synced": len(results)}
 
 
@@ -496,6 +521,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         dnd_notified += 1
 
     logger.info("Escalation check complete: escalated=%d notified=%d dnd_welfare=%d", escalated, notified, dnd_notified)
+    _record_cron_run("escalations.check")
     return {"status": "ok", "escalated": escalated, "notified": notified, "dnd_welfare_notified": dnd_notified}
 
 

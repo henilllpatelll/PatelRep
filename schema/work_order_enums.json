@@ -1,0 +1,4 @@
+{
+  "statuses": ["open", "escalated", "in_progress", "on_hold", "completed", "cancelled"],
+  "priorities": ["emergency", "urgent", "normal", "low"]
+}

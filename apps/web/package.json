@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "node .next/standalone/server.js",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:e2e:phase1": "playwright test --config=playwright.phase1.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
