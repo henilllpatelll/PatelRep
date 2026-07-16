@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { getRooms, upsertRooms } from "@/lib/offline/db";
+import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { C, monoFont, shellTokens } from "@/components/shared/tokens";
 import { ProgressBar, RoomQueueCard, SectionHeader } from "@/components/shared/evening";
@@ -88,11 +88,11 @@ export default function MyRoomsScreen() {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         setApiError(msg);
-        const cached = (await getRooms()) as Room[];
+        const cached = (await getRoomsByDate(localDate())) as Room[];
         setMyRooms(cached);
       }
     } else {
-      const cached = (await getRooms()) as Room[];
+      const cached = (await getRoomsByDate(localDate())) as Room[];
       setMyRooms(cached);
     }
     setLoading(false);

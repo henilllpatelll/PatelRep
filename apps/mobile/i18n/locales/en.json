@@ -470,6 +470,7 @@
     "signalPastSla": "{{count}} past SLA",
     "signalGuest": "{{count}} guest-reported",
     "signalOnHold": "{{count}} on hold",
+    "chipEmergency": "EMERGENCY",
     "claim": "Claim",
     "claimA11y": "Claim {{title}}",
     "claimStart": "Claim & start",

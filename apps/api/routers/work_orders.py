@@ -6,12 +6,14 @@ from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateWorkOrderRequest,
     CompleteWorkOrderRequest,
+    TransitionWorkOrderRequest,
     UpdateWorkOrderRequest,
     AddCommentRequest,
 )
 from core.database import supabase
 from core.config import settings
 from datetime import datetime, timedelta, timezone
+from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
 
 ALLOWED_PHOTO_TYPES = {
     "image/jpeg": "jpg",
@@ -106,6 +108,30 @@ def _validate_work_order_references(
         _ensure_tenant_staff(str(request.assigned_to), hotel_id)
 
 
+def _execute_work_order_transition(
+    *,
+    work_order_id: str,
+    current_user: CurrentUser,
+    decision,
+    source: str,
+    assigned_to: str | None = None,
+):
+    payload = {
+        "p_work_order_id": work_order_id,
+        "p_tenant_id": current_user.hotel_id,
+        "p_new_status": decision.status,
+        "p_actor_id": current_user.user_id,
+        "p_actor_role": current_user.role,
+        "p_reason_code": decision.reason_code,
+        "p_reason_note": decision.reason_note,
+        "p_source": source,
+        "p_is_override": decision.is_override,
+    }
+    if assigned_to is not None:
+        payload["p_assigned_to"] = assigned_to
+    return supabase.rpc("transition_work_order_with_audit", payload).execute()
+
+
 @router.post("")
 async def create_work_order(
     request: CreateWorkOrderRequest,
@@ -139,7 +165,7 @@ async def create_work_order(
 @router.get("")
 async def list_work_orders(
     status: Optional[
-        Literal["open", "in_progress", "on_hold", "completed", "cancelled"]
+        Literal["open", "escalated", "in_progress", "on_hold", "completed", "cancelled"]
     ] = Query(None),
     category: Optional[
         Literal[
@@ -153,7 +179,7 @@ async def list_work_orders(
             "general",
         ]
     ] = Query(None),
-    priority: Optional[Literal["urgent", "normal", "low"]] = Query(None),
+    priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
     room_id: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
@@ -292,18 +318,17 @@ async def claim_work_order(
     if wo_check.data["status"] != "open":
         raise HTTPException(status_code=409, detail="Work order is no longer open")
 
-    result = (
-        supabase.table("work_orders")
-        .update(
-            {
-                "assigned_to": current_user.user_id,
-                "status": "in_progress",
-                "started_at": datetime.now(timezone.utc).isoformat(),
-            }
-        )
-        .eq("id", wo_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .execute()
+    decision = validate_work_order_transition(
+        current_status=wo_check.data["status"],
+        request=TransitionRequest(status="in_progress"),
+        actor_role=current_user.role,
+    )
+    result = _execute_work_order_transition(
+        work_order_id=wo_id,
+        current_user=current_user,
+        decision=decision,
+        source="api",
+        assigned_to=current_user.user_id,
     )
     wo = result.data[0] if result.data else None
     if wo:
@@ -325,7 +350,7 @@ async def complete_work_order(
 ):
     wo_check = (
         supabase.table("work_orders")
-        .select("id, assigned_to")
+        .select("id, assigned_to, status")
         .eq("id", wo_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -335,12 +360,21 @@ async def complete_work_order(
         raise HTTPException(status_code=404, detail="Work order not found")
     _ensure_engineer_can_complete_work_order(current_user, wo_check.data)
 
+    decision = validate_work_order_transition(
+        current_status=wo_check.data["status"],
+        request=TransitionRequest(status="completed"),
+        actor_role=current_user.role,
+    )
+    _execute_work_order_transition(
+        work_order_id=wo_id,
+        current_user=current_user,
+        decision=decision,
+        source="api",
+    )
     result = (
         supabase.table("work_orders")
         .update(
             {
-                "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
                 "notes": request.notes,
                 "labor_hours": request.labor_hours,
                 "parts_used": request.parts_used,
@@ -353,6 +387,45 @@ async def complete_work_order(
     return {"data": result.data[0] if result.data else None}
 
 
+@router.post("/{wo_id}/transition")
+async def transition_work_order(
+    wo_id: str,
+    request: TransitionWorkOrderRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
+):
+    """Apply one validated state change and append its audit event atomically."""
+    work_order = (
+        supabase.table("work_orders")
+        .select("id, assigned_to, status")
+        .eq("id", wo_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not work_order or not work_order.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    _ensure_engineer_can_update_work_order(current_user, work_order.data)
+    decision = validate_work_order_transition(
+        current_status=work_order.data["status"],
+        request=TransitionRequest(
+            status=request.status,
+            reason_code=request.reason_code,
+            reason_note=request.reason_note,
+            override=request.override,
+        ),
+        actor_role=current_user.role,
+    )
+
+    result = _execute_work_order_transition(
+        work_order_id=wo_id,
+        current_user=current_user,
+        decision=decision,
+        source=request.source,
+    )
+    return {"data": result.data[0] if result.data else None}
+
+
 @router.patch("/{wo_id}")
 async def update_work_order(
     wo_id: str,
@@ -361,14 +434,11 @@ async def update_work_order(
         require_role("engineer", "gm")
     ),
 ):
-    if request.status == "cancelled" and current_user.role not in (
-        "gm",
-        "engineer",
-    ):
+    if request.status is not None:
         raise HTTPException(
-            status_code=403, detail="Only GM or Chief Engineer can cancel work orders"
+            status_code=422,
+            detail="Use the work-order transition endpoint for status changes",
         )
-
     wo_check = (
         supabase.table("work_orders")
         .select("id, assigned_to, status")

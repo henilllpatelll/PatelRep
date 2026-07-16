@@ -2,8 +2,8 @@
    Pure logic shared by the Orders tab and the work-order detail screen.
    No i18n here — components translate; helpers return data. */
 
-export type WorkOrderStatus = "open" | "in_progress" | "on_hold" | "completed" | "cancelled";
-export type WorkOrderPriority = "urgent" | "normal" | "low";
+export type WorkOrderStatus = "open" | "escalated" | "in_progress" | "on_hold" | "completed" | "cancelled";
+export type WorkOrderPriority = "emergency" | "urgent" | "normal" | "low";
 export type WorkOrderCategory =
   | "plumbing"
   | "electrical"
@@ -159,10 +159,11 @@ export function splitWorkbench(
 /** Bench order: urgent first, then SLA-overdue, then newest first. */
 export function sortQueue(orders: WorkOrder[], now: Date = new Date()): WorkOrder[] {
   const rank = (wo: WorkOrder): number => {
-    if (wo.priority === "urgent") return 0;
+    if (wo.priority === "emergency") return 0;
+    if (wo.priority === "urgent") return 1;
     const due = wo.due_at ? new Date(wo.due_at).getTime() : NaN;
-    if (!Number.isNaN(due) && due < now.getTime()) return 1;
-    return 2;
+    if (!Number.isNaN(due) && due < now.getTime()) return 2;
+    return 3;
   };
   return [...orders].sort((a, b) => {
     const r = rank(a) - rank(b);

@@ -11,6 +11,7 @@ export interface TemplateItemForm {
   section: string
   description: string
   is_required: boolean
+  requires_photo_on_fail: boolean
 }
 
 export interface TemplateFormValues {
@@ -28,9 +29,9 @@ export const EMPTY_TEMPLATE_FORM: TemplateFormValues = {
   name: '',
   is_default: false,
   items: [
-    { section: 'Bathroom', description: '', is_required: true },
-    { section: 'Sleeping Area', description: '', is_required: true },
-    { section: 'General', description: '', is_required: true },
+    { section: 'Bathroom', description: '', is_required: true, requires_photo_on_fail: false },
+    { section: 'Sleeping Area', description: '', is_required: true, requires_photo_on_fail: false },
+    { section: 'General', description: '', is_required: true, requires_photo_on_fail: false },
   ],
 }
 
@@ -125,7 +126,7 @@ export function TemplateFormCard({
   const addItem = () =>
     onChange({
       ...values,
-      items: [...values.items, { section: 'General', description: '', is_required: true }],
+      items: [...values.items, { section: 'General', description: '', is_required: true, requires_photo_on_fail: false }],
     })
 
   const removeItem = (idx: number) =>
@@ -223,6 +224,18 @@ export function TemplateFormCard({
                 }`}
               >
                 Req
+              </button>
+              <button
+                type="button"
+                title={item.requires_photo_on_fail ? 'Photo required when failed — click to remove' : 'Click to require a photo when failed'}
+                onClick={() => updateItem(idx, 'requires_photo_on_fail', !item.requires_photo_on_fail)}
+                className={`text-xs px-2 py-1.5 rounded-lg border transition-colors shrink-0 ${
+                  item.requires_photo_on_fail
+                    ? 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-[var(--alert)] font-medium'
+                    : 'bg-surface border-stone-200 text-stone-400'
+                }`}
+              >
+                Photo on fail
               </button>
               <button
                 type="button"

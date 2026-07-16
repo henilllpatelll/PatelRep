@@ -292,6 +292,28 @@ class CompleteWorkOrderRequest(SanitizedBaseModel):
     parts_used: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
+class TransitionWorkOrderRequest(SanitizedBaseModel):
+    status: Literal[
+        "open", "escalated", "in_progress", "on_hold", "completed", "cancelled"
+    ]
+    reason_code: Optional[
+        Literal[
+            "awaiting_parts",
+            "awaiting_vendor",
+            "schedule_deferral",
+            "safety_review",
+            "duplicate",
+            "no_longer_needed",
+            "reopened_after_failure",
+            "reopened_on_request",
+            "manager_override",
+        ]
+    ] = None
+    reason_note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    override: bool = False
+    source: Literal["web", "mobile", "api", "automation"] = "api"
+
+
 class UpdateWorkOrderRequest(SanitizedBaseModel):
     title: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
@@ -311,7 +333,7 @@ class UpdateWorkOrderRequest(SanitizedBaseModel):
     ] = None
     priority: Optional[Literal["urgent", "normal", "low", "emergency"]] = None
     status: Optional[
-        Literal["open", "in_progress", "on_hold", "completed", "cancelled"]
+        Literal["open", "escalated", "in_progress", "on_hold", "completed", "cancelled"]
     ] = None
     assigned_to: Optional[UUID4] = None
     room_id: Optional[UUID4] = None

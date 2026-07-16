@@ -470,6 +470,7 @@
     "signalPastSla": "{{count}} fuera de plazo",
     "signalGuest": "{{count}} de huéspedes",
     "signalOnHold": "{{count}} en pausa",
+    "chipEmergency": "EMERGENCIA",
     "claim": "Tomar",
     "claimA11y": "Tomar {{title}}",
     "claimStart": "Tomar y empezar",

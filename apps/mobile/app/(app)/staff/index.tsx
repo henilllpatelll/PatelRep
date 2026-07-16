@@ -20,7 +20,6 @@ const ROLE_LABEL_KEYS: Record<string, string> = {
   inspector: "staff.roles.inspector",
   engineer: "staff.roles.engineer",
   housekeeping_supervisor: "staff.roles.housekeeping_supervisor",
-  engineer: "staff.roles.engineer",
   front_desk: "staff.roles.front_desk",
   gm: "staff.roles.gm",
 };

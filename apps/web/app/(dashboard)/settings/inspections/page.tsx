@@ -56,6 +56,7 @@ export default function InspectionsSettingsPage() {
             section: item.section,
             description: item.description.trim(),
             is_required: item.is_required,
+            requires_photo_on_fail: item.requires_photo_on_fail,
             sort_order: idx,
           })),
       }
@@ -177,6 +178,7 @@ export default function InspectionsSettingsPage() {
                       section: item.section,
                       description: item.description,
                       is_required: item.is_required,
+                      requires_photo_on_fail: item.requires_photo_on_fail,
                     })),
                   })
                   setTemplateFormOpen(tmpl.id!)

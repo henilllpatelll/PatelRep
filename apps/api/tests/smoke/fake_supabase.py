@@ -16,6 +16,9 @@ class FakeStorageBucket:
         self.db.storage_uploads.append((self.bucket, path, contents))
         return SimpleNamespace(path=path)
 
+    def get_public_url(self, path):
+        return f"https://storage.test/{self.bucket}/{path}"
+
 
 class FakeStorage:
     def __init__(self, db):

@@ -5,9 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Wrench, AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
-import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
-import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
+import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
@@ -22,7 +20,7 @@ import { formatDistanceToNowStrict } from 'date-fns'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type KanbanStatus = 'open' | 'in_progress' | 'on_hold' | 'completed'
+type KanbanStatus = Extract<WorkOrderStatus, 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed'>
 
 type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
@@ -30,12 +28,14 @@ type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
 const COLUMNS: { status: KanbanStatus; label: string; tone: PillTone }[] = [
   { status: 'open',        label: 'Open',        tone: 'info'    },
+  { status: 'escalated',   label: 'Escalated',   tone: 'alert'   },
   { status: 'in_progress', label: 'In Progress', tone: 'caution' },
   { status: 'on_hold',     label: 'On Hold',     tone: 'alert'   },
   { status: 'completed',   label: 'Completed',   tone: 'ready'   },
 ]
 
 const PRIORITY_BORDER: Record<string, string> = {
+  emergency: 'border-l-red-700',
   urgent: 'border-l-[var(--alert)]',
   normal: 'border-l-[var(--caution)]',
   low:    'border-l-[var(--ready)]',
@@ -71,35 +71,23 @@ function timeAgo(iso: string): string {
 
 function WorkOrderCard({
   wo,
-  status,
   onClick,
 }: {
   wo: WorkOrder
-  status: KanbanStatus
   onClick: () => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: wo.id,
-    data: { status, wo },
-  })
   const location = wo.rooms?.room_number
     ? `Room ${wo.rooms.room_number}`
     : wo.location_text ?? null
 
   const borderColor = PRIORITY_BORDER[wo.priority] ?? PRIORITY_BORDER.normal
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
       role="button"
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick() }}
-      className={`bg-surface border border-line rounded-[var(--r-lg)] p-3.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-l-[3px] ${borderColor} outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${isDragging ? 'opacity-60 shadow-lg scale-[0.98]' : ''}`}
+      className={`bg-surface border border-line rounded-[var(--r-lg)] p-3.5 cursor-pointer hover:shadow-md transition-all duration-200 border-l-[3px] ${borderColor} outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 ${wo.priority === 'emergency' ? 'bg-red-50' : ''}`}
     >
       {/* WO number */}
       <p className="font-mono text-[10px] text-ink3 mb-0.5">
@@ -158,12 +146,9 @@ function KanbanColumn({
   onCardClick: (wo: WorkOrder) => void
   isLoading: boolean
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status })
-
   return (
     <div
-      ref={setNodeRef}
-      className={`flex flex-col bg-surface border border-line rounded-[var(--r-lg)] shadow-card overflow-hidden min-h-[400px] transition-colors ${isOver ? 'bg-accent-soft border-accent-line' : ''}`}
+      className="flex flex-col bg-surface border border-line rounded-[var(--r-lg)] shadow-card overflow-hidden min-h-[400px]"
     >
       {/* Column header */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-line bg-surface-2 shrink-0">
@@ -202,7 +187,6 @@ function KanbanColumn({
             <WorkOrderCard
               key={wo.id}
               wo={wo}
-              status={status}
               onClick={() => onCardClick(wo)}
             />
           ))
@@ -219,7 +203,7 @@ function getHotelIdFromToken(token: string | undefined): string {
 }
 
 function sortWOs(wos: WorkOrder[], aiTriageActive = false): WorkOrder[] {
-  const priorityOrder = { urgent: 0, normal: 1, low: 2 }
+  const priorityOrder = { emergency: 0, urgent: 1, normal: 2, low: 3 }
   return [...wos].sort((a, b) => {
     if (aiTriageActive) {
       const aOverdue = a.due_at ? new Date(a.due_at).getTime() < Date.now() : false
@@ -250,8 +234,6 @@ export default function WorkOrdersPage() {
   const [aiTriageActive, setAiTriageActive] = useState(false)
   const [aiTriageLoading, setAiTriageLoading] = useState(false)
   const [aiTriageNotice, setAiTriageNotice] = useState<string | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-
   const isEngineer = role === 'engineer'
   const canManage = role === 'engineer' || role === 'gm'
 
@@ -270,7 +252,8 @@ export default function WorkOrdersPage() {
     return () => { supabase.removeChannel(channel) }
   }, [hotelId, queryClient])
 
-  // Fetch all 4 columns in parallel
+  // Fetch all operational lanes in parallel. Status changes are deliberately
+  // handled in the detail drawer so required reasons cannot be skipped.
   const queryOpts = (status: KanbanStatus) => ({
     queryKey: ['work-orders', status, isEngineer ? user?.id : null] as const,
     queryFn: () =>
@@ -284,12 +267,14 @@ export default function WorkOrdersPage() {
   })
 
   const openQ      = useQuery(queryOpts('open'))
+  const escalatedQ = useQuery(queryOpts('escalated'))
   const progressQ  = useQuery(queryOpts('in_progress'))
   const holdQ      = useQuery(queryOpts('on_hold'))
   const completedQ = useQuery(queryOpts('completed'))
 
   const columnData: Record<KanbanStatus, WorkOrder[]> = {
     open:        sortWOs(openQ.data?.data ?? [], aiTriageActive),
+    escalated:   sortWOs(escalatedQ.data?.data ?? [], aiTriageActive),
     in_progress: sortWOs(progressQ.data?.data ?? [], aiTriageActive),
     on_hold:     sortWOs(holdQ.data?.data ?? [], aiTriageActive),
     completed:   sortWOs(completedQ.data?.data ?? [], aiTriageActive),
@@ -297,28 +282,14 @@ export default function WorkOrdersPage() {
 
   const columnLoading: Record<KanbanStatus, boolean> = {
     open:        openQ.isLoading,
+    escalated:   escalatedQ.isLoading,
     in_progress: progressQ.isLoading,
     on_hold:     holdQ.isLoading,
     completed:   completedQ.isLoading,
   }
 
-  const urgentCount = columnData.open.filter((wo) => wo.priority === 'urgent').length
-
-  const { mutate: updateStatus } = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      engineeringApi.updateWorkOrder(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-    },
-  })
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const id = String(event.active.id)
-    const nextStatus = event.over?.id as KanbanStatus | undefined
-    const currentStatus = event.active.data.current?.status as KanbanStatus | undefined
-    if (!nextStatus || !currentStatus || nextStatus === currentStatus) return
-    updateStatus({ id, status: nextStatus })
-  }
+  const emergencyCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'emergency').length
+  const urgentCount = Object.values(columnData).flat().filter((wo) => wo.priority === 'urgent').length
 
   const handleAITriage = async () => {
     const openOrders = Object.values(columnData).flat().filter((wo) => wo.status !== 'completed')
@@ -420,11 +391,13 @@ export default function WorkOrdersPage() {
         {activeTab === 'work-orders' ? (
           <>
             {/* Urgent alert */}
-            {urgentCount > 0 && (
+            {(emergencyCount > 0 || urgentCount > 0) && (
               <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="font-medium">
-                  {urgentCount} urgent {urgentCount === 1 ? 'work order' : 'work orders'} require immediate attention
+                  {emergencyCount > 0 && `${emergencyCount} emergency ${emergencyCount === 1 ? 'work order requires' : 'work orders require'} immediate attention`}
+                  {emergencyCount > 0 && urgentCount > 0 && ' · '}
+                  {urgentCount > 0 && `${urgentCount} urgent ${urgentCount === 1 ? 'work order requires' : 'work orders require'} attention`}
                 </span>
               </div>
             )}
@@ -437,8 +410,7 @@ export default function WorkOrdersPage() {
             )}
 
             {/* Kanban board */}
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 {COLUMNS.map(({ status, label, tone }) => (
                   <KanbanColumn
                     key={status}
@@ -453,7 +425,6 @@ export default function WorkOrdersPage() {
                   />
                 ))}
               </div>
-            </DndContext>
           </>
         ) : (
           <EngineeringRoomBoard />

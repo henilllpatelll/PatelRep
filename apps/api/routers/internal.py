@@ -310,7 +310,7 @@ def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, b
         .eq("is_active", True)\
         .execute()
     for row in (users.data or []):
-        supabase.table("notifications").insert({
+        notification = supabase.table("notifications").insert({
             "tenant_id": hotel_id,
             "user_id": row["user_id"],
             "type": notif_type,
@@ -318,6 +318,35 @@ def _notify_role(hotel_id: str, target_role: str, notif_type: str, title: str, b
             "body": body,
             "data": data,
         }).execute()
+        notification_row = (notification.data or [None])[0]
+        if notification_row:
+            supabase.table("notification_deliveries").insert({
+                "tenant_id": hotel_id,
+                "notification_id": notification_row["id"],
+                "user_id": row["user_id"],
+                "channel": "in_app",
+                "status": "delivered",
+            }).execute()
+
+
+def _auto_escalate_work_order(work_order_id: str, hotel_id: str) -> None:
+    """Escalate through the same atomic status/audit mutation used by staff."""
+    supabase.rpc("transition_work_order_with_audit", {
+        "p_work_order_id": work_order_id,
+        "p_tenant_id": hotel_id,
+        "p_new_status": "escalated",
+        "p_actor_id": None,
+        "p_actor_role": "automation",
+        "p_reason_code": "sla_breach",
+        "p_reason_note": "Automatically escalated after 150 minutes overdue.",
+        "p_source": "automation",
+        "p_is_override": False,
+    }).execute()
+    supabase.table("work_orders") \
+        .update({"escalation_level": 3}) \
+        .eq("id", work_order_id) \
+        .eq("tenant_id", hotel_id) \
+        .execute()
 
 
 @router.post("/escalations/check")
@@ -355,9 +384,7 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         due = wo["due_at"]
 
         if due < tier3_cut and level < 3:
-            supabase.table("work_orders")\
-                .update({"status": "escalated", "escalation_level": 3})\
-                .eq("id", wo_id).execute()
+            _auto_escalate_work_order(wo_id, hotel_id)
             _notify_role(hotel_id, "gm", "escalation_auto",
                          f"Auto-escalated: {wo['title']}",
                          "Work order was not resolved and has been automatically escalated.",

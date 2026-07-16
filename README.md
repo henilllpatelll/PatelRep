@@ -33,9 +33,33 @@ uvicorn main:app --reload
 **Web (Next.js):**
 ```bash
 cd apps/web
-npm install
+npm ci
 npm run dev
 ```
+
+---
+
+## Build and verification
+
+This repository is a set of independent deployable apps. Run web commands from
+`apps/web`; do not use root `--workspace` flags. The root, web, and mobile
+lockfiles are intentional and must remain app-scoped.
+
+```bash
+# API smoke suite
+cd apps/api && python -m pytest tests/smoke/ -q
+
+# Web production checks
+cd apps/web && npm ci
+npm run lint
+npm run type-check
+npm run build
+npx playwright test --config=playwright.phase0.config.ts
+```
+
+The scheduled `Deploy Health Check` workflow verifies the public `/login` route
+and the API/database readiness response. A failed public smoke check is a failed
+deployment, not a warning.
 
 ---
 

@@ -18,6 +18,12 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 }
 
 type Tab = 'password' | 'magic'
+type ServiceHealth = 'checking' | 'connected' | 'unavailable'
+
+function getHealthUrl(): string | null {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
+  return apiUrl ? `${apiUrl}/health` : null
+}
 
 function Spinner({ className = '' }: { className?: string }) {
   return (
@@ -38,6 +44,7 @@ function LoginContent() {
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [serviceHealth, setServiceHealth] = useState<ServiceHealth>('checking')
 
   const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
@@ -51,6 +58,32 @@ function LoginContent() {
       supabase.auth.signOut()
     }
   }, [mobileOnlyParam, supabase])
+
+  useEffect(() => {
+    const healthUrl = getHealthUrl()
+    if (!healthUrl) {
+      setServiceHealth('unavailable')
+      return
+    }
+
+    const controller = new AbortController()
+
+    async function checkServiceHealth(endpoint: string) {
+      try {
+        const response = await fetch(endpoint, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const health = await response.json() as { status?: string; db?: string }
+        setServiceHealth(response.ok && health.status === 'ok' && health.db === 'ok' ? 'connected' : 'unavailable')
+      } catch {
+        if (!controller.signal.aborted) setServiceHealth('unavailable')
+      }
+    }
+
+    void checkServiceHealth(healthUrl)
+    return () => controller.abort()
+  }, [])
 
   const getRedirectPath = (hotelId: string | undefined | null): string => {
     const redirectTo = searchParams.get('redirectTo')
@@ -224,8 +257,10 @@ function LoginContent() {
           )}
         </div>
 
-        <div className="font-mono text-[11px] text-ink-4 mt-auto">
-          v2.1.0 &middot; {t('login.statusLabel')}: <span className="text-[var(--ready)]">{t('login.operational')}</span>
+        <div className="font-mono text-[11px] text-ink-4 mt-auto" data-testid="service-health" role="status" aria-live="polite">
+          {serviceHealth === 'checking' && t('login.healthChecking')}
+          {serviceHealth === 'connected' && <span className="text-[var(--ready)]">{t('login.healthConnected')}</span>}
+          {serviceHealth === 'unavailable' && <span className="text-[var(--alert)]">{t('login.healthUnavailable')}</span>}
         </div>
       </div>
 

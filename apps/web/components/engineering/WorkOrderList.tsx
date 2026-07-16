@@ -14,6 +14,7 @@ interface Props {
 
 const EMPTY_MESSAGES: Record<string, string> = {
   open: 'No open work orders. All caught up!',
+  escalated: 'No escalated work orders.',
   in_progress: 'No work orders currently in progress.',
   on_hold: 'No work orders on hold.',
   completed: 'No completed work orders yet.',

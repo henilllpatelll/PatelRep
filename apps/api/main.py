@@ -152,12 +152,17 @@ async def health():
         db_ok = False
         logger.warning("Health database ping failed: %s", e)
 
-    return {
+    payload = {
         "status": "ok" if db_ok else "degraded",
         "env": settings.app_env,
         "db": "ok" if db_ok else "unavailable",
         "version": "1.0.0",
     }
+    return JSONResponse(
+        status_code=200 if db_ok else 503,
+        content=payload,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 # API v1 prefix

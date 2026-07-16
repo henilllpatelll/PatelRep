@@ -17,9 +17,16 @@ import {
   RotateCcw,
   Pencil,
   ClipboardList,
+  AlertCircle,
 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
-import { engineeringApi, WorkOrder, WorkOrderComment } from '@/lib/api/engineering'
+import {
+  engineeringApi,
+  type TransitionWorkOrderPayload,
+  type WorkOrder,
+  type WorkOrderComment,
+  type WorkOrderStatus,
+} from '@/lib/api/engineering'
 import { tasksApi } from '@/lib/api/tasks'
 import { useRole } from '@/lib/hooks/useRole'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +53,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const STATUS_TONE: Record<string, 'info' | 'caution' | 'alert' | 'ready' | 'neutral'> = {
   open:       'info',
+  escalated:  'alert',
   in_progress:'caution',
   on_hold:    'alert',
   completed:  'ready',
@@ -53,6 +61,7 @@ const STATUS_TONE: Record<string, 'info' | 'caution' | 'alert' | 'ready' | 'neut
 }
 
 const PRIORITY_TONE: Record<string, 'alert' | 'caution' | 'ready'> = {
+  emergency: 'alert',
   urgent: 'alert',
   normal: 'caution',
   low:    'ready',
@@ -112,6 +121,9 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const [completionNotes, setCompletionNotes] = useState('')
   const [laborHours, setLaborHours] = useState('')
   const [partsUsed, setPartsUsed] = useState('')
+  const [pendingTransition, setPendingTransition] = useState<WorkOrderStatus | null>(null)
+  const [transitionReason, setTransitionReason] = useState('')
+  const [transitionNote, setTransitionNote] = useState('')
 
   // Comment state
   const [commentText, setCommentText] = useState('')
@@ -153,7 +165,9 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const canComplete = (isEngineer || isChief || isGM) && fullWo?.status === 'in_progress'
   const canHold    = (isChief || isGM) && fullWo?.status === 'in_progress'
   const canCancel  = (isChief || isGM) && (fullWo?.status === 'open' || fullWo?.status === 'on_hold')
-  const canReopen  = (isChief || isGM) && fullWo?.status === 'on_hold'
+  const canResume = (isChief || isGM) && fullWo?.status === 'on_hold'
+  const canReopen = (isChief || isGM) && (fullWo?.status === 'completed' || fullWo?.status === 'cancelled')
+  const canEscalate = (isEngineer || isChief || isGM) && !!fullWo && !['escalated', 'completed', 'cancelled'].includes(fullWo.status)
 
   // Mutations
   const invalidate = () => {
@@ -184,10 +198,33 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
     },
   })
 
-  const updateMutation = useMutation({
-    mutationFn: (status: string) => engineeringApi.updateWorkOrder(wo!.id, { status }),
-    onSuccess: () => { invalidate(); onUpdate() },
+  const transitionMutation = useMutation({
+    mutationFn: (payload: TransitionWorkOrderPayload) =>
+      engineeringApi.transitionWorkOrder(wo!.id, payload),
+    onSuccess: () => {
+      setPendingTransition(null)
+      setTransitionReason('')
+      setTransitionNote('')
+      invalidate()
+      onUpdate()
+    },
   })
+
+  const openTransitionDialog = (status: WorkOrderStatus) => {
+    setPendingTransition(status)
+    setTransitionReason('')
+    setTransitionNote('')
+  }
+
+  const submitTransition = () => {
+    if (!pendingTransition || !transitionReason) return
+    transitionMutation.mutate({
+      status: pendingTransition,
+      reason_code: transitionReason as TransitionWorkOrderPayload['reason_code'],
+      reason_note: transitionNote.trim() || undefined,
+      source: 'web',
+    })
+  }
 
   const commentMutation = useMutation({
     mutationFn: () => engineeringApi.addComment(wo!.id, commentText.trim()),
@@ -528,7 +565,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           </div>
 
           {/* Section: Actions (role-gated) */}
-          {(canClaim || canComplete || canHold || canCancel || canReopen) && (
+          {(canClaim || canComplete || canHold || canCancel || canResume || canReopen || canEscalate) && (
             <div className="p-5">
               <SectionLabel>Actions</SectionLabel>
               <div className="flex flex-wrap gap-2">
@@ -562,11 +599,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 {canHold && (
                   <Button
                     variant="ghost"
-                    onClick={() => updateMutation.mutate('on_hold')}
-                    disabled={updateMutation.isPending}
+                    onClick={() => openTransitionDialog('on_hold')}
+                    disabled={transitionMutation.isPending}
                     className="text-orange-700 border-orange-200 hover:bg-orange-50"
                   >
-                    {updateMutation.isPending ? (
+                    {transitionMutation.isPending && pendingTransition === 'on_hold' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <PauseCircle className="w-3.5 h-3.5" />
@@ -575,14 +612,26 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   </Button>
                 )}
 
+                {canResume && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => transitionMutation.mutate({ status: 'in_progress', source: 'web' })}
+                    disabled={transitionMutation.isPending}
+                    className="text-[var(--info)] border-[var(--info-line)] hover:bg-[var(--info-soft)]"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Resume
+                  </Button>
+                )}
+
                 {canReopen && (
                   <Button
                     variant="ghost"
-                    onClick={() => updateMutation.mutate('open')}
-                    disabled={updateMutation.isPending}
+                    onClick={() => openTransitionDialog('open')}
+                    disabled={transitionMutation.isPending}
                     className="text-[var(--info)] border-[var(--info-line)] hover:bg-[var(--info-soft)]"
                   >
-                    {updateMutation.isPending ? (
+                    {transitionMutation.isPending && pendingTransition === 'open' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -594,10 +643,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 {canCancel && (
                   <Button
                     variant="destructive"
-                    onClick={() => updateMutation.mutate('cancelled')}
-                    disabled={updateMutation.isPending}
+                    onClick={() => openTransitionDialog('cancelled')}
+                    disabled={transitionMutation.isPending}
                   >
-                    {updateMutation.isPending ? (
+                    {transitionMutation.isPending && pendingTransition === 'cancelled' ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <XCircle className="w-3.5 h-3.5" />
@@ -605,7 +654,69 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     Cancel
                   </Button>
                 )}
+
+                {canEscalate && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => transitionMutation.mutate({ status: 'escalated', source: 'web' })}
+                    disabled={transitionMutation.isPending}
+                    className="text-[var(--alert)] border-[var(--alert-line)] hover:bg-[var(--alert-soft)]"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Escalate
+                  </Button>
+                )}
               </div>
+
+              {pendingTransition && (
+                <div className="mt-4 p-4 bg-surface-2 border border-line rounded-xl space-y-3">
+                  <p className="text-sm font-semibold text-ink">
+                    {pendingTransition === 'on_hold' ? 'Why is this work on hold?' : pendingTransition === 'cancelled' ? 'Why is this work order cancelled?' : 'Why is this work order reopening?'}
+                  </p>
+                  <label className="block font-mono text-[11px] text-ink3">
+                    Required reason
+                    <select
+                      value={transitionReason}
+                      onChange={(event) => setTransitionReason(event.target.value)}
+                      className="mt-1.5 w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface"
+                    >
+                      <option value="">Select a reason</option>
+                      {pendingTransition === 'on_hold' && <>
+                        <option value="awaiting_parts">Awaiting parts</option>
+                        <option value="awaiting_vendor">Awaiting vendor</option>
+                        <option value="schedule_deferral">Schedule deferral</option>
+                        <option value="safety_review">Safety review</option>
+                      </>}
+                      {pendingTransition === 'cancelled' && <>
+                        <option value="duplicate">Duplicate</option>
+                        <option value="no_longer_needed">No longer needed</option>
+                        <option value="safety_review">Safety review</option>
+                      </>}
+                      {pendingTransition === 'open' && <>
+                        <option value="reopened_after_failure">Reopened after failure</option>
+                        <option value="reopened_on_request">Reopened on request</option>
+                      </>}
+                    </select>
+                  </label>
+                  <label className="block font-mono text-[11px] text-ink3">
+                    Note <span className="font-normal">(optional)</span>
+                    <textarea
+                      value={transitionNote}
+                      onChange={(event) => setTransitionNote(event.target.value)}
+                      rows={2}
+                      className="mt-1.5 w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface resize-none"
+                    />
+                  </label>
+                  {transitionMutation.isError && <p className="text-xs text-[var(--alert)]">Unable to record this transition. Please try again.</p>}
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" onClick={() => setPendingTransition(null)} disabled={transitionMutation.isPending}>Cancel</Button>
+                    <Button variant="primary" onClick={submitTransition} disabled={!transitionReason || transitionMutation.isPending}>
+                      {transitionMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                      Save change
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Inline completion form */}
               {showCompleteForm && (
@@ -939,7 +1050,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         </div>
 
         {/* ── Sticky action bar ── */}
-        {(canClaim || canComplete || canHold || canCancel || canReopen) && (
+        {(canClaim || canComplete || canHold || canCancel || canResume || canReopen || canEscalate) && (
           <div className="sticky bottom-0 shrink-0 bg-surface/90 backdrop-blur-sm border-t border-line px-5 py-3 flex items-center gap-2">
             {canClaim && (
               <Button
@@ -969,11 +1080,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             {canCancel && (
               <Button
                 variant="ghost"
-                onClick={() => updateMutation.mutate('cancelled')}
-                disabled={updateMutation.isPending}
+                onClick={() => openTransitionDialog('cancelled')}
+                disabled={transitionMutation.isPending}
                 className="text-ink3 border-line hover:text-[var(--alert)] hover:border-[var(--alert-line)] hover:bg-[var(--alert-soft)]"
               >
-                {updateMutation.isPending ? (
+                {transitionMutation.isPending && pendingTransition === 'cancelled' ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <XCircle className="w-3.5 h-3.5" />

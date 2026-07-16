@@ -1,6 +1,9 @@
 import { networkInterfaces } from 'node:os'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const isDev = process.env.NODE_ENV === 'development'
+const appRoot = dirname(fileURLToPath(import.meta.url))
 
 function getLocalDevOrigins() {
   return Object.values(networkInterfaces())
@@ -60,6 +63,7 @@ function buildSecurityHeaders() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  turbopack: { root: appRoot },
   allowedDevOrigins: getLocalDevOrigins(),
   serverExternalPackages: [],
   images: {

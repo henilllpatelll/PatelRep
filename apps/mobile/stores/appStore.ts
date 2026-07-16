@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { api } from "@/lib/api/client";
+import { upsertRooms } from "@/lib/offline/db";
 import { localDate } from "@/lib/utils/date";
 import type { UserProfile } from "@/lib/supabase";
 
@@ -106,6 +107,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const result = await api.get<{ data: Room[] }>(`/housekeeping/my-rooms?date=${localDate()}`);
       set({ myRooms: result.data });
+      await upsertRooms(result.data);
     } catch {
       // Silently preserve local state on refresh failure.
     }

@@ -10,7 +10,7 @@ client = TestClient(app)
 
 def test_health():
     response = client.get("/health")
-    assert response.status_code == 200
+    assert response.status_code in (200, 503)
     assert response.json()["status"] in ("ok", "degraded")  # degraded is expected without real DB
 
 
@@ -45,7 +45,8 @@ def test_health_does_not_return_database_exception(monkeypatch):
 
     response = client.get("/health")
 
-    assert response.status_code == 200
+    assert response.status_code == 503
+    assert response.json()["status"] == "degraded"
     assert response.json()["db"] == "unavailable"
     assert "database-password-secret" not in response.text
 

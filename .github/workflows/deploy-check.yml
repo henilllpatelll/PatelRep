@@ -3,8 +3,26 @@ name: Deploy Health Check
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
+  public-smoke:
+    name: Public smoke verification
+    runs-on: ubuntu-latest
+    needs: [check-api, check-web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify public web and API/database readiness
+        run: node scripts/public-smoke.mjs
+        env:
+          PUBLIC_WEB_URL: https://patelrep-production.up.railway.app
+          PUBLIC_API_URL: https://patelrep-web-production.up.railway.app
+
   check-api:
     name: API health
     runs-on: ubuntu-latest

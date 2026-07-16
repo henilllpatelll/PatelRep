@@ -62,6 +62,16 @@ describe("dueState", () => {
 describe("sortQueue", () => {
   const now = new Date("2026-06-12T12:00:00Z");
 
+  it("keeps emergency work ahead of every other queue item", () => {
+    const emergency: WorkOrder = { ...base, id: "emergency", priority: "emergency" };
+    const urgent: WorkOrder = { ...base, id: "urgent", priority: "urgent" };
+
+    expect(sortQueue([urgent, emergency], now).map((wo) => wo.id)).toEqual([
+      "emergency",
+      "urgent",
+    ]);
+  });
+
   it("puts urgent first, then SLA-overdue, then newest", () => {
     const newish: WorkOrder = { ...base, id: "a", created_at: "2026-06-12T11:50:00Z", due_at: "2026-06-12T15:00:00Z" };
     const overdue: WorkOrder = { ...base, id: "b", created_at: "2026-06-12T08:00:00Z", due_at: "2026-06-12T10:00:00Z" };
@@ -90,6 +100,19 @@ describe("countQueueSignals", () => {
       { ...base, id: "b", status: "cancelled", guest_reported: true },
     ];
     expect(countQueueSignals(orders, now)).toEqual({ urgent: 0, pastSla: 0, guest: 0, onHold: 0 });
+  });
+});
+
+describe("escalated work orders", () => {
+  it("remain active operational work with SLA visibility", () => {
+    const now = new Date("2026-06-12T12:00:00Z");
+    const state = dueState(
+      { ...base, status: "escalated", due_at: "2026-06-12T11:00:00Z" },
+      "en",
+      now,
+    );
+
+    expect(state).toEqual({ kind: "overdue", minutes: 60 });
   });
 });
 

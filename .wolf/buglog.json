@@ -4869,6 +4869,916 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-30T22:21:25.572Z"
+    },
+    {
+      "id": "bug-298",
+      "timestamp": "2026-07-10T17:45:25.920Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Had \"engineer\"",
+      "fix": "Changed to \"gm\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T17:45:25.920Z"
+    },
+    {
+      "id": "bug-299",
+      "timestamp": "2026-07-10T18:23:26.802Z",
+      "error_message": "Wrong reference: getRooms should be getRoomsByDate",
+      "file": "apps/mobile/app/(app)/home/index.tsx",
+      "root_cause": "Used \"getRooms\" instead of \"getRoomsByDate\"",
+      "fix": "Changed getRooms → getRoomsByDate",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-10T18:23:35.967Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-07-10T00:00:00.000Z",
+      "error_message": "Mobile app shows previous day's rooms on a fresh new day",
+      "file": "apps/mobile/lib/offline/db.ts, apps/mobile/app/(app)/my-rooms/index.tsx, apps/mobile/app/(app)/home/index.tsx, apps/mobile/stores/appStore.ts",
+      "root_cause": "getRooms() returned ALL cached rooms regardless of assignment_date. When the API failed or device was offline, all rooms from any previous day were shown. The getRoomsByDate function was referenced in screens (from bug-299 attempt) but never actually defined in db.ts. Also, appStore.refreshRooms() updated Zustand but not the SQLite cache, leaving the offline store stale.",
+      "fix": "1. Added getRoomsByDate(assignmentDate: string) to db.ts filtering by assignment_date. 2. Updated both home/index.tsx and my-rooms/index.tsx offline fallbacks to call getRoomsByDate(localDate()) instead of getRooms(). 3. Updated appStore.refreshRooms() to call upsertRooms() so SQLite cache stays in sync.",
+      "tags": [
+        "mobile",
+        "offline-cache",
+        "date-filtering",
+        "stale-data",
+        "my-rooms"
+      ],
+      "related_bugs": [
+        "bug-299"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T00:00:00.000Z"
+    },
+    {
+      "id": "bug-301",
+      "timestamp": "2026-07-10T18:38:53.379Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/api/client.ts",
+      "root_cause": "Had \"https://api.patelrep.com/v1\"",
+      "fix": "Changed to \"https://patelrep-web-production.up.railway.app/v1",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T18:38:53.379Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-07-10T18:39:17.801Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/api/workOrders.ts",
+      "root_cause": "Had \"https://api.patelrep.com/v1\"",
+      "fix": "Changed to \"https://patelrep-web-production.up.railway.app/v1",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T18:39:17.801Z"
+    },
+    {
+      "id": "bug-303",
+      "timestamp": "2026-07-10T18:39:21.368Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/mobile/lib/api/lostFound.ts",
+      "root_cause": "Had \"https://api.patelrep.com/v1\"",
+      "fix": "Changed to \"https://patelrep-web-production.up.railway.app/v1",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-10T18:39:21.368Z"
+    },
+    {
+      "id": "bug-304",
+      "timestamp": "2026-07-15T00:00:00-05:00",
+      "error_message": "Graph traversal inline Python failed with SyntaxError: '(' was never closed",
+      "file": "graphify-out/graph.json (read-only audit command)",
+      "root_cause": "PowerShell argument parsing stripped quoting inside a multiline Python -c argument.",
+      "fix": "Retry the read-only traversal by piping the Python source to the interpreter on standard input instead of passing it through -c.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "graphify",
+        "syntax-error"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:00:00-05:00"
+    },
+    {
+      "id": "bug-305",
+      "timestamp": "2026-07-15T00:06:00-05:00",
+      "error_message": "Two apply_patch attempts failed while updating OpenWolf files",
+      "file": ".wolf/anatomy.md, .wolf/memory.md",
+      "root_cause": "The first patch assumed the wrong anatomy heading; the second matched a UTF-8-BOM-prefixed memory heading as plain text.",
+      "fix": "Patch anatomy against its exact heading and patch memory using a non-BOM line as context in separate operations.",
+      "tags": [
+        "tooling",
+        "openwolf",
+        "patch-context",
+        "utf8-bom"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T00:08:00-05:00"
+    },
+    {
+      "id": "bug-306",
+      "timestamp": "2026-07-15T00:12:00-05:00",
+      "error_message": "rg: spec: The system cannot find the file specified",
+      "file": "AGENTS.md project documentation / repository root",
+      "root_cause": "The project instructions describe a root spec/ directory, but that directory is absent in the current checkout.",
+      "fix": "Use the current .planning documents, application source, and live runtime as evidence; flag the missing requirements source as documentation drift in the audit.",
+      "tags": [
+        "documentation-drift",
+        "missing-directory",
+        "spec",
+        "audit"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:12:00-05:00"
+    },
+    {
+      "id": "bug-307",
+      "timestamp": "2026-07-15T00:18:00-05:00",
+      "error_message": "Railway CLI status checks failed: invalid_grant / Unauthorized; both documented production web and API domains return Railway 404 Not Found",
+      "file": "Railway production web and API services / repository deployment context",
+      "root_cause": "The local Railway CLI OAuth token is expired or revoked, preventing authenticated diagnosis; neither documented public domain currently has an active routing target.",
+      "fix": "Record both public availability failures in the audit. Re-authenticate Railway separately to inspect service/domain state before attempting any deployment or domain repair.",
+      "tags": [
+        "production",
+        "railway",
+        "availability",
+        "oauth",
+        "domain"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T00:34:00-05:00"
+    },
+    {
+      "id": "bug-308",
+      "timestamp": "2026-07-15T00:23:00-05:00",
+      "error_message": "In-app browser timed out navigating to http://127.0.0.1:3000",
+      "file": "Local Next.js runtime verification",
+      "root_cause": "The selected browser tab stalled during navigation even though a direct HTTP probe returned 200 from the Next.js server.",
+      "fix": "Treat the server as reachable and retry verification in a fresh in-app browser tab at the concrete /login route.",
+      "tags": [
+        "tooling",
+        "browser",
+        "localhost",
+        "runtime-verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:23:00-05:00"
+    },
+    {
+      "id": "bug-309",
+      "timestamp": "2026-07-15T00:27:00-05:00",
+      "error_message": "rg failed on Windows wildcard path apps/web/next.config.*",
+      "file": "Read-only CSP diagnostic command",
+      "root_cause": "PowerShell passed the wildcard path literally to ripgrep, which rejected it as an invalid Windows filename pattern.",
+      "fix": "Use rg --files to resolve the concrete config filename and search that exact path.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "ripgrep",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:27:00-05:00"
+    },
+    {
+      "id": "bug-310",
+      "timestamp": "2026-07-15T00:30:00-05:00",
+      "error_message": "npm error No workspaces found: --workspace=@patelrep/web",
+      "file": "package.json / AGENTS.md verification commands",
+      "root_cause": "The root package.json does not declare npm workspaces even though project documentation prescribes workspace-scoped commands.",
+      "fix": "Run web checks from apps/web directly and flag the documented workspace commands as stale or invalid.",
+      "tags": [
+        "documentation-drift",
+        "npm",
+        "workspace",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:30:00-05:00"
+    },
+    {
+      "id": "bug-311",
+      "timestamp": "2026-07-15T00:37:00-05:00",
+      "error_message": "Expected migration supabase/migrations/020_logbook_expires.sql was not found",
+      "file": "AGENTS.md migration notes / supabase/migrations",
+      "root_cause": "The collision described in project instructions has been resolved by renaming the logbook migration to 0201_logbook_expires.sql, but the documentation still names the old file.",
+      "fix": "Use the actual 0201_logbook_expires.sql migration and flag the stale migration note as documentation drift.",
+      "tags": [
+        "documentation-drift",
+        "migration",
+        "logbook"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:37:00-05:00"
+    },
+    {
+      "id": "bug-312",
+      "timestamp": "2026-07-15T00:42:00-05:00",
+      "error_message": "A read-only source inspection referenced the nonexistent migration supabase/migrations/007_guest_requests_lost_found.sql",
+      "file": "supabase/migrations",
+      "root_cause": "The inspection assumed an outdated combined migration filename instead of resolving the current migration inventory first.",
+      "fix": "Use rg --files before targeted migration reads; the active guest-request schema is in 011_guest_requests.sql.",
+      "tags": [
+        "tooling",
+        "migration",
+        "source-inspection"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:42:00-05:00"
+    },
+    {
+      "id": "bug-313",
+      "timestamp": "2026-07-15T00:50:00-05:00",
+      "error_message": "Get-Content could not find apps/web/apps/web/package.json during lint verification",
+      "file": "Read-only verification command",
+      "root_cause": "The command was already running from apps/web but included a repository-root-relative path for a second package read.",
+      "fix": "Use package.json directly from the apps/web working directory. The subsequent npm run lint completed successfully.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:50:00-05:00"
+    },
+    {
+      "id": "bug-314",
+      "timestamp": "2026-07-15T00:54:00-05:00",
+      "error_message": "JavaScript orchestration rejected PowerShell here-string syntax before a read-only ripgrep evidence query",
+      "file": "Read-only evidence collection command",
+      "root_cause": "PowerShell @' syntax was placed directly in the JavaScript tool wrapper instead of inside a JavaScript string.",
+      "fix": "Pass the ripgrep command as a normal JavaScript string and escape its regex characters.",
+      "tags": [
+        "tooling",
+        "javascript",
+        "powershell",
+        "ripgrep"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T00:54:00-05:00"
+    },
+    {
+      "id": "bug-315",
+      "timestamp": "2026-07-15T12:05:00-05:00",
+      "error_message": "Project instructions reference .planning/ROADMAP.md and REMAINING_WORK.md, but neither file exists in the current checkout",
+      "file": ".planning / AGENTS.md GSD workflow",
+      "root_cause": "Planning documentation drifted: STATE.md remains, while the referenced roadmap and remaining-work sources were removed or never carried into this checkout.",
+      "fix": "Use the present STATE.md only as historical context, flag its stale completion claims, and make the combined hotel-standards execution plan the next authoritative roadmap before implementation.",
+      "tags": [
+        "documentation-drift",
+        "planning",
+        "gsd"
+      ],
+      "related_bugs": [
+        "bug-310",
+        "bug-311"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T12:06:00-05:00"
+    },
+    {
+      "id": "bug-316",
+      "timestamp": "2026-07-15T12:20:00-05:00",
+      "error_message": "A read-only rg existence check returned exit code 1 because HOTEL_STANDARDS_EXECUTION_PLAN.md did not yet exist",
+      "file": "Root execution-plan discovery command",
+      "root_cause": "Ripgrep uses exit code 1 for a valid no-match result; the command wrapper treated the expected absence of the new deliverable as a failed script.",
+      "fix": "Create the requested plan and use Test-Path or Select-String for future no-match checks where absence is expected.",
+      "tags": [
+        "tooling",
+        "ripgrep",
+        "planning"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:20:00-05:00"
+    },
+    {
+      "id": "bug-317",
+      "timestamp": "2026-07-15T12:55:46-05:00",
+      "error_message": "PowerShell production probe rejected the unsupported -SkipHttpErrorCheck parameter",
+      "file": "Phase 0 external production probe command",
+      "root_cause": "The installed Windows PowerShell Invoke-WebRequest version does not support -SkipHttpErrorCheck.",
+      "fix": "Use curl.exe with explicit HTTP-status output for public availability probes.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "production-monitoring"
+      ],
+      "related_bugs": [
+        "bug-309"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:55:46-05:00"
+    },
+    {
+      "id": "bug-318",
+      "timestamp": "2026-07-15T12:57:02-05:00",
+      "error_message": "Focused API health test command used a repository-relative virtualenv path after changing into apps/api",
+      "file": "Phase 0 focused API verification command",
+      "root_cause": "The command resolved apps/api/.venv relative to apps/api and pointed at a nonexistent nested location.",
+      "fix": "Run the environment interpreter as .\\.venv\\Scripts\\python.exe from apps/api, or use the configured global Python if the virtualenv is absent.",
+      "tags": [
+        "tooling",
+        "pytest",
+        "powershell",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-313"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:57:02-05:00"
+    },
+    {
+      "id": "bug-319",
+      "timestamp": "2026-07-15T12:58:00-05:00",
+      "error_message": "Health endpoint returned 200 while reporting database unavailable",
+      "file": "apps/api/main.py",
+      "root_cause": "The health endpoint encoded the failed dependency only in its JSON body, so load balancers and deployment checks considered a degraded API healthy.",
+      "fix": "Return 503 with no-store cache control when the database probe fails; preserve a 200 response only when both API and database are ready.",
+      "tags": [
+        "production",
+        "health",
+        "readiness",
+        "monitoring"
+      ],
+      "related_bugs": [
+        "bug-307"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:58:00-05:00"
+    },
+    {
+      "id": "bug-320",
+      "timestamp": "2026-07-15T12:58:56-05:00",
+      "error_message": "Health smoke tests required 200 even when their test environment intentionally has no valid database connection",
+      "file": "apps/api/tests/smoke/test_health.py, apps/api/tests/smoke/test_endpoints.py",
+      "root_cause": "The test contract predated readiness semantics and treated a degraded body as a successful transport response.",
+      "fix": "Allow 200 for ready and 503 for degraded health in environment-agnostic smoke tests; retain a focused assertion that a failed database probe is 503.",
+      "tags": [
+        "tests",
+        "health",
+        "readiness"
+      ],
+      "related_bugs": [
+        "bug-319"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:58:56-05:00"
+    },
+    {
+      "id": "bug-321",
+      "timestamp": "2026-07-15T12:59:30-05:00",
+      "error_message": "TypeScript could not retain the non-null health URL narrowing inside the asynchronous login health-check closure",
+      "file": "apps/web/app/(auth)/login/page.tsx",
+      "root_cause": "The nullable health URL was captured by a nested asynchronous function after its guard clause.",
+      "fix": "Pass the already-narrowed endpoint to the asynchronous function as a required string parameter.",
+      "tags": [
+        "typescript",
+        "login",
+        "health"
+      ],
+      "related_bugs": [
+        "bug-319"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T12:59:30-05:00"
+    },
+    {
+      "id": "bug-322",
+      "timestamp": "2026-07-15T13:02:00-05:00",
+      "error_message": "Initial Phase 0 CI patch could not match the existing Unicode checkmark and em-dash text in workflow output",
+      "file": ".github/workflows/ci.yml, .github/workflows/deploy-check.yml",
+      "root_cause": "The patch context mixed mojibake display output with the files' underlying Unicode text.",
+      "fix": "Apply the workflow changes using ASCII-only context and leave informational Unicode strings unchanged.",
+      "tags": [
+        "tooling",
+        "patch",
+        "ci"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T13:02:00-05:00"
+    },
+    {
+      "id": "bug-323",
+      "timestamp": "2026-07-15T13:04:00-05:00",
+      "error_message": "Phase 0 Playwright runner could not resolve @playwright/test from the repository root",
+      "file": "playwright.phase0.config.ts, e2e/phase0-public-smoke.spec.ts",
+      "root_cause": "Playwright is installed only in apps/web, while the initial config and spec lived at the repository root.",
+      "fix": "Move the Phase 0 Playwright config and spec into apps/web and execute the suite from that package.",
+      "tags": [
+        "playwright",
+        "workspace",
+        "ci",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-310"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:04:00-05:00"
+    },
+    {
+      "id": "bug-324",
+      "timestamp": "2026-07-15T13:05:00-05:00",
+      "error_message": "Phase 0 Playwright local server could not start because a shared Next.js dev server already occupied port 3000",
+      "file": "apps/web/playwright.phase0.config.ts",
+      "root_cause": "The isolated smoke config used a second port while Next.js detected the existing development server and declined to launch another instance.",
+      "fix": "Use the standard local port with Playwright's reuseExistingServer behavior; CI still launches an isolated server when none exists.",
+      "tags": [
+        "playwright",
+        "nextjs",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-308"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:05:00-05:00"
+    },
+    {
+      "id": "bug-325",
+      "timestamp": "2026-07-15T13:07:00-05:00",
+      "error_message": "Phase 0 login smoke reproduced a permanently disabled form and pending health status at 127.0.0.1",
+      "file": "apps/web/playwright.phase0.config.ts",
+      "root_cause": "This checkout's active Next development server does not reliably hydrate browser sessions served through 127.0.0.1; the established project contract is localhost.",
+      "fix": "Run the deterministic local browser smoke at localhost and keep the test assertion for post-hydration form interactivity.",
+      "tags": [
+        "hydration",
+        "nextjs",
+        "playwright",
+        "localhost"
+      ],
+      "related_bugs": [
+        "bug-308"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:07:00-05:00"
+    },
+    {
+      "id": "bug-326",
+      "timestamp": "2026-07-15T13:08:00-05:00",
+      "error_message": "Local Phase 0 API probe found a non-PatelRep service on port 8000 and no service on port 8003",
+      "file": "Local API runtime verification",
+      "root_cause": "The expected PatelRep FastAPI development server was not running on either documented web API port.",
+      "fix": "Start PatelRep from apps/api with its configured environment and point the web app at that explicit port before full local API verification.",
+      "tags": [
+        "runtime",
+        "api",
+        "localhost",
+        "verification"
+      ],
+      "related_bugs": [
+        "bug-115"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:08:00-05:00"
+    },
+    {
+      "id": "bug-327",
+      "timestamp": "2026-07-15T13:10:00-05:00",
+      "error_message": "Phase 0 public smoke correctly failed because the documented production login route returns HTTP 404",
+      "file": "Railway web domain / scripts/public-smoke.mjs",
+      "root_cause": "The documented Railway web domain has no active routing target; the public API domain is affected by the same production outage.",
+      "fix": "The new deployment workflow now fails on this condition. Railway re-authentication and domain/service recovery are still required before deployment can pass.",
+      "tags": [
+        "production",
+        "railway",
+        "availability",
+        "smoke-test"
+      ],
+      "related_bugs": [
+        "bug-307"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:10:00-05:00"
+    },
+    {
+      "id": "bug-328",
+      "timestamp": "2026-07-15T13:12:00-05:00",
+      "error_message": "Railway CLI identity lookup succeeds but the explicit production project service listing returns Unauthorized",
+      "file": "Railway project 9290c2c7-79a4-49f2-843e-cc4702a00ae5",
+      "root_cause": "The local Railway credential can identify an account but does not currently authorize project-scoped operations for the PatelRep production project.",
+      "fix": "Reauthenticate with `railway login`, then re-run explicit project/environment service and domain diagnostics before modifying deployment configuration.",
+      "tags": [
+        "railway",
+        "oauth",
+        "authorization",
+        "production"
+      ],
+      "related_bugs": [
+        "bug-307",
+        "bug-327"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:12:00-05:00"
+    },
+    {
+      "id": "bug-329",
+      "timestamp": "2026-07-15T18:32:55.310Z",
+      "error_message": "Wrong reference: true should be false",
+      "file": "../../.claude/settings.json",
+      "root_cause": "Used \"true\" instead of \"false\"",
+      "fix": "Changed true → false",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T18:33:02.404Z"
+    },
+    {
+      "id": "bug-330",
+      "timestamp": "2026-07-15T18:55:02.446Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/Dockerfile",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 12→9 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "unknown"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T18:55:02.446Z"
+    },
+    {
+      "id": "bug-329",
+      "timestamp": "2026-07-15T13:16:00-05:00",
+      "error_message": "Railway CLI login cannot run in this non-interactive agent shell, and no Railway token is available",
+      "file": "Railway CLI authentication for PatelRep production",
+      "root_cause": "The local shell has no interactive TTY for OAuth and neither RAILWAY_TOKEN nor RAILWAY_API_TOKEN is configured for unattended project access.",
+      "fix": "Authenticate the CLI in an interactive terminal or make a scoped Railway token available to this environment, then re-run project diagnostics and deploy verification.",
+      "tags": ["railway", "oauth", "non-interactive", "production"],
+      "related_bugs": ["bug-328"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T13:16:00-05:00"
+    },
+    {
+      "id": "bug-331",
+      "timestamp": "2026-07-15T14:33:23.7859450-05:00",
+      "error_message": "Inspection of test setup referenced apps/api/tests/conftest.py, but that file does not exist",
+      "file": "apps/api/tests/conftest.py",
+      "root_cause": "The API tests configure environment variables in individual test modules rather than a shared conftest fixture.",
+      "fix": "Use the existing smoke-test modules as fixtures and add focused Phase 1 tests in a dedicated module.",
+      "tags": ["tests", "test-setup", "missing-file"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:33:23.7859450-05:00"
+    },
+    {
+      "id": "bug-332",
+      "timestamp": "2026-07-15T14:35:00-05:00",
+      "error_message": "Focused test command resolved the Python executable as apps/api/apps/api/.venv/Scripts/python.exe",
+      "file": "apps/api/tests/test_work_order_transitions.py",
+      "root_cause": "The command used a repository-relative virtual-environment path after changing the working directory to apps/api.",
+      "fix": "Run API checks from apps/api with .\\.venv\\Scripts\\python -m pytest.",
+      "tags": ["tests", "powershell", "path"],
+      "related_bugs": ["bug-331"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:35:00-05:00"
+    },
+    {
+      "id": "bug-333",
+      "timestamp": "2026-07-15T14:35:30-05:00",
+      "error_message": "ModuleNotFoundError: No module named 'services.work_orders' during Phase 1 transition-contract test collection",
+      "file": "apps/api/tests/test_work_order_transitions.py",
+      "root_cause": "The test was intentionally written before the explicit work-order transition service existed.",
+      "fix": "Add services/work_orders/transitions.py with the canonical transition table and validation rules.",
+      "tags": ["tests", "tdd", "work-orders", "transitions"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:35:30-05:00"
+    },
+    {
+      "id": "bug-334",
+      "timestamp": "2026-07-15T14:38:00-05:00",
+      "error_message": "ImportError: cannot import name 'TransitionWorkOrderRequest' from models.requests during endpoint-contract test collection",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "The API contract did not yet expose the explicit transition request payload.",
+      "fix": "Add TransitionWorkOrderRequest and route state changes through the transition RPC.",
+      "tags": ["tests", "tdd", "work-orders", "api-contract"],
+      "related_bugs": ["bug-333"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:38:00-05:00"
+    },
+    {
+      "id": "bug-335",
+      "timestamp": "2026-07-15T14:41:00-05:00",
+      "error_message": "AttributeError: 'Result' object has no attribute 'execute' in the transition endpoint test double",
+      "file": "apps/api/tests/test_work_order_transitions.py",
+      "root_cause": "The Supabase RPC double returned a result directly instead of the query object returned by the SDK.",
+      "fix": "Make the RPC test double return an object with execute() that exposes the result payload.",
+      "tags": ["tests", "mock", "supabase", "work-orders"],
+      "related_bugs": ["bug-334"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:41:00-05:00"
+    },
+    {
+      "id": "bug-336",
+      "timestamp": "2026-07-15T14:43:00-05:00",
+      "error_message": "PowerShell parsed the parentheses in apps/mobile/app/(app)/work-orders as a command expression",
+      "file": "apps/mobile/app/(app)/work-orders",
+      "root_cause": "A path containing parentheses was passed to rg without quoting.",
+      "fix": "Quote all PowerShell paths that contain parentheses.",
+      "tags": ["powershell", "path", "search"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:43:00-05:00"
+    },
+    {
+      "id": "bug-337",
+      "timestamp": "2026-07-15T14:46:00-05:00",
+      "error_message": "apply_patch could not match the Phase 0 heading in .planning/STATE.md",
+      "file": ".planning/STATE.md",
+      "root_cause": "The context contained mojibake for the em dash while the file is UTF-8.",
+      "fix": "Use the exact UTF-8 heading text from a targeted read before updating milestone state.",
+      "tags": ["planning", "encoding", "patch"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:46:00-05:00"
+    },
+    {
+      "id": "bug-338",
+      "timestamp": "2026-07-15T14:47:30-05:00",
+      "error_message": "Second .planning/STATE.md patch did not match the UTF-8 Phase 0 heading",
+      "file": ".planning/STATE.md",
+      "root_cause": "The patch still retained an encoding-sensitive context line.",
+      "fix": "Insert Phase 1 state using only ASCII section-heading context.",
+      "tags": ["planning", "encoding", "patch"],
+      "related_bugs": ["bug-337"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:47:30-05:00"
+    },
+    {
+      "id": "bug-339",
+      "timestamp": "2026-07-15T14:55:00-05:00",
+      "error_message": "Railway project access returned Unauthorized; public web and API endpoints both return Railway 404",
+      "file": "PatelRep Railway production",
+      "root_cause": "The Railway CLI OAuth session is expired, preventing service/domain inspection or deployment; provisioned domains currently have no reachable deployment.",
+      "fix": "Re-authenticate the Railway account, restore both service domains, deploy the verified code, and re-run public probes.",
+      "tags": ["railway", "oauth", "production", "deployment"],
+      "related_bugs": ["bug-328", "bug-329"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:55:00-05:00"
+    },
+    {
+      "id": "bug-340",
+      "timestamp": "2026-07-15T14:57:00-05:00",
+      "error_message": "rg rejected Windows wildcard component paths while inspecting occupancy controls",
+      "file": "apps/web/components",
+      "root_cause": "Windows path wildcard syntax was used as a literal rg search path.",
+      "fix": "Use `rg --files` to resolve matching directories before passing concrete paths to rg.",
+      "tags": ["powershell", "rg", "search"],
+      "related_bugs": ["bug-336"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T14:57:00-05:00"
+    },
+    {
+      "id": "bug-341",
+      "timestamp": "2026-07-15T15:10:00-05:00",
+      "error_message": "Work-order claim mutates the row directly and bypasses the atomic transition-audit RPC",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "The legacy claim route predates the Phase 1 transition service.",
+      "fix": "Route claims through transition_work_order_with_audit and record assignment in the same database function.",
+      "tags": ["work-orders", "audit", "transition", "integrity"],
+      "related_bugs": ["bug-333"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T15:10:00-05:00"
+    },
+    {
+      "id": "bug-342",
+      "timestamp": "2026-07-15T15:10:00-05:00",
+      "error_message": "UpdateWorkOrderRequest rejects the canonical escalated status",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "The legacy PATCH request enum was not synchronized with the Phase 1 status contract.",
+      "fix": "Use the canonical status type in the PATCH payload, then reject status changes at the route boundary in favor of the explicit transition endpoint.",
+      "tags": ["work-orders", "enum", "api-contract"],
+      "related_bugs": ["bug-334"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T15:10:00-05:00"
+    },
+    {
+      "id": "bug-343",
+      "timestamp": "2026-07-15T15:14:00-05:00",
+      "error_message": "Ruff reported an unused CompleteWorkOrderRequest import in transition tests",
+      "file": "apps/api/tests/test_work_order_transitions.py",
+      "root_cause": "A planned completion-route test was not added with the claim-route test.",
+      "fix": "Remove the unused import before rerunning lint.",
+      "tags": ["lint", "tests", "cleanup"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T15:14:00-05:00"
+    },
+    {
+      "id": "bug-344",
+      "timestamp": "2026-07-15T15:14:30-05:00",
+      "error_message": "An apply_patch attempt for the lint cleanup used malformed bug-log patch context",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The patch mixed an incomplete JSON insertion with file-edit context.",
+      "fix": "Apply the bug-log and test cleanup with separate, validated patch hunks.",
+      "tags": ["openwolf", "patch", "buglog"],
+      "related_bugs": ["bug-343"],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T15:14:30-05:00"
+    },
+    {
+      "id": "bug-345",
+      "timestamp": "2026-07-16T09:31:00-05:00",
+      "error_message": "The new Railway API public domain was initially configured for port 8000 while Uvicorn was listening on Railway's injected port 8080.",
+      "file": "Railway API service public networking",
+      "root_cause": "The domain target port was supplied manually instead of being verified from runtime deploy logs.",
+      "fix": "Set the public-domain target port to 8080 and verify the external health endpoint after the update.",
+      "tags": ["railway", "networking", "deployment"],
+      "related_bugs": ["bug-339"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T09:32:59-05:00"
+    },
+    {
+      "id": "bug-346",
+      "timestamp": "2026-07-16T09:35:00-05:00",
+      "error_message": "A long browser status wait timed out and reset the browser session.",
+      "file": "Railway deployment verification",
+      "root_cause": "The browser automation kernel timeout was shorter than the requested wait plus page inspection.",
+      "fix": "Use short deployment polls and reinitialize the browser binding after a kernel reset.",
+      "tags": ["browser", "railway", "timeout"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T09:35:00-05:00"
+    },
+    {
+      "id": "bug-347",
+      "timestamp": "2026-07-16T09:39:00-05:00",
+      "error_message": "The web validation command used bash-style && in the PowerShell shell.",
+      "file": "apps/web validation command",
+      "root_cause": "The workspace shell is an older PowerShell version that does not support && as a statement separator.",
+      "fix": "Use semicolons and explicitly stop when $LASTEXITCODE is nonzero.",
+      "tags": ["powershell", "validation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T09:39:00-05:00"
+    },
+    {
+      "id": "bug-348",
+      "timestamp": "2026-07-16T09:40:00-05:00",
+      "error_message": "The targeted API lint/type command used a parent-directory virtual-environment path that does not exist.",
+      "file": "apps/api validation command",
+      "root_cause": "The API virtual environment is located at apps/api/.venv, not the repository root.",
+      "fix": "Run Ruff and Pyright through .\\.venv\\Scripts\\python.exe from apps/api.",
+      "tags": ["python", "validation", "path"],
+      "related_bugs": ["bug-347"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T09:40:00-05:00"
+    },
+    {
+      "id": "bug-349",
+      "timestamp": "2026-07-16T10:02:00-05:00",
+      "error_message": "The mobile work-order queue ranked emergency work behind urgent work.",
+      "file": "apps/mobile/lib/engineering/workOrders.ts",
+      "root_cause": "The canonical emergency priority was absent from the mobile union and queue-ranking logic.",
+      "fix": "Add emergency and escalated to the mobile domain contract and rank emergency work first in active queues.",
+      "tags": ["phase-1", "mobile", "work-orders", "priority"],
+      "related_bugs": ["bug-342"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:02:00-05:00"
+    },
+    {
+      "id": "bug-350",
+      "timestamp": "2026-07-16T10:04:00-05:00",
+      "error_message": "The mobile translation search assumed a nonexistent apps/mobile/i18n/locales directory.",
+      "file": "apps/mobile i18n discovery",
+      "root_cause": "Translation files are organized outside the assumed locale-directory convention.",
+      "fix": "Resolve the actual translation file paths with rg --files before reading or editing keys.",
+      "tags": ["mobile", "i18n", "search"],
+      "related_bugs": ["bug-340"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:04:00-05:00"
+    },
+    {
+      "id": "bug-351",
+      "timestamp": "2026-07-16T10:04:30-05:00",
+      "error_message": "The follow-up mobile locale filename search returned no matches.",
+      "file": "apps/mobile i18n discovery",
+      "root_cause": "The search pattern was narrower than the project's translation-file naming convention.",
+      "fix": "Search for a known active key across apps/mobile to identify the owning translation module.",
+      "tags": ["mobile", "i18n", "search"],
+      "related_bugs": ["bug-350"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:04:30-05:00"
+    },
+    {
+      "id": "bug-352",
+      "timestamp": "2026-07-16T10:09:00-05:00",
+      "error_message": "Mobile TypeScript validation is blocked by existing role-union, duplicate-key, and UserProfile-shape errors outside the emergency/escalation change.",
+      "file": "apps/mobile/app/(app)/home/index.tsx; apps/mobile/app/(app)/room-status/index.tsx; apps/mobile/app/(app)/staff/index.tsx; apps/mobile/components/home/SupervisorHome.tsx",
+      "root_cause": "The mobile project already contains unrelated type-contract drift in the dirty worktree.",
+      "fix": "Isolate and repair the existing mobile type errors before treating a full mobile type check as green; the focused work-order test passes.",
+      "tags": ["mobile", "typescript", "validation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:09:00-05:00"
+    },
+    {
+      "id": "bug-353",
+      "timestamp": "2026-07-16T10:12:00-05:00",
+      "error_message": "A PowerShell inspection command failed because its mixed quote pattern left a string unterminated.",
+      "file": "web work-order inspection command",
+      "root_cause": "The rg expression used incompatible nested single and double quotes.",
+      "fix": "Split the inspection into quote-safe PowerShell commands.",
+      "tags": ["powershell", "tooling", "inspection"],
+      "related_bugs": ["bug-347"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:12:00-05:00"
+    },
+    {
+      "id": "bug-354",
+      "timestamp": "2026-07-16T10:20:00-05:00",
+      "error_message": "Phase 1 override validation still recognized the retired chief_engineer role after migration 064 merged it into engineer.",
+      "file": "apps/api/services/work_orders/transitions.py",
+      "root_cause": "The transition service had not been reconciled with the role consolidation migration.",
+      "fix": "Treat engineer and GM as management for controlled work-order overrides and update the focused contract test.",
+      "tags": ["phase-1", "rbac", "work-orders"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:20:00-05:00"
+    },
+    {
+      "id": "bug-355",
+      "timestamp": "2026-07-16T10:31:00-05:00",
+      "error_message": "A large inspection-modal patch could not match the existing malformed text encoding around a placeholder.",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "The source contains mojibake, so exact context containing the ellipsis did not match the patch text.",
+      "fix": "Apply the modal change in smaller context-safe patches that avoid the malformed placeholder text.",
+      "tags": ["frontend", "tooling", "encoding"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:31:00-05:00"
+    },
+    {
+      "id": "bug-356",
+      "timestamp": "2026-07-16T10:36:00-05:00",
+      "error_message": "Inspection modal TypeScript validation failed because a conditional JSX branch had an input and label as sibling roots.",
+      "file": "apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "Photo-evidence controls were added after an existing input without a wrapper element.",
+      "fix": "Wrap the failed-item note and evidence controls in one container, then rerun the web type check.",
+      "tags": ["frontend", "typescript", "inspection-evidence"],
+      "related_bugs": ["bug-355"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:36:00-05:00"
+    },
+    {
+      "id": "bug-357",
+      "timestamp": "2026-07-16T10:40:00-05:00",
+      "error_message": "A migration inspection command referenced a nonexistent 012_notifications.sql file.",
+      "file": "supabase/migrations",
+      "root_cause": "The notifications table was created in migration 013_ai_systems.sql, not migration 012.",
+      "fix": "Use migration 013 as the notifications schema source when adding delivery history.",
+      "tags": ["database", "tooling", "migrations"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T10:40:00-05:00"
     }
   ]
 }

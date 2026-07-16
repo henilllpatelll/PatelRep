@@ -54,7 +54,7 @@ export async function uploadLostFoundPhoto(uri: string): Promise<string | null> 
       name: `photo_${Date.now()}.jpg`,
     } as unknown as Blob);
 
-    const base = process.env.EXPO_PUBLIC_API_URL ?? "https://api.patelrep.com/v1";
+    const base = process.env.EXPO_PUBLIC_API_URL ?? "https://patelrep-web-production.up.railway.app/v1";
     const response = await fetch(`${base}/lost-found/upload-photo`, {
       method: "POST",
       headers: { Authorization: `Bearer ${session.access_token}` },

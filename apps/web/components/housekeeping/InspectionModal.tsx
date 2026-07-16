@@ -67,10 +67,13 @@ function OverallResultBadge({ result }: { result: OverallResult }) {
 export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, lastCleanMinutes, lastCleanBaseMinutes, checklistDone = 0, checklistTotal = 0, photoCount = 0, isOpen, onClose, onSuccess }: Props) {
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({})
+  const [itemPhotos, setItemPhotos] = useState<Record<string, File>>({})
   const [notes, setNotes] = useState('')
   const [manualOverall, setManualOverall] = useState<OverallResult>('passed')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const pendingResultRef = useRef<OverallResult>('passed')
+  const pendingPhotoUploadsRef = useRef<Record<string, File>>({})
+  const [savedInspectionId, setSavedInspectionId] = useState<string | null>(null)
   const [reCleanStep, setReCleanStep] = useState(false)
   const [reCleanNote, setReCleanNote] = useState('')
   const [reCleanError, setReCleanError] = useState<string | null>(null)
@@ -92,9 +95,12 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
     if (isOpen) {
       setItemResults({})
       setItemNotes({})
+      setItemPhotos({})
+      pendingPhotoUploadsRef.current = {}
       setNotes('')
       setManualOverall('passed')
       setSubmitError(null)
+      setSavedInspectionId(null)
       setReCleanStep(false)
       setReCleanNote('')
       setReCleanError(null)
@@ -110,17 +116,34 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  const finishInspection = () => {
+    if (pendingResultRef.current === 'failed') {
+      const failedNotes = Object.values(itemNotes).filter(Boolean).join('; ')
+      setReCleanNote(failedNotes)
+      setReCleanStep(true)
+    } else {
+      onSuccess(pendingResultRef.current)
+    }
+  }
+
+  const uploadPhotoEvidence = async (inspectionId: string) => {
+    await Promise.all(
+      Object.entries(pendingPhotoUploadsRef.current).map(([templateItemId, file]) =>
+        housekeepingApi.uploadInspectionPhoto(inspectionId, templateItemId, file),
+      ),
+    )
+  }
+
   const mutation = useMutation({
     mutationFn: (payload: Parameters<typeof housekeepingApi.submitInspection>[0]) =>
       housekeepingApi.submitInspection(payload),
-    onSuccess: () => {
-      if (pendingResultRef.current === 'failed') {
-        // Pre-populate re-clean note from failed item notes
-        const failedNotes = Object.values(itemNotes).filter(Boolean).join('; ')
-        setReCleanNote(failedNotes)
-        setReCleanStep(true)
-      } else {
-        onSuccess(pendingResultRef.current)
+    onSuccess: async (response) => {
+      try {
+        await uploadPhotoEvidence(response.data.id)
+        finishInspection()
+      } catch (err: any) {
+        setSavedInspectionId(response.data.id)
+        setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Inspection saved, but photo evidence could not upload. Retry before closing.')
       }
     },
     onError: (err: any) => {
@@ -262,6 +285,17 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       return
     }
 
+    const missingRequiredPhotos = items.filter((item, idx) => {
+      const key = item.id ?? String(idx)
+      return item.requires_photo_on_fail && itemResults[key] === 'fail' && !itemPhotos[key]
+    })
+    if (missingRequiredPhotos.length > 0) {
+      setSubmitError(
+        `${missingRequiredPhotos.length} failed item${missingRequiredPhotos.length > 1 ? 's require' : ' requires'} photo evidence before submitting.`,
+      )
+      return
+    }
+
     const payload = {
       room_id: roomId,
       template_id: template.id,
@@ -274,7 +308,26 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       })),
     }
     pendingResultRef.current = calculatedResult
-    mutation.mutate(payload as any)
+    pendingPhotoUploadsRef.current = Object.fromEntries(
+      items.flatMap((item, idx) => {
+        const key = item.id ?? String(idx)
+        const file = itemPhotos[key]
+        return itemResults[key] === 'fail' && item.id && file ? [[item.id, file]] : []
+      }),
+    )
+    mutation.mutate(payload)
+  }
+
+  async function retryPhotoEvidence() {
+    if (!savedInspectionId) return
+    setSubmitError(null)
+    try {
+      await uploadPhotoEvidence(savedInspectionId)
+      setSavedInspectionId(null)
+      finishInspection()
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Photo evidence could not upload. Please try again.')
+    }
   }
 
   return (
@@ -438,6 +491,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                               </div>
                               {/* Per-item note — auto-shown on fail */}
                               {current === 'fail' && (
+                                <div className="space-y-2">
                                 <input
                                   type="text"
                                   value={itemNotes[key] ?? ''}
@@ -447,6 +501,21 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                                   placeholder="What needs to be fixed…"
                                   className="w-full text-xs border border-[var(--alert-line)] rounded-md px-2.5 py-1.5 bg-[var(--alert-soft)]/40 text-ink2 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--alert)]/50"
                                 />
+                                <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
+                                  <Camera className="w-3.5 h-3.5 text-[var(--alert)]" />
+                                  <span>{item.requires_photo_on_fail ? 'Photo evidence required' : 'Add photo evidence (optional)'}</span>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(event) => {
+                                      const file = event.target.files?.[0]
+                                      if (file) setItemPhotos((previous) => ({ ...previous, [key]: file }))
+                                    }}
+                                    className="max-w-[160px] text-xs"
+                                  />
+                                  {itemPhotos[key] && <span className="truncate max-w-24 text-[var(--ready)]">{itemPhotos[key].name}</span>}
+                                </label>
+                                </div>
                               )}
                             </div>
                           )
@@ -522,7 +591,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
             <Button
               type="button"
               variant="primary"
-              onClick={handleSubmit}
+              onClick={savedInspectionId ? retryPhotoEvidence : handleSubmit}
               disabled={mutation.isPending || templatesLoading || !template?.id}
             >
               {mutation.isPending ? (
@@ -530,6 +599,8 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Submitting…
                 </>
+              ) : savedInspectionId ? (
+                'Retry Photo Upload'
               ) : (
                 'Submit Inspection →'
               )}

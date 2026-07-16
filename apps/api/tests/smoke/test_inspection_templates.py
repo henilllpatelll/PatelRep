@@ -97,6 +97,7 @@ async def test_list_inspection_templates_creates_persisted_default_when_missing(
     assert template["name"] == "Standard Room Inspection"
     assert len(template["items"]) >= 6
     assert all(item["id"] for item in template["items"])
+    assert all(item["requires_photo_on_fail"] is False for item in template["items"])
     assert any(table == "inspection_templates" for table, _row in db.inserts)
     assert sum(1 for table, _row in db.inserts if table == "inspection_template_items") >= 6
 

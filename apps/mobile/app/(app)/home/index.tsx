@@ -13,7 +13,7 @@ import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api/client";
-import { getRooms, upsertRooms } from "@/lib/offline/db";
+import { getRoomsByDate, upsertRooms } from "@/lib/offline/db";
 import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore, type Room } from "@/stores/appStore";
@@ -35,7 +35,7 @@ export default function HousekeeperHomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, isOnline, myRooms, setMyRooms, refreshRooms } = useAppStore();
   const effectiveRole = user?.effective_role ?? user?.role;
-  const isEngineer = effectiveRole === "engineer" || effectiveRole === "engineer";
+  const isEngineer = String(effectiveRole) === "engineer";
   const [loading, setLoading] = useState(myRooms.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [aiBriefing, setAiBriefing] = useState<ShiftBriefing | null>(null);
@@ -49,11 +49,11 @@ export default function HousekeeperHomeScreen() {
         setMyRooms(result.data);
         await upsertRooms(result.data);
       } catch {
-        const cached = (await getRooms()) as Room[];
+        const cached = (await getRoomsByDate(localDate())) as Room[];
         setMyRooms(cached);
       }
     } else {
-      const cached = (await getRooms()) as Room[];
+      const cached = (await getRoomsByDate(localDate())) as Room[];
       setMyRooms(cached);
     }
     setLoading(false);

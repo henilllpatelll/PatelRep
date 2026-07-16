@@ -104,7 +104,7 @@ export default function RoomStatusScreen() {
   const insets = useSafeAreaInsets();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline, user } = useAppStore();
-  const isEngineer = user?.role === "engineer" || user?.role === "engineer";
+  const isEngineer = String(user?.effective_role ?? user?.role) === "engineer";
   const canManageOoo = user?.role === "engineer" || user?.role === "gm" || user?.role === "housekeeping_supervisor";
   const [woModal, setWoModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
   const [oooLoading, setOooLoading] = useState<string | null>(null);

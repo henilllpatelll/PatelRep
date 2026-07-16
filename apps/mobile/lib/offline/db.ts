@@ -189,6 +189,14 @@ export async function getRooms(): Promise<unknown[]> {
   return db.getAllAsync("SELECT * FROM rooms ORDER BY floor, room_number");
 }
 
+export async function getRoomsByDate(assignmentDate: string): Promise<unknown[]> {
+  const db = await getDb();
+  return db.getAllAsync(
+    "SELECT * FROM rooms WHERE assignment_date = ? ORDER BY floor, room_number",
+    [assignmentDate]
+  );
+}
+
 // Sync queue operations
 export async function enqueueAction(
   entityType: string,

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://api.patelrep.com/v1";
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://patelrep-web-production.up.railway.app/v1";
 const API_TIMEOUT_MS = 12000;
 const API_TIMEOUT_MESSAGE = "Request timed out. Please try again.";
 

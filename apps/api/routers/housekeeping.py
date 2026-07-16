@@ -30,6 +30,8 @@ STANDARD_INSPECTION_TEMPLATE_ITEMS = [
     ("General", "Floors clean and vacuumed", True),
     ("General", "Amenities restocked", True),
 ]
+ALLOWED_INSPECTION_PHOTO_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+MAX_INSPECTION_PHOTO_BYTES = 5 * 1024 * 1024
 
 HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hours=-6))
 
@@ -123,6 +125,7 @@ def _insert_standard_inspection_items(template_id: str, tenant_id: str) -> list[
             "section": section,
             "description": description,
             "is_required": is_required,
+            "requires_photo_on_fail": False,
             "sort_order": idx,
         }
         for idx, (section, description, is_required) in enumerate(
@@ -1617,7 +1620,7 @@ async def list_inspection_templates(
     for tmpl in template_rows:
         items = (
             supabase.table("inspection_template_items")
-            .select("id, section, description, is_required, sort_order")
+            .select("id, section, description, is_required, requires_photo_on_fail, sort_order")
             .eq("template_id", tmpl["id"])
             .eq("tenant_id", current_user.hotel_id)
             .order("sort_order")
@@ -1665,6 +1668,7 @@ async def create_inspection_template(
                 "section": item.get("section", "General"),
                 "description": item.get("description", ""),
                 "is_required": item.get("is_required", True),
+                "requires_photo_on_fail": item.get("requires_photo_on_fail", False),
                 "sort_order": item.get("sort_order", idx),
             }
             for idx, item in enumerate(items)
@@ -1714,7 +1718,8 @@ async def update_inspection_template(
                     "tenant_id": current_user.hotel_id,
                     "section": item.get("section", "General"),
                     "description": item.get("description", ""),
-                    "is_required": item.get("is_required", True),
+                "is_required": item.get("is_required", True),
+                "requires_photo_on_fail": item.get("requires_photo_on_fail", False),
                     "sort_order": idx,
                 }
                 for idx, item in enumerate(items)
@@ -1731,7 +1736,7 @@ async def update_inspection_template(
         raise HTTPException(status_code=404, detail="Template not found")
 
     item_result = supabase.table("inspection_template_items") \
-        .select("id, section, description, is_required, sort_order") \
+        .select("id, section, description, is_required, requires_photo_on_fail, sort_order") \
         .eq("template_id", template_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .order("sort_order") \
@@ -1747,10 +1752,11 @@ async def update_inspection_template(
 @router.post("/inspections/{inspection_id}/photos")
 async def upload_inspection_photo(
     inspection_id: str,
+    template_item_id: str = Form(...),
     photo: UploadFile = File(...),
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
-    """Upload a photo for a failed/conditional inspection."""
+    """Upload evidence and attach it to one inspection checklist result."""
     insp = (
         supabase.table("inspections")
         .select("id")
@@ -1762,19 +1768,44 @@ async def upload_inspection_photo(
     if not insp or not insp.data:
         raise HTTPException(status_code=404, detail="Inspection not found")
 
-    file_bytes = await photo.read()
-    ext = "jpg"
-    if photo.filename and "." in photo.filename:
-        ext = photo.filename.rsplit(".", 1)[-1]
-    path = f"{current_user.hotel_id}/inspections/{inspection_id}/photo.{ext}"
+    result = (
+        supabase.table("inspection_results")
+        .select("id")
+        .eq("inspection_id", inspection_id)
+        .eq("template_item_id", template_item_id)
+        .eq("tenant_id", current_user.hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Inspection checklist item not found")
+
+    if photo.content_type not in ALLOWED_INSPECTION_PHOTO_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are allowed")
+    file_bytes = await photo.read(MAX_INSPECTION_PHOTO_BYTES + 1)
+    if len(file_bytes) > MAX_INSPECTION_PHOTO_BYTES:
+        raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
+
+    extension = {
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    }[photo.content_type]
+    timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
+    path = f"{current_user.hotel_id}/inspections/{inspection_id}/{template_item_id}-{timestamp}.{extension}"
 
     supabase.storage.from_("work-order-photos").upload(
         path,
         file_bytes,
-        {"content-type": photo.content_type or "image/jpeg", "upsert": "true"},
+        {"content-type": photo.content_type, "upsert": "false"},
     )
     public_url = supabase.storage.from_("work-order-photos").get_public_url(path)
-    return {"data": {"url": public_url}}
+    supabase.table("inspection_results").update({"photo_url": public_url}) \
+        .eq("id", result.data["id"]) \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    return {"data": {"url": public_url, "template_item_id": template_item_id}}
 
 
 @router.post("/end-shift-summary")

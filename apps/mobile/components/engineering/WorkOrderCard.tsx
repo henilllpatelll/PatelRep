@@ -46,11 +46,12 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
   const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
   const category = CATEGORY_META[categoryKey];
   const { room, text } = workOrderLocation(wo);
+  const isEmergency = wo.priority === "emergency";
   const isUrgent = wo.priority === "urgent";
   const onHold = wo.status === "on_hold";
   const done = wo.status === "completed";
   const due = dueState(wo, locale);
-  const railColor = isUrgent || due?.kind === "overdue" ? C.alert : onHold ? C.caution : C.line;
+  const railColor = isEmergency || isUrgent || due?.kind === "overdue" ? C.alert : onHold ? C.caution : C.line;
 
   const ageMinutes = minutesSince(wo.created_at);
   const elapsed = wo.status === "in_progress" ? minutesSince(wo.started_at) : null;
@@ -58,7 +59,7 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
 
   return (
     <TouchableOpacity
-      style={[styles.card, (isUrgent || due?.kind === "overdue") && styles.cardAlert]}
+      style={[styles.card, (isEmergency || isUrgent || due?.kind === "overdue") && styles.cardAlert]}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
@@ -91,7 +92,12 @@ export function WorkOrderCard({ wo, locale, onPress, onClaim, claiming }: WorkOr
             <View style={styles.categoryChip}>
               <Text style={styles.categoryChipText}>{t(`workOrders.category.${categoryKey}`)}</Text>
             </View>
-            {isUrgent ? (
+            {isEmergency ? (
+              <View style={styles.urgentChip}>
+                <Ionicons name="warning" size={9} color={C.alert} />
+                <Text style={styles.urgentChipText}>{t("workOrders.chipEmergency")}</Text>
+              </View>
+            ) : isUrgent ? (
               <View style={styles.urgentChip}>
                 <Ionicons name="flash" size={9} color={C.alert} />
                 <Text style={styles.urgentChipText}>{t("workOrders.chipUrgent")}</Text>

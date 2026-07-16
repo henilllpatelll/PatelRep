@@ -1,5 +1,6 @@
 ﻿# Memory
 | session | Optimistic remove for room assignments: removed removingRoomIds state + spinner; handleRemoveSavedAssignment now updates cache immediately, fires API in background, rolls back on failure | RoomStatusBoard.tsx, RoomCard.tsx | complete | ~30 tok |
+| 00:05 | Queried existing Graphify map and indexed the current web surface; registered the previously unindexed June workflow audit | graphify-out/graph.json, apps/web/**, WORKFLOW_AUDIT.md, .wolf/anatomy.md | Found 169 web files, 38 page/error/layout entries, and a recent authenticated role audit to validate against current source | ~900 |
 | 08:00 | Finished remaining WORKFLOW_AUDIT items: (1) InspectionModal reCleanStep — reset in useEffect + re-clean branch UI (alert banner + textarea + Skip/Dispatch footer); (2) GMDashboard arrivals/departures — board query, depRooms/readyRooms derivation, 2-col card with checkout/checkin buttons. tsc clean. | InspectionModal.tsx, dashboard/page.tsx | complete | ~80 tok |
 | 07:30 | P3 check-in/checkout + DND welfare: POST /rooms/{id}/checkin, POST /rooms/{id}/welfare-check (rooms.py), DND 8h auto-escalation block in internal.py /escalations/check, markCheckIn + requestWelfareCheck in housekeeping.ts, FD dashboard check-out button (OCCUPIED DEP rooms), check-in button (INSPECTED rooms), DND welfare panel. tsc clean. | rooms.py, internal.py, housekeeping.ts, FrontDeskDashboard.tsx | complete | ~120 tok |
 | 06:45 | BUG-4 root cause confirmed via buglog: staffApi.list() returned 403 for front_desk (not in require_role). Fix already applied to staff.py. Board loads correctly for FD; setLastSyncedAt fires from boardData useEffect. tsc passes clean. | apps/api/routers/staff.py | complete | ~50 tok |
@@ -6466,3 +6467,103 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 17:28 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 2 condition(s) | ~616 |
 | 17:28 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 condition(s) | ~345 |
 | 17:28 | Session end: 10 writes across 3 files (RoomStatusBoard.tsx, RoomCard.tsx, page.tsx) | 5 reads | ~24031 tok |
+| 12:20 | Session end: 3 writes across 2 files (page.tsx, policy.py) | 10 reads | ~10198 tok |
+| 12:20 | Session end: 3 writes across 2 files (page.tsx, policy.py) | 10 reads | ~10198 tok |
+| 12:22 | Created apps/web/lib/api/notifications.ts | — | ~192 |
+| 12:23 | Session end: 4 writes across 3 files (page.tsx, policy.py, notifications.ts) | 12 reads | ~10390 tok |
+| 12:33 | Session end: 4 writes across 3 files (page.tsx, policy.py, notifications.ts) | 12 reads | ~10390 tok |
+
+## Session: 2026-07-10 12:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:45 | Edited apps/api/routers/work_orders.py | "engineer" → "gm" | ~18 |
+| 12:46 | Session end: 1 writes across 1 files (work_orders.py) | 1 reads | ~18 tok |
+| 12:47 | Session end: 1 writes across 1 files (work_orders.py) | 1 reads | ~18 tok |
+| 13:15 | Session end: 1 writes across 1 files (work_orders.py) | 1 reads | ~18 tok |
+
+## Session: 2026-07-10 13:20
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:23 | Edited apps/mobile/lib/offline/db.ts | modified getRooms() | ~116 |
+| 13:23 | Edited apps/mobile/app/(app)/home/index.tsx | inline fix | ~18 |
+| 13:23 | Edited apps/mobile/app/(app)/home/index.tsx | getRooms() → getRoomsByDate() | ~119 |
+| 13:23 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | inline fix | ~18 |
+| 13:23 | Edited apps/mobile/app/(app)/my-rooms/index.tsx | getRooms() → getRoomsByDate() | ~158 |
+| 13:23 | Edited apps/mobile/stores/appStore.ts | added 1 import(s) | ~83 |
+| 13:23 | Edited apps/mobile/stores/appStore.ts | 8→9 lines | ~86 |
+| 13:25 | Session end: 7 writes across 3 files (db.ts, index.tsx, appStore.ts) | 7 reads | ~598 tok |
+| 13:38 | Edited apps/mobile/lib/api/client.ts | "https://api.patelrep.com/" → "https://patelrep-web-prod" | ~30 |
+| 13:39 | Edited apps/mobile/lib/api/workOrders.ts | "https://api.patelrep.com/" → "https://patelrep-web-prod" | ~30 |
+| 13:39 | Edited apps/mobile/lib/api/lostFound.ts | "https://api.patelrep.com/" → "https://patelrep-web-prod" | ~30 |
+| 13:39 | Session end: 10 writes across 6 files (db.ts, index.tsx, appStore.ts, client.ts, workOrders.ts) | 14 reads | ~688 tok |
+
+## Session: 2026-07-10 13:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-15 10:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-15 10:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-15 10:13
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:00 | Started hotel-standards web audit; read Graphify, browser, anatomy, OpenWolf, and cerebrum guidance; preserved dirty worktree | .wolf/*, graphify-out/* | Audit scope and required workflow established; one read-only graph command quoting failure logged as bug-304 | ~2200 |
+| 00:15 | Mapped the current web/API workflow surface and separated superseded historical audit findings from current source behavior | apps/web/*, apps/api/*, WORKFLOW_AUDIT.md | Confirmed that several June findings were fixed; retained only current gaps with source evidence | ~6800 |
+| 00:35 | Tested documented production endpoints and the local login surface; inspected deployment context with Railway guidance | production domains, localhost:3000, .wolf/buglog.json | Both public domains return Railway 404; Railway auth is expired; local login renders but did not hydrate into an interactive form | ~4100 |
+| 00:45 | Compared operational workflows against current official hotel, Texas, OSHA, CDC, ADA, Oracle, PCI, and privacy sources | apps/web/*, apps/api/*, supabase/migrations/* | Identified strong room/task foundations and major availability, compliance-evidence, OOO/OOS, PM-history, language, accessibility, and auditability gaps | ~9100 |
+| 00:55 | Ran current build and test gates | apps/web, apps/api | Next production build, TypeScript, ESLint, and all 225 API tests passed; build warned about duplicate lockfiles | ~1700 |
+| 01:05 | Wrote the comprehensive hotel standards audit and recorded its durable architecture lesson | HOTEL_STANDARDS_AUDIT_2026-07-15.md, .wolf/anatomy.md, .wolf/cerebrum.md | Delivered 42 KB root report with scorecard, sourced findings, prioritized remediation roadmap, limitations, and verification record | ~7200 |
+| 12:05 | Reconciled both hotel-standards reports with the current graph, source contracts, and GSD state | HOTEL_STANDARDS_AUDIT_2026-07-15.md, HOTEL_STANDARDS_GAP_ANALYSIS.md, .planning/STATE.md, apps/api/* | Separated current gaps from stale claims and derived a dependency-first execution sequence; documented missing ROADMAP/REMAINING_WORK planning sources | ~9800 |
+| 11:43 | Created HOTEL_STANDARDS_GAP_ANALYSIS.md | — | ~6600 |
+| 11:44 | Researched 2026 hotel ops standards + wrote brutal gap analysis | HOTEL_STANDARDS_GAP_ANALYSIS.md | created | ~12k |
+| 11:44 | Session end: 1 writes across 1 files (HOTEL_STANDARDS_GAP_ANALYSIS.md) | 0 reads | ~7072 tok |
+| 12:20 | Rewrote the standards roadmap after the user clarified two intentional product behaviors | HOTEL_STANDARDS_EXECUTION_PLAN.md, .wolf/anatomy.md, .wolf/cerebrum.md | Created a root phase-by-phase plan with those items removed and recorded the product decisions to prevent future reclassification | ~5200 |
+| 12:55 | Started Hotel Standards Phase 0 baseline audit | production endpoints, login, CI, railway config, package locks | Confirmed both public endpoints return 404, static login status is misleading, and deploy checks are warning-only | ~5200 |
+| 13:02 | Implemented Phase 0 readiness baseline | apps/api/main.py, login page, public smoke, CI workflows | Database degradation now fails readiness, login health is live, and CI/deployment checks include public smoke coverage | ~4600 |
+| 13:08 | Corrected Phase 0 planning and build documentation | README.md, AGENTS.md, .planning/STATE.md | Clarified app-scoped lockfile policy, recorded the live Railway outage and partial Spanish coverage, and listed the remaining recovery work | ~3000 |
+| 13:10 | Verified Phase 0 health and deployment checks | apps/api tests, apps/web checks, Playwright, public smoke workflow | 225 API tests, web lint/type/build, and local login smoke passed; production smoke correctly fails on Railway 404 | ~4300 |
+| 13:12 | Checked Railway production access | Railway CLI and explicit PatelRep project service list | CLI identity is valid but production project authorization is denied; account reauthentication remains required before route repair | ~1300 |
+| 13:16 | Retried Railway recovery after user reported it fixed | Railway CLI and public endpoints | Non-interactive shell still lacks project authorization/token; both documented public domains continue to return 404 | ~1100 |
+
+## Session: 2026-07-15 13:03
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:32 | Edited ../../.claude/settings.json | inline fix | ~13 |
+| 13:33 | Edited .claude/settings.json | inline fix | ~13 |
+| 13:33 | Session end: 2 writes across 1 files (settings.json) | 3 reads | ~26 tok |
+| 13:36 | Session end: 2 writes across 1 files (settings.json) | 3 reads | ~26 tok |
+| 13:37 | Session end: 2 writes across 1 files (settings.json) | 3 reads | ~26 tok |
+| 13:39 | Session end: 2 writes across 1 files (settings.json) | 3 reads | ~26 tok |
+| 13:47 | Session end: 2 writes across 1 files (settings.json) | 3 reads | ~26 tok |
+| 13:52 | Edited railway.toml | 3→4 lines | ~26 |
+| 13:52 | Session end: 3 writes across 2 files (settings.json, railway.toml) | 5 reads | ~54 tok |
+| 13:55 | Edited apps/web/Dockerfile | 12→9 lines | ~54 |
+| 13:55 | Edited railway.toml | — | ~0 |
+| 13:55 | Session end: 5 writes across 3 files (settings.json, railway.toml, Dockerfile) | 5 reads | ~111 tok |
+| 14:33 | Mapped Phase 1 work-order and inspection implementation paths | work_orders.py, requests.py, migrations, smoke tests | transition/audit foundation identified | ~6000 tok |
+| 14:35 | Added failing Phase 1 work-order transition contract tests | apps/api/tests/test_work_order_transitions.py | pending transition service | ~900 tok |
+| 14:41 | Implemented work-order transition contract and atomic audit mutation | services/work_orders, work_orders.py, requests.py, migration 065 | focused contracts pending rerun | ~2500 tok |
+| 14:44 | Registered Phase 1 files in OpenWolf anatomy | .wolf/anatomy.md | context map current | ~300 tok |
+| 14:48 | Verified Phase 1 transition foundation and updated milestone state | API tests, ruff, .planning/STATE.md | 235 tests and lint passed | ~1200 tok |
+| 14:57 | Reconfirmed Phase 0 production outage and mapped remaining Phase 1 UI paths | Railway endpoints, engineering and inspection screens | Railway OAuth is the external deployment gate | ~5000 tok |
+| 14:38 | Restored production on the user's new Railway project | Railway project `0369313e-cca1-4907-9887-d7699b883f76` | API and web deployed; API health, web login, database health, and CORS preflight passed | ~5200 tok |
+| 15:06 | Corrected Phase 1 mobile engineering queue behavior and existing TypeScript drift | apps/mobile work-order queue, cards, locales, and four type-error sites | Emergency ranks first, escalated remains active, 16 focused tests and mobile type check pass | ~2400 tok |
+| 15:24 | Made web work-order transitions audit-safe and added emergency/escalated visibility | engineering API contract, board, drawer, cards | Structured-reason drawer replaces unsafe status dragging; web type check and lint pass | ~3200 tok |
+| 16:02 | Added inspection evidence linkage and escalation notification/audit history | migrations 065-067, housekeeping/internal APIs, web inspection templates/modal | focused API contracts, web type check, and web lint pass | ~5200 tok |
+
+## Session: 2026-07-16 10:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|

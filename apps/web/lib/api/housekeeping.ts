@@ -7,6 +7,7 @@ export interface InspectionTemplateItem {
   section: string
   description: string
   is_required: boolean
+  requires_photo_on_fail: boolean
   sort_order: number
 }
 
@@ -119,8 +120,17 @@ export const housekeepingApi = {
 
   getPredictions: () => apiClient.get('/housekeeping/predictions'),
 
-  submitInspection: (data: Record<string, unknown>) =>
-    apiClient.post('/housekeeping/inspections', data),
+  submitInspection: (data: SubmitInspectionPayload) =>
+    apiClient.post('/housekeeping/inspections', data) as Promise<{ data: { id: string } }>,
+
+  uploadInspectionPhoto: (inspectionId: string, templateItemId: string, file: File) => {
+    const form = new FormData()
+    form.append('template_item_id', templateItemId)
+    form.append('photo', file)
+    return apiClient.post(`/housekeeping/inspections/${inspectionId}/photos`, form) as Promise<{
+      data: { url: string; template_item_id: string }
+    }>
+  },
 
   getInspectionTemplates: () =>
     apiClient.get('/housekeeping/inspections/templates'),
@@ -173,13 +183,13 @@ export const housekeepingApi = {
   createInspectionTemplate: (data: {
     name: string
     is_default?: boolean
-    items: Array<{ section: string; description: string; is_required: boolean }>
+    items: Array<{ section: string; description: string; is_required: boolean; requires_photo_on_fail?: boolean }>
   }) => apiClient.post('/housekeeping/inspections/templates', data) as Promise<{ data: InspectionTemplate }>,
 
   updateInspectionTemplate: (id: string, data: {
     name?: string
     is_default?: boolean
-    items?: Array<{ section: string; description: string; is_required: boolean }>
+    items?: Array<{ section: string; description: string; is_required: boolean; requires_photo_on_fail?: boolean }>
   }) => apiClient.patch(`/housekeeping/inspections/templates/${id}`, data) as Promise<{ data: InspectionTemplate }>,
 
   deleteInspectionTemplate: (id: string) =>

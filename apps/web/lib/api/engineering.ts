@@ -54,8 +54,8 @@ export interface WorkOrder {
   description?: string
   original_nl_input?: string
   category: 'plumbing' | 'electrical' | 'hvac' | 'furniture' | 'appliance' | 'structural' | 'safety' | 'general'
-  priority: 'urgent' | 'normal' | 'low'
-  status: 'open' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+  priority: WorkOrderPriority
+  status: WorkOrderStatus
   room_id?: string
   location_text?: string
   asset_id?: string
@@ -78,6 +78,26 @@ export interface WorkOrder {
   assets?: Asset
   work_order_photos?: WorkOrderPhoto[]
   work_order_comments?: WorkOrderComment[]
+}
+
+export type WorkOrderPriority = 'emergency' | 'urgent' | 'normal' | 'low'
+export type WorkOrderStatus = 'open' | 'escalated' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled'
+
+export interface TransitionWorkOrderPayload {
+  status: WorkOrderStatus
+  reason_code?:
+    | 'awaiting_parts'
+    | 'awaiting_vendor'
+    | 'schedule_deferral'
+    | 'safety_review'
+    | 'duplicate'
+    | 'no_longer_needed'
+    | 'reopened_after_failure'
+    | 'reopened_on_request'
+    | 'manager_override'
+  reason_note?: string
+  override?: boolean
+  source?: 'web' | 'mobile' | 'api' | 'automation'
 }
 
 export interface FailurePrediction {
@@ -149,7 +169,6 @@ export const engineeringApi = {
     apiClient.get(`/work-orders/${id}`) as Promise<{ data: WorkOrder }>,
 
   updateWorkOrder: (id: string, payload: {
-    status?: string
     priority?: string
     assigned_to?: string
     notes?: string
@@ -157,6 +176,12 @@ export const engineeringApi = {
     description?: string
     category?: string
   }) => apiClient.patch(`/work-orders/${id}`, payload) as Promise<{ data: WorkOrder }>,
+
+  transitionWorkOrder: (id: string, payload: TransitionWorkOrderPayload) =>
+    apiClient.post(`/work-orders/${id}/transition`, {
+      ...payload,
+      source: payload.source ?? 'web',
+    }) as Promise<{ data: WorkOrder }>,
 
   deleteWorkOrder: (id: string) =>
     apiClient.delete(`/work-orders/${id}`),

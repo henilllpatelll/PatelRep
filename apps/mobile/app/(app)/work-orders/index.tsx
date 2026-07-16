@@ -53,15 +53,17 @@ export default function WorkOrdersScreen() {
   const [showCreateWo, setShowCreateWo] = useState(false);
 
   const loadQueues = useCallback(async () => {
-    const [openRes, progressRes, holdRes] = await Promise.allSettled([
+    const [openRes, escalatedRes, progressRes, holdRes] = await Promise.allSettled([
       listWorkOrders("open"),
+      listWorkOrders("escalated"),
       listWorkOrders("in_progress"),
       listWorkOrders("on_hold"),
     ]);
     if (openRes.status === "fulfilled") setOpen(openRes.value);
+    const escalated = escalatedRes.status === "fulfilled" ? escalatedRes.value : [];
     const progress = progressRes.status === "fulfilled" ? progressRes.value : [];
     const held = holdRes.status === "fulfilled" ? holdRes.value : [];
-    setActive([...progress, ...held]);
+    setActive([...escalated, ...progress, ...held]);
   }, []);
 
   const loadDone = useCallback(async () => {

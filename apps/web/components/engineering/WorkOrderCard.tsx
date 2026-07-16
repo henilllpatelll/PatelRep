@@ -17,6 +17,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   open: 'bg-blue-50 text-blue-700',
+  escalated: 'bg-red-100 text-red-800',
   in_progress: 'bg-purple-50 text-purple-700',
   on_hold: 'bg-orange-50 text-orange-700',
   completed: 'bg-green-50 text-green-700',
@@ -39,7 +40,7 @@ function formatSLA(dueAt: string): { text: string; breached: boolean } {
 }
 
 function priorityVariant(priority: string): 'high' | 'medium' | 'low' {
-  if (priority === 'urgent' || priority === 'high') return 'high'
+  if (priority === 'emergency' || priority === 'urgent' || priority === 'high') return 'high'
   if (priority === 'normal') return 'medium'
   return 'low'
 }
@@ -57,7 +58,7 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
       ? formatSLA(wo.due_at)
       : null
 
-  const isDanger = wo.priority === 'urgent' || sla?.breached
+  const isDanger = wo.priority === 'emergency' || wo.priority === 'urgent' || sla?.breached
 
   return (
     <Card
