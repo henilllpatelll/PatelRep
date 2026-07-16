@@ -6388,6 +6388,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T13:05:00-05:00"
+    },
+    {
+      "id": "bug-389",
+      "timestamp": "2026-07-16T13:41:00-05:00",
+      "error_message": "Web Room Board shows 'Failed to load rooms'.",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "The web app targets the local API at port 8003, but the root development command targeted port 8000 with a Unix-style Python path that Windows cmd cannot execute. Port 8000 was occupied by an unrelated FastAPI service, leaving no PatelRep API available to the board.",
+      "fix": "Updated `npm run dev:api` to launch the project virtual environment's Windows Python executable on port 8003, matching the web app configuration.",
+      "tags": ["web", "housekeeping", "room-board", "user-reported"],
+      "related_bugs": ["bug-391"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:41:00-05:00"
+    },
+    {
+      "id": "bug-390",
+      "timestamp": "2026-07-16T13:41:00-05:00",
+      "error_message": "Initial Graphify room-board query failed with a PowerShell quoting syntax error.",
+      "file": "graphify room-board orientation command",
+      "root_cause": "Embedded Python f-string quotes were corrupted by the shell command quoting.",
+      "fix": "Use a PowerShell here-string piped to Python for graph queries.",
+      "tags": ["graphify", "powershell", "tooling"],
+      "related_bugs": ["bug-389"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:41:00-05:00"
+    },
+    {
+      "id": "bug-391",
+      "timestamp": "2026-07-16T13:45:00-05:00",
+      "error_message": "`npm run dev:api` could not start the PatelRep API required by the web Room Board.",
+      "file": "package.json",
+      "root_cause": "The script used `.venv/Scripts/python`, which Windows cmd treats as a command name rather than an executable path, and chose port 8000 while the local web app is configured for port 8003.",
+      "fix": "Use `.venv\\Scripts\\python.exe` and port 8003; verified `/health` reports an operational database and the web login page reports `API & database: connected`.",
+      "tags": ["local-development", "web", "api", "room-board", "windows"],
+      "related_bugs": ["bug-389"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:45:00-05:00"
+    },
+    {
+      "id": "bug-392",
+      "timestamp": "2026-07-16T13:45:00-05:00",
+      "error_message": "OpenWolf learning update patch could not match encoded punctuation in cerebrum context.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The expected patch context included text displayed with mojibake encoding.",
+      "fix": "Apply the learning entry using ASCII-only heading context.",
+      "tags": ["openwolf", "patch", "encoding"],
+      "related_bugs": ["bug-363"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:45:00-05:00"
     }
   ]
 }

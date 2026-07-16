@@ -21,6 +21,8 @@
 
 ## Key Learnings
 
+- **Local Room Board runtime contract (2026-07-16):** The web app's local API URL is `http://localhost:8003/v1`; `npm run dev:api` must start FastAPI on port 8003 via the Windows `.venv\\Scripts\\python.exe` executable. Port 8000 may be occupied by an unrelated service, making the board show its generic room-load error.
+
 - **Phase 6 PMS and AI governance contract (2026-07-16):** When Opera guest data conflicts with a local guest name, leave the local room status untouched and create an `integration_sync_conflicts` record for a GM/chief-engineer source-of-truth decision. AI recommendations must progress `pending → authorized → executed → outcome_recorded`; only GM/chief engineer can authorize and controlled safety/compliance actions are never valid AI actions.
 
 - **Phase 5 guest-recovery contract (2026-07-16):** Guest requests now use ordered, auditable milestones (acknowledged through verified), tenant SLA policies selected by category/priority/impact, and explicit consent before an outbound SMS record is queued. Do not reuse the mutable PATCH route for lifecycle actions; use `/guest-requests/{id}/transition` so timestamps and append-only events stay aligned.

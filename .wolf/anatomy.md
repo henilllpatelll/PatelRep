@@ -893,6 +893,7 @@
 
 ## apps/web/components/housekeeping/
 
+- `RoomStatusBoard.tsx` - Authenticated housekeeping board; polls `/housekeeping/board` through the typed API client and presents the generic room-load retry state. (~2400 tok)
 
 ## apps/web/components/settings/
 
