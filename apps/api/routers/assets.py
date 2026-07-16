@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
+from models.requests import CompletePMProgramRequest, CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
 from core.database import supabase
+from services.programs.contracts import EvidenceRequiredError
+from services.programs.execution import persist_pm_completion
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -224,12 +226,10 @@ async def create_pm_schedule(
 @router.post("/pm-schedules/{schedule_id}/complete")
 async def complete_pm_schedule(
     schedule_id: str,
+    request: CompletePMProgramRequest,
     current_user: CurrentUser = Depends(require_role("engineer", "gm"))
 ):
-    """Mark a PM schedule as complete and advance next_due_at by the interval."""
-    from datetime import timedelta
-
-    # Fetch the schedule to get interval info
+    """Record PM proof and advance the schedule only after a valid completion."""
     sched_result = supabase.table("pm_schedules")\
         .select("*")\
         .eq("id", schedule_id)\
@@ -241,31 +241,17 @@ async def complete_pm_schedule(
     if not sched:
         raise HTTPException(status_code=404, detail="PM schedule not found")
 
-    now = datetime.now(timezone.utc)
-
-    # Compute next_due_at based on interval_type
-    INTERVAL_DAYS = {
-        "daily": 1,
-        "weekly": 7,
-        "monthly": 30,
-        "quarterly": 90,
-        "annual": 365,
-    }
-    interval_days = sched.get("interval_days") or INTERVAL_DAYS.get(sched.get("interval_type", "monthly"), 30)
-    next_due_at = (now + timedelta(days=interval_days)).date().isoformat()
-
-    update_data = {
-        "last_completed_at": now.isoformat(),
-        "next_due_at": next_due_at,
-    }
-
-    result = supabase.table("pm_schedules")\
-        .update(update_data)\
-        .eq("id", schedule_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .execute()
-
-    return {"data": result.data[0] if result.data else None}
+    try:
+        record = persist_pm_completion(
+            db=supabase,
+            tenant_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            schedule=sched,
+            payload=request.model_dump(mode="json"),
+        )
+    except EvidenceRequiredError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": record}
 
 
 # ---------------------------------------------------------------------------

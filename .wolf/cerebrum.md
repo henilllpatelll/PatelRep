@@ -21,6 +21,15 @@
 
 ## Key Learnings
 
+- **Phase 6 PMS and AI governance contract (2026-07-16):** When Opera guest data conflicts with a local guest name, leave the local room status untouched and create an `integration_sync_conflicts` record for a GM/chief-engineer source-of-truth decision. AI recommendations must progress `pending → authorized → executed → outcome_recorded`; only GM/chief engineer can authorize and controlled safety/compliance actions are never valid AI actions.
+
+- **Phase 5 guest-recovery contract (2026-07-16):** Guest requests now use ordered, auditable milestones (acknowledged through verified), tenant SLA policies selected by category/priority/impact, and explicit consent before an outbound SMS record is queued. Do not reuse the mutable PATCH route for lifecycle actions; use `/guest-requests/{id}/transition` so timestamps and append-only events stay aligned.
+- **Lost-and-found release contract (2026-07-16):** A claim is a custody release, not a deletion. Require recipient name and verification method, persist `lost_found_custody_events`, and retain the item record with release metadata.
+
+- **Phase 4 operational-program contract (2026-07-16):** PM completions must use `CompletePMProgramRequest` and `persist_pm_completion()` so checklist results, evidence, meter/parts/labor context, and failed-check corrective work orders are recorded before `pm_schedules.next_due_at` advances. Program configuration is tenant-scoped in `routers/programs.py`.
+
+- **Shared Button contract (2026-07-16):** The web Button supports `className` but not a `size` prop. Apply compact button styling with `className` and run the production build after adding buttons.
+
 - **Phase 0 public smoke and workspace contract (2026-07-15):** Root npm does not declare workspaces; web dependencies and Playwright live in `apps/web`. Keep Phase 0 Playwright config/spec in that package, run them from there, and set `turbopack.root` to the web app directory so parent lockfiles do not cause Next to infer the wrong root. The public smoke script verifies `/login` plus `/health` (`status=ok`, `db=ok`) and must remain fail-closed in deployment checks.
 
 - **Railway credential scope check (2026-07-15):** `railway whoami --json` can succeed while explicit `service list --project ... --environment ...` still returns Unauthorized. Treat the latter as the authority check for PatelRep production operations; run `railway login` before inspecting or repairing the project.

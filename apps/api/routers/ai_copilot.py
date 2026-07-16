@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest,
     WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
+    AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
+    UpdateAIModelRouteRequest,
 )
 from core.database import supabase
 from services.ai.task_parser import parse_nl_tasks, try_fast_path
@@ -15,6 +19,13 @@ from services.ai.sop_rag import query_sop
 from services.ai.housekeeping_briefing import generate_shift_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
 from services.policy import check_action_permitted
+from services.ai.governance import (
+    InvalidRecommendationTransition,
+    calculate_recommendation_metrics,
+    validate_ai_action,
+    validate_recommendation_transition,
+)
+from services.ai.model_routing import DEFAULT_MODEL_ROUTES
 import openai
 import anthropic
 import time
@@ -23,6 +34,16 @@ from typing import Optional
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 logger = logging.getLogger(__name__)
+
+
+def _append_recommendation_event(hotel_id: str, recommendation_id: str, event_type: str, actor_id: str | None, metadata: dict | None = None) -> None:
+    supabase.table("ai_recommendation_events").insert({
+        "tenant_id": hotel_id,
+        "recommendation_id": recommendation_id,
+        "event_type": event_type,
+        "actor_id": actor_id,
+        "metadata": metadata or {},
+    }).execute()
 
 
 def _intent_score(msg: str, keywords: list) -> int:
@@ -662,3 +683,166 @@ async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user))
         completion_tokens=result["completion_tokens"], latency_ms=latency,
     )
     return {"data": {"insights": result["insights"], "credits_used": credits}}
+
+
+@router.get("/recommendations")
+async def list_ai_recommendations(
+    status: Optional[str] = Query(default=None),
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer", "housekeeping_supervisor")),
+):
+    query = supabase.table("ai_recommendations") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .order("created_at", desc=True) \
+        .limit(100)
+    if status:
+        query = query.eq("status", status)
+    return {"data": query.execute().data or []}
+
+
+@router.get("/recommendations/metrics")
+async def get_ai_recommendation_metrics(
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer", "housekeeping_supervisor")),
+):
+    result = supabase.table("ai_recommendations") \
+        .select("status, outcome") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .execute()
+    return {"data": calculate_recommendation_metrics(result.data or [])}
+
+
+@router.post("/failure-predictions/{prediction_id}/recommendation")
+async def create_failure_prediction_recommendation(
+    prediction_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    prediction_result = supabase.table("failure_predictions") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .eq("id", prediction_id) \
+        .maybe_single() \
+        .execute()
+    prediction = prediction_result.data
+    if not prediction:
+        raise HTTPException(status_code=404, detail="Failure prediction not found")
+
+    existing = supabase.table("ai_recommendations") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .eq("source_type", "failure_prediction") \
+        .eq("source_id", prediction_id) \
+        .maybe_single() \
+        .execute()
+    if existing.data:
+        return {"data": existing.data}
+
+    suggested_action = validate_ai_action("create_work_order")
+    result = supabase.table("ai_recommendations").insert({
+        "tenant_id": current_user.hotel_id,
+        "source_type": "failure_prediction",
+        "source_id": prediction_id,
+        "recommendation_type": "asset_failure_prevention",
+        "evidence": {
+            "risk_score": prediction.get("risk_score"),
+            "failure_indicators": prediction.get("failure_indicators") or [],
+            "analysis": prediction.get("ai_reasoning"),
+        },
+        # The legacy failure model does not emit calibrated confidence; preserve that limitation.
+        "confidence": 0.5,
+        "suggested_action": suggested_action,
+        "action_payload": {"failure_prediction_id": prediction_id},
+        "model_name": DEFAULT_MODEL_ROUTES["failure_prediction"],
+    }).execute()
+    recommendation = (result.data or [None])[0]
+    if recommendation:
+        _append_recommendation_event(current_user.hotel_id, recommendation["id"], "created", current_user.user_id)
+    return {"data": recommendation}
+
+
+@router.post("/recommendations/{recommendation_id}/authorize")
+async def authorize_ai_recommendation(
+    recommendation_id: str,
+    body: AuthorizeAIRecommendationRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    lookup = supabase.table("ai_recommendations") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .eq("id", recommendation_id) \
+        .maybe_single() \
+        .execute()
+    recommendation = lookup.data
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="AI recommendation not found")
+    try:
+        validate_ai_action(recommendation["suggested_action"])
+        validate_recommendation_transition(recommendation["status"], "authorized")
+    except (InvalidRecommendationTransition, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    result = supabase.table("ai_recommendations").update({
+        "status": "authorized",
+        "authorization_note": body.note,
+        "authorized_by": current_user.user_id,
+        "authorized_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("tenant_id", current_user.hotel_id).eq("id", recommendation_id).execute()
+    _append_recommendation_event(current_user.hotel_id, recommendation_id, "authorized", current_user.user_id, {"note": body.note})
+    return {"data": (result.data or [None])[0]}
+
+
+@router.post("/recommendations/{recommendation_id}/mark-executed")
+async def mark_ai_recommendation_executed(
+    recommendation_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    lookup = supabase.table("ai_recommendations").select("status").eq("tenant_id", current_user.hotel_id).eq("id", recommendation_id).maybe_single().execute()
+    if not lookup.data:
+        raise HTTPException(status_code=404, detail="AI recommendation not found")
+    try:
+        validate_recommendation_transition(lookup.data["status"], "executed")
+    except InvalidRecommendationTransition as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    result = supabase.table("ai_recommendations").update({
+        "status": "executed", "executed_by": current_user.user_id,
+        "executed_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("tenant_id", current_user.hotel_id).eq("id", recommendation_id).execute()
+    _append_recommendation_event(current_user.hotel_id, recommendation_id, "executed", current_user.user_id)
+    return {"data": (result.data or [None])[0]}
+
+
+@router.post("/recommendations/{recommendation_id}/outcome")
+async def record_ai_recommendation_outcome(
+    recommendation_id: str,
+    body: RecordAIRecommendationOutcomeRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    lookup = supabase.table("ai_recommendations").select("status").eq("tenant_id", current_user.hotel_id).eq("id", recommendation_id).maybe_single().execute()
+    if not lookup.data:
+        raise HTTPException(status_code=404, detail="AI recommendation not found")
+    try:
+        validate_recommendation_transition(lookup.data["status"], "outcome_recorded")
+    except InvalidRecommendationTransition as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    result = supabase.table("ai_recommendations").update({
+        "status": "outcome_recorded", "outcome": body.outcome,
+        "outcome_detail": body.detail, "outcome_recorded_by": current_user.user_id,
+        "outcome_recorded_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("tenant_id", current_user.hotel_id).eq("id", recommendation_id).execute()
+    _append_recommendation_event(current_user.hotel_id, recommendation_id, "outcome_recorded", current_user.user_id, {"outcome": body.outcome})
+    return {"data": (result.data or [None])[0]}
+
+
+@router.put("/model-routes/{purpose}")
+async def update_ai_model_route(
+    purpose: str,
+    body: UpdateAIModelRouteRequest,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    if purpose not in DEFAULT_MODEL_ROUTES:
+        raise HTTPException(status_code=422, detail="Unknown AI model route")
+    result = supabase.table("ai_model_routes").upsert({
+        "tenant_id": current_user.hotel_id, "purpose": purpose,
+        "model_name": body.selected_model_name, "fallback_model_name": body.fallback_model_name,
+        "updated_by": current_user.user_id, "updated_at": datetime.now(timezone.utc).isoformat(),
+    }, on_conflict="tenant_id,purpose").execute()
+    return {"data": (result.data or [None])[0]}

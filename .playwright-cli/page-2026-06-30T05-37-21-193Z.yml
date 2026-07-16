@@ -1,0 +1,88 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - link "Room Board" [ref=e34] [cursor=pointer]:
+                - /url: /housekeeping
+            - link "Lost & Found" [ref=e37] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e38]
+              - generic [ref=e42]: Lost & Found
+            - link "Tasks" [ref=e45] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e46]
+              - generic [ref=e49]: Tasks
+        - generic [ref=e50]:
+          - paragraph [ref=e52]: Organization
+          - link "Logbook" [ref=e56] [cursor=pointer]:
+            - /url: /logbook
+            - img [ref=e57]
+            - generic [ref=e60]: Logbook
+      - generic [ref=e62]:
+        - generic [ref=e63]: H
+        - generic [ref=e64]:
+          - paragraph [ref=e65]: Henill
+          - paragraph [ref=e66]: Front Desk
+    - generic [ref=e67]:
+      - banner [ref=e68]:
+        - generic [ref=e69]:
+          - img [ref=e70]
+          - textbox "Open command palette" [ref=e73]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e74]: ⌘K
+        - generic [ref=e77]: Tue, Jun 30 · Day shift
+        - button "Espanol" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e84]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Ask copilot
+          - generic [ref=e89]: ⌘J
+        - button "Notifications" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - generic [ref=e94]: "3"
+        - button "User menu for Henill" [ref=e96] [cursor=pointer]:
+          - generic [ref=e97]: H
+          - img [ref=e98]
+      - main [ref=e100]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - paragraph [ref=e106]: Housekeeping
+            - heading "Room status board" [level=1] [ref=e107]
+            - generic [ref=e109]: Live · Never synced
+          - generic [ref=e111]:
+            - button "Previous day" [ref=e112] [cursor=pointer]: ← Jun 29
+            - generic [ref=e113]: Jun 30
+            - button "Next day" [ref=e114] [cursor=pointer]: Jul 1 →
+            - combobox [ref=e115]:
+              - option "All Shifts" [selected]
+              - option "Morning"
+              - option "Evening"
+              - option "Night"
+    - button "Open AI Copilot" [ref=e134] [cursor=pointer]:
+      - img [ref=e135]
+      - generic [ref=e137]: Ask copilot
+      - generic [ref=e138]: ⌘J
+    - button "Open feedback" [ref=e140] [cursor=pointer]:
+      - img [ref=e141]
+      - generic [ref=e143]: Feedback
+    - button "Display preferences" [ref=e145] [cursor=pointer]:
+      - img [ref=e146]
+  - alert [ref=e149]

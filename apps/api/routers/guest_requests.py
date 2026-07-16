@@ -2,9 +2,22 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from middleware.auth import get_current_user, CurrentUser
-from models.requests import CreateGuestRequestRequest
+from models.requests import (
+    CreateGuestMessageRequest,
+    CreateGuestRequestRequest,
+    RecordGuestRecoveryActionRequest,
+    TransitionGuestRequestRequest,
+    UpsertAccessibleRoomFeatureRequest,
+)
 from core.database import supabase
 from datetime import datetime, timedelta, timezone
+from services.guest_recovery.contracts import (
+    AccessibilityPriorityError,
+    InvalidGuestRequestTransition,
+    calculate_guest_request_metrics,
+    resolve_sla_minutes,
+    validate_guest_request_transition,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +32,35 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "resolved_at",
     "resolved_by",
 }
+MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
+
+
+def _record_guest_request_event(
+    *, request_id: str, event_type: str, current_user: CurrentUser,
+    detail: str | None = None, source: str = "staff", metadata: dict | None = None,
+) -> None:
+    supabase.table("guest_request_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "guest_request_id": request_id,
+        "event_type": event_type,
+        "actor_id": current_user.user_id,
+        "source": source,
+        "detail": detail,
+        "metadata": metadata or {},
+    }).execute()
+
+
+def _status_timestamp(status: str, now: datetime) -> dict[str, str]:
+    timestamp = now.isoformat()
+    return {
+        "acknowledged": {"acknowledged_at": timestamp},
+        "dispatched": {"dispatched_at": timestamp},
+        "arrived": {"arrived_at": timestamp},
+        "guest_contacted": {"guest_contacted_at": timestamp},
+        "resolved": {"resolved_at": timestamp},
+        "verified": {"verified_at": timestamp},
+        "reopened": {"reopened_at": timestamp},
+    }.get(status, {})
 
 
 @router.post("")
@@ -27,6 +69,18 @@ async def create_guest_request(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Create a new guest request and auto-create a task."""
+    if request.category == "accessibility" and request.priority != "urgent":
+        raise HTTPException(status_code=422, detail="Accessibility-related requests must use urgent priority")
+    policies = supabase.table("guest_request_sla_policies").select(
+        "category, priority, guest_impact, sla_minutes"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    sla_minutes = resolve_sla_minutes(
+        policies,
+        category=request.category,
+        priority=request.priority or "normal",
+        guest_impact=request.guest_impact,
+    )
+    now = datetime.now(timezone.utc)
     # Insert guest request record
     gr_data = {
         "tenant_id": current_user.hotel_id,
@@ -37,6 +91,12 @@ async def create_guest_request(
         "created_by": current_user.user_id,
         "status": "open",
         "priority": request.priority or "normal",
+        "category": request.category,
+        "guest_impact": request.guest_impact,
+        "sla_minutes": sla_minutes,
+        "due_at": (now + timedelta(minutes=sla_minutes)).isoformat(),
+        "contact_preference": request.contact_preference,
+        "contact_consent_at": now.isoformat() if request.contact_consent else None,
     }
     result = supabase.table("guest_requests").insert(gr_data).execute()
 
@@ -51,8 +111,8 @@ async def create_guest_request(
             "priority": request.priority or "normal",
             "room_id": str(request.room_id) if request.room_id else None,
             "created_by": current_user.user_id,
-            "sla_minutes": 240,
-            "due_at": (datetime.now(timezone.utc) + timedelta(minutes=240)).isoformat(),
+            "sla_minutes": sla_minutes,
+            "due_at": (now + timedelta(minutes=sla_minutes)).isoformat(),
         }).execute()
         if task_result.data:
             task_id = task_result.data[0]["id"]
@@ -66,7 +126,145 @@ async def create_guest_request(
         else:
             logger.error("Auto-task creation failed for guest_request=%s", gr_id)
 
+        _record_guest_request_event(
+            request_id=gr_id,
+            event_type="created",
+            current_user=current_user,
+            metadata={"category": request.category, "priority": request.priority or "normal"},
+        )
+
     return {"data": result.data[0] if result.data else None}
+
+
+@router.post("/{request_id}/transition")
+async def transition_guest_request(
+    request_id: str,
+    request: TransitionGuestRequestRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    existing = supabase.table("guest_requests").select("*").eq("id", request_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not existing:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    try:
+        validate_guest_request_transition(
+            current_status=existing["status"], next_status=request.status,
+            category=existing.get("category", "service"), priority=existing.get("priority", "normal"),
+        )
+    except (AccessibilityPriorityError, InvalidGuestRequestTransition) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    now = datetime.now(timezone.utc)
+    update = {"status": request.status, **_status_timestamp(request.status, now)}
+    if request.status == "resolved":
+        update["resolved_by"] = current_user.user_id
+    record = supabase.table("guest_requests").update(update).eq("id", request_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute().data[0]
+    _record_guest_request_event(
+        request_id=request_id, event_type=request.status, current_user=current_user, detail=request.detail
+    )
+    return {"data": record}
+
+
+@router.post("/{request_id}/messages")
+async def send_guest_message(
+    request_id: str,
+    request: CreateGuestMessageRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in MESSAGE_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to contact guests")
+    guest_request = supabase.table("guest_requests").select(
+        "id, contact_consent_at, contact_opted_out_at, contact_preference"
+    ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
+    if not guest_request:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    if request.channel == "sms" and (not guest_request.get("contact_consent_at") or guest_request.get("contact_opted_out_at")):
+        raise HTTPException(status_code=422, detail="SMS consent is required and may not be opted out")
+    message = supabase.table("guest_messages").insert({
+        "tenant_id": current_user.hotel_id,
+        "guest_request_id": request_id,
+        "direction": "outbound",
+        "channel": request.channel,
+        "body": request.body,
+        "recipient": request.recipient,
+        "delivery_status": "queued",
+        "excluded_from_ai": True,
+        "created_by": current_user.user_id,
+    }).execute().data[0]
+    _record_guest_request_event(
+        request_id=request_id, event_type="guest_contacted", current_user=current_user,
+        detail="Guest message queued", metadata={"message_id": message["id"], "channel": request.channel},
+    )
+    return {"data": message}
+
+
+@router.post("/{request_id}/recovery-actions")
+async def record_guest_recovery_action(
+    request_id: str,
+    request: RecordGuestRecoveryActionRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    guest_request = supabase.table("guest_requests").select("id").eq("id", request_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not guest_request:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    requires_approval = request.compensation_amount is not None and request.compensation_amount > 0
+    if requires_approval and current_user.role not in {"gm", "front_desk"}:
+        raise HTTPException(status_code=403, detail="Only front desk or GM may request compensation")
+    action = supabase.table("guest_recovery_actions").insert({
+        "tenant_id": current_user.hotel_id,
+        "guest_request_id": request_id,
+        **request.model_dump(),
+        "requested_by": current_user.user_id,
+        "approved_by": current_user.user_id if current_user.role == "gm" else None,
+    }).execute().data[0]
+    _record_guest_request_event(
+        request_id=request_id, event_type="note", current_user=current_user,
+        detail="Service-recovery action recorded", metadata={"action_id": action["id"]},
+    )
+    return {"data": action}
+
+
+@router.get("/metrics/summary")
+async def get_guest_request_metrics(current_user: CurrentUser = Depends(get_current_user)):
+    requests = supabase.table("guest_requests").select(
+        "created_at, acknowledged_at, verified_at, due_at, status"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    return {"data": calculate_guest_request_metrics(requests)}
+
+
+@router.get("/accessibility/features")
+async def list_accessible_room_features(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    features = supabase.table("accessible_room_features").select(
+        "*, rooms(room_number, floor)"
+    ).eq("tenant_id", current_user.hotel_id).order("feature_code").execute().data or []
+    return {"data": features}
+
+
+@router.put("/accessibility/features")
+async def upsert_accessible_room_feature(
+    request: UpsertAccessibleRoomFeatureRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in {"gm", "housekeeping_supervisor", "engineer"}:
+        raise HTTPException(status_code=403, detail="Not authorized to manage accessible-room features")
+    room = supabase.table("rooms").select("id").eq("id", str(request.room_id)).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    record = supabase.table("accessible_room_features").upsert({
+        "tenant_id": current_user.hotel_id,
+        **request.model_dump(mode="json"),
+        "last_verified_at": datetime.now(timezone.utc).isoformat(),
+    }, on_conflict="tenant_id,room_id,feature_code").execute().data[0]
+    return {"data": record}
 
 
 @router.get("")

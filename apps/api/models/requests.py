@@ -407,6 +407,99 @@ class SOPQueryRequest(SanitizedBaseModel):
     create_tasks: bool = False
 
 
+# --- Evidence foundation ---
+class UpdatePropertyApplicabilityRequest(SanitizedBaseModel):
+    facilities: List[str] = Field(default_factory=list, max_length=40)
+    services: List[str] = Field(default_factory=list, max_length=40)
+    brand_requirements: List[str] = Field(default_factory=list, max_length=40)
+
+
+class CreateControlledDocumentRequest(SanitizedBaseModel):
+    title: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    document_type: Literal["sop", "policy", "training", "safety", "certificate"]
+    owner_id: Optional[str] = Field(default=None, max_length=100)
+    effective_date: Optional[date] = None
+    review_date: Optional[date] = None
+    expiration_date: Optional[date] = None
+    applicability: List[str] = Field(default_factory=list, max_length=40)
+    retention_class: Literal["operational_3_years", "safety_7_years", "brand_7_years"] = "operational_3_years"
+    source_sop_document_id: Optional[str] = Field(default=None, max_length=100)
+
+
+class AssignControlledDocumentRequest(SanitizedBaseModel):
+    assigned_to: str = Field(min_length=1, max_length=100)
+    due_date: date
+    competency_required: bool = False
+
+
+class CreateEvidenceRecordRequest(SanitizedBaseModel):
+    label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    evidence_type: Literal["file", "photo", "measurement", "checklist_result", "signature", "attestation", "external_certificate"]
+    document_id: Optional[str] = Field(default=None, max_length=100)
+    assignment_id: Optional[str] = Field(default=None, max_length=100)
+    related_entity_type: Optional[Literal["staff", "task", "asset", "room", "inspection", "incident", "sop"]] = None
+    related_entity_id: Optional[str] = Field(default=None, max_length=100)
+    measurement_value: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    result: Optional[Literal["passed", "failed", "deferred"]] = None
+    required_by: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+
+# --- Texas compliance and staff safety ---
+class CreateSafetyTrainingCourseRequest(SanitizedBaseModel):
+    provider_name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    course_name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    course_code: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    covered_roles: List[Literal["housekeeper", "engineer", "housekeeping_supervisor", "chief_engineer", "front_desk", "gm"]] = Field(min_length=1, max_length=6)
+    new_hire_deadline_days: int = Field(default=30, ge=1, le=365)
+    recurrence_months: int = Field(default=12, ge=1, le=60)
+
+
+class AssignSafetyTrainingRequest(SanitizedBaseModel):
+    employee_id: str = Field(min_length=1, max_length=100)
+    hired_on: date
+
+
+class CompleteSafetyTrainingRequest(SanitizedBaseModel):
+    certificate_evidence_id: Optional[str] = Field(default=None, max_length=100)
+
+
+class CreateControlledIncidentRequest(SanitizedBaseModel):
+    incident_type: Literal["guest_injury", "employee_injury", "chemical_exposure", "sharps_body_fluid", "security", "privacy", "discrimination", "police_fire", "life_safety_impairment"]
+    occurred_at: datetime
+    location: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    people_involved: List[dict[str, Any]] = Field(default_factory=list, max_length=20)
+    witnesses: List[dict[str, Any]] = Field(default_factory=list, max_length=20)
+    immediate_containment: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    details: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    follow_up_task_ids: List[str] = Field(default_factory=list, max_length=20)
+
+
+class CreateIncidentEventRequest(SanitizedBaseModel):
+    event_type: Literal["correction", "manager_review", "follow_up", "closed"]
+    detail: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+
+class CreateChemicalInventoryItemRequest(SanitizedBaseModel):
+    product_name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    manufacturer: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    storage_location: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    sds_evidence_id: Optional[str] = Field(default=None, max_length=100)
+    secondary_label_verified: bool = False
+    ppe_requirements: List[str] = Field(default_factory=list, max_length=20)
+
+
+class CreateEmergencyDrillRequest(SanitizedBaseModel):
+    drill_type: Literal["fire", "severe_weather", "evacuation", "medical", "security", "spill_exposure"]
+    occurred_at: datetime
+    location: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CheckInEmergencyDrillRequest(SanitizedBaseModel):
+    accountability_status: Literal["accounted_for", "absent", "assisted"] = "accounted_for"
+
+
 # --- Assets ---
 class CreateAssetRequest(SanitizedBaseModel):
     name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
@@ -443,6 +536,82 @@ class CreatePMScheduleRequest(SanitizedBaseModel):
     interval_days: Optional[int] = Field(default=None, ge=1, le=3650)
     estimated_minutes: int = Field(default=30, ge=1, le=1440)
     next_due_at: datetime
+
+
+# --- Operational programs (Phase 4) ---
+class PMChecklistResultItem(SanitizedBaseModel):
+    key: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    result: Literal["passed", "failed", "not_applicable"]
+    requires_evidence: bool = False
+    evidence: List[str] = Field(default_factory=list, max_length=20)
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CompletePMProgramRequest(SanitizedBaseModel):
+    checklist_template_id: Optional[str] = Field(default=None, max_length=100)
+    checklist_version: Optional[int] = Field(default=None, ge=1, le=1000)
+    verifier_id: Optional[str] = Field(default=None, max_length=100)
+    measurements: dict[str, Any] = Field(default_factory=dict)
+    meter_readings: dict[str, Any] = Field(default_factory=dict)
+    photos: List[str] = Field(default_factory=list, max_length=20)
+    labor_minutes: int = Field(default=0, ge=0, le=1440)
+    parts_used: List[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    defects: List[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    vendor_name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    certificate_attachments: List[str] = Field(default_factory=list, max_length=20)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    items: List[PMChecklistResultItem] = Field(min_length=1, max_length=100)
+
+
+class CreatePMDeferralRequest(SanitizedBaseModel):
+    reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    deferred_until: datetime
+
+
+class CreatePublicAreaRequest(SanitizedBaseModel):
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    location_detail: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+
+
+class CreateDeepCleanScheduleRequest(SanitizedBaseModel):
+    target_type: Literal["room", "public_area"]
+    room_id: Optional[str] = Field(default=None, max_length=100)
+    public_area_id: Optional[str] = Field(default=None, max_length=100)
+    checklist_template_id: Optional[str] = Field(default=None, max_length=100)
+    interval_days: int = Field(ge=1, le=3650)
+    next_due_on: date
+
+
+class CompleteDeepCleanRequest(SanitizedBaseModel):
+    checklist_results: List[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class UpsertSupplyParRequest(SanitizedBaseModel):
+    supply_type: Literal["linen", "chemical", "amenity"]
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    on_hand: float = Field(ge=0, le=1_000_000)
+    par_level: float = Field(ge=0, le=1_000_000)
+    unit: str = Field(default="each", min_length=1, max_length=40)
+
+
+class UpdateStayoverRuleRequest(SanitizedBaseModel):
+    linen_change_frequency_days: int = Field(default=3, ge=1, le=30)
+    opt_out_allowed: bool = True
+
+
+class UpdateDndWelfarePolicyRequest(SanitizedBaseModel):
+    threshold_hours: int = Field(ge=1, le=72)
+    escalation_roles: List[Literal["housekeeping_supervisor", "front_desk", "gm"]] = Field(min_length=1, max_length=3)
+    escalation_instructions: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CreateInspectionSamplingRuleRequest(SanitizedBaseModel):
+    room_type_id: Optional[str] = Field(default=None, max_length=100)
+    experience_band: Literal["new_hire", "standard", "trusted"] = "standard"
+    risk_level: Literal["standard", "high"] = "standard"
+    sample_percent: int = Field(ge=1, le=100)
 
 
 # --- Scheduling ---
@@ -490,6 +659,66 @@ class CreateGuestRequestRequest(SanitizedBaseModel):
     guest_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     priority: Optional[Literal["normal", "urgent"]] = "normal"
+    category: Literal["service", "housekeeping", "maintenance", "accessibility", "other"] = "service"
+    guest_impact: Literal["low", "standard", "high"] = "standard"
+    contact_preference: Optional[Literal["sms", "call", "email", "in_person", "none"]] = None
+    contact_consent: bool = False
+
+
+class TransitionGuestRequestRequest(SanitizedBaseModel):
+    status: Literal[
+        "acknowledged", "dispatched", "arrived", "guest_contacted", "resolved",
+        "verified", "reopened", "cancelled",
+    ]
+    detail: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CreateGuestMessageRequest(SanitizedBaseModel):
+    body: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    recipient: str = Field(min_length=7, max_length=MEDIUM_TEXT_MAX)
+    channel: Literal["sms", "email"] = "sms"
+
+
+class RecordGuestRecoveryActionRequest(SanitizedBaseModel):
+    action_type: Literal["apology", "amenity", "discount", "refund", "points", "other"]
+    description: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+    compensation_amount: Optional[float] = Field(default=None, ge=0, le=100000)
+
+
+class UpsertAccessibleRoomFeatureRequest(SanitizedBaseModel):
+    room_id: UUID4
+    feature_code: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    operational_status: Literal["operational", "out_of_service", "inspection_due"] = "operational"
+    guidance: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class CreateLostFoundCustodyEventRequest(SanitizedBaseModel):
+    event_type: Literal["intake", "moved", "released", "disposition"]
+    storage_location: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    recipient_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    verification_method: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    disposition: Optional[Literal["claimed", "donated", "discarded"]] = None
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+# --- Phase 6: PMS conflict and AI recommendation governance ---
+class ResolveOperaSyncConflictRequest(SanitizedBaseModel):
+    resolution: Literal["local_wins", "remote_wins"]
+
+
+class AuthorizeAIRecommendationRequest(SanitizedBaseModel):
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class RecordAIRecommendationOutcomeRequest(SanitizedBaseModel):
+    outcome: Literal["prevented_failure", "resolved", "false_positive", "no_action_needed", "other"]
+    detail: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
+class UpdateAIModelRouteRequest(SanitizedBaseModel):
+    selected_model_name: str = Field(alias="model_name", min_length=1, max_length=MEDIUM_TEXT_MAX)
+    fallback_model_name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
 
 
 # --- Lost & Found ---
@@ -497,6 +726,8 @@ class CreateLostFoundRequest(SanitizedBaseModel):
     description: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
     room_id: Optional[UUID4] = None
     location_found: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    tag_identifier: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    storage_location: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     photo_url: Optional[str] = Field(default=None, max_length=2048)
 

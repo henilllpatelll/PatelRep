@@ -1,0 +1,133 @@
+"""Pure policy helpers for the controlled-evidence platform."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any
+
+
+def _as_date(value: str | None) -> date | None:
+    return date.fromisoformat(value) if value else None
+
+
+def _as_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def create_superseding_version(previous: dict[str, Any], *, actor_id: str) -> dict[str, Any]:
+    """Return the new draft row while leaving the approved record immutable."""
+    if previous.get("approval_state") != "approved":
+        raise ValueError("Only an approved document can be superseded.")
+
+    return {
+        "title": previous["title"],
+        "version_number": int(previous.get("version_number") or 0) + 1,
+        "approval_state": "draft",
+        "supersedes_id": previous["id"],
+        "owner_id": actor_id,
+        "retention_class": previous.get("retention_class"),
+    }
+
+
+def build_exception_queue(
+    *,
+    documents: list[dict[str, Any]],
+    assignments: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    now: datetime,
+) -> list[dict[str, str]]:
+    """Derive inspector-facing exceptions without mutating controlled records."""
+    today = now.date()
+    exceptions: list[dict[str, str]] = []
+
+    for document in documents:
+        expiration = _as_date(document.get("expiration_date"))
+        if document.get("approval_state") == "approved" and expiration and expiration < today:
+            exceptions.append({
+                "state": "expired",
+                "kind": "document",
+                "reference_id": document["id"],
+                "label": document["title"],
+            })
+
+    for assignment in assignments:
+        due_date = _as_date(assignment.get("due_date"))
+        if not assignment.get("acknowledged_at") and due_date and due_date < today:
+            exceptions.append({
+                "state": "overdue",
+                "kind": "acknowledgement",
+                "reference_id": assignment["id"],
+                "label": assignment.get("document_title") or "Controlled document acknowledgement",
+            })
+        elif not assignment.get("acknowledged_at"):
+            exceptions.append({
+                "state": "unacknowledged",
+                "kind": "acknowledgement",
+                "reference_id": assignment["id"],
+                "label": assignment.get("document_title") or "Controlled document acknowledgement",
+            })
+
+    for record in evidence:
+        expires_at = _as_datetime(record.get("expires_at"))
+        required_by = _as_datetime(record.get("required_by"))
+        if record.get("result") == "failed":
+            exceptions.append({"state": "failed", "kind": "evidence", "reference_id": record["id"], "label": record["label"]})
+        elif record.get("result") == "deferred":
+            exceptions.append({"state": "deferred", "kind": "evidence", "reference_id": record["id"], "label": record["label"]})
+        elif expires_at and expires_at < now:
+            exceptions.append({
+                "state": "expired",
+                "kind": "evidence",
+                "reference_id": record["id"],
+                "label": record["label"],
+            })
+        elif required_by and required_by < now and not record.get("collected_at"):
+            exceptions.append({
+                "state": "missing",
+                "kind": "evidence",
+                "reference_id": record["id"],
+                "label": record["label"],
+            })
+
+    return exceptions
+
+
+def build_reminder_actions(
+    assignments: list[dict[str, Any]], *, now: datetime
+) -> list[dict[str, str]]:
+    """Schedule individual nudges and GM escalation for still-unacknowledged work."""
+    today = now.date()
+    actions: list[dict[str, str]] = []
+
+    for assignment in assignments:
+        if assignment.get("acknowledged_at"):
+            continue
+        due_date = _as_date(assignment.get("due_date"))
+        if not due_date:
+            continue
+        if due_date < today:
+            actions.extend([
+                {
+                    "assignment_id": assignment["id"],
+                    "recipient_type": "staff",
+                    "recipient_id": assignment["assigned_to"],
+                    "state": "overdue",
+                },
+                {
+                    "assignment_id": assignment["id"],
+                    "recipient_type": "role",
+                    "recipient_role": "gm",
+                    "state": "overdue",
+                },
+            ])
+        elif due_date == today + date.resolution:
+            actions.append({
+                "assignment_id": assignment["id"],
+                "recipient_type": "staff",
+                "recipient_id": assignment["assigned_to"],
+                "state": "due_soon",
+            })
+
+    return actions

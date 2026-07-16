@@ -1,0 +1,776 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e211] [cursor=pointer]:
+        - generic [ref=e212]: S
+        - generic [ref=e213]:
+          - generic [ref=e214]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e215]: 114 rooms
+        - img [ref=e216]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e33]:
+                - link "Room Board" [ref=e34] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e35] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e36] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e39] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e40]
+              - generic [ref=e42]: Engineering
+            - link "Lost & Found" [ref=e45] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e46]
+              - generic [ref=e50]: Lost & Found
+            - link "Guest Requests" [ref=e53] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e54]
+              - generic [ref=e56]: Guest Requests
+            - link "Tasks" [ref=e59] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e60]
+              - generic [ref=e63]: Tasks
+        - generic [ref=e64]:
+          - paragraph [ref=e66]: Intelligence
+          - generic [ref=e67]:
+            - link "AI Copilot AI" [ref=e70] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e71]
+              - generic [ref=e73]: AI Copilot
+              - generic [ref=e74]: AI
+            - link "SOP Library" [ref=e77] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e78]
+              - generic [ref=e80]: SOP Library
+            - link "Reports" [ref=e83] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e84]
+              - generic [ref=e87]: Reports
+        - generic [ref=e88]:
+          - paragraph [ref=e90]: Organization
+          - generic [ref=e91]:
+            - link "Logbook" [ref=e94] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e95]
+              - generic [ref=e98]: Logbook
+            - link "Staff" [ref=e101] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e102]
+              - generic [ref=e107]: Staff
+            - link "Schedule" [ref=e110] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e111]
+              - generic [ref=e113]: Schedule
+      - link "Settings" [ref=e116] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e117]
+        - text: Settings
+      - generic [ref=e121]:
+        - generic [ref=e122]: H
+        - generic [ref=e123]:
+          - paragraph [ref=e124]: hp.patelrep@gmail.com
+          - paragraph [ref=e125]: General Manager
+    - generic [ref=e126]:
+      - banner [ref=e127]:
+        - generic [ref=e128]:
+          - img [ref=e129]
+          - textbox "Open command palette" [ref=e132]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e133]: ⌘K
+        - generic [ref=e136]: Tue, Jun 30 · Day shift
+        - button "Espanol" [ref=e138] [cursor=pointer]:
+          - img [ref=e139]
+          - generic [ref=e143]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+          - generic [ref=e147]: Ask copilot
+          - generic [ref=e148]: ⌘J
+        - button "Notifications" [ref=e149] [cursor=pointer]:
+          - img [ref=e150]
+          - generic [ref=e153]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e155] [cursor=pointer]:
+          - generic [ref=e156]: H
+          - img [ref=e157]
+      - main [ref=e159]:
+        - generic [ref=e161]:
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - paragraph [ref=e165]: Housekeeping
+              - heading "Room status board" [level=1] [ref=e166]
+              - generic [ref=e168]: Live · synced just now
+            - generic [ref=e170]:
+              - button "Previous day" [ref=e171] [cursor=pointer]: ← Jun 29
+              - generic [ref=e172]: Jun 30
+              - button "Next day" [ref=e173] [cursor=pointer]: Jul 1 →
+              - combobox [ref=e174]:
+                - option "All Shifts" [selected]
+                - option "Morning"
+                - option "Evening"
+                - option "Night"
+              - button "Assign mode" [ref=e175] [cursor=pointer]
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e220]: Bldg
+              - generic [ref=e221]:
+                - button "All" [pressed] [ref=e222] [cursor=pointer]
+                - button "A" [ref=e223] [cursor=pointer]
+                - button "B" [ref=e224] [cursor=pointer]
+            - generic [ref=e226]:
+              - button "All 114" [pressed] [ref=e227] [cursor=pointer]:
+                - text: All
+                - generic [ref=e229]: "114"
+              - button "In Progress 1" [ref=e230] [cursor=pointer]:
+                - text: In Progress
+                - generic [ref=e232]: "1"
+              - button "Clean 0" [ref=e233] [cursor=pointer]:
+                - text: Clean
+                - generic [ref=e235]: "0"
+              - button "Inspected 26" [ref=e236] [cursor=pointer]:
+                - text: Inspected
+                - generic [ref=e238]: "26"
+              - button "OOO 1" [ref=e239] [cursor=pointer]:
+                - text: OOO
+                - generic [ref=e241]: "1"
+              - button "AI risk 0" [disabled] [ref=e243]:
+                - img [ref=e244]
+                - text: AI risk
+                - generic [ref=e246]: "0"
+            - generic [ref=e247]:
+              - generic [ref=e248]:
+                - generic [ref=e249]:
+                  - heading "Floor 1" [level=3] [ref=e250]
+                  - generic [ref=e251]: 38 rooms
+                - generic [ref=e252]:
+                  - button "101 S1K Inspected" [ref=e253] [cursor=pointer]:
+                    - generic [ref=e256]: "101"
+                    - generic [ref=e257]: S1K
+                    - generic [ref=e259]: Inspected
+                  - button "102 S1KC Occupied" [ref=e260] [cursor=pointer]:
+                    - generic [ref=e263]: "102"
+                    - generic [ref=e264]: S1KC
+                    - generic [ref=e266]: Occupied
+                  - button "103 11K Occupied Departure" [ref=e267] [cursor=pointer]:
+                    - generic [ref=e270]: "103"
+                    - generic [ref=e271]: 11K
+                    - generic [ref=e272]:
+                      - generic [ref=e273]: Occupied
+                      - generic [ref=e274]:
+                        - img [ref=e275]
+                        - text: Departure
+                  - button "104 11K Occupied" [ref=e278] [cursor=pointer]:
+                    - generic [ref=e281]: "104"
+                    - generic [ref=e282]: 11K
+                    - generic [ref=e284]: Occupied
+                  - button "105 22Q Occupied Departure" [ref=e285] [cursor=pointer]:
+                    - generic [ref=e288]: "105"
+                    - generic [ref=e289]: 22Q
+                    - generic [ref=e290]:
+                      - generic [ref=e291]: Occupied
+                      - generic [ref=e292]:
+                        - img [ref=e293]
+                        - text: Departure
+                  - button "106 22Q Occupied" [ref=e296] [cursor=pointer]:
+                    - generic [ref=e299]: "106"
+                    - generic [ref=e300]: 22Q
+                    - generic [ref=e302]: Occupied
+                  - button "107 11KC Pickup Light" [ref=e303] [cursor=pointer]:
+                    - generic [ref=e306]: "107"
+                    - generic [ref=e307]: 11KC
+                    - generic [ref=e308]:
+                      - generic [ref=e309]: Pickup
+                      - generic [ref=e310]: Light
+                  - button "108 11KC Occupied" [ref=e311] [cursor=pointer]:
+                    - generic [ref=e314]: "108"
+                    - generic [ref=e315]: 11KC
+                    - generic [ref=e317]: Occupied
+                  - button "109 22Q Occupied" [ref=e318] [cursor=pointer]:
+                    - generic [ref=e321]: "109"
+                    - generic [ref=e322]: 22Q
+                    - generic [ref=e324]: Occupied
+                  - button "110 11K Occupied" [ref=e325] [cursor=pointer]:
+                    - generic [ref=e328]: "110"
+                    - generic [ref=e329]: 11K
+                    - generic [ref=e331]: Occupied
+                  - button "111 11K Occupied" [ref=e332] [cursor=pointer]:
+                    - generic [ref=e335]: "111"
+                    - generic [ref=e336]: 11K
+                    - generic [ref=e338]: Occupied
+                  - button "112 11K Occupied" [ref=e339] [cursor=pointer]:
+                    - generic [ref=e342]: "112"
+                    - generic [ref=e343]: 11K
+                    - generic [ref=e345]: Occupied
+                  - button "113 11K Occupied" [ref=e346] [cursor=pointer]:
+                    - generic [ref=e349]: "113"
+                    - generic [ref=e350]: 11K
+                    - generic [ref=e352]: Occupied
+                  - button "114 11K OOO/OOS" [ref=e353] [cursor=pointer]:
+                    - generic [ref=e356]: "114"
+                    - generic [ref=e357]: 11K
+                    - generic [ref=e359]: OOO/OOS
+                  - button "115 S1K Pickup Full" [ref=e360] [cursor=pointer]:
+                    - generic [ref=e363]: "115"
+                    - generic [ref=e364]: S1K
+                    - generic [ref=e365]:
+                      - generic [ref=e366]: Pickup
+                      - generic [ref=e367]: Full
+                  - button "116 S1K Pickup Full" [ref=e368] [cursor=pointer]:
+                    - generic [ref=e371]: "116"
+                    - generic [ref=e372]: S1K
+                    - generic [ref=e373]:
+                      - generic [ref=e374]: Pickup
+                      - generic [ref=e375]: Full
+                  - button "117 S1K Occupied" [ref=e376] [cursor=pointer]:
+                    - generic [ref=e379]: "117"
+                    - generic [ref=e380]: S1K
+                    - generic [ref=e382]: Occupied
+                  - button "118 S1KC In Progress Departure" [ref=e383] [cursor=pointer]:
+                    - generic [ref=e386]: "118"
+                    - generic [ref=e387]: S1KC
+                    - generic [ref=e388]:
+                      - generic [ref=e389]: In Progress
+                      - generic [ref=e390]:
+                        - img [ref=e391]
+                        - text: Departure
+                  - button "119 11K Occupied" [ref=e394] [cursor=pointer]:
+                    - generic [ref=e397]: "119"
+                    - generic [ref=e398]: 11K
+                    - generic [ref=e400]: Occupied
+                  - button "120 11K Pickup Full" [ref=e401] [cursor=pointer]:
+                    - generic [ref=e404]: "120"
+                    - generic [ref=e405]: 11K
+                    - generic [ref=e406]:
+                      - generic [ref=e407]: Pickup
+                      - generic [ref=e408]: Full
+                  - button "121 22Q Inspected" [ref=e409] [cursor=pointer]:
+                    - generic [ref=e412]: "121"
+                    - generic [ref=e413]: 22Q
+                    - generic [ref=e415]: Inspected
+                  - button "122 22Q Inspected" [ref=e416] [cursor=pointer]:
+                    - generic [ref=e419]: "122"
+                    - generic [ref=e420]: 22Q
+                    - generic [ref=e422]: Inspected
+                  - button "123 S1K Occupied Departure" [ref=e423] [cursor=pointer]:
+                    - generic [ref=e426]: "123"
+                    - generic [ref=e427]: S1K
+                    - generic [ref=e428]:
+                      - generic [ref=e429]: Occupied
+                      - generic [ref=e430]:
+                        - img [ref=e431]
+                        - text: Departure
+                  - button "124 S1K Occupied" [ref=e434] [cursor=pointer]:
+                    - generic [ref=e437]: "124"
+                    - generic [ref=e438]: S1K
+                    - generic [ref=e440]: Occupied
+                  - button "125 22Q Inspected" [ref=e441] [cursor=pointer]:
+                    - generic [ref=e444]: "125"
+                    - generic [ref=e445]: 22Q
+                    - generic [ref=e447]: Inspected
+                  - button "127 22Q Inspected" [ref=e448] [cursor=pointer]:
+                    - generic [ref=e451]: "127"
+                    - generic [ref=e452]: 22Q
+                    - generic [ref=e454]: Inspected
+                  - button "128 11KC Inspected" [ref=e455] [cursor=pointer]:
+                    - generic [ref=e458]: "128"
+                    - generic [ref=e459]: 11KC
+                    - generic [ref=e461]: Inspected
+                  - button "129 11K Pickup Full" [ref=e462] [cursor=pointer]:
+                    - generic [ref=e465]: "129"
+                    - generic [ref=e466]: 11K
+                    - generic [ref=e467]:
+                      - generic [ref=e468]: Pickup
+                      - generic [ref=e469]: Full
+                  - button "130 11K Occupied" [ref=e470] [cursor=pointer]:
+                    - generic [ref=e473]: "130"
+                    - generic [ref=e474]: 11K
+                    - generic [ref=e476]: Occupied
+                  - button "131 11K Occupied" [ref=e477] [cursor=pointer]:
+                    - generic [ref=e480]: "131"
+                    - generic [ref=e481]: 11K
+                    - generic [ref=e483]: Occupied
+                  - button "132 11K Pickup Full" [ref=e484] [cursor=pointer]:
+                    - generic [ref=e487]: "132"
+                    - generic [ref=e488]: 11K
+                    - generic [ref=e489]:
+                      - generic [ref=e490]: Pickup
+                      - generic [ref=e491]: Full
+                  - button "133 11KC Inspected" [ref=e492] [cursor=pointer]:
+                    - generic [ref=e495]: "133"
+                    - generic [ref=e496]: 11KC
+                    - generic [ref=e498]: Inspected
+                  - button "134 11K Occupied" [ref=e499] [cursor=pointer]:
+                    - generic [ref=e502]: "134"
+                    - generic [ref=e503]: 11K
+                    - generic [ref=e505]: Occupied
+                  - button "135 11K Inspected" [ref=e506] [cursor=pointer]:
+                    - generic [ref=e509]: "135"
+                    - generic [ref=e510]: 11K
+                    - generic [ref=e512]: Inspected
+                  - button "136 11K Inspected" [ref=e513] [cursor=pointer]:
+                    - generic [ref=e516]: "136"
+                    - generic [ref=e517]: 11K
+                    - generic [ref=e519]: Inspected
+                  - button "137 11K Vacant Dirty Departure" [ref=e520] [cursor=pointer]:
+                    - generic [ref=e523]: "137"
+                    - generic [ref=e524]: 11K
+                    - generic [ref=e525]:
+                      - generic [ref=e526]: Vacant Dirty
+                      - generic [ref=e527]:
+                        - img [ref=e528]
+                        - text: Departure
+                  - button "138 S1K Occupied Departure" [ref=e531] [cursor=pointer]:
+                    - generic [ref=e534]: "138"
+                    - generic [ref=e535]: S1K
+                    - generic [ref=e536]:
+                      - generic [ref=e537]: Occupied
+                      - generic [ref=e538]:
+                        - img [ref=e539]
+                        - text: Departure
+                  - button "139 S1KC Inspected" [ref=e542] [cursor=pointer]:
+                    - generic [ref=e545]: "139"
+                    - generic [ref=e546]: S1KC
+                    - generic [ref=e548]: Inspected
+              - generic [ref=e549]:
+                - generic [ref=e550]:
+                  - heading "Floor 2" [level=3] [ref=e551]
+                  - generic [ref=e552]: 38 rooms
+                - generic [ref=e553]:
+                  - button "201 S1K Occupied Departure" [ref=e554] [cursor=pointer]:
+                    - generic [ref=e557]: "201"
+                    - generic [ref=e558]: S1K
+                    - generic [ref=e559]:
+                      - generic [ref=e560]: Occupied
+                      - generic [ref=e561]:
+                        - img [ref=e562]
+                        - text: Departure
+                  - button "202 S1KC Occupied" [ref=e565] [cursor=pointer]:
+                    - generic [ref=e568]: "202"
+                    - generic [ref=e569]: S1KC
+                    - generic [ref=e571]: Occupied
+                  - button "203 11K Occupied" [ref=e572] [cursor=pointer]:
+                    - generic [ref=e575]: "203"
+                    - generic [ref=e576]: 11K
+                    - generic [ref=e578]: Occupied
+                  - button "204 11K Pickup Full" [ref=e579] [cursor=pointer]:
+                    - generic [ref=e582]: "204"
+                    - generic [ref=e583]: 11K
+                    - generic [ref=e584]:
+                      - generic [ref=e585]: Pickup
+                      - generic [ref=e586]: Full
+                  - button "205 22Q Inspected" [ref=e587] [cursor=pointer]:
+                    - generic [ref=e590]: "205"
+                    - generic [ref=e591]: 22Q
+                    - generic [ref=e593]: Inspected
+                  - button "206 22Q Inspected" [ref=e594] [cursor=pointer]:
+                    - generic [ref=e597]: "206"
+                    - generic [ref=e598]: 22Q
+                    - generic [ref=e600]: Inspected
+                  - button "207 11K Pickup Full" [ref=e601] [cursor=pointer]:
+                    - generic [ref=e604]: "207"
+                    - generic [ref=e605]: 11K
+                    - generic [ref=e606]:
+                      - generic [ref=e607]: Pickup
+                      - generic [ref=e608]: Full
+                  - button "208 11K Occupied" [ref=e609] [cursor=pointer]:
+                    - generic [ref=e612]: "208"
+                    - generic [ref=e613]: 11K
+                    - generic [ref=e615]: Occupied
+                  - button "209 22Q Occupied" [ref=e616] [cursor=pointer]:
+                    - generic [ref=e619]: "209"
+                    - generic [ref=e620]: 22Q
+                    - generic [ref=e622]: Occupied
+                  - button "210 11K Pickup Light" [ref=e623] [cursor=pointer]:
+                    - generic [ref=e626]: "210"
+                    - generic [ref=e627]: 11K
+                    - generic [ref=e628]:
+                      - generic [ref=e629]: Pickup
+                      - generic [ref=e630]: Light
+                  - button "211 11K Occupied" [ref=e631] [cursor=pointer]:
+                    - generic [ref=e634]: "211"
+                    - generic [ref=e635]: 11K
+                    - generic [ref=e637]: Occupied
+                  - button "212 11K Pickup Full" [ref=e638] [cursor=pointer]:
+                    - generic [ref=e641]: "212"
+                    - generic [ref=e642]: 11K
+                    - generic [ref=e643]:
+                      - generic [ref=e644]: Pickup
+                      - generic [ref=e645]: Full
+                  - button "213 11K Occupied" [ref=e646] [cursor=pointer]:
+                    - generic [ref=e649]: "213"
+                    - generic [ref=e650]: 11K
+                    - generic [ref=e652]: Occupied
+                  - button "214 11K Occupied Departure" [ref=e653] [cursor=pointer]:
+                    - generic [ref=e656]: "214"
+                    - generic [ref=e657]: 11K
+                    - generic [ref=e658]:
+                      - generic [ref=e659]: Occupied
+                      - generic [ref=e660]:
+                        - img [ref=e661]
+                        - text: Departure
+                  - button "215 S1K Occupied" [ref=e664] [cursor=pointer]:
+                    - generic [ref=e667]: "215"
+                    - generic [ref=e668]: S1K
+                    - generic [ref=e670]: Occupied
+                  - button "216 S1K Occupied" [ref=e671] [cursor=pointer]:
+                    - generic [ref=e674]: "216"
+                    - generic [ref=e675]: S1K
+                    - generic [ref=e677]: Occupied
+                  - button "217 S1K Occupied Departure" [ref=e678] [cursor=pointer]:
+                    - generic [ref=e681]: "217"
+                    - generic [ref=e682]: S1K
+                    - generic [ref=e683]:
+                      - generic [ref=e684]: Occupied
+                      - generic [ref=e685]:
+                        - img [ref=e686]
+                        - text: Departure
+                  - button "218 S1K Inspected" [ref=e689] [cursor=pointer]:
+                    - generic [ref=e692]: "218"
+                    - generic [ref=e693]: S1K
+                    - generic [ref=e695]: Inspected
+                  - button "219 11K Occupied" [ref=e696] [cursor=pointer]:
+                    - generic [ref=e699]: "219"
+                    - generic [ref=e700]: 11K
+                    - generic [ref=e702]: Occupied
+                  - button "220 11K Pickup Full" [ref=e703] [cursor=pointer]:
+                    - generic [ref=e706]: "220"
+                    - generic [ref=e707]: 11K
+                    - generic [ref=e708]:
+                      - generic [ref=e709]: Pickup
+                      - generic [ref=e710]: Full
+                  - button "221 22Q Inspected" [ref=e711] [cursor=pointer]:
+                    - generic [ref=e714]: "221"
+                    - generic [ref=e715]: 22Q
+                    - generic [ref=e717]: Inspected
+                  - button "222 22Q Inspected" [ref=e718] [cursor=pointer]:
+                    - generic [ref=e721]: "222"
+                    - generic [ref=e722]: 22Q
+                    - generic [ref=e724]: Inspected
+                  - button "223 S1K Occupied" [ref=e725] [cursor=pointer]:
+                    - generic [ref=e728]: "223"
+                    - generic [ref=e729]: S1K
+                    - generic [ref=e731]: Occupied
+                  - button "224 S1KC Occupied Departure" [ref=e732] [cursor=pointer]:
+                    - generic [ref=e735]: "224"
+                    - generic [ref=e736]: S1KC
+                    - generic [ref=e737]:
+                      - generic [ref=e738]: Occupied
+                      - generic [ref=e739]:
+                        - img [ref=e740]
+                        - text: Departure
+                  - button "225 22Q Inspected" [ref=e743] [cursor=pointer]:
+                    - generic [ref=e746]: "225"
+                    - generic [ref=e747]: 22Q
+                    - generic [ref=e749]: Inspected
+                  - button "227 22QC Vacant Dirty Departure" [ref=e750] [cursor=pointer]:
+                    - generic [ref=e753]: "227"
+                    - generic [ref=e754]: 22QC
+                    - generic [ref=e755]:
+                      - generic [ref=e756]: Vacant Dirty
+                      - generic [ref=e757]:
+                        - img [ref=e758]
+                        - text: Departure
+                  - button "228 S1KC Inspected" [ref=e761] [cursor=pointer]:
+                    - generic [ref=e764]: "228"
+                    - generic [ref=e765]: S1KC
+                    - generic [ref=e767]: Inspected
+                  - button "229 11K Occupied" [ref=e768] [cursor=pointer]:
+                    - generic [ref=e771]: "229"
+                    - generic [ref=e772]: 11K
+                    - generic [ref=e774]: Occupied
+                  - button "230 11K Occupied Departure" [ref=e775] [cursor=pointer]:
+                    - generic [ref=e778]: "230"
+                    - generic [ref=e779]: 11K
+                    - generic [ref=e780]:
+                      - generic [ref=e781]: Occupied
+                      - generic [ref=e782]:
+                        - img [ref=e783]
+                        - text: Departure
+                  - button "231 11K Pickup Light" [ref=e786] [cursor=pointer]:
+                    - generic [ref=e789]: "231"
+                    - generic [ref=e790]: 11K
+                    - generic [ref=e791]:
+                      - generic [ref=e792]: Pickup
+                      - generic [ref=e793]: Light
+                  - button "232 11K Occupied" [ref=e794] [cursor=pointer]:
+                    - generic [ref=e797]: "232"
+                    - generic [ref=e798]: 11K
+                    - generic [ref=e800]: Occupied
+                  - button "233 11K Pickup Light" [ref=e801] [cursor=pointer]:
+                    - generic [ref=e804]: "233"
+                    - generic [ref=e805]: 11K
+                    - generic [ref=e806]:
+                      - generic [ref=e807]: Pickup
+                      - generic [ref=e808]: Light
+                  - button "234 11K Pickup Full" [ref=e809] [cursor=pointer]:
+                    - generic [ref=e812]: "234"
+                    - generic [ref=e813]: 11K
+                    - generic [ref=e814]:
+                      - generic [ref=e815]: Pickup
+                      - generic [ref=e816]: Full
+                  - button "235 11K Occupied" [ref=e817] [cursor=pointer]:
+                    - generic [ref=e820]: "235"
+                    - generic [ref=e821]: 11K
+                    - generic [ref=e823]: Occupied
+                  - button "236 11K Pickup Full" [ref=e824] [cursor=pointer]:
+                    - generic [ref=e827]: "236"
+                    - generic [ref=e828]: 11K
+                    - generic [ref=e829]:
+                      - generic [ref=e830]: Pickup
+                      - generic [ref=e831]: Full
+                  - button "237 11K Occupied" [ref=e832] [cursor=pointer]:
+                    - generic [ref=e835]: "237"
+                    - generic [ref=e836]: 11K
+                    - generic [ref=e838]: Occupied
+                  - button "238 S1K Occupied" [ref=e839] [cursor=pointer]:
+                    - generic [ref=e842]: "238"
+                    - generic [ref=e843]: S1K
+                    - generic [ref=e845]: Occupied
+                  - button "239 S1K Occupied Departure" [ref=e846] [cursor=pointer]:
+                    - generic [ref=e849]: "239"
+                    - generic [ref=e850]: S1K
+                    - generic [ref=e851]:
+                      - generic [ref=e852]: Occupied
+                      - generic [ref=e853]:
+                        - img [ref=e854]
+                        - text: Departure
+              - generic [ref=e857]:
+                - generic [ref=e858]:
+                  - heading "Floor 3" [level=3] [ref=e859]
+                  - generic [ref=e860]: 38 rooms
+                - generic [ref=e861]:
+                  - button "301 S1K Occupied" [ref=e862] [cursor=pointer]:
+                    - generic [ref=e865]: "301"
+                    - generic [ref=e866]: S1K
+                    - generic [ref=e868]: Occupied
+                  - button "302 S1KC Inspected" [ref=e869] [cursor=pointer]:
+                    - generic [ref=e872]: "302"
+                    - generic [ref=e873]: S1KC
+                    - generic [ref=e875]: Inspected
+                  - button "303 11K Occupied" [ref=e876] [cursor=pointer]:
+                    - generic [ref=e879]: "303"
+                    - generic [ref=e880]: 11K
+                    - generic [ref=e882]: Occupied
+                  - button "304 11K Occupied" [ref=e883] [cursor=pointer]:
+                    - generic [ref=e886]: "304"
+                    - generic [ref=e887]: 11K
+                    - generic [ref=e889]: Occupied
+                  - button "305 22Q Inspected" [ref=e890] [cursor=pointer]:
+                    - generic [ref=e893]: "305"
+                    - generic [ref=e894]: 22Q
+                    - generic [ref=e896]: Inspected
+                  - button "306 22Q Inspected" [ref=e897] [cursor=pointer]:
+                    - generic [ref=e900]: "306"
+                    - generic [ref=e901]: 22Q
+                    - generic [ref=e903]: Inspected
+                  - button "307 11K Occupied" [ref=e904] [cursor=pointer]:
+                    - generic [ref=e907]: "307"
+                    - generic [ref=e908]: 11K
+                    - generic [ref=e910]: Occupied
+                  - button "308 11K Occupied" [ref=e911] [cursor=pointer]:
+                    - generic [ref=e914]: "308"
+                    - generic [ref=e915]: 11K
+                    - generic [ref=e917]: Occupied
+                  - button "309 22Q Inspected" [ref=e918] [cursor=pointer]:
+                    - generic [ref=e921]: "309"
+                    - generic [ref=e922]: 22Q
+                    - generic [ref=e924]: Inspected
+                  - button "310 11K Occupied" [ref=e925] [cursor=pointer]:
+                    - generic [ref=e928]: "310"
+                    - generic [ref=e929]: 11K
+                    - generic [ref=e931]: Occupied
+                  - button "311 11K Occupied" [ref=e932] [cursor=pointer]:
+                    - generic [ref=e935]: "311"
+                    - generic [ref=e936]: 11K
+                    - generic [ref=e938]: Occupied
+                  - button "312 11K Occupied" [ref=e939] [cursor=pointer]:
+                    - generic [ref=e942]: "312"
+                    - generic [ref=e943]: 11K
+                    - generic [ref=e945]: Occupied
+                  - button "313 11K Pickup Full" [ref=e946] [cursor=pointer]:
+                    - generic [ref=e949]: "313"
+                    - generic [ref=e950]: 11K
+                    - generic [ref=e951]:
+                      - generic [ref=e952]: Pickup
+                      - generic [ref=e953]: Full
+                  - button "314 11K Pickup Full" [ref=e954] [cursor=pointer]:
+                    - generic [ref=e957]: "314"
+                    - generic [ref=e958]: 11K
+                    - generic [ref=e959]:
+                      - generic [ref=e960]: Pickup
+                      - generic [ref=e961]: Full
+                  - button "315 S1K Occupied" [ref=e962] [cursor=pointer]:
+                    - generic [ref=e965]: "315"
+                    - generic [ref=e966]: S1K
+                    - generic [ref=e968]: Occupied
+                  - button "316 S1K Occupied" [ref=e969] [cursor=pointer]:
+                    - generic [ref=e972]: "316"
+                    - generic [ref=e973]: S1K
+                    - generic [ref=e975]: Occupied
+                  - button "317 S1K Occupied" [ref=e976] [cursor=pointer]:
+                    - generic [ref=e979]: "317"
+                    - generic [ref=e980]: S1K
+                    - generic [ref=e982]: Occupied
+                  - button "318 S1K Occupied" [ref=e983] [cursor=pointer]:
+                    - generic [ref=e986]: "318"
+                    - generic [ref=e987]: S1K
+                    - generic [ref=e989]: Occupied
+                  - button "319 11K Occupied" [ref=e990] [cursor=pointer]:
+                    - generic [ref=e993]: "319"
+                    - generic [ref=e994]: 11K
+                    - generic [ref=e996]: Occupied
+                  - button "320 11K Occupied" [ref=e997] [cursor=pointer]:
+                    - generic [ref=e1000]: "320"
+                    - generic [ref=e1001]: 11K
+                    - generic [ref=e1003]: Occupied
+                  - button "321 22Q Inspected" [ref=e1004] [cursor=pointer]:
+                    - generic [ref=e1007]: "321"
+                    - generic [ref=e1008]: 22Q
+                    - generic [ref=e1010]: Inspected
+                  - button "322 22Q Inspected" [ref=e1011] [cursor=pointer]:
+                    - generic [ref=e1014]: "322"
+                    - generic [ref=e1015]: 22Q
+                    - generic [ref=e1017]: Inspected
+                  - button "323 S1K Occupied" [ref=e1018] [cursor=pointer]:
+                    - generic [ref=e1021]: "323"
+                    - generic [ref=e1022]: S1K
+                    - generic [ref=e1024]: Occupied
+                  - button "324 S1KC Inspected" [ref=e1025] [cursor=pointer]:
+                    - generic [ref=e1028]: "324"
+                    - generic [ref=e1029]: S1KC
+                    - generic [ref=e1031]: Inspected
+                  - button "325 22Q Inspected" [ref=e1032] [cursor=pointer]:
+                    - generic [ref=e1035]: "325"
+                    - generic [ref=e1036]: 22Q
+                    - generic [ref=e1038]: Inspected
+                  - button "327 22QC Occupied Departure" [ref=e1039] [cursor=pointer]:
+                    - generic [ref=e1042]: "327"
+                    - generic [ref=e1043]: 22QC
+                    - generic [ref=e1044]:
+                      - generic [ref=e1045]: Occupied
+                      - generic [ref=e1046]:
+                        - img [ref=e1047]
+                        - text: Departure
+                  - button "328 S1KC Inspected" [ref=e1050] [cursor=pointer]:
+                    - generic [ref=e1053]: "328"
+                    - generic [ref=e1054]: S1KC
+                    - generic [ref=e1056]: Inspected
+                  - button "329 11K Occupied" [ref=e1057] [cursor=pointer]:
+                    - generic [ref=e1060]: "329"
+                    - generic [ref=e1061]: 11K
+                    - generic [ref=e1063]: Occupied
+                  - button "330 11K Pickup Full" [ref=e1064] [cursor=pointer]:
+                    - generic [ref=e1067]: "330"
+                    - generic [ref=e1068]: 11K
+                    - generic [ref=e1069]:
+                      - generic [ref=e1070]: Pickup
+                      - generic [ref=e1071]: Full
+                  - button "331 11K Occupied" [ref=e1072] [cursor=pointer]:
+                    - generic [ref=e1075]: "331"
+                    - generic [ref=e1076]: 11K
+                    - generic [ref=e1078]: Occupied
+                  - button "332 11K Occupied" [ref=e1079] [cursor=pointer]:
+                    - generic [ref=e1082]: "332"
+                    - generic [ref=e1083]: 11K
+                    - generic [ref=e1085]: Occupied
+                  - button "333 11K Occupied" [ref=e1086] [cursor=pointer]:
+                    - generic [ref=e1089]: "333"
+                    - generic [ref=e1090]: 11K
+                    - generic [ref=e1092]: Occupied
+                  - button "334 11K Pickup Full" [ref=e1093] [cursor=pointer]:
+                    - generic [ref=e1096]: "334"
+                    - generic [ref=e1097]: 11K
+                    - generic [ref=e1098]:
+                      - generic [ref=e1099]: Pickup
+                      - generic [ref=e1100]: Full
+                  - button "335 11K Occupied" [ref=e1101] [cursor=pointer]:
+                    - generic [ref=e1104]: "335"
+                    - generic [ref=e1105]: 11K
+                    - generic [ref=e1107]: Occupied
+                  - button "336 11K Occupied" [ref=e1108] [cursor=pointer]:
+                    - generic [ref=e1111]: "336"
+                    - generic [ref=e1112]: 11K
+                    - generic [ref=e1114]: Occupied
+                  - button "337 11K Occupied Departure" [ref=e1115] [cursor=pointer]:
+                    - generic [ref=e1118]: "337"
+                    - generic [ref=e1119]: 11K
+                    - generic [ref=e1120]:
+                      - generic [ref=e1121]: Occupied
+                      - generic [ref=e1122]:
+                        - img [ref=e1123]
+                        - text: Departure
+                  - button "338 S1K Occupied" [ref=e1126] [cursor=pointer]:
+                    - generic [ref=e1129]: "338"
+                    - generic [ref=e1130]: S1K
+                    - generic [ref=e1132]: Occupied
+                  - button "339 S1K Occupied" [ref=e1133] [cursor=pointer]:
+                    - generic [ref=e1136]: "339"
+                    - generic [ref=e1137]: S1K
+                    - generic [ref=e1139]: Occupied
+            - dialog "Room 101 details" [active] [ref=e1141]:
+              - generic [ref=e1142]:
+                - heading "Room 101 — S1K" [level=2] [ref=e1144]:
+                  - text: Room 101
+                  - generic [ref=e1145]: — S1K
+                - button "Close drawer" [ref=e1146] [cursor=pointer]:
+                  - img [ref=e1147]
+              - generic [ref=e1150]:
+                - generic [ref=e1151]:
+                  - heading "Current Status" [level=3] [ref=e1152]
+                  - generic [ref=e1153]:
+                    - img [ref=e1154]
+                    - generic [ref=e1156]: Inspected Vacant
+                  - paragraph [ref=e1157]: "Last action: Marked ready at Jun 16 8:05 PM"
+                  - generic [ref=e1158]:
+                    - generic [ref=e1159]:
+                      - generic [ref=e1160]:
+                        - generic [ref=e1161]:
+                          - img [ref=e1162]
+                          - text: Departure checkout
+                        - paragraph [ref=e1165]: No checkout time set
+                      - generic [ref=e1166]: Checkout time
+                      - generic [ref=e1167]:
+                        - textbox "Checkout time" [ref=e1168]
+                        - button "Save" [disabled] [ref=e1169]
+                    - button "Mark Checked Out" [ref=e1171] [cursor=pointer]:
+                      - img [ref=e1172]
+                      - text: Mark Checked Out
+                  - generic [ref=e1175]:
+                    - button "Add Note" [ref=e1176] [cursor=pointer]:
+                      - img [ref=e1177]
+                      - text: Add Note
+                    - button "Submit Work Order" [ref=e1179] [cursor=pointer]:
+                      - img [ref=e1180]
+                      - text: Submit Work Order
+                    - button "Lost & Found" [ref=e1182] [cursor=pointer]:
+                      - img [ref=e1183]
+                      - text: Lost & Found
+                - button "Room History" [ref=e1188] [cursor=pointer]:
+                  - generic [ref=e1189]: Room History
+                  - img [ref=e1190]
+    - button "Open AI Copilot" [ref=e194] [cursor=pointer]:
+      - img [ref=e195]
+      - generic [ref=e197]: Ask copilot
+      - generic [ref=e198]: ⌘J
+    - button "Open feedback" [ref=e200] [cursor=pointer]:
+      - img [ref=e201]
+      - generic [ref=e203]: Feedback
+    - button "Display preferences" [ref=e205] [cursor=pointer]:
+      - img [ref=e206]
+  - alert [ref=e209]

@@ -129,7 +129,7 @@ function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardPro
             className="w-full px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
           >
             <CheckCircle className="w-3 h-3" />
-            Mark Claimed
+            Release Item
           </button>
         </div>
       )}
@@ -221,6 +221,8 @@ export default function LostFoundPage() {
   const [search, setSearch] = useState('')
   const [showLogModal, setShowLogModal] = useState(false)
   const [claimTarget, setClaimTarget] = useState<LostFoundItem | null>(null)
+  const [releaseRecipient, setReleaseRecipient] = useState('')
+  const [verificationMethod, setVerificationMethod] = useState('')
   const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
 
@@ -254,6 +256,21 @@ export default function LostFoundPage() {
       if (context?.previous) queryClient.setQueryData(['lost-found'], context.previous)
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+    },
+  })
+
+  const { mutate: releaseItem, isPending: releasing } = useMutation({
+    mutationFn: (item: LostFoundItem) =>
+      lostFoundApi.recordCustodyEvent(item.id, {
+        event_type: 'released',
+        recipient_name: releaseRecipient.trim(),
+        verification_method: verificationMethod.trim(),
+      }),
+    onSuccess: () => {
+      setClaimTarget(null)
+      setReleaseRecipient('')
+      setVerificationMethod('')
       queryClient.invalidateQueries({ queryKey: ['lost-found'] })
     },
   })
@@ -345,16 +362,32 @@ export default function LostFoundPage() {
         }}
       />
 
-      {/* Mark Claimed confirm */}
-      <DeleteConfirmDialog
-        open={!!claimTarget}
-        title="Mark as Claimed"
-        description={`Mark "${claimTarget?.description ?? 'this item'}" as claimed and remove it from the list?`}
-        confirmLabel="Mark Claimed"
-        onConfirm={() => claimTarget && deleteItem(claimTarget.id)}
-        onCancel={() => setClaimTarget(null)}
-        loading={deleting}
-      />
+      {claimTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setClaimTarget(null)} />
+          <form
+            className="relative z-10 w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-xl"
+            onSubmit={(event) => { event.preventDefault(); releaseItem(claimTarget) }}
+          >
+            <h2 className="text-lg font-semibold text-ink">Release found item</h2>
+            <p className="mt-1 text-sm text-ink3">Record who received this item and how their identity was verified.</p>
+            <label className="mt-4 block text-sm font-medium text-ink2">
+              Recipient name
+              <input required value={releaseRecipient} onChange={(event) => setReleaseRecipient(event.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" />
+            </label>
+            <label className="mt-3 block text-sm font-medium text-ink2">
+              Verification method
+              <input required value={verificationMethod} onChange={(event) => setVerificationMethod(event.target.value)} placeholder="Photo ID, matching description, signature" className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setClaimTarget(null)}>Cancel</Button>
+              <Button type="submit" variant="primary" disabled={releasing || !releaseRecipient.trim() || !verificationMethod.trim()}>
+                {releasing ? 'Recording...' : 'Record Release'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Delete confirm */}
       <DeleteConfirmDialog

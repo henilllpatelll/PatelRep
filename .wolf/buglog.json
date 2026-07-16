@@ -5798,6 +5798,174 @@
       "last_seen": "2026-07-16T10:02:00-05:00"
     },
     {
+      "id": "bug-384",
+      "timestamp": "2026-07-16T17:33:00-05:00",
+      "error_message": "Local dev-server cleanup command returned a nonzero status after stopping the listener.",
+      "file": "local web verification process",
+      "root_cause": "The final listener lookup had no object to select after the expected shutdown.",
+      "fix": "Treat the absent listener as successful cleanup and avoid piping a missing object through Select-Object.",
+      "tags": ["tooling", "cleanup", "web"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:33:00-05:00"
+    },
+    {
+      "id": "bug-383",
+      "timestamp": "2026-07-16T17:31:00-05:00",
+      "error_message": "Final Phase 4 status inspection used an unquoted route-group path in PowerShell.",
+      "file": "apps/web/app/(dashboard)/programs",
+      "root_cause": "The parenthesized path was passed as an unquoted positional argument.",
+      "fix": "Use git status --short without route-group paths or quote literal paths.",
+      "tags": ["powershell", "tooling", "phase-4"],
+      "related_bugs": ["bug-378"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:31:00-05:00"
+    },
+    {
+      "id": "bug-382",
+      "timestamp": "2026-07-16T17:27:00-05:00",
+      "error_message": "OpenWolf summary patch still could not match the memory-file header.",
+      "file": ".wolf/memory.md",
+      "root_cause": "The generated memory file likely contains an invisible encoding marker at its first line.",
+      "fix": "Record the summary with a context-free insertion patch and keep the learning update separate.",
+      "tags": ["openwolf", "patch", "encoding"],
+      "related_bugs": ["bug-381"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:27:00-05:00"
+    },
+    {
+      "id": "bug-381",
+      "timestamp": "2026-07-16T17:25:00-05:00",
+      "error_message": "OpenWolf session-summary patch did not match the existing memory line.",
+      "file": ".wolf/memory.md",
+      "root_cause": "The memory text has encoded punctuation that differed from the patch context.",
+      "fix": "Use stable heading anchors when recording the Phase 4 session summary.",
+      "tags": ["openwolf", "patch", "encoding"],
+      "related_bugs": ["bug-380"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:25:00-05:00"
+    },
+    {
+      "id": "bug-380",
+      "timestamp": "2026-07-16T17:22:00-05:00",
+      "error_message": "Phase 4 anatomy update patch did not match an existing description containing encoded punctuation.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "Patch context used mojibake punctuation rather than the UTF-8 source text.",
+      "fix": "Use ASCII-only section headings as patch anchors and add entries without matching descriptive punctuation.",
+      "tags": ["openwolf", "patch", "encoding"],
+      "related_bugs": ["bug-363"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:22:00-05:00"
+    },
+    {
+      "id": "bug-379",
+      "timestamp": "2026-07-16T17:13:00-05:00",
+      "error_message": "The new floor-copy CI guard mistook TypeScript arrow syntax for hardcoded JSX text.",
+      "file": "apps/web/scripts/check-programs-i18n.mjs",
+      "root_cause": "A generic tag-text regular expression matched callback arrows and input markup rather than parsed JSX text nodes.",
+      "fix": "Keep the deterministic translation-key parity check and replace the brittle broad regex with a targeted common-copy guard.",
+      "tags": ["i18n", "ci", "testing", "phase-4"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:13:00-05:00"
+    },
+    {
+      "id": "bug-378",
+      "timestamp": "2026-07-16T17:07:00-05:00",
+      "error_message": "Phase 4 page-header inspection used an unquoted route-group path in PowerShell.",
+      "file": "apps/web/app/(dashboard)/evidence/page.tsx",
+      "root_cause": "The route-group parentheses were parsed by the shell.",
+      "fix": "Use quoted literal paths or omit the optional comparison search.",
+      "tags": ["powershell", "tooling", "phase-4"],
+      "related_bugs": ["bug-365"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T17:07:00-05:00"
+    },
+    {
+      "id": "bug-377",
+      "timestamp": "2026-07-16T16:57:00-05:00",
+      "error_message": "Phase 4 DND escalation patch did not match the existing internal router source.",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "The existing notification copy contains mojibake punctuation, so the multiline patch context did not match.",
+      "fix": "Inspect the exact source slice and apply the DND change in smaller ASCII-only patches.",
+      "tags": ["patch", "encoding", "phase-4"],
+      "related_bugs": ["bug-355"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:57:00-05:00"
+    },
+    {
+      "id": "bug-376",
+      "timestamp": "2026-07-16T16:50:00-05:00",
+      "error_message": "The PM completion persistence test omitted its existing schedule fixture.",
+      "file": "apps/api/tests/test_operational_programs.py",
+      "root_cause": "The in-memory database only updates pre-seeded rows, unlike an assumed loaded schedule.",
+      "fix": "Seed the PM schedule in the focused test before asserting its due-date update.",
+      "tags": ["tests", "fixtures", "phase-4"],
+      "related_bugs": ["bug-375"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:50:00-05:00"
+    },
+    {
+      "id": "bug-375",
+      "timestamp": "2026-07-16T16:49:00-05:00",
+      "error_message": "PM completion persistence contract failed during collection before the execution service existed.",
+      "file": "apps/api/tests/test_operational_programs.py",
+      "root_cause": "Test-driven implementation: services.programs.execution has not been created yet.",
+      "fix": "Implement the shared completion persistence helper, then rerun the focused Phase 4 contracts.",
+      "tags": ["tests", "tdd", "phase-4"],
+      "related_bugs": ["bug-374"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:49:00-05:00"
+    },
+    {
+      "id": "bug-374",
+      "timestamp": "2026-07-16T16:42:00-05:00",
+      "error_message": "Phase 4 operational-program contracts fail test collection before the service module exists.",
+      "file": "apps/api/tests/test_operational_programs.py",
+      "root_cause": "Test-driven implementation: services.programs.contracts has not been created yet.",
+      "fix": "Add the focused policy-contract module and migration, then rerun the test before implementing endpoints.",
+      "tags": ["tests", "tdd", "phase-4"],
+      "related_bugs": ["bug-366"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:42:00-05:00"
+    },
+    {
+      "id": "bug-373",
+      "timestamp": "2026-07-16T16:37:00-05:00",
+      "error_message": "Phase 4 locale bootstrap inspection referenced a nonexistent i18n.ts module.",
+      "file": "apps/web/i18n/i18n.ts",
+      "root_cause": "The module path was assumed rather than discovered from the web application.",
+      "fix": "Use rg --files before inspecting optional i18n bootstrap files.",
+      "tags": ["tooling", "web", "phase-4"],
+      "related_bugs": ["bug-372"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:37:00-05:00"
+    },
+    {
+      "id": "bug-372",
+      "timestamp": "2026-07-16T16:35:00-05:00",
+      "error_message": "Phase 4 web client inspection referenced a nonexistent assets.ts file.",
+      "file": "apps/web/lib/api/assets.ts",
+      "root_cause": "The engineering client filename was assumed instead of discovered.",
+      "fix": "List API client files before reading and inspect the existing engineering client.",
+      "tags": ["tooling", "web", "phase-4"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:35:00-05:00"
+    },
+    {
+      "id": "bug-371",
+      "timestamp": "2026-07-16T16:30:00-05:00",
+      "error_message": "Phase 4 repository search failed because an unquoted Next.js route-group path was parsed by PowerShell.",
+      "file": "Phase 4 repository inspection command",
+      "root_cause": "The rg command included apps/web/app/(dashboard) without PowerShell-safe quoting.",
+      "fix": "Use rg --glob filters or quote literal paths when searching route groups.",
+      "tags": ["powershell", "tooling", "phase-4"],
+      "related_bugs": ["bug-365"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T16:30:00-05:00"
+    },
+    {
       "id": "bug-350",
       "timestamp": "2026-07-16T10:04:00-05:00",
       "error_message": "The mobile translation search assumed a nonexistent apps/mobile/i18n/locales directory.",
@@ -5980,6 +6148,246 @@
       "related_bugs": [],
       "occurrences": 7,
       "last_seen": "2026-07-16T16:21:09.090Z"
+    },
+    {
+      "id": "bug-362",
+      "timestamp": "2026-07-16T11:41:00-05:00",
+      "error_message": "Graphify orientation could not run because the graphify Python package is unavailable.",
+      "file": "graphify-out/.graphify_python",
+      "root_cause": "The workspace Python interpreter does not have the graphify package installed.",
+      "fix": "Continue with targeted repository inspection; do not install or rewrite dirty graph artifacts during this implementation task.",
+      "tags": ["graphify", "tooling", "missing-dependency"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T11:41:00-05:00"
+    },
+    {
+      "id": "bug-363",
+      "timestamp": "2026-07-16T11:42:00-05:00",
+      "error_message": "OpenWolf anatomy patch did not match because the prior command used mojibake punctuation in its context.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The file uses UTF-8 em dashes while the patch context contained misencoded characters.",
+      "fix": "Use minimal ASCII-only heading context for anatomy updates.",
+      "tags": ["openwolf", "encoding", "patch"],
+      "related_bugs": ["bug-362"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T11:42:00-05:00"
+    },
+    {
+      "id": "bug-364",
+      "timestamp": "2026-07-16T11:44:00-05:00",
+      "error_message": "Mobile SOP file inspection failed because the bracketed route segment was treated as a PowerShell wildcard path.",
+      "file": "apps/mobile/app/(app)/sop/[sopId].tsx",
+      "root_cause": "Get-Content was invoked without -LiteralPath for an Expo dynamic route filename.",
+      "fix": "Use -LiteralPath when reading or editing files with bracketed route segments.",
+      "tags": ["powershell", "path", "mobile"],
+      "related_bugs": ["bug-336"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T11:44:00-05:00"
+    },
+    {
+      "id": "bug-365",
+      "timestamp": "2026-07-16T11:45:00-05:00",
+      "error_message": "Mobile SOP index inspection failed because the parenthesized route path was not quoted.",
+      "file": "apps/mobile/app/(app)/sop/index.tsx",
+      "root_cause": "PowerShell interpreted the parentheses in the unquoted path as syntax.",
+      "fix": "Use quoted -LiteralPath for Expo route files with parentheses or brackets.",
+      "tags": ["powershell", "path", "mobile"],
+      "related_bugs": ["bug-336", "bug-364"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T11:45:00-05:00"
+    },
+    {
+      "id": "bug-366",
+      "timestamp": "2026-07-16T11:48:00-05:00",
+      "error_message": "Phase 2 evidence contract test failed during collection before the evidence service existed.",
+      "file": "apps/api/tests/test_evidence_foundation.py",
+      "root_cause": "Test-driven implementation: services.evidence.contracts has not been created yet.",
+      "fix": "Add the focused evidence contract module, then rerun the test before adding API routes.",
+      "tags": ["tests", "tdd", "evidence-foundation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T11:48:00-05:00"
+    },
+    {
+      "id": "bug-367",
+      "timestamp": "2026-07-16T12:05:00-05:00",
+      "error_message": "Evidence dashboard patch did not apply because the OpenWolf anatomy dashboard heading was not present.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The generated anatomy groups web dashboard paths under a broader heading.",
+      "fix": "Apply source changes separately from the anatomy update and use existing heading context only.",
+      "tags": ["openwolf", "patch", "anatomy"],
+      "related_bugs": ["bug-363"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:05:00-05:00"
+    },
+    {
+      "id": "bug-368",
+      "timestamp": "2026-07-16T12:09:00-05:00",
+      "error_message": "Evidence security-fix patch referenced reminder code in the wrong source file.",
+      "file": "apps/api/services/evidence/contracts.py",
+      "root_cause": "The pure exception helper and the database-backed reminder function are in separate modules.",
+      "fix": "Apply the policy and tenant-scoping changes as separate patches.",
+      "tags": ["patch", "security", "evidence"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:09:00-05:00"
+    },
+    {
+      "id": "bug-369",
+      "timestamp": "2026-07-16T12:13:00-05:00",
+      "error_message": "Evidence lint found an undefined reminder assignment reference and two unused imports.",
+      "file": "apps/api/routers/evidence.py; apps/api/services/evidence/contracts.py; apps/api/tests/test_evidence_foundation.py",
+      "root_cause": "The tenant filter was added before the matching assignment was resolved; test and helper imports were not cleaned up.",
+      "fix": "Resolve the assignment before choosing recipients and remove unused imports, then rerun the focused lint gate.",
+      "tags": ["lint", "security", "evidence"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:13:00-05:00"
+    },
+    {
+      "id": "bug-370",
+      "timestamp": "2026-07-16T12:15:00-05:00",
+      "error_message": "Combined validation ran the API Ruff path from the web directory, so the API lint did not execute.",
+      "file": "apps/api validation command",
+      "root_cause": "The command changed to apps/web before referencing its local virtual environment.",
+      "fix": "Run the API Ruff check separately from apps/api; keep web lint and build in apps/web.",
+      "tags": ["validation", "powershell", "path"],
+      "related_bugs": ["bug-348"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:15:00-05:00"
+    },
+    {
+      "id": "bug-350",
+      "timestamp": "2026-07-16T12:30:00-05:00",
+      "error_message": "Phase 3 safety dashboard production build failed because the shared Button component does not accept a size prop.",
+      "file": "apps/web/app/(dashboard)/safety/page.tsx",
+      "root_cause": "The new safety page assumed a generic button API instead of the project's ButtonProps contract.",
+      "fix": "Use the supported className prop to apply compact styling, then rerun the production build.",
+      "tags": ["phase-3", "web", "typecheck"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T12:30:00-05:00"
+    }
+    ,{
+      "id": "bug-388",
+      "timestamp": "2026-07-16T18:38:00-05:00",
+      "error_message": "Full API Pyright has one unrelated existing assignment error in housekeeping.py:292.",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "A dict inferred with unknown or None keys is assigned to a str-keyed annotation outside the Phase 5 changes.",
+      "fix": "Repair the existing housekeeping type annotation separately; Phase 5 Ruff and API test gates remain green.",
+      "tags": ["pyright", "baseline", "unrelated"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:38:00-05:00"
+    }
+    ,{
+      "id": "bug-387",
+      "timestamp": "2026-07-16T18:35:00-05:00",
+      "error_message": "Local API health probe formatted port output incorrectly and treated its 404 response as unavailable.",
+      "file": "Phase 5 local verification command",
+      "root_cause": "PowerShell interpolation reused the pipeline variable and Invoke-WebRequest escalated a 404 into the catch path.",
+      "fix": "Use an explicit port variable and a known health route when probing local services.",
+      "tags": ["verification", "powershell", "phase-5"],
+      "related_bugs": ["bug-384"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:35:00-05:00"
+    }
+    ,{
+      "id": "bug-386",
+      "timestamp": "2026-07-16T18:28:00-05:00",
+      "error_message": "Web type-check found stale in_progress guest-request status references and an obsolete card prop.",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx; apps/web/components/guest-requests/GuestRequestsPage.tsx",
+      "root_cause": "The Phase 5 lifecycle contract expanded the old three-state union without updating every consumer.",
+      "fix": "Map all active service milestones to the front-desk active view and remove the retired confirmation prop.",
+      "tags": ["typescript", "guest-requests", "phase-5"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:28:00-05:00"
+    }
+    ,{
+      "id": "bug-385",
+      "timestamp": "2026-07-16T18:21:00-05:00",
+      "error_message": "Phase 5 lost-and-found patch did not match the request schema's actual photo_url constraint.",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "The patch assumed a generic LONG_TEXT_MAX field where the existing schema uses a 2048-character URL cap.",
+      "fix": "Inspect the small target slice and patch around the exact source fields.",
+      "tags": ["patch", "phase-5", "tooling"],
+      "related_bugs": ["bug-377"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:21:00-05:00"
+    }
+    ,{
+      "id": "bug-384",
+      "timestamp": "2026-07-16T18:25:00-05:00",
+      "error_message": "Phase 5 combined lint and web type-check command ran from the wrong package roots.",
+      "file": "apps/api validation command; apps/web validation command",
+      "root_cause": "API-relative paths were used from the repository root and npm workspace metadata is not available at the root.",
+      "fix": "Run Ruff from apps/api and the web type-check from apps/web as separate commands.",
+      "tags": ["validation", "powershell", "phase-5"],
+      "related_bugs": ["bug-370"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:25:00-05:00"
+    }
+    ,{
+      "id": "bug-383",
+      "timestamp": "2026-07-16T18:12:00-05:00",
+      "error_message": "Phase 5 guest-recovery contract test could not import services.guest_recovery.",
+      "file": "apps/api/tests/test_guest_recovery.py",
+      "root_cause": "The TDD policy-contract module has not been implemented yet.",
+      "fix": "Create services/guest_recovery/contracts.py with the lifecycle, SLA, custody, and metric helpers before adding route behavior.",
+      "tags": ["tests", "tdd", "phase-5"],
+      "related_bugs": ["bug-375"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:12:00-05:00"
+    }
+    ,{
+      "id": "bug-382",
+      "timestamp": "2026-07-16T18:05:00-05:00",
+      "error_message": "Phase 5 migration discovery used a Windows-incompatible rg wildcard path.",
+      "file": "supabase/migrations",
+      "root_cause": "PowerShell passed the literal 0*.sql pattern to ripgrep rather than expanding it as a path.",
+      "fix": "Use rg --glob '*.sql' supabase/migrations or rg --files before searching migration contents.",
+      "tags": ["tooling", "powershell", "phase-5"],
+      "related_bugs": ["bug-371"],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T18:05:00-05:00"
+    }
+    ,{
+      "id": "bug-384",
+      "timestamp": "2026-07-16T13:00:00-05:00",
+      "error_message": "pytest was not available on the PowerShell PATH for Phase 6 tests.",
+      "file": "apps/api/tests/test_phase6_governance.py",
+      "root_cause": "The project Python environment is isolated in the repository .venv and does not expose pytest globally.",
+      "fix": "Run verification with .venv\\Scripts\\python.exe -m pytest from apps/api.",
+      "tags": ["tests", "environment", "phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:00:00-05:00"
+    }
+    ,{
+      "id": "bug-385",
+      "timestamp": "2026-07-16T13:03:00-05:00",
+      "error_message": "Web production build rejected chief_engineer because the client UserRole union and exhaustive role maps omitted it.",
+      "file": "apps/web/stores/authStore.ts",
+      "root_cause": "The API RBAC role existed without matching web auth, route-guard, navigation, and staff-selector support; the selector also submitted Chief Engineer as engineer.",
+      "fix": "Added chief_engineer to shared web role contracts, appropriate routes/nav, and the staff invitation schema.",
+      "tags": ["rbac", "web", "phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:03:00-05:00"
+    }
+    ,{
+      "id": "bug-386",
+      "timestamp": "2026-07-16T13:05:00-05:00",
+      "error_message": "Ruff E731 rejected a lambda used for the Phase 6 AI metric rate helper.",
+      "file": "apps/api/services/ai/governance.py",
+      "root_cause": "The repository Ruff configuration disallows assigning lambda expressions.",
+      "fix": "Replaced the lambda with a typed nested rate function.",
+      "tags": ["lint", "python", "phase-6"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T13:05:00-05:00"
     }
   ]
 }

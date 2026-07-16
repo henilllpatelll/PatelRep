@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api/client'
 
-export type GuestRequestStatus = 'open' | 'in_progress' | 'resolved' | 'escalated'
+export type GuestRequestStatus =
+  | 'open' | 'acknowledged' | 'dispatched' | 'arrived' | 'guest_contacted'
+  | 'resolved' | 'verified' | 'reopened' | 'cancelled'
 
 export interface GuestRequest {
   id: string
@@ -13,6 +15,15 @@ export interface GuestRequest {
   assigned_to?: string
   status: GuestRequestStatus
   priority: 'normal' | 'urgent'
+  category: 'service' | 'housekeeping' | 'maintenance' | 'accessibility' | 'other'
+  guest_impact: 'low' | 'standard' | 'high'
+  sla_minutes: number
+  due_at?: string
+  acknowledged_at?: string
+  dispatched_at?: string
+  arrived_at?: string
+  guest_contacted_at?: string
+  verified_at?: string
   resolved_at?: string
   satisfaction_score?: number
   created_by: string
@@ -39,7 +50,11 @@ export const guestRequestsApi = {
     room_id?: string
     guest_name?: string
     description?: string
-    priority?: 'normal' | 'urgent'
+      priority?: 'normal' | 'urgent'
+      category?: GuestRequest['category']
+      guest_impact?: GuestRequest['guest_impact']
+      contact_preference?: 'sms' | 'call' | 'email' | 'in_person' | 'none'
+      contact_consent?: boolean
   }) =>
     apiClient.post('/guest-requests', payload) as Promise<{ data: GuestRequest }>,
 
@@ -58,6 +73,32 @@ export const guestRequestsApi = {
   ) =>
     apiClient.patch(`/guest-requests/${id}`, payload) as Promise<{ data: GuestRequest }>,
 
+  transitionRequest: (
+    id: string,
+    payload: { status: Exclude<GuestRequestStatus, 'open'>; detail?: string },
+  ) =>
+    apiClient.post(`/guest-requests/${id}/transition`, payload) as Promise<{ data: GuestRequest }>,
+
+  sendMessage: (
+    id: string,
+    payload: { body: string; recipient: string; channel?: 'sms' | 'email' },
+  ) => apiClient.post(`/guest-requests/${id}/messages`, payload),
+
+  recordRecoveryAction: (
+    id: string,
+    payload: { action_type: 'apology' | 'amenity' | 'discount' | 'refund' | 'points' | 'other'; description: string; compensation_amount?: number },
+  ) => apiClient.post(`/guest-requests/${id}/recovery-actions`, payload),
+
+  getMetrics: () => apiClient.get('/guest-requests/metrics/summary') as Promise<{ data: GuestRequestMetrics }>,
+
   deleteRequest: (id: string) =>
     apiClient.delete(`/guest-requests/${id}`),
+}
+
+export interface GuestRequestMetrics {
+  total_requests: number
+  verified_resolution_rate_pct: number
+  sla_met_rate_pct: number
+  average_acknowledgement_minutes: number
+  average_verified_resolution_minutes: number
 }

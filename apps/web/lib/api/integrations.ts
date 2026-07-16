@@ -33,6 +33,15 @@ export interface OperaSyncResponse {
   }
 }
 
+export interface OperaSyncConflict {
+  id: string
+  entity_type: 'reservation' | 'room_status'
+  external_id: string
+  local_snapshot: { guest_name?: string }
+  remote_snapshot: { guest_name?: string }
+  detected_at: string
+}
+
 export interface OperaTestResponse {
   data: {
     connected: boolean
@@ -49,6 +58,12 @@ export const integrationsApi = {
 
   syncOpera: (): Promise<OperaSyncResponse> =>
     apiClient.post('/integrations/opera/sync'),
+
+  listOperaConflicts: (): Promise<{ data: OperaSyncConflict[] }> =>
+    apiClient.get('/integrations/opera/conflicts'),
+
+  resolveOperaConflict: (id: string, resolution: 'local_wins' | 'remote_wins') =>
+    apiClient.post(`/integrations/opera/conflicts/${id}/resolve`, { resolution }),
 
   testOpera: (): Promise<OperaTestResponse> =>
     apiClient.post('/integrations/opera/test'),

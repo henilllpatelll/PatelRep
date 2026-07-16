@@ -67,6 +67,14 @@ def map_opera_reservation(opera_res: dict) -> dict:
     }
 
 
+def has_reservation_conflict(local_status: dict | None, remote_reservation: dict) -> bool:
+    """Only pause inbound data when a staff-entered occupancy value disagrees with Opera."""
+    if not local_status or not local_status.get("guest_name"):
+        return False
+    remote_guest = remote_reservation.get("guest_name")
+    return bool(remote_guest and local_status["guest_name"].strip() != remote_guest.strip())
+
+
 def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
     """Insert/update an Opera reservation in the local cache table."""
     mapped = map_opera_reservation(opera_res)
@@ -75,6 +83,7 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
         return
 
     room_id = None
+    local_status = None
     if mapped.get("room_number_opera"):
         room_result = supabase.table("rooms")\
             .select("id")\
@@ -84,6 +93,13 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
             .execute()
         if room_result and room_result.data:
             room_id = room_result.data["id"]
+            status_result = supabase.table("room_status") \
+                .select("guest_name, vip_flag, checkin_time, checkout_time") \
+                .eq("tenant_id", hotel_id) \
+                .eq("room_id", room_id) \
+                .maybe_single() \
+                .execute()
+            local_status = status_result.data if status_result else None
 
     supabase.table("opera_reservations").upsert({
         "tenant_id": hotel_id,
@@ -104,6 +120,36 @@ def upsert_opera_reservation(hotel_id: str, opera_res: dict) -> None:
         "rate_code": mapped.get("rate_code"),
         "synced_at": datetime.now(timezone.utc).isoformat(),
     }, on_conflict="tenant_id,opera_reservation_id").execute()
+
+    if room_id and has_reservation_conflict(local_status, mapped):
+        existing = supabase.table("integration_sync_conflicts") \
+            .select("id") \
+            .eq("tenant_id", hotel_id) \
+            .eq("provider", "opera") \
+            .eq("entity_type", "reservation") \
+            .eq("external_id", reservation_id) \
+            .eq("status", "open") \
+            .maybe_single() \
+            .execute()
+        if not existing.data:
+            conflict_result = supabase.table("integration_sync_conflicts").insert({
+                "tenant_id": hotel_id,
+                "provider": "opera",
+                "entity_type": "reservation",
+                "external_id": reservation_id,
+                "local_entity_id": room_id,
+                "local_snapshot": local_status or {},
+                "remote_snapshot": mapped,
+            }).execute()
+            conflict = (conflict_result.data or [None])[0]
+            if conflict:
+                supabase.table("integration_sync_conflict_events").insert({
+                    "tenant_id": hotel_id,
+                    "conflict_id": conflict["id"],
+                    "event_type": "detected",
+                    "metadata": {"source": "opera_poll"},
+                }).execute()
+        return
 
     if room_id:
         supabase.table("room_status").update({

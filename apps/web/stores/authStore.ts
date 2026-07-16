@@ -7,6 +7,7 @@ export type UserRole =
   | 'housekeeping_supervisor'
   | 'housekeeper'
   | 'engineer'
+  | 'chief_engineer'
   | 'front_desk'
 
 interface AuthStore {

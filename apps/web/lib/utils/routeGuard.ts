@@ -1,5 +1,5 @@
 export const PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/reset-password'] as const
-export const ALL_ROLES = ['housekeeper', 'engineer', 'housekeeping_supervisor', 'front_desk', 'gm'] as const
+export const ALL_ROLES = ['housekeeper', 'engineer', 'chief_engineer', 'housekeeping_supervisor', 'front_desk', 'gm'] as const
 
 export type UserRole = (typeof ALL_ROLES)[number]
 
@@ -14,16 +14,16 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/housekeeping/inspections', roles: ['gm', 'housekeeping_supervisor'] },
   { prefix: '/housekeeping/rooms', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/housekeeping', roles: ['gm', 'housekeeping_supervisor', 'housekeeper', 'front_desk'] },
-  { prefix: '/engineering', roles: ['gm', 'engineer', 'housekeeping_supervisor'] },
+  { prefix: '/engineering', roles: ['gm', 'engineer', 'chief_engineer', 'housekeeping_supervisor'] },
   { prefix: '/tasks', roles: [...ALL_ROLES] },
-  { prefix: '/scheduling', roles: ['gm', 'housekeeping_supervisor', 'engineer'] },
+  { prefix: '/scheduling', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
   { prefix: '/staff', roles: ['gm'] },
-  { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'front_desk'] },
-  { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'engineer'] },
+  { prefix: '/ai', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk'] },
+  { prefix: '/sop', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
   { prefix: '/guest-requests', roles: ['gm', 'housekeeping_supervisor', 'front_desk', 'housekeeper'] },
-  { prefix: '/logbook', roles: ['housekeeping_supervisor', 'engineer', 'front_desk', 'gm'] },
+  { prefix: '/logbook', roles: ['housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk', 'gm'] },
   { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
-  { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'engineer'] },
+  { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
   { prefix: '/billing', roles: ['gm'] },
   { prefix: '/settings', roles: ['gm'] },
 ]

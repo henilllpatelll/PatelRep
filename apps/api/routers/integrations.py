@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.database import supabase
-from models.requests import OperaConnectRequest
+from models.requests import OperaConnectRequest, ResolveOperaSyncConflictRequest
 from services.opera import sync_reservations, bootstrap_opera_data
 from services.opera.auth import acquire_new_token, get_opera_credentials, get_valid_access_token
 from services.opera.crypto import encrypt_opera_secrets
@@ -103,6 +103,67 @@ async def opera_sync(
             "synced_at": datetime.now(timezone.utc).isoformat(),
         }
     }
+
+
+@router.get("/opera/conflicts")
+async def list_opera_sync_conflicts(
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    """Show unresolved source-of-truth conflicts without exposing OHIP credentials."""
+    result = supabase.table("integration_sync_conflicts") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .eq("provider", "opera") \
+        .eq("status", "open") \
+        .order("detected_at", desc=True) \
+        .limit(100) \
+        .execute()
+    return {"data": result.data or []}
+
+
+@router.post("/opera/conflicts/{conflict_id}/resolve")
+async def resolve_opera_sync_conflict(
+    conflict_id: str,
+    body: ResolveOperaSyncConflictRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+):
+    """Record an explicit human source-of-truth decision for an Opera conflict."""
+    lookup = supabase.table("integration_sync_conflicts") \
+        .select("*") \
+        .eq("tenant_id", current_user.hotel_id) \
+        .eq("provider", "opera") \
+        .eq("status", "open") \
+        .eq("id", conflict_id) \
+        .maybe_single() \
+        .execute()
+    conflict = lookup.data
+    if not conflict:
+        raise HTTPException(status_code=404, detail="Opera sync conflict not found")
+
+    if body.resolution == "remote_wins" and conflict.get("local_entity_id"):
+        remote = conflict.get("remote_snapshot") or {}
+        supabase.table("room_status").update({
+            "guest_name": remote.get("guest_name"),
+            "vip_flag": remote.get("vip_flag", False),
+            "checkin_time": remote.get("checkin_time"),
+            "checkout_time": remote.get("checkout_time"),
+            "actual_checkout_at": None,
+        }).eq("tenant_id", current_user.hotel_id).eq("room_id", conflict["local_entity_id"]).execute()
+
+    status = f"resolved_{body.resolution}"
+    result = supabase.table("integration_sync_conflicts").update({
+        "status": status,
+        "resolved_by": current_user.user_id,
+        "resolved_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("tenant_id", current_user.hotel_id).eq("id", conflict_id).execute()
+    supabase.table("integration_sync_conflict_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "conflict_id": conflict_id,
+        "event_type": status,
+        "actor_id": current_user.user_id,
+        "metadata": {"resolution": body.resolution},
+    }).execute()
+    return {"data": (result.data or [None])[0]}
 
 
 @router.post("/opera/test")

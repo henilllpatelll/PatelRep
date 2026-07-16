@@ -133,6 +133,12 @@ export default function IntegrationsPage() {
   })
 
   const operaStatus = statusQuery.data
+  const conflictsQuery = useQuery({
+    queryKey: ['opera-sync-conflicts'],
+    queryFn: () => integrationsApi.listOperaConflicts(),
+    select: (res) => res.data,
+    enabled: Boolean(operaStatus?.connected),
+  })
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const connectMutation = useMutation({
@@ -187,6 +193,16 @@ export default function IntegrationsPage() {
       setShowDisconnectConfirm(false)
       setErrorBanner(err.message || 'Failed to disconnect. Please try again.')
     },
+  })
+
+  const resolveConflictMutation = useMutation({
+    mutationFn: ({ id, resolution }: { id: string; resolution: 'local_wins' | 'remote_wins' }) =>
+      integrationsApi.resolveOperaConflict(id, resolution),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opera-sync-conflicts'] })
+      setSuccessBanner('Opera conflict resolved and recorded.')
+    },
+    onError: (err: any) => setErrorBanner(err.message || 'Could not resolve the Opera conflict.'),
   })
 
   const canConnect = form.ohip_base_url.trim() !== '' && form.hotel_id_opera.trim() !== ''
@@ -279,6 +295,31 @@ export default function IntegrationsPage() {
               <div className={`flex items-center gap-2 text-sm rounded-lg px-4 py-2.5 border ${testResult.ok ? 'text-green-700 bg-[var(--ready-soft)] border-green-200' : 'text-red-700 bg-[var(--alert-soft)] border-red-200'}`}>
                 {testResult.ok ? <CheckCircle2 size={14} className="shrink-0 text-[var(--ready)]" /> : <XCircle size={14} className="shrink-0 text-[var(--alert)]" />}
                 {testResult.message}
+              </div>
+            )}
+
+            {(conflictsQuery.data?.length ?? 0) > 0 && (
+              <div className="rounded-lg border border-red-200 bg-[var(--alert-soft)] p-4 space-y-3" aria-live="polite">
+                <div className="flex items-center gap-2 text-sm font-semibold text-red-800">
+                  <AlertTriangle size={16} />
+                  {conflictsQuery.data?.length} source-of-truth conflict{conflictsQuery.data?.length === 1 ? '' : 's'} need review
+                </div>
+                {conflictsQuery.data?.map((conflict) => (
+                  <div key={conflict.id} className="rounded-md bg-surface border border-red-100 p-3 text-sm text-gray-700">
+                    <p className="font-medium">Opera reservation {conflict.external_id}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      PatelRep: {conflict.local_snapshot?.guest_name || 'No guest'} · Opera: {conflict.remote_snapshot?.guest_name || 'No guest'}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button className="text-xs" variant="ghost" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'local_wins' })}>
+                        Keep PatelRep value
+                      </Button>
+                      <Button className="text-xs" variant="primary" disabled={resolveConflictMutation.isPending} onClick={() => resolveConflictMutation.mutate({ id: conflict.id, resolution: 'remote_wins' })}>
+                        Use Opera value
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 

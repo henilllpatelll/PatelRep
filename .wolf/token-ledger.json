@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-04-09T14:42:27.241Z",
   "lifetime": {
-    "total_tokens_estimated": 20442640,
-    "total_reads": 9449,
-    "total_writes": 9098,
+    "total_tokens_estimated": 20457533,
+    "total_reads": 9454,
+    "total_writes": 9111,
     "total_sessions": 375,
-    "anatomy_hits": 3835,
-    "anatomy_misses": 5465,
+    "anatomy_hits": 3839,
+    "anatomy_misses": 5466,
     "repeated_reads_blocked": 3420,
-    "estimated_savings_vs_bare_cli": 18161289
+    "estimated_savings_vs_bare_cli": 18162089
   },
   "sessions": [
     {
@@ -118849,6 +118849,118 @@
       "id": "session-2026-07-16-1120",
       "started": "2026-07-16T16:20:04.448Z",
       "ended": "2026-07-16T16:25:33.719Z",
+      "reads": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 6053,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/services/work_orders/transitions.py",
+          "tokens_estimated": 950,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/e2e/phase1-work-orders.spec.ts",
+          "tokens_estimated": 4506,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/playwright.phase1.config.ts",
+          "tokens_estimated": 72,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/dashboard/FrontDeskDashboard.tsx",
+          "tokens_estimated": 575,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 34,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 38,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 53,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 36,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 36,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 37,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 36,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",
+          "tokens_estimated": 79,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/main.py",
+          "tokens_estimated": 761,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/schema/work_order_enums.json",
+          "tokens_estimated": 43,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/apps/api/tests/smoke/test_enum_contracts.py",
+          "tokens_estimated": 391,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/Henil/projects/PatelRep/.planning/STATE.md",
+          "tokens_estimated": 1193,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 11581,
+        "output_tokens_estimated": 3312,
+        "reads_count": 5,
+        "writes_count": 13,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 4
+      }
+    },
+    {
+      "id": "session-2026-07-16-1120",
+      "started": "2026-07-16T16:20:04.448Z",
+      "ended": "2026-07-16T16:30:14.184Z",
       "reads": [
         {
           "file": "C:/Users/Henil/projects/PatelRep/apps/api/routers/internal.py",

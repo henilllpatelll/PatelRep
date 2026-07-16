@@ -13,6 +13,7 @@ import {
   TrendingUp,
   CheckCircle,
   AlertTriangle,
+  MessageSquare,
 } from 'lucide-react'
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
@@ -21,7 +22,7 @@ import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TabId = 'daily' | 'staff' | 'maintenance' | 'ai'
+type TabId = 'daily' | 'staff' | 'maintenance' | 'guest-recovery' | 'ai'
 type DateRange = '7d' | '30d' | '90d'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -503,6 +504,50 @@ function MaintenanceTab() {
 
 // ── Tab: AI Usage ─────────────────────────────────────────────────────────────
 
+function GuestRecoveryTab() {
+  const [range, setRange] = useState<DateRange>('30d')
+  const params = getDateRange(range)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['reports', 'guest-recovery', range],
+    queryFn: () => reportsApi.getGuestRecovery(params),
+  })
+  const report = data?.data
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">Guest Recovery</h3>
+          <p className="mt-0.5 text-xs text-gray-400">Response and verified resolution, not just requests closed.</p>
+        </div>
+        <DateRangeSelector value={range} onChange={setRange} />
+      </div>
+      {isError && <div className="rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-4 py-3 text-sm text-[var(--alert)]">Failed to load guest recovery data.</div>}
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{Array.from({ length: 5 }).map((_, index) => <SkeletonBlock key={index} className="h-28" />)}</div>
+      ) : report ? (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <KpiCard label="Requests" value={report.total_requests} icon={<MessageSquare className="h-5 w-5" />} />
+            <KpiCard label="SLA Met" value={`${report.sla_met_rate_pct}%`} colorClass={slaColor(report.sla_met_rate_pct)} />
+            <KpiCard label="Verified Resolution" value={`${report.verified_resolution_rate_pct}%`} colorClass={slaColor(report.verified_resolution_rate_pct)} />
+            <KpiCard label="Avg Acknowledgement" value={`${report.average_acknowledgement_minutes} min`} colorClass="text-[var(--info)]" />
+            <KpiCard label="Avg Verified Resolution" value={`${report.average_verified_resolution_minutes} min`} colorClass="text-[var(--ready)]" />
+          </div>
+          <div className="rounded-[var(--r-lg)] border border-line bg-surface p-5">
+            <h4 className="text-sm font-semibold text-gray-700">Requests by category</h4>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {Object.entries(report.by_category).length ? Object.entries(report.by_category).map(([category, count]) => (
+                <span key={category} className="rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700">{formatType(category)}: <strong>{count}</strong></span>
+              )) : <p className="text-sm text-gray-400">No guest requests in this period.</p>}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
 function AIUsageTab() {
   const [range, setRange] = useState<DateRange>('30d')
   const params = getDateRange(range)
@@ -645,6 +690,9 @@ export default function ReportsPage() {
   if (isGM || role === 'engineer') {
     tabs.push({ id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-4 w-4" /> })
   }
+  if (isGM || isSupervisor || role === 'engineer') {
+    tabs.push({ id: 'guest-recovery', label: 'Guest Recovery', icon: <MessageSquare className="h-4 w-4" /> })
+  }
   // AI Usage: gm only
   if (isGM) {
     tabs.push({ id: 'ai', label: 'AI Usage', icon: <Zap className="h-4 w-4" /> })
@@ -708,6 +756,7 @@ export default function ReportsPage() {
         {currentTab === 'daily' && <DailySummaryTab />}
         {currentTab === 'staff' && <StaffPerformanceTab />}
         {currentTab === 'maintenance' && <MaintenanceTab />}
+        {currentTab === 'guest-recovery' && <GuestRecoveryTab />}
         {currentTab === 'ai' && <AIUsageTab />}
       </div>
     </div>

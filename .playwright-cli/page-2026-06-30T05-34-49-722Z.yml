@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e208]
+  - generic [ref=e359]:
+    - generic [ref=e360]:
+      - generic [ref=e361]:
+        - generic [ref=e362]: ✦ PatelRepHotel AI
+        - button "Espanol" [ref=e363] [cursor=pointer]:
+          - img [ref=e364]
+          - generic [ref=e368]: ES
+      - generic [ref=e369]:
+        - paragraph [ref=e370]: Operator sign in
+        - heading "Welcome back to your hotel." [level=1] [ref=e371]
+        - paragraph [ref=e372]: Sign in to keep the floor running smoothly. The AI has prepared your morning briefing.
+        - tablist [ref=e373]:
+          - tab "Sign In" [ref=e374] [cursor=pointer]
+          - tab "Magic Link" [ref=e375] [cursor=pointer]
+        - generic [ref=e376]:
+          - generic [ref=e377]:
+            - generic [ref=e378]: Email
+            - textbox "Email" [ref=e379]:
+              - /placeholder: you@hotel.com
+          - generic [ref=e380]:
+            - generic [ref=e381]:
+              - generic [ref=e382]: Password
+              - link "Forgot password?" [ref=e383] [cursor=pointer]:
+                - /url: /auth/reset-password
+            - generic [ref=e384]:
+              - textbox "Password" [ref=e385]:
+                - /placeholder: ••••••••••••
+              - button "Show password" [ref=e386] [cursor=pointer]:
+                - img [ref=e387]
+          - button "Sign In" [disabled] [ref=e390]
+      - generic [ref=e391]: "v2.1.0 · status: operational"
+    - generic [ref=e393]:
+      - generic [ref=e394]: Lone Star Inn - Austin TX
+      - generic [ref=e396]:
+        - generic [ref=e397]: This morning - 9:42
+        - generic [ref=e398]:
+          - generic [ref=e399]: Rooms ready by 3pm
+          - generic [ref=e400]:
+            - generic [ref=e401]: "52"
+            - generic [ref=e402]: / 87
+            - generic [ref=e403]: +6 vs forecast
+        - generic [ref=e406]:
+          - generic [ref=e407]: 78% occ
+          - generic [ref=e408]: 24m clean
+          - generic [ref=e409]: 6 WOs
+          - generic [ref=e410]: 3 VIPs
+      - blockquote [ref=e411]:
+        - text: “It's like having a second supervisor on the floor - quietly catching the things we'd miss.”
+        - contentinfo [ref=e412]: Sandeep R. - GM, Bluebonnet Suites

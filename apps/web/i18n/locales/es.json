@@ -47,5 +47,12 @@
       "extra_amenities": "Articulos Extra",
       "ask_sop": "Consultar SOP"
     }
+  },
+  "nav": { "evidence": "Evidencia", "safety": "Seguridad" },
+  "evidence": {
+    "eyebrow": "Preparación de cumplimiento", "title": "Centro de evidencia", "subtitle": "Revise pruebas faltantes, registros vencidos y confirmaciones pendientes del personal.", "refresh": "Actualizar", "summary": "Resumen de evidencia", "critical": "Requiere acción", "expired": "Evidencia vencida", "unacknowledged": "Requisitos sin confirmar", "applicability": "Aplicabilidad de la propiedad", "noApplicability": "Aún no se han configurado instalaciones o servicios de la propiedad.", "exceptionQueue": "Cola de excepciones", "open": "abiertas", "noExceptions": "No hay excepciones de evidencia abiertas.", "loadError": "No se pudo cargar el estado de evidencia.", "states": { "missing": "Falta", "overdue": "Vencido", "expired": "Expirada", "failed": "Falló", "deferred": "Diferida", "unacknowledged": "Sin confirmar" }
+  },
+  "safety": {
+    "eyebrow": "Seguridad del personal", "title": "PreparaciÃ³n de seguridad", "subtitle": "Complete la capacitaciÃ³n requerida, encuentre procedimientos de emergencia y registre un incidente sin papeleo.", "refresh": "Actualizar", "loadError": "No se pudo cargar la preparaciÃ³n de seguridad.", "training": "CapacitaciÃ³n requerida", "complete": "Marcar como completada", "emergencyPlans": "Planes de emergencia", "acknowledged": "Confirmado", "notAcknowledged": "Necesita confirmaciÃ³n", "noPlans": "AÃºn no hay planes de emergencia aprobados.", "reportIncident": "Reportar un incidente controlado", "incidentType": "Tipo de incidente", "location": "UbicaciÃ³n", "containment": "ContenciÃ³n inmediata realizada", "details": "Â¿QuÃ© sucediÃ³?", "submitIncident": "Registrar incidente", "incidentSaved": "Incidente registrado para revisiÃ³n de gerencia.", "status": { "compliant": "Cumple", "due_soon": "PrÃ³ximo a vencer", "overdue": "Vencido", "not_applicable": "No aplica" }, "types": { "employee_injury": "LesiÃ³n de empleado", "chemical_exposure": "ExposiciÃ³n quÃ­mica", "security": "Seguridad", "life_safety_impairment": "Falla de seguridad vital" }
   }
 }

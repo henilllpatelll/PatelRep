@@ -35,8 +35,12 @@ const STATUS_ORDER: StatusKey[] = ['INSPECTED', 'CLEAN', 'IN_PROGRESS', 'DIRTY',
 
 const REQUEST_STATUS_TONE: Record<string, 'alert' | 'caution' | 'ready' | 'neutral'> = {
   open: 'alert',
-  in_progress: 'caution',
+  acknowledged: 'caution',
+  dispatched: 'caution',
+  arrived: 'caution',
+  guest_contacted: 'caution',
   resolved: 'ready',
+  verified: 'ready',
   escalated: 'alert',
 }
 
@@ -133,7 +137,7 @@ function SkeletonRow() {
 
 function GuestRequestRow({ req }: { req: GuestRequest }) {
   const tone = REQUEST_STATUS_TONE[req.status] ?? 'neutral'
-  const statusLabel = req.status === 'in_progress' ? 'Active' : req.status
+  const statusLabel = ['acknowledged', 'dispatched', 'arrived', 'guest_contacted'].includes(req.status) ? 'Active' : req.status
   return (
     <Link
       href="/guest-requests"
@@ -199,7 +203,13 @@ export function FrontDeskDashboard() {
 
   const { data: activeRequestsData } = useQuery({
     queryKey: ['guest-requests-active'],
-    queryFn: () => guestRequestsApi.listRequests({ status: 'in_progress', per_page: 8 }),
+    queryFn: async () => {
+      const response = await guestRequestsApi.listRequests({ per_page: 100 })
+      return {
+        ...response,
+        data: response.data.filter((request) => ['acknowledged', 'dispatched', 'arrived', 'guest_contacted'].includes(request.status)).slice(0, 8),
+      }
+    },
     refetchInterval: 60_000,
   })
 

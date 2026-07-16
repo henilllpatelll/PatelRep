@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from typing import Literal, Optional
 from datetime import datetime, timezone
 from middleware.auth import get_current_user, CurrentUser
-from models.requests import CreateLostFoundRequest
+from models.requests import CreateLostFoundCustodyEventRequest, CreateLostFoundRequest
 from core.database import supabase
 from core.config import settings
+from services.guest_recovery.contracts import (
+    MissingCustodyVerificationError,
+    validate_lost_found_custody_event,
+)
 
 router = APIRouter(prefix="/lost-found", tags=["lost-found"])
 
@@ -60,11 +64,23 @@ async def create_lost_found_item(
         "location_found": request.location_found,
         "notes": request.notes,
         "photo_url": request.photo_url,
+        "tag_identifier": request.tag_identifier,
+        "storage_location": request.storage_location,
         "found_by": current_user.user_id,
         "status": "unclaimed",
     }
     result = supabase.table("lost_found_items").insert(data).execute()
-    return {"data": result.data[0] if result.data else None}
+    item = result.data[0] if result.data else None
+    if item:
+        supabase.table("lost_found_custody_events").insert({
+            "tenant_id": current_user.hotel_id,
+            "lost_found_item_id": item["id"],
+            "event_type": "intake",
+            "storage_location": request.storage_location,
+            "actor_id": current_user.user_id,
+            "note": request.notes,
+        }).execute()
+    return {"data": item}
 
 
 @router.get("")
@@ -120,6 +136,70 @@ async def get_lost_found_item(
         raise HTTPException(status_code=404, detail="Item not found")
 
     return {"data": result.data[0]}
+
+
+@router.get("/{item_id}/custody-events")
+async def list_lost_found_custody_events(
+    item_id: str, current_user: CurrentUser = Depends(get_current_user)
+):
+    item = supabase.table("lost_found_items").select("id").eq("id", item_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    events = supabase.table("lost_found_custody_events").select("*").eq(
+        "lost_found_item_id", item_id
+    ).eq("tenant_id", current_user.hotel_id).order("created_at").execute().data or []
+    return {"data": events}
+
+
+@router.post("/{item_id}/custody-events")
+async def record_lost_found_custody_event(
+    item_id: str,
+    request: CreateLostFoundCustodyEventRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in {"front_desk", "housekeeping_supervisor", "gm"}:
+        raise HTTPException(status_code=403, detail="Not authorized to change item custody")
+    item = supabase.table("lost_found_items").select("id").eq("id", item_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    try:
+        validate_lost_found_custody_event(
+            event_type=request.event_type,
+            verification_method=request.verification_method,
+            recipient_name=request.recipient_name,
+        )
+    except MissingCustodyVerificationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    event = supabase.table("lost_found_custody_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "lost_found_item_id": item_id,
+        **request.model_dump(),
+        "actor_id": current_user.user_id,
+    }).execute().data[0]
+    update: dict[str, str] = {}
+    if request.storage_location:
+        update["storage_location"] = request.storage_location
+    if request.event_type == "released":
+        now = datetime.now(timezone.utc).isoformat()
+        update.update({
+            "status": "claimed",
+            "claimed_by_name": request.recipient_name or "",
+            "claimed_at": now,
+            "release_verified_at": now,
+            "release_verification_method": request.verification_method or "",
+        })
+    if request.event_type == "disposition" and request.disposition:
+        update["status"] = request.disposition
+        update["disposition_approved_by"] = current_user.user_id
+    if update:
+        supabase.table("lost_found_items").update(update).eq("id", item_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).execute()
+    return {"data": event}
 
 
 @router.patch("/{item_id}")

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
-  FileText, Library, Settings, ClipboardList,
+  FileText, Library, Settings, ClipboardList, ShieldCheck,
   Package, Sparkles, ChevronDown, MessageSquare,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
@@ -31,11 +31,14 @@ const ALL_NAV_ITEMS: NavItem[] = [
     { href: '/engineering/pm-schedules', label: 'PM Schedules' },
     { href: '/engineering/predictions',  label: 'Predictions' },
   ]},
+  { href: '/programs',       label: 'Operational Programs', icon: ClipboardList },
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
   { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
   { href: '/tasks',          label: 'Tasks',          icon: ClipboardList },
   { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
   { href: '/sop',            label: 'SOP Library',    icon: Library },
+  { href: '/evidence',       label: 'Evidence',       icon: ShieldCheck },
+  { href: '/safety',         label: 'Safety',         icon: ShieldCheck },
   { href: '/reports',        label: 'Reports',        icon: FileText },
   { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
   { href: '/staff',          label: 'Staff',          icon: Users },
@@ -43,10 +46,11 @@ const ALL_NAV_ITEMS: NavItem[] = [
 ]
 
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/ai'],
+  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
-  engineer:       ['/dashboard','/engineering','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  engineer:       ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  chief_engineer: ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   front_desk:     ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found','/ai'],
 }
 
@@ -55,6 +59,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   housekeeping_supervisor: 'roles.housekeeping_supervisor',
   housekeeper:             'roles.housekeeper',
   engineer:                'roles.engineer',
+  chief_engineer:          'roles.chief_engineer',
   front_desk:              'roles.front_desk',
 }
 
@@ -66,12 +71,15 @@ const NAV_LABEL_KEYS: Record<string, string> = {
   'Work Orders': 'nav.workOrders',
   Assets: 'nav.assets',
   'PM Schedules': 'nav.pmSchedules',
+  'Operational Programs': 'nav.programs',
   Predictions: 'nav.predictions',
   'Lost & Found': 'nav.lostFound',
   'Guest Requests': 'nav.guestRequests',
   Tasks: 'nav.tasks',
   'AI Copilot': 'nav.aiCopilot',
   'SOP Library': 'nav.sopLibrary',
+  Evidence: 'nav.evidence',
+  Safety: 'nav.safety',
   Reports: 'nav.reports',
   Logbook: 'nav.logbook',
   Staff: 'nav.staff',
@@ -82,8 +90,8 @@ const NAV_LABEL_KEYS: Record<string, string> = {
   Inspections: 'nav.inspections',
 }
 
-const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/lost-found','/guest-requests','/tasks']
-const INTELLIGENCE_HREFS = ['/ai','/sop','/reports']
+const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks']
+const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports']
 const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 
 interface SidebarProps {

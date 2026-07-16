@@ -6,6 +6,7 @@ import anthropic
 
 from core.config import settings
 from core.database import supabase
+from services.ai.model_routing import resolve_model
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +242,7 @@ def _analyze_asset(
         user_prompt = _build_asset_prompt(asset, category_name, work_orders, pm_schedules)
 
         response = claude.messages.create(
-            model="claude-sonnet-4-6",
+            model=resolve_model("failure_prediction", hotel_id),
             max_tokens=512,
             system=FAILURE_ANALYSIS_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],

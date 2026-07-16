@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
+import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -120,6 +121,9 @@ interface PredictionCardProps {
   isAcknowledging: boolean
   onCreateWO: (id: string) => void
   isCreatingWO: boolean
+  canAuthorize: boolean
+  onAuthorize: (id: string) => void
+  isAuthorizing: boolean
 }
 
 function PredictionCard({
@@ -131,6 +135,9 @@ function PredictionCard({
   isAcknowledging,
   onCreateWO,
   isCreatingWO,
+  canAuthorize,
+  onAuthorize,
+  isAuthorizing,
 }: PredictionCardProps) {
   const score = prediction.risk_score
   const borderColor = getBorderColor(score)
@@ -275,6 +282,12 @@ function PredictionCard({
         {/* Actions */}
         {canManage && !prediction.is_acknowledged && (
           <div className="flex items-center gap-3 pt-1">
+            {canAuthorize && (
+              <Button variant="secondary" onClick={() => onAuthorize(prediction.id)} disabled={isAuthorizing} className="text-xs px-3 py-1.5">
+                {isAuthorizing ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+                Authorize AI action
+              </Button>
+            )}
             <Button
               variant="primary"
               onClick={() => onCreateWO(prediction.id)}
@@ -337,6 +350,7 @@ function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
 export default function PredictionsPage() {
   const { isGM, role } = useRole()
   const canManage = isGM || role === 'engineer'
+  const canAuthorize = isGM || role === 'chief_engineer'
   const queryClient = useQueryClient()
 
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
@@ -366,6 +380,14 @@ export default function PredictionsPage() {
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
       showSuccess('Work order created successfully')
     },
+  })
+
+  const authorizeRecommendationMutation = useMutation({
+    mutationFn: async (predictionId: string) => {
+      const recommendation = await aiApi.createFailurePredictionRecommendation(predictionId)
+      return aiApi.authorizeRecommendation(recommendation.data.id)
+    },
+    onSuccess: () => showSuccess('AI action authorized. Record the outcome after the work is complete.'),
   })
 
   function showSuccess(msg: string) {
@@ -598,6 +620,12 @@ export default function PredictionsPage() {
               isCreatingWO={
                 createWOMutation.isPending &&
                 createWOMutation.variables === prediction.id
+              }
+              canAuthorize={canAuthorize}
+              onAuthorize={(id) => authorizeRecommendationMutation.mutate(id)}
+              isAuthorizing={
+                authorizeRecommendationMutation.isPending &&
+                authorizeRecommendationMutation.variables === prediction.id
               }
             />
           ))}

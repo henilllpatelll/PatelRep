@@ -8,6 +8,9 @@ export interface LostFoundItem {
   location_found?: string
   notes?: string
   photo_url?: string
+  tag_identifier?: string
+  storage_location?: string
+  retention_due_at?: string
   room_id?: string
   status: LostFoundStatus
   found_by: string
@@ -41,6 +44,8 @@ export const lostFoundApi = {
     location_found?: string
     notes?: string
     photo_url?: string
+    tag_identifier?: string
+    storage_location?: string
   }) =>
     apiClient.post('/lost-found', payload) as Promise<{ data: LostFoundItem }>,
 
@@ -67,4 +72,21 @@ export const lostFoundApi = {
     form.append('file', file)
     return apiClient.post('/lost-found/upload-photo', form) as Promise<{ data: { url: string } }>
   },
+
+  listCustodyEvents: (id: string) =>
+    apiClient.get(`/lost-found/${id}/custody-events`) as Promise<{ data: LostFoundCustodyEvent[] }>,
+
+  recordCustodyEvent: (id: string, payload: Omit<LostFoundCustodyEvent, 'id' | 'created_at'>) =>
+    apiClient.post(`/lost-found/${id}/custody-events`, payload) as Promise<{ data: LostFoundCustodyEvent }>,
+}
+
+export interface LostFoundCustodyEvent {
+  id: string
+  event_type: 'intake' | 'moved' | 'released' | 'disposition'
+  storage_location?: string
+  recipient_name?: string
+  verification_method?: string
+  disposition?: 'claimed' | 'donated' | 'discarded'
+  note?: string
+  created_at: string
 }

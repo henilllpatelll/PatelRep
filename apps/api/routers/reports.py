@@ -3,8 +3,35 @@ from typing import Optional
 from datetime import date, timedelta
 from middleware.auth import require_role, CurrentUser
 from core.database import supabase
+from services.guest_recovery.contracts import calculate_guest_request_metrics
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@router.get("/guest-recovery")
+async def get_guest_recovery_report(
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer")),
+):
+    """Quantify guest-response performance from immutable lifecycle timestamps."""
+    today = date.today()
+    start = start_date or (today - timedelta(days=30))
+    end = end_date or today
+    requests = supabase.table("guest_requests").select(
+        "created_at, acknowledged_at, verified_at, due_at, status, category"
+    ).eq("tenant_id", current_user.hotel_id).gte("created_at", start.isoformat()).lt(
+        "created_at", (end + timedelta(days=1)).isoformat()
+    ).execute().data or []
+    by_category: dict[str, int] = {}
+    for request in requests:
+        category = request.get("category", "service")
+        by_category[category] = by_category.get(category, 0) + 1
+    return {"data": {
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        **calculate_guest_request_metrics(requests),
+        "by_category": by_category,
+    }}
 
 
 @router.get("/daily-summary")

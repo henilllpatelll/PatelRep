@@ -261,7 +261,15 @@ export const engineeringApi = {
   // ── PM Schedule management ────────────────────────────────────────────────────
 
   completePMSchedule: (scheduleId: string) =>
-    apiClient.post(`/assets/pm-schedules/${scheduleId}/complete`) as Promise<{ data: PMSchedule }>,
+    apiClient.post(`/assets/pm-schedules/${scheduleId}/complete`, {
+      items: [{
+        key: 'technician_attestation',
+        label: 'Technician completion attestation',
+        result: 'passed',
+        requires_evidence: false,
+        evidence: [],
+      }],
+    }) as Promise<{ data: PMSchedule }>,
 
   updatePMSchedule: (scheduleId: string, payload: {
     name?: string

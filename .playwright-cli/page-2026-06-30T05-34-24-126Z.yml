@@ -1,0 +1,213 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e210] [cursor=pointer]:
+        - generic [ref=e211]: S
+        - generic [ref=e212]:
+          - generic [ref=e213]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e214]: 114 rooms
+        - img [ref=e215]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e20] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e21]
+              - generic [ref=e26]: Dashboard
+            - link "Housekeeping" [ref=e29] [cursor=pointer]:
+              - /url: /housekeeping
+              - img [ref=e30]
+              - generic [ref=e32]: Housekeeping
+            - link "Engineering" [ref=e35] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e36]
+              - generic [ref=e38]: Engineering
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Guest Requests" [ref=e49] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e50]
+              - generic [ref=e52]: Guest Requests
+            - link "Tasks" [ref=e55] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e56]
+              - generic [ref=e59]: Tasks
+        - generic [ref=e60]:
+          - paragraph [ref=e62]: Intelligence
+          - generic [ref=e63]:
+            - link "AI Copilot AI" [ref=e66] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e67]
+              - generic [ref=e69]: AI Copilot
+              - generic [ref=e70]: AI
+            - link "SOP Library" [ref=e73] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e74]
+              - generic [ref=e76]: SOP Library
+            - link "Reports" [ref=e79] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e80]
+              - generic [ref=e83]: Reports
+        - generic [ref=e84]:
+          - paragraph [ref=e86]: Organization
+          - generic [ref=e87]:
+            - link "Logbook" [ref=e90] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e91]
+              - generic [ref=e94]: Logbook
+            - link "Staff" [ref=e97] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e98]
+              - generic [ref=e103]: Staff
+            - link "Schedule" [ref=e106] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e107]
+              - generic [ref=e109]: Schedule
+      - link "Settings" [ref=e174] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e175]
+        - text: Settings
+      - generic [ref=e111]:
+        - generic [ref=e112]: H
+        - generic [ref=e113]:
+          - paragraph [ref=e114]: hp.patelrep@gmail.com
+          - paragraph [ref=e178]: General Manager
+    - generic [ref=e115]:
+      - banner [ref=e116]:
+        - generic [ref=e117]:
+          - img [ref=e118]
+          - textbox "Open command palette" [ref=e121]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e122]: ⌘K
+        - generic [ref=e125]: Tue, Jun 30 · Day shift
+        - button "Espanol" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - generic [ref=e132]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e136]: Ask copilot
+          - generic [ref=e137]: ⌘J
+        - button "Notifications" [ref=e138] [cursor=pointer]:
+          - img [ref=e139]
+          - generic [ref=e142]: "3"
+        - generic [ref=e143]:
+          - button "User menu for hp.patelrep@gmail.com" [expanded] [ref=e179] [cursor=pointer]:
+            - generic [ref=e145]: H
+            - img [ref=e146]
+          - generic [ref=e346]:
+            - paragraph [ref=e348]: hp.patelrep@gmail.com
+            - button "Settings" [active] [ref=e350] [cursor=pointer]:
+              - img [ref=e351]
+              - text: Settings
+            - button "Sign Out" [ref=e355] [cursor=pointer]:
+              - img [ref=e356]
+              - text: Sign Out
+      - main [ref=e148]:
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - paragraph [ref=e182]: Tuesday, June 30
+            - heading "Good morning, hp.patelrep." [level=1] [ref=e183]
+            - paragraph [ref=e217]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e184]:
+            - generic [ref=e218]:
+              - generic [ref=e219]:
+                - generic [ref=e220]: Rooms Inspected
+                - img [ref=e222]
+              - generic [ref=e225]:
+                - generic [ref=e226]: "26"
+                - generic [ref=e227]: / 114
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e230]: Open Work Orders
+                - img [ref=e232]
+              - generic [ref=e235]: "0"
+            - generic [ref=e236]:
+              - generic [ref=e237]:
+                - generic [ref=e238]: Tasks Completed
+                - img [ref=e240]
+              - generic [ref=e244]: "0"
+          - generic [ref=e188]:
+            - button "AI Risk Alerts AI" [expanded] [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]:
+                - heading "AI Risk Alerts" [level=2] [ref=e248]
+                - generic [ref=e249]: AI
+              - img [ref=e251]
+            - generic [ref=e254]:
+              - img [ref=e255]
+              - paragraph [ref=e258]: No active alerts — operations running smoothly
+          - generic [ref=e190]:
+            - generic [ref=e260]:
+              - generic [ref=e261]: Room status
+              - generic [ref=e262]: Real-time
+            - generic [ref=e192]:
+              - generic [ref=e263]:
+                - generic [ref=e266]: Vacant Dirty
+                - generic [ref=e267]: "2"
+              - generic [ref=e270]:
+                - generic [ref=e273]: In Progress
+                - generic [ref=e274]: "1"
+              - generic [ref=e277]:
+                - generic [ref=e280]: Clean Inspect
+                - generic [ref=e281]: "0"
+              - generic [ref=e283]:
+                - generic [ref=e286]: Inspected
+                - generic [ref=e287]: "26"
+              - generic [ref=e290]:
+                - generic [ref=e293]: Pickup
+                - generic [ref=e294]: "19"
+              - generic [ref=e297]:
+                - generic [ref=e300]: OOO/OOS
+                - generic [ref=e301]: "1"
+            - generic [ref=e304]:
+              - generic [ref=e305]: 114 rooms total
+              - generic [ref=e306]: Live
+          - generic [ref=e199]:
+            - generic [ref=e308]:
+              - heading "SLA Compliance (30 days)" [level=3] [ref=e309]
+              - generic [ref=e310]:
+                - generic [ref=e311]:
+                  - generic [ref=e312]:
+                    - img [ref=e313]
+                    - generic [ref=e317]: 100%
+                  - paragraph [ref=e318]: Excellent
+                - generic [ref=e319]:
+                  - generic [ref=e320]:
+                    - paragraph [ref=e321]: WO Completion
+                    - generic [ref=e325]: 100%
+                  - generic [ref=e326]:
+                    - generic [ref=e327]:
+                      - paragraph [ref=e328]: Total WOs
+                      - paragraph [ref=e329]: "6"
+                    - generic [ref=e330]:
+                      - paragraph [ref=e331]: Completed
+                      - paragraph [ref=e332]: "6"
+                    - generic [ref=e333]:
+                      - paragraph [ref=e334]: Avg Resolution
+                      - paragraph [ref=e335]: 15.8h
+                    - generic [ref=e336]:
+                      - paragraph [ref=e337]: SLA Breaches
+                      - paragraph [ref=e338]: "0"
+            - generic [ref=e339]:
+              - heading "Top Staff Performers (30 days)" [level=3] [ref=e340]
+              - generic [ref=e341]:
+                - img [ref=e342]
+                - paragraph [ref=e344]: Keep up the good work!
+                - paragraph [ref=e345]: Data will appear here soon.
+    - button "Open AI Copilot" [ref=e157] [cursor=pointer]:
+      - img [ref=e158]
+      - generic [ref=e160]: Ask copilot
+      - generic [ref=e161]: ⌘J
+    - button "Open feedback" [ref=e163] [cursor=pointer]:
+      - img [ref=e164]
+      - generic [ref=e166]: Feedback
+    - button "Display preferences" [ref=e168] [cursor=pointer]:
+      - img [ref=e169]
+  - alert [ref=e208]

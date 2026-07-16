@@ -1,0 +1,161 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e211] [cursor=pointer]:
+        - generic [ref=e212]: S
+        - generic [ref=e213]:
+          - generic [ref=e214]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e215]: 114 rooms
+        - img [ref=e216]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e25]: Dashboard
+            - generic [ref=e26]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e33]:
+                - link "Room Board" [ref=e34] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e35] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [active] [ref=e36] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Engineering" [ref=e39] [cursor=pointer]:
+              - /url: /engineering
+              - img [ref=e40]
+              - generic [ref=e42]: Engineering
+            - link "Lost & Found" [ref=e45] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e46]
+              - generic [ref=e50]: Lost & Found
+            - link "Guest Requests" [ref=e53] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e54]
+              - generic [ref=e56]: Guest Requests
+            - link "Tasks" [ref=e59] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e60]
+              - generic [ref=e63]: Tasks
+        - generic [ref=e64]:
+          - paragraph [ref=e66]: Intelligence
+          - generic [ref=e67]:
+            - link "AI Copilot AI" [ref=e70] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e71]
+              - generic [ref=e73]: AI Copilot
+              - generic [ref=e74]: AI
+            - link "SOP Library" [ref=e77] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e78]
+              - generic [ref=e80]: SOP Library
+            - link "Reports" [ref=e83] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e84]
+              - generic [ref=e87]: Reports
+        - generic [ref=e88]:
+          - paragraph [ref=e90]: Organization
+          - generic [ref=e91]:
+            - link "Logbook" [ref=e94] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e95]
+              - generic [ref=e98]: Logbook
+            - link "Staff" [ref=e101] [cursor=pointer]:
+              - /url: /staff
+              - img [ref=e102]
+              - generic [ref=e107]: Staff
+            - link "Schedule" [ref=e110] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e111]
+              - generic [ref=e113]: Schedule
+      - link "Settings" [ref=e116] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e117]
+        - text: Settings
+      - generic [ref=e121]:
+        - generic [ref=e122]: H
+        - generic [ref=e123]:
+          - paragraph [ref=e124]: hp.patelrep@gmail.com
+          - paragraph [ref=e125]: General Manager
+    - generic [ref=e126]:
+      - banner [ref=e127]:
+        - generic [ref=e128]:
+          - img [ref=e129]
+          - textbox "Open command palette" [ref=e132]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e133]: ⌘K
+        - generic [ref=e136]: Tue, Jun 30 · Day shift
+        - button "Espanol" [ref=e138] [cursor=pointer]:
+          - img [ref=e139]
+          - generic [ref=e143]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+          - generic [ref=e147]: Ask copilot
+          - generic [ref=e148]: ⌘J
+        - button "Notifications" [ref=e149] [cursor=pointer]:
+          - img [ref=e150]
+          - generic [ref=e153]: "3"
+        - button "User menu for hp.patelrep@gmail.com" [ref=e155] [cursor=pointer]:
+          - generic [ref=e156]: H
+          - img [ref=e157]
+      - main [ref=e159]:
+        - generic [ref=e1209]:
+          - generic [ref=e1212]:
+            - paragraph [ref=e1213]: Housekeeping
+            - heading "Inspections" [level=1] [ref=e1214]
+            - paragraph [ref=e1215]: Inspect cleaned rooms — pass, flag conditional, or send back for re-clean.
+          - generic [ref=e1216]:
+            - button "Live · 2" [ref=e1217] [cursor=pointer]
+            - button "History" [ref=e1218] [cursor=pointer]
+          - generic [ref=e1219]:
+            - generic [ref=e1220]:
+              - generic [ref=e1221]:
+                - img [ref=e1222]
+                - heading "Ready to Strip" [level=2] [ref=e1228]
+                - generic [ref=e1229]: "2"
+              - generic [ref=e1230]:
+                - generic [ref=e1231]:
+                  - generic [ref=e1233]: "137"
+                  - generic [ref=e1235]:
+                    - generic [ref=e1236]: Departure
+                    - generic [ref=e1237]: Floor 1
+                  - button "Mark Stripped" [ref=e1238] [cursor=pointer]:
+                    - img [ref=e1239]
+                    - text: Mark Stripped
+                - generic [ref=e1245]:
+                  - generic [ref=e1247]: "227"
+                  - generic [ref=e1249]:
+                    - generic [ref=e1250]: Departure
+                    - generic [ref=e1251]: Floor 2
+                  - button "Mark Stripped" [ref=e1252] [cursor=pointer]:
+                    - img [ref=e1253]
+                    - text: Mark Stripped
+            - generic [ref=e1259]:
+              - generic [ref=e1260]:
+                - img [ref=e1261]
+                - heading "Inspection Queue" [level=2] [ref=e1265]
+              - generic [ref=e1266]:
+                - img [ref=e1267]
+                - paragraph [ref=e1271]: No rooms waiting for inspection
+                - paragraph [ref=e1272]: Rooms appear here when a housekeeper marks them clean.
+    - button "Open AI Copilot" [ref=e194] [cursor=pointer]:
+      - img [ref=e195]
+      - generic [ref=e197]: Ask copilot
+      - generic [ref=e198]: ⌘J
+    - button "Open feedback" [ref=e200] [cursor=pointer]:
+      - img [ref=e201]
+      - generic [ref=e203]: Feedback
+    - button "Display preferences" [ref=e205] [cursor=pointer]:
+      - img [ref=e206]
+  - alert [ref=e209]

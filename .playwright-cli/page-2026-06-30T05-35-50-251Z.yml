@@ -1,0 +1,859 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary "Main navigation" [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - generic [ref=e10]:
+          - generic [ref=e11]: PatelRep
+          - generic [ref=e12]: Hotel Operations AI
+      - button "S Sonesta ES Suites Fossil Creek 114 rooms" [ref=e251] [cursor=pointer]:
+        - generic [ref=e252]: S
+        - generic [ref=e253]:
+          - generic [ref=e254]: Sonesta ES Suites Fossil Creek
+          - generic [ref=e255]: 114 rooms
+        - img [ref=e256]
+      - navigation [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Operations
+          - generic [ref=e16]:
+            - link "Dashboard" [ref=e20] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e21]
+              - generic [ref=e26]: Dashboard
+            - generic [ref=e27]:
+              - link "Housekeeping" [ref=e29] [cursor=pointer]:
+                - /url: /housekeeping
+                - img [ref=e30]
+                - generic [ref=e32]: Housekeeping
+              - generic [ref=e259]:
+                - link "Room Board" [ref=e260] [cursor=pointer]:
+                  - /url: /housekeeping
+                - link "Assignments" [ref=e261] [cursor=pointer]:
+                  - /url: /housekeeping/assignments
+                - link "Inspections" [ref=e262] [cursor=pointer]:
+                  - /url: /housekeeping/inspections
+            - link "Lost & Found" [ref=e41] [cursor=pointer]:
+              - /url: /lost-found
+              - img [ref=e42]
+              - generic [ref=e46]: Lost & Found
+            - link "Guest Requests" [ref=e49] [cursor=pointer]:
+              - /url: /guest-requests
+              - img [ref=e50]
+              - generic [ref=e52]: Guest Requests
+            - link "Tasks" [ref=e55] [cursor=pointer]:
+              - /url: /tasks
+              - img [ref=e56]
+              - generic [ref=e59]: Tasks
+        - generic [ref=e60]:
+          - paragraph [ref=e62]: Intelligence
+          - generic [ref=e63]:
+            - link "AI Copilot AI" [ref=e66] [cursor=pointer]:
+              - /url: /ai
+              - img [ref=e67]
+              - generic [ref=e69]: AI Copilot
+              - generic [ref=e70]: AI
+            - link "SOP Library" [ref=e73] [cursor=pointer]:
+              - /url: /sop
+              - img [ref=e74]
+              - generic [ref=e76]: SOP Library
+            - link "Reports" [ref=e79] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e80]
+              - generic [ref=e83]: Reports
+        - generic [ref=e84]:
+          - paragraph [ref=e86]: Organization
+          - generic [ref=e87]:
+            - link "Logbook" [ref=e90] [cursor=pointer]:
+              - /url: /logbook
+              - img [ref=e91]
+              - generic [ref=e94]: Logbook
+            - link "Schedule" [ref=e106] [cursor=pointer]:
+              - /url: /scheduling
+              - img [ref=e107]
+              - generic [ref=e109]: Schedule
+      - generic [ref=e111]:
+        - generic [ref=e112]: S
+        - generic [ref=e113]:
+          - paragraph [ref=e114]: Sandra
+          - paragraph [ref=e172]: Housekeeping Supervisor
+    - generic [ref=e115]:
+      - banner [ref=e116]:
+        - generic [ref=e117]:
+          - img [ref=e118]
+          - textbox "Open command palette" [ref=e121]:
+            - /placeholder: Search rooms, work orders, guests...
+          - generic [ref=e122]: ⌘K
+        - generic [ref=e125]: Tue, Jun 30 · Day shift
+        - button "Espanol" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - generic [ref=e132]: ES
+        - button "Open AI Copilot (Cmd+J)" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e136]: Ask copilot
+          - generic [ref=e137]: ⌘J
+        - button "Notifications" [ref=e138] [cursor=pointer]:
+          - img [ref=e139]
+          - generic [ref=e142]: "3"
+        - button "User menu for Sandra" [ref=e173] [cursor=pointer]:
+          - generic [ref=e145]: S
+          - img [ref=e146]
+      - main [ref=e148]:
+        - generic [ref=e263]:
+          - generic [ref=e265]:
+            - generic [ref=e266]:
+              - paragraph [ref=e267]: Housekeeping
+              - heading "Room status board" [level=1] [ref=e268]
+              - generic [ref=e270]: Live · synced just now
+            - generic [ref=e272]:
+              - button "Previous day" [ref=e273] [cursor=pointer]: ← Jun 29
+              - generic [ref=e274]: Jun 30
+              - button "Next day" [ref=e275] [cursor=pointer]: Jul 1 →
+              - combobox [ref=e276]:
+                - option "All Shifts" [selected]
+                - option "Morning"
+                - option "Evening"
+                - option "Night"
+              - button "Exit assign" [ref=e1202] [cursor=pointer]
+          - generic [ref=e1203]:
+            - paragraph [ref=e1205]: Tap rooms to assign
+            - generic [ref=e1206]:
+              - button "C Claudia" [active] [ref=e1207] [cursor=pointer]:
+                - generic [ref=e1208]: C
+                - generic [ref=e1209]: Claudia
+              - button "E Elisa" [ref=e1210] [cursor=pointer]:
+                - generic [ref=e1211]: E
+                - generic [ref=e1212]: Elisa
+              - button "S Sandra" [ref=e1213] [cursor=pointer]:
+                - generic [ref=e1214]: S
+                - generic [ref=e1215]: Sandra
+          - generic [ref=e278]:
+            - generic [ref=e280]:
+              - generic [ref=e281]:
+                - generic [ref=e282]: Bldg
+                - generic [ref=e283]:
+                  - button "All" [pressed] [ref=e284] [cursor=pointer]
+                  - button "A" [ref=e285] [cursor=pointer]
+                  - button "B" [ref=e286] [cursor=pointer]
+              - generic [ref=e288]:
+                - button "All 114" [pressed] [ref=e289] [cursor=pointer]:
+                  - text: All
+                  - generic [ref=e291]: "114"
+                - button "Departure 15" [ref=e1216] [cursor=pointer]:
+                  - text: Departure
+                  - generic [ref=e1218]: "15"
+                - button "Full 15" [ref=e1219] [cursor=pointer]:
+                  - text: Full
+                  - generic [ref=e1221]: "15"
+                - button "Light 4" [ref=e1222] [cursor=pointer]:
+                  - text: Light
+                  - generic [ref=e1224]: "4"
+              - generic [ref=e309]:
+                - generic [ref=e310]:
+                  - generic [ref=e311]:
+                    - heading "Floor 1" [level=3] [ref=e312]
+                    - generic [ref=e313]: 38 rooms
+                  - generic [ref=e314]:
+                    - button "101 S1K Inspected Tap to assign" [ref=e1244] [cursor=pointer]:
+                      - generic [ref=e318]: "101"
+                      - generic [ref=e319]: S1K
+                      - generic [ref=e321]: Inspected
+                      - paragraph [ref=e1245]: Tap to assign
+                    - button "102 S1KC Occupied Tap to assign" [ref=e1246] [cursor=pointer]:
+                      - generic [ref=e325]: "102"
+                      - generic [ref=e326]: S1KC
+                      - generic [ref=e328]: Occupied
+                      - paragraph [ref=e1247]: Tap to assign
+                    - button "103 11K Occupied Departure Tap to assign" [ref=e1248] [cursor=pointer]:
+                      - generic [ref=e332]: "103"
+                      - generic [ref=e333]: 11K
+                      - generic [ref=e334]:
+                        - generic [ref=e335]: Occupied
+                        - generic [ref=e336]:
+                          - img [ref=e337]
+                          - text: Departure
+                      - paragraph [ref=e1249]: Tap to assign
+                    - button "104 11K Occupied Tap to assign" [ref=e1250] [cursor=pointer]:
+                      - generic [ref=e343]: "104"
+                      - generic [ref=e344]: 11K
+                      - generic [ref=e346]: Occupied
+                      - paragraph [ref=e1251]: Tap to assign
+                    - button "105 22Q Occupied Departure Tap to assign" [ref=e1252] [cursor=pointer]:
+                      - generic [ref=e350]: "105"
+                      - generic [ref=e351]: 22Q
+                      - generic [ref=e352]:
+                        - generic [ref=e353]: Occupied
+                        - generic [ref=e354]:
+                          - img [ref=e355]
+                          - text: Departure
+                      - paragraph [ref=e1253]: Tap to assign
+                    - button "106 22Q Occupied Tap to assign" [ref=e1254] [cursor=pointer]:
+                      - generic [ref=e361]: "106"
+                      - generic [ref=e362]: 22Q
+                      - generic [ref=e364]: Occupied
+                      - paragraph [ref=e1255]: Tap to assign
+                    - button "107 11KC Pickup Light Tap to assign" [ref=e1256] [cursor=pointer]:
+                      - generic [ref=e368]: "107"
+                      - generic [ref=e369]: 11KC
+                      - generic [ref=e370]:
+                        - generic [ref=e371]: Pickup
+                        - generic [ref=e372]: Light
+                      - paragraph [ref=e1257]: Tap to assign
+                    - button "108 11KC Occupied Tap to assign" [ref=e1258] [cursor=pointer]:
+                      - generic [ref=e376]: "108"
+                      - generic [ref=e377]: 11KC
+                      - generic [ref=e379]: Occupied
+                      - paragraph [ref=e1259]: Tap to assign
+                    - button "109 22Q Occupied Tap to assign" [ref=e1260] [cursor=pointer]:
+                      - generic [ref=e383]: "109"
+                      - generic [ref=e384]: 22Q
+                      - generic [ref=e386]: Occupied
+                      - paragraph [ref=e1261]: Tap to assign
+                    - button "110 11K Occupied Tap to assign" [ref=e1262] [cursor=pointer]:
+                      - generic [ref=e390]: "110"
+                      - generic [ref=e391]: 11K
+                      - generic [ref=e393]: Occupied
+                      - paragraph [ref=e1263]: Tap to assign
+                    - button "111 11K Occupied Tap to assign" [ref=e1264] [cursor=pointer]:
+                      - generic [ref=e397]: "111"
+                      - generic [ref=e398]: 11K
+                      - generic [ref=e400]: Occupied
+                      - paragraph [ref=e1265]: Tap to assign
+                    - button "112 11K Occupied Tap to assign" [ref=e1266] [cursor=pointer]:
+                      - generic [ref=e404]: "112"
+                      - generic [ref=e405]: 11K
+                      - generic [ref=e407]: Occupied
+                      - paragraph [ref=e1267]: Tap to assign
+                    - button "113 11K Occupied Tap to assign" [ref=e1268] [cursor=pointer]:
+                      - generic [ref=e411]: "113"
+                      - generic [ref=e412]: 11K
+                      - generic [ref=e414]: Occupied
+                      - paragraph [ref=e1269]: Tap to assign
+                    - button "114 11K OOO/OOS Tap to assign" [ref=e1270] [cursor=pointer]:
+                      - generic [ref=e418]: "114"
+                      - generic [ref=e419]: 11K
+                      - generic [ref=e421]: OOO/OOS
+                      - paragraph [ref=e1271]: Tap to assign
+                    - button "115 S1K Pickup Full Tap to assign" [ref=e1272] [cursor=pointer]:
+                      - generic [ref=e425]: "115"
+                      - generic [ref=e426]: S1K
+                      - generic [ref=e427]:
+                        - generic [ref=e428]: Pickup
+                        - generic [ref=e429]: Full
+                      - paragraph [ref=e1273]: Tap to assign
+                    - button "116 S1K Pickup Full Tap to assign" [ref=e1274] [cursor=pointer]:
+                      - generic [ref=e433]: "116"
+                      - generic [ref=e434]: S1K
+                      - generic [ref=e435]:
+                        - generic [ref=e436]: Pickup
+                        - generic [ref=e437]: Full
+                      - paragraph [ref=e1275]: Tap to assign
+                    - button "117 S1K Occupied Tap to assign" [ref=e1276] [cursor=pointer]:
+                      - generic [ref=e441]: "117"
+                      - generic [ref=e442]: S1K
+                      - generic [ref=e444]: Occupied
+                      - paragraph [ref=e1277]: Tap to assign
+                    - button "118 S1KC In Progress Departure Tap to assign" [ref=e1278] [cursor=pointer]:
+                      - generic [ref=e448]: "118"
+                      - generic [ref=e449]: S1KC
+                      - generic [ref=e450]:
+                        - generic [ref=e451]: In Progress
+                        - generic [ref=e452]:
+                          - img [ref=e453]
+                          - text: Departure
+                      - paragraph [ref=e1279]: Tap to assign
+                    - button "119 11K Occupied Tap to assign" [ref=e1280] [cursor=pointer]:
+                      - generic [ref=e459]: "119"
+                      - generic [ref=e460]: 11K
+                      - generic [ref=e462]: Occupied
+                      - paragraph [ref=e1281]: Tap to assign
+                    - button "120 11K Pickup Full Tap to assign" [ref=e1282] [cursor=pointer]:
+                      - generic [ref=e466]: "120"
+                      - generic [ref=e467]: 11K
+                      - generic [ref=e468]:
+                        - generic [ref=e469]: Pickup
+                        - generic [ref=e470]: Full
+                      - paragraph [ref=e1283]: Tap to assign
+                    - button "121 22Q Inspected Tap to assign" [ref=e1284] [cursor=pointer]:
+                      - generic [ref=e474]: "121"
+                      - generic [ref=e475]: 22Q
+                      - generic [ref=e477]: Inspected
+                      - paragraph [ref=e1285]: Tap to assign
+                    - button "122 22Q Inspected Tap to assign" [ref=e1286] [cursor=pointer]:
+                      - generic [ref=e481]: "122"
+                      - generic [ref=e482]: 22Q
+                      - generic [ref=e484]: Inspected
+                      - paragraph [ref=e1287]: Tap to assign
+                    - button "123 S1K Occupied Departure Tap to assign" [ref=e1288] [cursor=pointer]:
+                      - generic [ref=e488]: "123"
+                      - generic [ref=e489]: S1K
+                      - generic [ref=e490]:
+                        - generic [ref=e491]: Occupied
+                        - generic [ref=e492]:
+                          - img [ref=e493]
+                          - text: Departure
+                      - paragraph [ref=e1289]: Tap to assign
+                    - button "124 S1K Occupied Tap to assign" [ref=e1290] [cursor=pointer]:
+                      - generic [ref=e499]: "124"
+                      - generic [ref=e500]: S1K
+                      - generic [ref=e502]: Occupied
+                      - paragraph [ref=e1291]: Tap to assign
+                    - button "125 22Q Inspected Tap to assign" [ref=e1292] [cursor=pointer]:
+                      - generic [ref=e506]: "125"
+                      - generic [ref=e507]: 22Q
+                      - generic [ref=e509]: Inspected
+                      - paragraph [ref=e1293]: Tap to assign
+                    - button "127 22Q Inspected Tap to assign" [ref=e1294] [cursor=pointer]:
+                      - generic [ref=e513]: "127"
+                      - generic [ref=e514]: 22Q
+                      - generic [ref=e516]: Inspected
+                      - paragraph [ref=e1295]: Tap to assign
+                    - button "128 11KC Inspected Tap to assign" [ref=e1296] [cursor=pointer]:
+                      - generic [ref=e520]: "128"
+                      - generic [ref=e521]: 11KC
+                      - generic [ref=e523]: Inspected
+                      - paragraph [ref=e1297]: Tap to assign
+                    - button "129 11K Pickup Full Tap to assign" [ref=e1298] [cursor=pointer]:
+                      - generic [ref=e527]: "129"
+                      - generic [ref=e528]: 11K
+                      - generic [ref=e529]:
+                        - generic [ref=e530]: Pickup
+                        - generic [ref=e531]: Full
+                      - paragraph [ref=e1299]: Tap to assign
+                    - button "130 11K Occupied Tap to assign" [ref=e1300] [cursor=pointer]:
+                      - generic [ref=e535]: "130"
+                      - generic [ref=e536]: 11K
+                      - generic [ref=e538]: Occupied
+                      - paragraph [ref=e1301]: Tap to assign
+                    - button "131 11K Occupied Tap to assign" [ref=e1302] [cursor=pointer]:
+                      - generic [ref=e542]: "131"
+                      - generic [ref=e543]: 11K
+                      - generic [ref=e545]: Occupied
+                      - paragraph [ref=e1303]: Tap to assign
+                    - button "132 11K Pickup Full Tap to assign" [ref=e1304] [cursor=pointer]:
+                      - generic [ref=e549]: "132"
+                      - generic [ref=e550]: 11K
+                      - generic [ref=e551]:
+                        - generic [ref=e552]: Pickup
+                        - generic [ref=e553]: Full
+                      - paragraph [ref=e1305]: Tap to assign
+                    - button "133 11KC Inspected Tap to assign" [ref=e1306] [cursor=pointer]:
+                      - generic [ref=e557]: "133"
+                      - generic [ref=e558]: 11KC
+                      - generic [ref=e560]: Inspected
+                      - paragraph [ref=e1307]: Tap to assign
+                    - button "134 11K Occupied Tap to assign" [ref=e1308] [cursor=pointer]:
+                      - generic [ref=e564]: "134"
+                      - generic [ref=e565]: 11K
+                      - generic [ref=e567]: Occupied
+                      - paragraph [ref=e1309]: Tap to assign
+                    - button "135 11K Inspected Tap to assign" [ref=e1310] [cursor=pointer]:
+                      - generic [ref=e571]: "135"
+                      - generic [ref=e572]: 11K
+                      - generic [ref=e574]: Inspected
+                      - paragraph [ref=e1311]: Tap to assign
+                    - button "136 11K Inspected Tap to assign" [ref=e1312] [cursor=pointer]:
+                      - generic [ref=e578]: "136"
+                      - generic [ref=e579]: 11K
+                      - generic [ref=e581]: Inspected
+                      - paragraph [ref=e1313]: Tap to assign
+                    - button "137 11K Vacant Dirty Departure Tap to assign" [ref=e1314] [cursor=pointer]:
+                      - generic [ref=e585]: "137"
+                      - generic [ref=e586]: 11K
+                      - generic [ref=e587]:
+                        - generic [ref=e588]: Vacant Dirty
+                        - generic [ref=e589]:
+                          - img [ref=e590]
+                          - text: Departure
+                      - paragraph [ref=e1315]: Tap to assign
+                    - button "138 S1K Occupied Departure Tap to assign" [ref=e1316] [cursor=pointer]:
+                      - generic [ref=e596]: "138"
+                      - generic [ref=e597]: S1K
+                      - generic [ref=e598]:
+                        - generic [ref=e599]: Occupied
+                        - generic [ref=e600]:
+                          - img [ref=e601]
+                          - text: Departure
+                      - paragraph [ref=e1317]: Tap to assign
+                    - button "139 S1KC Inspected Tap to assign" [ref=e1318] [cursor=pointer]:
+                      - generic [ref=e607]: "139"
+                      - generic [ref=e608]: S1KC
+                      - generic [ref=e610]: Inspected
+                      - paragraph [ref=e1319]: Tap to assign
+                - generic [ref=e611]:
+                  - generic [ref=e612]:
+                    - heading "Floor 2" [level=3] [ref=e613]
+                    - generic [ref=e614]: 38 rooms
+                  - generic [ref=e615]:
+                    - button "201 S1K Occupied Departure Tap to assign" [ref=e1320] [cursor=pointer]:
+                      - generic [ref=e619]: "201"
+                      - generic [ref=e620]: S1K
+                      - generic [ref=e621]:
+                        - generic [ref=e622]: Occupied
+                        - generic [ref=e623]:
+                          - img [ref=e624]
+                          - text: Departure
+                      - paragraph [ref=e1321]: Tap to assign
+                    - button "202 S1KC Occupied Tap to assign" [ref=e1322] [cursor=pointer]:
+                      - generic [ref=e630]: "202"
+                      - generic [ref=e631]: S1KC
+                      - generic [ref=e633]: Occupied
+                      - paragraph [ref=e1323]: Tap to assign
+                    - button "203 11K Occupied Tap to assign" [ref=e1324] [cursor=pointer]:
+                      - generic [ref=e637]: "203"
+                      - generic [ref=e638]: 11K
+                      - generic [ref=e640]: Occupied
+                      - paragraph [ref=e1325]: Tap to assign
+                    - button "204 11K Pickup Full Tap to assign" [ref=e1326] [cursor=pointer]:
+                      - generic [ref=e644]: "204"
+                      - generic [ref=e645]: 11K
+                      - generic [ref=e646]:
+                        - generic [ref=e647]: Pickup
+                        - generic [ref=e648]: Full
+                      - paragraph [ref=e1327]: Tap to assign
+                    - button "205 22Q Inspected Tap to assign" [ref=e1328] [cursor=pointer]:
+                      - generic [ref=e652]: "205"
+                      - generic [ref=e653]: 22Q
+                      - generic [ref=e655]: Inspected
+                      - paragraph [ref=e1329]: Tap to assign
+                    - button "206 22Q Inspected Tap to assign" [ref=e1330] [cursor=pointer]:
+                      - generic [ref=e659]: "206"
+                      - generic [ref=e660]: 22Q
+                      - generic [ref=e662]: Inspected
+                      - paragraph [ref=e1331]: Tap to assign
+                    - button "207 11K Pickup Full Tap to assign" [ref=e1332] [cursor=pointer]:
+                      - generic [ref=e666]: "207"
+                      - generic [ref=e667]: 11K
+                      - generic [ref=e668]:
+                        - generic [ref=e669]: Pickup
+                        - generic [ref=e670]: Full
+                      - paragraph [ref=e1333]: Tap to assign
+                    - button "208 11K Occupied Tap to assign" [ref=e1334] [cursor=pointer]:
+                      - generic [ref=e674]: "208"
+                      - generic [ref=e675]: 11K
+                      - generic [ref=e677]: Occupied
+                      - paragraph [ref=e1335]: Tap to assign
+                    - button "209 22Q Occupied Tap to assign" [ref=e1336] [cursor=pointer]:
+                      - generic [ref=e681]: "209"
+                      - generic [ref=e682]: 22Q
+                      - generic [ref=e684]: Occupied
+                      - paragraph [ref=e1337]: Tap to assign
+                    - button "210 11K Pickup Light Tap to assign" [ref=e1338] [cursor=pointer]:
+                      - generic [ref=e688]: "210"
+                      - generic [ref=e689]: 11K
+                      - generic [ref=e690]:
+                        - generic [ref=e691]: Pickup
+                        - generic [ref=e692]: Light
+                      - paragraph [ref=e1339]: Tap to assign
+                    - button "211 11K Occupied Tap to assign" [ref=e1340] [cursor=pointer]:
+                      - generic [ref=e696]: "211"
+                      - generic [ref=e697]: 11K
+                      - generic [ref=e699]: Occupied
+                      - paragraph [ref=e1341]: Tap to assign
+                    - button "212 11K Pickup Full Tap to assign" [ref=e1342] [cursor=pointer]:
+                      - generic [ref=e703]: "212"
+                      - generic [ref=e704]: 11K
+                      - generic [ref=e705]:
+                        - generic [ref=e706]: Pickup
+                        - generic [ref=e707]: Full
+                      - paragraph [ref=e1343]: Tap to assign
+                    - button "213 11K Occupied Tap to assign" [ref=e1344] [cursor=pointer]:
+                      - generic [ref=e711]: "213"
+                      - generic [ref=e712]: 11K
+                      - generic [ref=e714]: Occupied
+                      - paragraph [ref=e1345]: Tap to assign
+                    - button "214 11K Occupied Departure Tap to assign" [ref=e1346] [cursor=pointer]:
+                      - generic [ref=e718]: "214"
+                      - generic [ref=e719]: 11K
+                      - generic [ref=e720]:
+                        - generic [ref=e721]: Occupied
+                        - generic [ref=e722]:
+                          - img [ref=e723]
+                          - text: Departure
+                      - paragraph [ref=e1347]: Tap to assign
+                    - button "215 S1K Occupied Tap to assign" [ref=e1348] [cursor=pointer]:
+                      - generic [ref=e729]: "215"
+                      - generic [ref=e730]: S1K
+                      - generic [ref=e732]: Occupied
+                      - paragraph [ref=e1349]: Tap to assign
+                    - button "216 S1K Occupied Tap to assign" [ref=e1350] [cursor=pointer]:
+                      - generic [ref=e736]: "216"
+                      - generic [ref=e737]: S1K
+                      - generic [ref=e739]: Occupied
+                      - paragraph [ref=e1351]: Tap to assign
+                    - button "217 S1K Occupied Departure Tap to assign" [ref=e1352] [cursor=pointer]:
+                      - generic [ref=e743]: "217"
+                      - generic [ref=e744]: S1K
+                      - generic [ref=e745]:
+                        - generic [ref=e746]: Occupied
+                        - generic [ref=e747]:
+                          - img [ref=e748]
+                          - text: Departure
+                      - paragraph [ref=e1353]: Tap to assign
+                    - button "218 S1K Inspected Tap to assign" [ref=e1354] [cursor=pointer]:
+                      - generic [ref=e754]: "218"
+                      - generic [ref=e755]: S1K
+                      - generic [ref=e757]: Inspected
+                      - paragraph [ref=e1355]: Tap to assign
+                    - button "219 11K Occupied Tap to assign" [ref=e1356] [cursor=pointer]:
+                      - generic [ref=e761]: "219"
+                      - generic [ref=e762]: 11K
+                      - generic [ref=e764]: Occupied
+                      - paragraph [ref=e1357]: Tap to assign
+                    - button "220 11K Pickup Full Tap to assign" [ref=e1358] [cursor=pointer]:
+                      - generic [ref=e768]: "220"
+                      - generic [ref=e769]: 11K
+                      - generic [ref=e770]:
+                        - generic [ref=e771]: Pickup
+                        - generic [ref=e772]: Full
+                      - paragraph [ref=e1359]: Tap to assign
+                    - button "221 22Q Inspected Tap to assign" [ref=e1360] [cursor=pointer]:
+                      - generic [ref=e776]: "221"
+                      - generic [ref=e777]: 22Q
+                      - generic [ref=e779]: Inspected
+                      - paragraph [ref=e1361]: Tap to assign
+                    - button "222 22Q Inspected Tap to assign" [ref=e1362] [cursor=pointer]:
+                      - generic [ref=e783]: "222"
+                      - generic [ref=e784]: 22Q
+                      - generic [ref=e786]: Inspected
+                      - paragraph [ref=e1363]: Tap to assign
+                    - button "223 S1K Occupied Tap to assign" [ref=e1364] [cursor=pointer]:
+                      - generic [ref=e790]: "223"
+                      - generic [ref=e791]: S1K
+                      - generic [ref=e793]: Occupied
+                      - paragraph [ref=e1365]: Tap to assign
+                    - button "224 S1KC Occupied Departure Tap to assign" [ref=e1366] [cursor=pointer]:
+                      - generic [ref=e797]: "224"
+                      - generic [ref=e798]: S1KC
+                      - generic [ref=e799]:
+                        - generic [ref=e800]: Occupied
+                        - generic [ref=e801]:
+                          - img [ref=e802]
+                          - text: Departure
+                      - paragraph [ref=e1367]: Tap to assign
+                    - button "225 22Q Inspected Tap to assign" [ref=e1368] [cursor=pointer]:
+                      - generic [ref=e808]: "225"
+                      - generic [ref=e809]: 22Q
+                      - generic [ref=e811]: Inspected
+                      - paragraph [ref=e1369]: Tap to assign
+                    - button "227 22QC Vacant Dirty Departure Tap to assign" [ref=e1370] [cursor=pointer]:
+                      - generic [ref=e815]: "227"
+                      - generic [ref=e816]: 22QC
+                      - generic [ref=e817]:
+                        - generic [ref=e818]: Vacant Dirty
+                        - generic [ref=e819]:
+                          - img [ref=e820]
+                          - text: Departure
+                      - paragraph [ref=e1371]: Tap to assign
+                    - button "228 S1KC Inspected Tap to assign" [ref=e1372] [cursor=pointer]:
+                      - generic [ref=e826]: "228"
+                      - generic [ref=e827]: S1KC
+                      - generic [ref=e829]: Inspected
+                      - paragraph [ref=e1373]: Tap to assign
+                    - button "229 11K Occupied Tap to assign" [ref=e1374] [cursor=pointer]:
+                      - generic [ref=e833]: "229"
+                      - generic [ref=e834]: 11K
+                      - generic [ref=e836]: Occupied
+                      - paragraph [ref=e1375]: Tap to assign
+                    - button "230 11K Occupied Departure Tap to assign" [ref=e1376] [cursor=pointer]:
+                      - generic [ref=e840]: "230"
+                      - generic [ref=e841]: 11K
+                      - generic [ref=e842]:
+                        - generic [ref=e843]: Occupied
+                        - generic [ref=e844]:
+                          - img [ref=e845]
+                          - text: Departure
+                      - paragraph [ref=e1377]: Tap to assign
+                    - button "231 11K Pickup Light Tap to assign" [ref=e1378] [cursor=pointer]:
+                      - generic [ref=e851]: "231"
+                      - generic [ref=e852]: 11K
+                      - generic [ref=e853]:
+                        - generic [ref=e854]: Pickup
+                        - generic [ref=e855]: Light
+                      - paragraph [ref=e1379]: Tap to assign
+                    - button "232 11K Occupied Tap to assign" [ref=e1380] [cursor=pointer]:
+                      - generic [ref=e859]: "232"
+                      - generic [ref=e860]: 11K
+                      - generic [ref=e862]: Occupied
+                      - paragraph [ref=e1381]: Tap to assign
+                    - button "233 11K Pickup Light Tap to assign" [ref=e1382] [cursor=pointer]:
+                      - generic [ref=e866]: "233"
+                      - generic [ref=e867]: 11K
+                      - generic [ref=e868]:
+                        - generic [ref=e869]: Pickup
+                        - generic [ref=e870]: Light
+                      - paragraph [ref=e1383]: Tap to assign
+                    - button "234 11K Pickup Full Tap to assign" [ref=e1384] [cursor=pointer]:
+                      - generic [ref=e874]: "234"
+                      - generic [ref=e875]: 11K
+                      - generic [ref=e876]:
+                        - generic [ref=e877]: Pickup
+                        - generic [ref=e878]: Full
+                      - paragraph [ref=e1385]: Tap to assign
+                    - button "235 11K Occupied Tap to assign" [ref=e1386] [cursor=pointer]:
+                      - generic [ref=e882]: "235"
+                      - generic [ref=e883]: 11K
+                      - generic [ref=e885]: Occupied
+                      - paragraph [ref=e1387]: Tap to assign
+                    - button "236 11K Pickup Full Tap to assign" [ref=e1388] [cursor=pointer]:
+                      - generic [ref=e889]: "236"
+                      - generic [ref=e890]: 11K
+                      - generic [ref=e891]:
+                        - generic [ref=e892]: Pickup
+                        - generic [ref=e893]: Full
+                      - paragraph [ref=e1389]: Tap to assign
+                    - button "237 11K Occupied Tap to assign" [ref=e1390] [cursor=pointer]:
+                      - generic [ref=e897]: "237"
+                      - generic [ref=e898]: 11K
+                      - generic [ref=e900]: Occupied
+                      - paragraph [ref=e1391]: Tap to assign
+                    - button "238 S1K Occupied Tap to assign" [ref=e1392] [cursor=pointer]:
+                      - generic [ref=e904]: "238"
+                      - generic [ref=e905]: S1K
+                      - generic [ref=e907]: Occupied
+                      - paragraph [ref=e1393]: Tap to assign
+                    - button "239 S1K Occupied Departure Tap to assign" [ref=e1394] [cursor=pointer]:
+                      - generic [ref=e911]: "239"
+                      - generic [ref=e912]: S1K
+                      - generic [ref=e913]:
+                        - generic [ref=e914]: Occupied
+                        - generic [ref=e915]:
+                          - img [ref=e916]
+                          - text: Departure
+                      - paragraph [ref=e1395]: Tap to assign
+                - generic [ref=e919]:
+                  - generic [ref=e920]:
+                    - heading "Floor 3" [level=3] [ref=e921]
+                    - generic [ref=e922]: 38 rooms
+                  - generic [ref=e923]:
+                    - button "301 S1K Occupied Tap to assign" [ref=e1396] [cursor=pointer]:
+                      - generic [ref=e927]: "301"
+                      - generic [ref=e928]: S1K
+                      - generic [ref=e930]: Occupied
+                      - paragraph [ref=e1397]: Tap to assign
+                    - button "302 S1KC Inspected Tap to assign" [ref=e1398] [cursor=pointer]:
+                      - generic [ref=e934]: "302"
+                      - generic [ref=e935]: S1KC
+                      - generic [ref=e937]: Inspected
+                      - paragraph [ref=e1399]: Tap to assign
+                    - button "303 11K Occupied Tap to assign" [ref=e1400] [cursor=pointer]:
+                      - generic [ref=e941]: "303"
+                      - generic [ref=e942]: 11K
+                      - generic [ref=e944]: Occupied
+                      - paragraph [ref=e1401]: Tap to assign
+                    - button "304 11K Occupied Tap to assign" [ref=e1402] [cursor=pointer]:
+                      - generic [ref=e948]: "304"
+                      - generic [ref=e949]: 11K
+                      - generic [ref=e951]: Occupied
+                      - paragraph [ref=e1403]: Tap to assign
+                    - button "305 22Q Inspected Tap to assign" [ref=e1404] [cursor=pointer]:
+                      - generic [ref=e955]: "305"
+                      - generic [ref=e956]: 22Q
+                      - generic [ref=e958]: Inspected
+                      - paragraph [ref=e1405]: Tap to assign
+                    - button "306 22Q Inspected Tap to assign" [ref=e1406] [cursor=pointer]:
+                      - generic [ref=e962]: "306"
+                      - generic [ref=e963]: 22Q
+                      - generic [ref=e965]: Inspected
+                      - paragraph [ref=e1407]: Tap to assign
+                    - button "307 11K Occupied Tap to assign" [ref=e1408] [cursor=pointer]:
+                      - generic [ref=e969]: "307"
+                      - generic [ref=e970]: 11K
+                      - generic [ref=e972]: Occupied
+                      - paragraph [ref=e1409]: Tap to assign
+                    - button "308 11K Occupied Tap to assign" [ref=e1410] [cursor=pointer]:
+                      - generic [ref=e976]: "308"
+                      - generic [ref=e977]: 11K
+                      - generic [ref=e979]: Occupied
+                      - paragraph [ref=e1411]: Tap to assign
+                    - button "309 22Q Inspected Tap to assign" [ref=e1412] [cursor=pointer]:
+                      - generic [ref=e983]: "309"
+                      - generic [ref=e984]: 22Q
+                      - generic [ref=e986]: Inspected
+                      - paragraph [ref=e1413]: Tap to assign
+                    - button "310 11K Occupied Tap to assign" [ref=e1414] [cursor=pointer]:
+                      - generic [ref=e990]: "310"
+                      - generic [ref=e991]: 11K
+                      - generic [ref=e993]: Occupied
+                      - paragraph [ref=e1415]: Tap to assign
+                    - button "311 11K Occupied Tap to assign" [ref=e1416] [cursor=pointer]:
+                      - generic [ref=e997]: "311"
+                      - generic [ref=e998]: 11K
+                      - generic [ref=e1000]: Occupied
+                      - paragraph [ref=e1417]: Tap to assign
+                    - button "312 11K Occupied Tap to assign" [ref=e1418] [cursor=pointer]:
+                      - generic [ref=e1004]: "312"
+                      - generic [ref=e1005]: 11K
+                      - generic [ref=e1007]: Occupied
+                      - paragraph [ref=e1419]: Tap to assign
+                    - button "313 11K Pickup Full Tap to assign" [ref=e1420] [cursor=pointer]:
+                      - generic [ref=e1011]: "313"
+                      - generic [ref=e1012]: 11K
+                      - generic [ref=e1013]:
+                        - generic [ref=e1014]: Pickup
+                        - generic [ref=e1015]: Full
+                      - paragraph [ref=e1421]: Tap to assign
+                    - button "314 11K Pickup Full Tap to assign" [ref=e1422] [cursor=pointer]:
+                      - generic [ref=e1019]: "314"
+                      - generic [ref=e1020]: 11K
+                      - generic [ref=e1021]:
+                        - generic [ref=e1022]: Pickup
+                        - generic [ref=e1023]: Full
+                      - paragraph [ref=e1423]: Tap to assign
+                    - button "315 S1K Occupied Tap to assign" [ref=e1424] [cursor=pointer]:
+                      - generic [ref=e1027]: "315"
+                      - generic [ref=e1028]: S1K
+                      - generic [ref=e1030]: Occupied
+                      - paragraph [ref=e1425]: Tap to assign
+                    - button "316 S1K Occupied Tap to assign" [ref=e1426] [cursor=pointer]:
+                      - generic [ref=e1034]: "316"
+                      - generic [ref=e1035]: S1K
+                      - generic [ref=e1037]: Occupied
+                      - paragraph [ref=e1427]: Tap to assign
+                    - button "317 S1K Occupied Tap to assign" [ref=e1428] [cursor=pointer]:
+                      - generic [ref=e1041]: "317"
+                      - generic [ref=e1042]: S1K
+                      - generic [ref=e1044]: Occupied
+                      - paragraph [ref=e1429]: Tap to assign
+                    - button "318 S1K Occupied Tap to assign" [ref=e1430] [cursor=pointer]:
+                      - generic [ref=e1048]: "318"
+                      - generic [ref=e1049]: S1K
+                      - generic [ref=e1051]: Occupied
+                      - paragraph [ref=e1431]: Tap to assign
+                    - button "319 11K Occupied Tap to assign" [ref=e1432] [cursor=pointer]:
+                      - generic [ref=e1055]: "319"
+                      - generic [ref=e1056]: 11K
+                      - generic [ref=e1058]: Occupied
+                      - paragraph [ref=e1433]: Tap to assign
+                    - button "320 11K Occupied Tap to assign" [ref=e1434] [cursor=pointer]:
+                      - generic [ref=e1062]: "320"
+                      - generic [ref=e1063]: 11K
+                      - generic [ref=e1065]: Occupied
+                      - paragraph [ref=e1435]: Tap to assign
+                    - button "321 22Q Inspected Tap to assign" [ref=e1436] [cursor=pointer]:
+                      - generic [ref=e1069]: "321"
+                      - generic [ref=e1070]: 22Q
+                      - generic [ref=e1072]: Inspected
+                      - paragraph [ref=e1437]: Tap to assign
+                    - button "322 22Q Inspected Tap to assign" [ref=e1438] [cursor=pointer]:
+                      - generic [ref=e1076]: "322"
+                      - generic [ref=e1077]: 22Q
+                      - generic [ref=e1079]: Inspected
+                      - paragraph [ref=e1439]: Tap to assign
+                    - button "323 S1K Occupied Tap to assign" [ref=e1440] [cursor=pointer]:
+                      - generic [ref=e1083]: "323"
+                      - generic [ref=e1084]: S1K
+                      - generic [ref=e1086]: Occupied
+                      - paragraph [ref=e1441]: Tap to assign
+                    - button "324 S1KC Inspected Tap to assign" [ref=e1442] [cursor=pointer]:
+                      - generic [ref=e1090]: "324"
+                      - generic [ref=e1091]: S1KC
+                      - generic [ref=e1093]: Inspected
+                      - paragraph [ref=e1443]: Tap to assign
+                    - button "325 22Q Inspected Tap to assign" [ref=e1444] [cursor=pointer]:
+                      - generic [ref=e1097]: "325"
+                      - generic [ref=e1098]: 22Q
+                      - generic [ref=e1100]: Inspected
+                      - paragraph [ref=e1445]: Tap to assign
+                    - button "327 22QC Occupied Departure Tap to assign" [ref=e1446] [cursor=pointer]:
+                      - generic [ref=e1104]: "327"
+                      - generic [ref=e1105]: 22QC
+                      - generic [ref=e1106]:
+                        - generic [ref=e1107]: Occupied
+                        - generic [ref=e1108]:
+                          - img [ref=e1109]
+                          - text: Departure
+                      - paragraph [ref=e1447]: Tap to assign
+                    - button "328 S1KC Inspected Tap to assign" [ref=e1448] [cursor=pointer]:
+                      - generic [ref=e1115]: "328"
+                      - generic [ref=e1116]: S1KC
+                      - generic [ref=e1118]: Inspected
+                      - paragraph [ref=e1449]: Tap to assign
+                    - button "329 11K Occupied Tap to assign" [ref=e1450] [cursor=pointer]:
+                      - generic [ref=e1122]: "329"
+                      - generic [ref=e1123]: 11K
+                      - generic [ref=e1125]: Occupied
+                      - paragraph [ref=e1451]: Tap to assign
+                    - button "330 11K Pickup Full Tap to assign" [ref=e1452] [cursor=pointer]:
+                      - generic [ref=e1129]: "330"
+                      - generic [ref=e1130]: 11K
+                      - generic [ref=e1131]:
+                        - generic [ref=e1132]: Pickup
+                        - generic [ref=e1133]: Full
+                      - paragraph [ref=e1453]: Tap to assign
+                    - button "331 11K Occupied Tap to assign" [ref=e1454] [cursor=pointer]:
+                      - generic [ref=e1137]: "331"
+                      - generic [ref=e1138]: 11K
+                      - generic [ref=e1140]: Occupied
+                      - paragraph [ref=e1455]: Tap to assign
+                    - button "332 11K Occupied Tap to assign" [ref=e1456] [cursor=pointer]:
+                      - generic [ref=e1144]: "332"
+                      - generic [ref=e1145]: 11K
+                      - generic [ref=e1147]: Occupied
+                      - paragraph [ref=e1457]: Tap to assign
+                    - button "333 11K Occupied Tap to assign" [ref=e1458] [cursor=pointer]:
+                      - generic [ref=e1151]: "333"
+                      - generic [ref=e1152]: 11K
+                      - generic [ref=e1154]: Occupied
+                      - paragraph [ref=e1459]: Tap to assign
+                    - button "334 11K Pickup Full Tap to assign" [ref=e1460] [cursor=pointer]:
+                      - generic [ref=e1158]: "334"
+                      - generic [ref=e1159]: 11K
+                      - generic [ref=e1160]:
+                        - generic [ref=e1161]: Pickup
+                        - generic [ref=e1162]: Full
+                      - paragraph [ref=e1461]: Tap to assign
+                    - button "335 11K Occupied Tap to assign" [ref=e1462] [cursor=pointer]:
+                      - generic [ref=e1166]: "335"
+                      - generic [ref=e1167]: 11K
+                      - generic [ref=e1169]: Occupied
+                      - paragraph [ref=e1463]: Tap to assign
+                    - button "336 11K Occupied Tap to assign" [ref=e1464] [cursor=pointer]:
+                      - generic [ref=e1173]: "336"
+                      - generic [ref=e1174]: 11K
+                      - generic [ref=e1176]: Occupied
+                      - paragraph [ref=e1465]: Tap to assign
+                    - button "337 11K Occupied Departure Tap to assign" [ref=e1466] [cursor=pointer]:
+                      - generic [ref=e1180]: "337"
+                      - generic [ref=e1181]: 11K
+                      - generic [ref=e1182]:
+                        - generic [ref=e1183]: Occupied
+                        - generic [ref=e1184]:
+                          - img [ref=e1185]
+                          - text: Departure
+                      - paragraph [ref=e1467]: Tap to assign
+                    - button "338 S1K Occupied Tap to assign" [ref=e1468] [cursor=pointer]:
+                      - generic [ref=e1191]: "338"
+                      - generic [ref=e1192]: S1K
+                      - generic [ref=e1194]: Occupied
+                      - paragraph [ref=e1469]: Tap to assign
+                    - button "339 S1K Occupied Tap to assign" [ref=e1470] [cursor=pointer]:
+                      - generic [ref=e1198]: "339"
+                      - generic [ref=e1199]: S1K
+                      - generic [ref=e1201]: Occupied
+                      - paragraph [ref=e1471]: Tap to assign
+            - generic [ref=e1226]:
+              - generic [ref=e1227]:
+                - img [ref=e1229]
+                - generic [ref=e1231]:
+                  - heading "AI Assignments" [level=3] [ref=e1232]
+                  - paragraph [ref=e1233]: Balance today's open rooms across the team.
+              - generic [ref=e1234]:
+                - generic [ref=e1235]:
+                  - paragraph [ref=e1236]: Unassigned
+                  - paragraph [ref=e1237]: "114"
+                - generic [ref=e1238]:
+                  - paragraph [ref=e1239]: Needs work
+                  - paragraph [ref=e1240]: "21"
+              - button "Auto-Assign with AI" [ref=e1241] [cursor=pointer]:
+                - img [ref=e1242]
+                - text: Auto-Assign with AI
+    - button "Open AI Copilot" [ref=e157] [cursor=pointer]:
+      - img [ref=e158]
+      - generic [ref=e160]: Ask copilot
+      - generic [ref=e161]: ⌘J
+    - button "Open feedback" [ref=e163] [cursor=pointer]:
+      - img [ref=e164]
+      - generic [ref=e166]: Feedback
+    - button "Display preferences" [ref=e168] [cursor=pointer]:
+      - img [ref=e169]
+  - alert [ref=e249]

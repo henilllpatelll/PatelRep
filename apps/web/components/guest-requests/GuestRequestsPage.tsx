@@ -21,8 +21,9 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-function isSlaBreached(iso: string, slaMins = 240): boolean {
-  return Date.now() - new Date(iso).getTime() > slaMins * 60000
+function isSlaBreached(request: GuestRequest): boolean {
+  const dueAt = request.due_at
+  return !!dueAt && request.status !== 'verified' && request.status !== 'cancelled' && Date.now() > new Date(dueAt).getTime()
 }
 
 function urgentFirst(a: GuestRequest, b: GuestRequest): number {
@@ -42,19 +43,19 @@ const COLUMNS = [
     filter: (r: GuestRequest, _today: string) => r.status === 'open',
   },
   {
-    key: 'in_progress' as const,
-    label: 'In Progress',
+    key: 'acknowledged' as const,
+    label: 'Acknowledged',
     headerClass: 'bg-[var(--caution-soft)] border-b border-[var(--caution-line)] text-[var(--caution)]',
     countClass: 'bg-[var(--caution)] text-white',
-    filter: (r: GuestRequest, _today: string) => r.status === 'in_progress',
+    filter: (r: GuestRequest, _today: string) => r.status === 'acknowledged' || r.status === 'dispatched' || r.status === 'arrived' || r.status === 'guest_contacted',
   },
   {
     key: 'resolved_today' as const,
-    label: 'Resolved Today',
+    label: 'Verify Resolution',
     headerClass: 'bg-[var(--ready-soft)] border-b border-[var(--ready-line)] text-[var(--ready)]',
     countClass: 'bg-[var(--ready)] text-white',
     filter: (r: GuestRequest, today: string) =>
-      r.status === 'resolved' && (r.resolved_at ?? '').startsWith(today),
+      r.status === 'resolved',
   },
 ]
 
@@ -62,28 +63,19 @@ const COLUMNS = [
 
 interface CardProps {
   request: GuestRequest
-  confirmingId: string | null
-  onStartConfirm: (id: string) => void
-  onCancelConfirm: () => void
-  onConfirmResolve: (id: string) => void
-  onStart: (id: string) => void
+  onAdvance: (id: string, status: Exclude<GuestRequest['status'], 'open'>) => void
   onCardClick: (r: GuestRequest) => void
   isUpdating: boolean
 }
 
 function GuestRequestCard({
   request,
-  confirmingId,
-  onStartConfirm,
-  onCancelConfirm,
-  onConfirmResolve,
-  onStart,
+  onAdvance,
   onCardClick,
   isUpdating,
 }: CardProps) {
   const isUrgent = (request as any).priority === 'urgent'
-  const isConfirming = confirmingId === request.id
-  const slaBreached = request.status !== 'resolved' && isSlaBreached(request.created_at)
+  const slaBreached = isSlaBreached(request)
   const roomNum = request.rooms?.room_number ?? '—'
 
   return (
@@ -111,46 +103,47 @@ function GuestRequestCard({
         <span>{timeAgo(request.created_at)}{slaBreached ? ' · SLA overdue' : ''}</span>
       </p>
 
-      {request.status !== 'resolved' && (
+      {request.status !== 'verified' && request.status !== 'cancelled' && (
         <div className="mt-2.5 flex gap-1.5" onClick={e => e.stopPropagation()}>
           {request.status === 'open' && (
             <Button
               variant="outline"
               className="flex-1 text-xs py-1.5 min-h-[30px]"
               disabled={isUpdating}
-              onClick={() => onStart(request.id)}
+              onClick={() => onAdvance(request.id, 'acknowledged')}
             >
-              Start
+              Acknowledge
             </Button>
           )}
-          {request.status === 'in_progress' && !isConfirming && (
+          {request.status === 'acknowledged' && (
             <Button
               variant="secondary"
               className="flex-1 text-xs py-1.5 min-h-[30px]"
               disabled={isUpdating}
-              onClick={() => onStartConfirm(request.id)}
+              onClick={() => onAdvance(request.id, 'dispatched')}
             >
+              Dispatch
+            </Button>
+          )}
+          {request.status === 'dispatched' && (
+            <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'arrived')}>
+              Arrived
+            </Button>
+          )}
+          {request.status === 'arrived' && (
+            <Button variant="secondary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'guest_contacted')}>
+              Contacted
+            </Button>
+          )}
+          {request.status === 'guest_contacted' && (
+            <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'resolved')}>
               Resolve
             </Button>
           )}
-          {request.status === 'in_progress' && isConfirming && (
-            <>
-              <Button
-                variant="primary"
-                className="flex-1 text-xs py-1.5 min-h-[30px]"
-                disabled={isUpdating}
-                onClick={() => onConfirmResolve(request.id)}
-              >
-                Confirm
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-xs py-1.5 min-h-[30px] px-2.5"
-                onClick={onCancelConfirm}
-              >
-                Cancel
-              </Button>
-            </>
+          {request.status === 'resolved' && (
+            <Button variant="primary" className="flex-1 text-xs py-1.5 min-h-[30px]" disabled={isUpdating} onClick={() => onAdvance(request.id, 'verified')}>
+              Verify
+            </Button>
           )}
         </div>
       )}
@@ -164,7 +157,6 @@ export function GuestRequestsPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
   const [drawerRequest, setDrawerRequest] = useState<GuestRequest | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const today = new Date().toISOString().split('T')[0]
@@ -177,12 +169,11 @@ export function GuestRequestsPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof guestRequestsApi.updateRequest>[1] }) =>
-      guestRequestsApi.updateRequest(id, payload),
+    mutationFn: ({ id, status }: { id: string; status: Exclude<GuestRequest['status'], 'open'> }) =>
+      guestRequestsApi.transitionRequest(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-requests-kanban'] })
       queryClient.invalidateQueries({ queryKey: ['guest-requests-history'] })
-      setConfirmingId(null)
     },
   })
 
@@ -192,13 +183,8 @@ export function GuestRequestsPage() {
     requests: allRequests.filter(r => col.filter(r, today)).sort(urgentFirst),
   }))
 
-  const handleStart = useCallback(
-    (id: string) => updateMutation.mutate({ id, payload: { status: 'in_progress' } }),
-    [updateMutation]
-  )
-
-  const handleConfirmResolve = useCallback(
-    (id: string) => updateMutation.mutate({ id, payload: { status: 'resolved' } }),
+  const handleAdvance = useCallback(
+    (id: string, status: Exclude<GuestRequest['status'], 'open'>) => updateMutation.mutate({ id, status }),
     [updateMutation]
   )
 
@@ -263,13 +249,8 @@ export function GuestRequestsPage() {
                         <GuestRequestCard
                           key={request.id}
                           request={request}
-                          confirmingId={confirmingId}
-                          onStartConfirm={setConfirmingId}
-                          onCancelConfirm={() => setConfirmingId(null)}
-                          onConfirmResolve={handleConfirmResolve}
-                          onStart={handleStart}
+                          onAdvance={handleAdvance}
                           onCardClick={r => {
-                            setConfirmingId(null)
                             setDrawerRequest(r)
                           }}
                           isUpdating={updateMutation.isPending}

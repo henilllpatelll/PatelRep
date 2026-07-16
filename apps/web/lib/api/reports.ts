@@ -48,6 +48,16 @@ export interface AIUsageReport {
   breakdown_by_type: Record<string, number>
 }
 
+export interface GuestRecoveryReport {
+  period: { start: string; end: string }
+  total_requests: number
+  verified_resolution_rate_pct: number
+  sla_met_rate_pct: number
+  average_acknowledgement_minutes: number
+  average_verified_resolution_minutes: number
+  by_category: Record<string, number>
+}
+
 export const reportsApi = {
   getDailySummary: (date?: string) =>
     apiClient.get('/reports/daily-summary', { params: date ? { date } : {} }) as Promise<{ data: DailySummary }>,
@@ -60,4 +70,7 @@ export const reportsApi = {
 
   getAIUsage: (params?: { start_date?: string; end_date?: string }) =>
     apiClient.get('/reports/ai-usage', { params }) as Promise<{ data: AIUsageReport }>,
+
+  getGuestRecovery: (params?: { start_date?: string; end_date?: string }) =>
+    apiClient.get('/reports/guest-recovery', { params }) as Promise<{ data: GuestRecoveryReport }>,
 }

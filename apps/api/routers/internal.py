@@ -2,6 +2,7 @@ import logging
 from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
+from routers.evidence import run_evidence_reminders
 from datetime import date, datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,15 @@ def _record_cron_run(job_name: str, *, error: str | None = None) -> None:
         ).execute()
     except Exception as exc:
         logger.warning("cron_health write failed for %s: %s", job_name, exc)
+
+
+@router.post("/evidence/reminders")
+async def send_evidence_reminders(x_cron_secret: str = Header(None)):
+    """Cron: remind staff and GM of due or overdue controlled acknowledgements."""
+    verify_cron(x_cron_secret)
+    sent = run_evidence_reminders()
+    _record_cron_run("evidence.reminders")
+    return {"status": "ok", "reminder_actions": sent}
 
 
 @router.post("/predictions/run")
@@ -483,12 +493,10 @@ async def check_escalations(x_cron_secret: str = Header(None)):
                          {"task_id": task_id})
             notified += 1
 
-    # --- DND Welfare Check Auto-Escalation (8 hours) ---
-    dnd_cutoff = (now - timedelta(hours=8)).isoformat()
+    # --- DND welfare escalation: property policy plus one immutable event per DND window ---
     dnd_rooms = supabase.table("room_status")\
-        .select("room_id, tenant_id, rooms(room_number)")\
+        .select("room_id, tenant_id, updated_at, rooms(room_number)")\
         .eq("dnd_flag", True)\
-        .lt("updated_at", dnd_cutoff)\
         .execute()
 
     dnd_notified = 0
@@ -496,6 +504,23 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         hotel_id = room["tenant_id"]
         room_id = room["room_id"]
         room_number = (room.get("rooms") or {}).get("room_number", "unknown")
+        dnd_started_at = room.get("updated_at")
+        if not dnd_started_at:
+            continue
+        policy = supabase.table("dnd_welfare_policies")\
+            .select("threshold_hours, escalation_roles, escalation_instructions")\
+            .eq("tenant_id", hotel_id)\
+            .maybe_single()\
+            .execute()
+        policy_data = policy.data or {}
+        threshold_hours = policy_data.get("threshold_hours", 8)
+        try:
+            dnd_started = datetime.fromisoformat(dnd_started_at.replace("Z", "+00:00"))
+        except ValueError:
+            logger.warning("Invalid DND start timestamp for room %s: %s", room_id, dnd_started_at)
+            continue
+        if (now - dnd_started).total_seconds() < threshold_hours * 3600:
+            continue
 
         # Skip if a welfare check task already exists for this room today
         today_str = now.date().isoformat()
@@ -510,13 +535,31 @@ async def check_escalations(x_cron_secret: str = Header(None)):
         if existing_task.count and existing_task.count > 0:
             continue
 
+        existing_event = supabase.table("dnd_welfare_events")\
+            .select("id")\
+            .eq("tenant_id", hotel_id)\
+            .eq("room_id", room_id)\
+            .eq("dnd_started_at", dnd_started_at)\
+            .maybe_single()\
+            .execute()
+        if existing_event.data:
+            continue
+        escalation_roles = policy_data.get("escalation_roles") or ["housekeeping_supervisor", "front_desk"]
+        supabase.table("dnd_welfare_events").insert({
+            "tenant_id": hotel_id,
+            "room_id": room_id,
+            "dnd_started_at": dnd_started_at,
+            "threshold_hours": threshold_hours,
+            "escalated_to": escalation_roles,
+        }).execute()
+
         _notify_role(hotel_id, "housekeeping_supervisor", "dnd_welfare_check_auto",
                      f"Welfare check needed — Room {room_number}",
-                     f"Room {room_number} has had DND active for 8+ hours.",
+                     f"Room {room_number} has had DND active for {threshold_hours}+ hours.",
                      {"room_id": room_id, "room_number": room_number})
         _notify_role(hotel_id, "front_desk", "dnd_welfare_check_auto",
                      f"Welfare check needed — Room {room_number}",
-                     f"Room {room_number} has had DND active for 8+ hours.",
+                     f"Room {room_number} has had DND active for {threshold_hours}+ hours.",
                      {"room_id": room_id, "room_number": room_number})
         dnd_notified += 1
 

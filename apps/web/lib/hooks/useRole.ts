@@ -14,7 +14,7 @@ export interface RoleCapabilities {
 
 const SUPERVISOR_ROLES: UserRole[] = ['gm', 'housekeeping_supervisor']
 const ASSIGN_ROOMS_ROLES: UserRole[] = ['gm', 'housekeeping_supervisor']
-const ENGINEERING_ROLES: UserRole[] = ['gm', 'engineer']
+const ENGINEERING_ROLES: UserRole[] = ['gm', 'engineer', 'chief_engineer']
 
 function hasRole(role: UserRole | null, allowed: UserRole[]): boolean {
   if (!role) return false

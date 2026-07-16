@@ -135,6 +135,13 @@ export interface RiskAlerts {
   sla_breaches: Array<{ work_order_number: string; title: string; due_at: string }>
 }
 
+export interface AIRecommendation {
+  id: string
+  status: 'pending' | 'authorized' | 'executed' | 'outcome_recorded' | 'rejected' | 'overridden'
+  confidence: number
+  suggested_action: string
+}
+
 // ── API client ───────────────────────────────────────────────────────────────
 
 export const aiApi = {
@@ -161,4 +168,10 @@ export const aiApi = {
 
   getInsights: (): Promise<{ data: { insights: Insight[]; credits_used: number } }> =>
     apiClient.get('/ai/insights'),
+
+  createFailurePredictionRecommendation: (predictionId: string): Promise<{ data: AIRecommendation }> =>
+    apiClient.post(`/ai/failure-predictions/${predictionId}/recommendation`),
+
+  authorizeRecommendation: (recommendationId: string, note?: string): Promise<{ data: AIRecommendation }> =>
+    apiClient.post(`/ai/recommendations/${recommendationId}/authorize`, { note }),
 }
