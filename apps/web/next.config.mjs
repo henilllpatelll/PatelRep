@@ -63,7 +63,9 @@ function buildSecurityHeaders() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // standalone output is for Railway/Docker self-hosting. Vercel manages its own serving
+  // and its Turbopack build does not emit next-server.js.nft.json, so skip it there.
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   // turbopack.root is only needed for local monorepo dev (no workspace lockfile at repo root).
   // On Vercel the rootDirectory is already apps/web, so setting this breaks outputFileTracingRoot.
   ...(process.env.VERCEL ? {} : { turbopack: { root: appRoot } }),
