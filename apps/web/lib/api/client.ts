@@ -1,7 +1,16 @@
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/authStore'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
+const RETIRED_API_URL = 'https://patelrep-web-production.up.railway.app/v1'
+const LIVE_API_URL = 'https://stellar-integrity-production-f507.up.railway.app/v1'
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL
+
+// Vercel builds expose public environment values at build time. Keep an old
+// deployment setting from stranding staff on the room board while the Vercel
+// project environment is being corrected.
+const API_URL = configuredApiUrl === RETIRED_API_URL
+  ? LIVE_API_URL
+  : configuredApiUrl || 'http://localhost:8000/v1'
 
 export class ApiClientError extends Error {
   status: number | null
