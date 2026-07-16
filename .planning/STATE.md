@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: hotel-standards
 milestone_name: Hotel Standards
 status: executing
-last_updated: "2026-07-15T14:48:00-05:00"
+last_updated: “2026-07-16T12:00:00-05:00”
 ---
 
 # GSD State
@@ -12,51 +12,62 @@ last_updated: "2026-07-15T14:48:00-05:00"
 
 ## Current phase
 
-**Phase 1 — Core operational integrity: IN PROGRESS (code track)**
+**Phase 1 — Core operational integrity: IN PROGRESS (code complete, tests complete, deployment blocked)**
 
-### Phase 1 progress
+### Phase 1 progress — code and tests DONE
 
-- [x] Canonical backend transition contract defines `emergency` priority and `escalated` status.
-- [x] Holds, cancellations, and reopens require structured reason codes; management overrides require a note.
-- [x] `POST /v1/work-orders/{id}/transition` validates the state machine and calls an atomic database transition-and-audit RPC.
-- [x] Migration 065 adds canonical database constraints and an append-only, tenant-scoped `operational_audit_events` table.
-- [x] Focused transition/audit contracts pass (10 tests); full API suite passes (235 tests).
-- [ ] Migrate existing claim, complete, and direct status-patch callers to the transition workflow.
-- [ ] Align web and mobile types, filters, lanes, reports, and notifications for `emergency` / `escalated`.
-- [ ] Add inspection photo UI, occupancy-state language, notification delivery history, and Phase 1 browser coverage.
+- [x] Canonical backend transition contract: `emergency` priority, `escalated` status, structured reason codes.
+- [x] Management overrides require a reason note; non-management roles receive 403.
+- [x] `POST /v1/work-orders/{id}/transition` validates state machine → atomic `transition_work_order_with_audit` RPC.
+- [x] `claim_work_order` and `complete_work_order` use the atomic RPC; direct `status` PATCH returns 422.
+- [x] Migration 065: canonical DB constraints + append-only `operational_audit_events` table.
+- [x] Migration 066: `inspection_template_items.requires_photo_on_fail` flag.
+- [x] Migration 067: `notification_deliveries` table with channel/status/failure tracking.
+- [x] RBAC tests: housekeeper, housekeeping_supervisor, front_desk blocked (403); engineer, gm pass.
+- [x] Tenant isolation test: cross-hotel work order returns 404, zero audit events written.
+- [x] Audit reconstruction test: 4-step lifecycle verified in memory mock.
+- [x] 247 API tests pass across all smoke, integration, and contract suites.
+- [x] Web: emergency-first sort, escalated lane always visible, drag/drop replaced with structured transition drawer.
+- [x] Mobile: emergency chip, escalated status label, hold/resume/escalate actions; English + Spanish i18n complete.
+- [x] Inspection photo evidence wired into InspectionModal; `requires_photo_on_fail` enforced.
+- [x] Notification delivery history recorded per-channel with success/failure outcome.
+- [ ] **Playwright browser coverage** (emergency creation, escalated visibility, hold/reopen with reasons, inspection photo): NOT YET WRITTEN.
+- [ ] **Phase 1 exit: pending deployment** — Railway trial expired; cannot push or verify production health.
 
-**Phase 0 deployment recovery remains open below.**
+**Phase 0 — Restore reality: IN PROGRESS (blocked by Railway billing)**
 
-**Phase 0 — Restore reality: IN PROGRESS**
+### Verified (local and DB)
 
-### Verified baseline
+- [x] Migrations 060, 064–067 applied to production Supabase (verified via execute_sql).
+- [x] `operational_audit_events` and `notification_deliveries` tables confirmed in production DB.
+- [x] `work_orders_status_check` and `work_orders_priority_check` constraints confirmed correct.
+- [x] Database readiness maps to HTTP status: `200` when ready, `503` when unavailable.
+- [x] Login footer shows actual API/database probe result — not static copy.
+- [x] CI: web production build + Phase 0 Playwright smoke included.
+- [x] `deploy-check.yml`: polls API/web health every 15 min, fails on smoke error.
+- [x] `scripts/public-smoke.mjs`: verifies `/login` 200 and `/health` status=ok,db=ok.
 
-- [ ] Public web is restored — `https://patelrep-production.up.railway.app/login` currently returns Railway 404.
-- [ ] Public API is restored — `https://patelrep-web-production.up.railway.app/health` currently returns Railway 404.
-- [x] Database readiness now maps to HTTP status locally: `200` when ready and `503` when unavailable.
-- [x] The login footer now shows an actual API/database result instead of static “operational” copy.
-- [x] A local Playwright smoke proves login controls enable after hydration at `localhost` and displays the degraded health state honestly.
-- [x] CI source includes the web build and Phase 0 unauthenticated Playwright smoke.
-- [x] Scheduled deployment checks now run public web/API/database smoke verification and fail when it fails.
-- [x] Web build and verification commands are app-scoped; Next Turbopack root is pinned to `apps/web` to avoid root-lockfile inference.
+### Blocked — cannot complete until Railway billing resolved
 
-### Remaining Phase 0 work
-
-- [ ] Re-authenticate the Railway CLI/account, restore both public domain routes, deploy these readiness changes, and verify the external probe passes.
-- [ ] Add monitors for last successful cron, notification delivery, and PMS synchronization; these telemetry sources do not yet exist in a probeable form.
-- [ ] Add a secrets-backed protected-workflow production smoke after a non-human monitoring account is provisioned.
-- [ ] Observe continuous healthy external monitoring for 48 hours before closing the phase.
+- [ ] Code at `a74c2e1a` is on GitHub but Railway trial has expired — **redeploy fails with “trial expired”**.
+- [ ] Production URLs (`patelrep-production.up.railway.app/login` and `patelrep-web-production.up.railway.app/health`) not serving the current codebase.
+- [ ] External probe cannot pass until deployment completes.
+- [ ] 48-hour continuous healthy monitoring: NOT STARTED — cannot start until deployment is live.
+- [ ] Cron/notification-delivery/PMS-sync telemetry probes: not implemented (no probeable data yet).
+- [ ] Protected workflow smoke (non-human account): not provisioned.
 
 ## Language coverage
 
-- Web language toggle exists, but Spanish support is **not production-complete**: the July 15 audit found direct translation usage in only 5 of 94 TSX files. Do not represent the app as bilingual until Phase 4’s floor-facing coverage and CI enforcement are complete.
-- Mobile and web workflows require English/Spanish verification whenever they are touched.
+- Mobile: English + Spanish complete for all Phase 1 work-order states (`chipEmergency`, `statusEscalated`, `signalOnHold`, `hold`, `resume`, `escalate*`).
+- Web: uses hardcoded English strings (no `t()` calls in engineering components). No regression — same as before Phase 1.
+- Web i18n is not production-complete: Spanish translation usage is ~5 of 94 TSX files. Phase 4 covers full bilingual enforcement.
 
-## Current blockers and risks
+## Current blockers (priority order)
 
-- Railway identity lookup succeeds, but project-scoped service access returns `Unauthorized`; this non-interactive shell cannot refresh OAuth and has no Railway token. Authenticate the CLI in an interactive terminal or provide scoped agent access before domain recovery can proceed.
-- The local FastAPI process on port 8000 is not PatelRep (`/health` returns 404); use the application-specific launch command before end-to-end local API checks.
-- Root `--workspace` commands are invalid because the root package does not declare npm workspaces. Use `apps/web` and `apps/mobile` package directories directly.
+1. **Railway trial expired** — Go to Railway dashboard, add a payment method / select a plan, then redeploy both services. Until then, no code can reach production.
+2. **48-hour monitoring window** — Cannot close Phase 0 until 48 continuous hours of healthy external monitoring after the production deployment is live.
+3. **Playwright browser tests for Phase 1 workflows** — Emergency creation, escalated visibility, hold/reopen with reasons, inspection photo upload not yet covered by browser tests.
+4. **Protected workflow smoke** — Requires a non-human Railway/Supabase account with read-only credentials.
 
 ## Verification commands
 
