@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-15T18:55:07.422Z
-> Files: 16 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T15:41:57.560Z
+> Files: 19 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -489,6 +489,9 @@
 
 - `transitions.py` — Canonical work-order statuses, priorities, and validated transition rules. (~950 tok)
 
+## apps/api/tests/
+
+- `test_work_order_transitions.py` — Phase 1 contract tests for work-order transitions. (~3360 tok)
 
 ## apps/api/tests/load/
 
@@ -509,8 +512,6 @@
 
 
 ## apps/api/tests/test_work_order_transitions.py
-
-- Phase 1 contract tests for valid work-order transitions, reason enforcement, overrides, and audit RPC use. (~1000 tok)
 
 
 ## apps/mobile/
@@ -922,3 +923,4 @@
 - `065_work_order_transition_audit.sql` — Canonical work-order constraints and atomic append-only transition audit RPC. (~850 tok)
 
 ## youtubeMobileResearch.md
+

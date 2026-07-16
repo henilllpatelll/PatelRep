@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-16 | Phase 1 contract tests: added RBAC guard tests (housekeeper/housekeeping_supervisor/front_desk blocked, engineer/gm pass), tenant-isolation test (cross-hotel WO → 404, no audit event), audit-reconstruction test (4-step lifecycle in memory mock). 247 API tests pass. | apps/api/tests/test_work_order_transitions.py | complete | ~80 tok |
 | session | Optimistic remove for room assignments: removed removingRoomIds state + spinner; handleRemoveSavedAssignment now updates cache immediately, fires API in background, rolls back on failure | RoomStatusBoard.tsx, RoomCard.tsx | complete | ~30 tok |
 | 00:05 | Queried existing Graphify map and indexed the current web surface; registered the previously unindexed June workflow audit | graphify-out/graph.json, apps/web/**, WORKFLOW_AUDIT.md, .wolf/anatomy.md | Found 169 web files, 38 page/error/layout entries, and a recent authenticated role audit to validate against current source | ~900 |
 | 08:00 | Finished remaining WORKFLOW_AUDIT items: (1) InspectionModal reCleanStep — reset in useEffect + re-clean branch UI (alert banner + textarea + Skip/Dispatch footer); (2) GMDashboard arrivals/departures — board query, depRooms/readyRooms derivation, 2-col card with checkout/checkin buttons. tsc clean. | InspectionModal.tsx, dashboard/page.tsx | complete | ~80 tok |
@@ -6567,3 +6568,10 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+
+## Session: 2026-07-16 10:39
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:41 | Edited apps/api/tests/test_work_order_transitions.py | 3→3 lines | ~54 |
+| 10:41 | Edited apps/api/tests/test_work_order_transitions.py | modified test_non_management_roles_are_blocked_by_rbac_guard() | ~1206 |

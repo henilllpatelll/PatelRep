@@ -5451,8 +5451,15 @@
       "file": "Railway CLI authentication for PatelRep production",
       "root_cause": "The local shell has no interactive TTY for OAuth and neither RAILWAY_TOKEN nor RAILWAY_API_TOKEN is configured for unattended project access.",
       "fix": "Authenticate the CLI in an interactive terminal or make a scoped Railway token available to this environment, then re-run project diagnostics and deploy verification.",
-      "tags": ["railway", "oauth", "non-interactive", "production"],
-      "related_bugs": ["bug-328"],
+      "tags": [
+        "railway",
+        "oauth",
+        "non-interactive",
+        "production"
+      ],
+      "related_bugs": [
+        "bug-328"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T13:16:00-05:00"
     },
@@ -5463,7 +5470,11 @@
       "file": "apps/api/tests/conftest.py",
       "root_cause": "The API tests configure environment variables in individual test modules rather than a shared conftest fixture.",
       "fix": "Use the existing smoke-test modules as fixtures and add focused Phase 1 tests in a dedicated module.",
-      "tags": ["tests", "test-setup", "missing-file"],
+      "tags": [
+        "tests",
+        "test-setup",
+        "missing-file"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:33:23.7859450-05:00"
@@ -5475,8 +5486,14 @@
       "file": "apps/api/tests/test_work_order_transitions.py",
       "root_cause": "The command used a repository-relative virtual-environment path after changing the working directory to apps/api.",
       "fix": "Run API checks from apps/api with .\\.venv\\Scripts\\python -m pytest.",
-      "tags": ["tests", "powershell", "path"],
-      "related_bugs": ["bug-331"],
+      "tags": [
+        "tests",
+        "powershell",
+        "path"
+      ],
+      "related_bugs": [
+        "bug-331"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:35:00-05:00"
     },
@@ -5487,7 +5504,12 @@
       "file": "apps/api/tests/test_work_order_transitions.py",
       "root_cause": "The test was intentionally written before the explicit work-order transition service existed.",
       "fix": "Add services/work_orders/transitions.py with the canonical transition table and validation rules.",
-      "tags": ["tests", "tdd", "work-orders", "transitions"],
+      "tags": [
+        "tests",
+        "tdd",
+        "work-orders",
+        "transitions"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:35:30-05:00"
@@ -5499,8 +5521,15 @@
       "file": "apps/api/models/requests.py",
       "root_cause": "The API contract did not yet expose the explicit transition request payload.",
       "fix": "Add TransitionWorkOrderRequest and route state changes through the transition RPC.",
-      "tags": ["tests", "tdd", "work-orders", "api-contract"],
-      "related_bugs": ["bug-333"],
+      "tags": [
+        "tests",
+        "tdd",
+        "work-orders",
+        "api-contract"
+      ],
+      "related_bugs": [
+        "bug-333"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:38:00-05:00"
     },
@@ -5511,8 +5540,15 @@
       "file": "apps/api/tests/test_work_order_transitions.py",
       "root_cause": "The Supabase RPC double returned a result directly instead of the query object returned by the SDK.",
       "fix": "Make the RPC test double return an object with execute() that exposes the result payload.",
-      "tags": ["tests", "mock", "supabase", "work-orders"],
-      "related_bugs": ["bug-334"],
+      "tags": [
+        "tests",
+        "mock",
+        "supabase",
+        "work-orders"
+      ],
+      "related_bugs": [
+        "bug-334"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:41:00-05:00"
     },
@@ -5523,7 +5559,11 @@
       "file": "apps/mobile/app/(app)/work-orders",
       "root_cause": "A path containing parentheses was passed to rg without quoting.",
       "fix": "Quote all PowerShell paths that contain parentheses.",
-      "tags": ["powershell", "path", "search"],
+      "tags": [
+        "powershell",
+        "path",
+        "search"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:43:00-05:00"
@@ -5535,7 +5575,11 @@
       "file": ".planning/STATE.md",
       "root_cause": "The context contained mojibake for the em dash while the file is UTF-8.",
       "fix": "Use the exact UTF-8 heading text from a targeted read before updating milestone state.",
-      "tags": ["planning", "encoding", "patch"],
+      "tags": [
+        "planning",
+        "encoding",
+        "patch"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:46:00-05:00"
@@ -5547,8 +5591,14 @@
       "file": ".planning/STATE.md",
       "root_cause": "The patch still retained an encoding-sensitive context line.",
       "fix": "Insert Phase 1 state using only ASCII section-heading context.",
-      "tags": ["planning", "encoding", "patch"],
-      "related_bugs": ["bug-337"],
+      "tags": [
+        "planning",
+        "encoding",
+        "patch"
+      ],
+      "related_bugs": [
+        "bug-337"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:47:30-05:00"
     },
@@ -5559,8 +5609,16 @@
       "file": "PatelRep Railway production",
       "root_cause": "The Railway CLI OAuth session is expired, preventing service/domain inspection or deployment; provisioned domains currently have no reachable deployment.",
       "fix": "Re-authenticate the Railway account, restore both service domains, deploy the verified code, and re-run public probes.",
-      "tags": ["railway", "oauth", "production", "deployment"],
-      "related_bugs": ["bug-328", "bug-329"],
+      "tags": [
+        "railway",
+        "oauth",
+        "production",
+        "deployment"
+      ],
+      "related_bugs": [
+        "bug-328",
+        "bug-329"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:55:00-05:00"
     },
@@ -5571,8 +5629,14 @@
       "file": "apps/web/components",
       "root_cause": "Windows path wildcard syntax was used as a literal rg search path.",
       "fix": "Use `rg --files` to resolve matching directories before passing concrete paths to rg.",
-      "tags": ["powershell", "rg", "search"],
-      "related_bugs": ["bug-336"],
+      "tags": [
+        "powershell",
+        "rg",
+        "search"
+      ],
+      "related_bugs": [
+        "bug-336"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T14:57:00-05:00"
     },
@@ -5583,8 +5647,15 @@
       "file": "apps/api/routers/work_orders.py",
       "root_cause": "The legacy claim route predates the Phase 1 transition service.",
       "fix": "Route claims through transition_work_order_with_audit and record assignment in the same database function.",
-      "tags": ["work-orders", "audit", "transition", "integrity"],
-      "related_bugs": ["bug-333"],
+      "tags": [
+        "work-orders",
+        "audit",
+        "transition",
+        "integrity"
+      ],
+      "related_bugs": [
+        "bug-333"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T15:10:00-05:00"
     },
@@ -5595,8 +5666,14 @@
       "file": "apps/api/models/requests.py",
       "root_cause": "The legacy PATCH request enum was not synchronized with the Phase 1 status contract.",
       "fix": "Use the canonical status type in the PATCH payload, then reject status changes at the route boundary in favor of the explicit transition endpoint.",
-      "tags": ["work-orders", "enum", "api-contract"],
-      "related_bugs": ["bug-334"],
+      "tags": [
+        "work-orders",
+        "enum",
+        "api-contract"
+      ],
+      "related_bugs": [
+        "bug-334"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T15:10:00-05:00"
     },
@@ -5607,7 +5684,11 @@
       "file": "apps/api/tests/test_work_order_transitions.py",
       "root_cause": "A planned completion-route test was not added with the claim-route test.",
       "fix": "Remove the unused import before rerunning lint.",
-      "tags": ["lint", "tests", "cleanup"],
+      "tags": [
+        "lint",
+        "tests",
+        "cleanup"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-15T15:14:00-05:00"
@@ -5619,8 +5700,14 @@
       "file": ".wolf/buglog.json",
       "root_cause": "The patch mixed an incomplete JSON insertion with file-edit context.",
       "fix": "Apply the bug-log and test cleanup with separate, validated patch hunks.",
-      "tags": ["openwolf", "patch", "buglog"],
-      "related_bugs": ["bug-343"],
+      "tags": [
+        "openwolf",
+        "patch",
+        "buglog"
+      ],
+      "related_bugs": [
+        "bug-343"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-15T15:14:30-05:00"
     },
@@ -5631,8 +5718,14 @@
       "file": "Railway API service public networking",
       "root_cause": "The domain target port was supplied manually instead of being verified from runtime deploy logs.",
       "fix": "Set the public-domain target port to 8080 and verify the external health endpoint after the update.",
-      "tags": ["railway", "networking", "deployment"],
-      "related_bugs": ["bug-339"],
+      "tags": [
+        "railway",
+        "networking",
+        "deployment"
+      ],
+      "related_bugs": [
+        "bug-339"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T09:32:59-05:00"
     },
@@ -5643,7 +5736,11 @@
       "file": "Railway deployment verification",
       "root_cause": "The browser automation kernel timeout was shorter than the requested wait plus page inspection.",
       "fix": "Use short deployment polls and reinitialize the browser binding after a kernel reset.",
-      "tags": ["browser", "railway", "timeout"],
+      "tags": [
+        "browser",
+        "railway",
+        "timeout"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T09:35:00-05:00"
@@ -5655,7 +5752,10 @@
       "file": "apps/web validation command",
       "root_cause": "The workspace shell is an older PowerShell version that does not support && as a statement separator.",
       "fix": "Use semicolons and explicitly stop when $LASTEXITCODE is nonzero.",
-      "tags": ["powershell", "validation"],
+      "tags": [
+        "powershell",
+        "validation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T09:39:00-05:00"
@@ -5667,8 +5767,14 @@
       "file": "apps/api validation command",
       "root_cause": "The API virtual environment is located at apps/api/.venv, not the repository root.",
       "fix": "Run Ruff and Pyright through .\\.venv\\Scripts\\python.exe from apps/api.",
-      "tags": ["python", "validation", "path"],
-      "related_bugs": ["bug-347"],
+      "tags": [
+        "python",
+        "validation",
+        "path"
+      ],
+      "related_bugs": [
+        "bug-347"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T09:40:00-05:00"
     },
@@ -5679,8 +5785,15 @@
       "file": "apps/mobile/lib/engineering/workOrders.ts",
       "root_cause": "The canonical emergency priority was absent from the mobile union and queue-ranking logic.",
       "fix": "Add emergency and escalated to the mobile domain contract and rank emergency work first in active queues.",
-      "tags": ["phase-1", "mobile", "work-orders", "priority"],
-      "related_bugs": ["bug-342"],
+      "tags": [
+        "phase-1",
+        "mobile",
+        "work-orders",
+        "priority"
+      ],
+      "related_bugs": [
+        "bug-342"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:02:00-05:00"
     },
@@ -5691,8 +5804,14 @@
       "file": "apps/mobile i18n discovery",
       "root_cause": "Translation files are organized outside the assumed locale-directory convention.",
       "fix": "Resolve the actual translation file paths with rg --files before reading or editing keys.",
-      "tags": ["mobile", "i18n", "search"],
-      "related_bugs": ["bug-340"],
+      "tags": [
+        "mobile",
+        "i18n",
+        "search"
+      ],
+      "related_bugs": [
+        "bug-340"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:04:00-05:00"
     },
@@ -5703,8 +5822,14 @@
       "file": "apps/mobile i18n discovery",
       "root_cause": "The search pattern was narrower than the project's translation-file naming convention.",
       "fix": "Search for a known active key across apps/mobile to identify the owning translation module.",
-      "tags": ["mobile", "i18n", "search"],
-      "related_bugs": ["bug-350"],
+      "tags": [
+        "mobile",
+        "i18n",
+        "search"
+      ],
+      "related_bugs": [
+        "bug-350"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:04:30-05:00"
     },
@@ -5715,7 +5840,11 @@
       "file": "apps/mobile/app/(app)/home/index.tsx; apps/mobile/app/(app)/room-status/index.tsx; apps/mobile/app/(app)/staff/index.tsx; apps/mobile/components/home/SupervisorHome.tsx",
       "root_cause": "The mobile project already contains unrelated type-contract drift in the dirty worktree.",
       "fix": "Isolate and repair the existing mobile type errors before treating a full mobile type check as green; the focused work-order test passes.",
-      "tags": ["mobile", "typescript", "validation"],
+      "tags": [
+        "mobile",
+        "typescript",
+        "validation"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:09:00-05:00"
@@ -5727,8 +5856,14 @@
       "file": "web work-order inspection command",
       "root_cause": "The rg expression used incompatible nested single and double quotes.",
       "fix": "Split the inspection into quote-safe PowerShell commands.",
-      "tags": ["powershell", "tooling", "inspection"],
-      "related_bugs": ["bug-347"],
+      "tags": [
+        "powershell",
+        "tooling",
+        "inspection"
+      ],
+      "related_bugs": [
+        "bug-347"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:12:00-05:00"
     },
@@ -5739,7 +5874,11 @@
       "file": "apps/api/services/work_orders/transitions.py",
       "root_cause": "The transition service had not been reconciled with the role consolidation migration.",
       "fix": "Treat engineer and GM as management for controlled work-order overrides and update the focused contract test.",
-      "tags": ["phase-1", "rbac", "work-orders"],
+      "tags": [
+        "phase-1",
+        "rbac",
+        "work-orders"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:20:00-05:00"
@@ -5751,7 +5890,11 @@
       "file": "apps/web/components/housekeeping/InspectionModal.tsx",
       "root_cause": "The source contains mojibake, so exact context containing the ellipsis did not match the patch text.",
       "fix": "Apply the modal change in smaller context-safe patches that avoid the malformed placeholder text.",
-      "tags": ["frontend", "tooling", "encoding"],
+      "tags": [
+        "frontend",
+        "tooling",
+        "encoding"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:31:00-05:00"
@@ -5763,8 +5906,14 @@
       "file": "apps/web/components/housekeeping/InspectionModal.tsx",
       "root_cause": "Photo-evidence controls were added after an existing input without a wrapper element.",
       "fix": "Wrap the failed-item note and evidence controls in one container, then rerun the web type check.",
-      "tags": ["frontend", "typescript", "inspection-evidence"],
-      "related_bugs": ["bug-355"],
+      "tags": [
+        "frontend",
+        "typescript",
+        "inspection-evidence"
+      ],
+      "related_bugs": [
+        "bug-355"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:36:00-05:00"
     },
@@ -5775,10 +5924,30 @@
       "file": "supabase/migrations",
       "root_cause": "The notifications table was created in migration 013_ai_systems.sql, not migration 012.",
       "fix": "Use migration 013 as the notifications schema source when adding delivery history.",
-      "tags": ["database", "tooling", "migrations"],
+      "tags": [
+        "database",
+        "tooling",
+        "migrations"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-16T10:40:00-05:00"
+    },
+    {
+      "id": "bug-359",
+      "timestamp": "2026-07-16T15:41:57.575Z",
+      "error_message": "Missing await",
+      "file": "apps/api/tests/test_work_order_transitions.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T15:41:57.575Z"
     }
   ]
 }
