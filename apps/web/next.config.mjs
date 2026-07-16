@@ -64,7 +64,9 @@ function buildSecurityHeaders() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  turbopack: { root: appRoot },
+  // turbopack.root is only needed for local monorepo dev (no workspace lockfile at repo root).
+  // On Vercel the rootDirectory is already apps/web, so setting this breaks outputFileTracingRoot.
+  ...(process.env.VERCEL ? {} : { turbopack: { root: appRoot } }),
   allowedDevOrigins: getLocalDevOrigins(),
   serverExternalPackages: [],
   images: {
