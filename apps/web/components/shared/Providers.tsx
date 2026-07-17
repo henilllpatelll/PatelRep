@@ -9,6 +9,7 @@ import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { ApiClientError, apiClient } from '@/lib/api/client'
 import { staffApi } from '@/lib/api/staff'
+import { isPublicRoute } from '@/lib/utils/routeGuard'
 import { LanguageSync } from '@/components/shared/LanguageSync'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -133,7 +134,7 @@ function AuthListener() {
           clearHotel()
           writeAppRoleCookie(null)
           await supabase.auth.signOut().catch(() => undefined)
-          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          if (typeof window !== 'undefined' && !isPublicRoute(window.location.pathname)) {
             router.replace('/login?reason=session-expired')
           }
         } else if (err instanceof ApiClientError && err.status === 403) {
@@ -142,7 +143,7 @@ function AuthListener() {
           setCustomRoleModules(null)
           if (
             typeof window !== 'undefined' &&
-            !window.location.pathname.startsWith('/login') &&
+            !isPublicRoute(window.location.pathname) &&
             !window.location.pathname.startsWith('/onboarding')
           ) {
             router.replace('/onboarding')
@@ -192,7 +193,7 @@ function AuthListener() {
         clear()
         clearHotel()
         writeAppRoleCookie(null)
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        if (typeof window !== 'undefined' && !isPublicRoute(window.location.pathname)) {
           router.replace('/login?reason=session-expired')
         }
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
@@ -219,7 +220,7 @@ function AuthListener() {
         clear()
         clearHotel()
         writeAppRoleCookie(null)
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        if (typeof window !== 'undefined' && !isPublicRoute(window.location.pathname)) {
           router.replace('/login?reason=session-expired')
         }
       }
@@ -229,7 +230,7 @@ function AuthListener() {
       clear()
       clearHotel()
       writeAppRoleCookie(null)
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      if (typeof window !== 'undefined' && !isPublicRoute(window.location.pathname)) {
         router.replace('/login?reason=session-expired')
       }
     }

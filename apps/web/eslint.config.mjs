@@ -4,6 +4,9 @@ const require = createRequire(import.meta.url)
 const nextConfig = require('eslint-config-next/core-web-vitals')
 
 const config = [
+  {
+    ignores: ['.next/**', '.next-*/**', 'playwright-report-phase0/**', 'test-results/**'],
+  },
   ...nextConfig,
   {
     rules: {

@@ -63,6 +63,8 @@ function buildSecurityHeaders() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keeps isolated browser checks from conflicting with an operator's active dev server.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   // standalone output is for Railway/Docker self-hosting. Vercel manages its own serving
   // and its Turbopack build does not emit next-server.js.nft.json, so skip it there.
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),

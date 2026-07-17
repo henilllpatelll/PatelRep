@@ -11,7 +11,7 @@
  * Each test is independent: it creates its own data via the web UI and does not
  * depend on state left by prior tests.
  *
- * Credentials: GM account (hp.patelrep@gmail.com / PatelRep2026x)
+ * Credentials: TEST_EMAIL and TEST_PASSWORD environment variables
  * Target: https://patelrep-production-0ad1.up.railway.app
  */
 
@@ -19,8 +19,8 @@ import { expect, test, type Page } from '@playwright/test'
 
 // ── Credentials ───────────────────────────────────────────────────────────────
 
-const GM_EMAIL    = 'hp.patelrep@gmail.com'
-const GM_PASSWORD = 'PatelRep2026x'
+const GM_EMAIL = process.env.TEST_EMAIL ?? 'hp.patelrep@gmail.com'
+const GM_PASSWORD = process.env.TEST_PASSWORD
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,6 +33,7 @@ async function loginAsGM(page: Page): Promise<void> {
   await emailField.fill(GM_EMAIL)
 
   const passwordField = page.locator('input[type="password"]').first()
+  if (!GM_PASSWORD) throw new Error('Set TEST_PASSWORD to run authenticated work-order E2E tests')
   await passwordField.fill(GM_PASSWORD)
 
   // Submit — look for a submit button or the Enter key
@@ -58,7 +59,7 @@ async function navigateToWorkOrders(page: Page): Promise<void> {
 
 /** Open the "New Work Order" modal. */
 async function openCreateModal(page: Page): Promise<void> {
-  const newBtn = page.getByRole('button', { name: /new work order/i })
+  const newBtn = page.getByRole('button', { name: 'New Work Order', exact: true })
   await newBtn.waitFor({ state: 'visible', timeout: 10000 })
   await newBtn.click()
   await page.waitForSelector('[role="dialog"][aria-label="Create Work Order"]', { timeout: 8000 })
@@ -100,13 +101,16 @@ async function createWorkOrder(
     .getByRole('button', { name: /create work order|submit|save/i })
     .or(page.locator('button[type="submit"]'))
     .first()
-  await Promise.all([
+  const [createResponse] = await Promise.all([
     page.waitForResponse(
       (resp) => resp.url().includes('/work-orders') && resp.request().method() === 'POST',
       { timeout: 15000 },
     ),
     submitBtn.click(),
   ])
+  if (!createResponse.ok()) {
+    throw new Error(`Work-order creation failed (${createResponse.status()}) at ${createResponse.url()} with ${createResponse.request().postData()}: ${await createResponse.text()}`)
+  }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -172,7 +176,7 @@ test.describe('Phase 1 — Work Orders', () => {
     await page.waitForSelector('[role="dialog"]', { timeout: 8000 })
 
     // Click "Escalate" button inside the drawer
-    const escalateBtn = page.getByRole('button', { name: /escalate/i })
+    const escalateBtn = page.getByRole('button', { name: 'Escalate', exact: true })
     await escalateBtn.waitFor({ state: 'visible', timeout: 8000 })
     await Promise.all([
       page.waitForResponse(
@@ -189,10 +193,8 @@ test.describe('Phase 1 — Work Orders', () => {
     // Allow board to refresh
     await page.waitForTimeout(2000)
 
-    // The card should now appear in the Escalated column
-    // Find the Escalated column by its header label
-    const escalatedHeader = page.locator('span').filter({ hasText: /^Escalated$/ }).first()
-    const escalatedColumn = escalatedHeader.locator('..').locator('..')
+    // The card should now appear in the Escalated column.
+    const escalatedColumn = page.getByTestId('work-order-column-escalated')
     const escalatedCard = escalatedColumn.locator('[role="button"]').filter({ hasText: uniqueTitle })
     await expect(escalatedCard).toBeVisible({ timeout: 10000 })
   })

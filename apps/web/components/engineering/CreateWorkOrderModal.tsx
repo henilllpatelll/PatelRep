@@ -26,6 +26,7 @@ const CATEGORIES = [
 ]
 
 const PRIORITIES = [
+  { value: 'emergency', label: 'Emergency', desc: 'Immediate threat to life, safety, or critical building systems' },
   { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact — immediate' },
   { value: 'normal', label: 'Normal', desc: 'Standard maintenance' },
   { value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' },
@@ -303,7 +304,9 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                     key={p.value}
                     className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
                       priority === p.value
-                        ? p.value === 'urgent'
+                        ? p.value === 'emergency'
+                          ? 'border-red-300 bg-red-50'
+                          : p.value === 'urgent'
                           ? 'border-[var(--alert-line)] bg-[var(--alert-soft)]'
                           : p.value === 'normal'
                           ? 'border-[var(--info-line)] bg-[var(--info-soft)]'

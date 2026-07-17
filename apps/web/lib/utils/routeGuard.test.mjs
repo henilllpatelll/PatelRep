@@ -2,6 +2,18 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { getAppRoleFromSources, getRouteAccessDecision, toAppRole } from './routeGuard.ts'
 
+test('allows visitors to view the public landing page', () => {
+  assert.deepEqual(
+    getRouteAccessDecision({
+      pathname: '/',
+      isAuthenticated: false,
+      hasHotel: false,
+      role: null,
+    }),
+    { type: 'allow' },
+  )
+})
+
 test('allows authenticated users without a resolved app role to reach dashboard', () => {
   assert.deepEqual(
     getRouteAccessDecision({

@@ -8,6 +8,8 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **Operations audit must be exhaustive and evidence-led (2026-07-17):** When requesting workflow validation, the user expects every implemented web and mobile operational workflow to be exercised against current real-world hotel practice, with unnecessary steps removed and meaningful gaps implemented before reporting back.
+
 - **Mobile palette: forest-green primary, not terracotta (2026-06-11):** User rebased the mobile Evening Lobby port onto the main palette — keep dark shellTokens chrome but primary/action stays forest-green (#2F5D50/#4F7A5A light, #7EA889 dark) on the warm #F8F1E7 canvas. Do not reintroduce terracotta as the mobile action color.
 
 - **Mobile redesign discovery should use repeated explicit questions (2026-06-08):** When discussing a major mobile app redesign, user wants the assistant to use the app question tool when available and keep asking until confidence is high rather than jumping prematurely into implementation.
@@ -20,6 +22,14 @@
 - **Universal room status color contract (updated 2026-05-28):** User wants room statuses shown consistently everywhere: green = Inspected / Ready, blue = Clean ready for inspection, purple = In Progress, red = Vacant Dirty, striped red = Occupied, yellow = Pickup, and gray/stone = Out of Order / Out of Service. OOO/OOS should use the original simple card treatment, just gray instead of orange.
 
 ## Key Learnings
+
+- **Work-order creation schema contract (2026-07-17):** `work_orders` has no `source` column; store transition provenance in `operational_audit_events` only. The create modal must offer `emergency` because the API and database priority contract support it, and Kanban columns expose `data-testid="work-order-column-{status}"` for stable workflow tests.
+
+- **Mobile regression assertions must follow the current room-status route and clock-sensitive operational counts (2026-07-17):** Engineer room quick-link is `/(app)/room-status`, not the removed `/(app)/rooms`. Tests for `buildFloorSnapshot()` must fix `Date.now()` before asserting `behindSchedule`, because it intentionally changes after 1 PM.
+
+- **Public web route contract (2026-07-17):** The root landing page must be included in `PUBLIC_ROUTES`; the Next proxy otherwise redirects anonymous visitors to `/login` before it can render. Client-side session-expiry guards must use the same `isPublicRoute()` predicate so marketing and auth routes stay public.
+
+- **Isolated Next browser checks (2026-07-17):** Running another Next dev server needs its own `distDir`; set `NEXT_DIST_DIR` and ignore `apps/web/.next-*/` so an active developer server remains untouched and ESLint does not scan generated chunks.
 
 - **Mobile API host contract (2026-07-17):** The retired `patelrep-web-production` Railway host returns 404. Mobile `.env`, defaults, and EAS preview/production must use `https://stellar-integrity-production-f507.up.railway.app/v1`; keep multipart uploads on the shared `API_BASE` export so they cannot drift from ordinary API calls.
 

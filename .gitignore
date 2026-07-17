@@ -29,6 +29,7 @@ apps/web/.env.local
 
 # Next.js
 apps/web/.next/
+apps/web/.next-*/
 apps/web/out/
 
 # Build outputs
@@ -74,6 +75,8 @@ yarn-debug.log*
 e2e/.auth/
 playwright-report/
 test-results/
+apps/web/playwright-report-phase0/
+apps/web/test-results/
 
 # Python ruff cache (project root)
 .ruff_cache/

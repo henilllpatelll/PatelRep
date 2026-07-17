@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const webPort = 3000
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 3000)
 const baseURL = `http://localhost:${webPort}`
 
 export default defineConfig({
@@ -21,6 +21,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       ...process.env,
+      NEXT_DIST_DIR: '.next-phase0',
       NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder.supabase.co',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'placeholder-anon-key',
       NEXT_PUBLIC_API_URL: 'http://localhost:8000/v1',

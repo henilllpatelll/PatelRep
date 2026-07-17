@@ -8,7 +8,7 @@ import pytest
 from fastapi import HTTPException
 
 from middleware.auth import CurrentUser, require_role
-from models.requests import TransitionWorkOrderRequest, UpdateWorkOrderRequest
+from models.requests import CreateWorkOrderRequest, TransitionWorkOrderRequest, UpdateWorkOrderRequest
 from routers import work_orders as work_orders_router
 from services.work_orders.transitions import (
     TransitionRequest,
@@ -42,6 +42,43 @@ def test_emergency_escalation_is_a_valid_operational_transition():
 
     assert result.status == "escalated"
     assert result.requires_escalation_notification is True
+
+
+class _CreateWorkOrderQuery:
+    def __init__(self, database: "_CreateWorkOrderDatabase"):
+        self.database = database
+
+    def insert(self, payload: dict):
+        self.database.inserted_payload = payload
+        return self
+
+    def execute(self):
+        if "source" in self.database.inserted_payload:
+            raise AssertionError("work_orders schema has no source column")
+        return type("Result", (), {"data": [{"id": "work-order-1", **self.database.inserted_payload}]})()
+
+
+class _CreateWorkOrderDatabase:
+    def __init__(self):
+        self.inserted_payload: dict = {}
+
+    def table(self, table_name: str):
+        assert table_name == "work_orders"
+        return _CreateWorkOrderQuery(self)
+
+
+@pytest.mark.asyncio
+async def test_create_work_order_uses_only_work_orders_schema_columns(monkeypatch):
+    database = _CreateWorkOrderDatabase()
+    monkeypatch.setattr(work_orders_router, "supabase", database)
+
+    response = await work_orders_router.create_work_order(
+        CreateWorkOrderRequest(title="Restore lobby HVAC", category="hvac", priority="emergency"),
+        CurrentUser(user_id="engineer-1", hotel_id="hotel-1", role="engineer", email="engineer@example.com"),
+    )
+
+    assert response["data"]["priority"] == "emergency"
+    assert database.inserted_payload["tenant_id"] == "hotel-1"
 
 
 @pytest.mark.parametrize(

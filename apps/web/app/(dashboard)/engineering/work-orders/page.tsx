@@ -148,6 +148,7 @@ function KanbanColumn({
 }) {
   return (
     <div
+      data-testid={`work-order-column-${status}`}
       className="flex flex-col bg-surface border border-line rounded-[var(--r-lg)] shadow-card overflow-hidden min-h-[400px]"
     >
       {/* Column header */}

@@ -144,7 +144,7 @@ describe("EngineerHome", () => {
 
     const links = [
       ["home.engineer.quickOrders", "/(app)/work-orders"],
-      ["home.engineer.quickRooms", "/(app)/rooms"],
+      ["home.engineer.quickRooms", "/(app)/room-status"],
       ["home.engineer.quickAssets", "/(app)/assets"],
       ["home.engineer.quickPm", "/(app)/pm-schedules"],
     ] as const;

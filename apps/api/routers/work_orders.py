@@ -156,7 +156,6 @@ async def create_work_order(
         "sla_minutes": sla,
         "due_at": due_at.isoformat(),
         "guest_reported": request.guest_reported,
-        "source": request.source,
     }
     result = supabase.table("work_orders").insert(wo_data).execute()
     return {"data": result.data[0] if result.data else None}

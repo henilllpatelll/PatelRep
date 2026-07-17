@@ -963,6 +963,8 @@
 
 ## apps/web/lib/utils/
 
+- `routeGuard.ts` — Shared public-route, authentication, hotel, and RBAC redirect decisions used by the Next proxy. (~900 tok)
+- `routeGuard.test.mjs` — Node tests covering public access and role-based route-guard decisions. (~350 tok)
 
 ## apps/web/playwright.phase0.config.ts
 

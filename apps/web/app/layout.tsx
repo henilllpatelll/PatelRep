@@ -26,8 +26,13 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'PatelRep — Hotel Operations AI',
-  description: 'AI-powered hotel staff operations platform',
+  title: 'PatelRep — Hotel operations, finally in sync',
+  description: 'A calm, mobile-first operations platform for independent hotel teams.',
+  openGraph: {
+    title: 'PatelRep — Hotel operations, finally in sync',
+    description: 'A calm, mobile-first operations platform for independent hotel teams.',
+    type: 'website',
+  },
   icons: {
     icon: '/favicon.svg',
   },

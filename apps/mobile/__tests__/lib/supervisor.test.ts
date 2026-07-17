@@ -83,6 +83,7 @@ describe("normalizeBoardRooms", () => {
 
 describe("buildFloorSnapshot", () => {
   it("counts statuses, unassigned actionable rooms, and flags", () => {
+    jest.spyOn(Date, "now").mockReturnValue(new Date("2026-07-17T14:00:00").getTime());
     const rooms = normalizeBoardRooms([
       rawRoom({ room_id: "r-101", status: "DIRTY" }),
       rawRoom({ room_id: "r-102", status: "OCCUPIED", dnd_flag: true }),
@@ -104,7 +105,9 @@ describe("buildFloorSnapshot", () => {
       unassigned: 3, // 101, 102, 108 — actionable without an assignee
       dnd: 1, // OOO room with DND does not count
       vip: 2, // r-106 (INSPECTED) and r-108 (DIRTY), OOO room not counted
+      behindSchedule: 4, // All actionable, non-started rooms after 1 PM
     });
+    jest.restoreAllMocks();
   });
 });
 

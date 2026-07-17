@@ -1,4 +1,4 @@
-export const PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/reset-password'] as const
+export const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/reset-password'] as const
 export const ALL_ROLES = ['housekeeper', 'engineer', 'chief_engineer', 'housekeeping_supervisor', 'front_desk', 'gm'] as const
 
 export type UserRole = (typeof ALL_ROLES)[number]

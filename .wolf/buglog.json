@@ -6888,6 +6888,118 @@
       "related_bugs": ["bug-414"],
       "occurrences": 1,
       "last_seen": "2026-07-17T13:25:38-05:00"
+    },
+    {
+      "id": "bug-416",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "New public landing-page smoke test failed because the root route redirects to /login.",
+      "file": "apps/web/app/page.tsx",
+      "root_cause": "The initial failure exposed the missing root page. A subsequent run reused a separate stale server on port 3000, so it still exercised the old redirect despite the source patch.",
+      "fix": "Replace the redirect with a responsive public landing page and make the Phase 0 Playwright port configurable for isolated validation.",
+      "tags": ["web", "landing-page", "playwright", "tdd"],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-417",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Isolated Playwright server could not start because Next detected an active dev server using the shared .next lock.",
+      "file": "apps/web/next.config.mjs, apps/web/playwright.phase0.config.ts",
+      "root_cause": "The browser test chose a separate port but used the same default Next build directory as the developer's active server.",
+      "fix": "Support a NEXT_DIST_DIR override and set an isolated .next-phase0 directory for Phase 0 Playwright runs.",
+      "tags": ["web", "next", "playwright", "test-infrastructure"],
+      "related_bugs": ["bug-416"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-418",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "The landing page rendered as a login redirect even after its page component was implemented.",
+      "file": "apps/web/lib/utils/routeGuard.ts, apps/web/components/shared/Providers.tsx",
+      "root_cause": "The root path was not a public route, so the authentication proxy redirected anonymous visitors before the landing page could render. Client-side session-expiry redirects also treated the root as protected.",
+      "fix": "Add / to public routes and reuse the shared public-route predicate for client-side redirect guards.",
+      "tags": ["web", "authentication", "landing-page", "route-guard"],
+      "related_bugs": ["bug-416"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-419",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Web lint scanned generated isolated Next development directories and reported hundreds of errors in bundled code.",
+      "file": ".gitignore",
+      "root_cause": "The temporary `.next-phase0` and `.next-site-preview` directories were not covered by the existing `.next` ignore rule, so ESLint traversed generated chunks.",
+      "fix": "Ignore temporary Next output in both ESLint and Git; the execution policy prevented recursive removal, so the generated directories remain harmlessly ignored.",
+      "tags": ["web", "lint", "next", "test-infrastructure"],
+      "related_bugs": ["bug-417"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-420",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Workspace policy rejected removal of temporary isolated Next output directories.",
+      "file": "apps/web/.next-phase0, apps/web/.next-site-preview",
+      "root_cause": "The execution environment blocks recursive filesystem deletion even after the exact workspace-local targets were verified.",
+      "fix": "Leave the generated directories untracked and ignored by `apps/web/.next-*/`; they do not affect source control or lint after the ignore rule update.",
+      "tags": ["tooling", "cleanup", "policy"],
+      "related_bugs": ["bug-419"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    }
+  ,
+    {
+      "id": "bug-421",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "AGENTS.md refers to REMAINING_WORK.md, but that file is absent from the repository.",
+      "file": "AGENTS.md",
+      "root_cause": "The workflow documentation retained a reference after the planning artifact was removed or renamed.",
+      "fix": "Record the missing planning artifact during the operational audit; do not invent a replacement without confirming the intended planning source.",
+      "tags": ["documentation", "planning", "missing-file"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    }
+  ,
+    {
+      "id": "bug-422",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Mobile Jest baseline had two failing, stale assertions.",
+      "file": "apps/mobile/__tests__/screens/EngineerHome.test.tsx, apps/mobile/__tests__/lib/supervisor.test.ts",
+      "root_cause": "The navigation assertion used the retired rooms path, and the floor-snapshot assertion did not account for the intentional after-1-PM behind-schedule metric.",
+      "fix": "Assert the live room-status route and pin Date.now() while asserting behindSchedule.",
+      "tags": ["mobile", "jest", "regression", "housekeeping", "engineering"],
+      "related_bugs": ["bug-414"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    }
+  ,
+    {
+      "id": "bug-423",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Web work-order creation returned PGRST204 and the Emergency priority was absent from the creation form.",
+      "file": "apps/api/routers/work_orders.py, apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "root_cause": "The API inserted a `source` field that is not in the work_orders schema; the UI did not expose the supported emergency priority.",
+      "fix": "Removed the unsupported insert field, added an emergency option, and covered schema compatibility plus the browser work-order lifecycle.",
+      "tags": ["web", "api", "work-orders", "emergency", "schema", "operations"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    }
+  ,
+    {
+      "id": "bug-424",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Phase 1 inspection-photo browser scenario was skipped because the test hotel had no room ready for inspection.",
+      "file": "apps/web/e2e/phase1-work-orders.spec.ts",
+      "root_cause": "The browser test relies on mutable live fixture state instead of preparing a ready-to-inspect room and photo-required template.",
+      "fix": "The API/photo-evidence contract is covered by the passing backend suite; make the UI scenario fixture-backed before using it as a release gate.",
+      "tags": ["e2e", "inspection", "fixtures", "photo-evidence"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
     }
   ]
 }
