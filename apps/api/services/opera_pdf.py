@@ -17,7 +17,12 @@ def _repair_pdf(pdf_bytes: bytes) -> bytes:
     PdfWriter emits a clean, standards-compliant PDF that pdfplumber can parse.
     """
     from pypdf import PdfReader, PdfWriter
-    reader = PdfReader(io.BytesIO(pdf_bytes))
+    try:
+        # pypdf 5.x: strict defaults to True, which crashes on corrupt xref tables.
+        reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
+    except TypeError:
+        # pypdf 6.x: strict parameter was removed; lenient is the only mode.
+        reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     for page in reader.pages:
         writer.add_page(page)
@@ -209,6 +214,8 @@ def parse_task_sheet(pdf_bytes: bytes) -> tuple[list[TaskSheetRow], list[str]]:
 def _parse_task_sheet_inner(pdf_bytes: bytes) -> tuple[list[TaskSheetRow], list[str]]:
     rows: list[TaskSheetRow] = []
     warnings: list[str] = []
+    # Holds a row whose task column was cut by a page break; resolved on the next line.
+    pending: Optional[TaskSheetRow] = None
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
@@ -245,24 +252,58 @@ def _parse_task_sheet_inner(pdf_bytes: bytes) -> tuple[list[TaskSheetRow], list[
                         task_parts.append(t)
 
                 room_no  = " ".join(room_parts).strip()
-                fo_text  = fo_parts[0] if fo_parts else None
-                res_text = " ".join(res_parts).strip()
-                name     = " ".join(name_parts).strip()
                 task_raw = " ".join(task_parts).strip()
+
+                # Cross-page continuation: task column was cut at the page break.
+                # The continuation line has no room number but carries the task text.
+                # Only resolve when the text is a recognised clean type to avoid
+                # misidentifying Opera's repeated page header row ("Tasks").
+                if pending is not None:
+                    if _is_room_number(room_no):
+                        # New room starts — flush pending without a task.
+                        rows.append(pending)
+                        pending = None
+                    else:
+                        resolved = _normalize_task(task_raw) if task_raw else None
+                        if resolved is not None:
+                            rows.append(TaskSheetRow(
+                                room_number=pending.room_number,
+                                fo_status=pending.fo_status,
+                                reservation_status=pending.reservation_status,
+                                guest_name=pending.guest_name,
+                                clean_type=resolved,
+                            ))
+                            pending = None
+                            continue
+                        # Header line or blank — keep pending and skip this line.
+                        continue
 
                 if not _is_room_number(room_no):
                     continue
+
+                fo_text  = fo_parts[0] if fo_parts else None
+                res_text = " ".join(res_parts).strip()
+                name     = " ".join(name_parts).strip()
 
                 clean_type = _normalize_task(task_raw) if task_raw else None
                 if task_raw and clean_type is None:
                     warnings.append(f"Room {room_no}: unrecognised task '{task_raw}'")
 
-                rows.append(TaskSheetRow(
+                row = TaskSheetRow(
                     room_number=room_no,
                     fo_status=fo_text,
                     reservation_status=res_text,
                     guest_name=name,
                     clean_type=clean_type,
-                ))
+                )
+
+                if not task_raw:
+                    # Task column missing — may continue on the next line or next page.
+                    pending = row
+                else:
+                    rows.append(row)
+
+    if pending:
+        rows.append(pending)
 
     return rows, warnings

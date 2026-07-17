@@ -1,6 +1,7 @@
 import io
 from datetime import date
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import UploadFile
@@ -8,7 +9,7 @@ from fastapi import UploadFile
 from middleware.auth import CurrentUser
 from models.requests import CreateAssignmentsRequest
 from routers import housekeeping as housekeeping_router
-from services.opera_pdf import HKDetailsRow, TaskSheetRow
+from services.opera_pdf import HKDetailsRow, TaskSheetRow, parse_task_sheet
 
 
 SUPERVISOR = CurrentUser(
@@ -1332,3 +1333,92 @@ async def test_undo_checkout_pickup_room_restores_pickup_and_full_clean_type(mon
     assert rs["clean_type"] == "FULL"
     assert rs["actual_checkout_at"] is None
     assert response["data"]["undone"] is True
+
+
+# ---------------------------------------------------------------------------
+# opera_pdf parser — cross-page continuation
+# ---------------------------------------------------------------------------
+
+def _make_word(text: str, x0: float, top: float, page_width: float = 792.0) -> dict:
+    return {"text": text, "x0": x0, "top": top, "x1": x0 + 20}
+
+
+def _mock_page(words: list[dict], width: float = 792.0) -> MagicMock:
+    page = MagicMock()
+    page.width = width
+    page.extract_words.return_value = words
+    return page
+
+
+def test_task_sheet_parser_resolves_clean_type_split_across_page_boundary():
+    """Room 215's task column is cut at the end of page 1 and continues on page 2.
+
+    Page 2 starts with Opera's repeated column header row (which puts "Tasks" in
+    the task column), followed by the actual continuation task for room 215.
+    The parser must skip the header and attach the task to room 215.
+    """
+    W = 792.0
+
+    # Page 1: room 214 (complete) then room 215 (no task — split at page break)
+    page1_words = [
+        # Room 214 — complete row
+        _make_word("214",           x0=10,  top=100, page_width=W),
+        _make_word("DI",            x0=80,  top=100, page_width=W),
+        _make_word("OCC",           x0=135, top=100, page_width=W),
+        _make_word("Stayover",      x0=185, top=100, page_width=W),
+        _make_word("Smith/John",    x0=360, top=100, page_width=W),
+        _make_word("FULL(Make)",    x0=510, top=100, page_width=W),
+        # Room 215 — task column missing (page break)
+        _make_word("215",           x0=10,  top=120, page_width=W),
+        _make_word("DI",            x0=80,  top=120, page_width=W),
+        _make_word("OCC",           x0=135, top=120, page_width=W),
+        _make_word("Stayover",      x0=185, top=120, page_width=W),
+        _make_word("Jones/Mary",    x0=360, top=120, page_width=W),
+    ]
+
+    # Page 2: Opera repeats column headers, then the continuation for room 215,
+    # then normal rows.
+    page2_words = [
+        # Column header row (Opera always repeats these on new pages)
+        _make_word("Room",          x0=10,  top=10,  page_width=W),
+        _make_word("Rm",            x0=80,  top=10,  page_width=W),
+        _make_word("Status",        x0=95,  top=10,  page_width=W),
+        _make_word("FO",            x0=135, top=10,  page_width=W),
+        _make_word("Status",        x0=150, top=10,  page_width=W),
+        _make_word("Res",           x0=185, top=10,  page_width=W),
+        _make_word("Status",        x0=200, top=10,  page_width=W),
+        _make_word("Name",          x0=360, top=10,  page_width=W),
+        _make_word("Tasks",         x0=510, top=10,  page_width=W),  # ← the danger word
+        # Continuation for room 215
+        _make_word("DEP(Linen",     x0=510, top=30,  page_width=W),
+        _make_word("Change)",       x0=560, top=30,  page_width=W),
+        # Room 216 — normal complete row
+        _make_word("216",           x0=10,  top=50,  page_width=W),
+        _make_word("DI",            x0=80,  top=50,  page_width=W),
+        _make_word("VAC",           x0=135, top=50,  page_width=W),
+        _make_word("Due Out",       x0=185, top=50,  page_width=W),
+        _make_word("Brown/Bob",     x0=360, top=50,  page_width=W),
+        _make_word("DEP(Linen",     x0=510, top=50,  page_width=W),
+        _make_word("Change)",       x0=560, top=50,  page_width=W),
+    ]
+
+    fake_pdf = MagicMock()
+    fake_pdf.__enter__ = lambda s: s
+    fake_pdf.__exit__ = MagicMock(return_value=False)
+    fake_pdf.pages = [_mock_page(page1_words), _mock_page(page2_words)]
+
+    with patch("services.opera_pdf.pdfplumber.open", return_value=fake_pdf):
+        rows, warnings = parse_task_sheet(b"%PDF-dummy")
+
+    by_room = {r.room_number: r for r in rows}
+    assert "214" in by_room
+    assert by_room["214"].clean_type == "FULL"
+    assert "215" in by_room, f"Room 215 missing from parsed rows: {[r.room_number for r in rows]}"
+    assert by_room["215"].clean_type == "DEP", (
+        f"Expected DEP but got {by_room['215'].clean_type!r} — "
+        "page-break continuation was not resolved"
+    )
+    assert by_room["215"].fo_status == "OCC"
+    assert "216" in by_room
+    assert by_room["216"].clean_type == "DEP"
+    assert not warnings
