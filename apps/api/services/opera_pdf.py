@@ -8,6 +8,23 @@ from typing import Optional
 
 import pdfplumber
 
+
+def _repair_pdf(pdf_bytes: bytes) -> bytes:
+    """Re-encode a PDF through pypdf to fix corrupt/misaligned xref tables.
+
+    Opera Reports sometimes generates PDFs with incorrect xref byte offsets.
+    pypdf's strict=False mode does a linear scan to find objects, then
+    PdfWriter emits a clean, standards-compliant PDF that pdfplumber can parse.
+    """
+    from pypdf import PdfReader, PdfWriter
+    reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
 _TASKSHEET_NO_RE = re.compile(r"/(\d+)$")
 
 @dataclass
@@ -82,6 +99,13 @@ def _group_words_into_lines(words: list[dict], y_tol: float = 4.0) -> list[list[
 # ---------------------------------------------------------------------------
 
 def parse_hk_details(pdf_bytes: bytes) -> tuple[list[HKDetailsRow], list[str]]:
+    try:
+        return _parse_hk_details_inner(pdf_bytes)
+    except Exception:
+        return _parse_hk_details_inner(_repair_pdf(pdf_bytes))
+
+
+def _parse_hk_details_inner(pdf_bytes: bytes) -> tuple[list[HKDetailsRow], list[str]]:
     rows: list[HKDetailsRow] = []
     warnings: list[str] = []
 
@@ -176,6 +200,13 @@ def parse_hk_details(pdf_bytes: bytes) -> tuple[list[HKDetailsRow], list[str]]:
 # ---------------------------------------------------------------------------
 
 def parse_task_sheet(pdf_bytes: bytes) -> tuple[list[TaskSheetRow], list[str]]:
+    try:
+        return _parse_task_sheet_inner(pdf_bytes)
+    except Exception:
+        return _parse_task_sheet_inner(_repair_pdf(pdf_bytes))
+
+
+def _parse_task_sheet_inner(pdf_bytes: bytes) -> tuple[list[TaskSheetRow], list[str]]:
     rows: list[TaskSheetRow] = []
     warnings: list[str] = []
 
