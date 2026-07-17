@@ -12,6 +12,8 @@ const API_URL = configuredApiUrl === RETIRED_API_URL
   ? LIVE_API_URL
   : configuredApiUrl || 'http://localhost:8000/v1'
 
+export const resolvedApiUrl = API_URL
+
 export class ApiClientError extends Error {
   status: number | null
   path: string

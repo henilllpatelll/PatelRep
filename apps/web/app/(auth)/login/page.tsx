@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
 import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/utils/routeGuard'
+import { resolvedApiUrl } from '@/lib/api/client'
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
@@ -20,9 +21,8 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 type Tab = 'password' | 'magic'
 type ServiceHealth = 'checking' | 'connected' | 'unavailable'
 
-function getHealthUrl(): string | null {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
-  return apiUrl ? `${apiUrl}/health` : null
+function getHealthUrl(): string {
+  return `${resolvedApiUrl.replace(/\/v1\/?$/, '')}/health`
 }
 
 function Spinner({ className = '' }: { className?: string }) {
@@ -61,11 +61,6 @@ function LoginContent() {
 
   useEffect(() => {
     const healthUrl = getHealthUrl()
-    if (!healthUrl) {
-      setServiceHealth('unavailable')
-      return
-    }
-
     const controller = new AbortController()
 
     async function checkServiceHealth(endpoint: string) {
