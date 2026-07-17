@@ -1,4 +1,4 @@
-import { api } from "@/lib/api/client";
+import { API_BASE, api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import type {
   WorkOrder,
@@ -81,8 +81,7 @@ export async function uploadWorkOrderPhoto(
   } as unknown as Blob);
   formData.append("photo_type", "progress");
 
-  const base = process.env.EXPO_PUBLIC_API_URL ?? "https://patelrep-web-production.up.railway.app/v1";
-  const response = await fetch(`${base}/work-orders/${woId}/photos`, {
+  const response = await fetch(`${API_BASE}/work-orders/${woId}/photos`, {
     method: "POST",
     headers: { Authorization: `Bearer ${session.access_token}` },
     body: formData,

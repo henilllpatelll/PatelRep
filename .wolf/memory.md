@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-17 | opera_pdf.py parse_task_sheet: added cross-page pending pattern — room whose task column is cut at page break now resolved on next recognized continuation line; Opera's repeated column header ("Tasks") correctly skipped. New test test_task_sheet_parser_resolves_clean_type_split_across_page_boundary added. 28 tests pass. | apps/api/services/opera_pdf.py, apps/api/tests/smoke/test_housekeeping_assignments.py | complete | ~60 tok |
 | 11:25 | Phase 0+1 final commit fd6c5873: cron_health table (migration 068) applied to production; _record_cron_run() added to all 8 cron endpoints; /health extended with cron/notifications/pms_sync telemetry; schema/work_order_enums.json + test_enum_contracts.py enum drift guard (2 tests pass); Playwright phase1 E2E spec committed; honest occupancy language ("Mark Occupied/Departed") in GMDashboard + FrontDeskDashboard. 229 smoke tests pass. Pushed to main. STATE.md updated. Only remaining item: 48-hour monitoring window expires ~2026-07-18. | apps/api/main.py, apps/api/routers/internal.py, apps/api/tests/smoke/test_enum_contracts.py, schema/work_order_enums.json, supabase/migrations/068_cron_health.sql, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/playwright.phase1.config.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~200 tok |
 | 2026-07-16 | Phase 1 E2E: playwright.phase1.config.ts + e2e/phase1-work-orders.spec.ts (5 authenticated tests: emergency WO, escalation, hold+reason, resume, inspection photo prompt). Occupancy language: "Check out"→"Mark Departed", "Check in"→"Mark Occupied", section labels updated. API field names unchanged. tsc clean. | apps/web/playwright.phase1.config.ts, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~80 tok |
 | 2026-07-16 | Phase 1 contract tests: added RBAC guard tests (housekeeper/housekeeping_supervisor/front_desk blocked, engineer/gm pass), tenant-isolation test (cross-hotel WO → 404, no audit event), audit-reconstruction test (4-step lifecycle in memory mock). 247 API tests pass. | apps/api/tests/test_work_order_transitions.py | complete | ~80 tok |
@@ -6751,3 +6752,41 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 11:34 | Created .github/dependabot.yml | — | ~266 |
 | 11:34 | Created .githooks/pre-push | — | ~486 |
 | 11:35 | Session end: 16 writes across 6 files (RoomDetailDrawer.tsx, ci.yml, deploy-check.yml, auto-merge.yml, dependabot.yml) | 10 reads | ~16991 tok |
+
+## Session: 2026-07-17 11:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:44 | Edited .github/workflows/ci.yml | 3→3 lines | ~121 |
+| 11:44 | Edited apps/web/app/(dashboard)/ai/page.tsx | 3→5 lines | ~30 |
+| 11:47 | Session end: 2 writes across 2 files (ci.yml, page.tsx) | 6 reads | ~2288 tok |
+| 11:48 | Session end: 2 writes across 2 files (ci.yml, page.tsx) | 6 reads | ~2288 tok |
+
+## Session: 2026-07-17 11:49
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:53 | Edited apps/api/services/opera_pdf.py | modified _parse_task_sheet_inner() | ~1122 |
+| 11:55 | Edited apps/api/services/opera_pdf.py | modified _is_room_number() | ~381 |
+| 11:56 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | added 1 import(s) | ~110 |
+| 11:56 | Edited apps/api/tests/smoke/test_housekeeping_assignments.py | modified _make_word() | ~1277 |
+| 11:57 | Session end: 4 writes across 2 files (opera_pdf.py, test_housekeeping_assignments.py) | 3 reads | ~5585 tok |
+| 12:13 | Edited apps/api/services/opera_pdf.py | 3→8 lines | ~107 |
+| 12:13 | Session end: 5 writes across 2 files (opera_pdf.py, test_housekeeping_assignments.py) | 13 reads | ~33470 tok |
+| 12:16 | Session end: 5 writes across 2 files (opera_pdf.py, test_housekeeping_assignments.py) | 13 reads | ~33470 tok |
+
+## Session: 2026-07-17 12:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-17 12:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:35 | Inspected Railway production services and failed API deployment logs | Railway production | Web is healthy; API failed because OPENAI_API_KEY is absent and the OpenAI client is initialized at import time | ~1200 |
+| 12:44 | Made AI provider initialization lazy and added regression coverage | apps/api/services/ai/, apps/api/tests/test_ai_provider_configuration.py | API can start without optional AI credentials; 285 API tests pass | ~1800 |
+| 13:11 | Repaired Supabase 2.31 synchronous client options and redeployed API | apps/api/core/database.py, apps/api/tests/smoke/test_database_pooling.py | Railway deployment b9737af2 succeeded; public /health returns 200 with db=ok; 286 API tests pass | ~2000 |
+| 13:23 | Diagnosed mobile HTTP 404 | apps/mobile API configuration, Railway production | Retired web host is used by mobile fallbacks and EAS preview/production profiles; active FastAPI health is 200 | ~1800 |
+| 13:25 | Repaired mobile API host configuration and verified it | apps/mobile/lib/api/, apps/mobile/eas.json, apps/mobile/__tests__/lib/api/client.test.ts | Focused Jest and type-check pass; production API protected route returns 401 as expected; full suite has 2 unrelated existing failures | ~2400 |
+| 13:27 | Aligned Expo runtime environment and reverified | apps/mobile/.env, apps/mobile/.env.example, apps/mobile/eas.json | Runtime, fallback, and build profile URLs agree; focused Jest and type-check pass; production API health is ok with db=ok | ~1100 |

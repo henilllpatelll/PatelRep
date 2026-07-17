@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T16:34:44.474Z
-> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T17:13:34.463Z
+> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -434,7 +434,7 @@
 ## .github/workflows/
 
 - `auto-merge.yml` — CI: Auto-merge (~397 tok)
-- `ci.yml` — CI: CI (~1517 tok)
+- `ci.yml` — CI: CI (~1571 tok)
 - `deploy-check.yml` — CI: Deploy Health Check (~620 tok)
 
 ## .planning/
@@ -470,12 +470,16 @@
 
 ## apps/api/
 
+- `Dockerfile` — Production Python API container build and Uvicorn startup command. (~250 tok)
+- `railway.toml` — API Railway health-check and restart policy configuration. (~100 tok)
 - `main.py` — API: 1 endpoints (~3050 tok)
 - `pytest.ini` (~81 tok)
 - `requirements.txt` — Python dependencies (~87 tok)
 
 ## apps/api/core/
 
+- `database.py` — Supabase client construction and API-version compatibility configuration. (~500 tok)
+- `config.py` — API configuration loaded from environment via Pydantic settings. (~500 tok)
 
 ## apps/api/middleware/
 
@@ -499,10 +503,19 @@
 
 ## apps/api/services/
 
-- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2695 tok)
+- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~3260 tok)
 
 ## apps/api/services/ai/
 
+- `providers.py` — Lazy AI-provider client factories with configuration-safe errors. (~250 tok)
+- `assignment_parser.py` — OpenAI-backed natural-language assignment parsing. (~500 tok)
+- `guest_request_parser.py` — OpenAI-backed guest request parsing. (~500 tok)
+- `housekeeping_briefing.py` — Anthropic-backed room-assignment briefing generation. (~900 tok)
+- `insights.py` — Anthropic-backed GM operational insight generation. (~900 tok)
+- `failure_predictions.py` — Anthropic-backed asset-failure prediction workflow. (~1200 tok)
+- `sop_rag.py` — OpenAI embedding and Anthropic SOP-answer pipeline. (~3000 tok)
+- `task_parser.py` — OpenAI-backed natural-language task parsing and fast-path helpers. (~900 tok)
+- `work_order_parser.py` — OpenAI-backed work-order parsing. (~500 tok)
 - `governance.py` — Phase 6 AI recommendation action policy, lifecycle validation, and acceptance/override/outcome metrics. (~500 tok)
 - `model_routing.py` — Central defaults with tenant-scoped model-route override lookup. (~300 tok)
 
@@ -529,6 +542,7 @@
 
 ## apps/api/tests/
 
+- `test_ai_provider_configuration.py` — AI provider startup and missing-credential regression coverage. (~500 tok)
 - `test_evidence_foundation.py` — Phase 2 controlled evidence policy contract tests. (~1100 tok)
 - `test_guest_recovery.py` — Phase 5 lifecycle, accessibility priority, custody, metric, and migration contract tests. (~900 tok)
 - `test_operational_programs.py` — Phase 4 PM evidence, recurrence, DND, and par-level contract tests. (~800 tok)
@@ -541,7 +555,9 @@
 
 ## apps/api/tests/smoke/
 
+- `test_database_pooling.py` — Supabase client singleton, options, and cleanup regression coverage. (~700 tok)
 - `test_enum_contracts.py` — test_status_constants_match_json_contract, test_priority_constants_match_json_contract (~391 tok)
+- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~15178 tok)
 - `test_notification_delivery.py` — Notification delivery persistence regression tests. (~500 tok)
 - `test_sop_security.py` — SOP upload validation and authorization tests. (~900 tok)
 
@@ -786,6 +802,7 @@
 
 ## apps/web/app/(dashboard)/ai/
 
+- `page.tsx` — dynamic (~6198 tok)
 
 ## apps/web/app/(dashboard)/billing/
 

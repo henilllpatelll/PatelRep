@@ -1,4 +1,4 @@
-import { api } from '@/lib/api/client';
+import { api, DEFAULT_API_BASE } from '@/lib/api/client';
 import { supabase } from '@/lib/supabase';
 
 // Mock supabase module
@@ -32,6 +32,10 @@ describe('API client', () => {
       });
       return { data: { session: { access_token: 'token-2' } }, error: null };
     });
+  });
+
+  it('uses the active FastAPI service as its fallback base URL', () => {
+    expect(DEFAULT_API_BASE).toBe('https://stellar-integrity-production-f507.up.railway.app/v1');
   });
 
   it('retries once with refreshed token on 401', async () => {

@@ -21,6 +21,12 @@
 
 ## Key Learnings
 
+- **Mobile API host contract (2026-07-17):** The retired `patelrep-web-production` Railway host returns 404. Mobile `.env`, defaults, and EAS preview/production must use `https://stellar-integrity-production-f507.up.railway.app/v1`; keep multipart uploads on the shared `API_BASE` export so they cannot drift from ordinary API calls.
+
+- **Supabase 2.31 synchronous client contract (2026-07-17):** `create_client()` requires `SyncClientOptions`, not base `ClientOptions`, because the latter no longer has `storage`; use the guarded import in `core/database.py` so the singleton works in both Railway 2.31 and older local environments.
+
+- **Railway API optional AI-provider startup contract (2026-07-17):** Production API deployments can omit both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Never construct provider clients at module import: use `services.ai.providers` lazy factories so core hotel workflows start; AI-only routes return their existing safe unavailable responses.
+
 - **Vercel deployment repair prerequisite (2026-07-16):** GitHub-triggered Vercel deployments for both `9bc2c692` and `157aa411` failed despite local web build, lint, and type-check success. Vercel build diagnostics are inaccessible until the project is authenticated; the configured Vercel CLI token is invalid. Repair Vercel authentication/deployment configuration before claiming a Vercel production fix is live.
 
 - **Vercel Room Board host contract (2026-07-16):** The Vercel deployment was verified to embed the retired `https://patelrep-web-production.up.railway.app/v1` API URL. Use `https://stellar-integrity-production-f507.up.railway.app/v1` for `NEXT_PUBLIC_API_URL`, then redeploy before treating the production Room Board as repaired.

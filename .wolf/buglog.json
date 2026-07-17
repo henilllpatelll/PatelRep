@@ -6799,6 +6799,95 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T16:03:00.682Z"
+    },
+    {
+      "id": "bug-409",
+      "timestamp": "2026-07-17T16:44:42.834Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Had \"https://patelrep-web-production.up.railway.app\"",
+      "fix": "Changed to 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJz",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T16:44:42.834Z"
+    }
+    ,
+    {
+      "id": "bug-410",
+      "timestamp": "2026-07-17T12:35:00-05:00",
+      "error_message": "Railway API deployment cb0843f0 failed its health check because OpenAI credentials are missing.",
+      "file": "apps/api/services/ai/task_parser.py",
+      "root_cause": "The module constructs OpenAI(api_key=settings.openai_api_key) during application import, so a missing optional OPENAI_API_KEY prevents every API worker from starting.",
+      "fix": "Deferred OpenAI and Anthropic client construction through services.ai.providers; the API now starts without optional provider keys and AI-only requests receive a safe configuration error.",
+      "tags": ["railway", "deployment", "openai", "startup", "configuration"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T12:35:00-05:00"
+    },
+    {
+      "id": "bug-411",
+      "timestamp": "2026-07-17T12:38:00-05:00",
+      "error_message": "OpenWolf anatomy update patch did not match its target context.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch used a character-encoding-sensitive context line.",
+      "fix": "Use ASCII-only section headers as patch anchors.",
+      "tags": ["openwolf", "patch", "encoding"],
+      "related_bugs": ["bug-392"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T12:38:00-05:00"
+    },
+    {
+      "id": "bug-412",
+      "timestamp": "2026-07-17T13:10:00-05:00",
+      "error_message": "Railway API health check returned 503 with 'ClientOptions' object has no attribute 'storage'.",
+      "file": "apps/api/core/database.py",
+      "root_cause": "supabase-py 2.31 changed the synchronous client to require SyncClientOptions; the legacy base ClientOptions no longer defines session storage.",
+      "fix": "Construct SyncClientOptions for modern supabase-py while retaining a fallback for older local clients.",
+      "tags": ["railway", "supabase", "healthcheck", "dependency-upgrade"],
+      "related_bugs": ["bug-410"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T13:10:00-05:00"
+    },
+    {
+      "id": "bug-413",
+      "timestamp": "2026-07-17T13:23:07-05:00",
+      "error_message": "Mobile Expo app throws Error: HTTP 404 while loading data.",
+      "file": "apps/mobile/.env, apps/mobile/.env.example, apps/mobile/lib/api/client.ts, apps/mobile/lib/api/workOrders.ts, apps/mobile/lib/api/lostFound.ts, apps/mobile/eas.json",
+      "root_cause": "Mobile runtime, fallbacks, and preview/production EAS profiles point to the retired patelrep-web-production Railway domain, which returns 404 instead of the FastAPI service.",
+      "fix": "Updated the mobile runtime, shared fallback, multipart uploads, and EAS profiles to the active FastAPI Railway domain.",
+      "tags": ["mobile", "expo", "railway", "api-url", "404"],
+      "related_bugs": ["bug-393"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T13:23:07-05:00"
+    },
+    {
+      "id": "bug-414",
+      "timestamp": "2026-07-17T13:25:38-05:00",
+      "error_message": "The complete mobile Jest suite has two unrelated failing tests.",
+      "file": "apps/mobile/__tests__/screens/EngineerHome.test.tsx, apps/mobile/__tests__/lib/supervisor.test.ts",
+      "root_cause": "EngineerHome expects the obsolete /(app)/rooms route rather than /(app)/room-status, and supervisor snapshot expectations omit the current behindSchedule field.",
+      "fix": "Not changed during the scoped API-URL repair; focused API regression coverage passes.",
+      "tags": ["mobile", "jest", "pre-existing", "test-baseline"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T13:25:38-05:00"
+    },
+    {
+      "id": "bug-415",
+      "timestamp": "2026-07-17T13:25:38-05:00",
+      "error_message": "A mobile aggregate test command was initially executed from the repository root and failed because root package.json has no test script.",
+      "file": "package.json",
+      "root_cause": "The mobile package defines its own npm scripts and the root is not a workspace package.",
+      "fix": "Ran the suite from apps/mobile; it surfaced two unrelated baseline failures and confirmed the focused API-client regression test passes.",
+      "tags": ["tooling", "npm", "mobile", "test-command"],
+      "related_bugs": ["bug-414"],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T13:25:38-05:00"
     }
   ]
 }
