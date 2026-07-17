@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -131,41 +131,52 @@ function formatLastAction(entry: any | null, room: any | null, currentUserId?: s
   return `${getActionLabel(status)}${actor} at ${formatHistoryTimestamp(timestamp)}`
 }
 
+const SYSTEM_NOTE_REGEXES = [
+  /Guest checked out/i,
+  /task_sheet_clean_type=/i,
+  /^Undo \w+ back to \w+/i,
+]
+
+function stripNoteMeta(s: string): string {
+  return s.replace(/\|[a-z_]+=[^|]*/gi, '').trim()
+}
+
 function getActionableNote(entry: any | null): string | null {
   const raw = entry?.notes ?? entry?.note ?? null
-  const note = raw ? raw.split('|prev_clean_type=')[0] || null : null
+  const note = raw ? stripNoteMeta(raw) || null : null
   const status = entry?.to_status ?? ''
   if (!note || !['DIRTY', 'PICKUP', 'IN_PROGRESS'].includes(status)) return null
+  if (SYSTEM_NOTE_REGEXES.some(r => r.test(note))) return null
   return note
 }
 
-function getStatusDotClass(status: string): string {
+function getStatusTopBarClass(status: string): string {
   switch (status) {
-    case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-[var(--progress)]'
-    case 'OCCUPIED': return 'text-[var(--alert)]'
-    case 'CLEAN': return 'text-[var(--info)]'
-    case 'INSPECTED': return 'text-[var(--ready)]'
-    case 'OOO': return 'text-[var(--blocked)]'
-    case 'OUT_OF_ORDER': return 'text-[var(--blocked)]'
-    case 'OUT_OF_SERVICE': return 'text-[var(--blocked)]'
-    case 'PICKUP': return 'text-[var(--caution)]'
-    default: return 'text-gray-400'
+    case 'DIRTY': return 'bg-rose-400'
+    case 'IN_PROGRESS': return 'bg-violet-400'
+    case 'OCCUPIED': return 'bg-rose-400'
+    case 'CLEAN': return 'bg-blue-400'
+    case 'INSPECTED': return 'bg-teal-400'
+    case 'OOO':
+    case 'OUT_OF_ORDER':
+    case 'OUT_OF_SERVICE': return 'bg-stone-400'
+    case 'PICKUP': return 'bg-amber-400'
+    default: return 'bg-stone-300'
   }
 }
 
-function getStatusTextClass(status: string): string {
+function getStatusChipClass(status: string): string {
   switch (status) {
-    case 'DIRTY': return 'text-[var(--alert)]'
-    case 'IN_PROGRESS': return 'text-[var(--progress)]'
-    case 'OCCUPIED': return 'text-[var(--alert)]'
-    case 'CLEAN': return 'text-[var(--info)]'
-    case 'INSPECTED': return 'text-[var(--ready)]'
-    case 'OOO': return 'text-[var(--blocked)]'
-    case 'OUT_OF_ORDER': return 'text-[var(--blocked)]'
-    case 'OUT_OF_SERVICE': return 'text-[var(--blocked)]'
-    case 'PICKUP': return 'text-[var(--caution)]'
-    default: return 'text-gray-600'
+    case 'DIRTY': return 'bg-rose-50 text-rose-700 border border-rose-200'
+    case 'IN_PROGRESS': return 'bg-violet-50 text-violet-700 border border-violet-200'
+    case 'OCCUPIED': return 'bg-rose-50 text-rose-700 border border-rose-200'
+    case 'CLEAN': return 'bg-blue-50 text-blue-700 border border-blue-200'
+    case 'INSPECTED': return 'bg-teal-50 text-teal-700 border border-teal-200'
+    case 'OOO':
+    case 'OUT_OF_ORDER':
+    case 'OUT_OF_SERVICE': return 'bg-stone-100 text-stone-600 border border-stone-200'
+    case 'PICKUP': return 'bg-amber-50 text-amber-700 border border-amber-200'
+    default: return 'bg-stone-100 text-stone-600 border border-stone-200'
   }
 }
 
@@ -179,7 +190,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const drawerRef = useRef<HTMLDivElement>(null)
   const [showStatusHistory, setShowStatusHistory] = useState(false)
 
-  // â”€â”€ Note state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [noteText, setNoteText] = useState('')
   const [noteLoading, setNoteLoading] = useState(false)
   const [noteSuccess, setNoteSuccess] = useState(false)
@@ -199,7 +209,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const [saveTimeSuccess, setSaveTimeSuccess] = useState(false)
   const [saveTimeError, setSaveTimeError] = useState<string | null>(null)
 
-  // â”€â”€ Work order state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [woOpen, setWoOpen] = useState(false)
   const [woTitle, setWoTitle] = useState('')
   const [woCategory, setWoCategory] = useState('')
@@ -212,7 +221,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const roomId: string | null = room?.room_id ?? null
   const status: RoomStatus = (room?.status ?? 'DIRTY') as RoomStatus
 
-  // Reset note/WO forms when room changes or drawer closes (covers reopening same room)
   useEffect(() => {
     setNoteText('')
     setNoteSuccess(false)
@@ -326,6 +334,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       setCheckoutLoading(false)
     }
   }
+
   async function handleUndoCheckout() {
     if (!roomId) return
     setUndoCheckoutLoading(true)
@@ -425,7 +434,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     (t: any) => t.status !== 'completed' && t.status !== 'cancelled',
   )
 
-  // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -434,7 +442,6 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  // Trap focus inside drawer
   useEffect(() => {
     if (isOpen && drawerRef.current) {
       drawerRef.current.focus()
@@ -478,7 +485,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -490,113 +497,114 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
         role="dialog"
         aria-modal="true"
         aria-label={`Room ${roomNumber} details`}
-        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-surface/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none
-          transform transition-transform duration-300 ease-in-out"
+        className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-white shadow-2xl border-l border-stone-200 z-50 flex flex-col outline-none transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
+        {/* Status accent bar */}
+        <div className={`h-1.5 w-full shrink-0 ${getStatusTopBarClass(status)}`} />
+
         {/* Header */}
-        <div className="flex items-start justify-between p-4 border-b border-white/60 shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold text-gray-900 leading-tight">
-              Room {roomNumber}
-              {roomTypeName && (
-                <span className="font-normal text-gray-500"> — {roomTypeName}</span>
-              )}
-            </h2>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-              {vipFlag && (
-                <div className="flex items-center gap-0.5">
-                  <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
-                  <span className="text-xs font-semibold text-[var(--caution)]">VIP</span>
+        <div className="px-5 pt-4 pb-3.5 border-b border-stone-100 shrink-0">
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <h2 className="text-[22px] font-black text-stone-900 tracking-tight leading-none">
+                  Room {roomNumber}
+                </h2>
+                {roomTypeName && (
+                  <span className="text-sm font-medium text-stone-400 leading-none">{roomTypeName}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${getStatusChipClass(status)}`}>
+                  <Circle className="w-1.5 h-1.5 fill-current" />
+                  {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
+                </span>
+                {vipFlag && (
+                  <span className="inline-flex items-center gap-0.5 text-amber-600 text-[11px] font-bold">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                    VIP
+                  </span>
+                )}
+                {cleanTypeLabel && (
+                  <span className="text-[11px] text-stone-500 font-medium">{cleanTypeLabel}</span>
+                )}
+              </div>
+              {(guestName || checkinTime || scheduledCheckoutTime || actualCheckoutTime || lateCheckoutTime) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-stone-400">
+                  {guestName && <span>Guest: <span className="text-stone-600">{guestName}</span></span>}
+                  {checkinTime && <span>In: <span className="text-stone-600">{checkinTime}</span></span>}
+                  {scheduledCheckoutTime && <span>Out: <span className="text-stone-600">{scheduledCheckoutTime}</span></span>}
+                  {actualCheckoutTime && (
+                    <span className="text-rose-500 font-medium">Checked out: {actualCheckoutTime}</span>
+                  )}
+                  {lateCheckoutTime && (
+                    <span className="text-rose-600 font-semibold">Late: {lateCheckoutTime}</span>
+                  )}
                 </div>
               )}
-              {guestName && (
-                <span className="text-xs text-gray-500">Guest: {guestName}</span>
-              )}
-              {checkinTime && (
-                <span className="text-xs text-gray-500">
-                  Check-in: {checkinTime} Today
-                </span>
-              )}
-              {scheduledCheckoutTime && (
-                <span className="text-xs text-gray-500">
-                  Checkout: {scheduledCheckoutTime}
-                </span>
-              )}
-              {actualCheckoutTime && (
-                <span className="text-xs text-[var(--alert)]">
-                  Checked out: {actualCheckoutTime}
-                </span>
-              )}
-              {lateCheckoutTime && (
-                <span className="text-xs font-semibold text-[var(--alert)]">
-                  Late checkout: {lateCheckoutTime}
-                </span>
-              )}
-              {cleanTypeLabel && (
-                <span className="text-xs text-gray-500">
-                  Service: {cleanTypeLabel}
-                </span>
-              )}
             </div>
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="ml-1 shrink-0 p-1.5 rounded-lg"
+              aria-label="Close drawer"
+            >
+              <X className="w-5 h-5 text-stone-400" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="ml-2 shrink-0 p-1.5 rounded-lg"
-            aria-label="Close drawer"
-          >
-            <X className="w-5 h-5" />
-          </Button>
         </div>
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* Current Status Section */}
-          <div className="p-4 border-b border-white/60">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-              Current Status
-            </h3>
-            <div className="flex items-center gap-2 mb-3">
-              <Circle className={`w-4 h-4 fill-current ${getStatusDotClass(status)}`} />
-              <span className={`font-semibold text-base ${getStatusTextClass(status)}`}>
-                {STATUS_LABELS[status] ?? status.replace(/_/g, ' ')}
-              </span>
-              {assignedName && (
-                <span className="text-sm text-gray-500">— Assigned to {assignedName}</span>
-              )}
-            </div>
-            {lastAction && (
-              <p className="text-xs text-gray-500 mb-3">
-                Last action: {lastAction}
-              </p>
+          {/* Status & Actions */}
+          <div className="px-5 py-4 border-b border-stone-100">
+
+            {/* Assigned / last action */}
+            {(assignedName || lastAction) && (
+              <div className="mb-3">
+                {assignedName && (
+                  <p className="text-sm text-stone-700">
+                    Assigned to <span className="font-semibold">{assignedName}</span>
+                  </p>
+                )}
+                {lastAction && (
+                  <p className="text-xs text-stone-400 mt-0.5">{lastAction}</p>
+                )}
+              </div>
             )}
+
+            {/* Action note */}
             {actionNote && (
-              <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800 mb-3">
+              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 leading-relaxed">
                 {actionNote}
               </div>
             )}
+
+            {/* Late checkout banner */}
             {lateCheckoutTime && (
-              <div className="mb-3 flex items-start gap-2 rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2 text-xs text-[var(--alert)]">
-                <LogOut className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs">
+                <LogOut className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
                 <div>
-                  <p className="font-semibold">Late checkout requested</p>
-                  <p className="mt-0.5 text-[11px] text-gray-600">
+                  <p className="font-semibold text-rose-700">Late checkout requested</p>
+                  <p className="mt-0.5 text-rose-500">
                     Housekeeper reported guest says {lateCheckoutTime}.
                   </p>
                 </div>
               </div>
             )}
+
+            {/* Departure checkout block */}
             {canMarkCheckout && (
-              <div className="mb-3 rounded-lg border border-[var(--alert-line)] bg-[var(--alert-soft)] px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
+              <div className="mb-4 rounded-xl border border-stone-200 bg-stone-50 p-3.5">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--alert)]">
-                      <LogOut className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-700">
+                      <LogOut className="h-3.5 w-3.5 text-rose-500" />
                       {isCheckedOut ? 'Guest checked out' : 'Departure checkout'}
                     </div>
-                    <p className="mt-0.5 text-[11px] text-gray-600">
+                    <p className="mt-0.5 text-[11px] text-stone-500">
                       {actualCheckoutTime
                         ? `Checked out at ${actualCheckoutTime}`
                         : scheduledCheckoutTime
@@ -605,34 +613,34 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     </p>
                   </div>
                   <label className="sr-only" htmlFor="room-checkout-time">Checkout time</label>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <input
                       id="room-checkout-time"
                       type="time"
                       value={checkoutTimeInput}
                       onChange={(event) => setCheckoutTimeInput(event.target.value)}
-                      className="h-8 w-[86px] rounded-md border border-white/80 bg-white/75 px-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      className="h-8 w-[86px] rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
                     <button
                       type="button"
                       onClick={handleSaveCheckoutTime}
                       disabled={saveTimeLoading || !checkoutTimeInput}
-                      className="h-8 px-2 rounded-md border border-gray-200 bg-white/75 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                      className="h-8 px-2.5 rounded-lg border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-40"
                     >
                       {saveTimeLoading ? '…' : saveTimeSuccess ? '✓' : 'Save'}
                     </button>
                   </div>
                 </div>
                 {saveTimeError && (
-                  <p className="mt-1 text-[11px] text-[var(--alert)]">{saveTimeError}</p>
+                  <p className="mb-2 text-[11px] text-rose-500">{saveTimeError}</p>
                 )}
-                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   {!isCheckedOut ? (
                     <button
                       type="button"
                       onClick={handleManualCheckout}
                       disabled={checkoutLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50 transition-colors"
                     >
                       {checkoutLoading ? (
                         <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -646,7 +654,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       type="button"
                       onClick={handleUndoCheckout}
                       disabled={undoCheckoutLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--alert)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50 transition-colors"
                     >
                       {undoCheckoutLoading ? (
                         <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -657,22 +665,22 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     </button>
                   )}
                   {checkoutSuccess && (
-                    <span className="text-xs text-[var(--ready)]">Housekeeping notified</span>
+                    <span className="text-xs text-teal-600 font-medium">Housekeeping notified</span>
                   )}
                   {checkoutError && (
-                    <span className="text-xs text-[var(--alert)]">{checkoutError}</span>
+                    <span className="text-xs text-rose-500">{checkoutError}</span>
                   )}
                   {undoCheckoutError && (
-                    <span className="text-xs text-[var(--alert)]">{undoCheckoutError}</span>
+                    <span className="text-xs text-rose-500">{undoCheckoutError}</span>
                   )}
                 </div>
                 {canMarkStayover && (
-                  <div className="mt-2 flex items-center gap-2 flex-wrap border-t border-white/40 pt-2">
+                  <div className="mt-2.5 flex items-center gap-2 flex-wrap border-t border-stone-200 pt-2.5">
                     <button
                       type="button"
                       onClick={handleMarkStayover}
                       disabled={stayoverLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors"
                     >
                       {stayoverLoading ? (
                         <span className="h-3 w-3 rounded-full border-2 border-blue-300 border-t-blue-700 animate-spin" />
@@ -682,81 +690,89 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       Stayover
                     </button>
                     {stayoverSuccess && (
-                      <span className="text-xs text-[var(--ready)]">Marked occupied — clean cancelled</span>
+                      <span className="text-xs text-teal-600 font-medium">Marked occupied — clean cancelled</span>
                     )}
                     {stayoverError && (
-                      <span className="text-xs text-[var(--alert)]">{stayoverError}</span>
+                      <span className="text-xs text-rose-500">{stayoverError}</span>
                     )}
                   </div>
                 )}
               </div>
             )}
-            <div className="mb-3 flex flex-wrap gap-2">
+
+            {/* Action grid */}
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setNoteOpen((value) => !value)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                onClick={() => setNoteOpen((v) => !v)}
+                className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Add Note
+                <MessageSquare className="h-4 w-4 text-blue-500" />
+                <span className="text-[11px] font-semibold leading-none">Add Note</span>
               </button>
               <button
                 type="button"
-                onClick={() => setWoOpen((value) => !value)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
+                onClick={() => setWoOpen((v) => !v)}
+                className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
-                <Wrench className="h-3.5 w-3.5" />
-                Submit Work Order
+                <Wrench className="h-4 w-4 text-orange-500" />
+                <span className="text-[11px] font-semibold leading-none">Report Issue</span>
               </button>
               <button
                 type="button"
                 onClick={() => setFoundItemOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--caution-line)] bg-[var(--caution-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--caution)] hover:opacity-80"
+                className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
-                <Package className="h-3.5 w-3.5" />
-                Lost &amp; Found
+                <Package className="h-4 w-4 text-amber-500" />
+                <span className="text-[11px] font-semibold leading-none">Lost &amp; Found</span>
               </button>
             </div>
 
+            {/* OOO WO info */}
             {status === 'OOO' && (openWorkOrder || maintenanceNote) && (
-              <div className="flex items-start gap-2 bg-gray-50 rounded-lg p-2 mb-3 text-xs text-gray-600">
-                <Wrench className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />
+              <div className="mt-3 flex items-start gap-2.5 bg-stone-50 rounded-xl p-3.5 text-xs text-stone-600 border border-stone-100">
+                <Wrench className="w-3.5 h-3.5 shrink-0 mt-0.5 text-stone-400" />
                 <div>
-                  {openWorkOrder && <p className="font-medium">WO-{openWorkOrder} open</p>}
-                  {maintenanceNote && <p className="mt-0.5">{maintenanceNote}</p>}
+                  {openWorkOrder && <p className="font-semibold">WO-{openWorkOrder} open</p>}
+                  {maintenanceNote && <p className="mt-0.5 text-stone-500">{maintenanceNote}</p>}
                 </div>
               </div>
             )}
           </div>
 
-          {/* WO success / error banners */}
-          {woSuccess && (
-            <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-[var(--ready-soft)] border border-[var(--ready-line)] px-3 py-2 text-xs text-[var(--ready)]">
-              <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
-              <span>{woSuccess}</span>
-            </div>
-          )}
-          {noteSuccess && (
-            <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-[var(--ready-soft)] border border-[var(--ready-line)] px-3 py-2 text-xs text-[var(--ready)]">
-              <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-500" />
-              <span>Note saved</span>
+          {/* Success banners */}
+          {(woSuccess || noteSuccess) && (
+            <div className="px-5 pt-3 space-y-2">
+              {woSuccess && (
+                <div className="flex items-start gap-2 rounded-xl bg-teal-50 border border-teal-200 px-3.5 py-2.5 text-xs text-teal-700">
+                  <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-teal-500" />
+                  <span>{woSuccess}</span>
+                </div>
+              )}
+              {noteSuccess && (
+                <div className="flex items-start gap-2 rounded-xl bg-teal-50 border border-teal-200 px-3.5 py-2.5 text-xs text-teal-700">
+                  <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-teal-500" />
+                  <span>Note saved</span>
+                </div>
+              )}
             </div>
           )}
 
+          {/* Note form */}
           {noteOpen && (
-          <div id="room-add-note-form" className="p-4 border-b border-white/60 space-y-2">
+            <div id="room-add-note-form" className="px-5 py-4 border-b border-stone-100 bg-stone-50 space-y-2.5">
               <textarea
                 aria-label="Add room note"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Leave a note for your supervisor or team…"
-                rows={2}
-                className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                rows={3}
+                className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none shadow-sm"
               />
               <div className="flex items-center gap-2">
                 <Button
                   variant="primary"
-                  className="text-xs px-3 py-1.5 flex items-center gap-1.5"
+                  className="text-xs px-3.5 py-2 flex items-center gap-1.5"
                   onClick={handleAddNote}
                   disabled={!noteText.trim() || noteLoading}
                 >
@@ -767,114 +783,119 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   )}
                   {noteLoading ? 'Saving…' : 'Save Note'}
                 </Button>
-                {noteError && (
-                  <span className="text-xs text-[var(--alert)]">{noteError}</span>
-                )}
                 <button
                   onClick={() => setNoteOpen(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600"
+                  className="text-xs text-stone-400 hover:text-stone-600"
                 >
                   Cancel
                 </button>
+                {noteError && (
+                  <span className="text-xs text-rose-500">{noteError}</span>
+                )}
               </div>
             </div>
           )}
 
+          {/* WO form */}
           {woOpen && (
-          <div id="room-report-issue-form" className="p-4 border-b border-white/60 space-y-2.5">
-                <div>
-                  <label htmlFor="room-wo-title" className="block text-xs text-gray-500 mb-1">Issue title <span className="text-[var(--alert)]">*</span></label>
-                  <input
-                    id="room-wo-title"
-                    type="text"
-                    value={woTitle}
-                    onChange={(e) => setWoTitle(e.target.value)}
-                    placeholder="e.g. Toilet not flushing, A/C not cooling"
-                    className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label htmlFor="room-wo-category" className="block text-xs text-gray-500 mb-1">Category <span className="text-[var(--alert)]">*</span></label>
-                    <select
-                      id="room-wo-category"
-                      value={woCategory}
-                      onChange={(e) => setWoCategory(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-surface/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    >
-                      <option value="" disabled>Select a category</option>
-                      {WO_CATEGORIES.map((c) => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-28">
-                    <label htmlFor="room-wo-priority" className="block text-xs text-gray-500 mb-1">Priority</label>
-                    <select
-                      id="room-wo-priority"
-                      value={woPriority}
-                      onChange={(e) => setWoPriority(e.target.value as 'urgent' | 'normal' | 'low')}
-                      className="w-full rounded-lg border border-gray-200 bg-surface/70 px-2.5 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    >
-                      <option value="urgent">Urgent</option>
-                      <option value="normal">Normal</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Details (optional)</label>
-                  <textarea
-                    value={woDescription}
-                    onChange={(e) => setWoDescription(e.target.value)}
-                    placeholder="Describe what you found…"
-                    rows={2}
-                    className="w-full rounded-lg border border-gray-200 bg-surface/70 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="primary"
-                    className="text-xs px-3 py-1.5 flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600"
-                    onClick={handleCreateWorkOrder}
-                    disabled={!woTitle.trim() || !woCategory || woLoading}
-                  >
-                    {woLoading ? (
-                      <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Wrench className="w-3 h-3" />
-                    )}
-                    {woLoading ? 'Submitting…' : 'Submit to Engineering'}
-                  </Button>
-                  <button
-                    onClick={() => setWoOpen(false)}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                {woError && (
-                  <p className="text-xs text-[var(--alert)]">{woError}</p>
-                )}
+            <div id="room-report-issue-form" className="px-5 py-4 border-b border-stone-100 bg-stone-50 space-y-3">
+              <div>
+                <label htmlFor="room-wo-title" className="block text-xs font-semibold text-stone-500 mb-1.5">
+                  Issue title <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  id="room-wo-title"
+                  type="text"
+                  value={woTitle}
+                  onChange={(e) => setWoTitle(e.target.value)}
+                  placeholder="e.g. Toilet not flushing, A/C not cooling"
+                  className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
+                />
               </div>
+
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label htmlFor="room-wo-category" className="block text-xs font-semibold text-stone-500 mb-1.5">
+                    Category <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    id="room-wo-category"
+                    value={woCategory}
+                    onChange={(e) => setWoCategory(e.target.value)}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
+                  >
+                    <option value="" disabled>Select category</option>
+                    {WO_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-28">
+                  <label htmlFor="room-wo-priority" className="block text-xs font-semibold text-stone-500 mb-1.5">Priority</label>
+                  <select
+                    id="room-wo-priority"
+                    value={woPriority}
+                    onChange={(e) => setWoPriority(e.target.value as 'urgent' | 'normal' | 'low')}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
+                  >
+                    <option value="urgent">Urgent</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 mb-1.5">Details (optional)</label>
+                <textarea
+                  value={woDescription}
+                  onChange={(e) => setWoDescription(e.target.value)}
+                  placeholder="Describe what you found…"
+                  rows={2}
+                  className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  className="text-xs px-3.5 py-2 flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600"
+                  onClick={handleCreateWorkOrder}
+                  disabled={!woTitle.trim() || !woCategory || woLoading}
+                >
+                  {woLoading ? (
+                    <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Wrench className="w-3 h-3" />
+                  )}
+                  {woLoading ? 'Submitting…' : 'Submit to Engineering'}
+                </Button>
+                <button
+                  onClick={() => setWoOpen(false)}
+                  className="text-xs text-stone-400 hover:text-stone-600"
+                >
+                  Cancel
+                </button>
+              </div>
+              {woError && (
+                <p className="text-xs text-rose-500">{woError}</p>
+              )}
+            </div>
           )}
 
-          {/* Active guest requests for this room */}
+          {/* Active guest requests */}
           {activeGuestRequests.length > 0 && (
-            <div className="p-4 border-b border-white/60">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <div className="px-5 py-4 border-b border-stone-100">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
                 Active Guest Requests
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {activeGuestRequests.map((req: any) => (
-                  <div key={req.id} className="flex items-start gap-2">
-                    <MessageSquare className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--info)]" />
+                  <div key={req.id} className="flex items-start gap-2.5 rounded-xl bg-stone-50 px-3.5 py-2.5 border border-stone-100">
+                    <MessageSquare className="w-3.5 h-3.5 mt-0.5 shrink-0 text-violet-400" />
                     <div className="min-w-0">
-                      <p className="text-sm text-ink truncate">{req.title}</p>
-                      <p className="text-[11px] text-ink3">
+                      <p className="text-sm text-stone-800 font-medium truncate">{req.title}</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
                         {req.status === 'in_progress' ? 'In progress' : 'Open'}
                         {req.guest_name ? ` · ${req.guest_name}` : ''}
                       </p>
@@ -885,19 +906,19 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             </div>
           )}
 
-          {/* Open tasks for this room */}
+          {/* Open tasks */}
           {openTasks.length > 0 && (
-            <div className="p-4 border-b border-white/60">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <div className="px-5 py-4 border-b border-stone-100">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
                 Open Tasks
               </h3>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {openTasks.map((task: any) => (
-                  <div key={task.id} className="flex items-start gap-2">
-                    <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--caution)]" />
+                  <div key={task.id} className="flex items-start gap-2.5 rounded-xl bg-stone-50 px-3.5 py-2.5 border border-stone-100">
+                    <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-400" />
                     <div className="min-w-0">
-                      <p className="text-sm text-ink truncate">{task.title}</p>
-                      <p className="text-[11px] text-ink3">
+                      <p className="text-sm text-stone-800 font-medium truncate">{task.title}</p>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
                         {task.status.replace(/_/g, ' ')}
                         {(task.user_profiles?.preferred_name || task.user_profiles?.full_name)
                           ? ` · ${task.user_profiles?.preferred_name ?? task.user_profiles?.full_name}`
@@ -912,33 +933,33 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
           {/* Last Clean Evidence — supervisors/GMs only */}
           {canSupervise && room?.last_session_id && (
-            <div className="p-4 border-b border-white/60">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Last Clean</h3>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
+            <div className="px-5 py-4 border-b border-stone-100">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">Last Clean</h3>
+              <div className="flex flex-wrap gap-3 mb-3">
                 {room.last_clean_minutes != null && (
-                  <div className="flex items-center gap-1.5 text-xs text-ink2">
-                    <Timer className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-stone-600">
+                    <Timer className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <span className="font-mono font-semibold">{room.last_clean_minutes}m</span>
                     {room.last_clean_base_minutes != null && (
-                      <span className="text-ink3">/ base {room.last_clean_base_minutes}m</span>
+                      <span className="text-stone-400">/ base {room.last_clean_base_minutes}m</span>
                     )}
                   </div>
                 )}
                 {room.last_clean_checklist_total > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-ink2">
-                    <CheckCircle className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-stone-600">
+                    <CheckCircle className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <span>{room.last_clean_checklist_done}/{room.last_clean_checklist_total} items</span>
                   </div>
                 )}
                 {room.last_clean_photo_count > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-ink2">
-                    <Camera className="w-3.5 h-3.5 text-ink3 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-stone-600">
+                    <Camera className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <span>{room.last_clean_photo_count} photo{room.last_clean_photo_count > 1 ? 's' : ''}</span>
                   </div>
                 )}
               </div>
-              {lastSessionData?.notes && (
-                <p className="text-xs text-ink2 bg-stone-50 rounded-lg px-3 py-2 mb-3">{lastSessionData.notes}</p>
+              {lastSessionData?.notes && stripNoteMeta(lastSessionData.notes) && (
+                <p className="text-xs text-stone-600 bg-stone-50 rounded-xl px-3.5 py-2.5 mb-3 border border-stone-100">{stripNoteMeta(lastSessionData.notes)}</p>
               )}
               {lastSessionData?.photos && lastSessionData.photos.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
@@ -948,7 +969,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       href={photo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-16 h-16 rounded-lg overflow-hidden border border-line bg-stone-100 shrink-0 hover:opacity-80 transition-opacity"
+                      className="w-16 h-16 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0 hover:opacity-80 transition-opacity"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt="Clean photo" className="w-full h-full object-cover" />
@@ -964,42 +985,39 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
           {/* AI Prediction Section */}
           {prediction && (
-            <div className="p-4 border-b border-white/60">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <div className="px-5 py-4 border-b border-stone-100">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
                 AI Prediction
               </h3>
-
-              <div className={`rounded-lg p-3 ${
+              <div className={`rounded-xl p-3.5 ${
                 riskLevel === 'HIGH'
-                  ? 'bg-[var(--alert-soft)] border border-[var(--alert-line)]'
+                  ? 'bg-rose-50 border border-rose-200'
                   : riskLevel === 'MEDIUM'
                   ? 'bg-orange-50 border border-orange-200'
-                  : 'bg-[var(--ready-soft)] border border-[var(--ready-line)]'
+                  : 'bg-teal-50 border border-teal-200'
               }`}>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1.5">
                   {riskLevel === 'HIGH' || riskLevel === 'MEDIUM' ? (
-                    <AlertTriangle className={`w-4 h-4 shrink-0 ${riskLevel === 'HIGH' ? 'text-[var(--alert)]' : 'text-orange-400'}`} />
+                    <AlertTriangle className={`w-4 h-4 shrink-0 ${riskLevel === 'HIGH' ? 'text-rose-500' : 'text-orange-400'}`} />
                   ) : (
-                    <CheckCircle className="w-4 h-4 shrink-0 text-green-500" />
+                    <CheckCircle className="w-4 h-4 shrink-0 text-teal-500" />
                   )}
-                  <span className={`font-semibold text-sm ${
-                    riskLevel === 'HIGH' ? 'text-[var(--alert)]' :
+                  <span className={`font-bold text-sm ${
+                    riskLevel === 'HIGH' ? 'text-rose-700' :
                     riskLevel === 'MEDIUM' ? 'text-orange-700' :
-                    'text-[var(--ready)]'
+                    'text-teal-700'
                   }`}>
                     {riskLevel ?? 'LOW'} RISK
                     {etaTime && ` — ETA ${etaTime}`}
                   </span>
                 </div>
-
                 {delayMinutes !== null && delayMinutes > 0 && checkinTime && (
-                  <p className="text-xs text-gray-600 mb-1">
+                  <p className="text-xs text-stone-600 mb-1">
                     {delayMinutes} min late for check-in
                   </p>
                 )}
-
                 {riskFactors.length > 0 && (
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-stone-600">
                     <span className="font-medium">Risk factors: </span>
                     {riskFactors.join(', ')}
                   </div>
@@ -1010,164 +1028,159 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
 
           {/* Room History Section */}
           {canViewStatusHistory && (
-          <div className="p-4">
-            <button
-              type="button"
-              onClick={() => setShowStatusHistory((value) => !value)}
-              aria-expanded={showStatusHistory}
-              className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3"
-            >
-              <span>Room History</span>
-              {showStatusHistory ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              )}
-            </button>
+            <div className="px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setShowStatusHistory((v) => !v)}
+                aria-expanded={showStatusHistory}
+                className="w-full flex items-center justify-between mb-3"
+              >
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Room History</span>
+                {showStatusHistory ? (
+                  <ChevronUp className="w-4 h-4 text-stone-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-stone-400" />
+                )}
+              </button>
 
-            {showStatusHistory && (historyLoading || roomWoLoading || roomSessionsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-start gap-3 animate-pulse">
-                    <div className="w-2 h-2 rounded-full bg-gray-200 mt-1.5 shrink-0" />
-                    <div className="flex-1 space-y-1">
-                      <div className="h-3 bg-gray-200 rounded w-24" />
-                      <div className="h-3 bg-gray-200 rounded w-40" />
+              {showStatusHistory && (historyLoading || roomWoLoading || roomSessionsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-start gap-3 animate-pulse">
+                      <div className="w-2.5 h-2.5 rounded-full bg-stone-200 mt-0.5 shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3 bg-stone-200 rounded-full w-24" />
+                        <div className="h-3 bg-stone-200 rounded-full w-40" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (() => {
-              type RoomEvent =
-                | { kind: 'note'; timestamp: string; actor: string | null; text: string }
-                | { kind: 'wo'; timestamp: string; title: string; category: string; status: string }
-                | { kind: 'gr'; timestamp: string; title: string; status: string }
-                | { kind: 'task'; timestamp: string; title: string; status: string }
-                | { kind: 'session'; timestamp: string; durationSeconds: number | null; checklistDone: number; checklistTotal: number; status: string }
+                  ))}
+                </div>
+              ) : (() => {
+                type RoomEvent =
+                  | { kind: 'note'; timestamp: string; actor: string | null; text: string }
+                  | { kind: 'wo'; timestamp: string; title: string; category: string; status: string }
+                  | { kind: 'gr'; timestamp: string; title: string; status: string }
+                  | { kind: 'task'; timestamp: string; title: string; status: string }
+                  | { kind: 'session'; timestamp: string; durationSeconds: number | null; checklistDone: number; checklistTotal: number; status: string }
 
-              const SYSTEM_NOTE_REGEXES = [
-                /Guest checked out/i,
-                /task_sheet_clean_type=/i,
-                /^Undo \w+ back to \w+/i,
-              ]
-              const noteEvents: RoomEvent[] = history
-                .filter((entry: any) => {
-                  const raw: string | null = entry.notes ?? entry.note ?? null
-                  const text = raw ? raw.split('|prev_clean_type=')[0].trim() : null
-                  if (!text) return false
-                  return !SYSTEM_NOTE_REGEXES.some(r => r.test(text))
-                })
-                .map((entry: any): RoomEvent => {
-                  const raw: string = entry.notes ?? entry.note ?? ''
-                  return {
-                    kind: 'note',
-                    timestamp: entry.created_at ?? entry.changed_at ?? '',
-                    actor: entry.actor_name ?? entry.user_profiles?.preferred_name ?? null,
-                    text: raw.split('|prev_clean_type=')[0].trim(),
-                  }
-                })
+                const noteEvents: RoomEvent[] = history
+                  .filter((entry: any) => {
+                    const raw: string | null = entry.notes ?? entry.note ?? null
+                    const text = raw ? stripNoteMeta(raw) : null
+                    if (!text) return false
+                    return !SYSTEM_NOTE_REGEXES.some(r => r.test(text))
+                  })
+                  .map((entry: any): RoomEvent => {
+                    const raw: string = entry.notes ?? entry.note ?? ''
+                    return {
+                      kind: 'note',
+                      timestamp: entry.created_at ?? entry.changed_at ?? '',
+                      actor: entry.actor_name ?? entry.user_profiles?.preferred_name ?? null,
+                      text: stripNoteMeta(raw),
+                    }
+                  })
 
-              const woEvents: RoomEvent[] = roomWorkOrders.map((wo: any): RoomEvent => ({
-                kind: 'wo',
-                timestamp: wo.created_at ?? '',
-                title: wo.title ?? 'Work order',
-                category: wo.category ?? '',
-                status: wo.status ?? '',
-              }))
+                const woEvents: RoomEvent[] = roomWorkOrders.map((wo: any): RoomEvent => ({
+                  kind: 'wo',
+                  timestamp: wo.created_at ?? '',
+                  title: wo.title ?? 'Work order',
+                  category: wo.category ?? '',
+                  status: wo.status ?? '',
+                }))
 
-              const grEvents: RoomEvent[] = allGuestRequests.map((gr: any): RoomEvent => ({
-                kind: 'gr',
-                timestamp: gr.created_at ?? '',
-                title: gr.title ?? 'Guest request',
-                status: gr.status ?? '',
-              }))
+                const grEvents: RoomEvent[] = allGuestRequests.map((gr: any): RoomEvent => ({
+                  kind: 'gr',
+                  timestamp: gr.created_at ?? '',
+                  title: gr.title ?? 'Guest request',
+                  status: gr.status ?? '',
+                }))
 
-              const taskEvents: RoomEvent[] = allTasks.map((t: any): RoomEvent => ({
-                kind: 'task',
-                timestamp: t.created_at ?? '',
-                title: t.title ?? 'Task',
-                status: t.status ?? '',
-              }))
+                const taskEvents: RoomEvent[] = allTasks.map((t: any): RoomEvent => ({
+                  kind: 'task',
+                  timestamp: t.created_at ?? '',
+                  title: t.title ?? 'Task',
+                  status: t.status ?? '',
+                }))
 
-              const sessionEvents: RoomEvent[] = roomSessions.map((s: any): RoomEvent => ({
-                kind: 'session',
-                timestamp: s.started_at ?? '',
-                durationSeconds: s.duration_seconds ?? null,
-                checklistDone: s.checklist_done ?? 0,
-                checklistTotal: s.checklist_total ?? 0,
-                status: s.status ?? '',
-              }))
+                const sessionEvents: RoomEvent[] = roomSessions.map((s: any): RoomEvent => ({
+                  kind: 'session',
+                  timestamp: s.started_at ?? '',
+                  durationSeconds: s.duration_seconds ?? null,
+                  checklistDone: s.checklist_done ?? 0,
+                  checklistTotal: s.checklist_total ?? 0,
+                  status: s.status ?? '',
+                }))
 
-              const events: RoomEvent[] = [...noteEvents, ...woEvents, ...grEvents, ...taskEvents, ...sessionEvents].sort(
-                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-              )
+                const events: RoomEvent[] = [...noteEvents, ...woEvents, ...grEvents, ...taskEvents, ...sessionEvents].sort(
+                  (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+                )
 
-              if (events.length === 0) {
-                return <p className="text-sm text-gray-400">No room history yet</p>
-              }
+                if (events.length === 0) {
+                  return <p className="text-sm text-stone-400 text-center py-4">No room history yet</p>
+                }
 
-              return (
-                <div className="relative">
-                  <div className="absolute left-1 top-2 bottom-2 w-px bg-gray-200" />
-                  <div className="space-y-4">
-                    {events.map((event, index) => (
-                      <div key={index} className="flex items-start gap-3 pl-1">
-                        <div className={`relative z-10 w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 border-2 border-white ${
-                          index === 0 ? 'bg-gray-700' : 'bg-gray-300'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                            {event.kind === 'wo' && <Wrench className="w-3 h-3 text-orange-400 shrink-0" />}
-                            {event.kind === 'note' && <MessageSquare className="w-3 h-3 text-blue-400 shrink-0" />}
-                            {event.kind === 'gr' && <MessageSquare className="w-3 h-3 text-violet-400 shrink-0" />}
-                            {event.kind === 'task' && <ClipboardList className="w-3 h-3 text-amber-400 shrink-0" />}
-                            {event.kind === 'session' && <CheckCircle className="w-3 h-3 text-teal-400 shrink-0" />}
-                            <span className="text-xs text-gray-400 shrink-0">
-                              {event.timestamp ? formatHistoryTimestamp(event.timestamp) : '—'}
-                            </span>
-                            {event.kind === 'note' && event.actor && (
-                              <span className="text-xs text-gray-500 truncate">— {event.actor}</span>
+                return (
+                  <div className="relative">
+                    <div className="absolute left-1 top-2 bottom-2 w-px bg-stone-200" />
+                    <div className="space-y-4">
+                      {events.map((event, index) => (
+                        <div key={index} className="flex items-start gap-3 pl-1">
+                          <div className={`relative z-10 w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 border-2 border-white ${
+                            index === 0 ? 'bg-stone-700' : 'bg-stone-300'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                              {event.kind === 'wo' && <Wrench className="w-3 h-3 text-orange-400 shrink-0" />}
+                              {event.kind === 'note' && <MessageSquare className="w-3 h-3 text-blue-400 shrink-0" />}
+                              {event.kind === 'gr' && <MessageSquare className="w-3 h-3 text-violet-400 shrink-0" />}
+                              {event.kind === 'task' && <ClipboardList className="w-3 h-3 text-amber-400 shrink-0" />}
+                              {event.kind === 'session' && <CheckCircle className="w-3 h-3 text-teal-400 shrink-0" />}
+                              <span className="text-xs text-stone-400 shrink-0">
+                                {event.timestamp ? formatHistoryTimestamp(event.timestamp) : '—'}
+                              </span>
+                              {event.kind === 'note' && event.actor && (
+                                <span className="text-xs text-stone-500 truncate">— {event.actor}</span>
+                              )}
+                            </div>
+                            {event.kind === 'note' && (
+                              <p className="text-xs text-stone-700 leading-snug">{event.text}</p>
+                            )}
+                            {event.kind === 'wo' && (
+                              <>
+                                <p className="text-xs font-medium text-stone-800 leading-snug">{event.title}</p>
+                                <p className="text-[11px] text-stone-400 mt-0.5 capitalize">
+                                  {event.category}{event.status ? ` · ${event.status.replace(/_/g, ' ')}` : ''}
+                                </p>
+                              </>
+                            )}
+                            {event.kind === 'gr' && (
+                              <>
+                                <p className="text-xs font-medium text-stone-800 leading-snug">{event.title}</p>
+                                <p className="text-[11px] text-stone-400 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
+                              </>
+                            )}
+                            {event.kind === 'task' && (
+                              <>
+                                <p className="text-xs font-medium text-stone-800 leading-snug">{event.title}</p>
+                                <p className="text-[11px] text-stone-400 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
+                              </>
+                            )}
+                            {event.kind === 'session' && (
+                              <p className="text-xs text-stone-700 leading-snug">
+                                Clean session
+                                {event.durationSeconds != null ? ` · ${Math.round(event.durationSeconds / 60)}m` : ''}
+                                {event.checklistTotal > 0 ? ` · ${event.checklistDone}/${event.checklistTotal} items` : ''}
+                                {event.status === 'abandoned' ? ' · abandoned' : ''}
+                              </p>
                             )}
                           </div>
-                          {event.kind === 'note' && (
-                            <p className="text-xs text-gray-700 leading-snug">{event.text}</p>
-                          )}
-                          {event.kind === 'wo' && (
-                            <>
-                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
-                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
-                                {event.category}{event.status ? ` · ${event.status.replace(/_/g, ' ')}` : ''}
-                              </p>
-                            </>
-                          )}
-                          {event.kind === 'gr' && (
-                            <>
-                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
-                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
-                            </>
-                          )}
-                          {event.kind === 'task' && (
-                            <>
-                              <p className="text-xs font-medium text-gray-800 leading-snug">{event.title}</p>
-                              <p className="text-[11px] text-gray-500 mt-0.5 capitalize">{event.status.replace(/_/g, ' ')}</p>
-                            </>
-                          )}
-                          {event.kind === 'session' && (
-                            <p className="text-xs text-gray-700 leading-snug">
-                              Clean session
-                              {event.durationSeconds != null ? ` · ${Math.round(event.durationSeconds / 60)}m` : ''}
-                              {event.checklistTotal > 0 ? ` · ${event.checklistDone}/${event.checklistTotal} items` : ''}
-                              {event.status === 'abandoned' ? ' · abandoned' : ''}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
-            })())}
-          </div>
+                )
+              })())}
+            </div>
           )}
           </>}
         </div>
