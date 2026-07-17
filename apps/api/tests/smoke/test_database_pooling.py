@@ -36,6 +36,12 @@ def test_supabase_client_is_singleton_with_bounded_options(monkeypatch):
     assert calls[0][2].storage_client_timeout == 8.0
 
 
+def test_supabase_options_include_sync_session_storage():
+    options = database._build_client_options()
+
+    assert hasattr(options, "storage")
+
+
 def test_close_supabase_releases_underlying_clients(monkeypatch):
     closed = []
     fake_client = SimpleNamespace(

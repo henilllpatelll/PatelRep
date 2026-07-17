@@ -1,13 +1,16 @@
 from __future__ import annotations
 from supabase import create_client, Client
-from supabase.lib.client_options import ClientOptions
+try:
+    from supabase.lib.client_options import SyncClientOptions
+except ImportError:  # supabase-py < 2.31
+    from supabase.lib.client_options import ClientOptions as SyncClientOptions
 from core.config import settings
 
 _supabase_client: Client | None = None
 
 
-def _build_client_options() -> ClientOptions:
-    return ClientOptions(
+def _build_client_options() -> SyncClientOptions:
+    return SyncClientOptions(
         auto_refresh_token=False,
         persist_session=False,
         postgrest_client_timeout=settings.supabase_http_timeout_seconds,
