@@ -6638,3 +6638,39 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 13:41 | Logged the reported web Room Board loading failure and mapped its UI surface through the existing knowledge graph. | .wolf/buglog.json, graphify-out/graph.json | Investigation is narrowed to RoomStatusBoard and the housekeeping board API path. | ~900 |
 | 13:45 | Repaired the local API startup command and verified the configured web-to-API connection. | package.json, apps/api, apps/web | API health is `ok` with `db=ok`; the web login reports `API & database: connected`. | ~1600 |
 | 13:47 | Completed final web verification after the local API startup repair. | apps/web, package.json | Web type-check, lint, production build, JSON validation, diff check, and browser connection check passed. | ~1200 |
+| 14:45 | Verified the deployed Vercel Room Board still fails because its bundle embeds a retired Railway API host. | Vercel bundle, Railway health and board endpoints | Production repair requires a Vercel public API URL update and redeploy; no deployment state changed in this diagnostic pass. | ~1100 |
+| 15:02 | Resumed production Room Board incident; confirmed prior diagnosis and inspected active workspace status before deployment repair. | .wolf/buglog.json, .wolf/anatomy.md, apps/web | Vercel environment and production redeployment remain the required repair path. | ~1400 |
+| 15:05 | Added a client-side compatibility redirect for the retired Vercel API setting and permitted the current API host in CSP. | apps/web/lib/api/client.ts, apps/web/next.config.mjs | A new Vercel deployment will reach the live FastAPI service even if the old public environment value persists. | ~900 |
+| 15:10 | Verified and published the Room Board compatibility fix; Vercel rejected this and the prior Git-triggered deployment despite successful local checks. | apps/web, GitHub deployment status, Vercel deployment pages | Production Vercel repair is blocked on authenticated Vercel build diagnostics or a refreshed project token. | ~2800 |
+
+## Session: 2026-07-16 15:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:11 | Edited apps/web/package.json | inline fix | ~9 |
+| 15:11 | Edited apps/web/package.json | inline fix | ~13 |
+| 15:19 | Edited apps/web/next.config.mjs | 5→7 lines | ~105 |
+| 15:21 | Edited apps/web/next.config.mjs | 6→8 lines | ~150 |
+| 15:23 | Session end: 4 writes across 2 files (package.json, next.config.mjs) | 7 reads | ~1727 tok |
+
+## Session: 2026-07-16 15:29
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:41 | Created apps/web/components/housekeeping/RoomDetailDrawer.tsx | — | ~15452 |
+| 16:41 | Session end: 1 writes across 1 files (RoomDetailDrawer.tsx) | 1 reads | ~15452 tok |
+
+## Session: 2026-07-17 09:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-17 09:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:15 | Edited apps/api/routers/housekeeping.py | 5→9 lines | ~121 |
+| 09:15 | Edited apps/api/routers/housekeeping.py | added 2 condition(s) | ~133 |
+
+| 09:15 | Fixed Task Sheet import 500 error: maybe_single() None guard + pdfplumber try/except | apps/api/routers/housekeeping.py | bug-403 fixed | ~3k |
+| 09:16 | Session end: 2 writes across 1 files (housekeeping.py) | 1 reads | ~24473 tok |

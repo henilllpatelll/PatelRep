@@ -21,6 +21,10 @@
 
 ## Key Learnings
 
+- **Vercel deployment repair prerequisite (2026-07-16):** GitHub-triggered Vercel deployments for both `9bc2c692` and `157aa411` failed despite local web build, lint, and type-check success. Vercel build diagnostics are inaccessible until the project is authenticated; the configured Vercel CLI token is invalid. Repair Vercel authentication/deployment configuration before claiming a Vercel production fix is live.
+
+- **Vercel Room Board host contract (2026-07-16):** The Vercel deployment was verified to embed the retired `https://patelrep-web-production.up.railway.app/v1` API URL. Use `https://stellar-integrity-production-f507.up.railway.app/v1` for `NEXT_PUBLIC_API_URL`, then redeploy before treating the production Room Board as repaired.
+
 - **Local Room Board runtime contract (2026-07-16):** The web app's local API URL is `http://localhost:8003/v1`; `npm run dev:api` must start FastAPI on port 8003 via the Windows `.venv\\Scripts\\python.exe` executable. Port 8000 may be occupied by an unrelated service, making the board show its generic room-load error.
 
 - **Phase 6 PMS and AI governance contract (2026-07-16):** When Opera guest data conflicts with a local guest name, leave the local room status untouched and create an `integration_sync_conflicts` record for a GM/chief-engineer source-of-truth decision. AI recommendations must progress `pending → authorized → executed → outcome_recorded`; only GM/chief engineer can authorize and controlled safety/compliance actions are never valid AI actions.
@@ -250,7 +254,7 @@
 - [2026-05-19] **Inspection POST crashes with empty items list (23502 NOT NULL)** — `POST /v1/housekeeping/inspections` with `items: []` returns 400/23502 from Supabase. Guard the insert: only call `supabase.table('inspection_results').insert(results_data).execute()` when `results_data` is non-empty.
 - [2026-05-16] **`timezone` missing from sync.py import caused production NameError** — `from datetime import date, datetime, timedelta` did not include `timezone`, but `datetime.now(timezone.utc)` was called at two points. Always verify `timezone` is in the import when using `datetime.now(timezone.utc)` in Python.
 - [2026-05-16] **Opera connect must use credential-based flow, NOT OAuth auth_code redirect** — OHIP does not support authorization_code grant. `POST /integrations/opera/connect` now accepts body `{ohip_base_url, hotel_id_opera, integration_username?, integration_password?}` and calls `acquire_new_token()`. The old `/opera/callback` endpoint is removed. Do not reintroduce an auth_code redirect flow for OHIP.
-- [2026-05-16] **maybe_single() result must be guarded before accessing .data** — Always write `if result and result.data` not just `if result.data`; `maybe_single().execute()` can return `None` (not an APIResponse). Fixed in `handle_checkout` for the `current` room_status query.
+- [2026-05-16, recurred 2026-07-17] **maybe_single() result must be guarded before accessing .data** — Always write `if result and result.data` not just `if result.data`; `maybe_single().execute()` can return `None` (not an APIResponse). Fixed in `handle_checkout` and again in `import_task_sheet` (lines 2068/2074). Every new caller of `maybe_single()` must use this double guard.
 
 - [2026-04-14] **Notes via updateRoomStatus silently fail** — `PATCH /rooms/{id}/status` validates transitions; same-to-same status (e.g. DIRTY→DIRTY) is not in ALLOWED_TRANSITIONS and throws 400. Always use `POST /rooms/{id}/notes` for note-only saves. Frontend: `housekeepingApi.addNote(roomId, text)`.
 - [2026-04-14] **doneCount must be INSPECTED-only** — CLEAN means "awaiting inspection", not done. Both `housekeeping/page.tsx` and `HousekeeperDashboard.tsx` had this wrong. Filter only `status === 'INSPECTED'` for completion counts.

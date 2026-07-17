@@ -2024,7 +2024,11 @@ async def import_task_sheet(
         raise HTTPException(status_code=400, detail="File must be a PDF")
 
     pdf_bytes = await file.read()
-    rows, warnings = parse_task_sheet(pdf_bytes)
+    try:
+        rows, warnings = parse_task_sheet(pdf_bytes)
+    except Exception as exc:
+        logger.warning("Task sheet PDF parsing failed: %s", exc)
+        raise HTTPException(status_code=422, detail="Could not read PDF. Please upload a valid Opera Task Sheet.")
 
     if not rows:
         raise HTTPException(status_code=422, detail="No room data found in PDF — check file format")
@@ -2061,13 +2065,13 @@ async def import_task_sheet(
             .maybe_single() \
             .execute()
 
-        current_status = current.data.get("status") if current.data else None
+        current_status = current.data.get("status") if (current and current.data) else None
 
         # Determine the new status based on Opera occupancy + reservation status.
         # DI + OCC + Stayover = PICKUP regardless of task column.
         # DEP stays OCCUPIED (guest still in room until actual checkout).
         new_status = current_status or "DIRTY"
-        fo = row.fo_status or (current.data.get("fo_status") if current.data else None)
+        fo = row.fo_status or (current.data.get("fo_status") if (current and current.data) else None)
         res_lower = (row.reservation_status or "").lower()
         is_stayover_or_arrived = "stayover" in res_lower or "arrived" in res_lower
 
