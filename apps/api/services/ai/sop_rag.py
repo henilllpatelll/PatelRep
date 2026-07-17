@@ -9,15 +9,11 @@ from typing import List, Optional
 import pdfplumber
 import anthropic
 import openai
-from openai import OpenAI
 
-from core.config import settings
 from core.database import supabase
+from services.ai.providers import get_anthropic_client, get_openai_client
 
 logger = logging.getLogger(__name__)
-
-openai_client = OpenAI(api_key=settings.openai_api_key)
-claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
 # ---------------------------------------------------------------------------
 # Chunking constants
@@ -109,6 +105,7 @@ def index_sop_document(document_id: str, storage_path: str, hotel_id: str) -> No
     Called as a FastAPI BackgroundTask. Updates indexing_status throughout.
     """
     try:
+        openai_client = get_openai_client()
         # --- 1. Mark as processing ---
         supabase.table("sop_documents").update({
             "indexing_status": "processing",
@@ -226,6 +223,8 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
     completion_tokens = 0
 
     try:
+        openai_client = get_openai_client()
+        claude = get_anthropic_client()
         # --- 1. Embed the query ---
         embed_response = openai_client.embeddings.create(
             model="text-embedding-3-small",

@@ -1,10 +1,7 @@
-import anthropic
 import json
-from core.config import settings
 from core.database import supabase
 from datetime import datetime, timedelta, timezone
-
-claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+from services.ai.providers import get_anthropic_client
 
 
 def _get_7day_stats(hotel_id: str) -> dict:
@@ -87,6 +84,7 @@ def generate_gm_insights(hotel_id: str, query: str = None) -> dict:
     Generate GM insights using Claude Sonnet based on 7-day operational data.
     Returns {"insights": [...], "prompt_tokens": int, "completion_tokens": int}
     """
+    claude = get_anthropic_client()
     stats = _get_7day_stats(hotel_id)
 
     system_prompt = f"""You are the operations intelligence assistant for {stats['hotel_name']}.

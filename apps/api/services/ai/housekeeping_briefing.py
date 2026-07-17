@@ -7,12 +7,9 @@ briefing whenever this service is unavailable, so failures here must surface
 as exceptions for the router to map to 503 — never half-empty payloads.
 """
 
-import anthropic
 import json
 
-from core.config import settings
-
-claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+from services.ai.providers import get_anthropic_client
 
 _SYSTEM_PROMPT = """You are the AI shift copilot for a hotel housekeeping team.
 You receive today's assigned rooms for ONE housekeeper. Write a briefing that
@@ -42,6 +39,7 @@ def generate_shift_briefing(
     layout_context: str = "",
 ) -> dict:
     """Returns {"briefing": {...}, "prompt_tokens": int, "completion_tokens": int}."""
+    claude = get_anthropic_client()
     language_name = "Spanish" if language == "es" else "English"
     layout_section = (
         f"Property layout context (use this to minimise walking):\n{layout_context}"

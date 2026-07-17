@@ -1,12 +1,10 @@
 import re
 import logging
-from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from typing import Optional, Literal
-from core.config import settings
 from datetime import date
+from services.ai.providers import get_openai_client
 
-client = OpenAI(api_key=settings.openai_api_key)
 logger = logging.getLogger(__name__)
 
 
@@ -97,7 +95,7 @@ Call the create_tasks function with an array of 1 or more task objects."""
     if context and context.get("room_number"):
         user_content = f"[Context: currently viewing Room {context['room_number']}]\n{message}"
 
-    response = client.chat.completions.create(
+    response = get_openai_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},

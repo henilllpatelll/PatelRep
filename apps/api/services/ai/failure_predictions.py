@@ -2,15 +2,11 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-import anthropic
-
-from core.config import settings
 from core.database import supabase
 from services.ai.model_routing import resolve_model
+from services.ai.providers import get_anthropic_client
 
 logger = logging.getLogger(__name__)
-
-claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
 # ---------------------------------------------------------------------------
 # Claude prompt template for asset failure analysis
@@ -240,6 +236,7 @@ def _analyze_asset(
 
     try:
         user_prompt = _build_asset_prompt(asset, category_name, work_orders, pm_schedules)
+        claude = get_anthropic_client()
 
         response = claude.messages.create(
             model=resolve_model("failure_prediction", hotel_id),

@@ -1,9 +1,7 @@
 import json
 import logging
-from openai import OpenAI
-from core.config import settings
+from services.ai.providers import get_openai_client
 
-client = OpenAI(api_key=settings.openai_api_key)
 logger = logging.getLogger(__name__)
 
 _ASSIGN_SCHEMA = {
@@ -46,7 +44,7 @@ def parse_assignments(message: str) -> dict:
     """
     Returns {"assignments": [...], "prompt_tokens": int, "completion_tokens": int}
     """
-    response = client.chat.completions.create(
+    response = get_openai_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _SYSTEM},
