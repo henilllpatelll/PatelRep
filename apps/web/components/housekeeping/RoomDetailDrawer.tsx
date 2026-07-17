@@ -716,7 +716,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
                 <Wrench className="h-4 w-4 text-orange-500" />
-                <span className="text-[11px] font-semibold leading-none">Report Issue</span>
+                <span className="text-[11px] font-semibold leading-none">Work Order</span>
               </button>
               <button
                 type="button"
