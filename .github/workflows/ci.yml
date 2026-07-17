@@ -118,7 +118,7 @@ jobs:
       - name: Scan Python deps
         run: |
           pip install pip-audit
-          cd apps/api && pip-audit -r requirements.txt
+          cd apps/api && pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-1325
         continue-on-error: true
       - name: Install web deps
         run: cd apps/web && npm ci

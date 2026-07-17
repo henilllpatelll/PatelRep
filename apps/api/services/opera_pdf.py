@@ -17,7 +17,7 @@ def _repair_pdf(pdf_bytes: bytes) -> bytes:
     PdfWriter emits a clean, standards-compliant PDF that pdfplumber can parse.
     """
     from pypdf import PdfReader, PdfWriter
-    reader = PdfReader(io.BytesIO(pdf_bytes), strict=False)
+    reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     for page in reader.pages:
         writer.add_page(page)

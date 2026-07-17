@@ -189,7 +189,7 @@ export function TrendChartsRow() {
               <XAxis type="number" tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={64} />
               <Tooltip
-                formatter={(value: number) => [`${value} tasks`, 'Completed']}
+                formatter={(value) => [`${value} tasks`, 'Completed']}
                 contentStyle={{ fontSize: 12 }}
               />
               <Bar dataKey="tasks" radius={[0, 4, 4, 0]}>
