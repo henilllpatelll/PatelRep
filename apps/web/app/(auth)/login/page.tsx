@@ -106,7 +106,6 @@ function LoginContent() {
     const hotelId =
       (data.user?.app_metadata as Record<string, unknown>)?.hotel_id ??
       (data.user?.user_metadata as Record<string, unknown>)?.hotel_id
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(getRedirectPath(hotelId as string | undefined))
   }
 

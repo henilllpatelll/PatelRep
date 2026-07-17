@@ -137,7 +137,6 @@ export default function SettingsBillingPage() {
   const portalMutation = useMutation({
     mutationFn: () => billingApi.createPortalSession(),
     onSuccess: (res) => {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(res.data.url)
     },
     onError: (err: Error) => {
@@ -148,7 +147,6 @@ export default function SettingsBillingPage() {
   const checkoutMutation = useMutation({
     mutationFn: () => billingApi.createCheckoutSession(),
     onSuccess: (res) => {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(res.data.url)
     },
     onError: (err: Error) => {
