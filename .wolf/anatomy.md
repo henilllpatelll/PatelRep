@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-16T16:25:05.042Z
-> Files: 32 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T16:34:44.474Z
+> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -31,8 +31,8 @@
 ## ./
 
 - `CLAUDE.md` — OpenWolf (~3005 tok)
-- `HOTEL_STANDARDS_GAP_ANALYSIS.md` — PatelRep vs. Modern Hotel Operations Standards — Brutal Gap Analysis (~6188 tok)
 - `HOTEL_STANDARDS_EXECUTION_PLAN.md` — Phased implementation plan for the hotel standards gap analysis. (~2500 tok)
+- `HOTEL_STANDARDS_GAP_ANALYSIS.md` — PatelRep vs. Modern Hotel Operations Standards — Brutal Gap Analysis (~6188 tok)
 - `railway.toml` (~63 tok)
 
 ## .claude/
@@ -425,10 +425,17 @@
 
 ## .githooks/
 
+- `pre-push` — Runs before any push to main. Skips on all other branches. (~486 tok)
+
+## .github/
+
+- `dependabot.yml` (~266 tok)
 
 ## .github/workflows/
 
-- `deploy-check.yml` — CI: Deploy Health Check (~520 tok)
+- `auto-merge.yml` — CI: Auto-merge (~397 tok)
+- `ci.yml` — CI: CI (~1517 tok)
+- `deploy-check.yml` — CI: Deploy Health Check (~620 tok)
 
 ## .planning/
 
@@ -464,6 +471,8 @@
 ## apps/api/
 
 - `main.py` — API: 1 endpoints (~3050 tok)
+- `pytest.ini` (~81 tok)
+- `requirements.txt` — Python dependencies (~87 tok)
 
 ## apps/api/core/
 
@@ -476,14 +485,13 @@
 
 ## apps/api/routers/
 
-- `programs.py` — Tenant-scoped PM completion, deep-clean, par-level, sampling, and DND program workflows. (~3000 tok)
-
-- `safety.py` — Tenant-scoped Texas training, controlled incident, chemical, and emergency-drill workflows. (~4300 tok)
-
 - `evidence.py` — Tenant-scoped controlled documents, acknowledgements, evidence records, exception export, and reminders. (~5000 tok)
-- `notifications.py` — In-app notification creation, listing, and delivery state handling. (~1200 tok)
-- `sop.py` — SOP upload, listing, download, and deletion routes backed by Supabase Storage. (~1800 tok)
+- `housekeeping.py` — Declares from (~24219 tok)
 - `internal.py` — API: 7 endpoints (~6158 tok)
+- `notifications.py` — In-app notification creation, listing, and delivery state handling. (~1200 tok)
+- `programs.py` — Tenant-scoped PM completion, deep-clean, par-level, sampling, and DND program workflows. (~3000 tok)
+- `safety.py` — Tenant-scoped Texas training, controlled incident, chemical, and emergency-drill workflows. (~4300 tok)
+- `sop.py` — SOP upload, listing, download, and deletion routes backed by Supabase Storage. (~1800 tok)
 - `work_orders.py` — API: 6 endpoints (~5043 tok)
 
 ## apps/api/scripts/
@@ -491,28 +499,29 @@
 
 ## apps/api/services/
 
-## apps/api/services/programs/
-
-- `contracts.py` — Pure Phase 4 evidence, recurrence, DND, par-alert, and default-template policies. (~900 tok)
-- `execution.py` — Shared immutable PM completion persistence and corrective-work-order helper. (~800 tok)
-
-## apps/api/services/guest_recovery/
-
-- `contracts.py` — Pure Phase 5 SLA selection, guest lifecycle, custody verification, and reconciled guest-recovery metrics. (~900 tok)
-
-- `evidence/contracts.py` — Pure controlled-document versioning, exception, and reminder policies. (~900 tok)
-
-## apps/api/services/safety/
-
-- `contracts.py` — Pure training compliance and controlled-incident event policies. (~500 tok)
+- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~2695 tok)
 
 ## apps/api/services/ai/
 
 - `governance.py` — Phase 6 AI recommendation action policy, lifecycle validation, and acceptance/override/outcome metrics. (~500 tok)
 - `model_routing.py` — Central defaults with tenant-scoped model-route override lookup. (~300 tok)
 
+## apps/api/services/guest_recovery/
+
+- `contracts.py` — Pure Phase 5 SLA selection, guest lifecycle, custody verification, and reconciled guest-recovery metrics. (~900 tok)
+- `evidence/contracts.py` — Pure controlled-document versioning, exception, and reminder policies. (~900 tok)
+
 ## apps/api/services/opera/
 
+
+## apps/api/services/programs/
+
+- `contracts.py` — Pure Phase 4 evidence, recurrence, DND, par-alert, and default-template policies. (~900 tok)
+- `execution.py` — Shared immutable PM completion persistence and corrective-work-order helper. (~800 tok)
+
+## apps/api/services/safety/
+
+- `contracts.py` — Pure training compliance and controlled-incident event policies. (~500 tok)
 
 ## apps/api/services/work_orders/
 
@@ -520,12 +529,11 @@
 
 ## apps/api/tests/
 
-- `test_guest_recovery.py` — Phase 5 lifecycle, accessibility priority, custody, metric, and migration contract tests. (~900 tok)
-- `test_safety_compliance.py` — Phase 3 training recurrence and append-only incident policy contracts. (~500 tok)
-
 - `test_evidence_foundation.py` — Phase 2 controlled evidence policy contract tests. (~1100 tok)
+- `test_guest_recovery.py` — Phase 5 lifecycle, accessibility priority, custody, metric, and migration contract tests. (~900 tok)
 - `test_operational_programs.py` — Phase 4 PM evidence, recurrence, DND, and par-level contract tests. (~800 tok)
 - `test_phase6_governance.py` — Phase 6 AI authorization, outcome metrics, PMS conflict, and migration contract tests. (~700 tok)
+- `test_safety_compliance.py` — Phase 3 training recurrence and append-only incident policy contracts. (~500 tok)
 - `test_work_order_transitions.py` — Phase 1 contract tests for work-order transitions. (~3360 tok)
 
 ## apps/api/tests/load/
@@ -533,9 +541,9 @@
 
 ## apps/api/tests/smoke/
 
+- `test_enum_contracts.py` — test_status_constants_match_json_contract, test_priority_constants_match_json_contract (~391 tok)
 - `test_notification_delivery.py` — Notification delivery persistence regression tests. (~500 tok)
 - `test_sop_security.py` — SOP upload validation and authorization tests. (~900 tok)
-- `test_enum_contracts.py` — test_status_constants_match_json_contract, test_priority_constants_match_json_contract (~391 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -760,7 +768,8 @@
 ## apps/web/
 
 - `Dockerfile` — Docker container definition (~314 tok)
-- `package.json` — Node.js package manifest (~472 tok)
+- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~765 tok)
+- `package.json` — Node.js package manifest (~490 tok)
 - `playwright.phase1.config.ts` (~72 tok)
 
 ## apps/web/app/
@@ -769,11 +778,11 @@
 
 ## apps/web/app/(auth)/login/
 
+- `page.tsx` — decodeJwtPayload — renders form (~4799 tok)
 
 ## apps/web/app/(dashboard)/
 
 - `programs/page.tsx` — Bilingual operational program setup and par-level command page. (~1800 tok)
-
 
 ## apps/web/app/(dashboard)/ai/
 
@@ -835,6 +844,7 @@
 
 ## apps/web/app/(dashboard)/settings/billing/
 
+- `page.tsx` — numberOrDefault (~5358 tok)
 
 ## apps/web/app/(dashboard)/settings/departments/
 
@@ -884,6 +894,7 @@
 ## apps/web/components/dashboard/
 
 - `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7387 tok)
+- `TrendChartsRow.tsx` — getHotelIdFromSession (~2430 tok)
 
 ## apps/web/components/engineering/
 
@@ -893,7 +904,7 @@
 
 ## apps/web/components/housekeeping/
 
-- `RoomStatusBoard.tsx` - Authenticated housekeeping board; polls `/housekeeping/board` through the typed API client and presents the generic room-load retry state. (~2400 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~15474 tok)
 
 ## apps/web/components/settings/
 
@@ -920,19 +931,14 @@
 
 ## apps/web/lib/api/
 
-- `programs.ts` — Typed operational-program overview and configuration API client. (~500 tok)
-
-- `safety.ts` — Typed safety-training, emergency-plan, and controlled-incident API client. (~500 tok)
-
+- `client.ts` — Exports resolvedApiUrl, ApiClientError, apiClient (~1663 tok)
 - `evidence.ts` — Typed property-applicability and exception-queue API client. (~300 tok)
-- `sop.ts` — Typed SOP API client used by the controlled-document surface. (~600 tok)
 - `notifications.ts` — API routes: GET, PATCH, POST (4 endpoints) (~192 tok)
+- `programs.ts` — Typed operational-program overview and configuration API client. (~500 tok)
+- `safety.ts` — Typed safety-training, emergency-plan, and controlled-incident API client. (~500 tok)
+- `sop.ts` — Typed SOP API client used by the controlled-document surface. (~600 tok)
 
 ## apps/web/lib/hooks/
-
-## apps/web/scripts/
-
-- `check-programs-i18n.mjs` — CI guard for bilingual operational-program translation keys and common hardcoded floor copy. (~250 tok)
 
 
 ## apps/web/lib/supabase/
@@ -943,6 +949,10 @@
 
 ## apps/web/playwright.phase0.config.ts
 
+
+## apps/web/scripts/
+
+- `check-programs-i18n.mjs` — CI guard for bilingual operational-program translation keys and common hardcoded floor copy. (~250 tok)
 
 ## apps/web/stores/
 
@@ -981,16 +991,15 @@
 
 ## supabase/migrations/
 
-- `073_pms_ai_governance.sql` — Phase 6 PMS conflict queue, append-only history, AI authorization/outcome records, and model routes. (~2400 tok)
-- `072_guest_recovery_and_roi.sql` — Phase 5 tenant-scoped guest recovery, message, accessibility, custody, and lifecycle audit schema. (~2600 tok)
-- `071_operational_programs.sql` — Phase 4 append-only PM, deep-clean, supply-par, sampling, and DND policy schema. (~2600 tok)
-
-- `070_texas_safety_compliance.sql` — Phase 3 training, controlled incidents, safety inventory, drills, RLS, and immutability triggers. (~2300 tok)
-
-- `069_evidence_foundation.sql` — Phase 2 shared evidence schema, RLS, indexes, and private storage bucket. (~1800 tok)
+- `065_work_order_transition_audit.sql` — Canonical work-order constraints and atomic append-only transition audit RPC. (~850 tok)
 - `066_inspection_photo_evidence.sql` — Inspection-result-linked photo evidence schema and storage support. (~350 tok)
 - `067_notification_delivery_history.sql` — Notification delivery outcome history. (~250 tok)
-- `065_work_order_transition_audit.sql` — Canonical work-order constraints and atomic append-only transition audit RPC. (~850 tok)
 - `068_cron_health.sql` — Phase 0: Cron health tracking so /health can report last successful run per job. (~228 tok)
+- `069_evidence_foundation.sql` — Phase 2 shared evidence schema, RLS, indexes, and private storage bucket. (~1800 tok)
+- `070_texas_safety_compliance.sql` — Phase 3 training, controlled incidents, safety inventory, drills, RLS, and immutability triggers. (~2300 tok)
+- `071_operational_programs.sql` — Phase 4 append-only PM, deep-clean, supply-par, sampling, and DND policy schema. (~2600 tok)
+- `072_guest_recovery_and_roi.sql` — Phase 5 tenant-scoped guest recovery, message, accessibility, custody, and lifecycle audit schema. (~2600 tok)
+- `073_pms_ai_governance.sql` — Phase 6 PMS conflict queue, append-only history, AI authorization/outcome records, and model routes. (~2400 tok)
 
 ## youtubeMobileResearch.md
+

@@ -6719,6 +6719,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17"
+    },
+    {
+      "id": "bug-404",
+      "timestamp": "2026-07-17T14:43:27.132Z",
+      "error_message": "Missing import: @/lib/api/client",
+      "file": "apps/web/app/(auth)/login/page.tsx",
+      "root_cause": "Module(s) not imported: @/lib/api/client",
+      "fix": "Added import(s) for @/lib/api/client",
+      "tags": [
+        "auto-detected",
+        "missing-import",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T14:43:27.132Z"
+    },
+    {
+      "id": "bug-405",
+      "timestamp": "2026-07-17T15:12:08.972Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/settings/billing/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 13→11 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T15:12:08.972Z"
+    },
+    {
+      "id": "bug-406",
+      "timestamp": "2026-07-17T15:12:12.293Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Had \"20\"",
+      "fix": "Changed to \"22\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T15:12:12.293Z"
+    },
+    {
+      "id": "bug-407",
+      "timestamp": "2026-07-17T15:12:13.093Z",
+      "error_message": "Incorrect value in code",
+      "file": ".github/workflows/deploy-check.yml",
+      "root_cause": "Had '20'",
+      "fix": "Changed to '22'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T15:12:13.093Z"
+    },
+    {
+      "id": "bug-408",
+      "timestamp": "2026-07-17T16:03:00.682Z",
+      "error_message": "CSS fix: text",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "text: raw.split('|prev_clean_type=')[0].trim(), → stripNoteMeta(raw),",
+      "fix": "Changed text: raw.split('|prev_clean_type=')[0].trim(), → stripNoteMeta(raw),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T16:03:00.682Z"
     }
   ]
 }

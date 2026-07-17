@@ -1,0 +1,110 @@
+- generic [ref=e2]:
+  - complementary "Main navigation" [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e10]:
+        - generic [ref=e11]: PatelRep
+        - generic [ref=e12]: Hotel Operations AI
+    - navigation [ref=e13]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: Operations
+        - generic [ref=e16]:
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e26]: Dashboard
+          - link "Housekeeping" [ref=e29] [cursor=pointer]:
+            - /url: /housekeeping
+            - img [ref=e30]
+            - generic [ref=e32]: Housekeeping
+          - link "Engineering" [ref=e35] [cursor=pointer]:
+            - /url: /engineering
+            - img [ref=e36]
+            - generic [ref=e38]: Engineering
+          - link "Operational Programs" [ref=e41] [cursor=pointer]:
+            - /url: /programs
+            - img [ref=e42]
+            - generic [ref=e45]: Operational Programs
+          - link "Lost & Found" [ref=e48] [cursor=pointer]:
+            - /url: /lost-found
+            - img [ref=e49]
+            - generic [ref=e53]: Lost & Found
+          - link "Guest Requests" [ref=e56] [cursor=pointer]:
+            - /url: /guest-requests
+            - img [ref=e57]
+            - generic [ref=e59]: Guest Requests
+          - link "Tasks" [ref=e62] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e63]
+            - generic [ref=e66]: Tasks
+      - generic [ref=e67]:
+        - paragraph [ref=e69]: Intelligence
+        - generic [ref=e70]:
+          - link "AI Copilot AI" [ref=e73] [cursor=pointer]:
+            - /url: /ai
+            - img [ref=e74]
+            - generic [ref=e76]: AI Copilot
+            - generic [ref=e77]: AI
+          - link "SOP Library" [ref=e80] [cursor=pointer]:
+            - /url: /sop
+            - img [ref=e81]
+            - generic [ref=e83]: SOP Library
+          - link "nav.evidence" [ref=e86] [cursor=pointer]:
+            - /url: /evidence
+            - img [ref=e87]
+            - generic [ref=e90]: nav.evidence
+          - link "nav.safety" [ref=e93] [cursor=pointer]:
+            - /url: /safety
+            - img [ref=e94]
+            - generic [ref=e97]: nav.safety
+          - link "Reports" [ref=e100] [cursor=pointer]:
+            - /url: /reports
+            - img [ref=e101]
+            - generic [ref=e104]: Reports
+      - generic [ref=e105]:
+        - paragraph [ref=e107]: Organization
+        - generic [ref=e108]:
+          - link "Logbook" [ref=e111] [cursor=pointer]:
+            - /url: /logbook
+            - img [ref=e112]
+            - generic [ref=e115]: Logbook
+          - link "Staff" [ref=e118] [cursor=pointer]:
+            - /url: /staff
+            - img [ref=e119]
+            - generic [ref=e124]: Staff
+          - link "Schedule" [ref=e127] [cursor=pointer]:
+            - /url: /scheduling
+            - img [ref=e128]
+            - generic [ref=e130]: Schedule
+    - generic [ref=e132]:
+      - generic [ref=e133]: U
+      - paragraph [ref=e135]: User
+  - generic [ref=e136]:
+    - banner [ref=e137]:
+      - generic [ref=e138]:
+        - img [ref=e139]
+        - textbox "Open command palette" [ref=e142]:
+          - /placeholder: Search rooms, work orders, guests...
+        - generic [ref=e143]: ⌘K
+      - button "Espanol" [ref=e148] [cursor=pointer]:
+        - img [ref=e149]
+        - generic [ref=e153]: ES
+      - button "Open AI Copilot (Cmd+J)" [ref=e154] [cursor=pointer]:
+        - img [ref=e155]
+        - generic [ref=e157]: Ask copilot
+        - generic [ref=e158]: ⌘J
+      - button "Notifications" [ref=e160] [cursor=pointer]:
+        - img [ref=e161]
+      - button "User menu for User" [ref=e165] [cursor=pointer]:
+        - generic [ref=e166]: U
+        - img [ref=e167]
+    - main [ref=e169]
+  - button "Open AI Copilot" [ref=e178] [cursor=pointer]:
+    - img [ref=e179]
+    - generic [ref=e181]: Ask copilot
+    - generic [ref=e182]: ⌘J
+  - button "Open feedback" [ref=e184] [cursor=pointer]:
+    - img [ref=e185]
+    - generic [ref=e187]: Feedback
+  - button "Display preferences" [ref=e189] [cursor=pointer]:
+    - img [ref=e190]

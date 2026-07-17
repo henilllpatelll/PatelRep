@@ -6674,3 +6674,80 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | 09:15 | Fixed Task Sheet import 500 error: maybe_single() None guard + pdfplumber try/except | apps/api/routers/housekeeping.py | bug-403 fixed | ~3k |
 | 09:16 | Session end: 2 writes across 1 files (housekeeping.py) | 1 reads | ~24473 tok |
+| 09:17 | Session end: 2 writes across 1 files (housekeeping.py) | 1 reads | ~24473 tok |
+
+## Session: 2026-07-17 09:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-17 09:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 09:30 | Edited apps/api/requirements.txt | 1→2 lines | ~9 |
+| 09:30 | Edited apps/api/services/opera_pdf.py | modified _repair_pdf() | ~238 |
+| 09:30 | Edited apps/api/services/opera_pdf.py | modified parse_hk_details() | ~124 |
+| 09:30 | Edited apps/api/services/opera_pdf.py | modified parse_task_sheet() | ~124 |
+| 09:32 | Session end: 4 writes across 2 files (requirements.txt, opera_pdf.py) | 4 reads | ~6244 tok |
+| 09:43 | Edited apps/web/lib/api/client.ts | 6→8 lines | ~102 |
+| 09:43 | Edited apps/web/app/(auth)/login/page.tsx | CSS: resolvedApiUrl | ~52 |
+| 09:43 | Session end: 6 writes across 4 files (requirements.txt, opera_pdf.py, client.ts, page.tsx) | 6 reads | ~6398 tok |
+| 09:43 | Edited apps/web/app/(auth)/login/page.tsx | modified getHealthUrl() | ~28 |
+| 09:43 | Edited apps/web/app/(auth)/login/page.tsx | added 1 import(s) | ~36 |
+| 09:43 | Edited apps/web/app/(auth)/login/page.tsx | 7→2 lines | ~24 |
+| 09:44 | Session end: 9 writes across 4 files (requirements.txt, opera_pdf.py, client.ts, page.tsx) | 6 reads | ~6486 tok |
+| 09:45 | Session end: 9 writes across 4 files (requirements.txt, opera_pdf.py, client.ts, page.tsx) | 6 reads | ~6486 tok |
+
+## Session: 2026-07-17 09:47
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 10:12 | Edited apps/web/app/(auth)/login/page.tsx | 2→1 lines | ~22 |
+| 10:12 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | 13→11 lines | ~95 |
+| 10:12 | Edited .github/workflows/ci.yml | "20" → "22" | ~8 |
+| 10:12 | Edited .github/workflows/deploy-check.yml | "20" → "22" | ~8 |
+| 10:12 | Session end: 4 writes across 3 files (page.tsx, ci.yml, deploy-check.yml) | 5 reads | ~5476 tok |
+| 10:42 | Session end: 4 writes across 3 files (page.tsx, ci.yml, deploy-check.yml) | 5 reads | ~5476 tok |
+| 10:52 | Edited apps/api/requirements.txt | 6→6 lines | ~29 |
+| 10:52 | Edited apps/api/requirements.txt | inline fix | ~4 |
+| 10:53 | Edited apps/api/services/opera_pdf.py | inline fix | ~13 |
+| 10:53 | Edited apps/api/pytest.ini | 3→4 lines | ~57 |
+| 10:53 | Edited .github/workflows/ci.yml | inline fix | ~24 |
+| 10:54 | Edited apps/web/components/dashboard/TrendChartsRow.tsx | inline fix | ~20 |
+| 10:54 | Edited apps/api/pytest.ini | 1→2 lines | ~46 |
+
+## Session: 2026-07-17 10:56
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-17 11:01
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: s | ~266 |
+| 11:03 | Session end: 1 writes across 1 files (RoomDetailDrawer.tsx) | 1 reads | ~15718 tok |
+| 11:07 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | CSS: s | ~115 |
+| 11:07 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→3 lines | ~75 |
+| 11:07 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 3→1 lines | ~16 |
+| 11:07 | Session end: 4 writes across 1 files (RoomDetailDrawer.tsx) | 1 reads | ~15939 tok |
+| 11:11 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 condition(s) | ~166 |
+| 11:11 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | removed 6 lines | ~16 |
+| 11:12 | Session end: 6 writes across 1 files (RoomDetailDrawer.tsx) | 5 reads | ~16133 tok |
+| 11:16 | Session end: 6 writes across 1 files (RoomDetailDrawer.tsx) | 5 reads | ~16133 tok |
+| 11:17 | Session end: 6 writes across 1 files (RoomDetailDrawer.tsx) | 5 reads | ~16133 tok |
+| 11:18 | Session end: 6 writes across 1 files (RoomDetailDrawer.tsx) | 8 reads | ~16133 tok |
+| 11:28 | Edited .github/workflows/ci.yml | inline fix | ~6 |
+| 11:28 | Edited .github/workflows/ci.yml | inline fix | ~6 |
+| 11:28 | Edited .github/workflows/ci.yml | inline fix | ~7 |
+| 11:28 | Edited .github/workflows/ci.yml | inline fix | ~7 |
+| 11:28 | Edited .github/workflows/deploy-check.yml | inline fix | ~6 |
+| 11:28 | Edited .github/workflows/deploy-check.yml | inline fix | ~6 |
+| 11:28 | Edited .github/workflows/auto-merge.yml | inline fix | ~7 |
+| 11:31 | Session end: 13 writes across 4 files (RoomDetailDrawer.tsx, ci.yml, deploy-check.yml, auto-merge.yml) | 8 reads | ~16178 tok |
+| 11:32 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | inline fix | ~26 |
+| 11:33 | Session end: 14 writes across 4 files (RoomDetailDrawer.tsx, ci.yml, deploy-check.yml, auto-merge.yml) | 9 reads | ~16204 tok |
+| 11:34 | Created .github/dependabot.yml | — | ~266 |
+| 11:34 | Created .githooks/pre-push | — | ~486 |
+| 11:35 | Session end: 16 writes across 6 files (RoomDetailDrawer.tsx, ci.yml, deploy-check.yml, auto-merge.yml, dependabot.yml) | 10 reads | ~16991 tok |

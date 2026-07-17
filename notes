@@ -81,3 +81,29 @@ housekeeper updates late checkout for departure room, confirm it
 
 
 Add live activities to ios and android
+
+
+
+
+
+Railway:
+patelrep-web
+
+ANTHROPIC_API_KEY="${{PatelRep.ANTHROPIC_API_KEY}}"
+API_URL="https://patelrep-web-production.up.railway.app"
+APP_ENV="production"
+APP_URL="https://patelrep-production.up.railway.app"
+CRON_SECRET="c8eb577b4ef714d347f18bd993cc0443a80c2f4d4ad227cb8304a673558f86ef"
+OPERA_CREDENTIAL_ENCRYPTION_KEY="${{PatelRep.OPERA_CREDENTIAL_ENCRYPTION_KEY}}"
+STRIPE_SECRET_KEY="${{PatelRep.STRIPE_SECRET_KEY}}"
+STRIPE_WEBHOOK_SECRET="${{PatelRep.STRIPE_WEBHOOK_SECRET}}"
+SUPABASE_JWT_SECRET="lptxZW2QytcINi7zcDAxdpc2ieqjDKz8Rdcj8Rn1gb3hiCWUA5If4Fjy2SLYUJmNs/IWRIh+jgiyJH+LvM20hQ=="
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY253YWxoY3BxZGFiaXZ3ZWtpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzI2NjgwOSwiZXhwIjoyMDg4ODQyODA5fQ.p2C3sa25b94j9bL61IFHA9-T9FKdLzWkFJQJrTQ0k4c"
+SUPABASE_URL="https://oacnwalhcpqdabivweki.supabase.co"
+
+
+patelrep
+
+NEXT_PUBLIC_API_URL="https://patelrep-web-production.up.railway.app/v1"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY253YWxoY3BxZGFiaXZ3ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjY4MDksImV4cCI6MjA4ODg0MjgwOX0.O949TGOgV9yzkOXVpzXbEuPXnSDxFmQ-CTsx_7zXAkM"
+NEXT_PUBLIC_SUPABASE_URL="https://oacnwalhcpqdabivweki.supabase.co"
