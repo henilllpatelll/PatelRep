@@ -18,5 +18,26 @@ echo "  ✓ Web lint"
 (cd apps/web && npm run type-check 2>&1) || { echo ""; echo "BLOCKED: TypeScript type-check failed — fix type errors before pushing."; exit 1; }
 echo "  ✓ Web type-check"
 
+# Lock file sync — catch package.json / package-lock.json drift before CI does
+if ! (cd apps/web && npm ci --dry-run 2>/dev/null); then
+  echo ""
+  echo "BLOCKED: apps/web/package-lock.json is out of sync with package.json."
+  echo "         Run 'npm install' inside apps/web, then re-stage package-lock.json."
+  exit 1
+fi
+echo "  ✓ Lock file in sync"
+
+# Python security audit (skipped if pip-audit not installed locally)
+if command -v pip-audit &>/dev/null; then
+  (cd apps/api && pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-1325 -q) \
+    || { echo ""; echo "BLOCKED: pip-audit found vulnerabilities — update requirements.txt before pushing."; exit 1; }
+  echo "  ✓ Python deps (pip-audit)"
+fi
+
+# Node security audit
+(cd apps/web && npm audit --audit-level=high --silent) \
+  || { echo ""; echo "BLOCKED: npm audit found high/critical vulnerabilities — run 'npm audit fix' in apps/web."; exit 1; }
+echo "  ✓ Node deps (npm audit)"
+
 echo ""
 echo "pre-push: all checks passed — pushing."
