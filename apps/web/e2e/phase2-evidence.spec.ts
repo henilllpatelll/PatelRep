@@ -64,6 +64,18 @@ test('authorized staff can open secure evidence capture and review', async ({ pa
   await expect(page.getByTestId('capture-evidence')).toBeVisible()
 })
 
+test('GM can filter the exception queue and open inspector export controls', async ({ page }) => {
+  test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
+  await loginAsGM(page)
+  await page.goto('/evidence')
+
+  await expect(page.getByTestId('evidence-exception-queue')).toBeVisible()
+  await expect(page.getByTestId('exception-state-filter')).toBeVisible()
+  await expect(page.getByTestId('exception-kind-filter')).toBeVisible()
+  await expect(page.getByTestId('export-evidence-packet')).toBeVisible()
+  await page.getByTestId('exception-state-filter').selectOption('failed')
+})
+
 test('staff can acknowledge an assigned approved procedure at 390px', async ({ page }) => {
   test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
   test.skip(!process.env.STAFF_TEST_EMAIL || !GM_PASSWORD, 'Set STAFF_TEST_EMAIL and TEST_PASSWORD for the staff acknowledgement fixture')

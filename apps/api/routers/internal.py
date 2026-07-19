@@ -37,7 +37,12 @@ def _record_cron_run(job_name: str, *, error: str | None = None) -> None:
 async def send_evidence_reminders(x_cron_secret: str = Header(None)):
     """Cron: remind staff and GM of due or overdue controlled acknowledgements."""
     verify_cron(x_cron_secret)
-    sent = run_evidence_reminders()
+    try:
+        sent = run_evidence_reminders()
+    except Exception as exc:
+        logger.error("Evidence reminder cron failed: %s", exc, exc_info=True)
+        _record_cron_run("evidence.reminders", error=str(exc))
+        raise HTTPException(status_code=500, detail="Evidence reminder cron failed.") from exc
     _record_cron_run("evidence.reminders")
     return {"status": "ok", "reminder_actions": sent}
 

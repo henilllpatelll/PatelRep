@@ -479,6 +479,24 @@ class DocumentLifecycleActionRequest(SanitizedBaseModel):
         return self
 
 
+class ExceptionActionRequest(SanitizedBaseModel):
+    """A GM-owned corrective action for a derived evidence exception."""
+
+    action: Literal["assign", "defer", "escalate", "resolve", "reopen"]
+    owner_id: Optional[str] = Field(default=None, max_length=100)
+    reason_code: Literal[
+        "safety_risk", "vendor_delay", "staffing", "document_revision",
+        "evidence_pending", "corrected", "other",
+    ]
+    reason_note: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def require_owner_for_assignment(self):
+        if self.action == "assign" and not self.owner_id:
+            raise ValueError("owner_id is required when assigning an exception")
+        return self
+
+
 class AssignControlledDocumentRequest(SanitizedBaseModel):
     assigned_to: str = Field(min_length=1, max_length=100)
     due_date: date

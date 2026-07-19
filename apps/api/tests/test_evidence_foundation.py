@@ -17,6 +17,7 @@ from models.requests import (
     CreateControlledDocumentRequest,
     CreateEvidenceRecordRequest,
     DocumentLifecycleActionRequest,
+    ExceptionActionRequest,
     EvaluateDocumentCompetencyRequest,
     UpdatePropertyApplicabilityRequest,
 )
@@ -26,6 +27,7 @@ from services.evidence.contracts import (
     FACILITY_OPTIONS,
     SERVICE_OPTIONS,
     build_exception_queue,
+    build_inspector_export_rows,
     build_reminder_actions,
     build_retraining_assignments,
     create_superseding_version,
@@ -609,3 +611,128 @@ def test_evidence_route_matrix_is_explicit_and_all_mutations_are_role_gated():
         with pytest.raises(HTTPException, match="not authorized"):
             import asyncio
             asyncio.run(dependency(CurrentUser(user_id="other", hotel_id="hotel-1", role="unsupported")))
+
+
+def test_exception_queue_retains_all_six_operational_states_for_a_mixed_property():
+    exceptions = build_exception_queue(
+        documents=[{"id": "doc-expired", "title": "Pool permit", "approval_state": "approved", "expiration_date": "2026-07-15"}],
+        assignments=[
+            {"id": "ack-overdue", "due_date": "2026-07-15", "acknowledged_at": None, "document_title": "Fire drill"},
+            {"id": "ack-open", "due_date": "2026-07-20", "acknowledged_at": None, "document_title": "Safety briefing"},
+        ],
+        evidence=[
+            {"id": "evidence-missing", "label": "Boiler log", "required_by": "2026-07-15T16:00:00Z", "collected_at": None},
+            {"id": "evidence-failed", "label": "Pool test", "result": "failed"},
+            {"id": "evidence-deferred", "label": "Elevator certificate", "result": "deferred"},
+        ],
+        now=NOW,
+    )
+
+    assert {item["state"] for item in exceptions} == {
+        "missing", "overdue", "expired", "failed", "deferred", "unacknowledged",
+    }
+
+
+def test_inspector_export_rows_include_applicability_documents_staff_evidence_exceptions_and_audit_history():
+    rows = build_inspector_export_rows(
+        applicability={"facilities": ["pool"], "services": [], "brand_requirements": ["brand_safety"]},
+        documents=[{"id": "doc-1", "title": "Pool opening", "version_number": 2, "approval_state": "approved", "retention_class": "safety_7_years"}],
+        assignments=[{"id": "ack-1", "document_id": "doc-1", "assigned_to": "staff-1", "acknowledged_at": None, "competency_status": "pending"}],
+        evidence=[{"id": "evidence-1", "label": "Pool log", "evidence_type": "checklist_result", "result": "failed"}],
+        exceptions=[{"reference_id": "evidence-1", "kind": "evidence", "state": "failed", "label": "Pool log"}],
+        actions=[{"reference_id": "evidence-1", "exception_kind": "evidence", "lifecycle_state": "escalated", "owner_id": "gm-1", "reason_code": "safety_risk"}],
+        audits=[{"resource_id": "evidence-1", "action": "evidence_exception.escalated", "reason_code": "safety_risk"}],
+    )
+
+    assert [row["section"] for row in rows] == [
+        "property_applicability", "controlled_document", "acknowledgement_competency",
+        "evidence_metadata", "exception", "exception_action", "audit_history",
+    ]
+    assert rows[-1]["reason_code"] == "safety_risk"
+
+
+@pytest.mark.asyncio
+async def test_gm_exception_action_is_tenant_scoped_and_records_structured_owner_escalation_audit(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "evidence_records": [{"id": "evidence-1", "tenant_id": "hotel-1", "label": "Pool log"}],
+        "user_roles": [{"tenant_id": "hotel-1", "user_id": "owner-1", "is_active": True}],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    response = await evidence_router.act_on_evidence_exception(
+        "evidence", "evidence-1",
+        ExceptionActionRequest(action="escalate", owner_id="owner-1", reason_code="safety_risk", reason_note="Close pool until the test passes."),
+        _gm(),
+    )
+
+    assert response["data"]["lifecycle_state"] == "escalated"
+    assert response["data"]["owner_id"] == "owner-1"
+    assert db.rows["operational_audit_events"][-1]["action"] == "evidence_exception.escalated"
+    assert db.rows["operational_audit_events"][-1]["reason_code"] == "safety_risk"
+
+    with pytest.raises(HTTPException, match="not found"):
+        await evidence_router.act_on_evidence_exception(
+            "evidence", "evidence-2",
+            ExceptionActionRequest(action="defer", reason_code="vendor_delay", reason_note="Vendor scheduled."),
+            _gm(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_reminders_are_queued_idempotently_and_retries_only_failed_delivery(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    class ReminderDB(FakeDB):
+        def __init__(self):
+            super().__init__({
+                "document_acknowledgements": [{"id": "ack-1", "tenant_id": "hotel-1", "assigned_to": "staff-1", "due_date": "2026-07-15", "acknowledged_at": None}],
+                "user_roles": [{"tenant_id": "hotel-1", "user_id": "gm-1", "role": "gm", "is_active": True}],
+            })
+            self.rpc_calls = []
+            self.seen = set()
+
+        def rpc(self, name, params):
+            self.rpc_calls.append((name, params))
+            key = params["p_idempotency_key"]
+            status = "queued" if key not in self.seen else "duplicate"
+            self.seen.add(key)
+            return SimpleNamespace(execute=lambda: SimpleNamespace(data=[{"outcome": status}]))
+
+    db = ReminderDB()
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    first = evidence_router.run_evidence_reminders(now=NOW)
+    second = evidence_router.run_evidence_reminders(now=NOW)
+
+    assert first == {"queued": 2, "duplicates": 0, "retry_queued": 0}
+    assert second == {"queued": 0, "duplicates": 2, "retry_queued": 0}
+    assert {name for name, _ in db.rpc_calls} == {"queue_evidence_reminder_delivery"}
+    assert all(params["p_channel"] == "in_app" for _, params in db.rpc_calls)
+    assert all(params["p_retry_failed"] is True for _, params in db.rpc_calls)
+
+
+@pytest.mark.asyncio
+async def test_inspector_export_is_gm_only_tenant_scoped_and_includes_mixed_state_packet(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [{"tenant_id": "hotel-1", "facilities": ["pool"], "services": [], "brand_requirements": []}],
+        "controlled_documents": [{"id": "doc-1", "tenant_id": "hotel-1", "title": "Pool opening", "approval_state": "approved", "expiration_date": "2026-07-15", "version_number": 1, "retention_class": "safety_7_years"}],
+        "document_acknowledgements": [{"id": "ack-1", "tenant_id": "hotel-1", "document_id": "doc-1", "assigned_to": "staff-1", "due_date": "2026-07-15", "acknowledged_at": None, "competency_status": "pending"}],
+        "evidence_records": [{"id": "evidence-1", "tenant_id": "hotel-1", "label": "Pool log", "evidence_type": "checklist_result", "result": "failed"}],
+        "evidence_exception_actions": [{"id": "action-1", "tenant_id": "hotel-1", "reference_id": "evidence-1", "exception_kind": "evidence", "lifecycle_state": "escalated", "reason_code": "safety_risk"}],
+        "operational_audit_events": [{"id": "audit-1", "tenant_id": "hotel-1", "resource_id": "evidence-1", "action": "evidence_exception.escalated", "reason_code": "safety_risk"}],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    response = await evidence_router.export_evidence_packet(_gm())
+
+    assert response.media_type == "text/csv"
+    assert "property_applicability" in response.body.decode()
+    assert "exception_action" in response.body.decode()
+    route = next(route for route in evidence_router.router.routes if route.path == "/evidence/export")
+    role_check = route.dependant.dependencies[0].call
+    with pytest.raises(HTTPException, match="not authorized"):
+        await role_check(CurrentUser(user_id="staff-1", hotel_id="hotel-1", role="housekeeper"))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import json
 from typing import Any
 
 
@@ -199,3 +200,56 @@ def build_reminder_actions(
             })
 
     return actions
+
+
+def exception_lifecycle_state(action: str) -> str:
+    """Map a GM action to the current corrective-action lifecycle state."""
+    return {
+        "assign": "open",
+        "defer": "deferred",
+        "escalate": "escalated",
+        "resolve": "resolved",
+        "reopen": "open",
+    }[action]
+
+
+def build_inspector_export_rows(
+    *,
+    applicability: dict[str, Any],
+    documents: list[dict[str, Any]],
+    assignments: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    exceptions: list[dict[str, Any]],
+    actions: list[dict[str, Any]],
+    audits: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    """Flatten the tenant's evidence chain into a safe inspector-ready CSV packet."""
+    rows: list[dict[str, str]] = []
+
+    def append(section: str, row: dict[str, Any], *, label: str = "") -> None:
+        safe = {key: value for key, value in row.items() if key not in {"storage_path", "signed_url", "url"}}
+        rows.append({
+            "section": section,
+            "record_id": str(safe.get("id") or safe.get("reference_id") or ""),
+            "label": str(safe.get("label") or safe.get("title") or label),
+            "state": str(safe.get("state") or safe.get("lifecycle_state") or safe.get("approval_state") or ""),
+            "owner_id": str(safe.get("owner_id") or ""),
+            "reason_code": str(safe.get("reason_code") or ""),
+            "reason_note": str(safe.get("reason_note") or ""),
+            "details": json.dumps(safe, default=str, sort_keys=True),
+        })
+
+    append("property_applicability", applicability, label="Property applicability")
+    for row in documents:
+        append("controlled_document", row)
+    for row in assignments:
+        append("acknowledgement_competency", row)
+    for row in evidence:
+        append("evidence_metadata", row)
+    for row in exceptions:
+        append("exception", row)
+    for row in actions:
+        append("exception_action", row)
+    for row in audits:
+        append("audit_history", row)
+    return rows

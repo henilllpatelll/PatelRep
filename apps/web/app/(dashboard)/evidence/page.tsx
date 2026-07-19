@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Eye, FilePlus2, FileText, FileWarning, History, RefreshCw, Save, ShieldCheck, Upload, UserRoundX } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Eye, FilePlus2, FileText, FileWarning, History, RefreshCw, Save, ShieldCheck, Upload, UserRoundX } from 'lucide-react'
 import {
   evidenceApi,
   PROPERTY_APPLICABILITY_OPTIONS,
   type EvidenceException,
+  type EvidenceExceptionAction,
   type ControlledDocument,
   type DocumentAcknowledgement,
   type DocumentAcknowledgementInput,
@@ -80,6 +81,14 @@ export default function EvidenceDashboardPage() {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
   const [evidenceSaving, setEvidenceSaving] = useState(false)
   const [documentSaving, setDocumentSaving] = useState(false)
+  const [selectedException, setSelectedException] = useState<EvidenceException | null>(null)
+  const [exceptionFilter, setExceptionFilter] = useState<'all' | EvidenceException['state']>('all')
+  const [exceptionKindFilter, setExceptionKindFilter] = useState<'all' | EvidenceException['kind']>('all')
+  const [exceptionAction, setExceptionAction] = useState<EvidenceExceptionAction>('assign')
+  const [exceptionOwner, setExceptionOwner] = useState('')
+  const [exceptionReasonCode, setExceptionReasonCode] = useState<'safety_risk' | 'vendor_delay' | 'staffing' | 'document_revision' | 'evidence_pending' | 'corrected' | 'other'>('other')
+  const [exceptionReasonNote, setExceptionReasonNote] = useState('')
+  const [exceptionSaving, setExceptionSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -117,6 +126,10 @@ export default function EvidenceDashboardPage() {
     expired: exceptions.filter((item) => item.state === 'expired').length,
     acknowledgements: exceptions.filter((item) => item.kind === 'acknowledgement').length,
   }), [exceptions])
+  const visibleExceptions = useMemo(() => exceptions.filter((item) => (
+    (exceptionFilter === 'all' || item.state === exceptionFilter)
+    && (exceptionKindFilter === 'all' || item.kind === exceptionKindFilter)
+  )), [exceptions, exceptionFilter, exceptionKindFilter])
   const configuredValues = [
     ...applicability.facilities,
     ...applicability.services,
@@ -296,6 +309,49 @@ export default function EvidenceDashboardPage() {
     }
   }
 
+  const openException = (item: EvidenceException) => {
+    setSelectedException(item)
+    setExceptionOwner(item.owner_id ?? '')
+    setExceptionAction(item.lifecycle_state === 'resolved' ? 'reopen' : 'assign')
+    setExceptionReasonCode((item.reason_code as typeof exceptionReasonCode) ?? 'other')
+    setExceptionReasonNote(item.reason_note ?? '')
+  }
+
+  const saveExceptionAction = async () => {
+    if (!selectedException || !exceptionReasonNote || (exceptionAction === 'assign' && !exceptionOwner)) return
+    setExceptionSaving(true)
+    setError(null)
+    try {
+      await evidenceApi.actOnException(selectedException.kind, selectedException.reference_id, {
+        action: exceptionAction,
+        owner_id: exceptionOwner || undefined,
+        reason_code: exceptionReasonCode,
+        reason_note: exceptionReasonNote,
+      })
+      setSelectedException(null)
+      await load()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.exceptionSaveError'))
+    } finally {
+      setExceptionSaving(false)
+    }
+  }
+
+  const downloadInspectorPacket = async () => {
+    setError(null)
+    try {
+      const packet = await evidenceApi.downloadInspectorPacket()
+      const url = window.URL.createObjectURL(packet)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = 'inspector-evidence-packet.csv'
+      anchor.click()
+      window.URL.revokeObjectURL(url)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.exportError'))
+    }
+  }
+
   return <div className="mx-auto max-w-6xl space-y-6 p-5">
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -413,18 +469,27 @@ export default function EvidenceDashboardPage() {
       </div> : <p className="text-sm text-ink3">{t('evidence.noApplicability')}</p>}
     </section>
 
-    <section className="overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <h2 className="font-medium text-ink">{t('evidence.exceptionQueue')}</h2>
-        <span className="text-xs text-ink3">{exceptions.length} {t('evidence.open')}</span>
+    <section className="overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface" data-testid="evidence-exception-queue">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div><h2 className="font-medium text-ink">{t('evidence.exceptionQueue')}</h2><span className="text-xs text-ink3">{visibleExceptions.length} {t('evidence.open')}</span></div>
+        {canManageApplicability ? <Button data-testid="export-evidence-packet" variant="secondary" onClick={() => void downloadInspectorPacket()}><Download size={15} /> {t('evidence.exportPacket')}</Button> : null}
       </div>
+      {canManageApplicability ? <div className="flex flex-wrap gap-3 border-b border-line bg-surface-2 px-4 py-3">
+        <label className="text-xs text-ink2">{t('evidence.filterState')}<select data-testid="exception-state-filter" value={exceptionFilter} onChange={(event) => setExceptionFilter(event.target.value as typeof exceptionFilter)} className="ml-2 rounded border border-line bg-surface px-2 py-1 text-sm text-ink"><option value="all">{t('evidence.allExceptions')}</option>{(['missing', 'overdue', 'expired', 'failed', 'deferred', 'unacknowledged'] as const).map((state) => <option key={state} value={state}>{t(`evidence.states.${state}`)}</option>)}</select></label>
+        <label className="text-xs text-ink2">{t('evidence.filterType')}<select data-testid="exception-kind-filter" value={exceptionKindFilter} onChange={(event) => setExceptionKindFilter(event.target.value as typeof exceptionKindFilter)} className="ml-2 rounded border border-line bg-surface px-2 py-1 text-sm text-ink"><option value="all">{t('evidence.allExceptions')}</option>{(['document', 'acknowledgement', 'evidence'] as const).map((kind) => <option key={kind} value={kind}>{t(`evidence.exceptionKinds.${kind}`)}</option>)}</select></label>
+      </div> : null}
       {loading ? <p className="p-6 text-sm text-ink3">{t('common.loading')}</p>
         : error ? <p className="p-6 text-sm text-alert">{error}</p>
-          : exceptions.length === 0 ? <p className="p-6 text-sm text-ink3">{t('evidence.noExceptions')}</p>
-            : <ul className="divide-y divide-line">{exceptions.map((item) => <li key={`${item.kind}-${item.reference_id}`} className="flex items-center justify-between gap-3 px-4 py-3">
-              <div><p className="text-sm font-medium text-ink">{item.label}</p><p className="text-xs capitalize text-ink3">{item.kind}</p></div>
-              <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATE_STYLE[item.state]}`}>{t(`evidence.states.${item.state}`)}</span>
+          : visibleExceptions.length === 0 ? <p className="p-6 text-sm text-ink3">{t('evidence.noExceptions')}</p>
+            : <ul className="divide-y divide-line">{visibleExceptions.map((item) => <li key={`${item.kind}-${item.reference_id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div><p className="text-sm font-medium text-ink">{item.label}</p><p className="text-xs text-ink3">{t(`evidence.exceptionKinds.${item.kind}`)} · {t(`evidence.lifecycleStates.${item.lifecycle_state}`)}{item.owner_id ? ` · ${item.owner_id}` : ''}</p></div>
+              <div className="flex items-center gap-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATE_STYLE[item.state]}`}>{t(`evidence.states.${item.state}`)}</span>{canManageApplicability ? <Button data-testid={`exception-drilldown-${item.reference_id}`} className="px-2.5 py-1.5 text-xs" variant="secondary" onClick={() => openException(item)}>{t('evidence.manageException')}</Button> : null}</div>
             </li>)}</ul>}
+      {canManageApplicability && selectedException ? <div className="border-t border-line bg-surface-2 p-4" data-testid="exception-drilldown">
+        <div className="mb-3"><p className="font-medium text-ink">{selectedException.label}</p><p className="text-xs text-ink3">{t(`evidence.states.${selectedException.state}`)} · {t(`evidence.exceptionKinds.${selectedException.kind}`)}</p></div>
+        <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-ink2">{t('evidence.exceptionAction')}<select value={exceptionAction} onChange={(event) => setExceptionAction(event.target.value as EvidenceExceptionAction)} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink">{(['assign', 'defer', 'escalate', 'resolve', 'reopen'] as const).map((action) => <option key={action} value={action}>{t(`evidence.exceptionActions.${action}`)}</option>)}</select></label><label className="text-sm text-ink2">{t('evidence.exceptionOwner')}<input data-testid="exception-owner" value={exceptionOwner} onChange={(event) => setExceptionOwner(event.target.value)} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label><label className="text-sm text-ink2">{t('evidence.reasonCode')}<select value={exceptionReasonCode} onChange={(event) => setExceptionReasonCode(event.target.value as typeof exceptionReasonCode)} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink">{(['safety_risk', 'vendor_delay', 'staffing', 'document_revision', 'evidence_pending', 'corrected', 'other'] as const).map((code) => <option key={code} value={code}>{t(`evidence.reasonCodes.${code}`)}</option>)}</select></label><label className="text-sm text-ink2">{t('evidence.reasonNote')}<input data-testid="exception-reason-note" value={exceptionReasonNote} onChange={(event) => setExceptionReasonNote(event.target.value)} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label></div>
+        <div className="mt-3 flex gap-2"><Button data-testid="save-exception-action" disabled={exceptionSaving || !exceptionReasonNote || (exceptionAction === 'assign' && !exceptionOwner)} onClick={() => void saveExceptionAction()}>{t('evidence.saveExceptionAction')}</Button><Button variant="secondary" onClick={() => setSelectedException(null)}>{t('common.cancel')}</Button></div>
+      </div> : null}
     </section>
   </div>
 }

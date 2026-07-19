@@ -1,7 +1,20 @@
 import { apiClient } from '@/lib/api/client'
 
 export type EvidenceExceptionState = 'missing' | 'overdue' | 'expired' | 'failed' | 'deferred' | 'unacknowledged'
-export interface EvidenceException { state: EvidenceExceptionState; kind: 'document' | 'acknowledgement' | 'evidence'; reference_id: string; label: string }
+export type EvidenceExceptionKind = 'document' | 'acknowledgement' | 'evidence'
+export type EvidenceExceptionLifecycleState = 'open' | 'deferred' | 'escalated' | 'resolved'
+export type EvidenceExceptionAction = 'assign' | 'defer' | 'escalate' | 'resolve' | 'reopen'
+export interface EvidenceException {
+  state: EvidenceExceptionState
+  kind: EvidenceExceptionKind
+  reference_id: string
+  label: string
+  lifecycle_state: EvidenceExceptionLifecycleState
+  owner_id: string | null
+  reason_code: string | null
+  reason_note: string | null
+  escalation_level: number
+}
 export interface PropertyApplicability { facilities: string[]; services: string[]; brand_requirements: string[] }
 export type ControlledDocumentType = 'sop' | 'policy' | 'training' | 'safety' | 'certificate'
 export type ControlledDocumentState = 'draft' | 'approved' | 'superseded' | 'archived'
@@ -111,7 +124,9 @@ export const PROPERTY_APPLICABILITY_OPTIONS: Record<keyof PropertyApplicability,
 }
 
 export const evidenceApi = {
-  listExceptions: (): Promise<{ data: EvidenceException[] }> => apiClient.get('/evidence/exceptions'),
+  listExceptions: (filters: Partial<Pick<EvidenceException, 'state' | 'kind' | 'owner_id' | 'lifecycle_state'>> = {}): Promise<{ data: EvidenceException[] }> => apiClient.get('/evidence/exceptions', { params: filters }),
+  actOnException: (kind: EvidenceExceptionKind, referenceId: string, payload: { action: EvidenceExceptionAction; owner_id?: string; reason_code: 'safety_risk' | 'vendor_delay' | 'staffing' | 'document_revision' | 'evidence_pending' | 'corrected' | 'other'; reason_note: string }): Promise<{ data: EvidenceException }> => apiClient.post(`/evidence/exceptions/${kind}/${referenceId}/actions`, payload),
+  downloadInspectorPacket: (): Promise<Blob> => apiClient.download('/evidence/export'),
   getApplicability: (): Promise<{ data: PropertyApplicability }> => apiClient.get('/evidence/applicability'),
   updateApplicability: (payload: PropertyApplicability): Promise<{ data: PropertyApplicability }> => apiClient.put('/evidence/applicability', payload),
   listDocuments: (): Promise<{ data: ControlledDocument[] }> => apiClient.get('/evidence/documents'),

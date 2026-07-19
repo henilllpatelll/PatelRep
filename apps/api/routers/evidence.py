@@ -18,12 +18,15 @@ from models.requests import (
     CreateEvidenceRecordRequest,
     DocumentLifecycleActionRequest,
     EvaluateDocumentCompetencyRequest,
+    ExceptionActionRequest,
     UpdatePropertyApplicabilityRequest,
 )
 from services.evidence.contracts import (
     build_exception_queue,
+    build_inspector_export_rows,
     build_reminder_actions,
     create_superseding_version,
+    exception_lifecycle_state,
     is_applicable_to_property,
 )
 
@@ -50,6 +53,11 @@ RELATED_ENTITY_TABLES = {
     "inspection": ("inspections", "id"),
     "incident": ("controlled_incidents", "id"),
     "sop": ("sop_documents", "id"),
+}
+EXCEPTION_REFERENCE_TABLES = {
+    "document": ("controlled_documents", "Controlled document"),
+    "acknowledgement": ("document_acknowledgements", "Document acknowledgement"),
+    "evidence": ("evidence_records", "Evidence record"),
 }
 
 
@@ -178,6 +186,40 @@ def _reason_context(
         (request.reason_code if request and request.reason_code else default_reason_code),
         request.reason_note if request else None,
     )
+
+
+def _get_exception_target(kind: str, reference_id: str, current_user: CurrentUser) -> dict:
+    table_and_label = EXCEPTION_REFERENCE_TABLES.get(kind)
+    if not table_and_label:
+        raise HTTPException(status_code=422, detail="Unsupported evidence exception type.")
+    table, label = table_and_label
+    result = (
+        supabase.table(table).select("*").eq("id", reference_id)
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} not found at this property.")
+    return result.data
+
+
+def _exception_context(current_user: CurrentUser) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    documents = (
+        supabase.table("controlled_documents").select("*").eq("tenant_id", current_user.hotel_id).execute().data or []
+    )
+    assignments = (
+        supabase.table("document_acknowledgements").select("*, controlled_documents(title)")
+        .eq("tenant_id", current_user.hotel_id).execute().data or []
+    )
+    for assignment in assignments:
+        assignment["document_title"] = (assignment.get("controlled_documents") or {}).get("title")
+    records = (
+        supabase.table("evidence_records").select("*").eq("tenant_id", current_user.hotel_id).execute().data or []
+    )
+    actions = (
+        supabase.table("evidence_exception_actions").select("*").eq("tenant_id", current_user.hotel_id)
+        .order("updated_at", desc=True).execute().data or []
+    )
+    return documents, assignments, records, actions
 
 
 @router.get("/applicability")
@@ -491,37 +533,162 @@ async def upload_evidence_file(
 
 
 @router.get("/exceptions")
-async def list_evidence_exceptions(current_user: CurrentUser = Depends(get_current_user)):
-    documents = supabase.table("controlled_documents").select("*").eq("tenant_id", current_user.hotel_id).execute().data or []
-    assignments = supabase.table("document_acknowledgements").select("*, controlled_documents(title)").eq("tenant_id", current_user.hotel_id).execute().data or []
-    for assignment in assignments:
-        assignment["document_title"] = (assignment.get("controlled_documents") or {}).get("title")
-    evidence = supabase.table("evidence_records").select("*").eq("tenant_id", current_user.hotel_id).execute().data or []
-    return {"data": build_exception_queue(documents=documents, assignments=assignments, evidence=evidence, now=datetime.now(timezone.utc))}
+async def list_evidence_exceptions(
+    state: str | None = None,
+    kind: str | None = None,
+    owner_id: str | None = None,
+    lifecycle_state: str | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    documents, assignments, records, actions = _exception_context(current_user)
+    action_by_reference = {
+        (action["exception_kind"], action["reference_id"]): action
+        for action in actions
+    }
+    queue = build_exception_queue(
+        documents=documents, assignments=assignments, evidence=records, now=datetime.now(timezone.utc)
+    )
+    enriched = []
+    for item in queue:
+        action = action_by_reference.get((item["kind"], item["reference_id"]), {})
+        enriched_item = {
+            **item,
+            "lifecycle_state": action.get("lifecycle_state", "open"),
+            "owner_id": action.get("owner_id"),
+            "reason_code": action.get("reason_code"),
+            "reason_note": action.get("reason_note"),
+            "escalation_level": action.get("escalation_level", 0),
+        }
+        if state and enriched_item["state"] != state:
+            continue
+        if kind and enriched_item["kind"] != kind:
+            continue
+        if owner_id and enriched_item["owner_id"] != owner_id:
+            continue
+        if lifecycle_state and enriched_item["lifecycle_state"] != lifecycle_state:
+            continue
+        enriched.append(enriched_item)
+    return {"data": enriched}
 
 
-@router.get("/exceptions/export")
-async def export_evidence_exceptions(current_user: CurrentUser = Depends(require_role("gm"))):
-    response = await list_evidence_exceptions(current_user)
+@router.post("/exceptions/{kind}/{reference_id}/actions")
+async def act_on_evidence_exception(
+    kind: str,
+    reference_id: str,
+    request: ExceptionActionRequest,
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    _get_exception_target(kind, reference_id, current_user)
+    if request.owner_id:
+        _require_active_tenant_user(request.owner_id, current_user, label="exception owner")
+    existing = (
+        supabase.table("evidence_exception_actions").select("*")
+        .eq("tenant_id", current_user.hotel_id).eq("exception_kind", kind)
+        .eq("reference_id", reference_id).maybe_single().execute()
+    )
+    lifecycle = exception_lifecycle_state(request.action)
+    payload = {
+        "tenant_id": current_user.hotel_id,
+        "exception_kind": kind,
+        "reference_id": reference_id,
+        "lifecycle_state": lifecycle,
+        "owner_id": request.owner_id or (existing.data or {}).get("owner_id"),
+        "reason_code": request.reason_code,
+        "reason_note": request.reason_note,
+        "escalation_level": ((existing.data or {}).get("escalation_level") or 0) + (1 if request.action == "escalate" else 0),
+        "created_by": (existing.data or {}).get("created_by") or current_user.user_id,
+        "updated_by": current_user.user_id,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = supabase.table("evidence_exception_actions").upsert(
+        payload, on_conflict="tenant_id,exception_kind,reference_id"
+    ).execute()
+    record = result.data[0]
+    _record_audit_event(
+        current_user=current_user,
+        resource_type="evidence_exception",
+        resource_id=reference_id,
+        action={
+            "assign": "evidence_exception.assigned",
+            "defer": "evidence_exception.deferred",
+            "escalate": "evidence_exception.escalated",
+            "resolve": "evidence_exception.resolved",
+            "reopen": "evidence_exception.reopened",
+        }[request.action],
+        old_state={
+            "lifecycle_state": (existing.data or {}).get("lifecycle_state"),
+            "owner_id": (existing.data or {}).get("owner_id"),
+            "escalation_level": (existing.data or {}).get("escalation_level", 0),
+        },
+        new_state={
+            "kind": kind, "lifecycle_state": lifecycle, "owner_id": payload["owner_id"],
+            "escalation_level": payload["escalation_level"],
+        },
+        reason_code=request.reason_code,
+        reason_note=request.reason_note,
+    )
+    return {"data": record}
+
+
+@router.get("/export")
+async def export_evidence_packet(current_user: CurrentUser = Depends(require_role("gm"))):
+    documents, assignments, records, actions = _exception_context(current_user)
+    exceptions = build_exception_queue(
+        documents=documents, assignments=assignments, evidence=records, now=datetime.now(timezone.utc)
+    )
+    audits = (
+        supabase.table("operational_audit_events").select("*")
+        .eq("tenant_id", current_user.hotel_id).order("created_at").execute().data or []
+    )
+    rows = build_inspector_export_rows(
+        applicability=_get_property_applicability(current_user), documents=documents,
+        assignments=assignments, evidence=records, exceptions=exceptions, actions=actions, audits=audits,
+    )
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["state", "kind", "reference_id", "label"])
+    writer = csv.DictWriter(
+        output,
+        fieldnames=["section", "record_id", "label", "state", "owner_id", "reason_code", "reason_note", "details"],
+    )
     writer.writeheader()
-    writer.writerows(response["data"])
-    return Response(output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=evidence-exceptions.csv"})
+    writer.writerows(rows)
+    return Response(
+        output.getvalue(), media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=inspector-evidence-packet.csv"},
+    )
 
 
-def run_evidence_reminders() -> int:
-    """Create in-app reminder delivery records for due controlled-document work."""
+def run_evidence_reminders(*, now: datetime | None = None) -> dict[str, int]:
+    """Queue idempotent in-app reminders; providers decide delivered versus failed later."""
+    current_time = now or datetime.now(timezone.utc)
     assignments = supabase.table("document_acknowledgements").select("*").execute().data or []
-    actions = build_reminder_actions(assignments, now=datetime.now(timezone.utc))
+    actions = build_reminder_actions(assignments, now=current_time)
+    outcome_counts = {"queued": 0, "duplicates": 0, "retry_queued": 0}
     for action in actions:
         assignment = next(item for item in assignments if item["id"] == action["assignment_id"])
         if action["recipient_type"] == "staff":
             recipients = [action["recipient_id"]]
         else:
-            role_rows = supabase.table("user_roles").select("user_id").eq("role", action["recipient_role"]).eq("tenant_id", assignment["tenant_id"]).eq("is_active", True).execute().data or []
+            role_rows = (
+                supabase.table("user_roles").select("user_id").eq("role", action["recipient_role"])
+                .eq("tenant_id", assignment["tenant_id"]).eq("is_active", True).execute().data or []
+            )
             recipients = [row["user_id"] for row in role_rows]
         for recipient_id in recipients:
-            notification = supabase.table("notifications").insert({"tenant_id": assignment["tenant_id"], "user_id": recipient_id, "type": "evidence_reminder", "title": "Document acknowledgement required", "body": f"A controlled document acknowledgement is {action['state'].replace('_', ' ')}.", "data": {"assignment_id": assignment["id"]}}).execute().data[0]
-            supabase.table("notification_deliveries").insert({"tenant_id": assignment["tenant_id"], "notification_id": notification["id"], "user_id": recipient_id, "channel": "in_app", "status": "delivered"}).execute()
-    return len(actions)
+            key = f"evidence-reminder:{assignment['id']}:{recipient_id}:{action['state']}:{current_time.date().isoformat()}"
+            result = supabase.rpc("queue_evidence_reminder_delivery", {
+                "p_tenant_id": assignment["tenant_id"],
+                "p_recipient_id": recipient_id,
+                "p_assignment_id": assignment["id"],
+                "p_state": action["state"],
+                "p_channel": "in_app",
+                "p_idempotency_key": key,
+                "p_retry_failed": True,
+            }).execute()
+            outcome = ((result.data or [{}])[0]).get("outcome", "duplicate")
+            if outcome == "queued":
+                outcome_counts["queued"] += 1
+            elif outcome == "retry_queued":
+                outcome_counts["retry_queued"] += 1
+            else:
+                outcome_counts["duplicates"] += 1
+    return outcome_counts

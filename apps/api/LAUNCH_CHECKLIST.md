@@ -2,7 +2,7 @@
 
 ## Infrastructure
 - [ ] Railway service deployed and healthy (`GET /health` returns `{"status": "ok"}`)
-- [ ] Vercel deployment live at production domain
+- [ ] Vercel project decision recorded — deferred: Railway is production; the stale Vercel API URL and invalid CLI token require a one-time delete-project or repair-auth decision. Do not treat Vercel as production until that decision is made.
 - [ ] Supabase project on Pro plan (for row-level security + webhooks)
 - [ ] Custom domain configured on Vercel (patelrep.com or app.patelrep.com)
 - [ ] SSL/TLS certificate active on all domains
@@ -50,6 +50,7 @@ Configure these cron jobs in Railway dashboard:
 - [ ] `POST /internal/logbook/shift-summary` — at shift end times: `0 15,23,7 * * *`
 - [ ] `POST /internal/reports/daily-summary-email` — daily 6am: `0 6 * * *`
 - [ ] `POST /internal/opera/sync-reservations` — every 30 min: `*/30 * * * *`
+- [ ] `POST /internal/evidence/reminders` — every 15 min: `*/15 * * * *` (queues only idempotent in-app reminders; a delivery provider records later `delivered` or `failed` outcomes)
 All cron jobs need header: `X-Cron-Secret: <CRON_SECRET>`
 
 ## Security Verification

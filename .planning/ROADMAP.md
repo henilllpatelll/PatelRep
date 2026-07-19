@@ -42,7 +42,7 @@ Plans:
 - [x] 02-04: Staff acknowledgement, competency, and retraining
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 02-05: Exception engine, GM dashboard, reminders, and inspector export
+- [x] 02-05: Exception engine, GM dashboard, reminders, and inspector export
 
 ### Phase 3: Texas compliance and staff safety
 **Goal**: Make training, controlled incidents, hazard communication, and emergency evidence operational without building hardware.
@@ -77,7 +77,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 0. Restore reality | N/A | Complete | 2026-07-19 |
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
-| 2. Evidence foundation | 4/5 | In progress | - |
+| 2. Evidence foundation | 5/5 | Implementation complete — production verification pending | - |
 | 3. Texas compliance and staff safety | 0/TBD | Not started | - |
 | 4. Maintenance and housekeeping programs | 0/TBD | Not started | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
