@@ -497,6 +497,13 @@ class CreateEvidenceRecordRequest(SanitizedBaseModel):
     required_by: Optional[datetime] = None
     expires_at: Optional[datetime] = None
 
+    @model_validator(mode="after")
+    def validate_related_entity_linkage(self):
+        if bool(self.related_entity_type) != bool(self.related_entity_id):
+            missing = "related_entity_id" if self.related_entity_type else "related_entity_type"
+            raise ValueError(f"{missing} is required when linking evidence to an entity")
+        return self
+
 
 # --- Texas compliance and staff safety ---
 class CreateSafetyTrainingCourseRequest(SanitizedBaseModel):

@@ -4,16 +4,18 @@ As a GM, I need controlled procedures, their acknowledgements, and missing
 evidence to produce one trustworthy exception queue for property review.
 """
 
+import io
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 
 from middleware.auth import CurrentUser
 from models.requests import (
     AssignControlledDocumentRequest,
     CreateControlledDocumentRequest,
+    CreateEvidenceRecordRequest,
     DocumentLifecycleActionRequest,
     UpdatePropertyApplicabilityRequest,
 )
@@ -394,3 +396,140 @@ async def test_acknowledgement_cannot_be_read_or_changed_by_another_staff_member
             "assignment-1",
             CurrentUser(user_id="staff-2", hotel_id="hotel-1", role="housekeeper"),
         )
+
+
+def test_evidence_record_requires_complete_supported_entity_linkage():
+    with pytest.raises(ValueError, match="related_entity_id"):
+        CreateEvidenceRecordRequest(
+            label="Boiler gauge", evidence_type="measurement", related_entity_type="asset"
+        )
+
+    with pytest.raises(ValueError, match="related_entity_type"):
+        CreateEvidenceRecordRequest(
+            label="Boiler gauge", evidence_type="measurement", related_entity_id="asset-1"
+        )
+
+
+@pytest.mark.asyncio
+async def test_evidence_creation_validates_linked_records_within_the_tenant(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "controlled_documents": [{"id": "doc-1", "tenant_id": "hotel-1", "applicability": []}],
+        "document_acknowledgements": [{"id": "assignment-1", "tenant_id": "hotel-2", "document_id": "doc-1"}],
+        "assets": [{"id": "asset-1", "tenant_id": "hotel-2"}],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="Document assignment not found"):
+        await evidence_router.create_evidence_record(
+            CreateEvidenceRecordRequest(
+                label="Boiler reading", evidence_type="measurement", document_id="doc-1",
+                assignment_id="assignment-1",
+            ),
+            _gm(),
+        )
+
+    with pytest.raises(HTTPException, match="Related asset not found"):
+        await evidence_router.create_evidence_record(
+            CreateEvidenceRecordRequest(
+                label="Boiler reading", evidence_type="measurement", related_entity_type="asset",
+                related_entity_id="asset-1",
+            ),
+            _gm(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_evidence_upload_uses_opaque_private_path_and_records_an_audit_event(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({"evidence_records": [{"id": "evidence-1", "tenant_id": "hotel-1"}]})
+    monkeypatch.setattr(evidence_router, "supabase", db)
+    file = UploadFile(filename="guest-floor-plan.pdf", file=io.BytesIO(b"safe evidence"), headers={"content-type": "application/pdf"})
+
+    response = await evidence_router.upload_evidence_file("evidence-1", file, _gm())
+
+    path = response["data"]["storage_path"]
+    assert path.startswith("hotel-1/evidence-1/")
+    assert path.endswith(".pdf")
+    assert "guest-floor-plan" not in path
+    assert response["data"].get("url") is None
+    assert db.storage_uploads[0][0] == "evidence-files"
+    assert db.rows["operational_audit_events"][0]["action"] == "evidence_record.file_uploaded"
+
+
+@pytest.mark.asyncio
+async def test_evidence_upload_rejects_unsafe_type_and_cross_tenant_record(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({"evidence_records": [{"id": "evidence-2", "tenant_id": "hotel-2"}]})
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="Evidence record not found"):
+        await evidence_router.upload_evidence_file(
+            "evidence-2",
+            UploadFile(filename="proof.pdf", file=io.BytesIO(b"proof"), headers={"content-type": "application/pdf"}),
+            _gm(),
+        )
+
+    db.rows["evidence_records"] = [{"id": "evidence-1", "tenant_id": "hotel-1"}]
+    with pytest.raises(HTTPException, match="PDF, JPEG, PNG, or WebP"):
+        await evidence_router.upload_evidence_file(
+            "evidence-1",
+            UploadFile(filename="proof.exe", file=io.BytesIO(b"proof"), headers={"content-type": "application/octet-stream"}),
+            _gm(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_evidence_detail_and_signed_url_are_tenant_safe_and_one_hour(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    class SignedStorage:
+        def __init__(self):
+            self.bucket = None
+            self.path = None
+            self.expires_in = None
+
+        def from_(self, bucket):
+            self.bucket = bucket
+            return self
+
+        def create_signed_url(self, path, expires_in):
+            self.path = path
+            self.expires_in = expires_in
+            return {"signedURL": "https://signed.test/evidence"}
+
+    db = FakeDB({
+        "evidence_records": [
+            {"id": "evidence-1", "tenant_id": "hotel-1", "storage_path": "hotel-1/evidence-1/opaque.pdf"},
+            {"id": "evidence-2", "tenant_id": "hotel-2", "storage_path": "hotel-2/evidence-2/opaque.pdf"},
+        ],
+    })
+    db.storage = SignedStorage()
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    detail = await evidence_router.get_evidence_record("evidence-1", _gm())
+    signed = await evidence_router.get_evidence_file_url("evidence-1", _gm())
+
+    assert detail["data"].get("signed_url") is None
+    assert signed["data"] == {"url": "https://signed.test/evidence", "expires_in_seconds": 3600}
+    assert db.storage.bucket == "evidence-files"
+    assert db.storage.path == "hotel-1/evidence-1/opaque.pdf"
+    assert db.storage.expires_in == 3600
+
+    with pytest.raises(HTTPException, match="Evidence record not found"):
+        await evidence_router.get_evidence_record("evidence-2", _gm())
+
+
+def test_evidence_route_matrix_is_explicit_and_all_mutations_are_role_gated():
+    assert evidence_router.EVIDENCE_CAPTURE_ROLES == (
+        "housekeeper", "housekeeping_supervisor", "engineer", "chief_engineer", "front_desk", "gm",
+    )
+    routes = [route for route in evidence_router.router.routes if "POST" in route.methods]
+    for path in ("/evidence/records", "/evidence/records/{record_id}/file"):
+        dependency = next(route for route in routes if route.path == path).dependant.dependencies[0].call
+        with pytest.raises(HTTPException, match="not authorized"):
+            import asyncio
+            asyncio.run(dependency(CurrentUser(user_id="other", hotel_id="hotel-1", role="unsupported")))

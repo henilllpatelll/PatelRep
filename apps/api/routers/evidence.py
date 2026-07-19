@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import csv
 import io
-import re
+import logging
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
@@ -26,10 +27,28 @@ from services.evidence.contracts import (
 )
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
+logger = logging.getLogger(__name__)
 
 MAX_EVIDENCE_UPLOAD_BYTES = 10 * 1024 * 1024
-SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]")
 ALLOWED_EVIDENCE_CONTENT_TYPES = {"application/pdf", "image/jpeg", "image/png", "image/webp"}
+EVIDENCE_CAPTURE_ROLES = (
+    "housekeeper", "housekeeping_supervisor", "engineer", "chief_engineer", "front_desk", "gm",
+)
+EVIDENCE_FILE_EXTENSIONS = {
+    "application/pdf": "pdf",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+RELATED_ENTITY_TABLES = {
+    "staff": ("user_roles", "user_id"),
+    "task": ("tasks", "id"),
+    "asset": ("assets", "id"),
+    "room": ("rooms", "id"),
+    "inspection": ("inspections", "id"),
+    "incident": ("controlled_incidents", "id"),
+    "sop": ("sop_documents", "id"),
+}
 
 
 def _record_audit_event(
@@ -60,6 +79,57 @@ def _get_document(document_id: str, current_user: CurrentUser) -> dict:
     if not result.data:
         raise HTTPException(status_code=404, detail="Controlled document not found.")
     return result.data
+
+
+def _get_evidence_record(record_id: str, current_user: CurrentUser) -> dict:
+    result = (
+        supabase.table("evidence_records").select("*").eq("id", record_id)
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Evidence record not found.")
+    return result.data
+
+
+def _require_same_tenant_evidence_links(
+    request: CreateEvidenceRecordRequest, current_user: CurrentUser,
+) -> None:
+    if request.document_id:
+        _get_document(request.document_id, current_user)
+    if request.assignment_id:
+        assignment = (
+            supabase.table("document_acknowledgements").select("id, document_id")
+            .eq("id", request.assignment_id).eq("tenant_id", current_user.hotel_id)
+            .maybe_single().execute()
+        )
+        if not assignment.data:
+            raise HTTPException(status_code=404, detail="Document assignment not found.")
+        if request.document_id and assignment.data.get("document_id") != request.document_id:
+            raise HTTPException(status_code=409, detail="Document assignment does not belong to the linked controlled document.")
+    if request.related_entity_type and request.related_entity_id:
+        table, key = RELATED_ENTITY_TABLES[request.related_entity_type]
+        entity = (
+            supabase.table(table).select(key).eq(key, request.related_entity_id)
+            .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+        )
+        if not entity.data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Related {request.related_entity_type} not found at this property.",
+            )
+
+
+def _evidence_storage_path(current_user: CurrentUser, record_id: str, content_type: str) -> str:
+    return f"{current_user.hotel_id}/{record_id}/{secrets.token_urlsafe(24)}.{EVIDENCE_FILE_EXTENSIONS[content_type]}"
+
+
+def _create_evidence_signed_url(storage_path: str) -> str:
+    try:
+        response = supabase.storage.from_("evidence-files").create_signed_url(storage_path, 3600)
+        return (response or {}).get("signedURL") or ""
+    except Exception:
+        logger.warning("Evidence signed URL creation failed for path=%s", storage_path, exc_info=True)
+        return ""
 
 
 def _get_property_applicability(current_user: CurrentUser) -> dict:
@@ -279,30 +349,75 @@ async def acknowledge_controlled_document(assignment_id: str, current_user: Curr
 
 
 @router.post("/records")
-async def create_evidence_record(request: CreateEvidenceRecordRequest, current_user: CurrentUser = Depends(get_current_user)):
+async def create_evidence_record(
+    request: CreateEvidenceRecordRequest,
+    current_user: CurrentUser = Depends(require_role(*EVIDENCE_CAPTURE_ROLES)),
+):
+    _require_same_tenant_evidence_links(request, current_user)
     payload = {"tenant_id": current_user.hotel_id, **request.model_dump(mode="json"), "collected_by": current_user.user_id, "collected_at": datetime.now(timezone.utc).isoformat()}
     record = supabase.table("evidence_records").insert(payload).execute().data[0]
     _record_audit_event(current_user=current_user, resource_type="evidence_record", resource_id=record["id"], action="evidence_record.collected", new_state={"evidence_type": record["evidence_type"]})
     return {"data": record}
 
 
-@router.post("/records/{record_id}/file")
-async def upload_evidence_file(record_id: str, file: UploadFile = File(...), current_user: CurrentUser = Depends(get_current_user)):
-    record = (
-        supabase.table("evidence_records").select("id").eq("id", record_id)
-        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+@router.get("/records")
+async def list_evidence_records(current_user: CurrentUser = Depends(get_current_user)):
+    result = (
+        supabase.table("evidence_records").select("*").eq("tenant_id", current_user.hotel_id)
+        .order("collected_at", desc=True).execute()
     )
-    if not record.data:
-        raise HTTPException(status_code=404, detail="Evidence record not found.")
+    return {"data": result.data or []}
+
+
+@router.get("/records/{record_id}")
+async def get_evidence_record(record_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": _get_evidence_record(record_id, current_user)}
+
+
+@router.get("/records/{record_id}/file-url")
+async def get_evidence_file_url(record_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    record = _get_evidence_record(record_id, current_user)
+    storage_path = record.get("storage_path")
+    if not storage_path:
+        raise HTTPException(status_code=404, detail="Evidence attachment not found.")
+    signed_url = _create_evidence_signed_url(storage_path)
+    if not signed_url:
+        raise HTTPException(status_code=503, detail="Evidence attachment is temporarily unavailable.")
+    return {"data": {"url": signed_url, "expires_in_seconds": 3600}}
+
+
+@router.post("/records/{record_id}/file")
+async def upload_evidence_file(
+    record_id: str,
+    file: UploadFile = File(...),
+    current_user: CurrentUser = Depends(require_role(*EVIDENCE_CAPTURE_ROLES)),
+):
+    _get_evidence_record(record_id, current_user)
     if file.content_type not in ALLOWED_EVIDENCE_CONTENT_TYPES:
         raise HTTPException(status_code=400, detail="Evidence must be a PDF, JPEG, PNG, or WebP file.")
     content = await file.read(MAX_EVIDENCE_UPLOAD_BYTES + 1)
     if len(content) > MAX_EVIDENCE_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="Evidence file is too large. Maximum size is 10 MB.")
-    filename = SAFE_FILENAME_RE.sub("_", file.filename or "evidence")
-    path = f"{current_user.hotel_id}/{record_id}/{filename}"
-    supabase.storage.from_("evidence-files").upload(path, content, {"content-type": file.content_type, "upsert": "false"})
-    updated = supabase.table("evidence_records").update({"storage_path": path, "file_name": filename, "file_content_type": file.content_type}).eq("id", record_id).eq("tenant_id", current_user.hotel_id).execute().data[0]
+    path = _evidence_storage_path(current_user, record_id, file.content_type)
+    try:
+        supabase.storage.from_("evidence-files").upload(
+            path, content, {"content-type": file.content_type, "upsert": "false"}
+        )
+    except Exception:
+        logger.warning("Evidence upload failed for record=%s", record_id, exc_info=True)
+        raise HTTPException(status_code=500, detail="Evidence upload failed. Please retry.")
+    updated = supabase.table("evidence_records").update({
+        "storage_path": path,
+        "file_name": file.filename or "evidence",
+        "file_content_type": file.content_type,
+    }).eq("id", record_id).eq("tenant_id", current_user.hotel_id).execute().data[0]
+    _record_audit_event(
+        current_user=current_user,
+        resource_type="evidence_record",
+        resource_id=record_id,
+        action="evidence_record.file_uploaded",
+        new_state={"storage_path": path, "content_type": file.content_type},
+    )
     return {"data": updated}
 
 

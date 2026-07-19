@@ -50,6 +50,38 @@ export interface OperationalAuditEvent {
   new_state: Record<string, unknown>
 }
 
+export type EvidenceType = 'file' | 'photo' | 'measurement' | 'checklist_result' | 'signature' | 'attestation' | 'external_certificate'
+export type RelatedEvidenceEntityType = 'staff' | 'task' | 'asset' | 'room' | 'inspection' | 'incident' | 'sop'
+
+export interface EvidenceRecord {
+  id: string
+  label: string
+  evidence_type: EvidenceType
+  document_id: string | null
+  assignment_id: string | null
+  related_entity_type: RelatedEvidenceEntityType | null
+  related_entity_id: string | null
+  measurement_value: string | null
+  result: 'passed' | 'failed' | 'deferred' | null
+  storage_path: string | null
+  file_name: string | null
+  file_content_type: string | null
+  collected_by: string | null
+  collected_at: string | null
+  created_at: string
+}
+
+export interface EvidenceRecordInput {
+  label: string
+  evidence_type: EvidenceType
+  document_id?: string
+  assignment_id?: string
+  related_entity_type?: RelatedEvidenceEntityType
+  related_entity_id?: string
+  measurement_value?: string
+  result?: 'passed' | 'failed' | 'deferred'
+}
+
 export const PROPERTY_APPLICABILITY_OPTIONS: Record<keyof PropertyApplicability, readonly string[]> = {
   facilities: ['pool', 'spa', 'elevator', 'boiler', 'cooling_tower'],
   services: ['breakfast'],
@@ -66,4 +98,13 @@ export const evidenceApi = {
   createDocument: (payload: ControlledDocumentInput): Promise<{ data: ControlledDocument }> => apiClient.post('/evidence/documents', payload),
   approveDocument: (documentId: string, payload: { reason_code?: DocumentLifecycleReason; reason_note?: string } = {}): Promise<{ data: ControlledDocument }> => apiClient.post(`/evidence/documents/${documentId}/approve`, payload),
   supersedeDocument: (documentId: string, payload: { reason_code?: DocumentLifecycleReason; reason_note?: string } = {}): Promise<{ data: ControlledDocument }> => apiClient.post(`/evidence/documents/${documentId}/supersede`, payload),
+  listRecords: (): Promise<{ data: EvidenceRecord[] }> => apiClient.get('/evidence/records'),
+  getRecord: (recordId: string): Promise<{ data: EvidenceRecord }> => apiClient.get(`/evidence/records/${recordId}`),
+  createRecord: (payload: EvidenceRecordInput): Promise<{ data: EvidenceRecord }> => apiClient.post('/evidence/records', payload),
+  uploadRecordFile: (recordId: string, file: File): Promise<{ data: EvidenceRecord }> => {
+    const payload = new FormData()
+    payload.append('file', file)
+    return apiClient.post(`/evidence/records/${recordId}/file`, payload)
+  },
+  getRecordFileUrl: (recordId: string): Promise<{ data: { url: string; expires_in_seconds: number } }> => apiClient.get(`/evidence/records/${recordId}/file-url`),
 }

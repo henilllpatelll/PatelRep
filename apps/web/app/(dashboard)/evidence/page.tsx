@@ -1,15 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, FilePlus2, FileWarning, History, RefreshCw, Save, ShieldCheck, UserRoundX } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Eye, FilePlus2, FileText, FileWarning, History, RefreshCw, Save, ShieldCheck, Upload, UserRoundX } from 'lucide-react'
 import {
   evidenceApi,
   PROPERTY_APPLICABILITY_OPTIONS,
   type EvidenceException,
   type ControlledDocument,
   type ControlledDocumentInput,
+  type EvidenceRecord,
+  type EvidenceRecordInput,
+  type EvidenceType,
   type OperationalAuditEvent,
   type PropertyApplicability,
+  type RelatedEvidenceEntityType,
 } from '@/lib/api/evidence'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/authStore'
@@ -27,6 +31,17 @@ const EMPTY_DOCUMENT: ControlledDocumentInput = {
   retention_class: 'operational_3_years',
   applicability: [],
 }
+
+const EMPTY_EVIDENCE: EvidenceRecordInput = {
+  label: '',
+  evidence_type: 'file',
+}
+
+const EVIDENCE_TYPES: EvidenceType[] = ['file', 'photo', 'measurement', 'checklist_result', 'signature', 'attestation', 'external_certificate']
+const RELATED_ENTITY_TYPES: RelatedEvidenceEntityType[] = ['staff', 'task', 'asset', 'room', 'inspection', 'incident', 'sop']
+const EVIDENCE_CAPTURE_ROLES = ['housekeeper', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk', 'gm']
+const MAX_EVIDENCE_FILE_BYTES = 10 * 1024 * 1024
+const ACCEPTED_EVIDENCE_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 const STATE_STYLE: Record<EvidenceException['state'], string> = {
   missing: 'bg-alert-soft text-alert border-alert-line',
@@ -47,6 +62,11 @@ export default function EvidenceDashboardPage() {
   const [selectedDocument, setSelectedDocument] = useState<ControlledDocument | null>(null)
   const [documentHistory, setDocumentHistory] = useState<OperationalAuditEvent[]>([])
   const [documentDraft, setDocumentDraft] = useState<ControlledDocumentInput>(EMPTY_DOCUMENT)
+  const [records, setRecords] = useState<EvidenceRecord[]>([])
+  const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRecord | null>(null)
+  const [evidenceDraft, setEvidenceDraft] = useState<EvidenceRecordInput>(EMPTY_EVIDENCE)
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
+  const [evidenceSaving, setEvidenceSaving] = useState(false)
   const [documentSaving, setDocumentSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,16 +76,18 @@ export default function EvidenceDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [queue, property, listedDocuments] = await Promise.all([
+      const [queue, property, listedDocuments, listedRecords] = await Promise.all([
         evidenceApi.listExceptions(),
         evidenceApi.getApplicability(),
         evidenceApi.listDocuments(),
+        evidenceApi.listRecords(),
       ])
       const current = { ...EMPTY_APPLICABILITY, ...property.data }
       setExceptions(queue.data)
       setApplicability(current)
       setDraft(current)
       setDocuments(listedDocuments.data)
+      setRecords(listedRecords.data)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t('evidence.loadError'))
     } finally {
@@ -86,6 +108,7 @@ export default function EvidenceDashboardPage() {
     ...applicability.brand_requirements,
   ]
   const canManageApplicability = role === 'gm'
+  const canCaptureEvidence = EVIDENCE_CAPTURE_ROLES.includes(role ?? '')
 
   const toggleApplicability = (category: keyof PropertyApplicability, value: string) => {
     setDraft((current) => ({
@@ -175,6 +198,51 @@ export default function EvidenceDashboardPage() {
     }
   }
 
+  const captureEvidence = async () => {
+    const requiresAttachment = ['file', 'photo', 'external_certificate'].includes(evidenceDraft.evidence_type)
+    if (requiresAttachment && !evidenceFile) {
+      setError(t('evidence.fileRequired'))
+      return
+    }
+    if (evidenceFile && (!ACCEPTED_EVIDENCE_FILE_TYPES.includes(evidenceFile.type) || evidenceFile.size > MAX_EVIDENCE_FILE_BYTES)) {
+      setError(t('evidence.fileValidationError'))
+      return
+    }
+    setEvidenceSaving(true)
+    setError(null)
+    try {
+      const created = await evidenceApi.createRecord({
+        ...evidenceDraft,
+        document_id: evidenceDraft.document_id || undefined,
+        related_entity_type: evidenceDraft.related_entity_type || undefined,
+        related_entity_id: evidenceDraft.related_entity_id || undefined,
+        measurement_value: evidenceDraft.measurement_value || undefined,
+        result: evidenceDraft.result || undefined,
+      })
+      const captured = evidenceFile
+        ? await evidenceApi.uploadRecordFile(created.data.id, evidenceFile)
+        : created
+      setSelectedEvidence(captured.data)
+      setEvidenceDraft(EMPTY_EVIDENCE)
+      setEvidenceFile(null)
+      await load()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.evidenceSaveError'))
+    } finally {
+      setEvidenceSaving(false)
+    }
+  }
+
+  const viewEvidenceAttachment = async (record: EvidenceRecord) => {
+    setError(null)
+    try {
+      const response = await evidenceApi.getRecordFileUrl(record.id)
+      window.open(response.data.url, '_blank', 'noopener,noreferrer')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.evidenceLoadError'))
+    }
+  }
+
   return <div className="mx-auto max-w-6xl space-y-6 p-5">
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -213,6 +281,33 @@ export default function EvidenceDashboardPage() {
       <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
         <div className="mb-3 flex items-center gap-2"><History size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.documentDetail')}</h2></div>
         {selectedDocument ? <div className="space-y-4"><div><p className="font-medium text-ink">{selectedDocument.title}</p><p className="text-sm text-ink2">{t('evidence.version', { count: selectedDocument.version_number })} · {t(`evidence.documentStates.${selectedDocument.approval_state}`)}</p></div><dl className="grid grid-cols-2 gap-3 text-sm"><Detail label={t('evidence.documentOwner')} value={selectedDocument.owner_id ?? t('evidence.notAssigned')} /><Detail label={t('evidence.documentApprover')} value={selectedDocument.approver_id ?? t('evidence.notAssigned')} /><Detail label={t('evidence.review_date')} value={selectedDocument.review_date ?? t('evidence.notScheduled')} /><Detail label={t('evidence.expiration_date')} value={selectedDocument.expiration_date ?? t('evidence.notScheduled')} /><Detail label={t('evidence.retentionClass')} value={t(`evidence.retentionClasses.${selectedDocument.retention_class}`)} /><Detail label={t('evidence.documentApplicability')} value={selectedDocument.applicability.length ? selectedDocument.applicability.map((value) => t(`evidence.applicabilityOptions.${value}`)).join(', ') : t('evidence.allProperties')} /></dl>{canManageApplicability && selectedDocument.approval_state === 'draft' ? <Button disabled={documentSaving} onClick={() => void applyLifecycleAction('approve')}><CheckCircle2 size={15} /> {t('evidence.approveDocument')}</Button> : null}{canManageApplicability && selectedDocument.approval_state === 'approved' ? <Button variant="secondary" disabled={documentSaving} onClick={() => void applyLifecycleAction('supersede')}>{t('evidence.supersedeDocument')}</Button> : null}<div><h3 className="mb-2 text-sm font-medium text-ink">{t('evidence.documentHistory')}</h3>{documentHistory.length ? <ul className="space-y-2">{documentHistory.map((event) => <li key={event.id} className="rounded border border-line bg-surface-2 p-2 text-xs text-ink2"><p className="font-medium text-ink">{event.action}</p><p>{event.reason_code ?? t('evidence.noReason')}</p>{event.reason_note ? <p>{event.reason_note}</p> : null}</li>)}</ul> : <p className="text-sm text-ink3">{t('evidence.noHistory')}</p>}</div></div> : <p className="text-sm text-ink3">{t('evidence.selectDocument')}</p>}
+      </div>
+    </section>
+
+    <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <div className="mb-3 flex items-center gap-2"><Upload size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.captureEvidence')}</h2></div>
+        {canCaptureEvidence ? <div className="space-y-3">
+          <label className="block text-sm text-ink2">{t('evidence.evidenceLabel')}<input data-testid="evidence-label" value={evidenceDraft.label} onChange={(event) => setEvidenceDraft((current) => ({ ...current, label: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm text-ink2">{t('evidence.evidenceType')}<select value={evidenceDraft.evidence_type} onChange={(event) => setEvidenceDraft((current) => ({ ...current, evidence_type: event.target.value as EvidenceType }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink">{EVIDENCE_TYPES.map((type) => <option key={type} value={type}>{t(`evidence.evidenceTypes.${type}`)}</option>)}</select></label>
+            <label className="text-sm text-ink2">{t('evidence.linkedDocument')}<select value={evidenceDraft.document_id ?? ''} onChange={(event) => setEvidenceDraft((current) => ({ ...current, document_id: event.target.value || undefined }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink"><option value="">{t('evidence.noLinkedDocument')}</option>{documents.map((document) => <option key={document.id} value={document.id}>{document.title}</option>)}</select></label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm text-ink2">{t('evidence.linkedEntityType')}<select value={evidenceDraft.related_entity_type ?? ''} onChange={(event) => setEvidenceDraft((current) => ({ ...current, related_entity_type: (event.target.value || undefined) as RelatedEvidenceEntityType | undefined }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink"><option value="">{t('evidence.noLinkedEntity')}</option>{RELATED_ENTITY_TYPES.map((type) => <option key={type} value={type}>{t(`evidence.entityTypes.${type}`)}</option>)}</select></label>
+            <label className="text-sm text-ink2">{t('evidence.linkedEntityId')}<input value={evidenceDraft.related_entity_id ?? ''} onChange={(event) => setEvidenceDraft((current) => ({ ...current, related_entity_id: event.target.value || undefined }))} disabled={!evidenceDraft.related_entity_type} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink disabled:cursor-not-allowed disabled:opacity-60" /></label>
+          </div>
+          {evidenceDraft.evidence_type === 'measurement' ? <label className="block text-sm text-ink2">{t('evidence.measurementValue')}<input value={evidenceDraft.measurement_value ?? ''} onChange={(event) => setEvidenceDraft((current) => ({ ...current, measurement_value: event.target.value || undefined }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label> : null}
+          {['checklist_result', 'attestation'].includes(evidenceDraft.evidence_type) ? <label className="block text-sm text-ink2">{t('evidence.result')}<select value={evidenceDraft.result ?? ''} onChange={(event) => setEvidenceDraft((current) => ({ ...current, result: (event.target.value || undefined) as EvidenceRecordInput['result'] }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink"><option value="">{t('evidence.noResult')}</option><option value="passed">{t('evidence.results.passed')}</option><option value="failed">{t('evidence.results.failed')}</option><option value="deferred">{t('evidence.results.deferred')}</option></select></label> : null}
+          <label className="block text-sm text-ink2">{t('evidence.attachFile')}<input data-testid="evidence-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm text-ink2" /><span className="mt-1 block text-xs text-ink3">{t('evidence.fileHelp')}</span></label>
+          <Button data-testid="capture-evidence" disabled={evidenceSaving || !evidenceDraft.label} onClick={() => void captureEvidence()}><Upload size={15} /> {evidenceSaving ? t('evidence.uploading') : t('evidence.captureEvidence')}</Button>
+        </div> : <p className="text-sm text-ink3">{t('evidence.captureNotAuthorized')}</p>}
+      </div>
+
+      <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <div className="mb-3 flex items-center gap-2"><FileText size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.evidenceRecords')}</h2></div>
+        {selectedEvidence ? <div className="mb-3 rounded border border-line bg-surface-2 p-3"><p className="font-medium text-ink">{selectedEvidence.label}</p><p className="mt-1 text-xs text-ink3">{t(`evidence.evidenceTypes.${selectedEvidence.evidence_type}`)}</p>{selectedEvidence.file_name ? <Button className="mt-3" variant="secondary" onClick={() => void viewEvidenceAttachment(selectedEvidence)}><Eye size={15} /> {t('evidence.viewSecureFile')}</Button> : <p className="mt-2 text-xs text-ink3">{t('evidence.noAttachment')}</p>}</div> : null}
+        <ul className="divide-y divide-line">{records.length ? records.map((record) => <li key={record.id} className="flex items-center justify-between gap-3 py-3"><button type="button" onClick={() => setSelectedEvidence(record)} className="min-w-0 text-left"><span className="block truncate text-sm font-medium text-ink">{record.label}</span><span className="text-xs text-ink3">{t(`evidence.evidenceTypes.${record.evidence_type}`)}</span></button>{record.file_name ? <Button variant="secondary" className="shrink-0" onClick={() => void viewEvidenceAttachment(record)} title={t('evidence.viewSecureFile')}><Eye size={15} /></Button> : null}</li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noEvidenceRecords')}</li>}</ul>
       </div>
     </section>
 
