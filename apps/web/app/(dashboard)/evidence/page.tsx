@@ -1,11 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, FileWarning, RefreshCw, Save, ShieldCheck, UserRoundX } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FilePlus2, FileWarning, History, RefreshCw, Save, ShieldCheck, UserRoundX } from 'lucide-react'
 import {
   evidenceApi,
   PROPERTY_APPLICABILITY_OPTIONS,
   type EvidenceException,
+  type ControlledDocument,
+  type ControlledDocumentInput,
+  type OperationalAuditEvent,
   type PropertyApplicability,
 } from '@/lib/api/evidence'
 import { Button } from '@/components/ui/Button'
@@ -16,6 +19,13 @@ const EMPTY_APPLICABILITY: PropertyApplicability = {
   facilities: [],
   services: [],
   brand_requirements: [],
+}
+
+const EMPTY_DOCUMENT: ControlledDocumentInput = {
+  title: '',
+  document_type: 'policy',
+  retention_class: 'operational_3_years',
+  applicability: [],
 }
 
 const STATE_STYLE: Record<EvidenceException['state'], string> = {
@@ -33,6 +43,11 @@ export default function EvidenceDashboardPage() {
   const [exceptions, setExceptions] = useState<EvidenceException[]>([])
   const [applicability, setApplicability] = useState<PropertyApplicability>(EMPTY_APPLICABILITY)
   const [draft, setDraft] = useState<PropertyApplicability>(EMPTY_APPLICABILITY)
+  const [documents, setDocuments] = useState<ControlledDocument[]>([])
+  const [selectedDocument, setSelectedDocument] = useState<ControlledDocument | null>(null)
+  const [documentHistory, setDocumentHistory] = useState<OperationalAuditEvent[]>([])
+  const [documentDraft, setDocumentDraft] = useState<ControlledDocumentInput>(EMPTY_DOCUMENT)
+  const [documentSaving, setDocumentSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,14 +56,16 @@ export default function EvidenceDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [queue, property] = await Promise.all([
+      const [queue, property, listedDocuments] = await Promise.all([
         evidenceApi.listExceptions(),
         evidenceApi.getApplicability(),
+        evidenceApi.listDocuments(),
       ])
       const current = { ...EMPTY_APPLICABILITY, ...property.data }
       setExceptions(queue.data)
       setApplicability(current)
       setDraft(current)
+      setDocuments(listedDocuments.data)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t('evidence.loadError'))
     } finally {
@@ -79,6 +96,18 @@ export default function EvidenceDashboardPage() {
     }))
   }
 
+  const toggleDocumentApplicability = (value: string) => {
+    setDocumentDraft((current) => {
+      const applicability = current.applicability ?? []
+      return {
+        ...current,
+        applicability: applicability.includes(value)
+          ? applicability.filter((item) => item !== value)
+          : [...applicability, value],
+      }
+    })
+  }
+
   const saveApplicability = async () => {
     setSaving(true)
     setError(null)
@@ -91,6 +120,58 @@ export default function EvidenceDashboardPage() {
       setError(caught instanceof Error ? caught.message : t('evidence.saveError'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const selectDocument = async (documentId: string) => {
+    setError(null)
+    try {
+      const [document, history] = await Promise.all([
+        evidenceApi.getDocument(documentId),
+        evidenceApi.getDocumentHistory(documentId),
+      ])
+      setSelectedDocument(document.data)
+      setDocumentHistory(history.data)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.loadError'))
+    }
+  }
+
+  const createDocument = async () => {
+    setDocumentSaving(true)
+    setError(null)
+    try {
+      const created = await evidenceApi.createDocument({
+        ...documentDraft,
+        owner_id: documentDraft.owner_id || undefined,
+        effective_date: documentDraft.effective_date || undefined,
+        review_date: documentDraft.review_date || undefined,
+        expiration_date: documentDraft.expiration_date || undefined,
+      })
+      setDocumentDraft(EMPTY_DOCUMENT)
+      await load()
+      await selectDocument(created.data.id)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.documentSaveError'))
+    } finally {
+      setDocumentSaving(false)
+    }
+  }
+
+  const applyLifecycleAction = async (action: 'approve' | 'supersede') => {
+    if (!selectedDocument) return
+    setDocumentSaving(true)
+    setError(null)
+    try {
+      const response = action === 'approve'
+        ? await evidenceApi.approveDocument(selectedDocument.id)
+        : await evidenceApi.supersedeDocument(selectedDocument.id)
+      await load()
+      await selectDocument(response.data.id)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.documentSaveError'))
+    } finally {
+      setDocumentSaving(false)
     }
   }
 
@@ -110,6 +191,29 @@ export default function EvidenceDashboardPage() {
       <SummaryCard icon={<AlertTriangle />} label={t('evidence.critical')} value={summary.critical} tone="alert" />
       <SummaryCard icon={<FileWarning />} label={t('evidence.expired')} value={summary.expired} tone="caution" />
       <SummaryCard icon={<UserRoundX />} label={t('evidence.unacknowledged')} value={summary.acknowledgements} tone="ai" />
+    </section>
+
+    <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <div className="mb-3 flex items-center gap-2"><FilePlus2 size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.controlledDocuments')}</h2></div>
+        {canManageApplicability ? <div className="space-y-3">
+          <label className="block text-sm text-ink2">{t('evidence.documentTitle')}<input data-testid="controlled-document-title" value={documentDraft.title} onChange={(event) => setDocumentDraft((current) => ({ ...current, title: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm text-ink2">{t('evidence.documentType')}<select value={documentDraft.document_type} onChange={(event) => setDocumentDraft((current) => ({ ...current, document_type: event.target.value as ControlledDocument['document_type'] }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink">{(['sop', 'policy', 'training', 'safety', 'certificate'] as const).map((type) => <option key={type} value={type}>{t(`evidence.documentTypes.${type}`)}</option>)}</select></label>
+            <label className="text-sm text-ink2">{t('evidence.retentionClass')}<select value={documentDraft.retention_class} onChange={(event) => setDocumentDraft((current) => ({ ...current, retention_class: event.target.value as ControlledDocument['retention_class'] }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink">{(['operational_3_years', 'safety_7_years', 'brand_7_years'] as const).map((retention) => <option key={retention} value={retention}>{t(`evidence.retentionClasses.${retention}`)}</option>)}</select></label>
+          </div>
+          <label className="block text-sm text-ink2">{t('evidence.documentOwner')}<input value={documentDraft.owner_id ?? ''} onChange={(event) => setDocumentDraft((current) => ({ ...current, owner_id: event.target.value }))} placeholder={t('evidence.ownerHint')} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label>
+          <fieldset><legend className="text-sm text-ink2">{t('evidence.documentApplicability')}</legend>{configuredValues.length ? <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2">{configuredValues.map((value) => <label key={value} className="flex items-center gap-2 text-sm text-ink2"><input checked={(documentDraft.applicability ?? []).includes(value)} onChange={() => toggleDocumentApplicability(value)} type="checkbox" />{t(`evidence.applicabilityOptions.${value}`)}</label>)}</div> : <p className="mt-1 text-xs text-ink3">{t('evidence.allProperties')}</p>}</fieldset>
+          <div className="grid gap-3 sm:grid-cols-3">{(['effective_date', 'review_date', 'expiration_date'] as const).map((field) => <label key={field} className="text-sm text-ink2">{t(`evidence.${field}`)}<input type="date" value={documentDraft[field] ?? ''} onChange={(event) => setDocumentDraft((current) => ({ ...current, [field]: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label>)}</div>
+          <Button data-testid="create-controlled-document" disabled={documentSaving || !documentDraft.title} onClick={() => void createDocument()}><Save size={15} /> {documentSaving ? t('evidence.saving') : t('evidence.createDocument')}</Button>
+        </div> : null}
+        <ul className="mt-4 divide-y divide-line">{documents.length ? documents.map((document) => <li key={document.id}><button type="button" onClick={() => void selectDocument(document.id)} className="flex w-full items-center justify-between gap-3 px-1 py-3 text-left"><span><span className="block text-sm font-medium text-ink">{document.title}</span><span className="text-xs text-ink3">{t('evidence.version', { count: document.version_number })} · {t(`evidence.documentStates.${document.approval_state}`)}</span></span><span className="text-xs text-ink3">{t(`evidence.retentionClasses.${document.retention_class}`)}</span></button></li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noDocuments')}</li>}</ul>
+      </div>
+
+      <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
+        <div className="mb-3 flex items-center gap-2"><History size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.documentDetail')}</h2></div>
+        {selectedDocument ? <div className="space-y-4"><div><p className="font-medium text-ink">{selectedDocument.title}</p><p className="text-sm text-ink2">{t('evidence.version', { count: selectedDocument.version_number })} · {t(`evidence.documentStates.${selectedDocument.approval_state}`)}</p></div><dl className="grid grid-cols-2 gap-3 text-sm"><Detail label={t('evidence.documentOwner')} value={selectedDocument.owner_id ?? t('evidence.notAssigned')} /><Detail label={t('evidence.documentApprover')} value={selectedDocument.approver_id ?? t('evidence.notAssigned')} /><Detail label={t('evidence.review_date')} value={selectedDocument.review_date ?? t('evidence.notScheduled')} /><Detail label={t('evidence.expiration_date')} value={selectedDocument.expiration_date ?? t('evidence.notScheduled')} /><Detail label={t('evidence.retentionClass')} value={t(`evidence.retentionClasses.${selectedDocument.retention_class}`)} /><Detail label={t('evidence.documentApplicability')} value={selectedDocument.applicability.length ? selectedDocument.applicability.map((value) => t(`evidence.applicabilityOptions.${value}`)).join(', ') : t('evidence.allProperties')} /></dl>{canManageApplicability && selectedDocument.approval_state === 'draft' ? <Button disabled={documentSaving} onClick={() => void applyLifecycleAction('approve')}><CheckCircle2 size={15} /> {t('evidence.approveDocument')}</Button> : null}{canManageApplicability && selectedDocument.approval_state === 'approved' ? <Button variant="secondary" disabled={documentSaving} onClick={() => void applyLifecycleAction('supersede')}>{t('evidence.supersedeDocument')}</Button> : null}<div><h3 className="mb-2 text-sm font-medium text-ink">{t('evidence.documentHistory')}</h3>{documentHistory.length ? <ul className="space-y-2">{documentHistory.map((event) => <li key={event.id} className="rounded border border-line bg-surface-2 p-2 text-xs text-ink2"><p className="font-medium text-ink">{event.action}</p><p>{event.reason_code ?? t('evidence.noReason')}</p>{event.reason_note ? <p>{event.reason_note}</p> : null}</li>)}</ul> : <p className="text-sm text-ink3">{t('evidence.noHistory')}</p>}</div></div> : <p className="text-sm text-ink3">{t('evidence.selectDocument')}</p>}
+      </div>
     </section>
 
     <section className="rounded-[var(--r-lg)] border border-line bg-surface p-4">
@@ -155,6 +259,10 @@ export default function EvidenceDashboardPage() {
             </li>)}</ul>}
     </section>
   </div>
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-ink3">{label}</dt><dd className="mt-0.5 text-ink">{value}</dd></div>
 }
 
 function SummaryCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: 'alert' | 'caution' | 'ai' }) {

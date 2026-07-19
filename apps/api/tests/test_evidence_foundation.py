@@ -5,6 +5,7 @@ evidence to produce one trustworthy exception queue for property review.
 """
 
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -13,6 +14,7 @@ from middleware.auth import CurrentUser
 from models.requests import (
     AssignControlledDocumentRequest,
     CreateControlledDocumentRequest,
+    DocumentLifecycleActionRequest,
     UpdatePropertyApplicabilityRequest,
 )
 from routers import evidence as evidence_router
@@ -131,7 +133,13 @@ def test_superseding_an_approved_document_preserves_controlled_history():
         "version_number": 1,
         "approval_state": "approved",
         "effective_date": "2026-01-01",
+        "review_date": "2026-06-01",
+        "expiration_date": "2027-01-01",
+        "applicability": ["pool"],
         "retention_class": "safety_7_years",
+        "document_type": "safety",
+        "owner_id": "owner-1",
+        "source_sop_document_id": "sop-1",
     }
 
     successor = create_superseding_version(previous, actor_id="gm-1")
@@ -141,8 +149,15 @@ def test_superseding_an_approved_document_preserves_controlled_history():
         "version_number": 2,
         "approval_state": "draft",
         "supersedes_id": "doc-v1",
-        "owner_id": "gm-1",
+        "owner_id": "owner-1",
         "retention_class": "safety_7_years",
+        "document_type": "safety",
+        "effective_date": "2026-01-01",
+        "review_date": "2026-06-01",
+        "expiration_date": "2027-01-01",
+        "applicability": ["pool"],
+        "source_sop_document_id": "sop-1",
+        "created_by": "gm-1",
     }
 
 
@@ -152,6 +167,87 @@ def test_superseding_rejects_a_document_that_is_not_approved():
             {"id": "doc-v1", "approval_state": "draft", "version_number": 1},
             actor_id="gm-1",
         )
+
+
+def test_controlled_document_dates_and_lifecycle_reasons_are_validated():
+    with pytest.raises(ValueError, match="review_date"):
+        CreateControlledDocumentRequest(
+            title="Pool opening procedure",
+            document_type="safety",
+            effective_date="2026-07-20",
+            review_date="2026-07-19",
+        )
+
+    with pytest.raises(ValueError, match="reason_note"):
+        DocumentLifecycleActionRequest(reason_code="override")
+
+    assert DocumentLifecycleActionRequest(reason_code="correction", reason_note="Corrected legal retention date").reason_code == "correction"
+
+
+@pytest.mark.asyncio
+async def test_document_owner_source_and_approver_are_verified_within_the_tenant(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "user_roles": [
+            {"tenant_id": "hotel-1", "user_id": "owner-1", "is_active": True},
+            {"tenant_id": "hotel-2", "user_id": "other-owner", "is_active": True},
+        ],
+        "sop_documents": [{"id": "sop-1", "tenant_id": "hotel-1"}],
+        "controlled_documents": [{
+            "id": "doc-1", "tenant_id": "hotel-1", "title": "Pool opening",
+            "owner_id": "gm-1", "approval_state": "draft", "applicability": [],
+        }],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="owner is not active"):
+        await evidence_router.create_controlled_document(
+            CreateControlledDocumentRequest(
+                title="Pool opening procedure", document_type="safety", owner_id="other-owner",
+            ),
+            _gm(),
+        )
+
+    with pytest.raises(HTTPException, match="cannot approve their own"):
+        await evidence_router.approve_controlled_document(
+            "doc-1", DocumentLifecycleActionRequest(), _gm(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_supersession_uses_the_transactional_audit_rpc_with_structured_reason(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    class RpcFakeDB(FakeDB):
+        def rpc(self, name, params):
+            self.rpc_name = name
+            self.rpc_params = params
+            return SimpleNamespace(execute=lambda: SimpleNamespace(data=[{
+                "id": "doc-v2", "tenant_id": "hotel-1", "version_number": 2,
+                "approval_state": "draft", "supersedes_id": "doc-v1",
+            }]))
+
+    db = RpcFakeDB({
+        "property_applicability": [{"tenant_id": "hotel-1", "facilities": [], "services": [], "brand_requirements": []}],
+        "controlled_documents": [{
+            "id": "doc-v1", "tenant_id": "hotel-1", "title": "Pool procedure",
+            "approval_state": "approved", "version_number": 1, "applicability": [],
+        }],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    response = await evidence_router.supersede_controlled_document(
+        "doc-v1",
+        DocumentLifecycleActionRequest(reason_code="correction", reason_note="Annual legal review update"),
+        _gm(),
+    )
+
+    assert response["data"]["supersedes_id"] == "doc-v1"
+    assert db.rpc_name == "supersede_controlled_document_with_audit"
+    assert db.rpc_params["p_tenant_id"] == "hotel-1"
+    assert db.rpc_params["p_reason_code"] == "correction"
+    assert db.rpc_params["p_reason_note"] == "Annual legal review update"
 
 
 def test_exception_queue_combines_expired_documents_missing_evidence_and_overdue_acknowledgements():
@@ -250,7 +346,9 @@ def test_exception_queue_keeps_failed_deferred_and_not_yet_due_records_visible()
 async def test_document_creation_persists_tenant_and_append_only_actor_audit(monkeypatch):
     from tests.smoke.fake_supabase import FakeDB
 
-    db = FakeDB()
+    db = FakeDB({
+        "user_roles": [{"tenant_id": "hotel-1", "user_id": "gm-1", "is_active": True}],
+    })
     monkeypatch.setattr(evidence_router, "supabase", db)
 
     response = await evidence_router.create_controlled_document(
@@ -273,6 +371,8 @@ async def test_document_creation_persists_tenant_and_append_only_actor_audit(mon
         "actor_role": "gm",
         "old_state": {},
         "new_state": {"approval_state": "draft", "version_number": 1},
+        "reason_code": "creation",
+        "reason_note": None,
         "source": "api",
     }]
 

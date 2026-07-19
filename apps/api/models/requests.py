@@ -455,6 +455,29 @@ class CreateControlledDocumentRequest(SanitizedBaseModel):
             value, allowed_values=tuple(CANONICAL_APPLICABILITY_VALUES)
         )
 
+    @model_validator(mode="after")
+    def validate_lifecycle_dates(self):
+        if self.effective_date and self.review_date and self.review_date < self.effective_date:
+            raise ValueError("review_date must be on or after effective_date")
+        if self.effective_date and self.expiration_date and self.expiration_date < self.effective_date:
+            raise ValueError("expiration_date must be on or after effective_date")
+        if self.review_date and self.expiration_date and self.expiration_date < self.review_date:
+            raise ValueError("expiration_date must be on or after review_date")
+        return self
+
+
+class DocumentLifecycleActionRequest(SanitizedBaseModel):
+    """Structured reason context for an auditable controlled-document action."""
+
+    reason_code: Optional[Literal["approval", "supersession", "correction", "override", "deferral"]] = None
+    reason_note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def require_reason_note_for_exceptional_actions(self):
+        if self.reason_code in {"correction", "override", "deferral"} and not self.reason_note:
+            raise ValueError("reason_note is required for correction, override, or deferral")
+        return self
+
 
 class AssignControlledDocumentRequest(SanitizedBaseModel):
     assigned_to: str = Field(min_length=1, max_length=100)

@@ -15,6 +15,7 @@ from models.requests import (
     AssignControlledDocumentRequest,
     CreateControlledDocumentRequest,
     CreateEvidenceRecordRequest,
+    DocumentLifecycleActionRequest,
     UpdatePropertyApplicabilityRequest,
 )
 from services.evidence.contracts import (
@@ -34,6 +35,7 @@ ALLOWED_EVIDENCE_CONTENT_TYPES = {"application/pdf", "image/jpeg", "image/png", 
 def _record_audit_event(
     *, current_user: CurrentUser, resource_type: str, resource_id: str,
     action: str, old_state: dict | None = None, new_state: dict | None = None,
+    reason_code: str | None = None, reason_note: str | None = None,
 ) -> None:
     supabase.table("operational_audit_events").insert({
         "tenant_id": current_user.hotel_id,
@@ -44,6 +46,8 @@ def _record_audit_event(
         "actor_role": current_user.role,
         "old_state": old_state or {},
         "new_state": new_state or {},
+        "reason_code": reason_code,
+        "reason_note": reason_note,
         "source": "api",
     }).execute()
 
@@ -71,6 +75,37 @@ def _get_property_applicability(current_user: CurrentUser) -> dict:
 def _require_document_applicability(document: dict, current_user: CurrentUser) -> None:
     if not is_applicable_to_property(document.get("applicability"), _get_property_applicability(current_user)):
         raise HTTPException(status_code=409, detail="Controlled document is not applicable to this property.")
+
+
+def _require_active_tenant_user(user_id: str, current_user: CurrentUser, *, label: str) -> None:
+    result = (
+        supabase.table("user_roles").select("user_id")
+        .eq("tenant_id", current_user.hotel_id).eq("user_id", user_id)
+        .eq("is_active", True).maybe_single().execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"Controlled document {label} is not active at this property.")
+
+
+def _require_same_tenant_sop(source_sop_document_id: str | None, current_user: CurrentUser) -> None:
+    if not source_sop_document_id:
+        return
+    result = (
+        supabase.table("sop_documents").select("id")
+        .eq("id", source_sop_document_id).eq("tenant_id", current_user.hotel_id)
+        .maybe_single().execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Source SOP document was not found at this property.")
+
+
+def _reason_context(
+    request: DocumentLifecycleActionRequest | None, *, default_reason_code: str
+) -> tuple[str, str | None]:
+    return (
+        (request.reason_code if request and request.reason_code else default_reason_code),
+        request.reason_note if request else None,
+    )
 
 
 @router.get("/applicability")
@@ -103,33 +138,65 @@ async def list_controlled_documents(current_user: CurrentUser = Depends(get_curr
     ]}
 
 
+@router.get("/documents/{document_id}")
+async def get_controlled_document(
+    document_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return {"data": _get_document(document_id, current_user)}
+
+
+@router.get("/documents/{document_id}/history")
+async def list_controlled_document_history(
+    document_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    _get_document(document_id, current_user)
+    result = (
+        supabase.table("operational_audit_events").select("*")
+        .eq("tenant_id", current_user.hotel_id).eq("resource_type", "controlled_document")
+        .eq("resource_id", document_id).order("created_at", desc=True).execute()
+    )
+    return {"data": result.data or []}
+
+
 @router.post("/documents")
 async def create_controlled_document(
     request: CreateControlledDocumentRequest,
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     _require_document_applicability({"applicability": request.applicability}, current_user)
+    owner_id = request.owner_id or current_user.user_id
+    _require_active_tenant_user(owner_id, current_user, label="owner")
+    _require_same_tenant_sop(request.source_sop_document_id, current_user)
     payload = {
         "tenant_id": current_user.hotel_id,
         **request.model_dump(mode="json"),
-        "owner_id": request.owner_id or current_user.user_id,
+        "owner_id": owner_id,
         "created_by": current_user.user_id,
         "version_number": 1,
         "approval_state": "draft",
     }
     result = supabase.table("controlled_documents").insert(payload).execute()
     record = result.data[0]
-    _record_audit_event(current_user=current_user, resource_type="controlled_document", resource_id=record["id"], action="controlled_document.created", new_state={"approval_state": "draft", "version_number": 1})
+    _record_audit_event(current_user=current_user, resource_type="controlled_document", resource_id=record["id"], action="controlled_document.created", new_state={"approval_state": "draft", "version_number": 1}, reason_code="creation")
     return {"data": record}
 
 
 @router.post("/documents/{document_id}/approve")
 async def approve_controlled_document(
     document_id: str,
+    request: DocumentLifecycleActionRequest | None = None,
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     document = _get_document(document_id, current_user)
     _require_document_applicability(document, current_user)
+    if document.get("approval_state") != "draft":
+        raise HTTPException(status_code=409, detail="Only a draft controlled document can be approved.")
+    if document.get("owner_id") == current_user.user_id:
+        raise HTTPException(status_code=409, detail="A document owner cannot approve their own controlled document.")
+    _require_active_tenant_user(current_user.user_id, current_user, label="approver")
+    reason_code, reason_note = _reason_context(request, default_reason_code="approval")
     result = (
         supabase.table("controlled_documents").update({
             "approval_state": "approved", "approver_id": current_user.user_id,
@@ -137,29 +204,36 @@ async def approve_controlled_document(
         }).eq("id", document_id).eq("tenant_id", current_user.hotel_id).execute()
     )
     record = result.data[0]
-    _record_audit_event(current_user=current_user, resource_type="controlled_document", resource_id=document_id, action="controlled_document.approved", old_state={"approval_state": document["approval_state"]}, new_state={"approval_state": "approved"})
+    _record_audit_event(current_user=current_user, resource_type="controlled_document", resource_id=document_id, action="controlled_document.approved", old_state={"approval_state": document["approval_state"]}, new_state={"approval_state": "approved"}, reason_code=reason_code, reason_note=reason_note)
     return {"data": record}
 
 
 @router.post("/documents/{document_id}/supersede")
 async def supersede_controlled_document(
     document_id: str,
+    request: DocumentLifecycleActionRequest | None = None,
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     previous = _get_document(document_id, current_user)
     _require_document_applicability(previous, current_user)
     try:
-        successor = create_superseding_version(previous, actor_id=current_user.user_id)
+        create_superseding_version(previous, actor_id=current_user.user_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    successor["tenant_id"] = current_user.hotel_id
-    successor["document_type"] = previous["document_type"]
-    successor["applicability"] = previous.get("applicability") or []
-    successor["created_by"] = current_user.user_id
-    new_record = supabase.table("controlled_documents").insert(successor).execute().data[0]
-    supabase.table("controlled_documents").update({"approval_state": "superseded", "superseded_at": datetime.now(timezone.utc).isoformat()}).eq("id", document_id).eq("tenant_id", current_user.hotel_id).execute()
-    _record_audit_event(current_user=current_user, resource_type="controlled_document", resource_id=document_id, action="controlled_document.superseded", old_state={"approval_state": "approved"}, new_state={"successor_id": new_record["id"]})
-    return {"data": new_record}
+    reason_code, reason_note = _reason_context(request, default_reason_code="supersession")
+    result = supabase.rpc("supersede_controlled_document_with_audit", {
+        "p_document_id": document_id,
+        "p_tenant_id": current_user.hotel_id,
+        "p_actor_id": current_user.user_id,
+        "p_actor_role": current_user.role,
+        "p_reason_code": reason_code,
+        "p_reason_note": reason_note,
+        "p_source": "api",
+    }).execute()
+    rows = result.data or []
+    if not rows:
+        raise HTTPException(status_code=409, detail="Unable to supersede the controlled document.")
+    return {"data": rows[0]}
 
 
 @router.post("/documents/{document_id}/assignments")

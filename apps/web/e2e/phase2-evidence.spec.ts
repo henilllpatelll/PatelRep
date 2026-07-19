@@ -44,3 +44,12 @@ test('GM can save canonical property applicability', async ({ page }) => {
     }
   }
 })
+
+test('GM can open the controlled-document lifecycle workspace', async ({ page }) => {
+  test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
+  await loginAsGM(page)
+  await page.goto('/evidence')
+
+  await expect(page.getByTestId('controlled-document-title')).toBeVisible()
+  await expect(page.getByTestId('create-controlled-document')).toBeVisible()
+})

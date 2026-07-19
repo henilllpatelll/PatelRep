@@ -54,14 +54,25 @@ def create_superseding_version(previous: dict[str, Any], *, actor_id: str) -> di
     if previous.get("approval_state") != "approved":
         raise ValueError("Only an approved document can be superseded.")
 
-    return {
+    successor = {
         "title": previous["title"],
         "version_number": int(previous.get("version_number") or 0) + 1,
         "approval_state": "draft",
         "supersedes_id": previous["id"],
-        "owner_id": actor_id,
-        "retention_class": previous.get("retention_class"),
+        "created_by": actor_id,
     }
+    for field in (
+        "document_type",
+        "owner_id",
+        "effective_date",
+        "review_date",
+        "expiration_date",
+        "applicability",
+        "retention_class",
+        "source_sop_document_id",
+    ):
+        successor[field] = previous.get(field)
+    return successor
 
 
 def build_exception_queue(
