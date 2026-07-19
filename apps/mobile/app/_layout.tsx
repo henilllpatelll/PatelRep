@@ -10,6 +10,7 @@ import { syncOnConnect } from "@/lib/offline/sync";
 import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
+import { deferAuthHydration } from "@/lib/auth/deferAuthHydration";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
@@ -21,9 +22,10 @@ export default function RootLayout() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (session?.user) {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      deferAuthHydration(async () => {
+        try {
+          if (session?.user) {
           // Decode JWT custom claims (migration 019 hook). The app role lives in
           // `user_role`; top-level `role` stays "authenticated" for PostgREST.
           let jwtHotelId: string | undefined;
@@ -65,12 +67,13 @@ export default function RootLayout() {
           } else {
             setUser(null);
           }
-        } else {
-          setUser(null);
+          } else {
+            setUser(null);
+          }
+        } finally {
+          setIsLoading(false);
         }
-      } finally {
-        setIsLoading(false);
-      }
+      });
     });
 
     return () => subscription.unsubscribe();

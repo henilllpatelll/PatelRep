@@ -226,7 +226,7 @@ export default function ProfileScreen() {
                 <View style={styles.segmented} testID="language-segmented">
                   {(
                     [
-                      { code: "en" as const, label: "English" },
+                      { code: "en" as const, label: language === "es" ? "Ingl\u00e9s" : "English" },
                       { code: "es" as const, label: "Español" },
                     ]
                   ).map((option) => {

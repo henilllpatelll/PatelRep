@@ -1,6 +1,8 @@
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 
+let mockLanguage = "en";
+
 const EN: Record<string, string> = {
   "profile.me": "Me",
   "profile.preferences": "Preferences",
@@ -55,7 +57,9 @@ jest.mock("expo-constants", () => ({
 }));
 
 jest.mock("@/i18n", () => ({
-  language: "en",
+  get language() {
+    return mockLanguage;
+  },
   changeLanguage: jest.fn(),
 }));
 
@@ -98,6 +102,10 @@ jest.mock("@/stores/appStore", () => ({
 import ProfileScreen from "@/app/(app)/profile";
 
 describe("ProfileScreen settings redesign", () => {
+  beforeEach(() => {
+    mockLanguage = "en";
+  });
+
   it("renders identity hero, grouped settings, sync state, and sign out — no fake stats", async () => {
     const { getByText, getByTestId, queryByText } = render(<ProfileScreen />);
 
@@ -139,5 +147,14 @@ describe("ProfileScreen settings redesign", () => {
     expect(queryByText("Top pace")).toBeNull();
     expect(queryByText("Pay & hours")).toBeNull();
     expect(queryByText(/build 1182/)).toBeNull();
+  });
+
+  it("does not expose the English language name while Spanish is active", async () => {
+    mockLanguage = "es";
+    const { getByText, queryByText } = render(<ProfileScreen />);
+
+    await waitFor(() => expect(getByText("Ingl\u00e9s")).toBeTruthy());
+    expect(getByText("Espa\u00f1ol")).toBeTruthy();
+    expect(queryByText("English")).toBeNull();
   });
 });
