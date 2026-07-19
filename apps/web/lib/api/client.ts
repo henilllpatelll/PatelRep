@@ -132,10 +132,22 @@ async function request(method: string, path: string, body?: any, options: Reques
   return json
 }
 
+async function download(path: string): Promise<Blob> {
+  const token = await getToken()
+  const response = await fetch(new URL(API_URL + path).toString(), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    throw new ApiClientError('Unable to download the requested export.', { status: response.status, path })
+  }
+  return response.blob()
+}
+
 export const apiClient = {
   get: (path: string, options?: RequestOptions) => request('GET', path, undefined, options),
   post: (path: string, body?: any, options?: RequestOptions) => request('POST', path, body, options),
   put: (path: string, body?: any, options?: RequestOptions) => request('PUT', path, body, options),
   patch: (path: string, body?: any, options?: RequestOptions) => request('PATCH', path, body, options),
   delete: (path: string, options?: RequestOptions) => request('DELETE', path, undefined, options),
+  download,
 }
