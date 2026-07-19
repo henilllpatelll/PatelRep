@@ -38,6 +38,28 @@ export interface ControlledDocumentInput {
   source_sop_document_id?: string
 }
 
+export interface DocumentAcknowledgement {
+  id: string
+  document_id: string
+  assigned_to: string
+  assigned_by: string | null
+  due_date: string
+  competency_required: boolean
+  competency_status: 'not_required' | 'pending' | 'observed' | 'passed' | 'failed'
+  competency_method: 'observed' | 'quiz' | null
+  competency_notes: string | null
+  competency_evaluated_at: string | null
+  acknowledged_at: string | null
+  assignment_type: 'initial' | 'retraining'
+  controlled_documents?: Pick<ControlledDocument, 'title' | 'version_number' | 'approval_state'>
+}
+
+export interface DocumentAcknowledgementInput {
+  assigned_to: string
+  due_date: string
+  competency_required: boolean
+}
+
 export interface OperationalAuditEvent {
   id: string
   action: string
@@ -98,6 +120,11 @@ export const evidenceApi = {
   createDocument: (payload: ControlledDocumentInput): Promise<{ data: ControlledDocument }> => apiClient.post('/evidence/documents', payload),
   approveDocument: (documentId: string, payload: { reason_code?: DocumentLifecycleReason; reason_note?: string } = {}): Promise<{ data: ControlledDocument }> => apiClient.post(`/evidence/documents/${documentId}/approve`, payload),
   supersedeDocument: (documentId: string, payload: { reason_code?: DocumentLifecycleReason; reason_note?: string } = {}): Promise<{ data: ControlledDocument }> => apiClient.post(`/evidence/documents/${documentId}/supersede`, payload),
+  assignDocument: (documentId: string, payload: DocumentAcknowledgementInput): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/documents/${documentId}/assignments`, payload),
+  listDocumentAssignments: (documentId: string): Promise<{ data: DocumentAcknowledgement[] }> => apiClient.get(`/evidence/documents/${documentId}/assignments`),
+  listMyAcknowledgements: (): Promise<{ data: DocumentAcknowledgement[] }> => apiClient.get('/evidence/my-acknowledgements'),
+  acknowledgeDocument: (assignmentId: string): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/acknowledgements/${assignmentId}/acknowledge`),
+  evaluateCompetency: (assignmentId: string, payload: { assessment_method: 'observed' | 'quiz'; outcome: 'passed' | 'failed'; notes?: string }): Promise<{ data: DocumentAcknowledgement }> => apiClient.post(`/evidence/acknowledgements/${assignmentId}/competency`, payload),
   listRecords: (): Promise<{ data: EvidenceRecord[] }> => apiClient.get('/evidence/records'),
   getRecord: (recordId: string): Promise<{ data: EvidenceRecord }> => apiClient.get(`/evidence/records/${recordId}`),
   createRecord: (payload: EvidenceRecordInput): Promise<{ data: EvidenceRecord }> => apiClient.post('/evidence/records', payload),

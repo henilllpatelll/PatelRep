@@ -17,6 +17,7 @@ from models.requests import (
     CreateControlledDocumentRequest,
     CreateEvidenceRecordRequest,
     DocumentLifecycleActionRequest,
+    EvaluateDocumentCompetencyRequest,
     UpdatePropertyApplicabilityRequest,
 )
 from services.evidence.contracts import (
@@ -34,6 +35,7 @@ ALLOWED_EVIDENCE_CONTENT_TYPES = {"application/pdf", "image/jpeg", "image/png", 
 EVIDENCE_CAPTURE_ROLES = (
     "housekeeper", "housekeeping_supervisor", "engineer", "chief_engineer", "front_desk", "gm",
 )
+COMPETENCY_MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")
 EVIDENCE_FILE_EXTENSIONS = {
     "application/pdf": "pdf",
     "image/jpeg": "jpg",
@@ -310,16 +312,30 @@ async def supersede_controlled_document(
 async def assign_controlled_document(
     document_id: str,
     request: AssignControlledDocumentRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer")),
+    current_user: CurrentUser = Depends(require_role(*COMPETENCY_MANAGER_ROLES)),
 ):
     document = _get_document(document_id, current_user)
     _require_document_applicability(document, current_user)
-    staff = supabase.table("user_roles").select("user_id").eq("tenant_id", current_user.hotel_id).eq("user_id", request.assigned_to).eq("is_active", True).maybe_single().execute()
-    if not staff.data:
-        raise HTTPException(status_code=404, detail="Assignee is not active at this property.")
-    payload = {"tenant_id": current_user.hotel_id, "document_id": document_id, **request.model_dump(mode="json"), "assigned_by": current_user.user_id}
+    if document.get("approval_state") != "approved":
+        raise HTTPException(status_code=409, detail="Only an approved controlled document can be assigned.")
+    _require_active_tenant_user(request.assigned_to, current_user, label="assignee")
+    existing = (
+        supabase.table("document_acknowledgements").select("*")
+        .eq("tenant_id", current_user.hotel_id).eq("document_id", document_id)
+        .eq("assigned_to", request.assigned_to).maybe_single().execute()
+    )
+    if existing.data:
+        return {"data": existing.data}
+    payload = {
+        "tenant_id": current_user.hotel_id,
+        "document_id": document_id,
+        **request.model_dump(mode="json"),
+        "assigned_by": current_user.user_id,
+        "competency_status": "pending" if request.competency_required else "not_required",
+        "assignment_type": "initial",
+    }
     record = supabase.table("document_acknowledgements").insert(payload).execute().data[0]
-    _record_audit_event(current_user=current_user, resource_type="document_acknowledgement", resource_id=record["id"], action="document_acknowledgement.assigned", new_state={"due_date": payload["due_date"]})
+    _record_audit_event(current_user=current_user, resource_type="document_acknowledgement", resource_id=record["id"], action="document_acknowledgement.assigned", new_state={"due_date": payload["due_date"], "competency_required": request.competency_required, "assignment_type": "initial"})
     return {"data": record}
 
 
@@ -328,6 +344,20 @@ async def list_my_acknowledgements(current_user: CurrentUser = Depends(get_curre
     result = (
         supabase.table("document_acknowledgements").select("*, controlled_documents(title, version_number, approval_state)")
         .eq("tenant_id", current_user.hotel_id).eq("assigned_to", current_user.user_id).order("due_date").execute()
+    )
+    return {"data": result.data or []}
+
+
+@router.get("/documents/{document_id}/assignments")
+async def list_document_assignments(
+    document_id: str,
+    current_user: CurrentUser = Depends(require_role(*COMPETENCY_MANAGER_ROLES)),
+):
+    _get_document(document_id, current_user)
+    result = (
+        supabase.table("document_acknowledgements").select("*")
+        .eq("tenant_id", current_user.hotel_id).eq("document_id", document_id)
+        .order("due_date").execute()
     )
     return {"data": result.data or []}
 
@@ -345,6 +375,45 @@ async def acknowledge_controlled_document(assignment_id: str, current_user: Curr
     result = supabase.table("document_acknowledgements").update({"acknowledged_at": datetime.now(timezone.utc).isoformat(), "acknowledged_by": current_user.user_id}).eq("id", assignment_id).eq("tenant_id", current_user.hotel_id).execute()
     record = result.data[0]
     _record_audit_event(current_user=current_user, resource_type="document_acknowledgement", resource_id=assignment_id, action="document_acknowledgement.acknowledged", new_state={"acknowledged": True})
+    return {"data": record}
+
+
+@router.post("/acknowledgements/{assignment_id}/competency")
+async def evaluate_document_competency(
+    assignment_id: str,
+    request: EvaluateDocumentCompetencyRequest,
+    current_user: CurrentUser = Depends(require_role(*COMPETENCY_MANAGER_ROLES)),
+):
+    assignment = (
+        supabase.table("document_acknowledgements").select("*").eq("id", assignment_id)
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not assignment.data:
+        raise HTTPException(status_code=404, detail="Document assignment not found.")
+    if not assignment.data.get("competency_required"):
+        raise HTTPException(status_code=409, detail="Competency is not required for this document assignment.")
+    payload = {
+        "competency_status": request.outcome,
+        "competency_method": request.assessment_method,
+        "competency_notes": request.notes,
+        "competency_evaluated_by": current_user.user_id,
+        "competency_evaluated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = (
+        supabase.table("document_acknowledgements").update(payload).eq("id", assignment_id)
+        .eq("tenant_id", current_user.hotel_id).execute()
+    )
+    record = result.data[0]
+    _record_audit_event(
+        current_user=current_user,
+        resource_type="document_acknowledgement",
+        resource_id=assignment_id,
+        action="document_acknowledgement.competency_evaluated",
+        old_state={"competency_status": assignment.data.get("competency_status")},
+        new_state={"competency_status": request.outcome, "assessment_method": request.assessment_method},
+        reason_code="competency_evaluation",
+        reason_note=request.notes,
+    )
     return {"data": record}
 
 

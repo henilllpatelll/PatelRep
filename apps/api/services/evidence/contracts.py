@@ -75,6 +75,30 @@ def create_superseding_version(previous: dict[str, Any], *, actor_id: str) -> di
     return successor
 
 
+def build_retraining_assignments(
+    assignments: list[dict[str, Any]],
+    *,
+    successor_document_id: str,
+    due_date: str,
+    assigned_by: str,
+) -> list[dict[str, Any]]:
+    """Copy only competency-required staff into retraining for an approved successor."""
+    return [
+        {
+            "document_id": successor_document_id,
+            "assigned_to": assignment["assigned_to"],
+            "assigned_by": assigned_by,
+            "due_date": due_date,
+            "competency_required": True,
+            "competency_status": "pending",
+            "assignment_type": "retraining",
+            "retraining_from_assignment_id": assignment["id"],
+        }
+        for assignment in assignments
+        if assignment.get("competency_required")
+    ]
+
+
 def build_exception_queue(
     *,
     documents: list[dict[str, Any]],

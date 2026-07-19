@@ -63,3 +63,25 @@ test('authorized staff can open secure evidence capture and review', async ({ pa
   await expect(page.getByTestId('evidence-file')).toBeVisible()
   await expect(page.getByTestId('capture-evidence')).toBeVisible()
 })
+
+test('staff can acknowledge an assigned approved procedure at 390px', async ({ page }) => {
+  test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
+  test.skip(!process.env.STAFF_TEST_EMAIL || !GM_PASSWORD, 'Set STAFF_TEST_EMAIL and TEST_PASSWORD for the staff acknowledgement fixture')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(new URL('/login', EVIDENCE_BASE_URL).toString())
+  await page.locator('#email-pw').or(page.locator('input[type="email"]')).first().fill(process.env.STAFF_TEST_EMAIL ?? '')
+  await page.locator('input[type="password"]').first().fill(GM_PASSWORD ?? '')
+  await page.getByRole('button', { name: /sign in|log in|login/i }).or(page.locator('button[type="submit"]')).first().click()
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 })
+  await page.goto(new URL('/evidence', EVIDENCE_BASE_URL).toString())
+
+  const acknowledgementPanel = page.getByTestId('my-acknowledgements')
+  await expect(acknowledgementPanel).toBeVisible()
+  await expect(acknowledgementPanel).toHaveCSS('width', /[0-3]\d\dpx/)
+  const acknowledge = acknowledgementPanel.locator('[data-testid^="acknowledge-assignment-"]').first()
+  await expect(acknowledge).toBeVisible()
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes('/acknowledge') && response.request().method() === 'POST'),
+    acknowledge.click(),
+  ])
+})

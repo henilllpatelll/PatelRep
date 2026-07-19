@@ -485,6 +485,12 @@ class AssignControlledDocumentRequest(SanitizedBaseModel):
     competency_required: bool = False
 
 
+class EvaluateDocumentCompetencyRequest(SanitizedBaseModel):
+    assessment_method: Literal["observed", "quiz"]
+    outcome: Literal["passed", "failed"]
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+
+
 class CreateEvidenceRecordRequest(SanitizedBaseModel):
     label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
     evidence_type: Literal["file", "photo", "measurement", "checklist_result", "signature", "attestation", "external_certificate"]

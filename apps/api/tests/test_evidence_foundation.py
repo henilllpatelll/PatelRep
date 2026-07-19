@@ -17,6 +17,7 @@ from models.requests import (
     CreateControlledDocumentRequest,
     CreateEvidenceRecordRequest,
     DocumentLifecycleActionRequest,
+    EvaluateDocumentCompetencyRequest,
     UpdatePropertyApplicabilityRequest,
 )
 from routers import evidence as evidence_router
@@ -26,6 +27,7 @@ from services.evidence.contracts import (
     SERVICE_OPTIONS,
     build_exception_queue,
     build_reminder_actions,
+    build_retraining_assignments,
     create_superseding_version,
 )
 
@@ -396,6 +398,80 @@ async def test_acknowledgement_cannot_be_read_or_changed_by_another_staff_member
             "assignment-1",
             CurrentUser(user_id="staff-2", hotel_id="hotel-1", role="housekeeper"),
         )
+
+
+@pytest.mark.asyncio
+async def test_assignment_requires_an_approved_applicable_document_and_is_duplicate_safe(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [{"tenant_id": "hotel-1", "facilities": ["pool"], "services": [], "brand_requirements": []}],
+        "controlled_documents": [{
+            "id": "doc-1", "tenant_id": "hotel-1", "title": "Pool opening",
+            "approval_state": "approved", "applicability": ["pool"],
+        }],
+        "user_roles": [{"tenant_id": "hotel-1", "user_id": "staff-1", "is_active": True}],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+    request = AssignControlledDocumentRequest(
+        assigned_to="staff-1", due_date="2026-07-20", competency_required=True,
+    )
+
+    first = await evidence_router.assign_controlled_document("doc-1", request, _gm())
+    duplicate = await evidence_router.assign_controlled_document("doc-1", request, _gm())
+
+    assert first["data"]["id"] == duplicate["data"]["id"]
+    assert len(db.rows["document_acknowledgements"]) == 1
+    assert db.rows["operational_audit_events"][-1]["action"] == "document_acknowledgement.assigned"
+
+    db.rows["controlled_documents"][0]["approval_state"] = "draft"
+    with pytest.raises(HTTPException, match="approved"):
+        await evidence_router.assign_controlled_document("doc-1", request, _gm())
+
+
+@pytest.mark.asyncio
+async def test_manager_records_observed_or_quiz_competency_with_pass_fail_audit(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({"document_acknowledgements": [{
+        "id": "assignment-1", "tenant_id": "hotel-1", "document_id": "doc-1",
+        "assigned_to": "staff-1", "competency_required": True, "competency_status": "pending",
+    }]})
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    response = await evidence_router.evaluate_document_competency(
+        "assignment-1",
+        EvaluateDocumentCompetencyRequest(assessment_method="quiz", outcome="failed", notes="Retry floor-safety questions."),
+        _gm(),
+    )
+
+    assert response["data"]["competency_status"] == "failed"
+    assert response["data"]["competency_method"] == "quiz"
+    assert db.rows["operational_audit_events"][-1]["action"] == "document_acknowledgement.competency_evaluated"
+
+    route = next(route for route in evidence_router.router.routes if route.path == "/evidence/acknowledgements/{assignment_id}/competency")
+    role_check = route.dependant.dependencies[0].call
+    with pytest.raises(HTTPException, match="not authorized"):
+        await role_check(CurrentUser(user_id="engineer-1", hotel_id="hotel-1", role="engineer"))
+
+
+def test_retraining_assignments_copy_only_competency_required_staff_to_the_approved_successor():
+    assignments = build_retraining_assignments(
+        [
+            {"id": "required-1", "assigned_to": "staff-1", "competency_required": True},
+            {"id": "read-only-1", "assigned_to": "staff-2", "competency_required": False},
+        ],
+        successor_document_id="doc-v2",
+        due_date="2026-08-01",
+        assigned_by="gm-1",
+    )
+
+    assert assignments == [{
+        "document_id": "doc-v2", "assigned_to": "staff-1", "assigned_by": "gm-1",
+        "due_date": "2026-08-01", "competency_required": True,
+        "competency_status": "pending", "assignment_type": "retraining",
+        "retraining_from_assignment_id": "required-1",
+    }]
 
 
 def test_evidence_record_requires_complete_supported_entity_linkage():

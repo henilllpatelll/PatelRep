@@ -7,6 +7,8 @@ import {
   PROPERTY_APPLICABILITY_OPTIONS,
   type EvidenceException,
   type ControlledDocument,
+  type DocumentAcknowledgement,
+  type DocumentAcknowledgementInput,
   type ControlledDocumentInput,
   type EvidenceRecord,
   type EvidenceRecordInput,
@@ -37,9 +39,16 @@ const EMPTY_EVIDENCE: EvidenceRecordInput = {
   evidence_type: 'file',
 }
 
+const EMPTY_ASSIGNMENT: DocumentAcknowledgementInput = {
+  assigned_to: '',
+  due_date: '',
+  competency_required: false,
+}
+
 const EVIDENCE_TYPES: EvidenceType[] = ['file', 'photo', 'measurement', 'checklist_result', 'signature', 'attestation', 'external_certificate']
 const RELATED_ENTITY_TYPES: RelatedEvidenceEntityType[] = ['staff', 'task', 'asset', 'room', 'inspection', 'incident', 'sop']
 const EVIDENCE_CAPTURE_ROLES = ['housekeeper', 'housekeeping_supervisor', 'engineer', 'chief_engineer', 'front_desk', 'gm']
+const COMPETENCY_MANAGER_ROLES = ['gm', 'housekeeping_supervisor', 'chief_engineer']
 const MAX_EVIDENCE_FILE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_EVIDENCE_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
@@ -61,7 +70,10 @@ export default function EvidenceDashboardPage() {
   const [documents, setDocuments] = useState<ControlledDocument[]>([])
   const [selectedDocument, setSelectedDocument] = useState<ControlledDocument | null>(null)
   const [documentHistory, setDocumentHistory] = useState<OperationalAuditEvent[]>([])
+  const [documentAssignments, setDocumentAssignments] = useState<DocumentAcknowledgement[]>([])
   const [documentDraft, setDocumentDraft] = useState<ControlledDocumentInput>(EMPTY_DOCUMENT)
+  const [assignmentDraft, setAssignmentDraft] = useState<DocumentAcknowledgementInput>(EMPTY_ASSIGNMENT)
+  const [myAcknowledgements, setMyAcknowledgements] = useState<DocumentAcknowledgement[]>([])
   const [records, setRecords] = useState<EvidenceRecord[]>([])
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRecord | null>(null)
   const [evidenceDraft, setEvidenceDraft] = useState<EvidenceRecordInput>(EMPTY_EVIDENCE)
@@ -71,16 +83,18 @@ export default function EvidenceDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const canManageCompetency = COMPETENCY_MANAGER_ROLES.includes(role ?? '')
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [queue, property, listedDocuments, listedRecords] = await Promise.all([
+      const [queue, property, listedDocuments, listedRecords, acknowledgements] = await Promise.all([
         evidenceApi.listExceptions(),
         evidenceApi.getApplicability(),
         evidenceApi.listDocuments(),
         evidenceApi.listRecords(),
+        evidenceApi.listMyAcknowledgements(),
       ])
       const current = { ...EMPTY_APPLICABILITY, ...property.data }
       setExceptions(queue.data)
@@ -88,6 +102,7 @@ export default function EvidenceDashboardPage() {
       setDraft(current)
       setDocuments(listedDocuments.data)
       setRecords(listedRecords.data)
+      setMyAcknowledgements(acknowledgements.data)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t('evidence.loadError'))
     } finally {
@@ -149,12 +164,14 @@ export default function EvidenceDashboardPage() {
   const selectDocument = async (documentId: string) => {
     setError(null)
     try {
-      const [document, history] = await Promise.all([
+      const [document, history, assignments] = await Promise.all([
         evidenceApi.getDocument(documentId),
         evidenceApi.getDocumentHistory(documentId),
+        canManageCompetency ? evidenceApi.listDocumentAssignments(documentId) : Promise.resolve({ data: [] }),
       ])
       setSelectedDocument(document.data)
       setDocumentHistory(history.data)
+      setDocumentAssignments(assignments.data)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t('evidence.loadError'))
     }
@@ -195,6 +212,42 @@ export default function EvidenceDashboardPage() {
       setError(caught instanceof Error ? caught.message : t('evidence.documentSaveError'))
     } finally {
       setDocumentSaving(false)
+    }
+  }
+
+  const acknowledgeAssignment = async (assignmentId: string) => {
+    setError(null)
+    try {
+      await evidenceApi.acknowledgeDocument(assignmentId)
+      await load()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.acknowledgementSaveError'))
+    }
+  }
+
+  const assignDocument = async () => {
+    if (!selectedDocument || !assignmentDraft.assigned_to || !assignmentDraft.due_date) return
+    setDocumentSaving(true)
+    setError(null)
+    try {
+      await evidenceApi.assignDocument(selectedDocument.id, assignmentDraft)
+      setAssignmentDraft(EMPTY_ASSIGNMENT)
+      const response = await evidenceApi.listDocumentAssignments(selectedDocument.id)
+      setDocumentAssignments(response.data)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.assignmentSaveError'))
+    } finally {
+      setDocumentSaving(false)
+    }
+  }
+
+  const evaluateCompetency = async (assignmentId: string, assessmentMethod: 'observed' | 'quiz', outcome: 'passed' | 'failed') => {
+    setError(null)
+    try {
+      const response = await evidenceApi.evaluateCompetency(assignmentId, { assessment_method: assessmentMethod, outcome })
+      setDocumentAssignments((current) => current.map((item) => item.id === assignmentId ? response.data : item))
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('evidence.competencySaveError'))
     }
   }
 
@@ -259,6 +312,26 @@ export default function EvidenceDashboardPage() {
       <SummaryCard icon={<AlertTriangle />} label={t('evidence.critical')} value={summary.critical} tone="alert" />
       <SummaryCard icon={<FileWarning />} label={t('evidence.expired')} value={summary.expired} tone="caution" />
       <SummaryCard icon={<UserRoundX />} label={t('evidence.unacknowledged')} value={summary.acknowledgements} tone="ai" />
+    </section>
+
+    <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4" data-testid="my-acknowledgements">
+        <div className="mb-3 flex items-center gap-2"><CheckCircle2 size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.myAcknowledgements')}</h2></div>
+        {myAcknowledgements.length ? <ul className="divide-y divide-line">{myAcknowledgements.map((assignment) => <li key={assignment.id} className="min-w-0 space-y-2 py-3 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:space-y-0">
+          <div className="min-w-0"><p className="break-words text-sm font-medium text-ink">{assignment.controlled_documents?.title ?? t('evidence.controlledDocument')}</p><p className="text-xs text-ink3">{t('evidence.dueDate')}: {assignment.due_date} · {t(`evidence.assignmentTypes.${assignment.assignment_type}`)} · {t(`evidence.competencyStates.${assignment.competency_status}`)}</p></div>
+          {assignment.acknowledged_at ? <span className="text-xs font-medium text-accent">{t('evidence.acknowledged')}</span> : <Button data-testid={`acknowledge-assignment-${assignment.id}`} className="w-full shrink-0 sm:w-auto" onClick={() => void acknowledgeAssignment(assignment.id)}>{t('evidence.acknowledge')}</Button>}
+        </li>)}</ul> : <p className="text-sm text-ink3">{t('evidence.noAcknowledgements')}</p>}
+      </div>
+
+      {canManageCompetency ? <div className="rounded-[var(--r-lg)] border border-line bg-surface p-4" data-testid="document-competency-controls">
+        <div className="mb-3 flex items-center gap-2"><UserRoundX size={17} className="text-accent" /><h2 className="font-medium text-ink">{t('evidence.staffCompetency')}</h2></div>
+        {selectedDocument?.approval_state === 'approved' ? <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-ink2">{t('evidence.staffUserId')}<input data-testid="document-assignee" value={assignmentDraft.assigned_to} onChange={(event) => setAssignmentDraft((current) => ({ ...current, assigned_to: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label><label className="text-sm text-ink2">{t('evidence.dueDate')}<input data-testid="document-assignment-due-date" type="date" value={assignmentDraft.due_date} onChange={(event) => setAssignmentDraft((current) => ({ ...current, due_date: event.target.value }))} className="mt-1 w-full rounded border border-line bg-surface px-3 py-2 text-ink" /></label></div>
+          <label className="flex items-center gap-2 text-sm text-ink2"><input type="checkbox" checked={assignmentDraft.competency_required} onChange={(event) => setAssignmentDraft((current) => ({ ...current, competency_required: event.target.checked }))} />{t('evidence.competencyRequired')}</label>
+          <Button data-testid="assign-controlled-document" disabled={documentSaving || !assignmentDraft.assigned_to || !assignmentDraft.due_date} onClick={() => void assignDocument()}>{t('evidence.assignDocument')}</Button>
+          <ul className="divide-y divide-line">{documentAssignments.length ? documentAssignments.map((assignment) => <li key={assignment.id} className="min-w-0 space-y-2 py-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="break-all text-sm font-medium text-ink">{assignment.assigned_to}</span><span className="text-xs text-ink3">{assignment.due_date} · {t(`evidence.assignmentTypes.${assignment.assignment_type}`)}</span></div><p className="text-xs text-ink2">{assignment.acknowledged_at ? t('evidence.acknowledged') : t('evidence.notAcknowledged')} · {t(`evidence.competencyStates.${assignment.competency_status}`)}</p>{assignment.competency_required ? <div className="flex flex-wrap gap-2"><Button className="px-2.5 py-1.5 text-xs" variant="secondary" onClick={() => void evaluateCompetency(assignment.id, 'observed', 'passed')}>{t('evidence.observedPass')}</Button><Button className="px-2.5 py-1.5 text-xs" variant="secondary" onClick={() => void evaluateCompetency(assignment.id, 'quiz', 'passed')}>{t('evidence.quizPass')}</Button><Button className="px-2.5 py-1.5 text-xs" variant="outline" onClick={() => void evaluateCompetency(assignment.id, 'quiz', 'failed')}>{t('evidence.quizFail')}</Button></div> : null}</li>) : <li className="py-3 text-sm text-ink3">{t('evidence.noAssignments')}</li>}</ul>
+        </div> : <p className="text-sm text-ink3">{t('evidence.selectApprovedDocument')}</p>}
+      </div> : null}
     </section>
 
     <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
