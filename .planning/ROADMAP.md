@@ -30,7 +30,7 @@ PatelRep moves from production trust through reusable operational evidence, Texa
 
 Plans:
 **Wave 1**
-- [ ] 02-01: Property applicability contract and GM configuration
+- [x] 02-01: Property applicability contract and GM configuration
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 02-02: Controlled-document lifecycle and history
@@ -77,7 +77,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 0. Restore reality | N/A | Complete | 2026-07-19 |
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
-| 2. Evidence foundation | 0/5 | Ready for review | - |
+| 2. Evidence foundation | 1/5 | In progress | - |
 | 3. Texas compliance and staff safety | 0/TBD | Not started | - |
 | 4. Maintenance and housekeeping programs | 0/TBD | Not started | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |

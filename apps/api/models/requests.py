@@ -413,6 +413,27 @@ class UpdatePropertyApplicabilityRequest(SanitizedBaseModel):
     services: List[str] = Field(default_factory=list, max_length=40)
     brand_requirements: List[str] = Field(default_factory=list, max_length=40)
 
+    @field_validator("facilities")
+    @classmethod
+    def validate_facilities(cls, value: List[str]) -> List[str]:
+        from services.evidence.contracts import FACILITY_OPTIONS, validate_applicability_values
+
+        return validate_applicability_values(value, allowed_values=FACILITY_OPTIONS)
+
+    @field_validator("services")
+    @classmethod
+    def validate_services(cls, value: List[str]) -> List[str]:
+        from services.evidence.contracts import SERVICE_OPTIONS, validate_applicability_values
+
+        return validate_applicability_values(value, allowed_values=SERVICE_OPTIONS)
+
+    @field_validator("brand_requirements")
+    @classmethod
+    def validate_brand_requirements(cls, value: List[str]) -> List[str]:
+        from services.evidence.contracts import BRAND_REQUIREMENT_OPTIONS, validate_applicability_values
+
+        return validate_applicability_values(value, allowed_values=BRAND_REQUIREMENT_OPTIONS)
+
 
 class CreateControlledDocumentRequest(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
@@ -424,6 +445,15 @@ class CreateControlledDocumentRequest(SanitizedBaseModel):
     applicability: List[str] = Field(default_factory=list, max_length=40)
     retention_class: Literal["operational_3_years", "safety_7_years", "brand_7_years"] = "operational_3_years"
     source_sop_document_id: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("applicability")
+    @classmethod
+    def validate_document_applicability(cls, value: List[str]) -> List[str]:
+        from services.evidence.contracts import CANONICAL_APPLICABILITY_VALUES, validate_applicability_values
+
+        return validate_applicability_values(
+            value, allowed_values=tuple(CANONICAL_APPLICABILITY_VALUES)
+        )
 
 
 class AssignControlledDocumentRequest(SanitizedBaseModel):

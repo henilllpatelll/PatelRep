@@ -21,6 +21,7 @@ from services.evidence.contracts import (
     build_exception_queue,
     build_reminder_actions,
     create_superseding_version,
+    is_applicable_to_property,
 )
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
@@ -57,13 +58,24 @@ def _get_document(document_id: str, current_user: CurrentUser) -> dict:
     return result.data
 
 
-@router.get("/applicability")
-async def get_property_applicability(current_user: CurrentUser = Depends(get_current_user)):
+def _get_property_applicability(current_user: CurrentUser) -> dict:
     result = (
         supabase.table("property_applicability").select("*")
         .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     )
-    return {"data": result.data or {"facilities": [], "services": [], "brand_requirements": []}}
+    return (result.data if result and result.data else {
+        "facilities": [], "services": [], "brand_requirements": [],
+    })
+
+
+def _require_document_applicability(document: dict, current_user: CurrentUser) -> None:
+    if not is_applicable_to_property(document.get("applicability"), _get_property_applicability(current_user)):
+        raise HTTPException(status_code=409, detail="Controlled document is not applicable to this property.")
+
+
+@router.get("/applicability")
+async def get_property_applicability(current_user: CurrentUser = Depends(get_current_user)):
+    return {"data": _get_property_applicability(current_user)}
 
 
 @router.put("/applicability")
@@ -84,7 +96,11 @@ async def list_controlled_documents(current_user: CurrentUser = Depends(get_curr
         supabase.table("controlled_documents").select("*").eq("tenant_id", current_user.hotel_id)
         .order("title").order("version_number", desc=True).execute()
     )
-    return {"data": result.data or []}
+    property_applicability = _get_property_applicability(current_user)
+    return {"data": [
+        document for document in (result.data or [])
+        if is_applicable_to_property(document.get("applicability"), property_applicability)
+    ]}
 
 
 @router.post("/documents")
@@ -92,6 +108,7 @@ async def create_controlled_document(
     request: CreateControlledDocumentRequest,
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
+    _require_document_applicability({"applicability": request.applicability}, current_user)
     payload = {
         "tenant_id": current_user.hotel_id,
         **request.model_dump(mode="json"),
@@ -112,6 +129,7 @@ async def approve_controlled_document(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     document = _get_document(document_id, current_user)
+    _require_document_applicability(document, current_user)
     result = (
         supabase.table("controlled_documents").update({
             "approval_state": "approved", "approver_id": current_user.user_id,
@@ -129,6 +147,7 @@ async def supersede_controlled_document(
     current_user: CurrentUser = Depends(require_role("gm")),
 ):
     previous = _get_document(document_id, current_user)
+    _require_document_applicability(previous, current_user)
     try:
         successor = create_superseding_version(previous, actor_id=current_user.user_id)
     except ValueError as exc:
@@ -149,7 +168,8 @@ async def assign_controlled_document(
     request: AssignControlledDocumentRequest,
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "engineer")),
 ):
-    _get_document(document_id, current_user)
+    document = _get_document(document_id, current_user)
+    _require_document_applicability(document, current_user)
     staff = supabase.table("user_roles").select("user_id").eq("tenant_id", current_user.hotel_id).eq("user_id", request.assigned_to).eq("is_active", True).maybe_single().execute()
     if not staff.data:
         raise HTTPException(status_code=404, detail="Assignee is not active at this property.")

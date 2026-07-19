@@ -6,6 +6,39 @@ from datetime import date, datetime
 from typing import Any
 
 
+FACILITY_OPTIONS = ("pool", "spa", "elevator", "boiler", "cooling_tower")
+SERVICE_OPTIONS = ("breakfast",)
+BRAND_REQUIREMENT_OPTIONS = ("brand_standard", "brand_safety", "brand_training")
+CANONICAL_APPLICABILITY_VALUES = frozenset(
+    (*FACILITY_OPTIONS, *SERVICE_OPTIONS, *BRAND_REQUIREMENT_OPTIONS)
+)
+
+
+def validate_applicability_values(values: list[str], *, allowed_values: tuple[str, ...]) -> list[str]:
+    """Reject unknown or repeated property applicability values at the API boundary."""
+    unknown = sorted(set(values).difference(allowed_values))
+    if unknown:
+        raise ValueError(f"unsupported property applicability value(s): {', '.join(unknown)}")
+    if len(values) != len(set(values)):
+        raise ValueError("property applicability values must be unique")
+    return values
+
+
+def is_applicable_to_property(
+    document_applicability: list[str] | None,
+    property_applicability: dict[str, Any] | None,
+) -> bool:
+    """Return whether a controlled obligation applies to this hotel's configured property."""
+    required = set(document_applicability or [])
+    if not required:
+        return True
+    property_applicability = property_applicability or {}
+    configured = set(property_applicability.get("facilities") or [])
+    configured.update(property_applicability.get("services") or [])
+    configured.update(property_applicability.get("brand_requirements") or [])
+    return required.issubset(configured)
+
+
 def _as_date(value: str | None) -> date | None:
     return date.fromisoformat(value) if value else None
 

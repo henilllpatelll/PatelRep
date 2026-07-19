@@ -10,9 +10,16 @@ import pytest
 from fastapi import HTTPException
 
 from middleware.auth import CurrentUser
-from models.requests import CreateControlledDocumentRequest
+from models.requests import (
+    AssignControlledDocumentRequest,
+    CreateControlledDocumentRequest,
+    UpdatePropertyApplicabilityRequest,
+)
 from routers import evidence as evidence_router
 from services.evidence.contracts import (
+    BRAND_REQUIREMENT_OPTIONS,
+    FACILITY_OPTIONS,
+    SERVICE_OPTIONS,
     build_exception_queue,
     build_reminder_actions,
     create_superseding_version,
@@ -24,6 +31,97 @@ NOW = datetime(2026, 7, 16, 16, 0, tzinfo=timezone.utc)
 
 def _gm() -> CurrentUser:
     return CurrentUser(user_id="gm-1", hotel_id="hotel-1", role="gm")
+
+
+def test_property_applicability_accepts_only_canonical_values():
+    request = UpdatePropertyApplicabilityRequest(
+        facilities=["pool", "spa", "elevator", "boiler", "cooling_tower"],
+        services=["breakfast"],
+        brand_requirements=["brand_standard"],
+    )
+
+    assert set(request.facilities) <= set(FACILITY_OPTIONS)
+    assert set(request.services) <= set(SERVICE_OPTIONS)
+    assert set(request.brand_requirements) <= set(BRAND_REQUIREMENT_OPTIONS)
+
+    with pytest.raises(ValueError, match="unsupported property applicability"):
+        UpdatePropertyApplicabilityRequest(facilities=["parking"])
+
+
+@pytest.mark.asyncio
+async def test_applicability_update_is_gm_gated_and_tenant_scoped(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [
+            {"tenant_id": "hotel-2", "facilities": ["pool"], "services": [], "brand_requirements": []},
+        ],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    route = next(route for route in evidence_router.router.routes if route.path == "/evidence/applicability" and "PUT" in route.methods)
+    role_check = route.dependant.dependencies[0].call
+    with pytest.raises(HTTPException, match="not authorized"):
+        await role_check(CurrentUser(user_id="staff-1", hotel_id="hotel-1", role="housekeeper"))
+
+    response = await evidence_router.update_property_applicability(
+        UpdatePropertyApplicabilityRequest(facilities=["pool"], services=["breakfast"]),
+        _gm(),
+    )
+
+    assert response["data"]["tenant_id"] == "hotel-1"
+    assert db.rows["property_applicability"] == [
+        {"tenant_id": "hotel-2", "facilities": ["pool"], "services": [], "brand_requirements": []},
+        {"id": "property_applicability-1", "tenant_id": "hotel-1", "facilities": ["pool"], "services": ["breakfast"], "brand_requirements": [], "updated_by": "gm-1"},
+    ]
+    assert db.rows["operational_audit_events"][0]["tenant_id"] == "hotel-1"
+
+
+@pytest.mark.asyncio
+async def test_non_applicable_document_cannot_be_assigned(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [{
+            "tenant_id": "hotel-1", "facilities": ["spa"], "services": [], "brand_requirements": [],
+        }],
+        "controlled_documents": [{
+            "id": "pool-procedure", "tenant_id": "hotel-1", "title": "Pool opening", "applicability": ["pool"],
+        }],
+        "user_roles": [{"tenant_id": "hotel-1", "user_id": "engineer-1", "is_active": True}],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="not applicable"):
+        await evidence_router.assign_controlled_document(
+            "pool-procedure",
+            AssignControlledDocumentRequest(assigned_to="engineer-1", due_date="2026-07-20"),
+            _gm(),
+        )
+
+    assert db.rows.get("document_acknowledgements", []) == []
+
+
+@pytest.mark.asyncio
+async def test_document_list_hides_obligations_not_applicable_to_property(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [{
+            "tenant_id": "hotel-1", "facilities": ["pool"], "services": [], "brand_requirements": [],
+        }],
+        "controlled_documents": [
+            {"id": "pool-procedure", "tenant_id": "hotel-1", "title": "Pool opening", "applicability": ["pool"]},
+            {"id": "spa-procedure", "tenant_id": "hotel-1", "title": "Spa opening", "applicability": ["spa"]},
+            {"id": "all-properties", "tenant_id": "hotel-1", "title": "Emergency contacts", "applicability": []},
+            {"id": "other-tenant", "tenant_id": "hotel-2", "title": "Other hotel pool", "applicability": ["pool"]},
+        ],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    response = await evidence_router.list_controlled_documents(_gm())
+
+    assert {document["id"] for document in response["data"]} == {"all-properties", "pool-procedure"}
 
 
 def test_superseding_an_approved_document_preserves_controlled_history():

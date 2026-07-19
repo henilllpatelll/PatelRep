@@ -72,6 +72,12 @@ class FakeQuery:
         self.payload = payload
         return self
 
+    def upsert(self, payload, on_conflict=None, **_kwargs):
+        self.action = "upsert"
+        self.payload = payload
+        self.upsert_conflict_columns = (on_conflict or "").split(",") if on_conflict else []
+        return self
+
     def delete(self):
         self.action = "delete"
         return self
@@ -164,6 +170,25 @@ class FakeQuery:
                 self.db.updates.append((self.table_name, dict(row)))
                 updated.append(row)
             return SimpleNamespace(data=updated)
+
+        if self.action == "upsert":
+            payload_rows = self.payload if isinstance(self.payload, list) else [self.payload]
+            saved = []
+            for payload in payload_rows:
+                assert isinstance(payload, dict)
+                existing = next((row for row in rows if self.upsert_conflict_columns and all(
+                    row.get(column) == payload.get(column) for column in self.upsert_conflict_columns
+                )), None)
+                if existing:
+                    existing.update(payload)
+                    self.db.updates.append((self.table_name, dict(existing)))
+                    saved.append(existing)
+                else:
+                    row = {"id": payload.get("id") or self.db.next_id(self.table_name), **payload}
+                    rows.append(row)
+                    self.db.inserts.append((self.table_name, row))
+                    saved.append(row)
+            return SimpleNamespace(data=saved)
 
         if self.action == "delete":
             for row in matched:
