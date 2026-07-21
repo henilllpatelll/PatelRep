@@ -6815,8 +6815,7 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T16:44:42.834Z"
-    }
-    ,
+    },
     {
       "id": "bug-410",
       "timestamp": "2026-07-17T12:35:00-05:00",
@@ -6824,7 +6823,13 @@
       "file": "apps/api/services/ai/task_parser.py",
       "root_cause": "The module constructs OpenAI(api_key=settings.openai_api_key) during application import, so a missing optional OPENAI_API_KEY prevents every API worker from starting.",
       "fix": "Deferred OpenAI and Anthropic client construction through services.ai.providers; the API now starts without optional provider keys and AI-only requests receive a safe configuration error.",
-      "tags": ["railway", "deployment", "openai", "startup", "configuration"],
+      "tags": [
+        "railway",
+        "deployment",
+        "openai",
+        "startup",
+        "configuration"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T12:35:00-05:00"
@@ -6836,8 +6841,14 @@
       "file": ".wolf/anatomy.md",
       "root_cause": "The patch used a character-encoding-sensitive context line.",
       "fix": "Use ASCII-only section headers as patch anchors.",
-      "tags": ["openwolf", "patch", "encoding"],
-      "related_bugs": ["bug-392"],
+      "tags": [
+        "openwolf",
+        "patch",
+        "encoding"
+      ],
+      "related_bugs": [
+        "bug-392"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T12:38:00-05:00"
     },
@@ -6848,8 +6859,15 @@
       "file": "apps/api/core/database.py",
       "root_cause": "supabase-py 2.31 changed the synchronous client to require SyncClientOptions; the legacy base ClientOptions no longer defines session storage.",
       "fix": "Construct SyncClientOptions for modern supabase-py while retaining a fallback for older local clients.",
-      "tags": ["railway", "supabase", "healthcheck", "dependency-upgrade"],
-      "related_bugs": ["bug-410"],
+      "tags": [
+        "railway",
+        "supabase",
+        "healthcheck",
+        "dependency-upgrade"
+      ],
+      "related_bugs": [
+        "bug-410"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T13:10:00-05:00"
     },
@@ -6860,8 +6878,16 @@
       "file": "apps/mobile/.env, apps/mobile/.env.example, apps/mobile/lib/api/client.ts, apps/mobile/lib/api/workOrders.ts, apps/mobile/lib/api/lostFound.ts, apps/mobile/eas.json",
       "root_cause": "Mobile runtime, fallbacks, and preview/production EAS profiles point to the retired patelrep-web-production Railway domain, which returns 404 instead of the FastAPI service.",
       "fix": "Updated the mobile runtime, shared fallback, multipart uploads, and EAS profiles to the active FastAPI Railway domain.",
-      "tags": ["mobile", "expo", "railway", "api-url", "404"],
-      "related_bugs": ["bug-393"],
+      "tags": [
+        "mobile",
+        "expo",
+        "railway",
+        "api-url",
+        "404"
+      ],
+      "related_bugs": [
+        "bug-393"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T13:23:07-05:00"
     },
@@ -6872,7 +6898,12 @@
       "file": "apps/mobile/__tests__/screens/EngineerHome.test.tsx, apps/mobile/__tests__/lib/supervisor.test.ts",
       "root_cause": "EngineerHome expects the obsolete /(app)/rooms route rather than /(app)/room-status, and supervisor snapshot expectations omit the current behindSchedule field.",
       "fix": "Not changed during the scoped API-URL repair; focused API regression coverage passes.",
-      "tags": ["mobile", "jest", "pre-existing", "test-baseline"],
+      "tags": [
+        "mobile",
+        "jest",
+        "pre-existing",
+        "test-baseline"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T13:25:38-05:00"
@@ -6884,8 +6915,15 @@
       "file": "package.json",
       "root_cause": "The mobile package defines its own npm scripts and the root is not a workspace package.",
       "fix": "Ran the suite from apps/mobile; it surfaced two unrelated baseline failures and confirmed the focused API-client regression test passes.",
-      "tags": ["tooling", "npm", "mobile", "test-command"],
-      "related_bugs": ["bug-414"],
+      "tags": [
+        "tooling",
+        "npm",
+        "mobile",
+        "test-command"
+      ],
+      "related_bugs": [
+        "bug-414"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T13:25:38-05:00"
     },
@@ -6896,7 +6934,12 @@
       "file": "apps/web/app/page.tsx",
       "root_cause": "The initial failure exposed the missing root page. A subsequent run reused a separate stale server on port 3000, so it still exercised the old redirect despite the source patch.",
       "fix": "Replace the redirect with a responsive public landing page and make the Phase 0 Playwright port configurable for isolated validation.",
-      "tags": ["web", "landing-page", "playwright", "tdd"],
+      "tags": [
+        "web",
+        "landing-page",
+        "playwright",
+        "tdd"
+      ],
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-07-17T00:00:00-05:00"
@@ -6908,8 +6951,15 @@
       "file": "apps/web/next.config.mjs, apps/web/playwright.phase0.config.ts",
       "root_cause": "The browser test chose a separate port but used the same default Next build directory as the developer's active server.",
       "fix": "Support a NEXT_DIST_DIR override and set an isolated .next-phase0 directory for Phase 0 Playwright runs.",
-      "tags": ["web", "next", "playwright", "test-infrastructure"],
-      "related_bugs": ["bug-416"],
+      "tags": [
+        "web",
+        "next",
+        "playwright",
+        "test-infrastructure"
+      ],
+      "related_bugs": [
+        "bug-416"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
     },
@@ -6920,8 +6970,15 @@
       "file": "apps/web/lib/utils/routeGuard.ts, apps/web/components/shared/Providers.tsx",
       "root_cause": "The root path was not a public route, so the authentication proxy redirected anonymous visitors before the landing page could render. Client-side session-expiry redirects also treated the root as protected.",
       "fix": "Add / to public routes and reuse the shared public-route predicate for client-side redirect guards.",
-      "tags": ["web", "authentication", "landing-page", "route-guard"],
-      "related_bugs": ["bug-416"],
+      "tags": [
+        "web",
+        "authentication",
+        "landing-page",
+        "route-guard"
+      ],
+      "related_bugs": [
+        "bug-416"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
     },
@@ -6932,8 +6989,15 @@
       "file": ".gitignore",
       "root_cause": "The temporary `.next-phase0` and `.next-site-preview` directories were not covered by the existing `.next` ignore rule, so ESLint traversed generated chunks.",
       "fix": "Ignore temporary Next output in both ESLint and Git; the execution policy prevented recursive removal, so the generated directories remain harmlessly ignored.",
-      "tags": ["web", "lint", "next", "test-infrastructure"],
-      "related_bugs": ["bug-417"],
+      "tags": [
+        "web",
+        "lint",
+        "next",
+        "test-infrastructure"
+      ],
+      "related_bugs": [
+        "bug-417"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
     },
@@ -6944,12 +7008,17 @@
       "file": "apps/web/.next-phase0, apps/web/.next-site-preview",
       "root_cause": "The execution environment blocks recursive filesystem deletion even after the exact workspace-local targets were verified.",
       "fix": "Leave the generated directories untracked and ignored by `apps/web/.next-*/`; they do not affect source control or lint after the ignore rule update.",
-      "tags": ["tooling", "cleanup", "policy"],
-      "related_bugs": ["bug-419"],
+      "tags": [
+        "tooling",
+        "cleanup",
+        "policy"
+      ],
+      "related_bugs": [
+        "bug-419"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
-    }
-  ,
+    },
     {
       "id": "bug-421",
       "timestamp": "2026-07-17T00:00:00-05:00",
@@ -6957,12 +7026,15 @@
       "file": "AGENTS.md",
       "root_cause": "The workflow documentation retained a reference after the planning artifact was removed or renamed.",
       "fix": "Record the missing planning artifact during the operational audit; do not invent a replacement without confirming the intended planning source.",
-      "tags": ["documentation", "planning", "missing-file"],
+      "tags": [
+        "documentation",
+        "planning",
+        "missing-file"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
-    }
-  ,
+    },
     {
       "id": "bug-422",
       "timestamp": "2026-07-17T00:00:00-05:00",
@@ -6970,12 +7042,19 @@
       "file": "apps/mobile/__tests__/screens/EngineerHome.test.tsx, apps/mobile/__tests__/lib/supervisor.test.ts",
       "root_cause": "The navigation assertion used the retired rooms path, and the floor-snapshot assertion did not account for the intentional after-1-PM behind-schedule metric.",
       "fix": "Assert the live room-status route and pin Date.now() while asserting behindSchedule.",
-      "tags": ["mobile", "jest", "regression", "housekeeping", "engineering"],
-      "related_bugs": ["bug-414"],
+      "tags": [
+        "mobile",
+        "jest",
+        "regression",
+        "housekeeping",
+        "engineering"
+      ],
+      "related_bugs": [
+        "bug-414"
+      ],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
-    }
-  ,
+    },
     {
       "id": "bug-423",
       "timestamp": "2026-07-17T00:00:00-05:00",
@@ -6983,12 +7062,18 @@
       "file": "apps/api/routers/work_orders.py, apps/web/components/engineering/CreateWorkOrderModal.tsx",
       "root_cause": "The API inserted a `source` field that is not in the work_orders schema; the UI did not expose the supported emergency priority.",
       "fix": "Removed the unsupported insert field, added an emergency option, and covered schema compatibility plus the browser work-order lifecycle.",
-      "tags": ["web", "api", "work-orders", "emergency", "schema", "operations"],
+      "tags": [
+        "web",
+        "api",
+        "work-orders",
+        "emergency",
+        "schema",
+        "operations"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
-    }
-  ,
+    },
     {
       "id": "bug-424",
       "timestamp": "2026-07-17T00:00:00-05:00",
@@ -6996,10 +7081,432 @@
       "file": "apps/web/e2e/phase1-work-orders.spec.ts",
       "root_cause": "The browser test relies on mutable live fixture state instead of preparing a ready-to-inspect room and photo-required template.",
       "fix": "The API/photo-evidence contract is covered by the passing backend suite; make the UI scenario fixture-backed before using it as a release gate.",
-      "tags": ["e2e", "inspection", "fixtures", "photo-evidence"],
+      "tags": [
+        "e2e",
+        "inspection",
+        "fixtures",
+        "photo-evidence"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-425",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Android emulator QA commands were unavailable on PATH.",
+      "file": "apps/mobile",
+      "root_cause": "The Android SDK is installed under the user-local SDK directory but its platform-tools and emulator directories are not exported to PATH.",
+      "fix": "Use explicit SDK executable paths for this QA session; do not change global developer environment settings.",
+      "tags": [
+        "mobile",
+        "android",
+        "emulator",
+        "environment"
+      ],
+      "related_bugs": [
+        "bug-231"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-426",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "Android password sign-in remained indefinitely loading even though Supabase accepted the supplied credentials.",
+      "file": "apps/mobile/app/_layout.tsx, apps/mobile/lib/auth/deferAuthHydration.ts",
+      "root_cause": "The auth-state listener awaited Supabase profile and API calls while Supabase held its internal auth lock during the callback.",
+      "fix": "Deferred session hydration with deferAuthHydration so the listener returns before follow-up Supabase or API work starts; verified on the Android emulator.",
+      "tags": [
+        "mobile",
+        "android",
+        "auth",
+        "supabase",
+        "regression"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-427",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "The Spanish profile screen still exposed the language option as English.",
+      "file": "apps/mobile/app/(app)/profile/index.tsx, apps/mobile/__tests__/screens/ProfileHandoff.test.tsx",
+      "root_cause": "The English language option used a hardcoded label regardless of the active locale.",
+      "fix": "Render the option as Inglés while Spanish is active and added a regression test; verified through Android hot reload.",
+      "tags": [
+        "mobile",
+        "i18n",
+        "spanish",
+        "profile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-428",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "The passing mobile Jest suite still emits existing React act warnings from ReportIssueModal and WorkOrdersList.",
+      "file": "apps/mobile/__tests__/components/ReportIssueModal.test.tsx, apps/mobile/__tests__/screens/WorkOrdersList.test.tsx",
+      "root_cause": "Async state updates started by those test renders are not awaited within React Testing Library act boundaries.",
+      "fix": "Recorded for focused test-harness cleanup; no production behavior failed and all 132 tests pass.",
+      "tags": [
+        "mobile",
+        "tests",
+        "react",
+        "act-warning"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-429",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "A nonfunctional formatting-only patch did not apply while cleaning up the auth callback indentation.",
+      "file": "apps/mobile/app/_layout.tsx",
+      "root_cause": "The terminal's code-page rendering did not preserve the source's Unicode comment characters when matching the patch context.",
+      "fix": "No source change was made by the failed patch; the functional auth fix remains type-checked and covered by tests. Keep future formatting-only patches scoped around ASCII context or use the project formatter.",
+      "tags": [
+        "tooling",
+        "formatting",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-430",
+      "timestamp": "2026-07-17T00:00:00-05:00",
+      "error_message": "The production interactive web walkthrough could not authenticate either configured test credentials or the known mobile test email; the UI returned Invalid login credentials.",
+      "file": "Production Supabase Auth test fixture / apps/web login flow",
+      "root_cause": "Unknown. The live browser has no existing staff session and each available test identity is rejected by production authentication.",
+      "fix": "No application code changed: provision or refresh an authorized non-production staff test account and update the secure test fixture, then rerun the authenticated web walkthrough.",
+      "tags": [
+        "web",
+        "production",
+        "authentication",
+        "test-fixture",
+        "e2e"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-17T00:00:00-05:00"
+    },
+    {
+      "id": "bug-431",
+      "timestamp": "2026-07-19T13:00:00-05:00",
+      "error_message": "The installed GSD workflows require gsd-sdk, but the executable is absent from PATH.",
+      "file": "C:/Users/Henil/.claude/get-shit-done/bin/gsd-tools.cjs",
+      "root_cause": "The GSD compatibility runtime is installed but its preferred gsd-sdk command wrapper is not exposed in this Windows environment.",
+      "fix": "Use the installed Node compatibility runtime for GSD initialization and validation; do not change global PATH during project planning.",
+      "tags": [
+        "gsd",
+        "tooling",
+        "windows",
+        "environment"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:00:00-05:00"
+    },
+    {
+      "id": "bug-432",
+      "timestamp": "2026-07-19T13:00:00-05:00",
+      "error_message": "A multi-file OpenWolf metadata patch did not apply because the anatomy section had extra blank-line context.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch matched a compressed section boundary rather than the file's exact blank-line layout.",
+      "fix": "Applied smaller, exact-context patches; metadata entries are now recorded without changing product code.",
+      "tags": [
+        "tooling",
+        "openwolf",
+        "patch"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:00:00-05:00"
+    },
+    {
+      "id": "bug-433",
+      "timestamp": "2026-07-19T13:00:00-05:00",
+      "error_message": "GSD validation schema check rejected 02-VALIDATION.md because verified and score metadata were missing.",
+      "file": ".planning/phases/02-evidence-foundation/02-VALIDATION.md",
+      "root_cause": "The generic validation template did not include the compatibility runtime's required verified and score frontmatter fields.",
+      "fix": "Added verified: false and score: 0, then reran the GSD validation schema check.",
+      "tags": [
+        "gsd",
+        "validation",
+        "planning"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:00:00-05:00"
+    },
+    {
+      "id": "bug-434",
+      "timestamp": "2026-07-19T19:10:00-05:00",
+      "error_message": "Phase 2 applicability test collection failed: canonical applicability constants are missing.",
+      "file": "apps/api/services/evidence/contracts.py",
+      "root_cause": "The Plan 02-01 TDD tests were added before the canonical property-applicability contract exists.",
+      "fix": "Add the canonical allowlists and applicability helpers, then rerun the focused evidence suite.",
+      "tags": [
+        "phase-2",
+        "evidence",
+        "tdd",
+        "expected-red"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T19:10:00-05:00"
+    },
+    {
+      "id": "bug-435",
+      "timestamp": "2026-07-19T19:14:00-05:00",
+      "error_message": "Plan 02-01 focused test run had two test-harness assertion failures after the implementation contract was added.",
+      "file": "apps/api/tests/test_evidence_foundation.py",
+      "root_cause": "APIRouter stores the prefixed route path, and FakeQuery's chained order behavior does not model Supabase multi-column sorting.",
+      "fix": "Assert the actual prefixed route and compare the visible applicable document identifiers independent of fixture ordering.",
+      "tags": [
+        "phase-2",
+        "evidence",
+        "tests",
+        "fake-supabase"
+      ],
+      "related_bugs": [
+        "bug-434"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T19:14:00-05:00"
+    },
+    {
+      "id": "bug-436",
+      "timestamp": "2026-07-19T19:16:00-05:00",
+      "error_message": "Focused API verification could not invoke ruff because the executable is absent from PATH.",
+      "file": "apps/api",
+      "root_cause": "This Windows environment exposes Python but does not expose the ruff console-script wrapper.",
+      "fix": "Try python -m ruff without changing global PATH; retain pytest as the completed focused verification.",
+      "tags": [
+        "tooling",
+        "ruff",
+        "windows",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T19:16:00-05:00"
+    },
+    {
+      "id": "bug-437",
+      "timestamp": "2026-07-19T19:20:00-05:00",
+      "error_message": "Direct Phase 2 Playwright invocation failed because no baseURL was configured, making /login an invalid URL.",
+      "file": "apps/web/e2e/phase2-evidence.spec.ts",
+      "root_cause": "Unlike the existing Phase 1 configuration, the new direct spec had no Playwright config supplying a base URL.",
+      "fix": "Use an explicit configured/default base URL and require RUN_EVIDENCE_E2E=true before a state-changing production configuration test runs.",
+      "tags": [
+        "e2e",
+        "playwright",
+        "phase-2",
+        "configuration"
+      ],
+      "related_bugs": [
+        "bug-430"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T19:20:00-05:00"
+    },
+    {
+      "id": "bug-438",
+      "timestamp": "2026-07-19T13:54:00-05:00",
+      "error_message": "Plan 02-02 focused test run failed during collection because DocumentLifecycleActionRequest does not exist.",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "Test-driven implementation: the controlled-document lifecycle request contract has not been added yet.",
+      "fix": "Add the validated structured lifecycle action request, then rerun the focused evidence suite.",
+      "tags": [
+        "phase-2",
+        "controlled-documents",
+        "tdd",
+        "expected-red"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:54:00-05:00"
+    },
+    {
+      "id": "bug-439",
+      "timestamp": "2026-07-19T13:58:00-05:00",
+      "error_message": "Existing controlled-document creation test no longer supplied an active tenant owner after lifecycle tenant-link enforcement was added.",
+      "file": "apps/api/tests/test_evidence_foundation.py",
+      "root_cause": "The prior fixture modelled an unauthenticated owner relationship that the new same-tenant lifecycle contract correctly rejects.",
+      "fix": "Add the active GM role to the focused fixture and assert the new structured audit fields.",
+      "tags": [
+        "phase-2",
+        "controlled-documents",
+        "tenant-isolation",
+        "tests"
+      ],
+      "related_bugs": [
+        "bug-438"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:58:00-05:00"
+    },
+    {
+      "id": "bug-440",
+      "timestamp": "2026-07-19T14:05:00-05:00",
+      "error_message": "Ruff reported an unused supersession policy result in routers/evidence.py.",
+      "file": "apps/api/routers/evidence.py",
+      "root_cause": "The pure policy helper validates approved-state supersession before the database RPC, but the RPC constructs the successor row.",
+      "fix": "Call the policy helper for validation without assigning its unused return value, then rerun ruff and focused pytest.",
+      "tags": [
+        "phase-2",
+        "ruff",
+        "controlled-documents",
+        "supersession"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T14:05:00-05:00"
+    },
+    {
+      "id": "bug-441",
+      "timestamp": "2026-07-19T15:10:00-05:00",
+      "error_message": "Plan 02-04 focused evidence tests failed during collection because EvaluateDocumentCompetencyRequest does not exist.",
+      "file": "apps/api/models/requests.py",
+      "root_cause": "Test-driven implementation: the competency evaluation request contract has not been added yet.",
+      "fix": "Add the validated manager competency request, then rerun the focused evidence suite.",
+      "tags": [
+        "phase-2",
+        "competency",
+        "tdd",
+        "expected-red"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:10:00-05:00"
+    },
+    {
+      "id": "bug-442",
+      "timestamp": "2026-07-19T15:20:00-05:00",
+      "error_message": "A broad translation apply_patch failed because rendered Unicode punctuation did not match the UTF-8 source.",
+      "file": "apps/web/i18n/locales/en.ts, apps/web/i18n/locales/es.ts",
+      "root_cause": "The patch context used mojibake punctuation rather than the source's UTF-8 punctuation.",
+      "fix": "Match the source's exact UTF-8 context with a smaller patch; locale changes then apply cleanly.",
+      "tags": [
+        "tooling",
+        "i18n",
+        "patch"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:20:00-05:00"
+    },
+    {
+      "id": "bug-443",
+      "timestamp": "2026-07-19T15:29:00-05:00",
+      "error_message": "An OpenWolf anatomy patch failed because rendered Unicode punctuation did not match the UTF-8 source.",
+      "file": ".wolf/anatomy.md",
+      "root_cause": "The patch used mojibake em-dash context.",
+      "fix": "Insert the migration entry using an ASCII section anchor instead.",
+      "tags": [
+        "tooling",
+        "openwolf",
+        "patch"
+      ],
+      "related_bugs": [
+        "bug-442"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:29:00-05:00"
+    },
+    {
+      "id": "bug-444",
+      "timestamp": "2026-07-21T15:40:00-05:00",
+      "error_message": "An unsupported role could acknowledge a document, and staff could acknowledge a procedure after its property applicability had been removed.",
+      "file": "apps/api/routers/evidence.py",
+      "root_cause": "The acknowledgement mutation depended only on authentication and did not re-check the document's current property applicability.",
+      "fix": "Added an explicit evidence-capture role gate, excluded now-inapplicable assignments from the staff list, and rejected their acknowledgement with focused regression coverage.",
+      "tags": [
+        "phase-2",
+        "evidence",
+        "rbac",
+        "applicability",
+        "regression"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T15:40:00-05:00"
+    },
+    {
+      "id": "bug-445",
+      "timestamp": "2026-07-21T15:42:00-05:00",
+      "error_message": "The configured npm dev:api launch reported WinError 10013 while binding port 8003.",
+      "file": "package.json",
+      "root_cause": "A healthy Python/Uvicorn process was already listening on localhost:8003, so a second reload server could not bind the configured port.",
+      "fix": "Reused the existing local API process and verified GET /health returns 200; no application-code change is needed.",
+      "tags": [
+        "tooling",
+        "local-dev",
+        "port",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T15:42:00-05:00"
+    },
+    {
+      "id": "bug-446",
+      "timestamp": "2026-07-21T22:10:00-05:00",
+      "error_message": "The focused Phase 3 API test command could not invoke pytest from PATH.",
+      "file": "apps/api",
+      "root_cause": "The Windows Python installation exposes pytest as a module but does not expose the pytest console script.",
+      "fix": "Use python -m pytest for focused and full API verification; the Phase 3 suite then passed.",
+      "tags": [
+        "tooling",
+        "pytest",
+        "windows",
+        "verification"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T22:10:00-05:00"
+    },
+    {
+      "id": "bug-447",
+      "timestamp": "2026-07-21T22:26:17.780Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T22:26:17.780Z"
+    },
+    {
+      "id": "bug-448",
+      "timestamp": "2026-07-21T22:44:37.517306Z",
+      "error_message": "Sidebar nav rendered raw i18n keys nav.safety and nav.evidence instead of translated labels",
+      "file": "apps/web/i18n/locales/en.ts, apps/web/i18n/locales/es.ts",
+      "root_cause": "react-i18next loads resources from locales/en.ts and es.ts (extensionless import resolves .ts over .json). Phase 3 i18n work added nav.safety/nav.evidence to the unused locales/en.json and es.json, so the keys never reached the runtime resource and t() fell back to the raw key.",
+      "fix": "Added evidence and safety keys to the nav block in en.ts (Evidence/Safety) and es.ts (Evidencia/Seguridad). Verified live in browser: sidebar renders Evidence and Safety. en.json/es.json are dead (nothing imports .json).",
+      "tags": [
+        "i18n",
+        "sidebar",
+        "phase3",
+        "locale",
+        "react-i18next",
+        "nav"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T22:44:37.517306Z"
     }
   ]
 }

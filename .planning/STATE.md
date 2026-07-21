@@ -24,7 +24,15 @@ Code implemented (safety.py API router, /safety web route, migration 080). `03-C
 
 **Migration 080 applied to production via Supabase MCP (2026-07-21) and verified:** 4 new tables (`emergency_contacts`, `emergency_role_assignments`, `safety_device_intake_contracts`, `emergency_drill_follow_up_evidence`) all RLS-enabled with one tenant policy each; `append_controlled_incident_event` is `SECURITY DEFINER` with `search_path=public` and EXECUTE granted to `service_role` only (anon/authenticated/PUBLIC revoked — 079 discipline held); partial index present. Security advisor: only project-baseline GraphQL-exposure WARNs on the new tables (RLS gates rows); no new RLS/grant holes.
 
-**Remaining:** authenticated browser golden paths for the safety surfaces. Verification suite already green (311 API tests; web type-check/lint/build/bilingual-copy).
+**Live authenticated verification (2026-07-21, GM `hp.patelrep@gmail.com`, localhost:3000 → API :8003):**
+- [x] Migration 080 applied + verified in production (RLS, policies, RPC grants — see above).
+- [x] Incident immutability + `append_controlled_incident_event` RPC proven live via a rolled-back transaction (append_ok, update_blocked, delete_blocked all true; **zero residue** — 0 incident/event rows persisted).
+- [x] `/safety` renders as GM; `GET /v1/safety/training/status` and `/v1/safety/emergency/plans` return 200; empty states correct; console clean (0 errors).
+- [x] Bilingual staff-safety surfaces verified live EN↔ES (headings translate: "Safety actions"↔"Acciones de seguridad", etc.).
+- [x] Incident RBAC confirmed in code vs. decisions: `POST /incidents` = any authenticated (D-03); list/append = manager-only; `GET /incidents/{id}` = filer-or-management via `is_incident_visible_to` else 403 (D-04). Negative cases covered by the 311 API tests.
+- [x] **Bug found + fixed (bug-448):** sidebar rendered raw i18n keys `nav.safety`/`nav.evidence` — Phase 3 added them to the unused `en.json`/`es.json`; react-i18next loads `en.ts`/`es.ts`. Added keys to `en.ts` (Evidence/Safety) + `es.ts` (Evidencia/Seguridad); verified live in EN and ES. Commit `a5cc3b46`. Web type-check clean.
+
+**Optional remaining before formal closure:** drive each GM admin create-form live (course, chemical, drill, emergency contact — all deletable) and trigger the assignment cron live. Non-manager incident file/view path needs a non-management session (not on file) — covered by API tests. Stale dead files `apps/web/i18n/locales/{en,es}.json` (nothing imports `.json`) should be cleaned up.
 
 ### Phase 2 — Evidence foundation: CLOSED (2026-07-21)
 
