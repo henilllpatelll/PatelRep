@@ -18,9 +18,13 @@ progress:
 
 ## Current phase
 
-**Phase 3 — Texas compliance and staff safety: CONTEXT GATHERED (2026-07-21)**
+**Phase 3 — Texas compliance and staff safety: IMPLEMENTED, LIVE VERIFICATION IN PROGRESS (2026-07-21)**
 
-Discussion complete. `03-CONTEXT.md` written with 4 decided gray areas (slice order 3A→3B→3C + webhook design-only; anyone-files/management-views incidents; auto-cron training assignments; EN+ES scoped to staff-facing safety surfaces) plus Phase 2 contracts carried forward. Schema already applied via migration 070. **Next:** `/gsd-plan-phase 3`.
+Code implemented (safety.py API router, /safety web route, migration 080). `03-CONTEXT.md` locks the 4 decided gray areas (slice order 3A→3B→3C + webhook design-only; anyone-files/management-views incidents; auto-cron training assignments; EN+ES scoped to staff-facing safety surfaces).
+
+**Migration 080 applied to production via Supabase MCP (2026-07-21) and verified:** 4 new tables (`emergency_contacts`, `emergency_role_assignments`, `safety_device_intake_contracts`, `emergency_drill_follow_up_evidence`) all RLS-enabled with one tenant policy each; `append_controlled_incident_event` is `SECURITY DEFINER` with `search_path=public` and EXECUTE granted to `service_role` only (anon/authenticated/PUBLIC revoked — 079 discipline held); partial index present. Security advisor: only project-baseline GraphQL-exposure WARNs on the new tables (RLS gates rows); no new RLS/grant holes.
+
+**Remaining:** authenticated browser golden paths for the safety surfaces. Verification suite already green (311 API tests; web type-check/lint/build/bilingual-copy).
 
 ### Phase 2 — Evidence foundation: CLOSED (2026-07-21)
 
@@ -85,7 +89,7 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 ## Current blockers
 
-None.
+- Migration `080_safety_workflow_hardening.sql` is now **applied and verified** in production (via Supabase MCP) — the CLI/`psql` blocker is resolved. Remaining before Phase 3 closure: run authenticated browser golden paths for the safety surfaces. GM session is available (test account on file); a non-management staff session for the "anyone-files / non-manager-cannot-view" incident path is not, but that RBAC is covered by the 311 passing API tests. Note: `controlled_incidents` is append-only with a DELETE-blocking trigger, so any incident created during live testing is permanent in production.
 
 ## Verification commands
 
