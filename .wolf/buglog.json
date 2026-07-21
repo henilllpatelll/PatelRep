@@ -7507,6 +7507,28 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-21T22:44:37.517306Z"
+    },
+    {
+      "id": "bug-449",
+      "timestamp": "2026-07-21T23:00:22.877984+00:00",
+      "error_message": "AttributeError: 'NoneType' object has no attribute 'data' in _queue_safety_notification (internal.py:44); safety training cron returned HTTP 500",
+      "file": "apps/api/routers/internal.py",
+      "root_cause": "supabase-py .maybe_single().execute() returns None (not a response object) when zero rows match. Code did if existing.data: which crashes. The fake_supabase test harness returns SimpleNamespace(data=None) instead of None, so the 311-test suite never reproduced it. Cron crashed whenever it needed to queue any reminder (i.e. any covered employee with a due assignment) -- production-breaking.",
+      "fix": "Changed to if existing and existing.data: (matches existing codebase pattern in safety.py:189). Added regression test test_safety_notification_queue_handles_absent_prior_notification that stubs supabase to return None from maybe_single. Verified live: training cron then returned 200 with assignments_created/reminders_queued/escalations_queued and 9 notification_deliveries queued.",
+      "tags": [
+        "phase3",
+        "cron",
+        "supabase",
+        "maybe_single",
+        "none",
+        "safety-training",
+        "internal.py"
+      ],
+      "related_bugs": [
+        "bug-448"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T23:00:22.877984+00:00"
     }
   ]
 }

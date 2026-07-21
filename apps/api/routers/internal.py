@@ -3,6 +3,7 @@ from fastapi import APIRouter, Header, HTTPException
 from core.config import settings
 from core.database import supabase
 from routers.evidence import run_evidence_reminders
+from services.safety.contracts import calculate_next_training_due_date, should_schedule_training_assignment
 from datetime import date, datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,105 @@ def _record_cron_run(job_name: str, *, error: str | None = None) -> None:
         ).execute()
     except Exception as exc:
         logger.warning("cron_health write failed for %s: %s", job_name, exc)
+
+
+def _queue_safety_notification(tenant_id: str, user_id: str, notification_type: str, title: str, body: str, data: dict) -> bool:
+    """Queue once per action/day; provider delivery is intentionally a later concern."""
+    existing = (
+        supabase.table("notifications").select("id").eq("tenant_id", tenant_id).eq("user_id", user_id)
+        .eq("type", notification_type).contains("data", data).gte("created_at", f"{date.today().isoformat()}T00:00:00+00:00")
+        .maybe_single().execute()
+    )
+    if existing and existing.data:
+        return False
+    notification = supabase.table("notifications").insert({
+        "tenant_id": tenant_id, "user_id": user_id, "type": notification_type,
+        "title": title, "body": body, "data": data,
+    }).execute().data[0]
+    supabase.table("notification_deliveries").insert({
+        "tenant_id": tenant_id, "notification_id": notification["id"], "user_id": user_id,
+        "channel": "in_app", "status": "queued",
+    }).execute()
+    return True
+
+
+def run_safety_training_assignments(*, today: date | None = None) -> dict[str, int]:
+    """Create one open training requirement per covered employee and queue due-state notices."""
+    current_day = today or date.today()
+    courses = supabase.table("safety_training_courses").select("*").eq("is_active", True).execute().data or []
+    employees = supabase.table("user_roles").select("user_id, tenant_id, role, created_at").eq("is_active", True).execute().data or []
+    assignments = supabase.table("safety_training_assignments").select("*").execute().data or []
+    created = reminders = escalations = 0
+    for course in courses:
+        tenant_employees = [employee for employee in employees if employee["tenant_id"] == course["tenant_id"]]
+        for employee in tenant_employees:
+            relevant = [item for item in assignments if item["course_id"] == course["id"] and item["employee_id"] == employee["user_id"]]
+            open_due = [date.fromisoformat(item["due_date"]) for item in relevant if not item.get("completed_at")]
+            completed_dates = [datetime.fromisoformat(item["completed_at"].replace("Z", "+00:00")).date() for item in relevant if item.get("completed_at")]
+            last_completed = max(completed_dates) if completed_dates else None
+            if should_schedule_training_assignment(employee_role=employee["role"], covered_roles=course["covered_roles"], existing_open_due_dates=open_due, last_completed_on=last_completed, recurrence_months=course["recurrence_months"], today=current_day):
+                hired_on = datetime.fromisoformat(employee["created_at"].replace("Z", "+00:00")).date()
+                due = calculate_next_training_due_date(last_completed, course["recurrence_months"]) if last_completed else hired_on + timedelta(days=course["new_hire_deadline_days"])
+                record = supabase.table("safety_training_assignments").insert({"tenant_id": course["tenant_id"], "course_id": course["id"], "employee_id": employee["user_id"], "due_date": due.isoformat(), "assigned_by": None}).execute().data[0]
+                assignments.append(record)
+                open_due = [due]
+                created += 1
+            for due in open_due:
+                kind = "safety_training_overdue" if due < current_day else "safety_training_reminder"
+                if due > current_day + timedelta(days=14):
+                    continue
+                if _queue_safety_notification(course["tenant_id"], employee["user_id"], kind, "Safety training due", f"{course['course_name']} is due {due.isoformat()}.", {"assignment_id": next((item["id"] for item in assignments if item["course_id"] == course["id"] and item["employee_id"] == employee["user_id"] and not item.get("completed_at")), None)}):
+                    reminders += 1
+                if due < current_day:
+                    managers = supabase.table("user_roles").select("user_id").eq("tenant_id", course["tenant_id"]).in_("role", ["gm", "housekeeping_supervisor", "chief_engineer"]).eq("is_active", True).execute().data or []
+                    for manager in managers:
+                        if _queue_safety_notification(course["tenant_id"], manager["user_id"], "safety_training_escalation", "Overdue safety training", f"{course['course_name']} is overdue for a covered employee.", {"employee_id": employee["user_id"], "course_id": course["id"]}):
+                            escalations += 1
+    return {"assignments_created": created, "reminders_queued": reminders, "escalations_queued": escalations}
+
+
+@router.post("/safety/training-assignments")
+async def schedule_safety_training_assignments(x_cron_secret: str = Header(None)):
+    verify_cron(x_cron_secret)
+    try:
+        result = run_safety_training_assignments()
+    except Exception as exc:
+        logger.error("Safety training scheduler failed: %s", exc, exc_info=True)
+        _record_cron_run("safety.training-assignments", error=str(exc))
+        raise HTTPException(status_code=500, detail="Safety training scheduler failed.") from exc
+    _record_cron_run("safety.training-assignments")
+    return {"status": "ok", **result}
+
+
+def run_missing_drill_follow_up_escalations(*, now: datetime | None = None) -> int:
+    """Escalate a drill lacking documented follow-up evidence after one day."""
+    current_time = now or datetime.now(timezone.utc)
+    drills = supabase.table("emergency_drills").select("id, tenant_id, drill_type, occurred_at").lt("occurred_at", (current_time - timedelta(days=1)).isoformat()).execute().data or []
+    linked = supabase.table("emergency_drill_follow_up_evidence").select("drill_id").execute().data or []
+    linked_ids = {item["drill_id"] for item in linked}
+    queued = 0
+    for drill in drills:
+        if drill["id"] in linked_ids:
+            continue
+        role = "chief_engineer" if drill["drill_type"] in {"fire", "evacuation", "security"} else "housekeeping_supervisor"
+        targets = supabase.table("user_roles").select("user_id").eq("tenant_id", drill["tenant_id"]).eq("role", role).eq("is_active", True).execute().data or []
+        for target in targets:
+            if _queue_safety_notification(drill["tenant_id"], target["user_id"], "safety_drill_follow_up_escalation", "Drill follow-up evidence required", f"{drill['drill_type']} drill needs follow-up evidence.", {"drill_id": drill["id"]}):
+                queued += 1
+    return queued
+
+
+@router.post("/safety/drill-follow-up")
+async def escalate_missing_drill_follow_up(x_cron_secret: str = Header(None)):
+    verify_cron(x_cron_secret)
+    try:
+        queued = run_missing_drill_follow_up_escalations()
+    except Exception as exc:
+        logger.error("Safety drill follow-up escalation failed: %s", exc, exc_info=True)
+        _record_cron_run("safety.drill-follow-up", error=str(exc))
+        raise HTTPException(status_code=500, detail="Safety drill follow-up escalation failed.") from exc
+    _record_cron_run("safety.drill-follow-up")
+    return {"status": "ok", "escalations_queued": queued}
 
 
 @router.post("/evidence/reminders")
