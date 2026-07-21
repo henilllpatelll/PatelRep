@@ -145,6 +145,7 @@ const en = {
   },
   safety: {
     eyebrow: 'Staff safety', title: 'Safety actions', subtitle: 'Complete required training, find safety information, and report an incident quickly.', refresh: 'Refresh', loadError: 'Unable to load safety information.', training: 'My safety training', complete: 'Mark complete', emergencyPlans: 'Emergency plans', acknowledged: 'Acknowledged', notAcknowledged: 'Not acknowledged', noPlans: 'No emergency plans are assigned to you.', reportIncident: 'Report an incident', incidentType: 'Incident type', location: 'Location', containment: 'Immediate containment', details: 'What happened?', submitIncident: 'Submit report', incidentSaved: 'Incident report saved.',
+    safetyInfo: 'Safety information', chemicalsHeading: 'Chemicals & safety data sheets', ppe: 'PPE', viewSds: 'View SDS', noSds: 'No SDS on file', storedAt: 'Stored at', labelVerified: 'Label verified', noChemicals: 'No chemicals recorded.', procedures: 'Safety procedures', noProcedures: 'No safety procedures published.', version: 'Version', emergencyContacts: 'Emergency contacts', noContacts: 'No emergency contacts listed.', primary: 'Primary',
     status: { compliant: 'Compliant', due_soon: 'Due soon', overdue: 'Overdue', not_applicable: 'Not applicable' },
     types: { employee_injury: 'Employee injury', chemical_exposure: 'Chemical exposure', security: 'Security', life_safety_impairment: 'Life-safety issue' },
   },
