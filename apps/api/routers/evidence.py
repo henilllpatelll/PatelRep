@@ -387,7 +387,13 @@ async def list_my_acknowledgements(current_user: CurrentUser = Depends(get_curre
         supabase.table("document_acknowledgements").select("*, controlled_documents(title, version_number, approval_state)")
         .eq("tenant_id", current_user.hotel_id).eq("assigned_to", current_user.user_id).order("due_date").execute()
     )
-    return {"data": result.data or []}
+    property_applicability = _get_property_applicability(current_user)
+    applicable_assignments = []
+    for assignment in result.data or []:
+        document = _get_document(assignment["document_id"], current_user)
+        if is_applicable_to_property(document.get("applicability"), property_applicability):
+            applicable_assignments.append(assignment)
+    return {"data": applicable_assignments}
 
 
 @router.get("/documents/{document_id}/assignments")
@@ -405,13 +411,19 @@ async def list_document_assignments(
 
 
 @router.post("/acknowledgements/{assignment_id}/acknowledge")
-async def acknowledge_controlled_document(assignment_id: str, current_user: CurrentUser = Depends(get_current_user)):
+async def acknowledge_controlled_document(
+    assignment_id: str,
+    current_user: CurrentUser = Depends(require_role(*EVIDENCE_CAPTURE_ROLES)),
+):
     assignment = (
         supabase.table("document_acknowledgements").select("*").eq("id", assignment_id)
         .eq("tenant_id", current_user.hotel_id).eq("assigned_to", current_user.user_id).maybe_single().execute()
     )
     if not assignment.data:
         raise HTTPException(status_code=404, detail="Document assignment not found.")
+    _require_document_applicability(
+        _get_document(assignment.data["document_id"], current_user), current_user,
+    )
     if assignment.data.get("acknowledged_at"):
         return {"data": assignment.data}
     result = supabase.table("document_acknowledgements").update({"acknowledged_at": datetime.now(timezone.utc).isoformat(), "acknowledged_by": current_user.user_id}).eq("id", assignment_id).eq("tenant_id", current_user.hotel_id).execute()

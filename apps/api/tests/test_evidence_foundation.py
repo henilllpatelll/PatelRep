@@ -403,6 +403,41 @@ async def test_acknowledgement_cannot_be_read_or_changed_by_another_staff_member
 
 
 @pytest.mark.asyncio
+async def test_acknowledgement_is_role_gated_and_cannot_complete_a_now_inapplicable_document(monkeypatch):
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "property_applicability": [{
+            "tenant_id": "hotel-1", "facilities": [], "services": [], "brand_requirements": [],
+        }],
+        "controlled_documents": [{
+            "id": "doc-1", "tenant_id": "hotel-1", "applicability": ["pool"],
+        }],
+        "document_acknowledgements": [{
+            "id": "assignment-1", "tenant_id": "hotel-1", "document_id": "doc-1",
+            "assigned_to": "staff-1", "acknowledged_at": None,
+        }],
+    })
+    monkeypatch.setattr(evidence_router, "supabase", db)
+
+    with pytest.raises(HTTPException, match="not applicable"):
+        await evidence_router.acknowledge_controlled_document(
+            "assignment-1",
+            CurrentUser(user_id="staff-1", hotel_id="hotel-1", role="housekeeper"),
+        )
+
+    visible_assignments = await evidence_router.list_my_acknowledgements(
+        CurrentUser(user_id="staff-1", hotel_id="hotel-1", role="housekeeper"),
+    )
+    assert visible_assignments == {"data": []}
+
+    route = next(route for route in evidence_router.router.routes if route.path == "/evidence/acknowledgements/{assignment_id}/acknowledge")
+    role_check = route.dependant.dependencies[0].call
+    with pytest.raises(HTTPException, match="not authorized"):
+        await role_check(CurrentUser(user_id="other", hotel_id="hotel-1", role="unsupported"))
+
+
+@pytest.mark.asyncio
 async def test_assignment_requires_an_approved_applicable_document_and_is_duplicate_safe(monkeypatch):
     from tests.smoke.fake_supabase import FakeDB
 
