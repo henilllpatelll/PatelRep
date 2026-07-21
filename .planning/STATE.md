@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-19T15:00:00Z"
+last_updated: "2026-07-21T21:30:00Z"
 ---
 
 # GSD State
@@ -12,7 +12,20 @@ last_updated: "2026-07-19T15:00:00Z"
 
 ## Current phase
 
-**Phase 2 — Evidence foundation: IMPLEMENTATION COMPLETE — production migration/smoke and authenticated browser verification pending**
+**Phase 3 — Texas compliance and staff safety: NOT STARTED**
+
+### Phase 2 — Evidence foundation: CLOSED (2026-07-21)
+
+Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end:
+
+- [x] Migrations 069–078 applied: `property_applicability`, `controlled_documents`, `document_acknowledgements`, `evidence_records`, `evidence_exception_actions` — all tenant-scoped with RLS and canonical `hotel_id` JWT policies.
+- [x] Phase 3–6 schema (070–073) applied in the same chain (076 depends on `controlled_incidents` from 070); tables are inert until their phases build on them.
+- [x] Private `evidence-files` bucket (`public=FALSE`); attachments delivered by short-lived signed URL, tenant-foldered storage policy.
+- [x] **Security fix — migration 079**: `supersede_controlled_document_with_audit`, `queue_evidence_reminder_delivery`, and `create_retraining_assignments_for_approved_document` were `SECURITY DEFINER` and executable by `anon`/`authenticated` (migration 075's `REVOKE ... FROM PUBLIC` was ineffective against Supabase's direct default grants). Revoked `EXECUTE` from `anon, authenticated, PUBLIC`, granted `service_role` only. Same fix applied to Phase 1's `transition_work_order_with_audit`, which shared the identical pre-existing exposure.
+- [x] 308 API tests pass (logic, fake Supabase); web `type-check` clean.
+- [x] Authenticated GM browser E2E (localhost:3000, Sonesta ES Suites Fossil Creek): `/evidence` renders all five surfaces; `GET applicability|documents|records|exceptions|my-acknowledgements` all 200 against the live schema; `PUT applicability` 200 with row persisted and canonical facility constraint enforced. Zero console errors.
+
+**Residual (not blocking closure):** the inspector-export "mixed compliance states" path was not exercised with real data — the hotel has no seeded controlled documents/evidence, and fabricating compliance records in production was intentionally avoided. Read/render/write paths are proven; a data-backed export walkthrough is deferred to when real documents exist.
 
 ### Phase 1 — Core operational integrity: CLOSED (2026-07-19)
 
