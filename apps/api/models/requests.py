@@ -514,7 +514,7 @@ class CreateEvidenceRecordRequest(SanitizedBaseModel):
     evidence_type: Literal["file", "photo", "measurement", "checklist_result", "signature", "attestation", "external_certificate"]
     document_id: Optional[str] = Field(default=None, max_length=100)
     assignment_id: Optional[str] = Field(default=None, max_length=100)
-    related_entity_type: Optional[Literal["staff", "task", "asset", "room", "inspection", "incident", "sop"]] = None
+    related_entity_type: Optional[Literal["staff", "task", "asset", "room", "inspection", "incident", "sop", "pm_completion"]] = None
     related_entity_id: Optional[str] = Field(default=None, max_length=100)
     measurement_value: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     result: Optional[Literal["passed", "failed", "deferred"]] = None
@@ -637,11 +637,22 @@ class PMChecklistResultItem(SanitizedBaseModel):
     label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
     result: Literal["passed", "failed", "not_applicable"]
     requires_evidence: bool = False
+    # `evidence_records.id` UUID strings — the client creates the evidence_record (and
+    # uploads its file) via POST /evidence/records + POST /evidence/records/{id}/file
+    # BEFORE submitting the PM completion. Never a raw URL (D-06).
     evidence: List[str] = Field(default_factory=list, max_length=20)
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
 class CompletePMProgramRequest(SanitizedBaseModel):
+    """PM completion proof. `photos` and `certificate_attachments` are lists of
+    `evidence_records.id` (UUID strings) pointing at records already uploaded to the private
+    evidence-files bucket — never raw storage URLs. `persist_pm_completion` validates every
+    submitted ID against `evidence_records` scoped to the caller's tenant before the completion
+    is written, then links each evidence record to the completion via
+    `related_entity_type='pm_completion'`.
+    """
+
     checklist_template_id: Optional[str] = Field(default=None, max_length=100)
     checklist_version: Optional[int] = Field(default=None, ge=1, le=1000)
     verifier_id: Optional[str] = Field(default=None, max_length=100)

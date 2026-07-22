@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import CompletePMProgramRequest, CreateAssetRequest, CreatePMScheduleRequest, UpdateAssetRequest
 from core.database import supabase
+from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
 from services.programs.execution import persist_pm_completion
 
@@ -249,7 +250,7 @@ async def complete_pm_schedule(
             schedule=sched,
             payload=request.model_dump(mode="json"),
         )
-    except EvidenceRequiredError as exc:
+    except (EvidenceRequiredError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"data": record}
 
@@ -393,3 +394,64 @@ async def run_asset_prediction(
         raise HTTPException(status_code=404, detail="Asset not found or inactive")
 
     return {"data": result}
+
+
+# ---------------------------------------------------------------------------
+# 17. GET /pm-schedules/{schedule_id}/completions/{completion_id}  — PM completion,
+#     attachments resolved to short-lived signed URLs only (D-06) (NEW)
+# ---------------------------------------------------------------------------
+
+def _resolve_evidence_signed_urls(evidence_ids: list, tenant_id: str) -> list[dict]:
+    """Resolve evidence_record IDs to short-lived signed URLs. Never returns storage_path
+    or a public URL — only a signed URL, matching the evidence platform's delivery contract."""
+    if not evidence_ids:
+        return []
+    records_result = supabase.table("evidence_records") \
+        .select("id, storage_path, file_name") \
+        .eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
+    records_by_id = {record["id"]: record for record in ((records_result.data if records_result else None) or [])}
+    resolved = []
+    for evidence_id in evidence_ids:
+        record = records_by_id.get(evidence_id)
+        if not record or not record.get("storage_path"):
+            continue
+        signed_url = _create_evidence_signed_url(record["storage_path"])
+        if not signed_url:
+            continue
+        resolved.append({
+            "evidence_id": evidence_id,
+            "url": signed_url,
+            "file_name": record.get("file_name"),
+            "expires_in_seconds": 3600,
+        })
+    return resolved
+
+
+@router.get("/pm-schedules/{schedule_id}/completions/{completion_id}")
+async def get_pm_completion(
+    schedule_id: str,
+    completion_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Read a PM completion. Photos/certificate/checklist-item attachments are resolved to
+    short-lived signed URLs — never a raw storage_path or public URL (D-06)."""
+    completion_result = supabase.table("pm_completion_records").select("*") \
+        .eq("id", completion_id).eq("pm_schedule_id", schedule_id) \
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    completion = completion_result.data if completion_result else None
+    if not completion:
+        raise HTTPException(status_code=404, detail="PM completion not found")
+
+    items_result = supabase.table("pm_completion_items").select("*") \
+        .eq("completion_id", completion_id).eq("tenant_id", current_user.hotel_id).execute()
+    items = list(items_result.data or [])
+
+    tenant_id = current_user.hotel_id
+    completion["photos"] = _resolve_evidence_signed_urls(completion.get("photos") or [], tenant_id)
+    completion["certificate_attachments"] = _resolve_evidence_signed_urls(
+        completion.get("certificate_attachments") or [], tenant_id,
+    )
+    for item in items:
+        item["evidence"] = _resolve_evidence_signed_urls(item.get("evidence") or [], tenant_id)
+    completion["items"] = items
+    return {"data": completion}

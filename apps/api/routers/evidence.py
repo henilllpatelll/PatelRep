@@ -53,6 +53,7 @@ RELATED_ENTITY_TABLES = {
     "inspection": ("inspections", "id"),
     "incident": ("controlled_incidents", "id"),
     "sop": ("sop_documents", "id"),
+    "pm_completion": ("pm_completion_records", "id"),
 }
 EXCEPTION_REFERENCE_TABLES = {
     "document": ("controlled_documents", "Controlled document"),
