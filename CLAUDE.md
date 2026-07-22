@@ -146,17 +146,26 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 
 ---
 
-## Cron Jobs (Railway → FastAPI `/internal/*`)
+## Cron Jobs (GitHub Actions → FastAPI `/v1/internal/*`)
+
+Triggered by `.github/workflows/cron-jobs.yml` (POST + `X-Cron-Secret` header). The internal
+router mounts under `PREFIX="/v1"`, so paths are `/v1/internal/*` — NOT `/internal/*` (a bare
+`/internal/*` returns 404). Railway's native cron scheduler is not used on the current account.
 
 | Endpoint | Schedule | Purpose |
 |---|---|---|
-| `POST /internal/predictions/run` | `*/30 * * * *` | Room readiness predictions |
-| `POST /internal/opera/sync-reservations` | `*/30 * * * *` | Opera reservation sync |
-| `POST /internal/pm/check-due` | `0 6 * * *` | PM schedule due check |
-| `POST /internal/ai/failure-predictions` | `0 0 * * *` | Asset failure predictions |
-| `POST /internal/logbook/shift-summary` | `0 7,15,23 * * *` | Shift end summaries |
-| `POST /internal/billing/monthly-trueup` | `0 0 28-31 * *` | Stripe billing true-up |
-| `POST /internal/reports/daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
+| `POST /v1/internal/predictions/run` | `*/30 * * * *` | Room readiness predictions |
+| `POST /v1/internal/opera/sync-reservations` | `*/30 * * * *` | Opera reservation sync |
+| `POST /v1/internal/escalations/check` | `*/30 * * * *` | WO/task SLA escalation ladder + DND welfare |
+| `POST /v1/internal/pm/check-due` | `0 6 * * *` | PM schedule due check |
+| `POST /v1/internal/evidence/reminders` | `0 6 * * *` | Controlled-doc acknowledgement reminders |
+| `POST /v1/internal/safety/training-assignments` | `0 6 * * *` | Safety training assignment/reminders |
+| `POST /v1/internal/safety/drill-follow-up` | `0 6 * * *` | Drill follow-up evidence escalation |
+| `POST /v1/internal/ai/failure-predictions` | `0 0 * * *` | Asset failure predictions |
+| `POST /v1/internal/logbook/shift-summary` | `0 7,15,23 * * *` | Shift end summaries |
+| `POST /v1/internal/logbook/cleanup-expired` | `0 3 * * *` | Hard-delete expired logbook entries |
+| `POST /v1/internal/billing/monthly-trueup` | `0 0 28-31 * *` | Stripe billing true-up |
+| `POST /v1/internal/reports/daily-summary-email` | `0 6 * * *` | Daily GM summary (Resend) |
 
 ---
 
