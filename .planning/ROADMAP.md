@@ -56,7 +56,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 04-01-PLAN.md — S0 foundation: route-test harness + RBAC/read-gate/None-guard fixes + DB immutability proof
+- [x] 04-01-PLAN.md — S0 foundation: route-test harness + RBAC/read-gate/None-guard fixes + DB immutability proof
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 04-02-PLAN.md — S0 PM evidence platform integration (signed-URL attachments) + migration 081

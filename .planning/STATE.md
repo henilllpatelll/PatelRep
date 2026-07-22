@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-21T23:30:00.000Z"
+status: Executing Phase 04
+last_updated: "2026-07-22T22:26:41.151Z"
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 5
+  completed_phases: 1
+  total_plans: 14
   completed_plans: 5
-  percent: 100
+  percent: 36
 ---
 
 # GSD State
@@ -29,6 +29,7 @@ Code implemented (safety.py API router, /safety web route, migration 080). `03-C
 **Migration 080 applied to production via Supabase MCP (2026-07-21) and verified:** 4 new tables (`emergency_contacts`, `emergency_role_assignments`, `safety_device_intake_contracts`, `emergency_drill_follow_up_evidence`) all RLS-enabled with one tenant policy each; `append_controlled_incident_event` is `SECURITY DEFINER` with `search_path=public` and EXECUTE granted to `service_role` only (anon/authenticated/PUBLIC revoked — 079 discipline held); partial index present. Security advisor: only project-baseline GraphQL-exposure WARNs on the new tables (RLS gates rows); no new RLS/grant holes.
 
 **Live authenticated verification (2026-07-21, GM `hp.patelrep@gmail.com`, localhost:3000 → API :8003):**
+
 - [x] Migration 080 applied + verified in production (RLS, policies, RPC grants — see above).
 - [x] Incident immutability + `append_controlled_incident_event` RPC proven live via a rolled-back transaction (append_ok, update_blocked, delete_blocked all true; **zero residue** — 0 incident/event rows persisted).
 - [x] `/safety` renders as GM; `GET /v1/safety/training/status` and `/v1/safety/emergency/plans` return 200; empty states correct; console clean (0 errors).
@@ -37,12 +38,14 @@ Code implemented (safety.py API router, /safety web route, migration 080). `03-C
 - [x] **Bug found + fixed (bug-448):** sidebar rendered raw i18n keys `nav.safety`/`nav.evidence` — Phase 3 added them to the unused `en.json`/`es.json`; react-i18next loads `en.ts`/`es.ts`. Added keys to `en.ts` (Evidence/Safety) + `es.ts` (Evidencia/Seguridad); verified live in EN and ES. Commit `a5cc3b46`. Web type-check clean.
 
 **Live pipeline verification (2026-07-21, GM token, fresh API instance on :8004 loading current code):**
+
 - [x] GM create endpoints exercised live end-to-end (200, correctly tenant-scoped): training course, chemical, emergency drill, emergency contact. All test rows cleaned up — **zero residue** (verified: 0 across every safety table).
 - [x] Training-assignment cron triggered live: with a course present it created assignments for covered employees, and `GET /safety/training/status` returned the correct state machine (covered roles `overdue` with due dates; uncovered roles `not_applicable`), with 9 `notification_deliveries` queued (3 reminders + 6 manager escalations). Wrong `X-Cron-Secret` → 401.
 - [x] **Bug found + fixed (bug-449):** the training cron 500'd — `_queue_safety_notification` did `if existing.data:` but supabase-py `maybe_single().execute()` returns `None` on no match. The fake_supabase test harness returned `SimpleNamespace(data=None)` so the 311-test suite never caught it. Fixed to `if existing and existing.data:` (codebase pattern), added a regression test. **312 API tests pass.** Commit `0f523b3b`.
 - [x] Dead `apps/web/i18n/locales/{en,es}.json` deleted (nothing imports `.json`); web type-check clean. Commit `0f523b3b`.
 
 **Missing web surfaces — BUILT and verified live (2026-07-21, commit `8a9ec209`).** The earlier gap (GM admin + staff safety-info had no web UI) is closed:
+
 - Staff `/safety` now has **safety-information** (chemicals + SDS signed URLs, PPE, safety procedures) and **emergency contacts**, bilingual EN+ES (`components/safety/SafetyInformation.tsx`). Verified live: `/safety-information` + `/emergency/contacts` return 200; Spanish toggle translates the section headings.
 - Manager tabs (English, gm/housekeeping_supervisor/chief_engineer): **Compliance** (training-status dashboard + CSV export + add-course form), **Programs** (chemical inventory, drill logging, emergency-contact management), **Incidents** (controlled-incident list + append-only timeline + append event). Components in `components/safety/`; page refactored to a role-adaptive tabbed layout.
 - `lib/api/safety.ts` extended with all endpoints.
