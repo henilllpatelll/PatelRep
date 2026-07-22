@@ -59,7 +59,7 @@ Plans:
 - [x] 04-01-PLAN.md — S0 foundation: route-test harness + RBAC/read-gate/None-guard fixes + DB immutability proof
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 04-02-PLAN.md — S0 PM evidence platform integration (signed-URL attachments) + migration 081
+- [x] 04-02-PLAN.md — S0 PM evidence platform integration (signed-URL attachments) + migration 081
 
 **Wave 3** *(blocked on Wave 2)*
 - [ ] 04-03-PLAN.md — S0 audit events + deferral approval + corrective-WO hardening (code-only; WO columns pre-exist per 007)
