@@ -52,7 +52,30 @@ Plans:
 ### Phase 4: Maintenance and housekeeping programs
 **Goal**: Make PM and housekeeping recurring, evidence-backed programs and enforce the bilingual floor contract.
 **Depends on**: Phase 3
-**Plans**: TBD
+**Plans**: 8 plans (slices S0 → 4A → 4B → 4C). Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 4 + 04-CONTEXT.md (no formal REQ-XXX IDs; behaviors labeled PM-XX / HK-XX / BL-XX). Migrations added: 081 (PM evidence linkage, 04-02), 083 (program template facilities, 04-04) — each applied to prod via Supabase MCP. (04-03 is code-only — the corrective-WO columns already exist since migration 007, so 082 is intentionally unused.)
+
+Plans:
+**Wave 1**
+- [ ] 04-01-PLAN.md — S0 foundation: route-test harness + RBAC/read-gate/None-guard fixes + DB immutability proof
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 04-02-PLAN.md — S0 PM evidence platform integration (signed-URL attachments) + migration 081
+
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 04-03-PLAN.md — S0 audit events + deferral approval + corrective-WO hardening (code-only; WO columns pre-exist per 007)
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 04-04-PLAN.md — 4A API: applicability-gated PM template library + editor + generic builder + migration 083
+
+**Wave 5** *(blocked on Wave 4; 04-05 and 04-06 run in parallel — web vs API, no file overlap)*
+- [ ] 04-05-PLAN.md — 4A Web: full PM completion capture UI + evidence upload + deferral + client
+- [ ] 04-06-PLAN.md — 4B API: inspection sampling execution + quality trends + deep-clean/public-area completeness
+
+**Wave 6** *(blocked on Wave 5)*
+- [ ] 04-07-PLAN.md — 4B Web + completion: DND policy config, par alerts (passive), stayover, deep-clean/public-area/sampling UI
+
+**Wave 7** *(blocked on Wave 6)*
+- [ ] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
 
 ### Phase 5: Guest recovery and management ROI
 **Goal**: Close guest service loops and quantify hotel operational value.
@@ -79,6 +102,6 @@ Plans:
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
-| 4. Maintenance and housekeeping programs | 0/TBD | Not started | - |
+| 4. Maintenance and housekeeping programs | 0/8 | Planned — awaiting review gate (D-12) | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |
