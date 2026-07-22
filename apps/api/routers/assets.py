@@ -210,7 +210,7 @@ async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user
 @router.post("/pm-schedules")
 async def create_pm_schedule(
     request: CreatePMScheduleRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role("gm", "engineer", "chief_engineer"))
 ):
     result = supabase.table("pm_schedules").insert({
         "tenant_id": current_user.hotel_id,
@@ -227,7 +227,7 @@ async def create_pm_schedule(
 async def complete_pm_schedule(
     schedule_id: str,
     request: CompletePMProgramRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role("engineer", "gm", "chief_engineer"))
 ):
     """Record PM proof and advance the schedule only after a valid completion."""
     sched_result = supabase.table("pm_schedules")\
@@ -237,7 +237,7 @@ async def complete_pm_schedule(
         .maybe_single()\
         .execute()
 
-    sched = sched_result.data
+    sched = sched_result.data if sched_result else None
     if not sched:
         raise HTTPException(status_code=404, detail="PM schedule not found")
 

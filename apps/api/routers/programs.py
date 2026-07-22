@@ -7,10 +7,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.database import supabase
-from middleware.auth import CurrentUser, get_current_user, require_role
+from middleware.auth import CurrentUser, require_role
 from models.requests import (
     CompleteDeepCleanRequest,
-    CompletePMProgramRequest,
     CreateDeepCleanScheduleRequest,
     CreateInspectionSamplingRuleRequest,
     CreatePMDeferralRequest,
@@ -21,15 +20,13 @@ from models.requests import (
 )
 from services.programs.contracts import (
     DEFAULT_PROGRAM_TEMPLATES,
-    EvidenceRequiredError,
     build_supply_alerts,
     next_recurrence_date,
 )
-from services.programs.execution import persist_pm_completion
 
 
 router = APIRouter(prefix="/programs", tags=["programs"])
-MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer")
+MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")
 
 
 def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
@@ -37,20 +34,22 @@ def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
         supabase.table("pm_schedules").select("*").eq("id", schedule_id)
         .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     )
-    if not result.data:
+    if not result or not result.data:
         raise HTTPException(status_code=404, detail="PM schedule not found")
     return result.data
 
 
 @router.get("/overview")
-async def get_program_overview(current_user: CurrentUser = Depends(get_current_user)):
+async def get_program_overview(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
     tenant_id = current_user.hotel_id
     templates = supabase.table("pm_checklist_templates").select("*").eq("tenant_id", tenant_id).eq("is_active", True).order("program_area").execute().data or []
     deep_cleans = supabase.table("deep_clean_schedules").select("*, rooms(room_number), public_areas(name)").eq("tenant_id", tenant_id).eq("is_active", True).order("next_due_on").execute().data or []
     pars = supabase.table("housekeeping_supply_pars").select("*").eq("tenant_id", tenant_id).order("supply_type").execute().data or []
     inspection_rules = supabase.table("inspection_sampling_rules").select("*, room_types(name, code)").eq("tenant_id", tenant_id).execute().data or []
-    stayover = supabase.table("housekeeping_stayover_rules").select("*").eq("tenant_id", tenant_id).maybe_single().execute().data
-    dnd_policy = supabase.table("dnd_welfare_policies").select("*").eq("tenant_id", tenant_id).maybe_single().execute().data
+    stayover_result = supabase.table("housekeeping_stayover_rules").select("*").eq("tenant_id", tenant_id).maybe_single().execute()
+    stayover = stayover_result.data if stayover_result else None
+    dnd_policy_result = supabase.table("dnd_welfare_policies").select("*").eq("tenant_id", tenant_id).maybe_single().execute()
+    dnd_policy = dnd_policy_result.data if dnd_policy_result else None
     return {"data": {
         "templates": templates,
         "deep_clean_schedules": deep_cleans,
@@ -80,31 +79,11 @@ async def initialize_property_templates(current_user: CurrentUser = Depends(requ
     return {"data": {"created": len(records)}}
 
 
-@router.post("/pm-schedules/{schedule_id}/complete")
-async def complete_pm_schedule_with_evidence(
-    schedule_id: str,
-    request: CompletePMProgramRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm")),
-):
-    schedule = _get_pm_schedule(schedule_id, current_user)
-    try:
-        record = persist_pm_completion(
-            db=supabase,
-            tenant_id=current_user.hotel_id,
-            user_id=current_user.user_id,
-            schedule=schedule,
-            payload=request.model_dump(mode="json"),
-        )
-    except EvidenceRequiredError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"data": record}
-
-
 @router.post("/pm-schedules/{schedule_id}/deferrals")
 async def defer_pm_schedule(
     schedule_id: str,
     request: CreatePMDeferralRequest,
-    current_user: CurrentUser = Depends(require_role("gm")),
+    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
 ):
     _get_pm_schedule(schedule_id, current_user)
     record = supabase.table("pm_deferrals").insert({
@@ -140,7 +119,7 @@ async def create_deep_clean_schedule(request: CreateDeepCleanScheduleRequest, cu
 @router.post("/deep-clean-schedules/{schedule_id}/complete")
 async def complete_deep_clean(schedule_id: str, request: CompleteDeepCleanRequest, current_user: CurrentUser = Depends(require_role("housekeeper", "housekeeping_supervisor", "gm"))):
     result = supabase.table("deep_clean_schedules").select("*").eq("id", schedule_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
-    if not result.data:
+    if not result or not result.data:
         raise HTTPException(status_code=404, detail="Deep-clean schedule not found")
     schedule = result.data
     now = datetime.now(timezone.utc)
