@@ -12,12 +12,63 @@ from services.programs.contracts import (
 )
 
 
+def _collect_evidence_ids(payload: dict[str, Any], items: list[dict[str, Any]]) -> list[str]:
+    """De-duplicated evidence_record IDs referenced anywhere in a PM completion payload."""
+    ordered_ids: list[str] = [
+        *(payload.get("photos") or []),
+        *(payload.get("certificate_attachments") or []),
+    ]
+    for item in items:
+        ordered_ids.extend(item.get("evidence") or [])
+    seen: set[str] = set()
+    unique_ids: list[str] = []
+    for evidence_id in ordered_ids:
+        if evidence_id not in seen:
+            seen.add(evidence_id)
+            unique_ids.append(evidence_id)
+    return unique_ids
+
+
+def _validate_tenant_evidence_ids(*, db: Any, tenant_id: str, evidence_ids: list[str]) -> None:
+    """Reject a PM completion that references evidence_records missing or owned by another tenant."""
+    if not evidence_ids:
+        return
+    result = (
+        db.table("evidence_records").select("id").eq("tenant_id", tenant_id)
+        .in_("id", evidence_ids).execute()
+    )
+    found_ids = {row["id"] for row in ((result.data if result else None) or [])}
+    missing = [evidence_id for evidence_id in evidence_ids if evidence_id not in found_ids]
+    if missing:
+        raise ValueError(
+            f"Evidence record(s) not found at this property: {', '.join(missing)}"
+        )
+
+
+def _link_evidence_to_completion(*, db: Any, tenant_id: str, completion_id: str, evidence_ids: list[str]) -> None:
+    """Backfill evidence_records.related_entity_* after the completion exists (evidence_records
+    is mutable; pm_completion_records is not, so the link must be an UPDATE on the evidence side)."""
+    if not evidence_ids:
+        return
+    db.table("evidence_records").update({
+        "related_entity_type": "pm_completion",
+        "related_entity_id": completion_id,
+    }).eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
+
+
 def persist_pm_completion(
     *, db: Any, tenant_id: str, user_id: str, schedule: dict[str, Any], payload: dict[str, Any]
 ) -> dict[str, Any]:
-    """Append a complete PM record, its immutable results, and failed-check follow-ups."""
+    """Append a complete PM record, its immutable results, and failed-check follow-ups.
+
+    All submitted `photos`/`certificate_attachments`/per-item `evidence` values are
+    `evidence_records.id` UUID strings (D-06) — validated for tenant ownership before the
+    completion is written, then linked to the completion via a post-insert UPDATE.
+    """
     items = payload.get("items") or []
     validate_completion_items(items)
+    evidence_ids = _collect_evidence_ids(payload, items)
+    _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
     completed_at = datetime.now(timezone.utc)
     completion_payload = {
         "tenant_id": tenant_id,
@@ -39,6 +90,9 @@ def persist_pm_completion(
         "completed_at": completed_at.isoformat(),
     }
     completion = db.table("pm_completion_records").insert(completion_payload).execute().data[0]
+    _link_evidence_to_completion(
+        db=db, tenant_id=tenant_id, completion_id=completion["id"], evidence_ids=evidence_ids,
+    )
 
     item_rows = [{
         "tenant_id": tenant_id,

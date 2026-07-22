@@ -249,7 +249,7 @@ async def complete_pm_schedule(
             schedule=sched,
             payload=request.model_dump(mode="json"),
         )
-    except EvidenceRequiredError as exc:
+    except (EvidenceRequiredError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"data": record}
 

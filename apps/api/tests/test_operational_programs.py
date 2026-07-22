@@ -91,7 +91,10 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
     """As a manager, a PM record retains its work proof and its failed-check follow-up."""
     from tests.smoke.fake_supabase import FakeDB
 
-    db = FakeDB({"pm_schedules": [{"id": "schedule-1", "tenant_id": "hotel-1"}]})
+    db = FakeDB({
+        "pm_schedules": [{"id": "schedule-1", "tenant_id": "hotel-1"}],
+        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-1"}],
+    })
     record = persist_pm_completion(
         db=db,
         tenant_id="hotel-1",
@@ -110,3 +113,29 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
     assert db.rows["pm_completion_items"][0]["completion_id"] == record["id"]
     assert db.rows["work_orders"][0]["pm_completion_id"] == record["id"]
     assert db.rows["pm_schedules"][0]["last_completed_at"]
+    assert db.rows["evidence_records"][0]["related_entity_type"] == "pm_completion"
+    assert db.rows["evidence_records"][0]["related_entity_id"] == record["id"]
+
+
+def test_pm_completion_rejects_evidence_id_from_another_tenant():
+    """Cross-tenant evidence references must be rejected with zero completion rows written."""
+    from tests.smoke.fake_supabase import FakeDB
+
+    db = FakeDB({
+        "pm_schedules": [{"id": "schedule-1", "tenant_id": "hotel-1"}],
+        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-2"}],
+    })
+
+    with pytest.raises(ValueError, match="photo-1"):
+        persist_pm_completion(
+            db=db,
+            tenant_id="hotel-1",
+            user_id="engineer-1",
+            schedule={"id": "schedule-1", "asset_id": "asset-1", "interval_days": 30},
+            payload={
+                "items": [{"key": "battery", "label": "Emergency light battery", "result": "passed"}],
+                "photos": ["photo-1"],
+            },
+        )
+
+    assert db.rows.get("pm_completion_records", []) == []
