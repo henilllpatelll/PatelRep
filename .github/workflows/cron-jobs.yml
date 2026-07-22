@@ -57,7 +57,7 @@ jobs:
           fire() {
             echo "→ POST /internal/$1"
             code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-              -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/$1" || echo "000")
+              -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/$1" || echo "000")
             echo "  HTTP $code"; cat /tmp/body 2>/dev/null; echo
             [ "$code" = "200" ] || { echo "::error::/internal/$1 returned $code"; return 1; }
           }
@@ -80,7 +80,7 @@ jobs:
           fire() {
             echo "→ POST /internal/$1"
             code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-              -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/$1" || echo "000")
+              -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/$1" || echo "000")
             echo "  HTTP $code"; cat /tmp/body 2>/dev/null; echo
             [ "$code" = "200" ] || { echo "::error::/internal/$1 returned $code"; return 1; }
           }
@@ -103,7 +103,7 @@ jobs:
         run: |
           set -uo pipefail
           code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/logbook/shift-summary" || echo "000")
+            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/logbook/shift-summary" || echo "000")
           echo "HTTP $code"; cat /tmp/body 2>/dev/null; echo
           [ "$code" = "200" ] || { echo "::error::shift-summary returned $code"; exit 1; }
 
@@ -118,7 +118,7 @@ jobs:
         run: |
           set -uo pipefail
           code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/ai/failure-predictions" || echo "000")
+            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/ai/failure-predictions" || echo "000")
           echo "HTTP $code"; cat /tmp/body 2>/dev/null; echo
           [ "$code" = "200" ] || { echo "::error::ai/failure-predictions returned $code"; exit 1; }
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           set -uo pipefail
           code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/logbook/cleanup-expired" || echo "000")
+            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/logbook/cleanup-expired" || echo "000")
           echo "HTTP $code"; cat /tmp/body 2>/dev/null; echo
           [ "$code" = "200" ] || { echo "::error::logbook/cleanup-expired returned $code"; exit 1; }
 
@@ -148,6 +148,6 @@ jobs:
         run: |
           set -uo pipefail
           code=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/internal/billing/monthly-trueup" || echo "000")
+            -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/v1/internal/billing/monthly-trueup" || echo "000")
           echo "HTTP $code"; cat /tmp/body 2>/dev/null; echo
           [ "$code" = "200" ] || { echo "::error::billing/monthly-trueup returned $code"; exit 1; }
