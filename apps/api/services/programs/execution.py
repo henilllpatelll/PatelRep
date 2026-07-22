@@ -56,8 +56,43 @@ def _link_evidence_to_completion(*, db: Any, tenant_id: str, completion_id: str,
     }).eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
 
 
+def _fetch_asset_criticality(*, db: Any, tenant_id: str, asset_id: str | None) -> str | None:
+    """G8: corrective work orders need the failing asset's criticality to set priority."""
+    if not asset_id:
+        return None
+    result = (
+        db.table("assets").select("criticality").eq("id", asset_id)
+        .eq("tenant_id", tenant_id).maybe_single().execute()
+    )
+    data = result.data if result else None
+    return data.get("criticality") if data else None
+
+
+def _record_containment_audit(
+    *, db: Any, tenant_id: str, user_id: str, actor_role: str, completion_id: str,
+    item_label: str, work_order_id: str | None,
+) -> None:
+    """Append-only containment record for a failed PM check (G2/T-04-11). execution.py has
+    no CurrentUser, so this inserts directly into operational_audit_events with the same
+    column set as routers/evidence.py's _record_audit_event, rather than a parallel mechanism."""
+    db.table("operational_audit_events").insert({
+        "tenant_id": tenant_id,
+        "resource_type": "pm_completion",
+        "resource_id": completion_id,
+        "action": "pm_check.failed_containment",
+        "actor_id": user_id,
+        "actor_role": actor_role,
+        "old_state": {},
+        "new_state": {"item": item_label, "work_order_id": work_order_id},
+        "reason_code": "failed_check",
+        "reason_note": None,
+        "source": "api",
+    }).execute()
+
+
 def persist_pm_completion(
-    *, db: Any, tenant_id: str, user_id: str, schedule: dict[str, Any], payload: dict[str, Any]
+    *, db: Any, tenant_id: str, user_id: str, actor_role: str,
+    schedule: dict[str, Any], payload: dict[str, Any],
 ) -> dict[str, Any]:
     """Append a complete PM record, its immutable results, and failed-check follow-ups.
 
@@ -107,16 +142,33 @@ def persist_pm_completion(
     if item_rows:
         db.table("pm_completion_items").insert(item_rows).execute()
 
-    for item in items:
-        if item["result"] == "failed":
+    failed_items = [item for item in items if item["result"] == "failed"]
+    if failed_items:
+        criticality = _fetch_asset_criticality(
+            db=db, tenant_id=tenant_id, asset_id=schedule.get("asset_id"),
+        )
+        for item in failed_items:
             work_order = build_corrective_work_order(
                 tenant_id=tenant_id,
                 asset_id=schedule.get("asset_id"),
                 completion_id=completion["id"],
                 checklist_item=item,
                 created_by=user_id,
+                completed_at=completed_at,
+                criticality=criticality,
             )
-            db.table("work_orders").insert(work_order).execute()
+            wo_result = db.table("work_orders").insert(work_order).execute()
+            wo_rows = wo_result.data if wo_result else None
+            work_order_id = wo_rows[0]["id"] if wo_rows else None
+            _record_containment_audit(
+                db=db,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                actor_role=actor_role,
+                completion_id=completion["id"],
+                item_label=item["label"],
+                work_order_id=work_order_id,
+            )
 
     interval_days = schedule.get("interval_days") or {
         "daily": 1, "weekly": 7, "monthly": 30, "quarterly": 90, "annual": 365,

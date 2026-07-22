@@ -1,11 +1,16 @@
 """Pure policy contracts shared by PM, housekeeping, and escalation routes."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 
 class EvidenceRequiredError(ValueError):
     """Raised when a controlled checklist item has no required proof."""
+
+
+# G8: corrective work orders must be escalatable — the escalations/check cron filters on
+# due_at — and life-safety failures must not share the same priority as everything else.
+CORRECTIVE_WO_SLA_HOURS = {"emergency": 4, "urgent": 24}
 
 
 DEFAULT_PROGRAM_TEMPLATES = (
@@ -92,21 +97,31 @@ def build_corrective_work_order(
     completion_id: str,
     checklist_item: dict[str, Any],
     created_by: str,
+    completed_at: datetime,
+    criticality: str | None = None,
 ) -> dict[str, Any]:
-    """Build the tenant-scoped, safety-priority follow-up for a failed PM item."""
+    """Build the tenant-scoped, criticality-based follow-up for a failed PM item.
+
+    G8: `life_safety` assets escalate to `emergency` priority (4h SLA); everything else
+    stays `urgent` (24h SLA). `due_at` is always set so the `escalations/check` cron
+    (which filters on due_at) can pick this work order up and auto-escalate it.
+    """
     label = checklist_item.get("label", "PM checklist item")
     note = (checklist_item.get("note") or "No additional detail provided.").strip()
+    priority = "emergency" if criticality == "life_safety" else "urgent"
+    due_at = completed_at + timedelta(hours=CORRECTIVE_WO_SLA_HOURS[priority])
     return {
         "tenant_id": tenant_id,
         "asset_id": asset_id,
         "title": f"Corrective PM work: {label}",
         "description": f"Failed PM completion {completion_id}. {note}",
         "category": "safety",
-        "priority": "urgent",
+        "priority": priority,
         "created_by": created_by,
         "is_pm_generated": True,
         "pm_completion_id": completion_id,
         "sla_minutes": 60,
+        "due_at": due_at.isoformat(),
     }
 
 

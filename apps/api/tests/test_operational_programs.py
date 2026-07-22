@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -25,12 +25,14 @@ def test_pm_completion_rejects_required_check_without_evidence():
 
 def test_failed_pm_check_creates_tenant_scoped_corrective_work_order():
     """As an engineer, a failed PM check creates a follow-up work order automatically."""
+    completed_at = datetime(2026, 7, 20, 12, 0, tzinfo=timezone.utc)
     work_order = build_corrective_work_order(
         tenant_id="hotel-1",
         asset_id="asset-1",
         completion_id="completion-1",
         checklist_item={"label": "Emergency light battery", "result": "failed", "note": "Will not hold charge"},
         created_by="engineer-1",
+        completed_at=completed_at,
     )
 
     assert work_order["tenant_id"] == "hotel-1"
@@ -38,6 +40,8 @@ def test_failed_pm_check_creates_tenant_scoped_corrective_work_order():
     assert work_order["is_pm_generated"] is True
     assert "Emergency light battery" in work_order["title"]
     assert "completion-1" in work_order["description"]
+    assert work_order["priority"] == "urgent"
+    assert work_order["due_at"] == "2026-07-21T12:00:00+00:00"
 
 
 def test_deep_clean_recurrence_advances_from_completion_date():
@@ -99,6 +103,7 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
         db=db,
         tenant_id="hotel-1",
         user_id="engineer-1",
+        actor_role="engineer",
         schedule={"id": "schedule-1", "asset_id": "asset-1", "interval_days": 30},
         payload={
             "items": [
@@ -112,9 +117,39 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
     assert record["tenant_id"] == "hotel-1"
     assert db.rows["pm_completion_items"][0]["completion_id"] == record["id"]
     assert db.rows["work_orders"][0]["pm_completion_id"] == record["id"]
+    assert db.rows["work_orders"][0]["due_at"]
     assert db.rows["pm_schedules"][0]["last_completed_at"]
     assert db.rows["evidence_records"][0]["related_entity_type"] == "pm_completion"
     assert db.rows["evidence_records"][0]["related_entity_id"] == record["id"]
+    containment_events = [
+        row for row in db.rows.get("operational_audit_events", [])
+        if row["action"] == "pm_check.failed_containment"
+    ]
+    assert len(containment_events) == 1
+    assert containment_events[0]["resource_id"] == record["id"]
+    assert containment_events[0]["new_state"]["work_order_id"] == db.rows["work_orders"][0]["id"]
+
+
+def test_corrective_wo_priority_and_due_at_follow_asset_criticality():
+    """G8: life-safety assets escalate to emergency priority (4h SLA); everything else
+    stays urgent (24h SLA) — but both branches always set an escalatable due_at."""
+    completed_at = datetime(2026, 7, 20, 8, 0, tzinfo=timezone.utc)
+
+    life_safety_wo = build_corrective_work_order(
+        tenant_id="hotel-1", asset_id="asset-1", completion_id="completion-1",
+        checklist_item={"label": "Fire alarm panel", "result": "failed"},
+        created_by="engineer-1", completed_at=completed_at, criticality="life_safety",
+    )
+    assert life_safety_wo["priority"] == "emergency"
+    assert life_safety_wo["due_at"] == "2026-07-20T12:00:00+00:00"
+
+    medium_wo = build_corrective_work_order(
+        tenant_id="hotel-1", asset_id="asset-2", completion_id="completion-2",
+        checklist_item={"label": "HVAC filter", "result": "failed"},
+        created_by="engineer-1", completed_at=completed_at, criticality="medium",
+    )
+    assert medium_wo["priority"] == "urgent"
+    assert medium_wo["due_at"] == "2026-07-21T08:00:00+00:00"
 
 
 def test_pm_completion_rejects_evidence_id_from_another_tenant():
@@ -131,6 +166,7 @@ def test_pm_completion_rejects_evidence_id_from_another_tenant():
             db=db,
             tenant_id="hotel-1",
             user_id="engineer-1",
+            actor_role="engineer",
             schedule={"id": "schedule-1", "asset_id": "asset-1", "interval_days": 30},
             payload={
                 "items": [{"key": "battery", "label": "Emergency light battery", "result": "passed"}],

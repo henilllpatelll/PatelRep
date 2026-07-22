@@ -247,6 +247,7 @@ async def complete_pm_schedule(
             db=supabase,
             tenant_id=current_user.hotel_id,
             user_id=current_user.user_id,
+            actor_role=current_user.role,
             schedule=sched,
             payload=request.model_dump(mode="json"),
         )

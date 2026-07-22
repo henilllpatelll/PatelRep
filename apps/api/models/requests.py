@@ -671,6 +671,9 @@ class CompletePMProgramRequest(SanitizedBaseModel):
 class CreatePMDeferralRequest(SanitizedBaseModel):
     reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
     deferred_until: datetime
+    # Must be an active user at this tenant, distinct from the requester (D-07 separation
+    # of duty) — the handler rejects approved_by == current_user.user_id with 422.
+    approved_by: str = Field(min_length=1, max_length=100)
 
 
 class CreatePublicAreaRequest(SanitizedBaseModel):
