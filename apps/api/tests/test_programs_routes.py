@@ -212,3 +212,108 @@ def test_evidence_required_item_422_route(monkeypatch):
 
     assert response.status_code == 422
     assert db.rows.get("pm_completion_records", []) == []
+
+
+# --- PM deferral separation of duty + containment audit (G2, G4, G8) ---
+
+def _deferral_payload(approved_by: str) -> dict:
+    return {
+        "reason": "Vendor unavailable until next week",
+        "deferred_until": "2026-08-01T00:00:00Z",
+        "approved_by": approved_by,
+    }
+
+
+def test_deferral_self_approval_rejected(monkeypatch):
+    """D-07: approved_by == requester is rejected with 422 and writes zero pm_deferrals rows."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/programs/pm-schedules/sched-1/deferrals",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json=_deferral_payload("user-a-1"),
+    )
+
+    assert response.status_code == 422
+    assert db.rows.get("pm_deferrals", []) == []
+
+
+def test_deferral_approval_writes_audit(monkeypatch):
+    """A distinct, active approver succeeds and writes one pm_deferral.approved audit event."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": True}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/programs/pm-schedules/sched-1/deferrals",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json=_deferral_payload("user-a-2"),
+    )
+
+    assert response.status_code == 200
+    deferral_id = response.json()["data"]["id"]
+    audit_events = [
+        row for row in db.rows.get("operational_audit_events", [])
+        if row["action"] == "pm_deferral.approved"
+    ]
+    assert len(audit_events) == 1
+    assert audit_events[0]["resource_id"] == deferral_id
+    assert audit_events[0]["reason_code"] == "pm_deferral"
+
+
+def test_deferral_inactive_approver_rejected(monkeypatch):
+    """An approver not active at this tenant is rejected with 404, zero pm_deferrals rows."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": False}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/programs/pm-schedules/sched-1/deferrals",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json=_deferral_payload("user-a-2"),
+    )
+
+    assert response.status_code == 404
+    assert db.rows.get("pm_deferrals", []) == []
+
+
+def test_failed_check_writes_containment_audit(monkeypatch):
+    """A failed PM checklist item creates a corrective WO AND an append-only containment
+    audit event (G2/T-04-11), not just the follow-up work order."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("engineer"),
+        json={
+            "items": [{"key": "check", "label": "Fire extinguisher pressure", "result": "failed", "note": "Low pressure"}],
+        },
+    )
+
+    assert response.status_code == 200
+    completion_id = response.json()["data"]["id"]
+    assert db.rows["work_orders"][0]["pm_completion_id"] == completion_id
+    assert db.rows["work_orders"][0]["due_at"]
+
+    containment_events = [
+        row for row in db.rows.get("operational_audit_events", [])
+        if row["action"] == "pm_check.failed_containment"
+    ]
+    assert len(containment_events) == 1
+    assert containment_events[0]["resource_id"] == completion_id
+    assert containment_events[0]["reason_code"] == "failed_check"
+    assert containment_events[0]["new_state"]["work_order_id"] == db.rows["work_orders"][0]["id"]

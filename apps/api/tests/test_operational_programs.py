@@ -130,6 +130,28 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
     assert containment_events[0]["new_state"]["work_order_id"] == db.rows["work_orders"][0]["id"]
 
 
+def test_corrective_wo_priority_and_due_at_follow_asset_criticality():
+    """G8: life-safety assets escalate to emergency priority (4h SLA); everything else
+    stays urgent (24h SLA) — but both branches always set an escalatable due_at."""
+    completed_at = datetime(2026, 7, 20, 8, 0, tzinfo=timezone.utc)
+
+    life_safety_wo = build_corrective_work_order(
+        tenant_id="hotel-1", asset_id="asset-1", completion_id="completion-1",
+        checklist_item={"label": "Fire alarm panel", "result": "failed"},
+        created_by="engineer-1", completed_at=completed_at, criticality="life_safety",
+    )
+    assert life_safety_wo["priority"] == "emergency"
+    assert life_safety_wo["due_at"] == "2026-07-20T12:00:00+00:00"
+
+    medium_wo = build_corrective_work_order(
+        tenant_id="hotel-1", asset_id="asset-2", completion_id="completion-2",
+        checklist_item={"label": "HVAC filter", "result": "failed"},
+        created_by="engineer-1", completed_at=completed_at, criticality="medium",
+    )
+    assert medium_wo["priority"] == "urgent"
+    assert medium_wo["due_at"] == "2026-07-21T08:00:00+00:00"
+
+
 def test_pm_completion_rejects_evidence_id_from_another_tenant():
     """Cross-tenant evidence references must be rejected with zero completion rows written."""
     from tests.smoke.fake_supabase import FakeDB
