@@ -578,6 +578,15 @@ class CreateEmergencyDrillRequest(SanitizedBaseModel):
     occurred_at: datetime
     location: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    follow_up_evidence_id: Optional[str] = Field(default=None, max_length=100)
+
+
+class CreateEmergencyContactRequest(SanitizedBaseModel):
+    contact_name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    role_label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    phone: str = Field(min_length=7, max_length=32)
+    alternate_phone: Optional[str] = Field(default=None, max_length=32)
+    is_primary: bool = False
 
 
 class CheckInEmergencyDrillRequest(SanitizedBaseModel):

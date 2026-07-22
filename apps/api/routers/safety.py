@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from core.database import supabase
 from middleware.auth import CurrentUser, get_current_user, require_role
@@ -14,6 +17,7 @@ from models.requests import (
     CompleteSafetyTrainingRequest,
     CreateChemicalInventoryItemRequest,
     CreateControlledIncidentRequest,
+    CreateEmergencyContactRequest,
     CreateEmergencyDrillRequest,
     CreateIncidentEventRequest,
     CreateSafetyTrainingCourseRequest,
@@ -22,6 +26,8 @@ from services.safety.contracts import (
     build_incident_event,
     calculate_next_training_due_date,
     get_training_status,
+    is_incident_visible_to,
+    should_schedule_training_assignment,
 )
 
 
@@ -50,6 +56,17 @@ def _require_employee(employee_id: str, current_user: CurrentUser) -> dict:
     return result.data
 
 
+def _require_evidence_record(evidence_id: str | None, current_user: CurrentUser, *, label: str) -> None:
+    if not evidence_id:
+        return
+    result = (
+        supabase.table("evidence_records").select("id").eq("id", evidence_id)
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"{label} evidence was not found at this property.")
+
+
 @router.post("/training/courses")
 async def create_training_course(request: CreateSafetyTrainingCourseRequest, current_user: CurrentUser = Depends(require_role("gm"))):
     record = supabase.table("safety_training_courses").insert({"tenant_id": current_user.hotel_id, **request.model_dump(), "created_by": current_user.user_id}).execute().data[0]
@@ -65,25 +82,46 @@ async def list_training_status(current_user: CurrentUser = Depends(get_current_u
     today = date.today()
     rows = []
     for employee in employees:
+        if current_user.role not in MANAGER_ROLES and employee["user_id"] != current_user.user_id:
+            continue
         for course in courses:
             required = employee["role"] in (course.get("covered_roles") or [])
-            assignment = next((item for item in assignments if item["employee_id"] == employee["user_id"] and item["course_id"] == course["id"] and not item.get("completed_at")), None)
-            rows.append({"employee_id": employee["user_id"], "employee_role": employee["role"], "course_id": course["id"], "course_name": course["course_name"], "provider_name": course["provider_name"], "assignment_id": assignment.get("id") if assignment else None, "due_date": assignment.get("due_date") if assignment else None, "status": get_training_status(required=required, completed_at=None, due_date=date.fromisoformat(assignment["due_date"]) if assignment else None, today=today)})
+            employee_assignments = [
+                item for item in assignments
+                if item["employee_id"] == employee["user_id"] and item["course_id"] == course["id"]
+            ]
+            assignment = next((item for item in employee_assignments if not item.get("completed_at")), None)
+            completed = sorted(
+                (item for item in employee_assignments if item.get("completed_at")),
+                key=lambda item: item["completed_at"], reverse=True,
+            )
+            last_completed_on = (
+                datetime.fromisoformat(completed[0]["completed_at"].replace("Z", "+00:00")).date()
+                if completed else None
+            )
+            due_date = (
+                date.fromisoformat(assignment["due_date"])
+                if assignment else calculate_next_training_due_date(last_completed_on, course["recurrence_months"])
+                if last_completed_on else None
+            )
+            rows.append({
+                "employee_id": employee["user_id"], "employee_role": employee["role"],
+                "course_id": course["id"], "course_name": course["course_name"],
+                "provider_name": course["provider_name"], "assignment_id": assignment.get("id") if assignment else None,
+                "due_date": due_date.isoformat() if due_date else None,
+                "status": get_training_status(
+                    required=required,
+                    completed_at=datetime.now(timezone.utc) if last_completed_on and due_date and due_date > today else None,
+                    due_date=due_date, today=today,
+                ),
+            })
     return {"data": rows}
 
 
 @router.post("/training/courses/{course_id}/assignments")
 async def assign_training(course_id: str, request: AssignSafetyTrainingRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
-    course = supabase.table("safety_training_courses").select("*").eq("id", course_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
-    if not course or not course.data:
-        raise HTTPException(status_code=404, detail="Safety training course not found.")
-    employee = _require_employee(request.employee_id, current_user)
-    if employee["role"] not in (course.data.get("covered_roles") or []):
-        raise HTTPException(status_code=409, detail="This employee is not covered by the selected course.")
-    due_date = request.hired_on + timedelta(days=course.data["new_hire_deadline_days"])
-    record = supabase.table("safety_training_assignments").insert({"tenant_id": current_user.hotel_id, "course_id": course_id, "employee_id": request.employee_id, "due_date": due_date.isoformat(), "assigned_by": current_user.user_id}).execute().data[0]
-    _record_audit_event(current_user, "safety_training_assignment", record["id"], "safety_training_assignment.assigned", {"due_date": record["due_date"]})
-    return {"data": record}
+    del course_id, request, current_user
+    raise HTTPException(status_code=409, detail="Safety assignments are generated by the compliance scheduler.")
 
 
 @router.post("/training/assignments/{assignment_id}/complete")
@@ -91,19 +129,34 @@ async def complete_training(assignment_id: str, request: CompleteSafetyTrainingR
     assignment = supabase.table("safety_training_assignments").select("*, safety_training_courses(recurrence_months)").eq("id", assignment_id).eq("tenant_id", current_user.hotel_id).eq("employee_id", current_user.user_id).maybe_single().execute()
     if not assignment or not assignment.data:
         raise HTTPException(status_code=404, detail="Training assignment not found.")
+    _require_evidence_record(request.certificate_evidence_id, current_user, label="Certificate")
     completed_at = datetime.now(timezone.utc)
     record = supabase.table("safety_training_assignments").update({"completed_at": completed_at.isoformat(), "certificate_evidence_id": request.certificate_evidence_id}).eq("id", assignment_id).eq("tenant_id", current_user.hotel_id).execute().data[0]
-    recurrence_months = assignment.data["safety_training_courses"]["recurrence_months"]
-    supabase.table("safety_training_assignments").insert({"tenant_id": current_user.hotel_id, "course_id": assignment.data["course_id"], "employee_id": current_user.user_id, "due_date": calculate_next_training_due_date(completed_at.date(), recurrence_months).isoformat(), "assigned_by": current_user.user_id}).execute()
     _record_audit_event(current_user, "safety_training_assignment", assignment_id, "safety_training_assignment.completed", {"certificate_evidence_id": request.certificate_evidence_id})
     return {"data": record}
+
+
+@router.get("/training/export")
+async def export_training_compliance(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+    status = await list_training_status(current_user)
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=["employee_id", "employee_role", "course_id", "course_name", "provider_name", "due_date", "status"])
+    writer.writeheader()
+    for row in status["data"]:
+        writer.writerow({key: row[key] for key in writer.fieldnames})
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=safety-training-compliance.csv"})
 
 
 @router.post("/incidents")
 async def create_controlled_incident(request: CreateControlledIncidentRequest, current_user: CurrentUser = Depends(get_current_user)):
     incident = supabase.table("controlled_incidents").insert({"tenant_id": current_user.hotel_id, **request.model_dump(mode="json"), "created_by": current_user.user_id}).execute().data[0]
     event = build_incident_event(incident_id=incident["id"], event_type="created", detail="Controlled incident recorded.", actor_id=current_user.user_id, actor_role=current_user.role, now=datetime.now(timezone.utc))
-    supabase.table("controlled_incident_events").insert({"tenant_id": current_user.hotel_id, **event}).execute()
+    supabase.rpc("append_controlled_incident_event", {
+        "p_incident_id": incident["id"], "p_tenant_id": current_user.hotel_id,
+        "p_event_type": event["event_type"], "p_detail": event["detail"],
+        "p_actor_id": current_user.user_id, "p_actor_role": current_user.role,
+        "p_occurred_at": event["occurred_at"],
+    }).execute()
     _record_audit_event(current_user, "controlled_incident", incident["id"], "controlled_incident.created", {"incident_type": incident["incident_type"]})
     return {"data": incident}
 
@@ -114,13 +167,37 @@ async def list_controlled_incidents(current_user: CurrentUser = Depends(require_
     return {"data": records}
 
 
+@router.get("/incidents/{incident_id}")
+async def get_controlled_incident(incident_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    incident = (
+        supabase.table("controlled_incidents").select("*, controlled_incident_events(*)")
+        .eq("id", incident_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not incident.data:
+        raise HTTPException(status_code=404, detail="Controlled incident not found.")
+    if not is_incident_visible_to(
+        incident_creator_id=incident.data["created_by"], requester_id=current_user.user_id,
+        requester_role=current_user.role,
+    ):
+        raise HTTPException(status_code=403, detail="You may only view controlled incidents you filed.")
+    return {"data": incident.data}
+
+
 @router.post("/incidents/{incident_id}/events")
 async def append_incident_event(incident_id: str, request: CreateIncidentEventRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
     incident = supabase.table("controlled_incidents").select("id").eq("id", incident_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     if not incident or not incident.data:
         raise HTTPException(status_code=404, detail="Controlled incident not found.")
     event = build_incident_event(incident_id=incident_id, event_type=request.event_type, detail=request.detail, actor_id=current_user.user_id, actor_role=current_user.role, now=datetime.now(timezone.utc))
-    record = supabase.table("controlled_incident_events").insert({"tenant_id": current_user.hotel_id, **event}).execute().data[0]
+    result = supabase.rpc("append_controlled_incident_event", {
+        "p_incident_id": incident_id, "p_tenant_id": current_user.hotel_id,
+        "p_event_type": event["event_type"], "p_detail": event["detail"],
+        "p_actor_id": current_user.user_id, "p_actor_role": current_user.role,
+        "p_occurred_at": event["occurred_at"],
+    }).execute()
+    record = (result.data or [None])[0]
+    if not record:
+        raise HTTPException(status_code=500, detail="Unable to append controlled incident event.")
     _record_audit_event(current_user, "controlled_incident", incident_id, f"controlled_incident.{request.event_type}", {"event_id": record["id"]})
     return {"data": record}
 
@@ -132,8 +209,47 @@ async def list_chemicals(current_user: CurrentUser = Depends(get_current_user)):
 
 @router.post("/chemicals")
 async def create_chemical(request: CreateChemicalInventoryItemRequest, current_user: CurrentUser = Depends(require_role("gm", "chief_engineer", "engineer"))):
+    _require_evidence_record(request.sds_evidence_id, current_user, label="SDS")
     record = supabase.table("chemical_inventory").insert({"tenant_id": current_user.hotel_id, **request.model_dump(), "created_by": current_user.user_id}).execute().data[0]
     _record_audit_event(current_user, "chemical_inventory", record["id"], "chemical_inventory.created", {"product_name": record["product_name"]})
+    return {"data": record}
+
+
+@router.get("/safety-information")
+async def get_safety_information(current_user: CurrentUser = Depends(get_current_user)):
+    chemicals = (
+        supabase.table("chemical_inventory").select("*").eq("tenant_id", current_user.hotel_id)
+        .order("product_name").execute().data or []
+    )
+    evidence_ids = [item["sds_evidence_id"] for item in chemicals if item.get("sds_evidence_id")]
+    evidence_by_id = {}
+    if evidence_ids:
+        records = supabase.table("evidence_records").select("id, storage_path").eq("tenant_id", current_user.hotel_id).in_("id", evidence_ids).execute().data or []
+        evidence_by_id = {record["id"]: record for record in records}
+    for chemical in chemicals:
+        record = evidence_by_id.get(chemical.get("sds_evidence_id"))
+        chemical["sds_url"] = (
+            supabase.storage.from_("evidence-files").create_signed_url(record["storage_path"], 3600).get("signedURL")
+            if record and record.get("storage_path") else None
+        )
+    procedures = (
+        supabase.table("controlled_documents").select("id, title, version_number, effective_date")
+        .eq("tenant_id", current_user.hotel_id).eq("document_type", "safety")
+        .eq("approval_state", "approved").execute().data or []
+    )
+    return {"data": {"chemicals": chemicals, "procedures": procedures}}
+
+
+@router.get("/emergency/contacts")
+async def list_emergency_contacts(current_user: CurrentUser = Depends(get_current_user)):
+    records = supabase.table("emergency_contacts").select("*").eq("tenant_id", current_user.hotel_id).order("is_primary", desc=True).execute().data or []
+    return {"data": records}
+
+
+@router.post("/emergency/contacts")
+async def create_emergency_contact(request: CreateEmergencyContactRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+    record = supabase.table("emergency_contacts").insert({"tenant_id": current_user.hotel_id, **request.model_dump(), "created_by": current_user.user_id}).execute().data[0]
+    _record_audit_event(current_user, "emergency_contact", record["id"], "emergency_contact.created", {"role_label": record["role_label"]})
     return {"data": record}
 
 
@@ -147,7 +263,11 @@ async def list_emergency_plans(current_user: CurrentUser = Depends(get_current_u
 
 @router.post("/emergency/drills")
 async def create_emergency_drill(request: CreateEmergencyDrillRequest, current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
-    record = supabase.table("emergency_drills").insert({"tenant_id": current_user.hotel_id, **request.model_dump(mode="json"), "created_by": current_user.user_id}).execute().data[0]
+    _require_evidence_record(request.follow_up_evidence_id, current_user, label="Drill follow-up")
+    payload = request.model_dump(mode="json", exclude={"follow_up_evidence_id"})
+    record = supabase.table("emergency_drills").insert({"tenant_id": current_user.hotel_id, **payload, "created_by": current_user.user_id}).execute().data[0]
+    if request.follow_up_evidence_id:
+        supabase.table("emergency_drill_follow_up_evidence").insert({"tenant_id": current_user.hotel_id, "drill_id": record["id"], "evidence_id": request.follow_up_evidence_id, "linked_by": current_user.user_id}).execute()
     _record_audit_event(current_user, "emergency_drill", record["id"], "emergency_drill.recorded", {"drill_type": record["drill_type"]})
     return {"data": record}
 

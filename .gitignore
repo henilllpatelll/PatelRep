@@ -111,3 +111,9 @@ e2e/agent-browser/reports/*
 !e2e/agent-browser/baselines/.gitkeep
 !e2e/agent-browser/captures/.gitkeep
 !e2e/agent-browser/reports/.gitkeep
+
+# playwright-cli page snapshots (session scratch)
+.playwright-cli/
+
+# graphify incremental cache (regenerated on demand)
+**/graphify-out/cache/

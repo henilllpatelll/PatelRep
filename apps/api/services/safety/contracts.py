@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 
 TRAINING_DUE_SOON_DAYS = 14
+MANAGEMENT_ROLES = {"gm", "housekeeping_supervisor", "chief_engineer"}
 
 
 def calculate_next_training_due_date(completed_on: date, recurrence_months: int) -> date:
@@ -33,6 +34,25 @@ def get_training_status(
     if (due_date - today).days <= TRAINING_DUE_SOON_DAYS:
         return "due_soon"
     return "compliant"
+
+
+def should_schedule_training_assignment(
+    *, employee_role: str, covered_roles: list[str], existing_open_due_dates: list[date],
+    last_completed_on: date | None, recurrence_months: int, today: date,
+) -> bool:
+    """Keep one open requirement per employee/course and schedule recurrence before it is due."""
+    if employee_role not in covered_roles or existing_open_due_dates:
+        return False
+    if last_completed_on is None:
+        return True
+    return calculate_next_training_due_date(last_completed_on, recurrence_months) <= (
+        today.fromordinal(today.toordinal() + TRAINING_DUE_SOON_DAYS)
+    )
+
+
+def is_incident_visible_to(*, incident_creator_id: str, requester_id: str, requester_role: str) -> bool:
+    """Management has oversight; other staff can only read their own controlled report."""
+    return requester_role in MANAGEMENT_ROLES or requester_id == incident_creator_id
 
 
 def build_incident_event(
