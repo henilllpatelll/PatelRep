@@ -62,7 +62,7 @@ Plans:
 - [x] 04-02-PLAN.md — S0 PM evidence platform integration (signed-URL attachments) + migration 081
 
 **Wave 3** *(blocked on Wave 2)*
-- [ ] 04-03-PLAN.md — S0 audit events + deferral approval + corrective-WO hardening (code-only; WO columns pre-exist per 007)
+- [x] 04-03-PLAN.md — S0 audit events + deferral approval + corrective-WO hardening (code-only; WO columns pre-exist per 007)
 
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 04-04-PLAN.md — 4A API: applicability-gated PM template library + editor + generic builder + migration 083
