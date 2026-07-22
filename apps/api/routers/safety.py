@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -27,7 +27,6 @@ from services.safety.contracts import (
     calculate_next_training_due_date,
     get_training_status,
     is_incident_visible_to,
-    should_schedule_training_assignment,
 )
 
 
