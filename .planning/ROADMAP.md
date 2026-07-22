@@ -47,7 +47,7 @@ Plans:
 ### Phase 3: Texas compliance and staff safety
 **Goal**: Make training, controlled incidents, hazard communication, and emergency evidence operational without building hardware.
 **Depends on**: Phase 2
-**Plans**: `03-EXECUTION-PLAN.md` (slices 3A training, 3B controlled incidents, 3C HazCom/emergency evidence). Complete — code committed, migration 080 applied to prod DB, 312 API tests + web type-check green, authenticated GM browser verification done on localhost. Not yet deployed to Railway (push pending).
+**Plans**: `03-EXECUTION-PLAN.md` (slices 3A training, 3B controlled incidents, 3C HazCom/emergency evidence). Complete + deployed — code committed, migration 080 applied to prod DB, 312 API tests + web type-check green, GM browser verification on localhost, and deployed to Railway (`eba6d066`, 2026-07-21) with production verified healthy (Phase 3 API routes live).
 
 ### Phase 4: Maintenance and housekeeping programs
 **Goal**: Make PM and housekeeping recurring, evidence-backed programs and enforce the bilingual floor contract.
@@ -78,7 +78,7 @@ Plans:
 | 0. Restore reality | N/A | Complete | 2026-07-19 |
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
-| 3. Texas compliance and staff safety | 3/3 | Complete — verified locally; Railway deploy pending push | 2026-07-21 |
+| 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 0/TBD | Not started | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |

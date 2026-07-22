@@ -27,6 +27,12 @@
 
 ## Key Learnings
 
+- **Pre-push hook is a hard gate — `.githooks/pre-push` (core.hooksPath=.githooks) (2026-07-21):** every `git push` runs, in order: ruff on apps/api, `pip-audit` (if installed, ignores PYSEC-2026-1325), and `npm audit --audit-level=high` + lockfile-in-sync in apps/web. Any high/critical CVE or lint error blocks the push. Before pushing, run `cd apps/api && ruff check` and `cd apps/web && npm audit --audit-level=high` locally so you don't discover the block at push time. Do NOT `--no-verify` without explicit user authorization.
+
+- **CVE remediation without downgrading Next — use npm `overrides` (2026-07-21):** newly-disclosed 2026 highs (sharp<0.35 libvips CVEs pulled transitively by Next 16) had npm's only auto-fix as a breaking Next downgrade (16→14.2.35). Fix: add `"overrides": { "sharp": "^0.35.3" }` to `apps/web/package.json`, `npm install`, then `npm audit fix` for the independent non-breaking ones (js-yaml, brace-expansion). Keeps Next 16, clears the gate. Always re-run `npm audit`, `tsc --noEmit`, and `npm run build` after touching deps.
+
+- **origin/main receives Dependabot merges — expect divergence before pushing (2026-07-21):** the remote auto-merges Dependabot PRs (dep bumps, incl. majors: zustand 4→5, @hookform/resolvers 3→5, next canary→preview). `git fetch` before assuming a fast-forward. Merging is clean (git auto-resolves package.json/lock), but ALWAYS `npm install` to reconcile the text-merged lockfile, then re-verify type-check + build against the new majors before pushing.
+
 - **Safety web-surface delivery is already in the checkout (2026-07-21):** Commit `8a9ec209` contains the staff safety-information view and manager compliance, programs, and incident-review tabs at `/safety`; a fresh web type-check, lint, and production build all pass.
 
 - **Phase 2 production migration gate (2026-07-21):** `npx supabase migration list --linked` confirms migrations 074–078 are local-only. Do not close the evidence foundation or make a docs-only phase-close commit until the user authorizes and verifies their production application.

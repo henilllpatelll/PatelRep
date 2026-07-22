@@ -18,7 +18,9 @@ progress:
 
 ## Current phase
 
-**Phase 3 — Texas compliance and staff safety: CLOSED (2026-07-21). Railway deploy pending push.**
+**Phase 3 — Texas compliance and staff safety: CLOSED + DEPLOYED (2026-07-21).**
+
+**Deployed to production 2026-07-21** (merge `eba6d066` pushed to origin/main). Railway auto-redeployed both services; API rolled over in ~60s. Verified live: API `/health` 200 (env production, db ok), Phase 3 route `/v1/safety/safety-information` now returns 401 (route exists, auth-gated — was 404 pre-deploy), web `/login` 200. The push cleared three gates unrelated to Phase 3 logic: (1) ruff removed two orphaned imports in safety.py (`c83ab890`); (2) the pre-push `npm audit` gate flagged 4 newly-disclosed 2026 high CVEs (js-yaml, brace-expansion, sharp→libvips) — remediated non-breaking via `overrides.sharp ^0.35.3` (keeps Next 16, avoids npm's proposed Next 16→14.2.35 downgrade) plus `npm audit fix` → 0 vulns (`4a79204c`); (3) origin/main had diverged with 5 Dependabot merges (zustand 4→5, @hookform/resolvers 3→5, next canary.87→preview.6, an 8-pkg non-major group, setup-python 6→7) — merged cleanly, lockfile reconciled, re-verified type-check + web build green against the new majors. **These major dep bumps (zustand 5 / hookform 5 / next preview.6) are now in production for the first time; if prod UI misbehaves, suspect these before Phase 3 code.**
 
 Code implemented (safety.py API router, /safety web route, migration 080). `03-CONTEXT.md` locks the 4 decided gray areas (slice order 3A→3B→3C + webhook design-only; anyone-files/management-views incidents; auto-cron training assignments; EN+ES scoped to staff-facing safety surfaces).
 
@@ -111,7 +113,7 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 ## Current blockers
 
-- **None blocking Phase 3 (closed).** Next action is the deploy decision: push `main` to origin so Railway redeploys API+web with Phase 3 code (holding per user instruction). After push, smoke-verify production `/safety` + `/v1/safety/*` and confirm the safety crons (`safety.training-assignments`, `safety.drill-follow-up`) fire.
+- **None blocking Phase 3 (closed + deployed 2026-07-21).** Push landed (`eba6d066`); production verified healthy (see above). Remaining follow-ups: (a) authenticated prod smoke of `/safety` + the new safety surfaces with a GM session, and (b) confirm the safety crons (`safety.training-assignments`, `safety.drill-follow-up`) actually fire — see the stale-cron item below.
 - **Operational (pre-existing, not Phase 3):** production `/health` shows every cron `stale` (predictions, billing, logbook, evidence reminders, safety, etc.) — the Railway cron scheduler appears not to be firing. Investigate before relying on any automated safety/training assignment or reminder in production.
 - Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path is still unavailable locally; that RBAC is covered by the passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
 
