@@ -21,6 +21,7 @@ from main import app
 from middleware.auth import CurrentUser
 from models.requests import CompletePMProgramRequest
 from routers import assets as assets_router
+from routers import evidence as evidence_router
 from routers import programs as programs_router
 from tests.smoke.fake_supabase import FakeDB
 
@@ -131,3 +132,83 @@ def test_maybe_single_none_returns_404_not_500(monkeypatch):
         )
 
     assert exc.value.status_code == 404
+
+
+# --- PM completion evidence linkage (D-06, G1) ---
+
+def test_pm_completion_returns_signed_urls(monkeypatch):
+    """A completion's attachments read back as short-lived signed URLs, never a raw storage_path."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "evidence_records": [
+            {"id": "evidence-1", "tenant_id": "hotel-a", "storage_path": "hotel-a/evidence-1/proof.jpg", "file_name": "proof.jpg"},
+        ],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    monkeypatch.setattr(evidence_router, "supabase", db)
+    client = TestClient(app)
+
+    complete_response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm"),
+        json={
+            "photos": ["evidence-1"],
+            "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
+        },
+    )
+    assert complete_response.status_code == 200
+    completion_id = complete_response.json()["data"]["id"]
+
+    read_response = client.get(
+        f"/v1/assets/pm-schedules/sched-1/completions/{completion_id}",
+        headers=_auth_header("gm"),
+    )
+    assert read_response.status_code == 200
+    body = read_response.json()["data"]
+
+    assert body["photos"][0]["url"].startswith("https://storage.test/signed/evidence-files/")
+    assert "token=fake" in body["photos"][0]["url"]
+    assert "storage_path" not in body["photos"][0]
+    assert "storage_path" not in read_response.text
+
+
+def test_cross_tenant_evidence_rejected(monkeypatch):
+    """An evidence_record owned by tenant B cannot be attached to a tenant-A completion."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "evidence_records": [{"id": "evidence-b", "tenant_id": "hotel-b"}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm"),
+        json={
+            "photos": ["evidence-b"],
+            "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert db.rows.get("pm_completion_records", []) == []
+
+
+def test_evidence_required_item_422_route(monkeypatch):
+    """A controlled checklist item with requires_evidence and no evidence is rejected at the route."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm"),
+        json={
+            "items": [{"key": "gauge", "label": "Pressure gauge", "result": "passed", "requires_evidence": True}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert db.rows.get("pm_completion_records", []) == []
