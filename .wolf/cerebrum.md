@@ -8,6 +8,8 @@
 
 <!-- How the user likes things done. Code style, tools, patterns, communication. -->
 
+- **Never read or mention the root `notes` file (2026-07-19):** The `notes` file at project root is the user's private mental scratchpad. Do not read it, plan from it, or reference it in any session — treat it as nonexistent, even if open in the IDE.
+
 - **Operations audit must be exhaustive and evidence-led (2026-07-17):** When requesting workflow validation, the user expects every implemented web and mobile operational workflow to be exercised against current real-world hotel practice, with unnecessary steps removed and meaningful gaps implemented before reporting back.
 
 - **Mobile palette: forest-green primary, not terracotta (2026-06-11):** User rebased the mobile Evening Lobby port onto the main palette — keep dark shellTokens chrome but primary/action stays forest-green (#2F5D50/#4F7A5A light, #7EA889 dark) on the warm #F8F1E7 canvas. Do not reintroduce terracotta as the mobile action color.
@@ -21,7 +23,21 @@
 - **Use test credentials via env only (2026-05-23):** The user may provide TEST_PASSWORD for Playwright verification. Use it as a shell/process environment variable, but do not hardcode it into repo files or long-lived docs.
 - **Universal room status color contract (updated 2026-05-28):** User wants room statuses shown consistently everywhere: green = Inspected / Ready, blue = Clean ready for inspection, purple = In Progress, red = Vacant Dirty, striped red = Occupied, yellow = Pickup, and gray/stone = Out of Order / Out of Service. OOO/OOS should use the original simple card treatment, just gray instead of orange.
 
+- **Two-week GSD phases require explicit plan review before implementation (2026-07-19):** Produce and present the phase plan, then stop. Do not auto-run `/gsd-execute-phase` unless the user explicitly directs it.
+
 ## Key Learnings
+
+- **Safety web-surface delivery is already in the checkout (2026-07-21):** Commit `8a9ec209` contains the staff safety-information view and manager compliance, programs, and incident-review tabs at `/safety`; a fresh web type-check, lint, and production build all pass.
+
+- **Phase 2 production migration gate (2026-07-21):** `npx supabase migration list --linked` confirms migrations 074–078 are local-only. Do not close the evidence foundation or make a docs-only phase-close commit until the user authorizes and verifies their production application.
+
+- **Evidence acknowledgement applicability and RBAC contract (2026-07-21):** Acknowledging a controlled document is a mutation and must use `require_role(*EVIDENCE_CAPTURE_ROLES)`. When a GM removes a property's applicability, existing acknowledgements for affected documents must be hidden and rejected, so staff cannot complete a procedure that no longer applies.
+
+- **Controlled-document retraining contract (2026-07-19):** A successor must be approved before staff receive retraining; migration 077 copies only competency-required prior assignments to the approved successor, records a retraining audit event, and keeps the new assignment tenant-scoped/idempotent via the existing unique key.
+
+- **Controlled-document lifecycle contract (2026-07-19):** Owners and approvers must be distinct active `user_roles` in the same tenant; source SOP links and supersession links must also be same-tenant. Supersession uses migration 075's audited RPC so the predecessor and successor cannot diverge.
+
+- **Phase 2 evidence foundation has a partial implementation (2026-07-19):** Migration 069 and `routers/evidence.py` already provide an initial schema/API. Future planning must validate and complete this foundation rather than replacing it or introducing duplicate evidence/audit tables.
 
 - **Work-order creation schema contract (2026-07-17):** `work_orders` has no `source` column; store transition provenance in `operational_audit_events` only. The create modal must offer `emergency` because the API and database priority contract support it, and Kanban columns expose `data-testid="work-order-column-{status}"` for stable workflow tests.
 
@@ -208,6 +224,8 @@
 - **Web audit status (2026-05-13):** `npm audit fix` at repo root safely reduces compatible advisories, but remaining web audit items require breaking upgrades: Next 14.2.35 -> Next 16.x, eslint-config-next 14 -> 16 with ESLint 9 implications, and @supabase/ssr 0.3 -> 0.10. Do not force these inside an unrelated readiness pass.
 
 ## Do-Not-Repeat
+
+- [2026-07-21] **Never commit code that imports a symbol still living only in the working tree.** Phase 3 committed `routers/internal.py` + `tests/test_safety_compliance.py` (which import `should_schedule_training_assignment`/`is_incident_visible_to`) while the `services/safety/contracts.py` additions defining them stayed uncommitted — HEAD would `ImportError` on a clean checkout, and `pytest` passed only because the dirty working tree had the functions. Before ending a session or claiming tests pass, run `git status` and confirm no committed module depends on an uncommitted file; a green suite against a dirty tree is not proof HEAD is consistent. Repaired in commit `5e1b11c7`. See bug-454.
 
 - [2026-07-15] **Do not classify the existing combined room restriction behavior or the current Opera PDF import semantics as mistakes.** The user confirmed both were implemented deliberately. Do not add roadmap work to split/change the former or add preview/confidence/reset-protection behavior to the latter unless the user explicitly revisits those product decisions.
 
@@ -404,3 +422,9 @@
 - **Work-order role consolidation (2026-07-16):** Migration 064 intentionally collapses `chief_engineer` into `engineer`. Controlled work-order transition logic must therefore use `engineer` and `gm` for management-level overrides; referring to `chief_engineer` creates an unreachable authorization path.
 - **Inspection evidence contract (2026-07-16):** Require photo evidence at the template-item level (`requires_photo_on_fail`), collect it only when the item fails, and attach the validated upload to the matching `inspection_results` row. A free-floating inspection photo is not reconstructable evidence.
 - **Automated escalation audit contract (2026-07-16):** Background escalation must call the same atomic work-order transition RPC as staff, using a nullable automation actor and source `automation`; direct status writes bypass the append-only sequence. Notification creation must also create a distinct in-app delivery outcome.
+- **Mobile auth callback lock (2026-07-17):** Do not await Supabase queries or API calls inside `supabase.auth.onAuthStateChange`; Supabase holds an internal auth lock while notifying listeners and password sign-in can remain indefinitely loading. Route follow-up profile hydration through `deferAuthHydration()` so it runs after the callback returns.
+- **Mobile Spanish language label (2026-07-17):** The language selector itself is staff-facing UI: when Spanish is active, label the English option `Inglés`, never `English`. Keep a focused render test that switches the mocked active language.
+- **Interactive mobile verification boundary (2026-07-17):** Android emulator validation can prove JS/runtime flows with the Expo development client. A Windows host without `xcrun`/an iOS simulator or a connected iOS device cannot substantiate an iOS interactive walkthrough; do not claim it as tested.
+- **Interactive web verification boundary (2026-07-17):** A production browser walkthrough requires a current authorized staff fixture or an existing authorized browser session. When live authentication rejects the available test identities, validate public flows but do not claim authenticated hotel operations as exercised; refresh the secure fixture first.
+- **Phase 3 controlled-incident contract (2026-07-21):** Base incident rows and their corrections are append-only. Route creation and review events through the service-role-only `append_controlled_incident_event` RPC; every new SECURITY DEFINER RPC must revoke `anon`, `authenticated`, and `PUBLIC`, then grant only `service_role`.
+- **Phase 3 scheduler contract (2026-07-21):** Safety training has one open assignment per covered employee/course. The internal cron creates new-hire/recurrence work and queues `notification_deliveries` with `queued` status; it must not create manual-assignment bypasses or claim provider delivery.

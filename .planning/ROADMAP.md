@@ -9,7 +9,7 @@ PatelRep moves from production trust through reusable operational evidence, Texa
 - [x] **Phase 0: Restore reality** - Production, monitoring, CI, and planning status are trustworthy. Closed 2026-07-19.
 - [x] **Phase 1: Core operational integrity** - Engineering state, escalation, and audit history are trustworthy. Closed 2026-07-19.
 - [x] **Phase 2: Evidence foundation** - Shared documents, acknowledgements, evidence, exceptions, and audit exports. Closed 2026-07-21.
-- [ ] **Phase 3: Texas compliance and staff safety** - Training, incidents, safety documents, and emergency evidence.
+- [x] **Phase 3: Texas compliance and staff safety** - Training, incidents, safety documents, and emergency evidence. Closed 2026-07-21.
 - [ ] **Phase 4: Maintenance and housekeeping programs** - Complete recurring PM and housekeeping programs, plus bilingual floor coverage.
 - [ ] **Phase 5: Guest recovery and management ROI** - Guest-service closure and measurable operational value.
 - [ ] **Phase 6: PMS and AI expansion** - Pilot-gated integrations and approval-based AI loops.
@@ -47,7 +47,7 @@ Plans:
 ### Phase 3: Texas compliance and staff safety
 **Goal**: Make training, controlled incidents, hazard communication, and emergency evidence operational without building hardware.
 **Depends on**: Phase 2
-**Plans**: TBD
+**Plans**: `03-EXECUTION-PLAN.md` (slices 3A training, 3B controlled incidents, 3C HazCom/emergency evidence). Complete — code committed, migration 080 applied to prod DB, 312 API tests + web type-check green, authenticated GM browser verification done on localhost. Not yet deployed to Railway (push pending).
 
 ### Phase 4: Maintenance and housekeeping programs
 **Goal**: Make PM and housekeeping recurring, evidence-backed programs and enforce the bilingual floor contract.
@@ -78,7 +78,7 @@ Plans:
 | 0. Restore reality | N/A | Complete | 2026-07-19 |
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
-| 3. Texas compliance and staff safety | 0/TBD | Not started | - |
+| 3. Texas compliance and staff safety | 3/3 | Complete — verified locally; Railway deploy pending push | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 0/TBD | Not started | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |

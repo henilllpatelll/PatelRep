@@ -7529,6 +7529,112 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-21T23:00:22.877984+00:00"
+    },
+    {
+      "id": "bug-450",
+      "timestamp": "2026-07-21T23:07:47.463Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Compliant'",
+      "fix": "Changed to 'Safety information'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T23:07:47.463Z"
+    },
+    {
+      "id": "bug-451",
+      "timestamp": "2026-07-21T23:07:53.107Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Cumple'",
+      "fix": "Changed to 'Informacion de seguridad'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T23:07:53.107Z"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-21T18:31:00-05:00",
+      "error_message": "Initial workspace-context read failed because the graphify skill was requested from an incorrect local path, and an unquoted dashboard route path was parsed by PowerShell.",
+      "file": "C:/Users/Henil/.agents/skills/graphify/SKILL.md, apps/web/app/(dashboard)/layout.tsx",
+      "root_cause": "The skill's actual source is under .agents and PowerShell requires literal quoting for paths containing parentheses.",
+      "fix": "Read the graphify skill from its declared path and use -LiteralPath for parenthesized App Router route paths.",
+      "tags": [
+        "tooling",
+        "powershell",
+        "openwolf",
+        "skill-path"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T18:31:00-05:00"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-21T18:32:00-05:00",
+      "error_message": "OpenWolf metadata patch failed because mojibake punctuation did not match the UTF-8 cerebrum source.",
+      "file": ".wolf/cerebrum.md",
+      "root_cause": "The patch context rendered an en dash incorrectly.",
+      "fix": "Retried using the source's exact UTF-8 punctuation and a narrow context.",
+      "tags": [
+        "tooling",
+        "openwolf",
+        "patch",
+        "utf8"
+      ],
+      "related_bugs": [
+        "bug-443"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T18:32:00-05:00"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-07-21T23:30:00Z",
+      "error_message": "Clean checkout of main would ImportError: routers/internal.py and tests/test_safety_compliance.py imported should_schedule_training_assignment / is_incident_visible_to from services/safety/contracts.py, but the contracts.py additions (and safety.py hardening, requests.py models, migration 080) were never committed — left in the working tree at end of the prior Phase 3 session.",
+      "file": "apps/api/services/safety/contracts.py",
+      "root_cause": "Phase 3 was committed in pieces: internal.py (0f523b3b) and the safety test file were committed while the contracts.py functions they import stayed uncommitted in the working tree. HEAD became internally inconsistent; the 312-passing-tests signal only held against the dirty working tree, masking the broken commit.",
+      "fix": "Committed the uncommitted Phase 3 API work (safety.py, contracts.py, requests.py) plus the untracked migration 080 as commit 5e1b11c7 so imported symbols exist at HEAD. Verified: python -c import routers.internal,routers.safety resolves; 312 API tests + web type-check green.",
+      "tags": [
+        "git",
+        "uncommitted-dependency",
+        "import-error",
+        "phase-3",
+        "openwolf",
+        "broken-head"
+      ],
+      "related_bugs": [
+        "bug-448",
+        "bug-449"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T23:30:00Z"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-07-22T02:53:37.450Z",
+      "error_message": "Wrong reference: 450 should be 454",
+      "file": ".planning/STATE.md",
+      "root_cause": "Used \"450\" instead of \"454\"",
+      "fix": "Changed 450 → 454",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T02:53:37.450Z"
     }
   ]
 }

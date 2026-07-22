@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-21T21:54:07.465Z"
+last_updated: "2026-07-21T23:30:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 5
   completed_plans: 5
   percent: 100
@@ -18,9 +18,11 @@ progress:
 
 ## Current phase
 
-**Phase 3 — Texas compliance and staff safety: IMPLEMENTED, LIVE VERIFICATION IN PROGRESS (2026-07-21)**
+**Phase 3 — Texas compliance and staff safety: CLOSED (2026-07-21). Railway deploy pending push.**
 
 Code implemented (safety.py API router, /safety web route, migration 080). `03-CONTEXT.md` locks the 4 decided gray areas (slice order 3A→3B→3C + webhook design-only; anyone-files/management-views incidents; auto-cron training assignments; EN+ES scoped to staff-facing safety surfaces).
+
+**Closure repair (commit `5e1b11c7`, 2026-07-21):** the Phase 3 API hardening (safety.py, contracts.py, requests.py) and migration 080 were left uncommitted at end of the prior session while `internal.py` + `test_safety_compliance.py` (already committed) imported `should_schedule_training_assignment`/`is_incident_visible_to` from the uncommitted contracts.py — so HEAD would `ImportError` on a clean checkout. All Phase 3 code + migration 080 are now committed; imports resolve; 312 API tests + web type-check green. The 8 Phase 3 commits (through `5e1b11c7`) remain local-only — Railway API/web still run pre-Phase-3 code; migration 080 is already on the shared prod DB (harmless: old code does not touch the new tables). **Deploy = push `main` to origin (holding per instruction).** Logged as bug-454.
 
 **Migration 080 applied to production via Supabase MCP (2026-07-21) and verified:** 4 new tables (`emergency_contacts`, `emergency_role_assignments`, `safety_device_intake_contracts`, `emergency_drill_follow_up_evidence`) all RLS-enabled with one tenant policy each; `append_controlled_incident_event` is `SECURITY DEFINER` with `search_path=public` and EXECUTE granted to `service_role` only (anon/authenticated/PUBLIC revoked — 079 discipline held); partial index present. Security advisor: only project-baseline GraphQL-exposure WARNs on the new tables (RLS gates rows); no new RLS/grant holes.
 
@@ -109,7 +111,9 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 ## Current blockers
 
-- Migration `080_safety_workflow_hardening.sql` is now **applied and verified** in production (via Supabase MCP) — the CLI/`psql` blocker is resolved. Remaining before Phase 3 closure: run authenticated browser golden paths for the safety surfaces. GM session is available (test account on file); a non-management staff session for the "anyone-files / non-manager-cannot-view" incident path is not, but that RBAC is covered by the 311 passing API tests. Note: `controlled_incidents` is append-only with a DELETE-blocking trigger, so any incident created during live testing is permanent in production.
+- **None blocking Phase 3 (closed).** Next action is the deploy decision: push `main` to origin so Railway redeploys API+web with Phase 3 code (holding per user instruction). After push, smoke-verify production `/safety` + `/v1/safety/*` and confirm the safety crons (`safety.training-assignments`, `safety.drill-follow-up`) fire.
+- **Operational (pre-existing, not Phase 3):** production `/health` shows every cron `stale` (predictions, billing, logbook, evidence reminders, safety, etc.) — the Railway cron scheduler appears not to be firing. Investigate before relying on any automated safety/training assignment or reminder in production.
+- Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path is still unavailable locally; that RBAC is covered by the passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
 
 ## Verification commands
 

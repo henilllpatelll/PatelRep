@@ -6779,6 +6779,8 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 
 | Time | Action | File(s) | Outcome | ~Tokens |
 |------|--------|---------|---------|--------|
+| 15:40 | Audited Phase 2 acknowledgement authorization and applicability enforcement | apps/api/routers/evidence.py, apps/api/tests/test_evidence_foundation.py | Found and fixed two contract gaps; focused evidence tests 29/29 and Ruff pass | ~5k |
+| 15:48 | Ran Phase 2 verification and checked linked Supabase migration history | apps/api, apps/web, Supabase linked project | 309 API tests, web lint/type-check, and local API/web health pass; 074–078 are pending remotely, so Phase 2 remains open | ~7k |
 
 ## Session: 2026-07-17 12:23
 
@@ -6797,3 +6799,118 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 00:00 | Repaired stale mobile regression expectations and verified focused tests plus mobile type-check. | apps/mobile/__tests__/screens/EngineerHome.test.tsx, apps/mobile/__tests__/lib/supervisor.test.ts | 15 focused tests and TypeScript check pass. | ~2200 |
 | 00:00 | Repaired work-order creation payload, enabled emergency creation, and ran authenticated local lifecycle browser tests. | apps/api/routers/work_orders.py, apps/web/components/engineering/CreateWorkOrderModal.tsx, apps/web/e2e/phase1-work-orders.spec.ts | Emergency, escalation, hold, and resume browser workflows pass; probe records were deleted. | ~6200 |
 | 00:00 | Completed final API, web, and mobile verification; reset browser viewport and stopped audit servers. | apps/api, apps/web, apps/mobile | API 287 tests, mobile 130 tests, web lint/type-check/build, Phase 0 smoke, and Phase 1 lifecycle checks pass; inspection UI case lacks a fixture. | ~3000 |
+| 00:00 | Started requested interactive Android/iOS emulator walkthrough and inspected local device tooling. | apps/mobile, Android SDK | Android SDK is installed but omitted from PATH; will use explicit SDK paths for QA without changing global environment. | ~900 |
+| 00:00 | Ran authenticated Android workflow on Pixel_8_2 and fixed auth hydration deadlock. | apps/mobile/app/_layout.tsx, apps/mobile/lib/auth/deferAuthHydration.ts | Password login, notification permission, engineer home, work-order claim/arrival, rooms, assets, profile, Schedule/SOP handoffs, AI entry, Spanish mode, and offline/reconnect were exercised on-device. | ~3600 |
+| 00:00 | Corrected Spanish language selector and completed mobile regression verification. | apps/mobile/app/(app)/profile/index.tsx, apps/mobile/__tests__/screens/ProfileHandoff.test.tsx, apps/mobile/__tests__/lib/auth/deferAuthHydration.test.ts | Spanish no longer displays an English language label; focused tests, type-check, and full mobile Jest suite pass (132 tests). | ~1800 |
+| 00:00 | Ran the production interactive public web walkthrough and attempted staff authentication. | PatelRep production web | Spanish login, Magic Link, and reset-password forms render; production rejects both available staff test identities, blocking authenticated operations. | ~1200 |
+
+## Session: 2026-07-19 19:10
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-19 12:49
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-19 12:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-19 12:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-19 12:50
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-19 12:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:45 | Planned next steps from notes file; found live secrets committed in tracked 'notes' file; confirmed Phase 0 48h monitoring window satisfied ~2026-07-19T15:00Z | notes, .planning/STATE.md | analysis only, no code changes | ~8k |
+| 13:07 | Created ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/feedback_ignore_notes_file.md | — | ~200 |
+| 13:07 | Edited ../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/MEMORY.md | 2→3 lines | ~67 |
+| 13:08 | Session end: 2 writes across 2 files (feedback_ignore_notes_file.md, MEMORY.md) | 8 reads | ~286 tok |
+| 13:19 | Session end: 2 writes across 2 files (feedback_ignore_notes_file.md, MEMORY.md) | 8 reads | ~286 tok |
+| 13:00 | Verified deploy-check failure history, closed Phases 0-1, and bootstrapped canonical GSD Phase 2 context after discovering missing metadata | .planning/STATE.md, .planning/PROJECT.md, .planning/ROADMAP.md, .planning/REQUIREMENTS.md, .planning/phases/02-evidence-foundation/02-CONTEXT.md | Phase 2 ready for research and planning; no implementation started | ~12k |
+| 13:00 | Completed GSD Phase 2 research, validation, five ordered plans, and plan-quality review; committed planning docs | .planning/phases/02-evidence-foundation, .planning/ROADMAP.md, .planning/STATE.md | Review gate retained; no Phase 2 execution started | ~14k |
+| 19:10 | Added Plan 02-01 red tests for canonical applicability, GM/RBAC, tenant isolation, and non-applicable obligations | apps/api/tests/test_evidence_foundation.py | Focused pytest fails at expected missing-contract import | ~4k |
+| 19:16 | Implemented canonical property applicability contract and assignment/document enforcement | apps/api, supabase/migrations/074_evidence_applicability_contract.sql | Focused evidence suite passes 11/11 | ~6k |
+| 13:54 | Added Plan 02-02 red lifecycle tests | apps/api/tests/test_evidence_foundation.py | Focused pytest fails at expected missing lifecycle request import | ~3k |
+| 13:58 | Added lifecycle contracts, tenant guards, and forward migration 075 | apps/api, supabase/migrations/075_controlled_document_lifecycle.sql | Focused tests exposed a fixture needing the new active-owner contract | ~5k |
+| 14:05 | Completed controlled-document API, GM web workspace, live translations, and opt-in E2E smoke coverage | apps/api, apps/web, supabase/migrations/075_controlled_document_lifecycle.sql | Pytest 14/14 and web type-check passed; final lint correction in progress | ~9k |
+| 15:10 | Added Plan 02-04 competency/retraining red tests | apps/api/tests/test_evidence_foundation.py | Focused pytest fails at expected missing competency request import | ~4k |
+| 15:28 | Implemented and verified Plan 02-04 competency/retraining lifecycle | apps/api, apps/web, supabase/migrations/077_document_competency_retraining.sql | API 23/23, Ruff, web type-check/lint pass; authenticated E2E is opt-in and skipped without fixtures | ~12k |
+
+## Session: 2026-07-21 15:28
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:23 | Created supabase/migrations/079_restrict_security_definer_rpcs.sql | — | ~495 |
+| 16:28 | Edited .planning/STATE.md | modified E2E() | ~550 |
+| 16:28 | Edited .planning/STATE.md | 4→4 lines | ~26 |
+| 16:28 | Edited .planning/ROADMAP.md | inline fix | ~37 |
+| 16:28 | Edited .planning/ROADMAP.md | inline fix | ~21 |
+| 16:30 | Session end: 5 writes across 3 files (079_restrict_security_definer_rpcs.sql, STATE.md, ROADMAP.md) | 15 reads | ~1211 tok |
+| 16:33 | Session end: 5 writes across 3 files (079_restrict_security_definer_rpcs.sql, STATE.md, ROADMAP.md) | 15 reads | ~1211 tok |
+
+## Session: 2026-07-21 16:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:53 | Created .planning/phases/03-texas-compliance-and-staff-safety/03-CONTEXT.md | — | ~3011 |
+| 16:53 | Created .planning/phases/03-texas-compliance-and-staff-safety/03-DISCUSSION-LOG.md | — | ~1071 |
+| 16:54 | Edited .planning/STATE.md | 1→3 lines | ~114 |
+| 16:54 | Phase 3 discuss-phase: 4 gray areas decided, wrote CONTEXT + DISCUSSION-LOG | .planning/phases/03-texas-compliance-and-staff-safety/ | committed 79ebe15d,1fbd12e0 | ~9k |
+| 16:54 | Session end: 3 writes across 3 files (03-CONTEXT.md, 03-DISCUSSION-LOG.md, STATE.md) | 11 reads | ~7331 tok |
+| 17:00 | Session end: 3 writes across 3 files (03-CONTEXT.md, 03-DISCUSSION-LOG.md, STATE.md) | 11 reads | ~7331 tok |
+| 17:04 | Session end: 3 writes across 3 files (03-CONTEXT.md, 03-DISCUSSION-LOG.md, STATE.md) | 11 reads | ~7331 tok |
+| 22:05 | Audited the Phase 3 baseline and recorded the execution plan | safety router, Phase 2 evidence/cron patterns, 03-EXECUTION-PLAN.md | identified missing required workflows before implementation | ~8k |
+| 22:22 | Implemented Phase 3 safety hardening and verified API/web checks | apps/api, apps/web/i18n, supabase/migrations/080 | API 311/311; web type/lint/floor-copy/build pass; live migration/browser verification blocked by local tooling/fixture | ~13k |
+| 17:26 | Edited .planning/STATE.md | 3→7 lines | ~310 |
+| 17:26 | Edited .planning/STATE.md | inline fix | ~161 |
+| 17:26 | Applied migration 080 to prod via Supabase MCP; verified RLS+RPC grants; advisor clean for Phase 3 objects | supabase/migrations/080 + .planning/STATE.md | applied+verified | ~6k |
+| 17:43 | Edited apps/web/i18n/locales/en.ts | 2→4 lines | ~30 |
+| 17:43 | Edited apps/web/i18n/locales/es.ts | 2→4 lines | ~32 |
+| 17:47 | Edited .planning/STATE.md | modified verification() | ~450 |
+| 17:47 | Live GM verify: migration 080, incident immutability (residue-free), bilingual safety EN/ES; fixed nav i18n bug-448 | i18n/locales/en.ts,es.ts + STATE.md | verified+fixed a5cc3b46 | ~14k |
+| 17:47 | Session end: 8 writes across 5 files (03-CONTEXT.md, 03-DISCUSSION-LOG.md, STATE.md, en.ts, es.ts) | 17 reads | ~8379 tok |
+| 17:55 | Edited apps/api/routers/internal.py | 4→4 lines | ~28 |
+| 17:59 | Edited apps/api/tests/test_safety_compliance.py | modified test_incident_visibility_allows_management_and_the_filer_but_not_other_floor_staff() | ~593 |
+| 18:01 | Edited .planning/STATE.md | modified verification() | ~603 |
+| 18:01 | Items 1/2/4: live GM creates+cron pipeline verified (residue-free), fixed cron null-crash bug-449 (312 tests), deleted dead json; found GM/staff safety UI gap | internal.py, test_safety_compliance.py, STATE.md | done 0f523b3b | ~30k |
+| 18:01 | Session end: 11 writes across 7 files (03-CONTEXT.md, 03-DISCUSSION-LOG.md, STATE.md, en.ts, es.ts) | 21 reads | ~9646 tok |
+| 18:07 | Created apps/web/lib/api/safety.ts | — | ~1293 |
+| 18:07 | Edited apps/web/i18n/locales/en.ts | 2→3 lines | ~228 |
+| 18:07 | Edited apps/web/i18n/locales/es.ts | 2→3 lines | ~250 |
+| 18:08 | Created apps/web/components/safety/SafetyInformation.tsx | — | ~1558 |
+| 18:08 | Created apps/web/components/safety/ComplianceDashboard.tsx | — | ~2186 |
+| 18:09 | Created apps/web/components/safety/SafetyPrograms.tsx | — | ~2403 |
+| 18:09 | Created apps/web/components/safety/IncidentReview.tsx | — | ~1504 |
+| 18:10 | Created apps/web/app/(dashboard)/safety/page.tsx | — | ~2136 |
+| 18:20 | Edited .planning/STATE.md | modified tabs() | ~328 |
+| 18:20 | Built missing safety web surfaces: staff safety-info EN+ES + GM compliance/programs/incidents tabs; live E2E course create + CSV export verified, zero residue | apps/web/components/safety/*, safety/page.tsx, lib/api/safety.ts, en.ts/es.ts | done 8a9ec209 | ~40k |
+| 18:31 | Verified missing safety web surfaces are committed in the current checkout; web type-check and lint pass | apps/web/app/(dashboard)/safety/page.tsx, components/safety/* | confirmed | ~3k |
+| 18:32 | Rebuilt the web production bundle after confirming the safety surfaces; all 41 static routes generated successfully | apps/web | pass | ~1k |
+
+## Session: 2026-07-22 21:45
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:51 | Edited .gitignore | expanded (+6 lines) | ~113 |
+| 21:52 | Edited .planning/ROADMAP.md | inline fix | ~37 |
+| 21:52 | Edited .planning/ROADMAP.md | 2→2 lines | ~90 |
+| 21:52 | Edited .planning/ROADMAP.md | inline fix | ~32 |
+| 21:52 | Edited .planning/STATE.md | 8→8 lines | ~43 |
+| 21:52 | Edited .planning/STATE.md | modified repair() | ~319 |
+| 21:53 | Edited .planning/STATE.md | modified Operational() | ~260 |
+| 21:53 | Edited .planning/STATE.md | 450 → 454 | ~22 |
+| 23:32 | Diagnosed broken HEAD: committed internal.py/tests imported uncommitted contracts.py fns | apps/api | ImportError on clean checkout; 312 tests green only in dirty tree | ~1200 |
+| 23:33 | Committed Phase 3 API hardening + migration 080 (repair) | safety.py contracts.py requests.py 080.sql .gitignore | commit 5e1b11c7; imports resolve; 312 pass | ~600 |
+| 23:34 | Closed Phase 3 in ROADMAP + STATE; logged bug-454; cerebrum Do-Not-Repeat | .planning/ROADMAP.md .planning/STATE.md .wolf/buglog.json .wolf/cerebrum.md | Phase 3 3/3 complete, deploy pending push | ~500 |
