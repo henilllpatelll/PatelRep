@@ -39,6 +39,39 @@ def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
     return result.data
 
 
+def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> None:
+    """D-07: a deferral approver must be a distinct, active user at this tenant."""
+    result = (
+        supabase.table("user_roles").select("user_id")
+        .eq("tenant_id", current_user.hotel_id).eq("user_id", user_id)
+        .eq("is_active", True).maybe_single().execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Deferral approver is not active at this property.")
+
+
+def _record_audit_event(
+    *, current_user: CurrentUser, resource_type: str, resource_id: str,
+    action: str, old_state: dict | None = None, new_state: dict | None = None,
+    reason_code: str | None = None, reason_note: str | None = None,
+) -> None:
+    """Append-only operational audit write — mirrors routers/evidence.py's
+    _record_audit_event column set (no parallel audit mechanism)."""
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": current_user.hotel_id,
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "action": action,
+        "actor_id": current_user.user_id,
+        "actor_role": current_user.role,
+        "old_state": old_state or {},
+        "new_state": new_state or {},
+        "reason_code": reason_code,
+        "reason_note": reason_note,
+        "source": "api",
+    }).execute()
+
+
 @router.get("/overview")
 async def get_program_overview(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
     tenant_id = current_user.hotel_id
@@ -86,15 +119,33 @@ async def defer_pm_schedule(
     current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
 ):
     _get_pm_schedule(schedule_id, current_user)
+    if request.approved_by == current_user.user_id:
+        raise HTTPException(
+            status_code=422,
+            detail="A deferral requires an approver distinct from the requester",
+        )
+    _require_active_tenant_approver(request.approved_by, current_user)
     record = supabase.table("pm_deferrals").insert({
         "tenant_id": current_user.hotel_id,
         "pm_schedule_id": schedule_id,
         "reason": request.reason,
         "requested_by": current_user.user_id,
-        "approved_by": current_user.user_id,
+        "approved_by": request.approved_by,
         "deferred_until": request.deferred_until.isoformat(),
     }).execute().data[0]
     supabase.table("pm_schedules").update({"next_due_at": request.deferred_until.isoformat()}).eq("id", schedule_id).eq("tenant_id", current_user.hotel_id).execute()
+    _record_audit_event(
+        current_user=current_user,
+        resource_type="pm_deferral",
+        resource_id=record["id"],
+        action="pm_deferral.approved",
+        reason_code="pm_deferral",
+        new_state={
+            "deferred_until": request.deferred_until.isoformat(),
+            "reason": request.reason,
+            "approved_by": request.approved_by,
+        },
+    )
     return {"data": record}
 
 
