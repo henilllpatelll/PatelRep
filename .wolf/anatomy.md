@@ -547,6 +547,7 @@
 - `test_guest_recovery.py` — Phase 5 lifecycle, accessibility priority, custody, metric, and migration contract tests. (~900 tok)
 - `test_operational_programs.py` — Phase 4 PM evidence, recurrence, DND, and par-level contract tests. (~800 tok)
 - `test_phase6_governance.py` — Phase 6 AI authorization, outcome metrics, PMS conflict, and migration contract tests. (~700 tok)
+- `test_programs_routes.py` — Phase 4 programs route contracts: overview manager gate, PM-complete RBAC (incl. chief_engineer), cross-tenant 404, bug-449 None-safety. (~600 tok)
 - `test_safety_compliance.py` — Phase 3 training recurrence and append-only incident policy contracts. (~500 tok)
 - `test_work_order_transitions.py` — Phase 1 contract tests for work-order transitions. (~3360 tok)
 
