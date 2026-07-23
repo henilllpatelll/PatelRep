@@ -317,3 +317,117 @@ def test_failed_check_writes_containment_audit(monkeypatch):
     assert containment_events[0]["resource_id"] == completion_id
     assert containment_events[0]["reason_code"] == "failed_check"
     assert containment_events[0]["new_state"]["work_order_id"] == db.rows["work_orders"][0]["id"]
+
+
+# --- Template library: applicability gating, editor, generic builder (D-05, G5, PM-08) ---
+
+def _template_items_payload() -> list[dict]:
+    return [
+        {"key": "gauge_in_range", "label": "Pressure gauge reads in the operable range", "requires_evidence": False},
+        {"key": "tag_signed_photo", "label": "Inspection tag signed and dated", "requires_evidence": True},
+    ]
+
+
+def test_initialize_gated(monkeypatch):
+    """A property without the 'pool' facility does not get pool_check seeded; a property
+    that has 'pool' configured does."""
+    db_without_pool = FakeDB({
+        "property_applicability": [{"tenant_id": "hotel-a", "facilities": []}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db_without_pool)
+    client = TestClient(app)
+
+    response = client.post("/v1/programs/templates/initialize", headers=_auth_header("gm"))
+    assert response.status_code == 200
+    codes_without_pool = {row["code"] for row in db_without_pool.rows.get("pm_checklist_templates", [])}
+    assert "pool_check" not in codes_without_pool
+    assert "fire_extinguisher" in codes_without_pool
+    assert len(db_without_pool.rows["pm_checklist_templates"][0]["items"]["checklist"]) > 1
+
+    db_with_pool = FakeDB({
+        "property_applicability": [{"tenant_id": "hotel-a", "facilities": ["pool"]}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db_with_pool)
+
+    response = client.post("/v1/programs/templates/initialize", headers=_auth_header("gm"))
+    assert response.status_code == 200
+    codes_with_pool = {row["code"] for row in db_with_pool.rows.get("pm_checklist_templates", [])}
+    assert "pool_check" in codes_with_pool
+
+
+def test_edit_template(monkeypatch):
+    """A manager can update a template's frequency and checklist items in place."""
+    db = FakeDB({
+        "pm_checklist_templates": [{
+            "id": "tmpl-1", "tenant_id": "hotel-a", "code": "fire_extinguisher",
+            "program_area": "engineering", "name": "Fire extinguisher inspection", "name_es": None,
+            "version": 1, "items": {"checklist": [], "default_frequency_days": 30}, "is_active": True,
+        }],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.put(
+        "/v1/programs/templates/tmpl-1",
+        headers=_auth_header("gm"),
+        json={"items": _template_items_payload(), "default_frequency_days": 60},
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["items"]["default_frequency_days"] == 60
+    assert len(body["items"]["checklist"]) == 2
+    assert db.rows["pm_checklist_templates"][0]["id"] == "tmpl-1"
+
+
+def test_generic_builder(monkeypatch):
+    """A manager can build a custom template for an obligation outside the 9 named ones,
+    and a duplicate code is rejected with 409."""
+    db = FakeDB()
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    payload = {
+        "code": "ice_machine_sanitation",
+        "program_area": "engineering",
+        "name": "Ice machine sanitation",
+        "items": _template_items_payload(),
+        "default_frequency_days": 90,
+    }
+    response = client.post("/v1/programs/templates", headers=_auth_header("gm"), json=payload)
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["code"] == "ice_machine_sanitation"
+    assert body["program_area"] == "engineering"
+
+    dup_response = client.post("/v1/programs/templates", headers=_auth_header("gm"), json=payload)
+    assert dup_response.status_code == 409
+
+
+def test_edit_rbac(monkeypatch):
+    """A housekeeper cannot edit an existing template or create a new one."""
+    db = FakeDB({
+        "pm_checklist_templates": [{
+            "id": "tmpl-1", "tenant_id": "hotel-a", "code": "fire_extinguisher",
+            "items": {"checklist": [], "default_frequency_days": 30},
+        }],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    edit_response = client.put(
+        "/v1/programs/templates/tmpl-1",
+        headers=_auth_header("housekeeper"),
+        json={"items": _template_items_payload()},
+    )
+    assert edit_response.status_code == 403
+
+    create_response = client.post(
+        "/v1/programs/templates",
+        headers=_auth_header("housekeeper"),
+        json={
+            "code": "custom_x", "program_area": "engineering", "name": "Custom obligation",
+            "items": _template_items_payload(),
+        },
+    )
+    assert create_response.status_code == 403
