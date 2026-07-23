@@ -68,8 +68,8 @@ Plans:
 - [x] 04-04-PLAN.md — 4A API: applicability-gated PM template library + editor + generic builder + migration 083
 
 **Wave 5** *(blocked on Wave 4; 04-05 and 04-06 run in parallel — web vs API, no file overlap)*
-- [ ] 04-05-PLAN.md — 4A Web: full PM completion capture UI + evidence upload + deferral + client
-- [ ] 04-06-PLAN.md — 4B API: inspection sampling execution + quality trends + deep-clean/public-area completeness
+- [x] 04-05-PLAN.md — 4A Web: full PM completion capture UI + evidence upload + deferral + client
+- [x] 04-06-PLAN.md — 4B API: inspection sampling execution + quality trends + deep-clean/public-area completeness
 
 **Wave 6** *(blocked on Wave 5)*
 - [ ] 04-07-PLAN.md — 4B Web + completion: DND policy config, par alerts (passive), stayover, deep-clean/public-area/sampling UI
