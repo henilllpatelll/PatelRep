@@ -92,7 +92,7 @@ export function InspectionDepthPanel() {
         <div className="mt-4 space-y-2">
           {(data?.inspection_sampling_rules ?? []).map((rule) => (
             <div key={rule.id} className="rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink2">
-              {rule.room_types?.name ?? t('programs.sampling.allRoomTypes')} &middot; {rule.experience_band} &middot; {rule.risk_level} risk &middot; {rule.sample_percent}%
+              {rule.room_types?.name ?? t('programs.sampling.allRoomTypes')} &middot; {rule.experience_band} &middot; {t('programs.sampling.riskSuffix', { level: rule.risk_level })} &middot; {rule.sample_percent}%
             </div>
           ))}
           {!data?.inspection_sampling_rules?.length && !overview.isLoading ? (

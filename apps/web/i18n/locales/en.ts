@@ -323,6 +323,7 @@ const en = {
       title: 'Inspection sampling rules',
       subtitle: 'How much of each room type/experience/risk group a supervisor should physically inspect.',
       allRoomTypes: 'All room types',
+      riskSuffix: '{{level}} risk',
       newHire: 'New hire',
       standardBand: 'Standard',
       trustedBand: 'Trusted',

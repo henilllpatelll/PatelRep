@@ -323,6 +323,7 @@ const es = {
       title: 'Reglas de muestreo de inspección',
       subtitle: 'Cuánto de cada grupo de tipo de habitación/experiencia/riesgo debe inspeccionar físicamente un supervisor.',
       allRoomTypes: 'Todos los tipos de habitación',
+      riskSuffix: 'riesgo {{level}}',
       newHire: 'Nuevo ingreso',
       standardBand: 'Estándar',
       trustedBand: 'De confianza',
