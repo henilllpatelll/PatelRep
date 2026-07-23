@@ -75,7 +75,7 @@ Plans:
 - [x] 04-07-PLAN.md — 4B Web + completion: DND policy config, par alerts (passive), stayover, deep-clean/public-area/sampling UI
 
 **Wave 7** *(blocked on Wave 6)*
-- [ ] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
+- [x] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
 
 ### Phase 5: Guest recovery and management ROI
 **Goal**: Close guest service loops and quantify hotel operational value.
