@@ -17,6 +17,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -224,146 +225,6 @@ function SkeletonRow() {
       <td className="px-4 py-3"><div className="h-5 bg-gray-100 rounded w-16" /></td>
       <td className="px-4 py-3"><div className="h-5 bg-gray-100 rounded w-28" /></td>
     </tr>
-  )
-}
-
-// ─── Complete PM Modal ────────────────────────────────────────────────────────
-
-interface CompletePMModalProps {
-  isOpen: boolean
-  onClose: () => void
-  schedule: PMSchedule | null
-  onSuccess: () => void
-}
-
-function CompletePMModal({ isOpen, onClose, schedule, onSuccess }: CompletePMModalProps) {
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saving) onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, saving, onClose])
-
-  useEffect(() => {
-    if (isOpen) setError(null)
-  }, [isOpen])
-
-  if (!isOpen || !schedule) return null
-
-  const nextDue = calcNextDueAt(schedule.interval_type, schedule.interval_days)
-
-  async function handleConfirm() {
-    if (!schedule) return
-    setSaving(true)
-    setError(null)
-    try {
-      await engineeringApi.completePMSchedule(schedule.id)
-      onSuccess()
-      onClose()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to mark PM as complete.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-stone-900/20 backdrop-blur-sm z-50"
-        onClick={!saving ? onClose : undefined}
-        aria-hidden="true"
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Complete PM Schedule"
-          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md p-6"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0">
-                <CheckCircle size={16} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-gray-900">Mark PM Complete</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {schedule.assets?.name ?? 'Unknown asset'} — {schedule.name}
-                </p>
-              </div>
-            </div>
-            {!saving && (
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className="space-y-4">
-            <p className="text-sm text-gray-700">
-              Mark this PM as complete? The next due date will be automatically set to:
-            </p>
-            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--ready-soft)] border border-green-200">
-              <Calendar size={15} className="text-[var(--ready)] shrink-0" />
-              <span className="text-sm font-semibold text-green-800">
-                {format(nextDue, 'MMMM d, yyyy')}
-              </span>
-              <span className="text-xs text-[var(--ready)] ml-1">
-                ({formatIntervalLabel(schedule.interval_type, schedule.interval_days)} from today)
-              </span>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--alert-soft)] border border-red-200 text-sm text-red-700">
-                <AlertTriangle size={14} className="shrink-0" />
-                {error}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-white/60">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleConfirm}
-              disabled={saving}
-              className="border-green-200 text-green-700 bg-[var(--ready-soft)] hover:bg-green-100"
-            >
-              {saving ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  Completing…
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={14} />
-                  Confirm Complete
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
   )
 }
 
@@ -655,7 +516,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
 export default function PMSchedulesPage() {
   const { isGM, role } = useRole()
-  const canEdit = isGM || role === 'engineer'
+  const canEdit = isGM || role === 'engineer' || role === 'chief_engineer'
   const queryClient = useQueryClient()
 
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -1054,7 +915,7 @@ export default function PMSchedulesPage() {
         onSuccess={handleCreateSuccess}
       />
 
-      <CompletePMModal
+      <PMCompletionModal
         isOpen={completingSchedule !== null}
         onClose={() => setCompletingSchedule(null)}
         schedule={completingSchedule}
