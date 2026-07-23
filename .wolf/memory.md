@@ -6924,3 +6924,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:19 | Edited .planning/ROADMAP.md | inline fix | ~98 |
 | 22:19 | Edited .planning/ROADMAP.md | inline fix | ~29 |
 | 23:50 | Pushed Phase 3: cleared ruff + npm-audit + non-ff gates; merged 5 Dependabot majors; deployed to prod | apps/web/package.json git | eba6d066 pushed; prod healthy, Phase 3 API live (401 on safety route); zustand5/hookform5/next-preview6 now in prod | ~4000 |
+| 23:15 | GSD Phase 4-04: migration 083 (facility gating) + enriched DEFAULT_PROGRAM_TEMPLATES checklists + gated seeding + template editor/generic-builder routes + TDD tests | apps/api/routers/programs.py apps/api/services/programs/contracts.py apps/api/models/requests.py apps/api/tests/test_programs_routes.py supabase/migrations/083_program_template_facilities.sql | 330 tests pass, ruff clean; migration NOT applied to prod (no Supabase MCP/DB access in this worktree) | ~9000 |
