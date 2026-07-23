@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -26,18 +28,22 @@ import {
 
 // -- Status chip config --------------------------------------------------------
 
-const CLEAN_TYPE_CHIPS: Array<{ key: CleanType; label: string; dotTone: string }> = [
-  { key: 'DEP', label: 'Departure', dotTone: 'dirty' },
-  { key: 'FULL', label: 'Full', dotTone: 'pickup' },
-  { key: 'LIGHT', label: 'Light', dotTone: 'pickup' },
-]
+function getCleanTypeChips(t: TFunction): Array<{ key: CleanType; label: string; dotTone: string }> {
+  return [
+    { key: 'DEP', label: t('housekeeping.roomStatus.filters.departure'), dotTone: 'dirty' },
+    { key: 'FULL', label: t('housekeeping.roomStatus.filters.full'), dotTone: 'pickup' },
+    { key: 'LIGHT', label: t('housekeeping.roomStatus.filters.light'), dotTone: 'pickup' },
+  ]
+}
 
-const STATUS_WORKFLOW_CHIPS: Array<{ key: string; label: string; dotTone: string }> = [
-  { key: 'IN_PROGRESS', label: 'In Progress', dotTone: 'progress' },
-  { key: 'CLEAN',       label: 'Clean',       dotTone: 'clean' },
-  { key: 'INSPECTED',   label: 'Inspected',   dotTone: 'inspected' },
-  { key: 'OOO',         label: 'OOO',         dotTone: 'ooo' },
-]
+function getStatusWorkflowChips(t: TFunction): Array<{ key: string; label: string; dotTone: string }> {
+  return [
+    { key: 'IN_PROGRESS', label: t('housekeeping.roomStatus.filters.inProgress'), dotTone: 'progress' },
+    { key: 'CLEAN',       label: t('housekeeping.roomStatus.filters.clean'),       dotTone: 'clean' },
+    { key: 'INSPECTED',   label: t('housekeeping.roomStatus.filters.inspected'),   dotTone: 'inspected' },
+    { key: 'OOO',         label: t('housekeeping.roomStatus.filters.ooo'),         dotTone: 'ooo' },
+  ]
+}
 
 // -- Skeleton loader -----------------------------------------------------------
 
@@ -79,6 +85,9 @@ function StatusSummaryBar({
   onToggleRisk,
   riskCount,
 }: SummaryBarProps) {
+  const { t } = useTranslation()
+  const cleanTypeChips = getCleanTypeChips(t)
+  const statusWorkflowChips = getStatusWorkflowChips(t)
   const { cleanTypeCounts, statusCounts } = getHousekeepingBoardFilterCounts(rooms)
   const allActive = assignmentMode
     ? cleanTypeFilter.length === 0 && statusFilter === null
@@ -101,13 +110,13 @@ function StatusSummaryBar({
           className={chipClass(allActive)}
         >
           <StatusDot tone="neutral" size={7} />
-          All
+          {t('housekeeping.roomStatus.filters.all')}
           <span className="font-mono font-semibold text-[11px] opacity-70">{rooms.length}</span>
         </button>
 
         {assignmentMode ? (
           /* Assignment mode: DEP / FULL / LIGHT only */
-          CLEAN_TYPE_CHIPS.map((chip) => {
+          cleanTypeChips.map((chip) => {
             const count = cleanTypeCounts[chip.key] ?? 0
             const isActive = cleanTypeFilter.includes(chip.key)
             return (
@@ -131,7 +140,7 @@ function StatusSummaryBar({
         ) : (
           <>
             {/* Workflow status chips */}
-            {STATUS_WORKFLOW_CHIPS.map((chip) => {
+            {statusWorkflowChips.map((chip) => {
               const count = statusCounts[chip.key] ?? 0
               const isActive = statusFilter === chip.key
               return (
@@ -165,7 +174,7 @@ function StatusSummaryBar({
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
                   </svg>
-                  AI risk
+                  {t('housekeeping.roomStatus.filters.aiRisk')}
                   <span className="font-mono font-bold text-[11px]">{riskCount}</span>
                 </button>
               </>
@@ -192,6 +201,7 @@ function roomNeedsAssignmentCleanTypePrompt(room: any): boolean {
 }
 
 export function RoomStatusBoard() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const supabase = useMemo(() => createClient(), [])
   const session = useAuthStore((s) => s.session)
@@ -456,10 +466,10 @@ export function RoomStatusBoard() {
       setSelectedRoom((prev: any) =>
         prev?.room_id === roomId ? { ...prev, assignment_id: assignmentId } : prev,
       )
-      setAssignError('Failed to remove assignment. Please try again.')
+      setAssignError(t('housekeeping.roomStatus.error.removeAssignmentFailed'))
       setTimeout(() => setAssignError(null), 3000)
     }
-  }, [queryClient, selectedDate, selectedShift, assignmentToRoomId])
+  }, [queryClient, selectedDate, selectedShift, assignmentToRoomId, t])
 
   // -- Tap-to-assign -----------------------------------------------------------
   const handleTapAssign = useCallback((roomId: string) => {
@@ -493,11 +503,11 @@ export function RoomStatusBoard() {
   const roomAssignedNames = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
       if (r.room_id && r.assigned_to && r.assigned_to !== activeAssigneeId) {
-        acc[r.room_id] = hkNameById[r.assigned_to] ?? 'another housekeeper'
+        acc[r.room_id] = hkNameById[r.assigned_to] ?? t('housekeeping.roomStatus.unknownHousekeeper')
       }
       return acc
     }, {}),
-    [allRooms, activeAssigneeId, hkNameById]
+    [allRooms, activeAssigneeId, hkNameById, t]
   )
 
   const byFloor = rooms.reduce<Record<number, any[]>>((acc, room) => {
@@ -514,12 +524,12 @@ export function RoomStatusBoard() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm">
-        <p className="text-[13px] text-ink3">Failed to load rooms.</p>
+        <p className="text-[13px] text-ink3">{t('housekeeping.roomStatus.error.failedToLoad')}</p>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })}
           className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
         >
-          Retry
+          {t('housekeeping.roomStatus.error.retry')}
         </button>
       </div>
     )
@@ -530,7 +540,7 @@ export function RoomStatusBoard() {
       {/* Building filter — only shown when rooms span multiple buildings */}
       {availableBuildings.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-ink3 shrink-0 uppercase tracking-wide">Bldg</span>
+          <span className="text-[11px] font-medium text-ink3 shrink-0 uppercase tracking-wide">{t('housekeeping.roomStatus.building.label')}</span>
           <div className="flex gap-1">
             <button
               onClick={() => setBuildingFilter(null)}
@@ -541,7 +551,7 @@ export function RoomStatusBoard() {
                   : 'bg-surface border-line text-ink2 hover:bg-surface-2'
               }`}
             >
-              All
+              {t('housekeeping.roomStatus.building.all')}
             </button>
             {availableBuildings.map((b) => (
               <button
@@ -581,7 +591,7 @@ export function RoomStatusBoard() {
           <button
             onClick={() => setAssignError(null)}
             className="shrink-0 font-medium"
-            aria-label="Dismiss"
+            aria-label={t('housekeeping.roomStatus.error.dismiss')}
           >
             &times;
           </button>
@@ -591,7 +601,7 @@ export function RoomStatusBoard() {
       {/* Floor-grouped grid */}
       {sortedFloors.length === 0 ? (
         <div className="flex items-center justify-center h-40 text-[13px] text-ink3">
-          No rooms match the current filters
+          {t('housekeeping.roomStatus.empty.noMatch')}
         </div>
       ) : (
         <div className="space-y-8">
@@ -602,10 +612,12 @@ export function RoomStatusBoard() {
                 {/* Floor divider header */}
                 <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
                   <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2">
-                    {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                    {floor === 0 ? t('housekeeping.roomStatus.floor.ground') : t('housekeeping.roomStatus.floor.numbered', { floor })}
                   </h3>
                   <span className="font-mono text-[11px] text-ink3">
-                    {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
+                    {floorRooms.length === 1
+                      ? t('housekeeping.roomStatus.floor.roomCountOne', { count: floorRooms.length })
+                      : t('housekeeping.roomStatus.floor.roomCountOther', { count: floorRooms.length })}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
@@ -665,33 +677,40 @@ export function RoomStatusBoard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="assign-clean-type-title" className="text-sm font-semibold text-ink">
-                  Room {cleanTypePrompt.roomNumber} needs a clean type
+                  {t('housekeeping.roomStatus.cleanTypePrompt.title', { roomNumber: cleanTypePrompt.roomNumber })}
                 </h2>
                 <p className="mt-1 text-xs text-ink3">
-                  Pick what the housekeeper should handle before assigning it.
+                  {t('housekeeping.roomStatus.cleanTypePrompt.subtitle')}
                 </p>
               </div>
               <button
                 type="button"
                 className="rounded-md px-2 py-1 text-sm text-ink3 hover:bg-surface-2"
                 onClick={() => setCleanTypePrompt(null)}
-                aria-label="Cancel clean type selection"
+                aria-label={t('housekeeping.roomStatus.cleanTypePrompt.cancelAria')}
               >
                 &times;
               </button>
             </div>
             <div className="mt-4 space-y-2">
-              {CLEAN_TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleCleanTypePromptSelect(option.value)}
-                  className="w-full rounded-[var(--r-md)] border border-line bg-paper px-3 py-2 text-left transition-colors hover:border-amber-400 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                >
-                  <span className="block text-sm font-semibold text-ink">{option.label}</span>
-                  <span className="block text-xs text-ink3">{option.hint}</span>
-                </button>
-              ))}
+              {CLEAN_TYPE_OPTIONS.map((option) => {
+                const optionKey = option.value.toLowerCase() as 'dep' | 'full' | 'light'
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleCleanTypePromptSelect(option.value)}
+                    className="w-full rounded-[var(--r-md)] border border-line bg-paper px-3 py-2 text-left transition-colors hover:border-amber-400 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  >
+                    <span className="block text-sm font-semibold text-ink">
+                      {t(`housekeeping.roomStatus.cleanTypePrompt.options.${optionKey}.label`)}
+                    </span>
+                    <span className="block text-xs text-ink3">
+                      {t(`housekeeping.roomStatus.cleanTypePrompt.options.${optionKey}.hint`)}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
