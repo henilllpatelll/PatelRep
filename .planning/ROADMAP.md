@@ -72,7 +72,7 @@ Plans:
 - [x] 04-06-PLAN.md — 4B API: inspection sampling execution + quality trends + deep-clean/public-area completeness
 
 **Wave 6** *(blocked on Wave 5)*
-- [ ] 04-07-PLAN.md — 4B Web + completion: DND policy config, par alerts (passive), stayover, deep-clean/public-area/sampling UI
+- [x] 04-07-PLAN.md — 4B Web + completion: DND policy config, par alerts (passive), stayover, deep-clean/public-area/sampling UI
 
 **Wave 7** *(blocked on Wave 6)*
 - [ ] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
