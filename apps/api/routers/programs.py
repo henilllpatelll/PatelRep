@@ -13,13 +13,16 @@ from models.requests import (
     CreateDeepCleanScheduleRequest,
     CreateInspectionSamplingRuleRequest,
     CreatePMDeferralRequest,
+    CreateProgramTemplateRequest,
     CreatePublicAreaRequest,
     UpdateDndWelfarePolicyRequest,
+    UpdateProgramTemplateRequest,
     UpdateStayoverRuleRequest,
     UpsertSupplyParRequest,
 )
 from services.programs.contracts import (
     DEFAULT_PROGRAM_TEMPLATES,
+    GATED_TEMPLATE_FACILITIES as GATED,
     build_supply_alerts,
     next_recurrence_date,
 )
@@ -37,6 +40,19 @@ def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="PM schedule not found")
     return result.data
+
+
+def _get_property_applicability(current_user: CurrentUser) -> dict:
+    """D-05/G5: mirrors routers/evidence.py's _get_property_applicability read pattern
+    (single row per tenant, facilities/services/brand_requirements JSONB arrays) so
+    template seeding can gate pool/backflow/domestic_water without a cross-router import."""
+    result = (
+        supabase.table("property_applicability").select("*")
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    return (result.data if result and result.data else {
+        "facilities": [], "services": [], "brand_requirements": [],
+    })
 
 
 def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> None:
@@ -96,20 +112,103 @@ async def get_program_overview(current_user: CurrentUser = Depends(require_role(
 
 @router.post("/templates/initialize")
 async def initialize_property_templates(current_user: CurrentUser = Depends(require_role("gm"))):
+    """D-05/G5: seeds the 7 engineering + 2 housekeeping named templates with their real
+    multi-item checklists, but skips a gated template (pool_check/domestic_water/backflow)
+    unless the tenant's property_applicability.facilities includes the matching facility.
+    Idempotent: codes already present at this tenant are never re-seeded."""
     existing = supabase.table("pm_checklist_templates").select("code").eq("tenant_id", current_user.hotel_id).execute().data or []
     existing_codes = {row["code"] for row in existing}
-    records = [{
-        "tenant_id": current_user.hotel_id,
-        "code": template["code"],
-        "program_area": template["program_area"],
-        "name": template["name"],
-        "name_es": template.get("name_es"),
-        "items": [{"key": "verification", "label": template["name"], "requires_evidence": template["requires_evidence"]}],
-        "created_by": current_user.user_id,
-    } for template in DEFAULT_PROGRAM_TEMPLATES if template["code"] not in existing_codes]
+    facilities = set(_get_property_applicability(current_user).get("facilities") or [])
+    records = []
+    for template in DEFAULT_PROGRAM_TEMPLATES:
+        if template["code"] in existing_codes:
+            continue
+        required_facility = GATED.get(template["code"])
+        if required_facility and required_facility not in facilities:
+            continue
+        records.append({
+            "tenant_id": current_user.hotel_id,
+            "code": template["code"],
+            "program_area": template["program_area"],
+            "name": template["name"],
+            "name_es": template.get("name_es"),
+            "items": {
+                "checklist": template["items"],
+                "default_frequency_days": template.get("default_frequency_days"),
+            },
+            "created_by": current_user.user_id,
+        })
     if records:
         supabase.table("pm_checklist_templates").insert(records).execute()
     return {"data": {"created": len(records)}}
+
+
+def _template_items_json(items: list, default_frequency_days: int | None) -> dict:
+    return {
+        "checklist": [item.model_dump() for item in items],
+        "default_frequency_days": default_frequency_days,
+    }
+
+
+@router.put("/templates/{template_id}")
+async def update_program_template(
+    template_id: str,
+    request: UpdateProgramTemplateRequest,
+    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
+):
+    """PM-08 template editor: a manager may update a tenant-scoped template's
+    name/name_es, checklist items, and suggested default frequency. Updated in
+    place — pm_checklist_templates is a mutable config table (not append-only),
+    so this does not bump `version` (which instead exists for the
+    UNIQUE(tenant_id, code, version) key some future revision-history feature
+    could use)."""
+    result = (
+        supabase.table("pm_checklist_templates").select("*").eq("id", template_id)
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    payload: dict = {"items": _template_items_json(request.items, request.default_frequency_days)}
+    if request.name is not None:
+        payload["name"] = request.name
+    if request.name_es is not None:
+        payload["name_es"] = request.name_es
+
+    record = (
+        supabase.table("pm_checklist_templates").update(payload)
+        .eq("id", template_id).eq("tenant_id", current_user.hotel_id)
+        .execute().data[0]
+    )
+    return {"data": record}
+
+
+@router.post("/templates")
+async def create_program_template(
+    request: CreateProgramTemplateRequest,
+    current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES)),
+):
+    """PM-08 generic builder: lets a manager configure an obligation outside the 9
+    named templates (e.g. an ice-machine sanitation program). `code` must be unique
+    at this tenant."""
+    existing = (
+        supabase.table("pm_checklist_templates").select("id")
+        .eq("tenant_id", current_user.hotel_id).eq("code", request.code)
+        .maybe_single().execute()
+    )
+    if existing and existing.data:
+        raise HTTPException(status_code=409, detail="A template with this code already exists")
+
+    record = supabase.table("pm_checklist_templates").insert({
+        "tenant_id": current_user.hotel_id,
+        "code": request.code,
+        "program_area": request.program_area,
+        "name": request.name,
+        "name_es": request.name_es,
+        "items": _template_items_json(request.items, request.default_frequency_days),
+        "created_by": current_user.user_id,
+    }).execute().data[0]
+    return {"data": record}
 
 
 @router.post("/pm-schedules/{schedule_id}/deferrals")
