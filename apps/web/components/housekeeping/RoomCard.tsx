@@ -1,6 +1,7 @@
 'use client'
 
 import { Clock, LogOut, User, Wrench, MessageSquare, ClipboardList, Timer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { getRoomTypeCode } from '@/lib/utils/roomType'
@@ -106,6 +107,7 @@ export function RoomCard({
   guestRequestCount = 0,
   openTaskCount = 0,
 }: Props) {
+  const { t } = useTranslation()
   const status: RoomStatus = (room.status || 'DIRTY') as RoomStatus
   const prediction = room.prediction ?? null
   const riskLevel: RiskLevel | undefined = prediction?.risk_level
@@ -128,7 +130,9 @@ export function RoomCard({
 
   const checkinTime = formatTime(prediction?.checkin_time ?? room.checkin_time)
   const checkoutTime = formatTime(room.actual_checkout_at ?? room.checkout_time)
-  const checkoutLabel = room.actual_checkout_at ? 'Out' : 'Due'
+  const checkoutLabel = room.actual_checkout_at
+    ? t('housekeeping.roomCard.checkedOut')
+    : t('housekeeping.roomCard.due')
   const lateCheckoutTime: string | null =
     room.late_checkout_requested_time ?? room.late_checkout_request?.requested_time ?? null
   const etaTime = formatTime(prediction?.predicted_ready_at)
@@ -196,12 +200,12 @@ export function RoomCard({
       <div className="flex items-center gap-1.5 mt-0.5">
         <span className="font-mono font-semibold text-[19px] leading-none text-ink">{roomNumber}</span>
         {vipFlag && (
-          <Pill tone="accent" size="sm">VIP</Pill>
+          <Pill tone="accent" size="sm">{t('housekeeping.roomCard.vip')}</Pill>
         )}
         {isHighRisk && (
           <span
             className="ml-auto w-4 h-4 rounded-[4px] flex items-center justify-center bg-[var(--ai-soft)] border border-[var(--ai-line)]"
-            title="AI: at risk"
+            title={t('housekeeping.roomCard.aiRisk')}
           >
             <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--ai)" aria-hidden>
               <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/>
@@ -226,7 +230,7 @@ export function RoomCard({
           </span>
         ) : status === 'INSPECTED' && (room.clean_type === 'FULL' || room.clean_type === 'LIGHT') ? (
           <span className="text-[10px] font-semibold text-[var(--ready)]">
-            {room.clean_type === 'FULL' ? 'Full Done' : 'Light Done'}
+            {room.clean_type === 'FULL' ? t('housekeeping.roomCard.fullDone') : t('housekeeping.roomCard.lightDone')}
           </span>
         ) : room.clean_type === 'DEP' && cleanTypeLabel ? (
           <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', CLEAN_TYPE_TEXT_COLOR['DEP'])}>
@@ -260,7 +264,7 @@ export function RoomCard({
       {lateCheckoutTime && (
         <div className="flex items-center gap-0.5 text-[11px] text-[var(--alert)]">
           <LogOut className="w-3 h-3 shrink-0" />
-          <span className="font-mono font-semibold">Late {lateCheckoutTime}</span>
+          <span className="font-mono font-semibold">{t('housekeeping.roomCard.lateCheckout', { time: lateCheckoutTime })}</span>
         </div>
       )}
       {workOrderLabel && (
@@ -274,13 +278,21 @@ export function RoomCard({
       {guestRequestCount > 0 && (
         <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--info)]">
           <MessageSquare className="w-3 h-3 shrink-0" />
-          <span>{guestRequestCount} guest request{guestRequestCount > 1 ? 's' : ''}</span>
+          <span>
+            {guestRequestCount === 1
+              ? t('housekeeping.roomCard.guestRequestOne', { count: guestRequestCount })
+              : t('housekeeping.roomCard.guestRequestOther', { count: guestRequestCount })}
+          </span>
         </div>
       )}
       {openTaskCount > 0 && (
         <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--caution)]">
           <ClipboardList className="w-3 h-3 shrink-0" />
-          <span>{openTaskCount} task{openTaskCount > 1 ? 's' : ''}</span>
+          <span>
+            {openTaskCount === 1
+              ? t('housekeeping.roomCard.taskOne', { count: openTaskCount })
+              : t('housekeeping.roomCard.taskOther', { count: openTaskCount })}
+          </span>
         </div>
       )}
       {room.last_clean_minutes != null && (
@@ -299,18 +311,18 @@ export function RoomCard({
 
       {/* Assignment mode overlays */}
       {assignmentMode && !!onAssign && !isAssignmentSelected && !alreadyAssigned && (
-        <p className="text-xs text-[var(--ai)] mt-0.5">Tap to assign</p>
+        <p className="text-xs text-[var(--ai)] mt-0.5">{t('housekeeping.roomCard.tapToAssign')}</p>
       )}
       {alreadyAssigned && (
         <p className="text-[11px] text-caution mt-0.5">
-          {assignedToName} · tap to reassign
+          {t('housekeeping.roomCard.assignedTapToReassign', { name: assignedToName })}
         </p>
       )}
       {isAssignmentSelected && (
         <>
           <div className="flex items-center gap-0.5 mt-0.5">
             <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
-            <span className="text-xs text-[var(--ai)] font-medium">Assigned</span>
+            <span className="text-xs text-[var(--ai)] font-medium">{t('housekeeping.roomCard.assigned')}</span>
           </div>
           <button
             className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
@@ -325,7 +337,7 @@ export function RoomCard({
               }
             }}
           >
-            Remove
+            {t('housekeeping.roomCard.remove')}
           </button>
         </>
       )}
