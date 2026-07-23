@@ -20,6 +20,7 @@ from models.requests import (
 )
 from services.programs.contracts import (
     DEFAULT_PROGRAM_TEMPLATES,
+    GATED_TEMPLATE_FACILITIES as GATED,
     build_supply_alerts,
     next_recurrence_date,
 )
@@ -37,6 +38,19 @@ def _get_pm_schedule(schedule_id: str, current_user: CurrentUser) -> dict:
     if not result or not result.data:
         raise HTTPException(status_code=404, detail="PM schedule not found")
     return result.data
+
+
+def _get_property_applicability(current_user: CurrentUser) -> dict:
+    """D-05/G5: mirrors routers/evidence.py's _get_property_applicability read pattern
+    (single row per tenant, facilities/services/brand_requirements JSONB arrays) so
+    template seeding can gate pool/backflow/domestic_water without a cross-router import."""
+    result = (
+        supabase.table("property_applicability").select("*")
+        .eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    return (result.data if result and result.data else {
+        "facilities": [], "services": [], "brand_requirements": [],
+    })
 
 
 def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> None:
@@ -96,17 +110,32 @@ async def get_program_overview(current_user: CurrentUser = Depends(require_role(
 
 @router.post("/templates/initialize")
 async def initialize_property_templates(current_user: CurrentUser = Depends(require_role("gm"))):
+    """D-05/G5: seeds the 7 engineering + 2 housekeeping named templates with their real
+    multi-item checklists, but skips a gated template (pool_check/domestic_water/backflow)
+    unless the tenant's property_applicability.facilities includes the matching facility.
+    Idempotent: codes already present at this tenant are never re-seeded."""
     existing = supabase.table("pm_checklist_templates").select("code").eq("tenant_id", current_user.hotel_id).execute().data or []
     existing_codes = {row["code"] for row in existing}
-    records = [{
-        "tenant_id": current_user.hotel_id,
-        "code": template["code"],
-        "program_area": template["program_area"],
-        "name": template["name"],
-        "name_es": template.get("name_es"),
-        "items": [{"key": "verification", "label": template["name"], "requires_evidence": template["requires_evidence"]}],
-        "created_by": current_user.user_id,
-    } for template in DEFAULT_PROGRAM_TEMPLATES if template["code"] not in existing_codes]
+    facilities = set(_get_property_applicability(current_user).get("facilities") or [])
+    records = []
+    for template in DEFAULT_PROGRAM_TEMPLATES:
+        if template["code"] in existing_codes:
+            continue
+        required_facility = GATED.get(template["code"])
+        if required_facility and required_facility not in facilities:
+            continue
+        records.append({
+            "tenant_id": current_user.hotel_id,
+            "code": template["code"],
+            "program_area": template["program_area"],
+            "name": template["name"],
+            "name_es": template.get("name_es"),
+            "items": {
+                "checklist": template["items"],
+                "default_frequency_days": template.get("default_frequency_days"),
+            },
+            "created_by": current_user.user_id,
+        })
     if records:
         supabase.table("pm_checklist_templates").insert(records).execute()
     return {"data": {"created": len(records)}}
