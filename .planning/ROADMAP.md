@@ -52,7 +52,7 @@ Plans:
 ### Phase 4: Maintenance and housekeeping programs
 **Goal**: Make PM and housekeeping recurring, evidence-backed programs and enforce the bilingual floor contract.
 **Depends on**: Phase 3
-**Plans**: 8 plans (slices S0 → 4A → 4B → 4C). Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 4 + 04-CONTEXT.md (no formal REQ-XXX IDs; behaviors labeled PM-XX / HK-XX / BL-XX). Migrations added: 081 (PM evidence linkage, 04-02), 083 (program template facilities, 04-04) — each applied to prod via Supabase MCP. (04-03 is code-only — the corrective-WO columns already exist since migration 007, so 082 is intentionally unused.)
+**Plans**: 8 original plans (slices S0 → 4A → 4B → 4C) + 9 gap-closure plans (04-09..04-17) closing the D-03 bilingual floor contract. Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 4 + 04-CONTEXT.md (no formal REQ-XXX IDs; behaviors labeled PM-XX / HK-XX / BL-XX). Migrations added: 081 (PM evidence linkage, 04-02), 083 (program template facilities, 04-04) — each confirmed applied to prod (Supabase project oacnwalhcpqdabivweki). (04-03 is code-only — the corrective-WO columns already exist since migration 007, so 082 is intentionally unused.)
 
 Plans:
 **Wave 1**
@@ -77,6 +77,17 @@ Plans:
 **Wave 7** *(blocked on Wave 6)*
 - [x] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
 
+**Gap closure** *(from 04-VERIFICATION.md: 04-08 narrowed the D-03 bilingual floor contract. Full D-03 directory scope = 20 floor files / 462 user-facing literals, incl. 8 app-route pages the verifier's 13-file list did not enumerate but which D-04's gate glob sweeps in. Translation plans share en.ts/es.ts, so they run sequentially by wave; the widened lint gate must run last.)*
+- [ ] 04-09-PLAN.md — (wave 1) HK board: RoomStatusBoard (Realtime surface), RoomCard, AssignmentSidebar, PredictionPanel → EN/ES
+- [ ] 04-17-PLAN.md — (wave 1, parallel — spec-file only) Playwright test 3 race fix: wait for gated /programs panels before skip
+- [ ] 04-10-PLAN.md — (wave 2) HK drawer/modals: RoomDetailDrawer, InspectionModal, OccupancyImportModal → EN/ES
+- [ ] 04-11-PLAN.md — (wave 3) HK route pages: housekeeping/page, assignments/page → EN/ES
+- [ ] 04-12-PLAN.md — (wave 4) HK route pages: inspections/page, rooms/page → EN/ES
+- [ ] 04-13-PLAN.md — (wave 5) ENG WorkOrderDetailDrawer (heaviest floor surface) → EN/ES
+- [ ] 04-14-PLAN.md — (wave 6) ENG components: CreateWorkOrderModal, WorkOrderList, EngineeringRoomBoard, FailurePredictionSidebar → EN/ES
+- [ ] 04-15-PLAN.md — (wave 7) ENG route pages: assets/page, predictions/page, work-orders/page, engineering/page → EN/ES
+- [ ] 04-16-PLAN.md — (wave 8) tasks/page → EN/ES + fix 2 non-word placeholder literals + widen no-literal-string gate to the full floor directory set
+
 ### Phase 5: Guest recovery and management ROI
 **Goal**: Close guest service loops and quantify hotel operational value.
 **Depends on**: Phase 4
@@ -89,7 +100,7 @@ Plans:
 
 ## Deferred Backlog
 
-- **Phase 4:** Web i18n for the hardcoded-English engineering components; this is the bilingual floor contract, not a Phase 2 change.
+- **Phase 4:** Web i18n for the hardcoded-English engineering components; this is the bilingual floor contract, not a Phase 2 change. *(In progress — gap-closure plans 04-09..04-16 close this.)*
 - **Phase 6, pilot-gated:** AI expansion material in `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md`.
 - **One-time infrastructure decision:** Vercel still has a broken deployment because its CLI token is invalid and the built app contains a stale Railway API URL. Railway is production. Decide whether to delete the Vercel project or repair authentication; do not fix it in Phase 2.
 - **Parked:** All mobile work, including EAS build, mobile i18n handoff, and rooms debugging. Phase 2 is web + API only.
@@ -102,6 +113,6 @@ Plans:
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
-| 4. Maintenance and housekeeping programs | 8/8 | Gaps found — bilingual scope (D-03) incomplete, see 04-VERIFICATION.md | - |
+| 4. Maintenance and housekeeping programs | 8/17 | Gap closure planned — 9 plans (04-09..04-17) close the D-03 bilingual floor contract; see 04-VERIFICATION.md | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |
