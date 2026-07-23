@@ -259,17 +259,8 @@ export const engineeringApi = {
   }) => apiClient.post('/assets/pm-schedules', payload) as Promise<{ data: PMSchedule }>,
 
   // ── PM Schedule management ────────────────────────────────────────────────────
-
-  completePMSchedule: (scheduleId: string) =>
-    apiClient.post(`/assets/pm-schedules/${scheduleId}/complete`, {
-      items: [{
-        key: 'technician_attestation',
-        label: 'Technician completion attestation',
-        result: 'passed',
-        requires_evidence: false,
-        evidence: [],
-      }],
-    }) as Promise<{ data: PMSchedule }>,
+  // Full completion capture (checklist results, verifier, evidence, parts, defects)
+  // now lives in programsApi.completePM (lib/api/programs.ts) — see PMCompletionModal.
 
   updatePMSchedule: (scheduleId: string, payload: {
     name?: string
