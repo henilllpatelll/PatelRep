@@ -109,14 +109,109 @@ export interface SupplyPar {
   unit: string
 }
 
+// ─── Housekeeping program depth (04-07 / HK-01, HK-04, HK-05, HK-06, G12) ──────
+
+export interface PublicArea {
+  id: string
+  name: string
+  location_detail?: string | null
+  is_active?: boolean
+}
+
+export interface DeepCleanSchedule {
+  id: string
+  target_type: 'room' | 'public_area'
+  room_id?: string | null
+  public_area_id?: string | null
+  checklist_template_id?: string | null
+  interval_days: number
+  next_due_on: string
+  is_active?: boolean
+  rooms?: { room_number: string } | null
+  public_areas?: { name: string } | null
+}
+
+export interface DeepCleanOccurrence {
+  id: string
+  schedule_id: string
+  assigned_to?: string
+  completed_by?: string
+  completed_at?: string
+  checklist_results?: Array<Record<string, unknown>>
+  notes?: string | null
+}
+
+export interface InspectionSamplingRule {
+  id: string
+  room_type_id?: string | null
+  experience_band: 'new_hire' | 'standard' | 'trusted'
+  risk_level: 'standard' | 'high'
+  sample_percent: number
+  room_types?: { name: string; code: string } | null
+}
+
+export interface InspectionSampleRoom {
+  room_id: string
+  room_type_id?: string | null
+  experience_band: string
+  risk_level: string
+}
+
+export interface InspectionSampleResponse {
+  rooms: InspectionSampleRoom[]
+  sample_size: number
+}
+
+export interface InspectionQualityDimension {
+  key: string
+  count: number
+  pass_rate?: number
+  fail_rate?: number
+}
+
+export interface InspectionQualityResponse {
+  by_result: Array<{ key: string; count: number }>
+  by_item: InspectionQualityDimension[]
+  by_room_type: InspectionQualityDimension[]
+  by_employee: InspectionQualityDimension[]
+  sample_size: number
+}
+
+export interface CreatePublicAreaPayload {
+  name: string
+  location_detail?: string
+}
+
+export interface CreateDeepCleanSchedulePayload {
+  target_type: 'room' | 'public_area'
+  room_id?: string
+  public_area_id?: string
+  checklist_template_id?: string
+  interval_days: number
+  next_due_on: string
+}
+
+export interface CompleteDeepCleanPayload {
+  checklist_results?: Array<Record<string, unknown>>
+  notes?: string
+}
+
+export interface UpsertSamplingRulePayload {
+  room_type_id?: string
+  experience_band?: 'new_hire' | 'standard' | 'trusted'
+  risk_level?: 'standard' | 'high'
+  sample_percent: number
+}
+
 export interface ProgramOverview {
   templates: ProgramTemplate[]
-  deep_clean_schedules: Array<{ id: string; next_due_on: string; rooms?: { room_number: string }; public_areas?: { name: string } }>
+  deep_clean_schedules: DeepCleanSchedule[]
+  public_areas: PublicArea[]
   supply_pars: SupplyPar[]
   supply_alerts: Array<{ name: string; on_hand: number; par_level: number; shortage: number }>
-  inspection_sampling_rules: Array<{ id: string; sample_percent: number; experience_band: string; risk_level: string }>
+  inspection_sampling_rules: InspectionSamplingRule[]
   stayover_rule: { linen_change_frequency_days: number; opt_out_allowed: boolean } | null
-  dnd_welfare_policy: { threshold_hours: number; escalation_roles: string[]; escalation_instructions?: string } | null
+  dnd_welfare_policy: { threshold_hours: number; escalation_roles: string[]; escalation_instructions?: string | null } | null
 }
 
 export const programsApi = {
@@ -128,6 +223,20 @@ export const programsApi = {
     apiClient.put('/programs/stayover-rule', payload),
   upsertSupplyPar: (payload: { supply_type: 'linen' | 'chemical' | 'amenity'; name: string; on_hand: number; par_level: number; unit: string }) =>
     apiClient.post('/programs/supply-pars', payload),
+
+  // ── Housekeeping program depth (04-07) ────────────────────────────────────────
+  listDeepCleanSchedules: () => apiClient.get('/programs/deep-clean-schedules') as Promise<{ data: DeepCleanSchedule[] }>,
+  createDeepCleanSchedule: (payload: CreateDeepCleanSchedulePayload) =>
+    apiClient.post('/programs/deep-clean-schedules', payload) as Promise<{ data: DeepCleanSchedule }>,
+  completeDeepClean: (id: string, payload: CompleteDeepCleanPayload) =>
+    apiClient.post(`/programs/deep-clean-schedules/${id}/complete`, payload) as Promise<{ data: DeepCleanOccurrence }>,
+  listPublicAreas: () => apiClient.get('/programs/public-areas') as Promise<{ data: PublicArea[] }>,
+  createPublicArea: (payload: CreatePublicAreaPayload) =>
+    apiClient.post('/programs/public-areas', payload) as Promise<{ data: PublicArea }>,
+  inspectionSample: () => apiClient.get('/programs/inspection-sample') as Promise<{ data: InspectionSampleResponse }>,
+  inspectionQuality: () => apiClient.get('/programs/inspection-quality') as Promise<{ data: InspectionQualityResponse }>,
+  upsertSamplingRule: (payload: UpsertSamplingRulePayload) =>
+    apiClient.post('/programs/inspection-sampling-rules', payload) as Promise<{ data: InspectionSamplingRule }>,
 
   // ── PM completion (04-05) ─────────────────────────────────────────────────────
   // Full defensible completion record — replaces the old canned-attestation stub.
