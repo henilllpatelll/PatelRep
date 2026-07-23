@@ -119,8 +119,12 @@ test.describe('Phase 4 — bilingual floor contract (390px)', () => {
     await setLanguage(page, 'en')
     const enDeepClean = page.getByRole('heading', { name: 'Deep-clean schedules' })
     const enDnd = page.getByRole('heading', { name: 'DND welfare timing & escalation policy' })
-    const hasManagerPanels = await enDeepClean.count()
-    if (hasManagerPanels === 0) {
+    // Wait for the manager-gated panel to actually mount (client-side role
+    // resolution via useRole() races the initial render) before deciding
+    // whether to skip -- an immediate .count() check here would false-skip
+    // a GM account that genuinely renders these panels (see 04-07-SUMMARY.md).
+    await enDeepClean.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+    if (!(await enDeepClean.isVisible())) {
       test.skip(true, 'This account/role does not render the manager-gated housekeeping depth panels')
       return
     }
