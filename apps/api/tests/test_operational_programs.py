@@ -6,9 +6,11 @@ import pytest
 from services.programs.contracts import (
     DEFAULT_PROGRAM_TEMPLATES,
     EvidenceRequiredError,
+    aggregate_inspection_quality,
     build_corrective_work_order,
     build_supply_alerts,
     next_recurrence_date,
+    select_inspection_sample,
     should_create_dnd_escalation,
     validate_completion_items,
 )
@@ -175,3 +177,89 @@ def test_pm_completion_rejects_evidence_id_from_another_tenant():
         )
 
     assert db.rows.get("pm_completion_records", []) == []
+
+
+# --- Inspection sampling (G11, HK-02) ---
+
+def test_inspection_sampling_honors_matching_rule_with_ceil_rounding():
+    """A 50% rule on 3 new_hire/standard-risk king rooms samples 2 (ceil), not 1 or 3."""
+    rooms = [
+        {"room_id": f"room-{i}", "room_type_id": "king", "experience_band": "new_hire", "risk_level": "standard"}
+        for i in (3, 1, 2)  # deliberately out of order to prove deterministic sort
+    ]
+    rules = [
+        {"room_type_id": "king", "experience_band": "new_hire", "risk_level": "standard", "sample_percent": 50},
+    ]
+
+    selected = select_inspection_sample(rooms=rooms, rules=rules)
+
+    assert selected == ["room-1", "room-2"]
+
+
+def test_inspection_sampling_falls_back_to_default_percent_when_no_rule_matches():
+    """No configured rule for this room_type/experience/risk combo -> default_percent applies."""
+    rooms = [{"room_id": "room-9", "room_type_id": "suite", "experience_band": "trusted", "risk_level": "high"}]
+
+    selected = select_inspection_sample(rooms=rooms, rules=[], default_percent=100)
+
+    assert selected == ["room-9"]
+
+
+def test_inspection_sampling_prefers_room_type_specific_rule_over_wildcard():
+    """A room_type-specific rule outranks a room_type=None (all room types) wildcard rule."""
+    rooms = [
+        {"room_id": f"room-{i}", "room_type_id": "king", "experience_band": "standard", "risk_level": "standard"}
+        for i in range(1, 5)
+    ]
+    rules = [
+        {"room_type_id": None, "experience_band": "standard", "risk_level": "standard", "sample_percent": 10},
+        {"room_type_id": "king", "experience_band": "standard", "risk_level": "standard", "sample_percent": 75},
+    ]
+
+    selected = select_inspection_sample(rooms=rooms, rules=rules)
+
+    assert len(selected) == 3  # ceil(4 * 0.75) = 3, honors the 75% rule, not the 10% wildcard
+
+
+# --- Multi-dimension inspection quality aggregation (G11, HK-03) ---
+
+def test_aggregate_inspection_quality_breaks_down_by_item_room_type_and_employee():
+    """Quality trends break down by item, room type, and employee -- not only overall_result."""
+    inspections = [
+        {
+            "overall_result": "passed", "inspected_by": "hk-1", "room_id": "room-1",
+            "rooms": {"room_type_id": "king"},
+            "inspection_results": [{"result": "pass", "inspection_template_items": {"description": "Toilet cleaned"}}],
+        },
+        {
+            "overall_result": "failed", "inspected_by": "hk-1", "room_id": "room-2",
+            "rooms": {"room_type_id": "king"},
+            "inspection_results": [{"result": "fail", "inspection_template_items": {"description": "Toilet cleaned"}}],
+        },
+        {
+            "overall_result": "passed", "inspected_by": "hk-2", "room_id": "room-3",
+            "rooms": {"room_type_id": "suite"},
+            "inspection_results": [],
+        },
+    ]
+
+    quality = aggregate_inspection_quality(inspections)
+
+    assert quality["sample_size"] == 3
+    by_result = {row["key"]: row["count"] for row in quality["by_result"]}
+    assert by_result == {"passed": 2, "failed": 1}
+
+    by_item = {row["key"]: row for row in quality["by_item"]}
+    assert by_item["Toilet cleaned"]["count"] == 2
+    assert by_item["Toilet cleaned"]["pass_rate"] == 0.5
+    assert by_item["Toilet cleaned"]["fail_rate"] == 0.5
+
+    by_room_type = {row["key"]: row for row in quality["by_room_type"]}
+    assert by_room_type["king"]["count"] == 2
+    assert by_room_type["king"]["fail_rate"] == 0.5
+    assert by_room_type["suite"]["count"] == 1
+    assert by_room_type["suite"]["pass_rate"] == 1.0
+
+    by_employee = {row["key"]: row for row in quality["by_employee"]}
+    assert by_employee["hk-1"]["count"] == 2
+    assert by_employee["hk-2"]["count"] == 1
