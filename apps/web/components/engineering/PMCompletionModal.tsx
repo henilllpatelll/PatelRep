@@ -311,6 +311,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
           role="dialog"
           aria-modal="true"
           aria-label={t('programs.pmCompletion.title')}
+          data-i18n-skip="true"
           className="bg-surface/[0.92] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >

@@ -151,7 +151,7 @@ function PMScheduleMobileCard({
   return (
     <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0" data-i18n-skip="true">
           <p className="text-base font-semibold text-gray-900">
             {schedule.assets?.name ?? t('programs.pmSchedules.unknownAsset')}
           </p>
@@ -807,7 +807,7 @@ export default function PMSchedulesPage() {
                         className="border-b border-[var(--caution-line)] hover:bg-[var(--caution-soft)]/40 transition-colors"
                       >
                         {/* Asset */}
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-i18n-skip="true">
                           <p className="font-medium text-gray-900 leading-tight">
                             {schedule.assets?.name ?? (
                               <span className="text-gray-400 font-normal italic">{t('programs.pmSchedules.unknownAsset')}</span>
@@ -816,7 +816,7 @@ export default function PMSchedulesPage() {
                         </td>
 
                         {/* Schedule name */}
-                        <td className="px-4 py-3 text-gray-700">{schedule.name}</td>
+                        <td className="px-4 py-3 text-gray-700" data-i18n-skip="true">{schedule.name}</td>
 
                         {/* Interval */}
                         <td className="px-4 py-3">

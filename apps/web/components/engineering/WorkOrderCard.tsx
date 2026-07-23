@@ -68,7 +68,7 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
     <Card
       className={`cursor-pointer p-3${isDanger ? ' border-red-200 bg-red-50' : ''}`}
     >
-      <div onClick={() => onClick(wo)}>
+      <div onClick={() => onClick(wo)} data-i18n-skip="true">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Top row */}

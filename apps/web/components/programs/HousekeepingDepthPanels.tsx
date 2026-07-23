@@ -106,7 +106,7 @@ export function HousekeepingDepthPanels() {
   if (!isManager) return null
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-i18n-skip="true">
       <DeepCleanAreasPanel />
 
       {/* DND welfare policy + stayover rule */}
