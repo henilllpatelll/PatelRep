@@ -102,6 +102,6 @@ Plans:
 | 1. Core operational integrity | N/A | Complete | 2026-07-19 |
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
-| 4. Maintenance and housekeeping programs | 0/8 | Planned — awaiting review gate (D-12) | - |
+| 4. Maintenance and housekeeping programs | 8/8 | Gaps found — bilingual scope (D-03) incomplete, see 04-VERIFICATION.md | - |
 | 5. Guest recovery and management ROI | 0/TBD | Not started | - |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |
