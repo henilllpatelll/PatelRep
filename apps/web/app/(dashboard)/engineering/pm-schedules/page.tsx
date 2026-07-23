@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { format, differenceInDays, addDays } from 'date-fns'
 import {
   Calendar,
@@ -21,7 +23,8 @@ import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getScheduleStatus(nextDueAt: string): {
+function getScheduleStatus(nextDueAt: string, t: TFunction): {
+  kind: 'overdue' | 'due_soon' | 'upcoming'
   label: string
   cls: string
   badgeCls: string
@@ -30,7 +33,8 @@ function getScheduleStatus(nextDueAt: string): {
   const due = new Date(nextDueAt)
   if (due < now) {
     return {
-      label: 'Overdue',
+      kind: 'overdue',
+      label: t('programs.pmSchedules.statusOverdue'),
       cls: 'text-[var(--alert)]',
       badgeCls: 'bg-[var(--alert-soft)] text-red-700 border border-red-200',
     }
@@ -38,26 +42,40 @@ function getScheduleStatus(nextDueAt: string): {
   const daysUntil = differenceInDays(due, now)
   if (daysUntil <= 7) {
     return {
-      label: 'Due Soon',
+      kind: 'due_soon',
+      label: t('programs.pmSchedules.statusDueSoon'),
       cls: 'text-orange-600',
       badgeCls: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]',
     }
   }
   return {
-    label: 'Upcoming',
+    kind: 'upcoming',
+    label: t('programs.pmSchedules.statusUpcoming'),
     cls: 'text-green-700',
     badgeCls: 'bg-[var(--ready-soft)] text-green-700 border border-green-200',
   }
 }
 
+const INTERVAL_LABEL_KEYS: Record<string, string> = {
+  daily: 'intervalDaily',
+  weekly: 'intervalWeekly',
+  monthly: 'intervalMonthly',
+  quarterly: 'intervalQuarterly',
+  annual: 'intervalAnnual',
+}
+
 function formatIntervalLabel(
   intervalType: PMSchedule['interval_type'],
-  intervalDays?: number,
+  intervalDays: number | undefined,
+  t: TFunction,
 ): string {
   if (intervalType === 'custom') {
-    return intervalDays ? `Every ${intervalDays} days` : 'Custom'
+    return intervalDays
+      ? t('programs.pmSchedules.everyDaysInterval', { count: intervalDays })
+      : t('programs.pmSchedules.custom')
   }
-  return intervalType.charAt(0).toUpperCase() + intervalType.slice(1)
+  const key = INTERVAL_LABEL_KEYS[intervalType]
+  return key ? t(`programs.pmSchedules.${key}`) : intervalType
 }
 
 function calcNextDueAt(intervalType: PMSchedule['interval_type'], intervalDays?: number): Date {
@@ -129,12 +147,13 @@ function PMScheduleMobileCard({
   onCancelDeactivate: () => void
   confirmingDeactivate: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <div className="border-b border-amber-100 px-4 py-4 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-semibold text-gray-900">
-            {schedule.assets?.name ?? 'Unknown asset'}
+            {schedule.assets?.name ?? t('programs.pmSchedules.unknownAsset')}
           </p>
           <p className="mt-0.5 text-sm text-gray-600">{schedule.name}</p>
         </div>
@@ -144,25 +163,25 @@ function PMScheduleMobileCard({
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Next Due</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('programs.pmSchedules.colNextDue')}</dt>
           <dd className={isOverdue ? 'mt-1 font-medium text-[var(--alert)]' : 'mt-1 text-gray-700'}>
             {format(new Date(schedule.next_due_at), 'MMM d, yyyy')}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Time</dt>
-          <dd className="mt-1 text-gray-700">{schedule.estimated_minutes ?? '-'} min</dd>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('programs.pmSchedules.colEstTime')}</dt>
+          <dd className="mt-1 text-gray-700">{schedule.estimated_minutes ?? '-'} {t('programs.pmSchedules.minutesSuffix')}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Interval</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('programs.pmSchedules.colInterval')}</dt>
           <dd className="mt-1 text-gray-700">
-            {formatIntervalLabel(schedule.interval_type, schedule.interval_days)}
+            {formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Last Done</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('programs.pmSchedules.colLastDone')}</dt>
           <dd className="mt-1 text-gray-700">
-            {schedule.last_completed_at ? format(new Date(schedule.last_completed_at), 'MMM d, yyyy') : 'Never'}
+            {schedule.last_completed_at ? format(new Date(schedule.last_completed_at), 'MMM d, yyyy') : t('programs.pmSchedules.never')}
           </dd>
         </div>
       </dl>
@@ -172,7 +191,7 @@ function PMScheduleMobileCard({
             onClick={onComplete}
             className="min-h-[44px] rounded-lg border border-green-300 px-3 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-[var(--ready-soft)]"
           >
-            Complete
+            {t('programs.pmSchedules.complete')}
           </button>
         )}
         {canEdit && schedule.is_active && (
@@ -182,13 +201,13 @@ function PMScheduleMobileCard({
                 onClick={onConfirmDeactivate}
                 className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)]"
               >
-                Confirm
+                {t('programs.pmSchedules.confirm')}
               </button>
               <button
                 onClick={onCancelDeactivate}
                 className="min-h-[44px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600"
               >
-                Cancel
+                {t('programs.pmSchedules.cancel')}
               </button>
             </div>
           ) : (
@@ -196,7 +215,7 @@ function PMScheduleMobileCard({
               onClick={onAskDeactivate}
               className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)] transition-colors hover:bg-[var(--alert-soft)]"
             >
-              Deactivate
+              {t('programs.pmSchedules.deactivate')}
             </button>
           )
         )}
@@ -205,7 +224,7 @@ function PMScheduleMobileCard({
             onClick={onCreateWO}
             className="min-h-[44px] rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50"
           >
-            Create Work Order
+            {t('programs.pmSchedules.createWorkOrderFull')}
           </button>
         )}
       </div>
@@ -246,6 +265,7 @@ const INTERVAL_OPTIONS: PMSchedule['interval_type'][] = [
 ]
 
 function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleModalProps) {
+  const { t } = useTranslation()
   const [fields, setFields] = useState({
     asset_id: '',
     name: '',
@@ -289,11 +309,11 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 
   async function handleCreate() {
     if (!fields.name.trim()) {
-      setError('Schedule name is required.')
+      setError(t('programs.pmSchedules.addModal.nameRequired'))
       return
     }
     if (!fields.next_due_at) {
-      setError('Next due date is required.')
+      setError(t('programs.pmSchedules.addModal.dateRequired'))
       return
     }
     setSaving(true)
@@ -314,7 +334,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create PM schedule.')
+      setError(err instanceof Error ? err.message : t('programs.pmSchedules.addModal.createFailed'))
     } finally {
       setSaving(false)
     }
@@ -331,7 +351,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Add PM Schedule"
+          aria-label={t('programs.pmSchedules.addModal.title')}
           className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
@@ -341,13 +361,13 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <Calendar size={16} className="text-white" />
               </div>
-              <h2 className="text-base font-bold text-gray-900">Add PM Schedule</h2>
+              <h2 className="text-base font-bold text-gray-900">{t('programs.pmSchedules.addModal.title')}</h2>
             </div>
             {!saving && (
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Close"
+                aria-label={t('programs.pmSchedules.addModal.close')}
               >
                 <X size={18} />
               </button>
@@ -358,8 +378,8 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             {/* Asset ID */}
             <div>
               <label htmlFor="pm-create-asset-id" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Asset ID{' '}
-                <span className="text-gray-400 font-normal">(UUID)</span>
+                {t('programs.pmSchedules.addModal.assetIdLabel')}{' '}
+                <span className="text-gray-400 font-normal">{t('programs.pmSchedules.addModal.assetIdUuid')}</span>
               </label>
               <Input
                 id="pm-create-asset-id"
@@ -370,36 +390,36 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 className="font-mono"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Find the asset ID on the Asset Register page.
+                {t('programs.pmSchedules.addModal.assetIdHelp')}
               </p>
             </div>
 
             {/* Schedule name */}
             <div>
               <label htmlFor="pm-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Schedule Name <span className="text-[var(--alert)]">*</span>
+                {t('programs.pmSchedules.addModal.scheduleNameLabel')} <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
                 id="pm-create-name"
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
-                placeholder="e.g. Monthly HVAC Filter Replacement"
+                placeholder={t('programs.pmSchedules.addModal.scheduleNamePlaceholder')}
               />
             </div>
 
             {/* Description */}
             <div>
               <label htmlFor="pm-create-description" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Description{' '}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                {t('programs.pmSchedules.addModal.descriptionLabel')}{' '}
+                <span className="text-gray-400 font-normal">{t('programs.pmSchedules.addModal.optionalTag')}</span>
               </label>
               <textarea
                 id="pm-create-description"
                 rows={2}
                 value={fields.description}
                 onChange={(e) => set('description', e.target.value)}
-                placeholder="Describe what maintenance tasks need to be performed…"
+                placeholder={t('programs.pmSchedules.addModal.descriptionPlaceholder')}
                 className="w-full border border-[var(--caution-line)]/40 rounded-lg px-3 py-2 text-sm bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] transition-colors resize-none"
               />
             </div>
@@ -408,7 +428,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="pm-create-interval-type" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Interval Type
+                  {t('programs.pmSchedules.addModal.intervalTypeLabel')}
                 </label>
                 <select
                   id="pm-create-interval-type"
@@ -420,7 +440,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 >
                   {INTERVAL_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      {formatIntervalLabel(opt, undefined, t)}
                     </option>
                   ))}
                 </select>
@@ -428,7 +448,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               {fields.interval_type === 'custom' && (
                 <div>
                   <label htmlFor="pm-create-interval-days" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Interval (days)
+                    {t('programs.pmSchedules.addModal.intervalDaysLabel')}
                   </label>
                   <Input
                     id="pm-create-interval-days"
@@ -436,7 +456,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                     min={1}
                     value={fields.interval_days}
                     onChange={(e) => set('interval_days', e.target.value)}
-                    placeholder="e.g. 45"
+                    placeholder={t('programs.pmSchedules.addModal.intervalDaysPlaceholder')}
                   />
                 </div>
               )}
@@ -446,7 +466,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="pm-create-estimated-minutes" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Est. Time (minutes)
+                  {t('programs.pmSchedules.addModal.estTimeLabel')}
                 </label>
                 <Input
                   id="pm-create-estimated-minutes"
@@ -454,12 +474,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                   min={1}
                   value={fields.estimated_minutes}
                   onChange={(e) => set('estimated_minutes', e.target.value)}
-                  placeholder="e.g. 60"
+                  placeholder={t('programs.pmSchedules.addModal.estTimePlaceholder')}
                 />
               </div>
               <div>
                 <label htmlFor="pm-create-next-due" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Next Due Date <span className="text-[var(--alert)]">*</span>
+                  {t('programs.pmSchedules.addModal.nextDueDateLabel')} <span className="text-[var(--alert)]">*</span>
                 </label>
                 <Input
                   id="pm-create-next-due"
@@ -486,7 +506,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               onClick={onClose}
               disabled={saving}
             >
-              Cancel
+              {t('programs.pmSchedules.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -496,12 +516,12 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               {saving ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  Creating…
+                  {t('programs.pmSchedules.addModal.creating')}
                 </>
               ) : (
                 <>
                   <Plus size={14} />
-                  Add Schedule
+                  {t('programs.pmSchedules.addSchedule')}
                 </>
               )}
             </Button>
@@ -515,6 +535,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PMSchedulesPage() {
+  const { t } = useTranslation()
   const { isGM, role } = useRole()
   const canEdit = isGM || role === 'engineer' || role === 'chief_engineer'
   const queryClient = useQueryClient()
@@ -550,7 +571,10 @@ export default function PMSchedulesPage() {
   function handleCompleteSuccess(scheduleName: string, nextDueAt: Date) {
     queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
     setSuccessMessage(
-      `PM "${scheduleName}" marked complete. Next due: ${format(nextDueAt, 'MMM d, yyyy')}.`,
+      t('programs.pmSchedules.completeSuccessMessage', {
+        name: scheduleName,
+        date: format(nextDueAt, 'MMM d, yyyy'),
+      }),
     )
     setTimeout(() => setSuccessMessage(null), 4000)
   }
@@ -574,7 +598,7 @@ export default function PMSchedulesPage() {
         priority: 'normal',
         asset_id: schedule.asset_id,
       })
-      setSuccessMessage(`Work order created for "${schedule.name}"`)
+      setSuccessMessage(t('programs.pmSchedules.woCreatedMessage', { name: schedule.name }))
       setTimeout(() => setSuccessMessage(null), 4000)
     } catch {
       // work order creation failed — user can retry
@@ -588,10 +612,10 @@ export default function PMSchedulesPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <Calendar size={22} className="text-[var(--caution)] shrink-0" />
-            PM Schedules
+            {t('programs.pmSchedules.title')}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Preventive maintenance schedules for all hotel assets
+            {t('programs.pmSchedules.subtitle')}
           </p>
         </div>
         {canEdit && (
@@ -601,7 +625,7 @@ export default function PMSchedulesPage() {
             className="shrink-0"
           >
             <Plus size={15} />
-            Add Schedule
+            {t('programs.pmSchedules.addSchedule')}
           </Button>
         )}
       </div>
@@ -617,22 +641,22 @@ export default function PMSchedulesPage() {
       {/* ── Stats row ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          label="Total Schedules"
+          label={t('programs.pmSchedules.totalSchedules')}
           value={activeSchedules.length}
-          sub="active schedules"
+          sub={t('programs.pmSchedules.activeSchedulesSub')}
           icon={<Calendar size={16} />}
         />
         <StatCard
-          label="Due This Week"
+          label={t('programs.pmSchedules.dueThisWeek')}
           value={dueThisWeekCount}
-          sub="within 7 days"
+          sub={t('programs.pmSchedules.within7Days')}
           accent={dueThisWeekCount > 0 ? 'orange' : 'default'}
           icon={<Clock size={16} />}
         />
         <StatCard
-          label="Overdue"
+          label={t('programs.pmSchedules.overdueStat')}
           value={overdueCount}
-          sub="past due date"
+          sub={t('programs.pmSchedules.pastDueDateSub')}
           accent={overdueCount > 0 ? 'red' : 'default'}
           icon={<AlertTriangle size={16} />}
         />
@@ -643,13 +667,13 @@ export default function PMSchedulesPage() {
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">Failed to load PM schedules</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">{t('programs.pmSchedules.failedToLoad')}</p>
             <Button
               variant="primary"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })}
               className="mt-2"
             >
-              Retry
+              {t('programs.pmSchedules.retry')}
             </Button>
           </div>
         ) : (
@@ -667,21 +691,21 @@ export default function PMSchedulesPage() {
                   <Calendar size={22} className="text-gray-300" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">No PM schedules yet</p>
+                  <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Create preventive maintenance schedules to keep assets running.
+                    {t('programs.pmSchedules.noSchedulesHelp')}
                   </p>
                 </div>
                 {canEdit && (
                   <Button variant="primary" onClick={() => setShowCreateModal(true)}>
                     <Plus size={14} />
-                    Create Schedule
+                    {t('programs.pmSchedules.createSchedule')}
                   </Button>
                 )}
               </div>
             ) : (
               schedules.map((schedule) => {
-                const status = getScheduleStatus(schedule.next_due_at)
+                const status = getScheduleStatus(schedule.next_due_at, t)
                 const dueDate = new Date(schedule.next_due_at)
                 const isOverdue = dueDate < now
                 return (
@@ -707,28 +731,28 @@ export default function PMSchedulesPage() {
               <thead>
                 <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Asset
+                    {t('programs.pmSchedules.colAsset')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Schedule Name
+                    {t('programs.pmSchedules.colScheduleName')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Interval
+                    {t('programs.pmSchedules.colInterval')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Next Due
+                    {t('programs.pmSchedules.colNextDue')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Est. Time
+                    {t('programs.pmSchedules.colEstTime')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Last Done
+                    {t('programs.pmSchedules.colLastDone')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Status
+                    {t('programs.pmSchedules.colStatus')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Actions
+                    {t('programs.pmSchedules.colActions')}
                   </th>
                 </tr>
               </thead>
@@ -743,16 +767,20 @@ export default function PMSchedulesPage() {
                           <Calendar size={22} className="text-gray-300" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-600">No PM schedules yet</p>
+                          <p className="text-sm font-medium text-gray-600">{t('programs.pmSchedules.noSchedules')}</p>
                           <p className="text-xs text-gray-400 mt-0.5">
-                            Create preventive maintenance schedules to keep assets running.
+                            {t('programs.pmSchedules.noSchedulesHelp')}
                           </p>
                         </div>
                         <div className="grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                          {['HVAC filters', 'Pool checks', 'Elevator service'].map((item) => (
+                          {[
+                            t('programs.pmSchedules.exampleHvac'),
+                            t('programs.pmSchedules.examplePool'),
+                            t('programs.pmSchedules.exampleElevator'),
+                          ].map((item) => (
                             <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
                               <p className="text-sm font-semibold text-ink">{item}</p>
-                              <p className="mt-1 text-xs text-ink3">Common PM schedule</p>
+                              <p className="mt-1 text-xs text-ink3">{t('programs.pmSchedules.commonPMSchedule')}</p>
                             </div>
                           ))}
                         </div>
@@ -762,7 +790,7 @@ export default function PMSchedulesPage() {
                             onClick={() => setShowCreateModal(true)}
                           >
                             <Plus size={14} />
-                            Create Schedule
+                            {t('programs.pmSchedules.createSchedule')}
                           </Button>
                         )}
                       </div>
@@ -770,7 +798,7 @@ export default function PMSchedulesPage() {
                   </tr>
                 ) : (
                   schedules.map((schedule) => {
-                    const status = getScheduleStatus(schedule.next_due_at)
+                    const status = getScheduleStatus(schedule.next_due_at, t)
                     const dueDate = new Date(schedule.next_due_at)
                     const isOverdue = dueDate < now
                     return (
@@ -782,7 +810,7 @@ export default function PMSchedulesPage() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-gray-900 leading-tight">
                             {schedule.assets?.name ?? (
-                              <span className="text-gray-400 font-normal italic">Unknown asset</span>
+                              <span className="text-gray-400 font-normal italic">{t('programs.pmSchedules.unknownAsset')}</span>
                             )}
                           </p>
                         </td>
@@ -793,7 +821,7 @@ export default function PMSchedulesPage() {
                         {/* Interval */}
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">
-                            {formatIntervalLabel(schedule.interval_type, schedule.interval_days)}
+                            {formatIntervalLabel(schedule.interval_type, schedule.interval_days, t)}
                           </span>
                         </td>
 
@@ -808,7 +836,7 @@ export default function PMSchedulesPage() {
 
                         {/* Estimated time */}
                         <td className="px-4 py-3 text-gray-600">
-                          {schedule.estimated_minutes} min
+                          {schedule.estimated_minutes} {t('programs.pmSchedules.minutesSuffix')}
                         </td>
 
                         {/* Last done */}
@@ -816,7 +844,7 @@ export default function PMSchedulesPage() {
                           {schedule.last_completed_at ? (
                             format(new Date(schedule.last_completed_at), 'MMM d, yyyy')
                           ) : (
-                            <span className="italic text-gray-300">Never</span>
+                            <span className="italic text-gray-300">{t('programs.pmSchedules.never')}</span>
                           )}
                         </td>
 
@@ -825,9 +853,9 @@ export default function PMSchedulesPage() {
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${status.badgeCls}`}
                           >
-                            {status.label === 'Overdue' && <AlertTriangle size={11} />}
-                            {status.label === 'Due Soon' && <Clock size={11} />}
-                            {status.label === 'Upcoming' && <CheckCircle size={11} />}
+                            {status.kind === 'overdue' && <AlertTriangle size={11} />}
+                            {status.kind === 'due_soon' && <Clock size={11} />}
+                            {status.kind === 'upcoming' && <CheckCircle size={11} />}
                             {status.label}
                           </span>
                         </td>
@@ -841,7 +869,7 @@ export default function PMSchedulesPage() {
                                 onClick={() => setCompletingSchedule(schedule)}
                                 className="text-xs px-3 py-2 min-h-[44px] rounded border border-green-300 text-green-700 hover:bg-[var(--ready-soft)] transition-colors"
                               >
-                                Complete
+                                {t('programs.pmSchedules.complete')}
                               </button>
                             )}
 
@@ -853,13 +881,13 @@ export default function PMSchedulesPage() {
                                     onClick={() => handleDeactivate(schedule.id)}
                                     className="min-h-[44px] px-3 py-2 text-[var(--alert)] font-medium hover:underline"
                                   >
-                                    Confirm
+                                    {t('programs.pmSchedules.confirm')}
                                   </button>
                                   <button
                                     onClick={() => setConfirmDeactivateId(null)}
                                     className="min-h-[44px] px-3 py-2 text-gray-500 hover:underline"
                                   >
-                                    Cancel
+                                    {t('programs.pmSchedules.cancel')}
                                   </button>
                                 </span>
                               ) : (
@@ -867,7 +895,7 @@ export default function PMSchedulesPage() {
                                   onClick={() => setConfirmDeactivateId(schedule.id)}
                                   className="text-xs px-3 py-2 min-h-[44px] rounded border border-red-200 text-[var(--alert)] hover:bg-[var(--alert-soft)] transition-colors"
                                 >
-                                  Deactivate
+                                  {t('programs.pmSchedules.deactivate')}
                                 </button>
                               )
                             )}
@@ -878,7 +906,7 @@ export default function PMSchedulesPage() {
                                 onClick={() => handleCreateWOFromPM(schedule)}
                                 className="text-xs px-3 py-2 min-h-[44px] rounded border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
                               >
-                                Create WO
+                                {t('programs.pmSchedules.createWO')}
                               </button>
                             )}
                           </div>
@@ -897,11 +925,13 @@ export default function PMSchedulesPage() {
         {!isLoading && !isError && schedules.length > 0 && (
           <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40 flex items-center justify-between">
             <p className="text-xs text-gray-400">
-              {schedules.length} schedule{schedules.length !== 1 ? 's' : ''}
+              {schedules.length === 1
+                ? t('programs.pmSchedules.scheduleCountOne', { count: schedules.length })
+                : t('programs.pmSchedules.scheduleCountOther', { count: schedules.length })}
             </p>
             {overdueCount > 0 && (
               <p className="text-xs font-medium text-[var(--alert)]">
-                {overdueCount} overdue
+                {t('programs.pmSchedules.overdueCount', { count: overdueCount })}
               </p>
             )}
           </div>

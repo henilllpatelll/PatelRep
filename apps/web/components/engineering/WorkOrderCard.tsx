@@ -1,4 +1,6 @@
 'use client'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { WorkOrder } from '@/lib/api/engineering'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -24,16 +26,17 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-gray-50 text-gray-500',
 }
 
-function formatSLA(dueAt: string): { text: string; breached: boolean } {
+function formatSLA(dueAt: string, t: TFunction): { text: string; breached: boolean } {
   const diff = new Date(dueAt).getTime() - Date.now()
   const breached = diff < 0
   const abs = Math.abs(diff)
   const h = Math.floor(abs / 3600000)
   const m = Math.floor((abs % 3600000) / 60000)
-  const suffix = breached ? 'overdue' : 'left'
+  const suffix = breached ? t('engineering.workOrderCard.overdue') : t('engineering.workOrderCard.left')
   if (h >= 24) {
     const d = Math.floor(h / 24)
-    return { text: `${d} ${d === 1 ? 'day' : 'days'} ${suffix}`, breached }
+    const dayLabel = d === 1 ? t('engineering.workOrderCard.day') : t('engineering.workOrderCard.days')
+    return { text: `${d} ${dayLabel} ${suffix}`, breached }
   }
   if (h > 0) return { text: `${h}h ${m}m ${suffix}`, breached }
   return { text: `${m}m ${suffix}`, breached }
@@ -53,9 +56,10 @@ interface Props {
 }
 
 export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
+  const { t } = useTranslation()
   const sla =
     wo.due_at && wo.status !== 'completed' && wo.status !== 'cancelled'
-      ? formatSLA(wo.due_at)
+      ? formatSLA(wo.due_at, t)
       : null
 
   const isDanger = wo.priority === 'emergency' || wo.priority === 'urgent' || sla?.breached
@@ -74,11 +78,11 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
                 {wo.priority}
               </Badge>
               {sla?.breached && (
-                <Badge variant="high">SLA BREACHED</Badge>
+                <Badge variant="high">{t('engineering.workOrderCard.slaBreached')}</Badge>
               )}
               {wo.is_pm_generated && (
                 <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded font-medium border border-teal-200">
-                  PM
+                  {t('engineering.workOrderCard.pm')}
                 </span>
               )}
             </div>
@@ -91,7 +95,7 @@ export function WorkOrderCard({ wo, onClick, onEdit, onDelete }: Props) {
               <span>
                 {CATEGORY_ICONS[wo.category]} {wo.category}
               </span>
-              {wo.rooms?.room_number && <span>· Room {wo.rooms.room_number}</span>}
+              {wo.rooms?.room_number && <span>· {t('engineering.workOrderCard.room')} {wo.rooms.room_number}</span>}
               {wo.location_text && !wo.rooms?.room_number && (
                 <span className="truncate max-w-32">· {wo.location_text}</span>
               )}

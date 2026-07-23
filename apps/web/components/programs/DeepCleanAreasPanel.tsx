@@ -6,6 +6,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { CalendarClock, CheckCircle2, ClipboardList, Sparkles } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
@@ -25,6 +26,7 @@ interface RoomOption {
 }
 
 export function DeepCleanAreasPanel() {
+  const { t } = useTranslation()
   const { isSupervisor, canViewEngineering } = useRole()
   // Union of gm/housekeeping_supervisor/engineer/chief_engineer -- exactly
   // matches apps/api/routers/programs.py's MANAGER_ROLES (both the
@@ -104,8 +106,8 @@ export function DeepCleanAreasPanel() {
         <div className="flex items-start gap-3">
           <Sparkles className="mt-0.5 h-5 w-5 text-accent" />
           <div>
-            <h2 className="font-semibold text-ink">Deep-clean schedules</h2>
-            <p className="mt-1 text-sm text-ink3">Recurring room or public-area deep cleans, replacing paper calendars.</p>
+            <h2 className="font-semibold text-ink">{t('programs.deepClean.title')}</h2>
+            <p className="mt-1 text-sm text-ink3">{t('programs.deepClean.subtitle')}</p>
           </div>
         </div>
         <div className="mt-4 space-y-2">
@@ -113,9 +115,11 @@ export function DeepCleanAreasPanel() {
             <div key={schedule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm">
               <div>
                 <p className="font-medium text-ink">
-                  {schedule.target_type === 'room' ? schedule.rooms?.room_number ?? 'Room' : schedule.public_areas?.name ?? 'Public area'}
+                  {schedule.target_type === 'room' ? schedule.rooms?.room_number ?? t('programs.deepClean.room') : schedule.public_areas?.name ?? t('programs.deepClean.publicArea')}
                 </p>
-                <p className="text-ink3">Every {schedule.interval_days} days &middot; next due {schedule.next_due_on}</p>
+                <p className="text-ink3">
+                  {t('programs.deepClean.everyDays', { count: schedule.interval_days })} &middot; {t('programs.deepClean.nextDueLabel', { date: schedule.next_due_on })}
+                </p>
               </div>
               <Button
                 type="button"
@@ -124,51 +128,51 @@ export function DeepCleanAreasPanel() {
                 onClick={() => completeDeepClean.mutate(schedule.id)}
                 className="min-h-9"
               >
-                <CheckCircle2 className="h-4 w-4" /> Mark complete
+                <CheckCircle2 className="h-4 w-4" /> {t('programs.deepClean.markComplete')}
               </Button>
             </div>
           ))}
           {!data?.deep_clean_schedules?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">No deep-clean schedules have been added yet.</p>
+            <p className="text-sm text-ink3">{t('programs.deepClean.noSchedules')}</p>
           ) : null}
         </div>
         <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitDeepClean}>
           <select
-            aria-label="Target type"
+            aria-label={t('programs.deepClean.targetType')}
             value={deepCleanForm.target_type}
             onChange={(event) => setDeepCleanForm((current) => ({ ...current, target_type: event.target.value as 'room' | 'public_area' }))}
             className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
           >
-            <option value="room">Room</option>
-            <option value="public_area">Public area</option>
+            <option value="room">{t('programs.deepClean.room')}</option>
+            <option value="public_area">{t('programs.deepClean.publicArea')}</option>
           </select>
           {deepCleanForm.target_type === 'room' ? (
             <select
-              aria-label="Room"
+              aria-label={t('programs.deepClean.room')}
               value={deepCleanForm.room_id}
               onChange={(event) => setDeepCleanForm((current) => ({ ...current, room_id: event.target.value }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="">Choose a room</option>
+              <option value="">{t('programs.deepClean.chooseRoom')}</option>
               {roomOptions.map((room) => (
                 <option key={room.id} value={room.id}>{room.room_number}</option>
               ))}
             </select>
           ) : (
             <select
-              aria-label="Public area"
+              aria-label={t('programs.deepClean.publicArea')}
               value={deepCleanForm.public_area_id}
               onChange={(event) => setDeepCleanForm((current) => ({ ...current, public_area_id: event.target.value }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="">Choose a public area</option>
+              <option value="">{t('programs.deepClean.choosePublicArea')}</option>
               {(data?.public_areas ?? []).map((area) => (
                 <option key={area.id} value={area.id}>{area.name}</option>
               ))}
             </select>
           )}
           <Input
-            aria-label="Interval days"
+            aria-label={t('programs.deepClean.intervalDaysLabel')}
             type="number"
             min={1}
             max={3650}
@@ -177,14 +181,14 @@ export function DeepCleanAreasPanel() {
             className="min-h-11"
           />
           <Input
-            aria-label="Next due on"
+            aria-label={t('programs.deepClean.nextDueOnLabel')}
             type="date"
             value={deepCleanForm.next_due_on}
             onChange={(event) => setDeepCleanForm((current) => ({ ...current, next_due_on: event.target.value }))}
             className="min-h-11"
           />
           <Button type="submit" disabled={createDeepClean.isPending} className="min-h-11 sm:col-span-2">
-            <CalendarClock className="h-4 w-4" /> Add deep-clean schedule
+            <CalendarClock className="h-4 w-4" /> {t('programs.deepClean.addSchedule')}
           </Button>
         </form>
       </Card>
@@ -193,8 +197,8 @@ export function DeepCleanAreasPanel() {
         <div className="flex items-start gap-3">
           <ClipboardList className="mt-0.5 h-5 w-5 text-accent" />
           <div>
-            <h2 className="font-semibold text-ink">Public areas</h2>
-            <p className="mt-1 text-sm text-ink3">Lobby, pool deck, gym -- the non-room spaces a deep-clean schedule can target.</p>
+            <h2 className="font-semibold text-ink">{t('programs.deepClean.publicAreasTitle')}</h2>
+            <p className="mt-1 text-sm text-ink3">{t('programs.deepClean.publicAreasSubtitle')}</p>
           </div>
         </div>
         <div className="mt-4 space-y-2">
@@ -205,26 +209,26 @@ export function DeepCleanAreasPanel() {
             </div>
           ))}
           {!data?.public_areas?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">No public areas have been added yet.</p>
+            <p className="text-sm text-ink3">{t('programs.deepClean.noPublicAreas')}</p>
           ) : null}
         </div>
         <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitPublicArea}>
           <Input
-            aria-label="Public area name"
-            placeholder="Public area name"
+            aria-label={t('programs.deepClean.publicAreaNamePlaceholder')}
+            placeholder={t('programs.deepClean.publicAreaNamePlaceholder')}
             value={publicAreaForm.name}
             onChange={(event) => setPublicAreaForm((current) => ({ ...current, name: event.target.value }))}
             className="min-h-11"
           />
           <Input
-            aria-label="Location detail"
-            placeholder="Location detail (optional)"
+            aria-label={t('programs.deepClean.locationDetailPlaceholder')}
+            placeholder={t('programs.deepClean.locationDetailPlaceholder')}
             value={publicAreaForm.location_detail}
             onChange={(event) => setPublicAreaForm((current) => ({ ...current, location_detail: event.target.value }))}
             className="min-h-11"
           />
           <Button type="submit" disabled={createPublicArea.isPending} className="min-h-11 sm:col-span-2">
-            Add public area
+            {t('programs.deepClean.addPublicArea')}
           </Button>
         </form>
       </Card>
