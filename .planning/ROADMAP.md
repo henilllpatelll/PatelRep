@@ -78,8 +78,8 @@ Plans:
 - [x] 04-08-PLAN.md — 4C bilingual floor contract: EN/ES coverage + scoped no-literal-string CI gate + EN/ES 390px Playwright
 
 **Gap closure** *(from 04-VERIFICATION.md: 04-08 narrowed the D-03 bilingual floor contract. Full D-03 directory scope = 20 floor files / 462 user-facing literals, incl. 8 app-route pages the verifier's 13-file list did not enumerate but which D-04's gate glob sweeps in. Translation plans share en.ts/es.ts, so they run sequentially by wave; the widened lint gate must run last.)*
-- [ ] 04-09-PLAN.md — (wave 1) HK board: RoomStatusBoard (Realtime surface), RoomCard, AssignmentSidebar, PredictionPanel → EN/ES
-- [ ] 04-17-PLAN.md — (wave 1, parallel — spec-file only) Playwright test 3 race fix: wait for gated /programs panels before skip
+- [x] 04-09-PLAN.md — (wave 1) HK board: RoomStatusBoard (Realtime surface), RoomCard, AssignmentSidebar, PredictionPanel → EN/ES
+- [x] 04-17-PLAN.md — (wave 1, parallel — spec-file only) Playwright test 3 race fix: wait for gated /programs panels before skip
 - [ ] 04-10-PLAN.md — (wave 2) HK drawer/modals: RoomDetailDrawer, InspectionModal, OccupancyImportModal → EN/ES
 - [ ] 04-11-PLAN.md — (wave 3) HK route pages: housekeeping/page, assignments/page → EN/ES
 - [ ] 04-12-PLAN.md — (wave 4) HK route pages: inspections/page, rooms/page → EN/ES
