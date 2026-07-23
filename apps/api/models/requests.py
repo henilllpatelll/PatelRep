@@ -676,6 +676,37 @@ class CreatePMDeferralRequest(SanitizedBaseModel):
     approved_by: str = Field(min_length=1, max_length=100)
 
 
+class ProgramTemplateItemInput(SanitizedBaseModel):
+    """One checklist item on a PM/housekeeping program template (D-05, G5)."""
+
+    key: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    label: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    requires_evidence: bool = False
+
+
+class UpdateProgramTemplateRequest(SanitizedBaseModel):
+    """Template editor: managers may update name/name_es, the checklist, and the
+    suggested default frequency. Updated in place (pm_checklist_templates is a
+    mutable config table, not append-only) — see programs.py for the tenant scoping."""
+
+    name: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    name_es: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    items: List[ProgramTemplateItemInput] = Field(min_length=1, max_length=50)
+    default_frequency_days: Optional[int] = Field(default=None, ge=1, le=3650)
+
+
+class CreateProgramTemplateRequest(SanitizedBaseModel):
+    """Generic builder for "other configured obligations" not among the 9 named
+    templates. `code` must be unique per tenant (409 on conflict)."""
+
+    code: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    program_area: Literal["engineering", "housekeeping"]
+    name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
+    name_es: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
+    items: List[ProgramTemplateItemInput] = Field(min_length=1, max_length=50)
+    default_frequency_days: Optional[int] = Field(default=None, ge=1, le=3650)
+
+
 class CreatePublicAreaRequest(SanitizedBaseModel):
     name: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
     location_detail: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
