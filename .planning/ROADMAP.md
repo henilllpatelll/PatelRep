@@ -65,7 +65,7 @@ Plans:
 - [x] 04-03-PLAN.md — S0 audit events + deferral approval + corrective-WO hardening (code-only; WO columns pre-exist per 007)
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 04-04-PLAN.md — 4A API: applicability-gated PM template library + editor + generic builder + migration 083
+- [x] 04-04-PLAN.md — 4A API: applicability-gated PM template library + editor + generic builder + migration 083
 
 **Wave 5** *(blocked on Wave 4; 04-05 and 04-06 run in parallel — web vs API, no file overlap)*
 - [ ] 04-05-PLAN.md — 4A Web: full PM completion capture UI + evidence upload + deferral + client
