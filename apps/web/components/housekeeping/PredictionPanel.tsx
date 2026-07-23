@@ -1,32 +1,39 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { RoomPrediction } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatETA(predictedReadyAt: string | null): string {
-  if (!predictedReadyAt) return 'Unknown'
+function formatETA(predictedReadyAt: string | null, t: TFunction): string {
+  if (!predictedReadyAt) return t('housekeeping.predictionPanel.unknown')
   const dt = new Date(predictedReadyAt)
   const now = new Date()
   const diffMin = Math.round((dt.getTime() - now.getTime()) / 60000)
-  if (diffMin < 0) return 'Overdue'
-  if (diffMin < 60) return `Ready in ${diffMin} min`
-  return `Ready by ${dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+  if (diffMin < 0) return t('housekeeping.predictionPanel.overdue')
+  if (diffMin < 60) return t('housekeeping.predictionPanel.readyIn', { minutes: diffMin })
+  return t('housekeeping.predictionPanel.readyBy', {
+    time: dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+  })
 }
 
-const RISK_FACTOR_LABELS: Record<string, string> = {
-  vip_room: 'VIP Room',
-  will_be_late: 'Will Be Late',
-  tight_timeline: 'Tight Timeline',
-  overloaded_housekeeper: 'HK Overloaded',
-  no_housekeeper_assigned: 'Unassigned',
+function getRiskFactorLabels(t: TFunction): Record<string, string> {
+  return {
+    vip_room: t('housekeeping.predictionPanel.riskFactors.vipRoom'),
+    will_be_late: t('housekeeping.predictionPanel.riskFactors.willBeLate'),
+    tight_timeline: t('housekeeping.predictionPanel.riskFactors.tightTimeline'),
+    overloaded_housekeeper: t('housekeeping.predictionPanel.riskFactors.overloadedHousekeeper'),
+    no_housekeeper_assigned: t('housekeeping.predictionPanel.riskFactors.unassigned'),
+  }
 }
 
-function prettifyRiskFactor(factor: string): string {
-  return RISK_FACTOR_LABELS[factor] ?? factor.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+function prettifyRiskFactor(factor: string, t: TFunction): string {
+  const labels = getRiskFactorLabels(t)
+  return labels[factor] ?? factor.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 // ── Skeleton row ──────────────────────────────────────────────────────────────
@@ -53,6 +60,7 @@ function SkeletonRow() {
 // ── Prediction row ────────────────────────────────────────────────────────────
 
 function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
+  const { t } = useTranslation()
   const roomLabel = prediction.room_number
     ? `${prediction.room_number}`
     : prediction.room_id.slice(0, 8)
@@ -66,12 +74,12 @@ function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
     <div className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-0 hover:bg-surface-2 transition-colors">
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Mono className="text-[13px] font-semibold text-ink">Room {roomLabel}</Mono>
+          <Mono className="text-[13px] font-semibold text-ink">{t('housekeeping.predictionPanel.room')} {roomLabel}</Mono>
           <Pill tone={riskTone} size="sm">
             {prediction.risk_level ?? 'LOW'}
           </Pill>
           <span className="ml-auto text-[11px] font-mono text-ink-3 whitespace-nowrap">
-            {formatETA(prediction.predicted_ready_at)}
+            {formatETA(prediction.predicted_ready_at, t)}
           </span>
         </div>
 
@@ -81,7 +89,7 @@ function PredictionRow({ prediction }: { prediction: RoomPrediction }) {
               key={factor}
               className="px-1.5 py-px rounded-full text-[10.5px] bg-surface-3 text-ink-2 border border-line"
             >
-              {prettifyRiskFactor(factor)}
+              {prettifyRiskFactor(factor, t)}
             </span>
           ))}
           {prediction.confidence_score !== null && (
@@ -105,6 +113,7 @@ interface PredictionPanelProps {
 // ── Panel ─────────────────────────────────────────────────────────────────────
 
 export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps) {
+  const { t } = useTranslation()
   const [isExpanded, setIsExpanded] = useState(false)
 
   const atRiskRooms = predictions
@@ -127,16 +136,16 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
         aria-expanded={isExpanded}
       >
         <div className="flex items-center gap-3">
-          <AILabel>Predictions</AILabel>
+          <AILabel>{t('housekeeping.predictionPanel.predictions')}</AILabel>
           <div className="flex items-center gap-1.5">
             {highCount > 0 && (
-              <Pill tone="alert" size="sm">{highCount} HIGH</Pill>
+              <Pill tone="alert" size="sm">{t('housekeeping.predictionPanel.highCount', { count: highCount })}</Pill>
             )}
             {mediumCount > 0 && (
-              <Pill tone="caution" size="sm">{mediumCount} MEDIUM</Pill>
+              <Pill tone="caution" size="sm">{t('housekeeping.predictionPanel.mediumCount', { count: mediumCount })}</Pill>
             )}
             {highCount === 0 && mediumCount === 0 && !isLoading && (
-              <span className="text-[11px] font-mono text-[var(--ai)] opacity-70">all clear</span>
+              <span className="text-[11px] font-mono text-[var(--ai)] opacity-70">{t('housekeeping.predictionPanel.allClear')}</span>
             )}
           </div>
         </div>
@@ -166,10 +175,10 @@ export function PredictionPanel({ predictions, isLoading }: PredictionPanelProps
           ) : atRiskRooms.length === 0 ? (
             <div className="px-4 py-6 text-center space-y-2">
               <div className="flex justify-center">
-                <AILabel>Predictions</AILabel>
+                <AILabel>{t('housekeeping.predictionPanel.predictions')}</AILabel>
               </div>
               <p className="font-display italic text-[14px] text-ink-3 leading-relaxed">
-                No risks flagged right now
+                {t('housekeeping.predictionPanel.noRisks')}
               </p>
             </div>
           ) : (

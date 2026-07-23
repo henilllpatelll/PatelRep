@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 export function AssignmentSidebar() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { selectedDate, selectedShift, rooms, buildingFilter } = useHousekeepingStore()
   const [aiLoading, setAiLoading] = useState(false)
@@ -35,13 +37,15 @@ export function AssignmentSidebar() {
       setMessage({
         type: 'success',
         text: count !== null
-          ? `AI assigned ${count} room${count !== 1 ? 's' : ''}.`
-          : 'AI assignments applied.',
+          ? (count === 1
+              ? t('housekeeping.assignmentSidebar.successCountOne', { count })
+              : t('housekeeping.assignmentSidebar.successCountOther', { count }))
+          : t('housekeeping.assignmentSidebar.successGeneric'),
       })
     } catch (err: any) {
       setMessage({
         type: 'error',
-        text: err?.message || 'AI assignment failed. Please try again.',
+        text: err?.message || t('housekeeping.assignmentSidebar.failure'),
       })
     } finally {
       setAiLoading(false)
@@ -55,20 +59,20 @@ export function AssignmentSidebar() {
           <Sparkles className="h-4 w-4" aria-hidden="true" />
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-ink">AI Assignments</h3>
+          <h3 className="text-sm font-semibold text-ink">{t('housekeeping.assignmentSidebar.title')}</h3>
           <p className="mt-0.5 text-xs text-ink3">
-            Balance today&apos;s open rooms across the team.
+            {t('housekeeping.assignmentSidebar.subtitle')}
           </p>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
-          <p className="text-[11px] font-medium text-ink3">Unassigned</p>
+          <p className="text-[11px] font-medium text-ink3">{t('housekeeping.assignmentSidebar.unassigned')}</p>
           <p className="mt-1 font-mono text-lg font-semibold text-ink">{unassignedCount}</p>
         </div>
         <div className="rounded-[var(--r-md)] border border-line bg-surface-2 px-3 py-2">
-          <p className="text-[11px] font-medium text-ink3">Needs work</p>
+          <p className="text-[11px] font-medium text-ink3">{t('housekeeping.assignmentSidebar.needsWork')}</p>
           <p className="mt-1 font-mono text-lg font-semibold text-ink">{dirtyCount}</p>
         </div>
       </div>
@@ -92,12 +96,12 @@ export function AssignmentSidebar() {
         {aiLoading ? (
           <>
             <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-            Assigning...
+            {t('housekeeping.assignmentSidebar.assigning')}
           </>
         ) : (
           <>
             <Sparkles className="h-4 w-4" aria-hidden="true" />
-            Auto-Assign with AI
+            {t('housekeeping.assignmentSidebar.autoAssign')}
           </>
         )}
       </Button>
