@@ -6,6 +6,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -19,6 +20,7 @@ import { programsApi } from '@/lib/api/programs'
 const OVERVIEW_KEY = ['operational-programs']
 
 export function InspectionDepthPanel() {
+  const { t } = useTranslation()
   const { isSupervisor, canViewEngineering } = useRole()
   const isManager = isSupervisor || canViewEngineering
   // POST /programs/inspection-sampling-rules requires the narrower
@@ -85,86 +87,92 @@ export function InspectionDepthPanel() {
   return (
     <section className="grid gap-4 lg:grid-cols-2">
       <Card className="p-4 sm:p-5">
-        <h2 className="font-semibold text-ink">Inspection sampling rules</h2>
-        <p className="mt-1 text-sm text-ink3">How much of each room type/experience/risk group a supervisor should physically inspect.</p>
+        <h2 className="font-semibold text-ink">{t('programs.sampling.title')}</h2>
+        <p className="mt-1 text-sm text-ink3">{t('programs.sampling.subtitle')}</p>
         <div className="mt-4 space-y-2">
           {(data?.inspection_sampling_rules ?? []).map((rule) => (
             <div key={rule.id} className="rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink2">
-              {rule.room_types?.name ?? 'All room types'} &middot; {rule.experience_band} &middot; {rule.risk_level} risk &middot; {rule.sample_percent}%
+              {rule.room_types?.name ?? t('programs.sampling.allRoomTypes')} &middot; {rule.experience_band} &middot; {t('programs.sampling.riskSuffix', { level: rule.risk_level })} &middot; {rule.sample_percent}%
             </div>
           ))}
           {!data?.inspection_sampling_rules?.length && !overview.isLoading ? (
-            <p className="text-sm text-ink3">No sampling rules configured -- a 10% default applies.</p>
+            <p className="text-sm text-ink3">{t('programs.sampling.noRules')}</p>
           ) : null}
         </div>
         {canConfigurePolicy ? (
           <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitSamplingRule}>
             <select
-              aria-label="Room type"
+              aria-label={t('programs.sampling.allRoomTypes')}
               value={samplingForm.room_type_id}
               onChange={(event) => setSamplingForm((current) => ({ ...current, room_type_id: event.target.value }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="">All room types</option>
+              <option value="">{t('programs.sampling.allRoomTypes')}</option>
               {roomTypeOptions.map(([id, name]) => (
                 <option key={id} value={id}>{name}</option>
               ))}
             </select>
             <select
-              aria-label="Experience band"
+              aria-label={t('programs.sampling.newHire')}
               value={samplingForm.experience_band}
               onChange={(event) => setSamplingForm((current) => ({ ...current, experience_band: event.target.value as typeof current.experience_band }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="new_hire">New hire</option>
-              <option value="standard">Standard</option>
-              <option value="trusted">Trusted</option>
+              <option value="new_hire">{t('programs.sampling.newHire')}</option>
+              <option value="standard">{t('programs.sampling.standardBand')}</option>
+              <option value="trusted">{t('programs.sampling.trustedBand')}</option>
             </select>
             <select
-              aria-label="Risk level"
+              aria-label={t('programs.sampling.standardRisk')}
               value={samplingForm.risk_level}
               onChange={(event) => setSamplingForm((current) => ({ ...current, risk_level: event.target.value as typeof current.risk_level }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="standard">Standard</option>
-              <option value="high">High</option>
+              <option value="standard">{t('programs.sampling.standardRisk')}</option>
+              <option value="high">{t('programs.sampling.highRisk')}</option>
             </select>
             <Input
-              aria-label="Sample percent"
+              aria-label={t('programs.sampling.saveRule')}
               type="number" min={1} max={100} value={samplingForm.sample_percent}
               onChange={(event) => setSamplingForm((current) => ({ ...current, sample_percent: Number(event.target.value) }))}
               className="min-h-11"
             />
-            <Button type="submit" disabled={saveSamplingRule.isPending} className="min-h-11 sm:col-span-2">Save sampling rule</Button>
+            <Button type="submit" disabled={saveSamplingRule.isPending} className="min-h-11 sm:col-span-2">{t('programs.sampling.saveRule')}</Button>
           </form>
         ) : null}
         <div className="mt-4 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink2">
-          <p className="font-medium text-ink">Today&apos;s sample: {sample?.sample_size ?? 0} room(s)</p>
+          <p className="font-medium text-ink">{t('programs.sampling.todaysSample', { count: sample?.sample_size ?? 0 })}</p>
           {sample?.rooms.length ? (
             <p className="mt-1 text-ink3">{sample.rooms.map((room) => room.room_id).join(', ')}</p>
           ) : (
-            <p className="mt-1 text-ink3">No rooms assigned yet today.</p>
+            <p className="mt-1 text-ink3">{t('programs.sampling.noRoomsToday')}</p>
           )}
         </div>
       </Card>
 
       <Card className="p-4 sm:p-5">
-        <h2 className="font-semibold text-ink">Inspection quality trends</h2>
-        <p className="mt-1 text-sm text-ink3">{quality?.sample_size ?? 0} recent inspections, broken down by result, item, room type, and employee.</p>
+        <h2 className="font-semibold text-ink">{t('programs.sampling.qualityTitle')}</h2>
+        <p className="mt-1 text-sm text-ink3">{t('programs.sampling.qualitySubtitle', { count: quality?.sample_size ?? 0 })}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {(['by_item', 'by_room_type', 'by_employee'] as const).map((dimension) => (
             <div key={dimension} className="rounded-lg border border-line bg-surface p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink4">{dimension.replace('by_', '').replace('_', ' ')}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink4">
+                {dimension === 'by_item'
+                  ? t('programs.sampling.byItem')
+                  : dimension === 'by_room_type'
+                    ? t('programs.sampling.byRoomType')
+                    : t('programs.sampling.byEmployee')}
+              </p>
               <ul className="mt-2 space-y-1 text-sm text-ink2">
                 {(quality?.[dimension] ?? []).map((entry) => (
                   <li key={entry.key} className="flex justify-between gap-2">
                     <span>{entry.key}</span>
                     <span className="text-ink3">
-                      {entry.count} {typeof entry.pass_rate === 'number' ? `(${Math.round(entry.pass_rate * 100)}% pass)` : ''}
+                      {entry.count} {typeof entry.pass_rate === 'number' ? t('programs.sampling.passRateSuffix', { rate: Math.round(entry.pass_rate * 100) }) : ''}
                     </span>
                   </li>
                 ))}
-                {!quality?.[dimension]?.length ? <li className="text-ink4">No data yet.</li> : null}
+                {!quality?.[dimension]?.length ? <li className="text-ink4">{t('programs.sampling.noData')}</li> : null}
               </ul>
             </div>
           ))}

@@ -8,12 +8,12 @@
 // project's 500-line limit -- see DeepCleanAreasPanel.tsx and
 // InspectionDepthPanel.tsx). All surfaces are tenant-scoped through the
 // manager-gated /programs routes.
-// Plain English strings for now (4C/04-08 wires these into the existing
-// `programs` i18n namespace; this component intentionally avoids anything
-// that would block that follow-up).
+// Bilingual via react-i18next (04-08/4C) -- see the `programs` namespace
+// (dndPolicy/stayover/parShortages keys) in i18n/locales/{en,es}.ts.
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Droplets, PackageCheck, ShieldAlert } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
@@ -28,17 +28,17 @@ import { InspectionDepthPanel } from '@/components/programs/InspectionDepthPanel
 // Query dedupes the network call across every component that reads it.
 const OVERVIEW_KEY = ['operational-programs']
 
-const ESCALATION_ROLE_OPTIONS: Array<{ value: 'housekeeping_supervisor' | 'front_desk' | 'gm'; label: string }> = [
-  { value: 'housekeeping_supervisor', label: 'Housekeeping supervisor' },
-  { value: 'front_desk', label: 'Front desk' },
-  { value: 'gm', label: 'GM' },
-]
-
 function toggleValue(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value]
 }
 
 export function HousekeepingDepthPanels() {
+  const { t } = useTranslation()
+  const ESCALATION_ROLE_OPTIONS: Array<{ value: 'housekeeping_supervisor' | 'front_desk' | 'gm'; label: string }> = [
+    { value: 'housekeeping_supervisor', label: t('programs.dndPolicy.roleSupervisor') },
+    { value: 'front_desk', label: t('programs.dndPolicy.roleFrontDesk') },
+    { value: 'gm', label: t('programs.dndPolicy.roleGm') },
+  ]
   const { isSupervisor, canViewEngineering } = useRole()
   // Union of gm/housekeeping_supervisor/engineer/chief_engineer -- exactly
   // matches apps/api/routers/programs.py's MANAGER_ROLES.
@@ -115,16 +115,16 @@ export function HousekeepingDepthPanels() {
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5 text-alert" />
             <div>
-              <h2 className="font-semibold text-ink">DND welfare timing &amp; escalation policy</h2>
+              <h2 className="font-semibold text-ink">{t('programs.dndPolicy.title')}</h2>
               <p className="mt-1 text-sm text-ink3">
-                How long a room may sit on Do Not Disturb before the property escalates a welfare check, and who is notified.
+                {t('programs.dndPolicy.subtitle')}
               </p>
             </div>
           </div>
           {canConfigurePolicy ? (
             <form className="mt-4 space-y-3" onSubmit={submitDndPolicy}>
               <label className="block text-sm font-medium text-ink2">
-                Hours before escalation
+                {t('programs.dndPolicy.hoursBeforeEscalation')}
                 <Input
                   type="number" min={1} max={72} value={dndThreshold}
                   onChange={(event) => setDndThreshold(Number(event.target.value))}
@@ -132,7 +132,7 @@ export function HousekeepingDepthPanels() {
                 />
               </label>
               <fieldset className="text-sm font-medium text-ink2">
-                <legend>Escalate to</legend>
+                <legend>{t('programs.dndPolicy.escalateTo')}</legend>
                 <div className="mt-1 flex flex-wrap gap-3">
                   {ESCALATION_ROLE_OPTIONS.map((option) => (
                     <label key={option.value} className="flex items-center gap-2 font-normal text-ink3">
@@ -147,42 +147,42 @@ export function HousekeepingDepthPanels() {
                 </div>
               </fieldset>
               <label className="block text-sm font-medium text-ink2">
-                Escalation instructions (the documented policy)
+                {t('programs.dndPolicy.escalationInstructionsLabel')}
                 <textarea
                   value={escalationInstructions}
                   onChange={(event) => setEscalationInstructions(event.target.value)}
                   rows={3}
                   className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
-                  placeholder="e.g. Front desk calls the room; if unanswered, a supervisor performs an in-person welfare check within 15 minutes."
+                  placeholder={t('programs.dndPolicy.escalationInstructionsPlaceholder')}
                 />
               </label>
-              <Button type="submit" disabled={saveDndPolicy.isPending} className="min-h-11">Save policy</Button>
+              <Button type="submit" disabled={saveDndPolicy.isPending} className="min-h-11">{t('programs.dndPolicy.savePolicy')}</Button>
             </form>
           ) : (
-            <p className="mt-4 text-sm text-ink3">Only a GM or housekeeping supervisor may edit this policy.</p>
+            <p className="mt-4 text-sm text-ink3">{t('programs.dndPolicy.restrictedEdit')}</p>
           )}
         </Card>
 
         <Card className="p-4 sm:p-5">
-          <h2 className="font-semibold text-ink">Stayover linen rule</h2>
-          <p className="mt-1 text-sm text-ink3">The normal number of days between linen changes for a guest staying multiple nights.</p>
+          <h2 className="font-semibold text-ink">{t('programs.stayover.title')}</h2>
+          <p className="mt-1 text-sm text-ink3">{t('programs.stayover.subtitle')}</p>
           {canConfigurePolicy ? (
             <form
               className="mt-4 space-y-3"
               onSubmit={(event) => { event.preventDefault(); saveStayover.mutate({ linen_change_frequency_days: linenDays, opt_out_allowed: optOutAllowed }) }}
             >
               <label className="block text-sm font-medium text-ink2">
-                Days between linen changes
+                {t('programs.stayover.daysBetween')}
                 <Input type="number" min={1} max={30} value={linenDays} onChange={(event) => setLinenDays(Number(event.target.value))} className="mt-1 min-h-11" />
               </label>
               <label className="flex items-center gap-2 text-sm font-medium text-ink2">
                 <input type="checkbox" checked={optOutAllowed} onChange={(event) => setOptOutAllowed(event.target.checked)} />
-                Guests may opt out and request a change sooner
+                {t('programs.stayover.optOutLabel')}
               </label>
-              <Button type="submit" disabled={saveStayover.isPending} className="min-h-11">Save rule</Button>
+              <Button type="submit" disabled={saveStayover.isPending} className="min-h-11">{t('programs.stayover.saveRule')}</Button>
             </form>
           ) : (
-            <p className="mt-4 text-sm text-ink3">Only a GM or housekeeping supervisor may edit this rule.</p>
+            <p className="mt-4 text-sm text-ink3">{t('programs.stayover.restrictedEdit')}</p>
           )}
         </Card>
       </section>
@@ -193,19 +193,19 @@ export function HousekeepingDepthPanels() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 text-alert" />
             <div>
-              <h2 className="font-semibold text-ink">Par shortages</h2>
-              <p className="mt-1 text-sm text-ink3">A passive advisory list -- nothing is automatically ordered or escalated.</p>
+              <h2 className="font-semibold text-ink">{t('programs.parShortages.title')}</h2>
+              <p className="mt-1 text-sm text-ink3">{t('programs.parShortages.subtitle')}</p>
             </div>
           </div>
           <div className="mt-4 space-y-2">
             {(data?.supply_alerts ?? []).map((alert) => (
               <div key={alert.name} className="flex items-center justify-between rounded-lg border border-alert-line bg-alert-soft px-3 py-2.5 text-sm text-alert">
                 <span className="font-medium">{alert.name}</span>
-                <span>{alert.on_hand}/{alert.par_level} on hand &middot; short {alert.shortage}</span>
+                <span>{t('programs.parShortages.onHandOf', { onHand: alert.on_hand, parLevel: alert.par_level, shortage: alert.shortage })}</span>
               </div>
             ))}
             {!data?.supply_alerts?.length && !overview.isLoading ? (
-              <p className="text-sm text-ink3">No supplies are currently below their property par.</p>
+              <p className="text-sm text-ink3">{t('programs.parShortages.noShortages')}</p>
             ) : null}
           </div>
         </Card>
@@ -214,26 +214,26 @@ export function HousekeepingDepthPanels() {
           <div className="flex items-start gap-3">
             <PackageCheck className="mt-0.5 h-5 w-5 text-accent" />
             <div>
-              <h2 className="font-semibold text-ink">Linen, chemical &amp; amenity pars</h2>
-              <p className="mt-1 text-sm text-ink3">Keep a simple on-hand count so shortages show up above.</p>
+              <h2 className="font-semibold text-ink">{t('programs.parShortages.supplyTitle')}</h2>
+              <p className="mt-1 text-sm text-ink3">{t('programs.parShortages.supplyHelp')}</p>
             </div>
           </div>
           <form className="mt-4 grid gap-2 sm:grid-cols-2" onSubmit={submitSupplyPar}>
-            <Input aria-label="Supply name" placeholder="Supply name" value={supplyForm.name} onChange={(event) => setSupplyForm((current) => ({ ...current, name: event.target.value }))} className="min-h-11" />
+            <Input aria-label={t('programs.supplyName')} placeholder={t('programs.supplyName')} value={supplyForm.name} onChange={(event) => setSupplyForm((current) => ({ ...current, name: event.target.value }))} className="min-h-11" />
             <select
-              aria-label="Supply type"
+              aria-label={t('programs.supplyType')}
               value={supplyForm.supply_type}
               onChange={(event) => setSupplyForm((current) => ({ ...current, supply_type: event.target.value as SupplyPar['supply_type'] }))}
               className="min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink"
             >
-              <option value="linen">Linen</option>
-              <option value="chemical">Chemical</option>
-              <option value="amenity">Amenity</option>
+              <option value="linen">{t('programs.linen')}</option>
+              <option value="chemical">{t('programs.chemical')}</option>
+              <option value="amenity">{t('programs.amenity')}</option>
             </select>
-            <Input aria-label="On hand" type="number" min={0} value={supplyForm.on_hand} onChange={(event) => setSupplyForm((current) => ({ ...current, on_hand: Number(event.target.value) }))} className="min-h-11" />
-            <Input aria-label="Par level" type="number" min={0} value={supplyForm.par_level} onChange={(event) => setSupplyForm((current) => ({ ...current, par_level: Number(event.target.value) }))} className="min-h-11" />
+            <Input aria-label={t('programs.onHand')} type="number" min={0} value={supplyForm.on_hand} onChange={(event) => setSupplyForm((current) => ({ ...current, on_hand: Number(event.target.value) }))} className="min-h-11" />
+            <Input aria-label={t('programs.parLevel')} type="number" min={0} value={supplyForm.par_level} onChange={(event) => setSupplyForm((current) => ({ ...current, par_level: Number(event.target.value) }))} className="min-h-11" />
             <Button type="submit" disabled={saveSupplyPar.isPending} className="min-h-11 sm:col-span-2">
-              <Droplets className="h-4 w-4" /> Save supply par
+              <Droplets className="h-4 w-4" /> {t('programs.saveSupply')}
             </Button>
           </form>
         </Card>
