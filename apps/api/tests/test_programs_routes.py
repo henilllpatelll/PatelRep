@@ -216,6 +216,71 @@ def test_evidence_required_item_422_route(monkeypatch):
     assert db.rows.get("pm_completion_records", []) == []
 
 
+def test_pm_completion_self_verification_rejected(monkeypatch):
+    """CR-01: a completion whose verifier_id equals the technician is rejected server-side,
+    not just blocked by the client. Mirrors the deferral self-approval check (D-07)."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json={
+            "verifier_id": "user-a-1",
+            "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert db.rows.get("pm_completion_records", []) == []
+
+
+def test_pm_completion_inactive_verifier_rejected(monkeypatch):
+    """A verifier_id not active at this tenant is rejected, zero completion rows written."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json={
+            "verifier_id": "user-a-2",
+            "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert db.rows.get("pm_completion_records", []) == []
+
+
+def test_pm_completion_distinct_active_verifier_accepted(monkeypatch):
+    """A distinct, active verifier is accepted and persisted on the completion record."""
+    db = FakeDB({
+        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
+        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": True}],
+    })
+    monkeypatch.setattr(assets_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/assets/pm-schedules/sched-1/complete",
+        headers=_auth_header("gm", user_id="user-a-1"),
+        json={
+            "verifier_id": "user-a-2",
+            "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["verifier_id"] == "user-a-2"
+
+
 # --- PM deferral separation of duty + containment audit (G2, G4, G8) ---
 
 def _deferral_payload(approved_by: str) -> dict:
@@ -497,6 +562,32 @@ def test_inspection_quality_dimensions(monkeypatch):
     assert {row["key"] for row in body["by_employee"]} == {"hk-1", "hk-2"}
     assert body["by_item"][0]["key"] == "Toilet cleaned"
     assert body["by_item"][0]["count"] == 2
+
+
+def test_inspection_quality_resolves_room_type_and_employee_names(monkeypatch):
+    """CR-02: by_room_type/by_employee resolve to display names when the
+    tenant has matching room_types/user_profiles rows, instead of leaking
+    raw UUIDs to the GM-facing quality-trends view."""
+    db = FakeDB({
+        "inspections": [
+            {
+                "tenant_id": "hotel-a", "overall_result": "passed", "inspected_by": "hk-1", "room_id": "room-1",
+                "completed_at": "2026-07-20T10:00:00Z", "rooms": {"room_type_id": "rt-king"},
+                "inspection_results": [],
+            },
+        ],
+        "room_types": [{"id": "rt-king", "tenant_id": "hotel-a", "name": "King Suite"}],
+        "user_profiles": [{"id": "hk-1", "tenant_id": "hotel-a", "preferred_name": "Claudia"}],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get("/v1/programs/inspection-quality", headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["by_room_type"][0]["key"] == "King Suite"
+    assert body["by_employee"][0]["key"] == "Claudia"
 
 
 def test_deep_clean_and_public_area_reads(monkeypatch):

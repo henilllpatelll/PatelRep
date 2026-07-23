@@ -29,6 +29,25 @@ def _collect_evidence_ids(payload: dict[str, Any], items: list[dict[str, Any]]) 
     return unique_ids
 
 
+def _validate_verifier(*, db: Any, tenant_id: str, user_id: str, verifier_id: str | None) -> None:
+    """Mirrors the PM-deferral separation-of-duty check (D-07,
+    routers/programs.py `_require_active_tenant_approver`): a verifier must be
+    distinct from the technician submitting the completion, and an active user
+    at this tenant. Without this, a completion's "independent verification"
+    is only enforced client-side and can be bypassed by calling the API directly."""
+    if not verifier_id:
+        return
+    if verifier_id == user_id:
+        raise ValueError("Verifier must be distinct from the technician submitting this completion.")
+    result = (
+        db.table("user_roles").select("user_id")
+        .eq("tenant_id", tenant_id).eq("user_id", verifier_id)
+        .eq("is_active", True).maybe_single().execute()
+    )
+    if not result or not result.data:
+        raise ValueError("Verifier is not an active user at this property.")
+
+
 def _validate_tenant_evidence_ids(*, db: Any, tenant_id: str, evidence_ids: list[str]) -> None:
     """Reject a PM completion that references evidence_records missing or owned by another tenant."""
     if not evidence_ids:
@@ -102,6 +121,9 @@ def persist_pm_completion(
     """
     items = payload.get("items") or []
     validate_completion_items(items)
+    _validate_verifier(
+        db=db, tenant_id=tenant_id, user_id=user_id, verifier_id=payload.get("verifier_id"),
+    )
     evidence_ids = _collect_evidence_ids(payload, items)
     _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
     completed_at = datetime.now(timezone.utc)

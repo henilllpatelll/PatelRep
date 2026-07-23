@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -395,6 +396,39 @@ async def get_inspection_sample(
     return {"data": {"rooms": selected_rooms, "sample_size": len(selected_rooms)}}
 
 
+def _resolve_quality_trend_names(
+    quality: dict[str, Any], *, tenant_id: str,
+) -> dict[str, Any]:
+    """CR-02: aggregate_inspection_quality is intentionally pure (no DB) so its
+    grouping logic stays unit-testable, but that means by_room_type/by_employee
+    key on raw room_type_id/inspected_by UUIDs. Resolve those to display names
+    here, after aggregation, the same way housekeeping.py resolves inspector
+    names for the near-identical inspection list."""
+    room_type_ids = [row["key"] for row in quality["by_room_type"] if row["key"] != "unknown"]
+    if room_type_ids:
+        room_types = (
+            supabase.table("room_types").select("id, name")
+            .in_("id", room_type_ids).eq("tenant_id", tenant_id).execute().data or []
+        )
+        room_type_names = {row["id"]: row["name"] for row in room_types}
+        for row in quality["by_room_type"]:
+            row["key"] = room_type_names.get(row["key"], row["key"])
+
+    employee_ids = [row["key"] for row in quality["by_employee"] if row["key"] != "unknown"]
+    if employee_ids:
+        profiles = (
+            supabase.table("user_profiles").select("id, preferred_name, full_name")
+            .in_("id", employee_ids).eq("tenant_id", tenant_id).execute().data or []
+        )
+        employee_names = {
+            row["id"]: row.get("preferred_name") or row.get("full_name") or row["id"] for row in profiles
+        }
+        for row in quality["by_employee"]:
+            row["key"] = employee_names.get(row["key"], row["key"])
+
+    return quality
+
+
 @router.get("/inspection-quality")
 async def get_inspection_quality(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
     """HK-03: quality trends broken down by overall result, checklist item, room
@@ -404,7 +438,9 @@ async def get_inspection_quality(current_user: CurrentUser = Depends(require_rol
         .select("overall_result, inspected_by, room_id, completed_at, rooms(room_type_id), inspection_results(result, inspection_template_items(description))")
         .eq("tenant_id", current_user.hotel_id).order("completed_at", desc=True).limit(500).execute().data or []
     )
-    return {"data": aggregate_inspection_quality(inspections)}
+    quality = aggregate_inspection_quality(inspections)
+    quality = _resolve_quality_trend_names(quality, tenant_id=current_user.hotel_id)
+    return {"data": quality}
 
 
 @router.get("/deep-clean-schedules")
