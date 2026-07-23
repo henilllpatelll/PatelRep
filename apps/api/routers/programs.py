@@ -23,9 +23,19 @@ from models.requests import (
 from services.programs.contracts import (
     DEFAULT_PROGRAM_TEMPLATES,
     GATED_TEMPLATE_FACILITIES as GATED,
+    aggregate_inspection_quality,
     build_supply_alerts,
     next_recurrence_date,
+    select_inspection_sample,
 )
+
+# G11/HK-02: tenure thresholds used to derive an assigned housekeeper's
+# experience_band from user_profiles.hire_date when no other signal exists.
+# Discretionary defaults (not specified by the plan) -- documented in the
+# 04-06 SUMMARY. Room risk_level (LOW/MEDIUM/HIGH, room_status) collapses to
+# the sampling rule's standard/high vocabulary: only HIGH maps to "high".
+EXPERIENCE_NEW_HIRE_MAX_DAYS = 30
+EXPERIENCE_TRUSTED_MIN_DAYS = 365
 
 
 router = APIRouter(prefix="/programs", tags=["programs"])
@@ -66,6 +76,24 @@ def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> 
         raise HTTPException(status_code=404, detail="Deferral approver is not active at this property.")
 
 
+def _experience_band(hire_date: str | None, today) -> str:
+    """G11/HK-02: derive an experience_band from tenure when no explicit band is
+    stored anywhere in the schema. Missing/unparseable hire_date -> "standard"
+    (never silently treats an unknown housekeeper as new_hire or trusted)."""
+    if not hire_date:
+        return "standard"
+    try:
+        hired = datetime.fromisoformat(str(hire_date)).date()
+    except ValueError:
+        return "standard"
+    tenure_days = (today - hired).days
+    if tenure_days < EXPERIENCE_NEW_HIRE_MAX_DAYS:
+        return "new_hire"
+    if tenure_days >= EXPERIENCE_TRUSTED_MIN_DAYS:
+        return "trusted"
+    return "standard"
+
+
 def _record_audit_event(
     *, current_user: CurrentUser, resource_type: str, resource_id: str,
     action: str, old_state: dict | None = None, new_state: dict | None = None,
@@ -93,6 +121,7 @@ async def get_program_overview(current_user: CurrentUser = Depends(require_role(
     tenant_id = current_user.hotel_id
     templates = supabase.table("pm_checklist_templates").select("*").eq("tenant_id", tenant_id).eq("is_active", True).order("program_area").execute().data or []
     deep_cleans = supabase.table("deep_clean_schedules").select("*, rooms(room_number), public_areas(name)").eq("tenant_id", tenant_id).eq("is_active", True).order("next_due_on").execute().data or []
+    public_areas = supabase.table("public_areas").select("*").eq("tenant_id", tenant_id).eq("is_active", True).order("name").execute().data or []
     pars = supabase.table("housekeeping_supply_pars").select("*").eq("tenant_id", tenant_id).order("supply_type").execute().data or []
     inspection_rules = supabase.table("inspection_sampling_rules").select("*, room_types(name, code)").eq("tenant_id", tenant_id).execute().data or []
     stayover_result = supabase.table("housekeeping_stayover_rules").select("*").eq("tenant_id", tenant_id).maybe_single().execute()
@@ -102,6 +131,7 @@ async def get_program_overview(current_user: CurrentUser = Depends(require_role(
     return {"data": {
         "templates": templates,
         "deep_clean_schedules": deep_cleans,
+        "public_areas": public_areas,
         "supply_pars": pars,
         "supply_alerts": build_supply_alerts(pars),
         "inspection_sampling_rules": inspection_rules,
@@ -313,12 +343,88 @@ async def create_inspection_sampling_rule(request: CreateInspectionSamplingRuleR
     return {"data": record}
 
 
+@router.get("/inspection-sample")
+async def get_inspection_sample(
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor", "chief_engineer")),
+):
+    """G11/HK-02: today's rule-driven inspection sample -- which of today's
+    assigned rooms a supervisor should physically inspect, honoring
+    inspection_sampling_rules (room_type + assigned housekeeper's derived
+    experience_band + room risk_level) instead of a flat aggregate."""
+    tenant_id = current_user.hotel_id
+    today = datetime.now(timezone.utc).date()
+
+    assignments = (
+        supabase.table("room_assignments").select("room_id, assigned_to, rooms(room_type_id)")
+        .eq("tenant_id", tenant_id).eq("assignment_date", today.isoformat()).execute().data or []
+    )
+    if not assignments:
+        return {"data": {"rooms": [], "sample_size": 0}}
+
+    room_ids = [assignment["room_id"] for assignment in assignments]
+    assigned_user_ids = list({assignment["assigned_to"] for assignment in assignments if assignment.get("assigned_to")})
+
+    statuses = (
+        supabase.table("room_status").select("room_id, risk_level")
+        .eq("tenant_id", tenant_id).in_("room_id", room_ids).execute().data or []
+    )
+    risk_by_room = {status["room_id"]: (status.get("risk_level") or "").upper() for status in statuses}
+
+    profiles = (
+        supabase.table("user_profiles").select("id, hire_date")
+        .eq("tenant_id", tenant_id).in_("id", assigned_user_ids).execute().data or []
+    ) if assigned_user_ids else []
+    hire_date_by_user = {profile["id"]: profile.get("hire_date") for profile in profiles}
+
+    rules = (
+        supabase.table("inspection_sampling_rules").select("*").eq("tenant_id", tenant_id).execute().data or []
+    )
+
+    rooms_for_sampling = [
+        {
+            "room_id": assignment["room_id"],
+            "room_type_id": (assignment.get("rooms") or {}).get("room_type_id"),
+            "experience_band": _experience_band(hire_date_by_user.get(assignment.get("assigned_to")), today),
+            "risk_level": "high" if risk_by_room.get(assignment["room_id"]) == "HIGH" else "standard",
+        }
+        for assignment in assignments
+    ]
+
+    selected_ids = set(select_inspection_sample(rooms=rooms_for_sampling, rules=rules))
+    selected_rooms = [room for room in rooms_for_sampling if room["room_id"] in selected_ids]
+    return {"data": {"rooms": selected_rooms, "sample_size": len(selected_rooms)}}
+
+
 @router.get("/inspection-quality")
 async def get_inspection_quality(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
-    inspections = supabase.table("inspections").select("overall_result, inspected_by, room_id, completed_at, rooms(room_type_id)").eq("tenant_id", current_user.hotel_id).order("completed_at", desc=True).limit(500).execute().data or []
-    trends: dict[str, dict] = {}
-    for inspection in inspections:
-        key = inspection.get("overall_result", "unknown")
-        trend = trends.setdefault(key, {"result": key, "count": 0})
-        trend["count"] += 1
-    return {"data": {"by_result": list(trends.values()), "sample_size": len(inspections)}}
+    """HK-03: quality trends broken down by overall result, checklist item, room
+    type, and employee -- not only overall_result."""
+    inspections = (
+        supabase.table("inspections")
+        .select("overall_result, inspected_by, room_id, completed_at, rooms(room_type_id), inspection_results(result, inspection_template_items(description))")
+        .eq("tenant_id", current_user.hotel_id).order("completed_at", desc=True).limit(500).execute().data or []
+    )
+    return {"data": aggregate_inspection_quality(inspections)}
+
+
+@router.get("/deep-clean-schedules")
+async def list_deep_clean_schedules(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+    """HK-01/G12: the depth UI (04-07) reads active deep-clean schedules (room and
+    public-area targets) with their next-due date, tenant-scoped."""
+    schedules = (
+        supabase.table("deep_clean_schedules").select("*, rooms(room_number), public_areas(name)")
+        .eq("tenant_id", current_user.hotel_id).eq("is_active", True)
+        .order("next_due_on").execute().data or []
+    )
+    return {"data": schedules}
+
+
+@router.get("/public-areas")
+async def list_public_areas(current_user: CurrentUser = Depends(require_role(*MANAGER_ROLES))):
+    """HK-01/G12: the depth UI (04-07) reads active public areas, tenant-scoped."""
+    areas = (
+        supabase.table("public_areas").select("*")
+        .eq("tenant_id", current_user.hotel_id).eq("is_active", True)
+        .order("name").execute().data or []
+    )
+    return {"data": areas}

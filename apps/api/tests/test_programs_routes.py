@@ -11,6 +11,8 @@ the direct-router-call + FakeDB harness used in test_evidence_foundation.py
 for logic/tenant-isolation checks that need database-state assertions.
 """
 
+from datetime import datetime, timezone
+
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -431,3 +433,98 @@ def test_edit_rbac(monkeypatch):
         },
     )
     assert create_response.status_code == 403
+
+
+# --- Inspection sampling execution + deepened quality + deep-clean/public-area reads (G11, HK-01/02/03, G12) ---
+
+def test_inspection_sample_rule_driven(monkeypatch):
+    """A 50% sampling rule honors ceil rounding on today's assigned rooms; a
+    housekeeper cannot reach this management-only route."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    db = FakeDB({
+        "room_assignments": [
+            {
+                "room_id": f"room-{i}", "assigned_to": "user-a-2", "tenant_id": "hotel-a",
+                "assignment_date": today, "rooms": {"room_type_id": "king"},
+            }
+            for i in range(1, 5)
+        ],
+        "room_status": [
+            {"room_id": f"room-{i}", "tenant_id": "hotel-a", "risk_level": "LOW"} for i in range(1, 5)
+        ],
+        "user_profiles": [{"id": "user-a-2", "tenant_id": "hotel-a", "hire_date": "2020-01-01"}],
+        "inspection_sampling_rules": [
+            {"tenant_id": "hotel-a", "room_type_id": "king", "experience_band": "trusted", "risk_level": "standard", "sample_percent": 50},
+        ],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    housekeeper_response = client.get("/v1/programs/inspection-sample", headers=_auth_header("housekeeper"))
+    assert housekeeper_response.status_code == 403
+
+    response = client.get("/v1/programs/inspection-sample", headers=_auth_header("housekeeping_supervisor"))
+    assert response.status_code == 200
+    assert response.json()["data"]["sample_size"] == 2  # ceil(4 * 0.5) = 2
+
+
+def test_inspection_quality_dimensions(monkeypatch):
+    """The inspection-quality response breaks down by item, room type, and
+    employee -- not only overall_result."""
+    db = FakeDB({
+        "inspections": [
+            {
+                "tenant_id": "hotel-a", "overall_result": "passed", "inspected_by": "hk-1", "room_id": "room-1",
+                "completed_at": "2026-07-20T10:00:00Z", "rooms": {"room_type_id": "king"},
+                "inspection_results": [{"result": "pass", "inspection_template_items": {"description": "Toilet cleaned"}}],
+            },
+            {
+                "tenant_id": "hotel-a", "overall_result": "failed", "inspected_by": "hk-2", "room_id": "room-2",
+                "completed_at": "2026-07-21T10:00:00Z", "rooms": {"room_type_id": "suite"},
+                "inspection_results": [{"result": "fail", "inspection_template_items": {"description": "Toilet cleaned"}}],
+            },
+        ],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get("/v1/programs/inspection-quality", headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["sample_size"] == 2
+    assert {row["key"] for row in body["by_room_type"]} == {"king", "suite"}
+    assert {row["key"] for row in body["by_employee"]} == {"hk-1", "hk-2"}
+    assert body["by_item"][0]["key"] == "Toilet cleaned"
+    assert body["by_item"][0]["count"] == 2
+
+
+def test_deep_clean_and_public_area_reads(monkeypatch):
+    """Deep-clean schedule and public-area list reads are tenant-scoped -- a
+    hotel-b row never leaks into hotel-a's response."""
+    db = FakeDB({
+        "deep_clean_schedules": [
+            {
+                "id": "dcs-a", "tenant_id": "hotel-a", "is_active": True, "next_due_on": "2026-08-01",
+                "target_type": "room", "rooms": {"room_number": "101"}, "public_areas": None,
+            },
+            {
+                "id": "dcs-b", "tenant_id": "hotel-b", "is_active": True, "next_due_on": "2026-08-01",
+                "target_type": "room", "rooms": {"room_number": "201"}, "public_areas": None,
+            },
+        ],
+        "public_areas": [
+            {"id": "pa-a", "tenant_id": "hotel-a", "name": "Lobby", "is_active": True},
+            {"id": "pa-b", "tenant_id": "hotel-b", "name": "Pool deck", "is_active": True},
+        ],
+    })
+    monkeypatch.setattr(programs_router, "supabase", db)
+    client = TestClient(app)
+
+    schedules_response = client.get("/v1/programs/deep-clean-schedules", headers=_auth_header("gm"))
+    assert schedules_response.status_code == 200
+    assert {row["id"] for row in schedules_response.json()["data"]} == {"dcs-a"}
+
+    areas_response = client.get("/v1/programs/public-areas", headers=_auth_header("gm"))
+    assert areas_response.status_code == 200
+    assert {row["name"] for row in areas_response.json()["data"]} == {"Lobby"}

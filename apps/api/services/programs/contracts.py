@@ -1,5 +1,6 @@
 """Pure policy contracts shared by PM, housekeeping, and escalation routes."""
 
+import math
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -220,3 +221,110 @@ def build_supply_alerts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "shortage": par_level - on_hand,
             })
     return alerts
+
+
+def select_inspection_sample(
+    *, rooms: list[dict[str, Any]], rules: list[dict[str, Any]], default_percent: int = 10
+) -> list[str]:
+    """G11/HK-02: which of today's assigned rooms a supervisor must physically
+    inspect, honoring the tenant's `inspection_sampling_rules` instead of a flat
+    aggregate. Each `room` dict needs `room_id`, `room_type_id`, `experience_band`,
+    `risk_level` (already resolved by the caller — this function is pure, no DB).
+
+    Rule matching is most-specific-first: a rule whose `room_type_id` exactly
+    matches the room beats a wildcard rule (`room_type_id is None`, applies to
+    all room types) with the same `experience_band`/`risk_level`; when several
+    rules of the same specificity match, the highest `sample_percent` wins (never
+    silently under-samples). Falls back to `default_percent` when nothing matches.
+
+    Sampling is deterministic: rooms are grouped by (room_type_id, experience_band,
+    risk_level), each group is sorted by room_id, and the first
+    `ceil(count * pct / 100)` rooms in that order are selected.
+    """
+    def _matching_percent(room: dict[str, Any]) -> int:
+        candidates = [
+            rule for rule in rules
+            if rule.get("experience_band") == room.get("experience_band")
+            and rule.get("risk_level") == room.get("risk_level")
+            and (rule.get("room_type_id") is None or rule.get("room_type_id") == room.get("room_type_id"))
+        ]
+        if not candidates:
+            return default_percent
+        exact = [rule for rule in candidates if rule.get("room_type_id") == room.get("room_type_id")]
+        pool = exact or candidates
+        return max(rule["sample_percent"] for rule in pool)
+
+    groups: dict[tuple, list[dict[str, Any]]] = {}
+    for room in rooms:
+        key = (room.get("room_type_id"), room.get("experience_band"), room.get("risk_level"))
+        groups.setdefault(key, []).append(room)
+
+    selected: list[str] = []
+    for group_rooms in groups.values():
+        percent = _matching_percent(group_rooms[0])
+        sample_size = math.ceil(len(group_rooms) * percent / 100)
+        ordered = sorted(group_rooms, key=lambda room: room["room_id"])
+        selected.extend(room["room_id"] for room in ordered[:sample_size])
+    return sorted(selected)
+
+
+def aggregate_inspection_quality(inspections: list[dict[str, Any]]) -> dict[str, Any]:
+    """HK-03: quality trends broken down by overall result, checklist item, room
+    type, and employee -- not only `overall_result`. Each dimension is a list of
+    `{key, count}`, plus `pass_rate`/`fail_rate` when the dimension has a
+    pass/fail concept (by_result itself is the result breakdown, so it has no
+    rate). Pure; accepts already-joined inspection dicts (`rooms.room_type_id`,
+    `inspection_results[].inspection_template_items.description` when present).
+    """
+    def _bump(bucket: dict[str, dict[str, Any]], key: str, is_pass: bool | None) -> None:
+        entry = bucket.setdefault(key, {"key": key, "count": 0, "pass_count": 0, "fail_count": 0})
+        entry["count"] += 1
+        if is_pass is True:
+            entry["pass_count"] += 1
+        elif is_pass is False:
+            entry["fail_count"] += 1
+
+    def _finalize(bucket: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+        rows = []
+        for entry in bucket.values():
+            row = {"key": entry["key"], "count": entry["count"]}
+            total_rated = entry["pass_count"] + entry["fail_count"]
+            if total_rated:
+                row["pass_rate"] = round(entry["pass_count"] / total_rated, 4)
+                row["fail_rate"] = round(entry["fail_count"] / total_rated, 4)
+            rows.append(row)
+        return sorted(rows, key=lambda row: row["key"])
+
+    by_result: dict[str, dict[str, Any]] = {}
+    by_item: dict[str, dict[str, Any]] = {}
+    by_room_type: dict[str, dict[str, Any]] = {}
+    by_employee: dict[str, dict[str, Any]] = {}
+
+    for inspection in inspections:
+        result = inspection.get("overall_result") or "unknown"
+        is_pass = True if result == "passed" else False if result == "failed" else None
+        _bump(by_result, result, None)
+
+        room_type_id = (inspection.get("rooms") or {}).get("room_type_id") or "unknown"
+        _bump(by_room_type, room_type_id, is_pass)
+
+        employee = inspection.get("inspected_by") or "unknown"
+        _bump(by_employee, employee, is_pass)
+
+        for item_result in inspection.get("inspection_results") or []:
+            label = (
+                (item_result.get("inspection_template_items") or {}).get("description")
+                or item_result.get("template_item_id")
+                or "unknown"
+            )
+            item_result_value = item_result.get("result")
+            item_is_pass = True if item_result_value == "pass" else False if item_result_value == "fail" else None
+            _bump(by_item, label, item_is_pass)
+
+    return {
+        "by_result": _finalize(by_result),
+        "by_item": _finalize(by_item),
+        "by_room_type": _finalize(by_room_type),
+        "by_employee": _finalize(by_employee),
+        "sample_size": len(inspections),
+    }
