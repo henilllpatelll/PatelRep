@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from typing import Literal, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from middleware.auth import get_current_user, CurrentUser
 from models.requests import CreateLostFoundCustodyEventRequest, CreateLostFoundRequest
 from core.database import supabase
@@ -19,6 +19,7 @@ ALLOWED_PHOTO_TYPES = {
     "image/webp": "webp",
 }
 MAX_PHOTO_BYTES = 5 * 1024 * 1024
+RETENTION_PERIOD_DAYS = 90  # D-10: fixed retention window, not per-tenant configurable in this phase
 
 
 @router.post("/upload-photo")
@@ -57,6 +58,7 @@ async def create_lost_found_item(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """Log a found item."""
+    now = datetime.now(timezone.utc)
     data = {
         "tenant_id": current_user.hotel_id,
         "description": request.description,
@@ -68,6 +70,7 @@ async def create_lost_found_item(
         "storage_location": request.storage_location,
         "found_by": current_user.user_id,
         "status": "unclaimed",
+        "retention_due_at": (now + timedelta(days=RETENTION_PERIOD_DAYS)).isoformat(),
     }
     result = supabase.table("lost_found_items").insert(data).execute()
     item = result.data[0] if result.data else None
@@ -91,6 +94,7 @@ async def list_lost_found_items(
     date_from: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     date_to: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     search: Optional[str] = Query(None, min_length=1, max_length=120),
+    disposition_due: bool = Query(False),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     current_user: CurrentUser = Depends(get_current_user),
@@ -112,6 +116,10 @@ async def list_lost_found_items(
         query = query.lte("created_at", date_to + "T23:59:59")
     if search:
         query = query.ilike("description", f"%{search}%")
+    if disposition_due:
+        query = query.eq("status", "unclaimed").lt(
+            "retention_due_at", datetime.now(timezone.utc).isoformat()
+        ).order("retention_due_at")
 
     result = query.execute()
     items = result.data or []

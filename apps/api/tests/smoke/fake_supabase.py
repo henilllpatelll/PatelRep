@@ -59,6 +59,8 @@ class FakeQuery:
         self.order_column = None
         self.order_desc = False
         self.limit_count = None
+        self.range_start = None
+        self.range_end = None
         self.single = False
 
     def select(self, *_args, **_kwargs):
@@ -97,6 +99,14 @@ class FakeQuery:
         self.filters.append(("gte", column, value))
         return self
 
+    def lt(self, column, value):
+        self.filters.append(("lt", column, value))
+        return self
+
+    def is_(self, column, value):
+        self.filters.append(("is", column, value))
+        return self
+
     def in_(self, column, values):
         self.filters.append(("in", column, list(values)))
         return self
@@ -114,6 +124,11 @@ class FakeQuery:
         self.limit_count = count
         return self
 
+    def range(self, start, end):
+        self.range_start = start
+        self.range_end = end
+        return self
+
     def maybe_single(self):
         self.single = True
         return self
@@ -127,6 +142,14 @@ class FakeQuery:
                 return False
             if op == "gte" and (actual is None or str(actual) < str(value)):
                 return False
+            if op == "lt" and not (actual is not None and str(actual) < str(value)):
+                return False
+            if op == "is":
+                if value in (None, "null"):
+                    if actual is not None:
+                        return False
+                elif actual != value:
+                    return False
             if op == "in" and actual not in value:
                 return False
             if op == "like":
@@ -146,6 +169,8 @@ class FakeQuery:
             )
         if self.limit_count is not None:
             matched = matched[: self.limit_count]
+        if self.range_start is not None:
+            matched = matched[self.range_start : self.range_end + 1]
 
         if self.action == "select":
             if self.single:

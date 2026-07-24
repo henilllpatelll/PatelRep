@@ -971,7 +971,7 @@ async def test_lost_found_list_returns_empty_for_hotel_a(monkeypatch):
     monkeypatch.setattr(lf_router, "supabase", db)
 
     result = await lf_router.list_lost_found_items(
-        status=None, date_from=None, date_to=None, search=None,
+        status=None, date_from=None, date_to=None, search=None, disposition_due=False,
         page=1, per_page=20, current_user=USER_A,
     )
 
