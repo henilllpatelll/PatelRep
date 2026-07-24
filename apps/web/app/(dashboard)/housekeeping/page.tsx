@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, addDays, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Clock, LogOut, MessageSquare, Wrench } from 'lucide-react'
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { RoomStatusBoard } from '@/components/housekeeping/RoomStatusBoard'
@@ -27,10 +29,10 @@ import { Pill } from '@/components/ui/primitives'
 // -- Shift options -------------------------------------------------------------
 
 const SHIFTS = [
-  { value: '', label: 'All Shifts' },
-  { value: 'morning', label: 'Morning' },
-  { value: 'evening', label: 'Evening' },
-  { value: 'night', label: 'Night' },
+  { value: '', key: 'all' },
+  { value: 'morning', key: 'morning' },
+  { value: 'evening', key: 'evening' },
+  { value: 'night', key: 'night' },
 ]
 
 const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
@@ -42,25 +44,26 @@ const CLEAN_TYPE_TEXT_COLOR: Record<string, string> = {
 // -- Live sync badge -----------------------------------------------------------
 
 function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
-  const [label, setLabel] = useState('Never synced')
+  const { t } = useTranslation()
+  const [label, setLabel] = useState(() => t('housekeeping.page.sync.never'))
 
   useEffect(() => {
     function compute() {
-      if (!lastSyncedAt) { setLabel('Never synced'); return }
+      if (!lastSyncedAt) { setLabel(t('housekeeping.page.sync.never')); return }
       const diffMin = Math.floor((Date.now() - lastSyncedAt.getTime()) / 60_000)
-      if (diffMin < 1) setLabel('synced just now')
-      else if (diffMin === 1) setLabel('synced 1 min ago')
-      else setLabel(`synced ${diffMin} min ago`)
+      if (diffMin < 1) setLabel(t('housekeeping.page.sync.justNow'))
+      else if (diffMin === 1) setLabel(t('housekeeping.page.sync.oneMinAgo'))
+      else setLabel(t('housekeeping.page.sync.minAgo', { count: diffMin }))
     }
     compute()
     const interval = setInterval(compute, 30_000)
     return () => clearInterval(interval)
-  }, [lastSyncedAt])
+  }, [lastSyncedAt, t])
 
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ready)]">
       <span className={`w-2 h-2 rounded-full bg-ready shrink-0 ${lastSyncedAt ? 'animate-pulse' : ''}`} />
-      Live &middot; {label}
+      {t('housekeeping.page.sync.live')} &middot; {label}
     </span>
   )
 }
@@ -68,6 +71,7 @@ function SyncBadge({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
 // -- Housekeeper chip bar (mobile assign mode) --------------------------------
 
 function HousekeeperBar() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const {
     selectedDate,
@@ -143,7 +147,7 @@ function HousekeeperBar() {
         setPendingAssignment(roomId, housekeeperId, cleanTypeSnapshot[roomId as keyof typeof cleanTypeSnapshot])
       })
       setSaveSuccess(false)
-      setSaveError(err?.message || 'Failed to save. Please try again.')
+      setSaveError(err?.message || t('housekeeping.page.assignBar.saveError'))
       setTimeout(() => setSaveError(null), 4000)
     })
   }
@@ -157,12 +161,12 @@ function HousekeeperBar() {
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold text-ink2">
           {activeAssigneeId
-            ? <span className="text-[var(--caution)]">Tap rooms to assign</span>
-            : 'Select a housekeeper:'}
+            ? <span className="text-[var(--caution)]">{t('housekeeping.page.assignBar.tapToAssign')}</span>
+            : t('housekeeping.page.assignBar.selectHousekeeper')}
         </p>
         <div className="flex items-center gap-2">
           {saveSuccess && (
-            <span className="text-xs text-[var(--ready)] font-medium">Saved</span>
+            <span className="text-xs text-[var(--ready)] font-medium">{t('housekeeping.page.assignBar.saved')}</span>
           )}
           {saveError && (
             <span className="text-xs text-[var(--alert)] font-medium">{saveError}</span>
@@ -172,7 +176,7 @@ function HousekeeperBar() {
               onClick={handleSave}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity"
             >
-              Save <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span>
+              {t('housekeeping.page.assignBar.save')} <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span>
             </button>
           )}
         </div>
@@ -186,8 +190,8 @@ function HousekeeperBar() {
         </div>
       ) : housekeepers.length === 0 ? (
         <p className="text-xs text-ink3">
-          No housekeeper staff found.{' '}
-          <Link href="/staff" prefetch={false} className="text-accent underline">Add staff</Link>
+          {t('housekeeping.page.assignBar.noStaff')}{' '}
+          <Link href="/staff" prefetch={false} className="text-accent underline">{t('housekeeping.page.assignBar.addStaff')}</Link>
         </p>
       ) : (
         <div data-testid="hk-chip-list" className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
@@ -248,6 +252,7 @@ function HousekeeperRoomItem({
   onUndo: (roomId: string) => Promise<void>
   onOpenDetail: (room: any) => void
 }) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [donePending, setDonePending] = useState(false)
   const [undoPending, setUndoPending] = useState(false)
@@ -275,22 +280,26 @@ function HousekeeperRoomItem({
     room.occupancy_status === 'occupied' ||
     room.room_occupancy === 'occupied',
   )
-  const readyLabel = isOccupiedRoom ? 'Ready Occupied' : 'Ready Vacant'
+  const readyLabel = isOccupiedRoom
+    ? t('housekeeping.page.roomItem.readyOccupied')
+    : t('housekeeping.page.roomItem.readyVacant')
 
   const checkoutIso: string | null = room.actual_checkout_at ?? room.checkout_time ?? null
-  const checkoutLabel = room.actual_checkout_at ? 'Checked out' : 'Due out'
+  const checkoutLabel = room.actual_checkout_at
+    ? t('housekeeping.page.roomItem.checkedOut')
+    : t('housekeeping.page.roomItem.dueOut')
   const checkoutTime = checkoutIso
     ? new Date(checkoutIso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     : null
 
   const statusConfig: Record<string, { label: string; pillClass: string }> = {
-    DIRTY:      { label: 'Vacant Dirty',      pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
-    OCCUPIED:   { label: 'Occupied Dirty',    pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
-    PICKUP:     { label: 'Pickup',            pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
-    IN_PROGRESS:{ label: 'In Progress',       pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
-    CLEAN:      { label: 'Clean',             pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
-    INSPECTED:  { label: 'Inspected / Ready', pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
-    OOO:        { label: 'Out of Order / Out of Service', pillClass: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]' },
+    DIRTY:      { label: t('housekeeping.page.roomItem.status.vacantDirty'),   pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    OCCUPIED:   { label: t('housekeeping.page.roomItem.status.occupiedDirty'), pillClass: 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]' },
+    PICKUP:     { label: t('housekeeping.page.roomItem.status.pickup'),       pillClass: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' },
+    IN_PROGRESS:{ label: t('housekeeping.page.roomItem.status.inProgress'),  pillClass: 'bg-[var(--progress-soft)] text-[var(--progress)] border border-[var(--progress-line)]' },
+    CLEAN:      { label: t('housekeeping.page.roomItem.status.clean'),      pillClass: 'bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]' },
+    INSPECTED:  { label: t('housekeeping.page.roomItem.status.inspectedReady'), pillClass: 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]' },
+    OOO:        { label: t('housekeeping.page.roomItem.status.ooo'), pillClass: 'bg-[var(--blocked-soft)] text-[var(--blocked)] border border-[var(--blocked-line)]' },
   }
   const cfg = statusConfig[status] ?? { label: status, pillClass: 'bg-surface-3 text-ink3 border border-line' }
 
@@ -346,10 +355,10 @@ function HousekeeperRoomItem({
         onClick={handleDonePress}
         className="px-4 py-1.5 bg-[var(--ready)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
       >
-        Confirm Done
+        {t('housekeeping.page.roomItem.confirmDone')}
       </button>
       <button onClick={cancelDone} className="px-3 py-1 text-ink3 text-xs">
-        Cancel
+        {t('housekeeping.page.roomItem.cancel')}
       </button>
     </div>
   ) : (
@@ -358,7 +367,7 @@ function HousekeeperRoomItem({
       onClick={handleDonePress}
       className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
     >
-      {loading ? '...' : 'Done'}
+      {loading ? '...' : t('housekeeping.page.roomItem.done')}
     </button>
   )
 
@@ -369,10 +378,10 @@ function HousekeeperRoomItem({
         onClick={handleUndoPress}
         className="px-4 py-1.5 bg-[var(--alert)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
       >
-        Confirm Undo
+        {t('housekeeping.page.roomItem.confirmUndo')}
       </button>
       <button onClick={cancelUndo} className="px-3 py-1 text-ink3 text-xs">
-        Cancel
+        {t('housekeeping.page.roomItem.cancel')}
       </button>
     </div>
   ) : (
@@ -381,7 +390,7 @@ function HousekeeperRoomItem({
       onClick={handleUndoPress}
       className="px-4 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
     >
-      Undo
+      {t('housekeeping.page.roomItem.undo')}
     </button>
   )
 
@@ -392,9 +401,9 @@ function HousekeeperRoomItem({
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="font-mono font-semibold text-base text-ink">Room {roomNumber}</span>
+          <span className="font-mono font-semibold text-base text-ink">{t('housekeeping.page.roomItem.roomLabel', { number: roomNumber })}</span>
           {vip && (
-            <Pill tone="accent" size="sm">VIP</Pill>
+            <Pill tone="accent" size="sm">{t('housekeeping.roomCard.vip')}</Pill>
           )}
         </div>
         {roomType && <p className="text-xs text-ink3 font-mono">{roomType}</p>}
@@ -415,7 +424,7 @@ function HousekeeperRoomItem({
             <span className="text-xs font-mono text-ink2">{checkoutLabel} {checkoutTime}</span>
           </div>
         )}
-        {showHint && <p className="text-xs text-ink3 mt-1">Tap for notes &amp; issues</p>}
+        {showHint && <p className="text-xs text-ink3 mt-1">{t('housekeeping.page.roomItem.notesHint')}</p>}
         {(workOrderLabel || latestNote) && (
           <div className="mt-2 space-y-1">
             {workOrderLabel && (
@@ -441,7 +450,7 @@ function HousekeeperRoomItem({
             onClick={(e) => handle('IN_PROGRESS', e)}
             className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {loading ? '...' : 'Start'}
+            {loading ? '...' : t('housekeeping.page.roomItem.start')}
           </button>
         )}
         {status === 'IN_PROGRESS' && (
@@ -461,7 +470,7 @@ function HousekeeperRoomItem({
         {status === 'CLEAN' && (
           <div className="flex flex-col items-end gap-1.5">
             <span className="text-xs text-[var(--caution)] font-medium">
-              Waiting for<br />supervisor
+              {t('housekeeping.page.roomItem.waitingForLine1')}<br />{t('housekeeping.page.roomItem.waitingForLine2')}
             </span>
             {undoButton}
           </div>
@@ -479,6 +488,7 @@ function getHotelIdFromToken(token: string | undefined): string {
 }
 
 function HousekeeperMyRoomsView() {
+  const { t } = useTranslation()
   const { user, session } = useAuth()
   const hotelId = getHotelIdFromToken(session?.access_token)
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -595,15 +605,15 @@ function HousekeeperMyRoomsView() {
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       <div>
-        <h1 className="font-display text-[32px] font-normal text-ink tracking-[-0.4px]">My Rooms</h1>
+        <h1 className="font-display text-[32px] font-normal text-ink tracking-[-0.4px]">{t('housekeeping.page.myRooms.heading')}</h1>
         <p className="text-sm text-ink3 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
       </div>
 
       {myRooms.length > 0 && (
         <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">
-          <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">to do</span></span>
-          <span><strong className="font-display text-[var(--progress)]">{inProgressCount}</strong> <span className="text-ink3">in progress</span></span>
-          <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">done</span></span>
+          <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
+          <span><strong className="font-display text-[var(--progress)]">{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
+          <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
         </div>
       )}
 
@@ -615,8 +625,8 @@ function HousekeeperMyRoomsView() {
         </div>
       ) : myRooms.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-ink3">No rooms assigned to you today.</p>
-          <p className="text-ink4 text-sm mt-1">Check with your supervisor.</p>
+          <p className="text-ink3">{t('housekeeping.page.myRooms.emptyTitle')}</p>
+          <p className="text-ink4 text-sm mt-1">{t('housekeeping.page.myRooms.emptySubtitle')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -643,6 +653,7 @@ function HousekeeperMyRoomsView() {
 // -- Supervisor / GM board view -----------------------------------------------
 
 function SupervisorHousekeepingPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { canAssignRooms } = useRole()
   const {
@@ -698,8 +709,8 @@ function SupervisorHousekeepingPage() {
     <div className="space-y-4">
       {/* Page header */}
       <PageHeader
-        eyebrow="Housekeeping"
-        title="Room status board"
+        eyebrow={t('housekeeping.page.board.eyebrow')}
+        title={t('housekeeping.page.board.title')}
         meta={<SyncBadge lastSyncedAt={lastSyncedAt} />}
         actions={
           <>
@@ -707,7 +718,7 @@ function SupervisorHousekeepingPage() {
             <button
               onClick={() => navigate(-1)}
               className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
-              aria-label="Previous day"
+              aria-label={t('housekeeping.page.board.previousDay')}
             >
               &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
             </button>
@@ -717,7 +728,7 @@ function SupervisorHousekeepingPage() {
             <button
               onClick={() => navigate(1)}
               className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
-              aria-label="Next day"
+              aria-label={t('housekeeping.page.board.nextDay')}
             >
               {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
             </button>
@@ -727,7 +738,7 @@ function SupervisorHousekeepingPage() {
               className="px-2.5 py-2 rounded-lg border border-line text-xs text-ink2 bg-surface hover:border-line-2 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors"
             >
               {SHIFTS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{t(`housekeeping.page.shifts.${s.key}`)}</option>
               ))}
             </select>
             {canAssignRooms && (
@@ -735,7 +746,7 @@ function SupervisorHousekeepingPage() {
                 variant={assignmentMode ? 'primary' : 'secondary'}
                 onClick={toggleAssignmentMode}
               >
-                {assignmentMode ? 'Exit assign' : 'Assign mode'}
+                {assignmentMode ? t('housekeeping.page.board.exitAssign') : t('housekeeping.page.board.assignMode')}
               </Button>
             )}
           </>
@@ -768,6 +779,7 @@ function SupervisorHousekeepingPage() {
 // -- Role-gated entry point ---------------------------------------------------
 
 export default function HousekeepingPage() {
+  const { t } = useTranslation()
   const { role } = useRole()
   const isAuthLoading = useAuthStore((state) => state.isLoading)
 
@@ -788,7 +800,7 @@ export default function HousekeepingPage() {
   if (role !== 'gm' && role !== 'housekeeping_supervisor' && role !== 'front_desk') {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-ink3">You don&apos;t have access to this section.</p>
+        <p className="text-sm text-ink3">{t('housekeeping.page.noAccess')}</p>
       </div>
     )
   }
