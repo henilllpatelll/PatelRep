@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { format } from 'date-fns'
 import { X, Check, Minus, ClipboardCheck, Loader2, Timer, Camera, RotateCcw } from 'lucide-react'
 import { housekeepingApi, InspectionTemplate } from '@/lib/api/housekeeping'
@@ -50,21 +52,22 @@ function calcOverallResult(
   return 'conditional'
 }
 
-function OverallResultBadge({ result }: { result: OverallResult }) {
-  const cfg: Record<OverallResult, { cls: string; label: string }> = {
-    passed: { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', label: 'PASSED' },
-    failed: { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', label: 'FAILED' },
-    conditional: { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'CONDITIONAL' },
+function OverallResultBadge({ result, t }: { result: OverallResult; t: TFunction }) {
+  const cfg: Record<OverallResult, { cls: string; labelKey: string }> = {
+    passed: { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.passed' },
+    failed: { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.failed' },
+    conditional: { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', labelKey: 'housekeeping.inspectionModal.resultBadge.conditional' },
   }
-  const { cls, label } = cfg[result]
+  const { cls, labelKey } = cfg[result]
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded border text-xs font-semibold ${cls}`}>
-      {label}
+      {t(labelKey)}
     </span>
   )
 }
 
 export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, cleanType, lastCleanMinutes, lastCleanBaseMinutes, checklistDone = 0, checklistTotal = 0, photoCount = 0, isOpen, onClose, onSuccess }: Props) {
+  const { t } = useTranslation()
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
   const [itemNotes, setItemNotes] = useState<Record<string, string>>({})
   const [itemPhotos, setItemPhotos] = useState<Record<string, File>>({})
@@ -143,11 +146,11 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
         finishInspection()
       } catch (err: any) {
         setSavedInspectionId(response.data.id)
-        setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Inspection saved, but photo evidence could not upload. Retry before closing.')
+        setSubmitError(err?.response?.data?.detail ?? err?.message ?? t('housekeeping.inspectionModal.errors.photoUploadFailed'))
       }
     },
     onError: (err: any) => {
-      setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Failed to submit inspection.')
+      setSubmitError(err?.response?.data?.detail ?? err?.message ?? t('housekeeping.inspectionModal.errors.submitFailed'))
     },
   })
 
@@ -157,7 +160,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       onSuccess('failed')
     },
     onError: (err: any) => {
-      setReCleanError(err?.response?.data?.detail ?? err?.message ?? 'Failed to dispatch re-clean.')
+      setReCleanError(err?.response?.data?.detail ?? err?.message ?? t('housekeeping.inspectionModal.errors.reCleanFailed'))
     },
   })
 
@@ -170,7 +173,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Re-clean Room ${roomNumber}`}
+          aria-label={t('housekeeping.inspectionModal.reCleanSubtitle', { roomNumber })}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={(e) => e.stopPropagation()}
         >
@@ -182,11 +185,11 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
               <div className="flex items-center gap-2.5">
                 <RotateCcw className="w-5 h-5 text-[var(--alert)] shrink-0" />
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">Dispatch Re-clean</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">Room {roomNumber} — inspection failed</p>
+                  <h2 className="text-base font-bold text-gray-900">{t('housekeeping.inspectionModal.reCleanTitle')}</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('housekeeping.inspectionModal.reCleanSubtitle', { roomNumber })}</p>
                 </div>
               </div>
-              <Button variant="ghost" onClick={onClose} className="p-1.5 rounded-lg" aria-label="Close modal">
+              <Button variant="ghost" onClick={onClose} className="p-1.5 rounded-lg" aria-label={t('housekeeping.inspectionModal.closeAria')}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
@@ -194,17 +197,17 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
             <div className="px-5 py-4 space-y-4">
               <div className="flex items-start gap-2 px-3 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg text-sm text-[var(--alert)]">
                 <X className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Inspection failed. Send room back for re-cleaning?</span>
+                <span>{t('housekeeping.inspectionModal.reCleanFailedBanner')}</span>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Note for housekeeper <span className="text-gray-400 font-normal">(optional)</span>
+                  {t('housekeeping.inspectionModal.reCleanNoteLabel')} <span className="text-gray-400 font-normal">{t('housekeeping.inspectionModal.optionalTag')}</span>
                 </label>
                 <textarea
                   value={reCleanNote}
                   onChange={(e) => setReCleanNote(e.target.value)}
                   rows={3}
-                  placeholder="What needs to be fixed…"
+                  placeholder={t('housekeeping.inspectionModal.reCleanNotePlaceholder')}
                   className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-surface/50 backdrop-blur-sm"
                 />
               </div>
@@ -217,7 +220,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
 
             <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/60 shrink-0">
               <Button type="button" variant="ghost" onClick={onClose}>
-                Skip (close)
+                {t('housekeeping.inspectionModal.skipClose')}
               </Button>
               <Button
                 type="button"
@@ -228,12 +231,12 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                 {reCleanMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Dispatching…
+                    {t('housekeeping.inspectionModal.dispatching')}
                   </>
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4" />
-                    Dispatch Re-clean
+                    {t('housekeeping.inspectionModal.dispatchReClean')}
                   </>
                 )}
               </Button>
@@ -268,7 +271,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
   function handleSubmit() {
     setSubmitError(null)
     if (!template?.id) {
-      setSubmitError('No inspection template is set up for this hotel. Please create one in Settings before inspecting rooms.')
+      setSubmitError(t('housekeeping.inspectionModal.errors.noTemplate'))
       return
     }
 
@@ -280,7 +283,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
     })
     if (unansweredRequired.length > 0) {
       setSubmitError(
-        `${unansweredRequired.length} required item${unansweredRequired.length > 1 ? 's' : ''} (●) must be marked Pass or Fail before submitting.`
+        t(unansweredRequired.length > 1 ? 'housekeeping.inspectionModal.errors.unansweredRequiredOther' : 'housekeeping.inspectionModal.errors.unansweredRequiredOne', { count: unansweredRequired.length })
       )
       return
     }
@@ -291,7 +294,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
     })
     if (missingRequiredPhotos.length > 0) {
       setSubmitError(
-        `${missingRequiredPhotos.length} failed item${missingRequiredPhotos.length > 1 ? 's require' : ' requires'} photo evidence before submitting.`,
+        t(missingRequiredPhotos.length > 1 ? 'housekeeping.inspectionModal.errors.missingPhotoOther' : 'housekeeping.inspectionModal.errors.missingPhotoOne', { count: missingRequiredPhotos.length }),
       )
       return
     }
@@ -326,7 +329,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       setSavedInspectionId(null)
       finishInspection()
     } catch (err: any) {
-      setSubmitError(err?.response?.data?.detail ?? err?.message ?? 'Photo evidence could not upload. Please try again.')
+      setSubmitError(err?.response?.data?.detail ?? err?.message ?? t('housekeeping.inspectionModal.errors.retryPhotoFailed'))
     }
   }
 
@@ -343,7 +346,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Inspect Room ${roomNumber}`}
+        aria-label={t('housekeeping.inspectionModal.title', { roomNumber })}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         onClick={(e) => e.stopPropagation()}
       >
@@ -356,11 +359,11 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
             <div className="flex items-center gap-2.5">
               <ClipboardCheck className="w-5 h-5 text-[var(--ready)] shrink-0" />
               <div>
-                <h2 className="text-base font-bold text-gray-900">Inspect Room {roomNumber}</h2>
+                <h2 className="text-base font-bold text-gray-900">{t('housekeeping.inspectionModal.title', { roomNumber })}</h2>
                 {(cleanedBy || cleanType) && (
                   <p className="text-xs text-gray-500 mt-0.5">
                     {[
-                      cleanedBy && `Cleaned by ${cleanedBy}`,
+                      cleanedBy && t('housekeeping.inspectionModal.cleanedBy', { name: cleanedBy }),
                       cleanType && getCleanTypeLabel(cleanType),
                       cleanedAt && format(new Date(cleanedAt), 'h:mm a'),
                     ].filter(Boolean).join(' · ')}
@@ -370,18 +373,18 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                   <div className="flex items-center gap-3 mt-1.5">
                     <span className="flex items-center gap-1 text-xs text-gray-500">
                       <Timer className="w-3 h-3" />
-                      {lastCleanMinutes}m{lastCleanBaseMinutes != null ? ` / ${lastCleanBaseMinutes}m base` : ''}
+                      {lastCleanMinutes}m{lastCleanBaseMinutes != null ? t('housekeeping.inspectionModal.lastCleanBase', { minutes: lastCleanBaseMinutes }) : ''}
                     </span>
                     {checklistTotal > 0 && (
                       <span className="flex items-center gap-1 text-xs text-gray-500">
                         <Check className="w-3 h-3" />
-                        {checklistDone}/{checklistTotal} items
+                        {t('housekeeping.roomDetail.lastClean.itemsCount', { done: checklistDone, total: checklistTotal })}
                       </span>
                     )}
                     {photoCount > 0 && (
                       <span className="flex items-center gap-1 text-xs text-gray-500">
                         <Camera className="w-3 h-3" />
-                        {photoCount} photo{photoCount > 1 ? 's' : ''}
+                        {t(photoCount > 1 ? 'housekeeping.roomDetail.lastClean.photoOther' : 'housekeeping.roomDetail.lastClean.photoOne', { count: photoCount })}
                       </span>
                     )}
                   </div>
@@ -392,7 +395,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
               variant="ghost"
               onClick={onClose}
               className="p-1.5 rounded-lg"
-              aria-label="Close modal"
+              aria-label={t('housekeeping.inspectionModal.closeAria')}
             >
               <X className="w-5 h-5" />
             </Button>
@@ -403,7 +406,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
             {templatesLoading ? (
               <div className="flex items-center justify-center py-12 text-gray-400">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span className="text-sm">Loading inspection template…</span>
+                <span className="text-sm">{t('housekeeping.inspectionModal.loadingTemplate')}</span>
               </div>
             ) : (
               <>
@@ -416,7 +419,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                 {!templatesLoading && !template?.id && (
                   <div className="flex items-start gap-2 px-3 py-3 bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-lg text-sm text-[var(--caution)]">
                     <span className="shrink-0 mt-0.5">⚠</span>
-                    <span>No inspection template configured for this hotel. Please create one in Settings before running inspections.</span>
+                    <span>{t('housekeeping.inspectionModal.noTemplateWarning')}</span>
                   </div>
                 )}
 
@@ -461,7 +464,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                                     }`}
                                   >
                                     <Check className="w-3 h-3" />
-                                    Pass
+                                    {t('housekeeping.inspectionModal.pass')}
                                   </button>
                                   <button
                                     type="button"
@@ -473,7 +476,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                                     }`}
                                   >
                                     <X className="w-3 h-3" />
-                                    Fail
+                                    {t('housekeeping.inspectionModal.fail')}
                                   </button>
                                   <button
                                     type="button"
@@ -485,7 +488,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                                     }`}
                                   >
                                     <Minus className="w-3 h-3" />
-                                    N/A
+                                    {t('housekeeping.inspectionModal.na')}
                                   </button>
                                 </div>
                               </div>
@@ -498,12 +501,12 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                                   onChange={(e) =>
                                     setItemNotes((prev) => ({ ...prev, [key]: e.target.value }))
                                   }
-                                  placeholder="What needs to be fixed…"
+                                  placeholder={t('housekeeping.inspectionModal.itemNotePlaceholder')}
                                   className="w-full text-xs border border-[var(--alert-line)] rounded-md px-2.5 py-1.5 bg-[var(--alert-soft)]/40 text-ink2 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[var(--alert)]/50"
                                 />
                                 <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
                                   <Camera className="w-3.5 h-3.5 text-[var(--alert)]" />
-                                  <span>{item.requires_photo_on_fail ? 'Photo evidence required' : 'Add photo evidence (optional)'}</span>
+                                  <span>{item.requires_photo_on_fail ? t('housekeeping.inspectionModal.photoRequired') : t('housekeeping.inspectionModal.photoOptional')}</span>
                                   <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
@@ -528,11 +531,11 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                 {/* Overall result */}
                 <div className="border-t border-white/60 pt-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">Overall Result:</span>
+                    <span className="text-sm font-medium text-gray-700">{t('housekeeping.inspectionModal.overallResultLabel')}</span>
                     {items.length > 0 ? (
                       <>
-                        <OverallResultBadge result={calculatedResult} />
-                        <span className="text-xs text-gray-400">(auto-calculated)</span>
+                        <OverallResultBadge result={calculatedResult} t={t} />
+                        <span className="text-xs text-gray-400">{t('housekeeping.inspectionModal.autoCalculated')}</span>
                       </>
                     ) : (
                       /* No items — manual radio selection */
@@ -547,7 +550,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                               onChange={() => setManualOverall(r)}
                               className="accent-[var(--accent)]"
                             />
-                            <span className="text-sm text-gray-700 capitalize">{r}</span>
+                            <span className="text-sm text-gray-700 capitalize">{t(`housekeeping.inspectionModal.manualResult.${r}`)}</span>
                           </label>
                         ))}
                       </div>
@@ -558,13 +561,13 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                 {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Notes <span className="text-gray-400 font-normal">(optional)</span>
+                    {t('housekeeping.inspectionModal.notesLabel')} <span className="text-gray-400 font-normal">{t('housekeeping.inspectionModal.optionalTag')}</span>
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
-                    placeholder="Any notes about this inspection…"
+                    placeholder={t('housekeeping.inspectionModal.notesPlaceholder')}
                     className="w-full border border-white/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-surface/50 backdrop-blur-sm"
                   />
                 </div>
@@ -586,7 +589,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
               variant="ghost"
               onClick={onClose}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -597,12 +600,12 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
               {mutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Submitting…
+                  {t('housekeeping.inspectionModal.submitting')}
                 </>
               ) : savedInspectionId ? (
-                'Retry Photo Upload'
+                t('housekeeping.inspectionModal.retryPhotoUpload')
               ) : (
-                'Submit Inspection →'
+                t('housekeeping.inspectionModal.submitInspection')
               )}
             </Button>
           </div>
