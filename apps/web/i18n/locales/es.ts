@@ -1042,6 +1042,21 @@ const es = {
       roomCountOne: '{{count}} habitación',
       roomCountOther: '{{count}} habitaciones',
     },
+    failurePrediction: {
+      heading: 'Riesgos de falla de activos',
+      activeCount: '{{count}} activos',
+      unknownAsset: 'Activo desconocido',
+      riskHigh: 'ALTO',
+      riskMedium: 'MEDIO',
+      riskLow: 'BAJO',
+      failureWindowLabel: 'Ventana de falla:',
+      createWO: 'Crear OT',
+      acknowledge: 'Reconocer',
+      acknowledged: 'Reconocido',
+      noHighRisk: 'No hay activos de alto riesgo',
+      allNormal: 'Todos los activos están dentro de niveles de riesgo normales.',
+      footerNote: 'Predicciones actualizadas cada noche por IA',
+    },
   },
 }
 

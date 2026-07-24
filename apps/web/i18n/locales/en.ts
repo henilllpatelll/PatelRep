@@ -1042,6 +1042,21 @@ const en = {
       roomCountOne: '{{count}} room',
       roomCountOther: '{{count}} rooms',
     },
+    failurePrediction: {
+      heading: 'Asset Failure Risks',
+      activeCount: '{{count}} active',
+      unknownAsset: 'Unknown Asset',
+      riskHigh: 'HIGH',
+      riskMedium: 'MEDIUM',
+      riskLow: 'LOW',
+      failureWindowLabel: 'Failure window:',
+      createWO: 'Create WO',
+      acknowledge: 'Acknowledge',
+      acknowledged: 'Acknowledged',
+      noHighRisk: 'No high-risk assets',
+      allNormal: 'All assets are within normal risk levels.',
+      footerNote: 'Predictions updated nightly by AI',
+    },
   },
 }
 
