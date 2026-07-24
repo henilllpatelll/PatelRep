@@ -7635,6 +7635,1513 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-22T02:53:37.450Z"
+    },
+    {
+      "id": "bug-456",
+      "timestamp": "2026-07-22T02:55:51.547Z",
+      "error_message": "Wrong reference: timedelta should be timezone",
+      "file": "apps/api/routers/safety.py",
+      "root_cause": "Used \"timedelta\" instead of \"timezone\"",
+      "fix": "Changed timedelta → timezone",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T02:55:51.547Z"
+    },
+    {
+      "id": "bug-457",
+      "timestamp": "2026-07-22T03:19:32.580Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/STATE.md",
+      "root_cause": "Had `main`",
+      "fix": "Changed to `eba6d066`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T03:19:32.580Z"
+    },
+    {
+      "id": "bug-458",
+      "timestamp": "2026-07-21T00:00:00Z",
+      "error_message": "Production /health shows all 11 crons 'stale'; notifications.last_delivery=null — no scheduled job has ever run on the new Railway account.",
+      "file": ".github/workflows/cron-jobs.yml",
+      "root_cause": "New Railway trial account (prishap110113@gmail.com, opened 2026-07-15) never had native cron triggers configured; neither railway.toml defines cronSchedule. The /internal/* endpoints exist and work but nothing was calling them. Railway MCP is authenticated as a different account (fambamtravel2013) so dashboard cron config is not reachable via MCP.",
+      "fix": "Added .github/workflows/cron-jobs.yml driving all 12 endpoints via authenticated POST (X-Cron-Secret) on documented schedules. GOTCHA: internal router mounts under PREFIX='/v1', so paths are /v1/internal/* not /internal/* — first run 404'd on the wrong path (CLAUDE.md doc was stale; fixed). Set repo secret CRON_SECRET (matches prod + local .env). VERIFIED live: manual frequent dispatch flipped predictions.run/opera.sync-reservations/escalations.check stale->ok and notifications.last_delivery/pms_sync.last_sync went from null to real timestamps. Remaining 8 crons self-verify on their scheduled fire. Commits 20ccef15 (workflow) + 24e22c20 (v1 path fix).",
+      "tags": [
+        "cron",
+        "production",
+        "railway",
+        "github-actions",
+        "scheduler",
+        "billing",
+        "observability",
+        "resolved",
+        "v1-prefix",
+        "404"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:49:00Z"
+    },
+    {
+      "id": "bug-459",
+      "timestamp": "2026-07-22T04:47:46.089Z",
+      "error_message": "Wrong reference: internal should be v1",
+      "file": ".github/workflows/cron-jobs.yml",
+      "root_cause": "Used \"internal\" instead of \"v1\"",
+      "fix": "Changed internal → v1",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:47:46.089Z"
+    },
+    {
+      "id": "bug-460",
+      "timestamp": "2026-07-22T04:50:22.224Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 7→12 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T04:50:22.224Z"
+    },
+    {
+      "id": "bug-461",
+      "timestamp": "2026-07-22T22:18:48.926Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/04-maintenance-and-housekeeping-programs/04-02-PLAN.md",
+      "root_cause": "Had 'pm_completion'",
+      "fix": "Changed to `evidence_records_related_entity_type_check`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:18:48.926Z"
+    },
+    {
+      "id": "bug-462",
+      "timestamp": "2026-07-22T22:19:30.332Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/04-maintenance-and-housekeeping-programs/04-03-PLAN.md",
+      "root_cause": "Had `supabase/migrations/082_corrective_wo_columns.sql",
+      "fix": "Changed to `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:19:30.332Z"
+    },
+    {
+      "id": "bug-463",
+      "timestamp": "2026-07-22T22:20:48.957Z",
+      "error_message": "Incorrect value in code",
+      "file": "../../.claude/projects/C--Users-Henil-projects-PatelRep/memory/project_phase4_kickoff.md",
+      "root_cause": "Had `/gsd-plan-phase 4`",
+      "fix": "Changed to `04-01`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:20:48.957Z"
+    },
+    {
+      "id": "bug-464",
+      "timestamp": "2026-07-22T22:35:01.462Z",
+      "error_message": "Wrong reference: get_current_user should be require_role",
+      "file": ".claude/worktrees/agent-ace50b85e43800034/apps/api/routers/programs.py",
+      "root_cause": "Used \"get_current_user\" instead of \"require_role\"",
+      "fix": "Changed get_current_user → require_role",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:35:01.462Z"
+    },
+    {
+      "id": "bug-465",
+      "timestamp": "2026-07-22T22:35:23.688Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ace50b85e43800034/apps/api/routers/programs.py",
+      "root_cause": "17 lines replaced/restructured",
+      "fix": "Rewrote 26→6 lines (17 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:35:23.688Z"
+    },
+    {
+      "id": "bug-466",
+      "timestamp": "2026-07-22T22:35:38.132Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-ace50b85e43800034/apps/api/routers/programs.py",
+      "root_cause": "Had \", current_user.hotel_id).maybe_single().execute()",
+      "fix": "Changed to \", current_user.hotel_id).maybe_single().execute()",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:35:38.133Z"
+    },
+    {
+      "id": "bug-467",
+      "timestamp": "2026-07-22T22:50:59.839Z",
+      "error_message": "Wrong reference: None should be pm_completion",
+      "file": ".claude/worktrees/agent-ad63a662cd950eaee/apps/api/models/requests.py",
+      "root_cause": "Used \"None\" instead of \"pm_completion\"",
+      "fix": "Changed None → pm_completion",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:50:59.839Z"
+    },
+    {
+      "id": "bug-468",
+      "timestamp": "2026-07-22T22:52:14.443Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ad63a662cd950eaee/apps/api/routers/assets.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:52:14.443Z"
+    },
+    {
+      "id": "bug-469",
+      "timestamp": "2026-07-22T22:57:32.248Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ad63a662cd950eaee/apps/api/routers/assets.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T22:57:32.248Z"
+    },
+    {
+      "id": "bug-470",
+      "timestamp": "2026-07-22T23:23:04.139Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a5e6ae259dfd58068/apps/api/services/programs/contracts.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 23→33 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T23:23:04.139Z"
+    },
+    {
+      "id": "bug-471",
+      "timestamp": "2026-07-22T23:23:22.430Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a5e6ae259dfd58068/apps/api/services/programs/execution.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 10→27 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T23:23:22.430Z"
+    },
+    {
+      "id": "bug-472",
+      "timestamp": "2026-07-22T23:37:45.485Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ac238caebe6e13063/apps/api/routers/programs.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 16→31 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T23:37:45.485Z"
+    },
+    {
+      "id": "bug-473",
+      "timestamp": "2026-07-23T13:37:51.903Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ac238caebe6e13063/apps/api/routers/programs.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T13:37:51.903Z"
+    },
+    {
+      "id": "bug-474",
+      "timestamp": "2026-07-23T13:49:02.334Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a4812a299da98709b/apps/web/lib/api/programs.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T13:49:02.334Z"
+    },
+    {
+      "id": "bug-475",
+      "timestamp": "2026-07-23T13:49:08.204Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a4812a299da98709b/apps/web/lib/api/engineering.ts",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 14→5 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T13:49:08.204Z"
+    },
+    {
+      "id": "bug-476",
+      "timestamp": "2026-07-23T13:51:57.157Z",
+      "error_message": "Wrong reference: test_inspection_sample_honors_matching_rule_with_ceil_rounding should be test_inspection_sampling_honors_matching_rule_with_ceil_rounding",
+      "file": ".claude/worktrees/agent-a8edd935af30077c8/apps/api/tests/test_operational_programs.py",
+      "root_cause": "Used \"test_inspection_sample_honors_matching_rule_with_ceil_rounding\" instead of \"test_inspection_sampling_honors_matching_rule_with_ceil_rounding\"",
+      "fix": "Changed test_inspection_sample_honors_matching_rule_with_ceil_rounding → test_inspection_sampling_honors_matching_rule_with_ceil_rounding",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-23T13:51:59.864Z"
+    },
+    {
+      "id": "bug-477",
+      "timestamp": "2026-07-23T13:53:08.363Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a8edd935af30077c8/apps/api/routers/programs.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 15→91 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T13:53:08.363Z"
+    },
+    {
+      "id": "bug-478",
+      "timestamp": "2026-07-23T14:20:00.000Z",
+      "error_message": "POST /v1/assets/pm-schedules returns 500 INTERNAL_ERROR for every request (TypeError: Object of type UUID is not JSON serializable)",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "create_pm_schedule builds the insert dict with **request.model_dump() (no mode=\"json\"). CreatePMScheduleRequest.asset_id is typed UUID4, so model_dump() leaves it as a Python UUID object; httpx/postgrest tries to json.dumps() the payload and UUID is not JSON serializable, raising a TypeError that the generic exception handler swallows into a bare 500. Confirmed pre-existing via git blame (introduced 2026-03-11, commit bf9dd630) — unrelated to any phase-04 plan. Discovered while verifying 04-05 checkpoint (had to seed a PM schedule directly via Supabase client to work around it).",
+      "fix": "NOT FIXED (out of scope for phase 04). Fix is request.model_dump(mode=\"json\") on assets.py:218, matching the pattern already used in complete_pm_schedule (assets.py:252, persist_pm_completion(..., payload=request.model_dump(mode=\"json\"))).",
+      "tags": [
+        "api",
+        "pm-schedules",
+        "uuid-serialization",
+        "pre-existing",
+        "production-blocking"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T14:20:00.000Z"
+    },
+    {
+      "id": "bug-479",
+      "timestamp": "2026-07-23T14:28:30.217Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/api/main.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T14:28:30.217Z"
+    },
+    {
+      "id": "bug-480",
+      "timestamp": "2026-07-23T14:54:27.854Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ac611b03287caadc4/apps/web/lib/api/programs.ts",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 18→113 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T14:54:27.854Z"
+    },
+    {
+      "id": "bug-481",
+      "timestamp": "2026-07-23T14:54:36.589Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-ac611b03287caadc4/apps/web/lib/api/programs.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T14:54:36.590Z"
+    },
+    {
+      "id": "bug-482",
+      "timestamp": "2026-07-23T15:02:49.137Z",
+      "error_message": "Missing guard clause",
+      "file": ".claude/worktrees/agent-ac611b03287caadc4/apps/web/components/programs/HousekeepingDepthPanels.tsx",
+      "root_cause": "No early return/throw for edge case: !isManager",
+      "fix": "Added guard clause: if (!isManager)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:02:49.137Z"
+    },
+    {
+      "id": "bug-483",
+      "timestamp": "2026-07-23T15:03:37.217Z",
+      "error_message": "CSS fix: mutationFn",
+      "file": ".claude/worktrees/agent-ac611b03287caadc4/apps/web/app/(dashboard)/programs/page.tsx",
+      "root_cause": "mutationFn: programsApi.upsertSupplyPar, onSuccess: () => { setSupply({ supply_type: 'linen', name: '', on_hand: 0, par_level: 0, unit: 'each' → programsApi.initializeTemplates, onSuccess: refresh",
+      "fix": "Changed mutationFn: programsApi.upsertSupplyPar, onSuccess: () => { setSupply({ supply_type: 'linen', name: '', on_hand: 0, par_level: 0, unit: 'each' → programsApi.initializeTemplates, onSuccess: refresh",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T15:03:57.420Z"
+    },
+    {
+      "id": "bug-484",
+      "timestamp": "2026-07-23T15:20:00.000Z",
+      "error_message": "POST /v1/programs/deep-clean-schedules and POST /v1/programs/public-areas (and likely other insert-only routes built the same way) return 500 INTERNAL_ERROR whenever the request model has a date/UUID field (TypeError: Object of type date is not JSON serializable)",
+      "file": "apps/api/routers/programs.py",
+      "root_cause": "create_deep_clean_schedule (programs.py:288-296) builds the insert dict with **request.model_dump() (no mode=\"json\"). CreateDeepCleanScheduleRequest.next_due_on is typed as a Python date, so model_dump() leaves it as a date object; httpx/postgrest cannot json.dumps() it, raising a TypeError swallowed into a bare 500 by the generic exception handler. Confirmed pre-existing via git blame (introduced 2026-07-16, commit fea45b29, \"Refactor dashboard workflows and tighten API integrations\") -- predates all of phase 04 (04-01..04-08 landed 2026-07-23). Same systemic anti-pattern as bug-478 (UUID case in assets.py create_pm_schedule): raw model_dump() passed straight into supabase .insert() whenever the Pydantic model has a non-JSON-primitive field type. Discovered while browser-verifying the 04-07 checkpoint (housekeeping program depth UI) -- the frontend payload was confirmed correct (matches schema exactly), the bug is entirely server-side.",
+      "fix": "NOT FIXED (out of scope for phase 04 -- route predates this phase). Fix is request.model_dump(mode=\"json\") in create_deep_clean_schedule, matching the pattern used correctly elsewhere (e.g. complete_pm_schedule in assets.py). Worth auditing all **request.model_dump() call sites across routers/ for the same pattern -- at least 2 confirmed instances (bug-478, bug-479) in unrelated routers.",
+      "tags": [
+        "api",
+        "deep-clean-schedules",
+        "date-serialization",
+        "pre-existing",
+        "production-blocking",
+        "systemic-pattern"
+      ],
+      "related_bugs": [
+        "bug-478"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:20:00.000Z"
+    },
+    {
+      "id": "bug-485",
+      "timestamp": "2026-07-23T15:32:25.916Z",
+      "error_message": "CSS fix: nextDueAt, label",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx",
+      "root_cause": "nextDueAt: string): { → string, t: TFunction): {; label: 'Upcoming', → t('programs.pmSchedules.statusUpcoming'),",
+      "fix": "Changed nextDueAt: string): { → string, t: TFunction): {; label: 'Upcoming', → t('programs.pmSchedules.statusUpcoming'),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T15:33:10.310Z"
+    },
+    {
+      "id": "bug-486",
+      "timestamp": "2026-07-23T15:33:53.324Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx",
+      "root_cause": "Had \"Add PM Schedule\"",
+      "fix": "Changed to 'programs.pmSchedules.addModal.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T15:34:26.283Z"
+    },
+    {
+      "id": "bug-487",
+      "timestamp": "2026-07-23T15:35:46.670Z",
+      "error_message": "CSS fix: label",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "label: 'General completion check', → generalCompletionLabel,",
+      "fix": "Changed label: 'General completion check', → generalCompletionLabel,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-07-23T15:39:02.464Z"
+    },
+    {
+      "id": "bug-488",
+      "timestamp": "2026-07-23T15:36:06.180Z",
+      "error_message": "Wrong return value",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "Was returning: defaultItems()",
+      "fix": "Now returns: defaultItems(generalCompletionLabel)",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:36:06.180Z"
+    },
+    {
+      "id": "bug-489",
+      "timestamp": "2026-07-23T15:36:30.645Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:36:30.645Z"
+    },
+    {
+      "id": "bug-490",
+      "timestamp": "2026-07-23T15:40:22.424Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/programs/HousekeepingDepthPanels.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:40:22.424Z"
+    },
+    {
+      "id": "bug-491",
+      "timestamp": "2026-07-23T15:42:37.426Z",
+      "error_message": "CSS fix: dueAt",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/WorkOrderCard.tsx",
+      "root_cause": "dueAt: string): { text: string → string, t: TFunction): { text: string",
+      "fix": "Changed dueAt: string): { text: string → string, t: TFunction): { text: string",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:42:37.426Z"
+    },
+    {
+      "id": "bug-492",
+      "timestamp": "2026-07-23T15:50:38.962Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/programs/InspectionDepthPanel.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:50:38.962Z"
+    },
+    {
+      "id": "bug-493",
+      "timestamp": "2026-07-23T15:50:42.817Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'New hire'",
+      "fix": "Changed to '{{level}} risk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:50:42.817Z"
+    },
+    {
+      "id": "bug-494",
+      "timestamp": "2026-07-23T15:50:46.863Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a6dfd7d32cd526899/apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Nuevo ingreso'",
+      "fix": "Changed to 'riesgo {{level}}'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T15:50:46.863Z"
+    },
+    {
+      "id": "bug-495",
+      "timestamp": "2026-07-23T18:50:00.000Z",
+      "error_message": "Spanish UI shows garbled/mixed-language text (e.g. PMCompletionModal title renders \"Complete PM Horario\" instead of \"Completar programa de PM\"), and worse: raw USER DATA gets mangled by word-substitution (a PM schedule literally named \"HVAC Filter Check\" rendered as \"HVAC Filtrar Check\" in the Spanish UI). React also logs a hydration mismatch error in the console when this fires.",
+      "file": "apps/web/i18n/domTranslations.ts + apps/web/components/shared/LanguageSync.tsx",
+      "root_cause": "This project has TWO independent, competing i18n mechanisms running simultaneously: (1) the correct react-i18next key/value system (useTranslation()/t(), locales/en.ts+es.ts) that 04-08 correctly extended for the floor-facing PM completion and housekeeping depth surfaces; (2) a much older (2026-06-03, commit 5dd25786, 'spanish and strip' -- predates phase 04 by ~7 weeks), completely separate DOM-tree-walking glossary translator (domTranslations.ts) mounted globally via LanguageSync.tsx on every page. This legacy translator uses a TreeWalker to scan literally every text node + certain attributes on the page and does blind regex whole-word substitution (e.g. /\\bSchedule\\b/gi -> 'Horario', /\\bFilter\\b/gi -> 'Filtrar') against a large hardcoded PHRASE_TRANSLATIONS/GLOSSARY_TRANSLATIONS dictionary -- with NO distinction between translatable UI copy and raw user-entered data (schedule names, asset names, notes, etc.), and it runs AFTER/independently of React reconciliation, directly mutating the live DOM outside React's control, which is what triggers the hydration-mismatch console error. Confirmed reproducible on a fully fresh dev server restart (ruled out stale-server/HMR caching).",
+      "fix": "PARTIALLY FIXED. Added data-i18n-skip=\"true\" to the specific containers rendering raw user data in the phase-04 floor surfaces the orchestrator verified: PMCompletionModal.tsx (dialog root), HousekeepingDepthPanels.tsx (root, covers its children DeepCleanAreasPanel + InspectionDepthPanel), WorkOrderCard.tsx (card body), and pm-schedules/page.tsx (both the mobile-card schedule/asset-name block and the desktop table schedule/asset-name cells). Verified via fresh dev-server restart + Playwright: schedule names like \"HVAC Filter Check\" no longer get mangled to \"HVAC Filtrar Check\", and modal titles now render the correct full translation (\"Completar programa de PM\") instead of a mixed fragment. NOT fixed: a separate, deeper React hydration-mismatch console warning still fires on the pm-schedules page (did not reproduce on /programs) -- this looks like a broader SSR/client i18n-language timing issue (server always renders a default language, client hydrates then swaps to the persisted language) affecting the whole app, not specific to the components this phase touched. Left for a future session to investigate app-wide.",
+      "tags": [
+        "i18n",
+        "hydration-mismatch",
+        "data-corruption",
+        "pre-existing",
+        "architecture",
+        "high-severity",
+        "production-affecting",
+        "cross-cutting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T18:50:00.000Z"
+    },
+    {
+      "id": "bug-496",
+      "timestamp": "2026-07-23T18:54:11.864Z",
+      "error_message": "Wrong reference: DeepCleanAreasPanel should be data",
+      "file": "apps/web/components/programs/HousekeepingDepthPanels.tsx",
+      "root_cause": "Used \"DeepCleanAreasPanel\" instead of \"data\"",
+      "fix": "Changed DeepCleanAreasPanel → data",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T18:54:11.864Z"
+    },
+    {
+      "id": "bug-497",
+      "timestamp": "2026-07-23T19:57:38.118Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/phases/04-maintenance-and-housekeeping-programs/04-16-PLAN.md",
+      "root_cause": "Had `app/(dashboard)/housekeeping/**`",
+      "fix": "Changed to `components/programs/**`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T19:57:48.332Z"
+    },
+    {
+      "id": "bug-498",
+      "timestamp": "2026-07-23T21:16:52.188Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".claude/worktrees/agent-a6841454fb42a0a85/apps/web/e2e/phase4-programs.spec.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:16:52.188Z"
+    },
+    {
+      "id": "bug-499",
+      "timestamp": "2026-07-23T21:19:43.690Z",
+      "error_message": "CSS fix: key",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "key: 'OOO',         label: 'OOO',         dotTone: 'ooo' → 'OOO',         label: t('housekeeping.roomStatus.filters.ooo'),         dotTone: 'ooo'",
+      "fix": "Changed key: 'OOO',         label: 'OOO',         dotTone: 'ooo' → 'OOO',         label: t('housekeeping.roomStatus.filters.ooo'),         dotTone: 'ooo'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:19:43.690Z"
+    },
+    {
+      "id": "bug-500",
+      "timestamp": "2026-07-23T21:19:58.983Z",
+      "error_message": "Wrong reference: STATUS_WORKFLOW_CHIPS should be statusWorkflowChips",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Used \"STATUS_WORKFLOW_CHIPS\" instead of \"statusWorkflowChips\"",
+      "fix": "Changed STATUS_WORKFLOW_CHIPS → statusWorkflowChips",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:19:58.983Z"
+    },
+    {
+      "id": "bug-501",
+      "timestamp": "2026-07-23T21:20:16.181Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Had 'another housekeeper'",
+      "fix": "Changed to 'housekeeping.roomStatus.unknownHousekeeper'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-23T21:20:43.551Z"
+    },
+    {
+      "id": "bug-502",
+      "timestamp": "2026-07-23T21:21:22.913Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:21:22.913Z"
+    },
+    {
+      "id": "bug-503",
+      "timestamp": "2026-07-23T21:21:34.216Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:21:34.216Z"
+    },
+    {
+      "id": "bug-504",
+      "timestamp": "2026-07-23T21:21:57.256Z",
+      "error_message": "CSS fix: text",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/AssignmentSidebar.tsx",
+      "root_cause": "text: err?.message || 'AI assignment failed. Please try again.', → err?.message || t('housekeeping.assignmentSidebar.failure'),",
+      "fix": "Changed text: err?.message || 'AI assignment failed. Please try again.', → err?.message || t('housekeeping.assignmentSidebar.failure'),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:21:57.256Z"
+    },
+    {
+      "id": "bug-505",
+      "timestamp": "2026-07-23T21:26:40.843Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "Had '@/lib/utils'",
+      "fix": "Changed to 'react-i18next'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:26:40.843Z"
+    },
+    {
+      "id": "bug-506",
+      "timestamp": "2026-07-23T21:27:17.112Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/RoomCard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:27:17.112Z"
+    },
+    {
+      "id": "bug-507",
+      "timestamp": "2026-07-23T21:27:42.911Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/PredictionPanel.tsx",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 28→35 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T21:27:42.912Z"
+    },
+    {
+      "id": "bug-508",
+      "timestamp": "2026-07-24T00:04:00.480Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:04:00.480Z"
+    },
+    {
+      "id": "bug-509",
+      "timestamp": "2026-07-24T00:04:08.628Z",
+      "error_message": "CSS fix: isoString",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "isoString: string): string { → string, t: TFunction): string {",
+      "fix": "Changed isoString: string): string { → string, t: TFunction): string {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T00:04:19.061Z"
+    },
+    {
+      "id": "bug-510",
+      "timestamp": "2026-07-24T00:05:08.038Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Had `Room ${roomNumber} details`",
+      "fix": "Changed to 'housekeeping.roomDetail.roomLabel'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-24T00:05:38.612Z"
+    },
+    {
+      "id": "bug-511",
+      "timestamp": "2026-07-24T00:05:49.879Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Assigned to {{name}}'",
+      "fix": "Changed to 'Assigned to'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:05:49.879Z"
+    },
+    {
+      "id": "bug-512",
+      "timestamp": "2026-07-24T00:05:53.073Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Asignado a {{name}}'",
+      "fix": "Changed to 'Asignado a'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:05:53.073Z"
+    },
+    {
+      "id": "bug-513",
+      "timestamp": "2026-07-24T00:06:50.666Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:06:50.666Z"
+    },
+    {
+      "id": "bug-514",
+      "timestamp": "2026-07-24T00:09:00.631Z",
+      "error_message": "Wrong return value",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Was returning: <p className=\"text-sm text-stone-400 text-center p",
+      "fix": "Now returns: <p className=\"text-sm text-stone-400 text-center p",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:09:00.631Z"
+    },
+    {
+      "id": "bug-515",
+      "timestamp": "2026-07-24T00:09:04.164Z",
+      "error_message": "Wrong reference: span should be t",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "Used \"span\" instead of \"t\"",
+      "fix": "Changed span → t",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:09:04.164Z"
+    },
+    {
+      "id": "bug-516",
+      "timestamp": "2026-07-24T00:10:26.332Z",
+      "error_message": "CSS fix: passed, failed, conditional",
+      "file": ".claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "passed: { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', label: 'PASSED' → { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.passed'; failed: { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', label: 'FAILED' → { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.failed'; conditional: { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'CONDITIONAL' → { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', labelKey: 'housekeeping.inspectionModal.resultBadge.conditional'",
+      "fix": "Changed passed: { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', label: 'PASSED' → { cls: 'bg-green-100 text-[var(--ready)] border-[var(--ready-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.passed'; failed: { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', label: 'FAILED' → { cls: 'bg-[var(--alert-soft)] text-[var(--alert)] border-[var(--alert-line)]', labelKey: 'housekeeping.inspectionModal.resultBadge.failed'; conditional: { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'CONDITIONAL' → { cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', labelKey: 'housekeeping.inspectionModal.resultBadge.conditional'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:10:26.332Z"
+    },
+    {
+      "id": "bug-517",
+      "timestamp": "2026-07-24T00:25:38.437Z",
+      "error_message": "CSS fix: value",
+      "file": ".claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "value: 'night', label: 'Night' → 'night', key: 'night'",
+      "fix": "Changed value: 'night', label: 'Night' → 'night', key: 'night'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T00:29:02.262Z"
+    },
+    {
+      "id": "bug-518",
+      "timestamp": "2026-07-24T00:25:54.530Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/page.tsx",
+      "root_cause": "Had 'Failed to save. Please try again.'",
+      "fix": "Changed to 'housekeeping.page.assignBar.saveError'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:25:54.530Z"
+    },
+    {
+      "id": "bug-519",
+      "timestamp": "2026-07-24T00:39:21.156Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/i18n/locales/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:39:21.156Z"
+    },
+    {
+      "id": "bug-520",
+      "timestamp": "2026-07-24T00:40:05.438Z",
+      "error_message": "CSS fix: type",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+      "root_cause": "type: 'error', message: `Failed to mark room ${room.room_number → 'error',",
+      "fix": "Changed type: 'error', message: `Failed to mark room ${room.room_number → 'error',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-24T00:41:03.345Z"
+    },
+    {
+      "id": "bug-521",
+      "timestamp": "2026-07-24T00:40:09.205Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/inspections/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→7 lines (2 removed) | Also: return `Live${total > 0 ? ` · ${total}` : ''}`; : 'History'}",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T00:40:23.135Z"
+    },
+    {
+      "id": "bug-522",
+      "timestamp": "2026-07-24T00:45:07.005Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "Had 'CSV Upload'",
+      "fix": "Changed to 'housekeeping.roomsPage.import.tabs.csv'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:45:07.005Z"
+    },
+    {
+      "id": "bug-523",
+      "timestamp": "2026-07-24T00:45:24.012Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→15 lines (2 removed) | Also: Fill in room details below. Rows with an empty Roo; {['Room #', 'Floor', 'Type Code', 'Type Name', 'Bu | Also: <option value=\"all\">All Floors</option>; Floor {f} | Also: placeholder=\"Search room...\"; {filteredRooms.length} result{filteredRooms.length",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-07-24T00:46:34.099Z"
+    },
+    {
+      "id": "bug-524",
+      "timestamp": "2026-07-24T00:45:48.451Z",
+      "error_message": "Wrong operator: !== should be ===",
+      "file": ".claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/rooms/page.tsx",
+      "root_cause": "Used \"!==\" instead of \"===\"",
+      "fix": "Changed operator !== → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T00:46:20.771Z"
+    },
+    {
+      "id": "bug-525",
+      "timestamp": "2026-07-24T00:55:27.991Z",
+      "error_message": "CSS fix: dueAt",
+      "file": ".claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "dueAt: string, status: string): { text: string → string, status: string, t: TFunction): { text: string",
+      "fix": "Changed dueAt: string, status: string): { text: string → string, status: string, t: TFunction): { text: string",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:55:27.991Z"
+    },
+    {
+      "id": "bug-526",
+      "timestamp": "2026-07-24T00:55:39.645Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Had `Work Order WO-${fullWo.work_order_number} details",
+      "fix": "Changed to 'engineering.workOrderDetail.ariaLabel'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T00:55:47.885Z"
+    },
+    {
+      "id": "bug-527",
+      "timestamp": "2026-07-24T00:55:43.935Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T00:55:43.935Z"
+    },
+    {
+      "id": "bug-528",
+      "timestamp": "2026-07-24T01:01:54.728Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Had 'Upload failed — please try again.'",
+      "fix": "Changed to 'engineering.workOrderDetail.uploadError'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:01:54.728Z"
+    },
+    {
+      "id": "bug-529",
+      "timestamp": "2026-07-24T01:02:54.686Z",
+      "error_message": "CSS fix: iso",
+      "file": ".claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "iso: string | undefined | null): string | null { → string | undefined | null, t: TFunction): string | null {",
+      "fix": "Changed iso: string | undefined | null): string | null { → string | undefined | null, t: TFunction): string | null {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:02:54.686Z"
+    },
+    {
+      "id": "bug-530",
+      "timestamp": "2026-07-24T01:12:51.187Z",
+      "error_message": "CSS fix: value",
+      "file": ".claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "root_cause": "value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' → 'low', label: t('engineering.createWorkOrder.priorityLowLabel'), desc: t('engineering.createWorkOrder.priorityLowDesc')",
+      "fix": "Changed value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' → 'low', label: t('engineering.createWorkOrder.priorityLowLabel'), desc: t('engineering.createWorkOrder.priorityLowDesc')",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:12:51.187Z"
+    },
+    {
+      "id": "bug-531",
+      "timestamp": "2026-07-24T01:15:49.052Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/WorkOrderList.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 20→24 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:15:49.052Z"
+    },
+    {
+      "id": "bug-532",
+      "timestamp": "2026-07-24T01:16:31.433Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:16:31.433Z"
+    },
+    {
+      "id": "bug-533",
+      "timestamp": "2026-07-24T01:17:11.580Z",
+      "error_message": "CSS fix: score",
+      "file": ".claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "root_cause": "score: number): string { → number, t: TFunction): string {",
+      "fix": "Changed score: number): string { → number, t: TFunction): string {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:17:11.580Z"
+    },
+    {
+      "id": "bug-534",
+      "timestamp": "2026-07-24T01:17:45.370Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "root_cause": "Had \"text-xs text-ink4 mt-1\"",
+      "fix": "Changed to 'engineering.failurePrediction.noHighRisk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:17:45.370Z"
+    },
+    {
+      "id": "bug-535",
+      "timestamp": "2026-07-24T01:28:20.978Z",
+      "error_message": "CSS fix: label, text",
+      "file": ".claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/assets/page.tsx",
+      "root_cause": "label: 'LOW', cls: 'bg-blue-50 text-blue-700 border border-blue-200' → t('engineering.failurePrediction.riskLow'), cls: 'bg-blue-50 text-blue-700 border border-blue-200'; text: `Expires ${format(expiry, 'MM/yyyy') → t('engineering.assetsPage.warrantyExpires', { date: format(expiry, 'MM/yyyy')",
+      "fix": "Changed label: 'LOW', cls: 'bg-blue-50 text-blue-700 border border-blue-200' → t('engineering.failurePrediction.riskLow'), cls: 'bg-blue-50 text-blue-700 border border-blue-200'; text: `Expires ${format(expiry, 'MM/yyyy') → t('engineering.assetsPage.warrantyExpires', { date: format(expiry, 'MM/yyyy')",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-24T01:36:21.981Z"
+    },
+    {
+      "id": "bug-536",
+      "timestamp": "2026-07-24T01:28:34.698Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/assets/page.tsx",
+      "root_cause": "Had 'engineering.assetsPage.loadDetailError'",
+      "fix": "Changed to 'engineering.assetsPage.saveError'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:28:34.698Z"
+    },
+    {
+      "id": "bug-537",
+      "timestamp": "2026-07-24T01:28:37.794Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a30931930b7adde3e/apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Name'",
+      "fix": "Changed to 'Failed to save changes.'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:28:37.795Z"
+    },
+    {
+      "id": "bug-538",
+      "timestamp": "2026-07-24T01:28:41.455Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a30931930b7adde3e/apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Nombre'",
+      "fix": "Changed to 'Error al guardar los cambios.'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:28:41.455Z"
+    },
+    {
+      "id": "bug-539",
+      "timestamp": "2026-07-24T01:34:45.499Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/predictions/page.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→8 lines (4 removed) | Also: { key: 'all', label: 'All Status' },; { key: 'active', label: 'Active' }, | Also: {emergencyCount > 0 && `${emergencyCount} emergenc; {urgentCount > 0 && `${urgentCount} urgent ${urgen",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-24T01:37:05.696Z"
+    },
+    {
+      "id": "bug-540",
+      "timestamp": "2026-07-24T01:49:32.018Z",
+      "error_message": "CSS fix: onOpen, onEdit, onDelete",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/tasks/page.tsx",
+      "root_cause": "onOpen: (t: Task) => void → (task: Task) => void; onEdit: (t: Task) => void → (task: Task) => void; onDelete: (t: Task) => void → (task: Task) => void",
+      "fix": "Changed onOpen: (t: Task) => void → (task: Task) => void; onEdit: (t: Task) => void → (task: Task) => void; onDelete: (t: Task) => void → (task: Task) => void",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:49:32.018Z"
+    },
+    {
+      "id": "bug-541",
+      "timestamp": "2026-07-24T01:52:00.114Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/i18n/locales/en.ts",
+      "root_cause": "Had 'Parts used'",
+      "fix": "Changed to 'e.g. 45'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:52:00.114Z"
+    },
+    {
+      "id": "bug-542",
+      "timestamp": "2026-07-24T01:52:06.961Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/i18n/locales/es.ts",
+      "root_cause": "Had 'Piezas utilizadas'",
+      "fix": "Changed to 'ej. 45'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:52:06.961Z"
+    },
+    {
+      "id": "bug-543",
+      "timestamp": "2026-07-24T01:52:10.029Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "Had \"e.g. 45\"",
+      "fix": "Changed to 'programs.pmCompletion.laborMinutesPlaceholder'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:52:10.029Z"
+    },
+    {
+      "id": "bug-544",
+      "timestamp": "2026-07-24T01:52:30.599Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx",
+      "root_cause": "Had \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"",
+      "fix": "Changed to 'programs.pmSchedules.addModal.assetIdPlaceholder'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T01:54:57.126Z"
+    },
+    {
+      "id": "bug-545",
+      "timestamp": "2026-07-24T01:55:01.717Z",
+      "error_message": "Wrong reference: button should be X",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/housekeeping/assignments/page.tsx",
+      "root_cause": "Used \"button\" instead of \"X\"",
+      "fix": "Changed button → X",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T01:55:01.717Z"
+    },
+    {
+      "id": "bug-546",
+      "timestamp": "2026-07-24T05:03:25.186Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-acae1ebfaff589201/apps/web/components/housekeeping/InspectionModal.tsx",
+      "root_cause": "Had 'housekeeping.inspectionModal.lastCleanBase'",
+      "fix": "Changed to `${lastCleanMinutes}m`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T05:03:25.186Z"
+    },
+    {
+      "id": "bug-547",
+      "timestamp": "2026-07-24T05:21:29.043Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "Had 'engineer'",
+      "fix": "Changed to 'chief_engineer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T05:21:29.043Z"
+    },
+    {
+      "id": "bug-548",
+      "timestamp": "2026-07-24T13:36:08.185Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/05-guest-recovery-and-management-roi/05-DISCUSS-CHECKPOINT.json",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→10 lines (2 removed) | Also: \"areas_completed\": [\"Guest messaging (SMS)\", \"Mana; \"areas_remaining\": [\"Lost & found retention/dispos | Also: \"areas_completed\": [\"Guest messaging (SMS)\", \"Mana; \"areas_remaining\": [\"Accessibility ops & SLA confi",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-24T13:39:00.901Z"
     }
   ]
 }

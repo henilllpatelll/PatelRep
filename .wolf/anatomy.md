@@ -1,11 +1,10 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-17T17:13:34.463Z
-> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-24T13:41:13.728Z
+> Files: 88 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
-- `settings.json` (~1404 tok)
 
 ## ../../.claude/plans/
 
@@ -15,6 +14,18 @@
 
 ## ../../.claude/projects/C--Users-Henil-projects-hotel-operations-ai-swarm/memory/
 
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/686ef36c-e5b4-4867-85a7-7d43f49217fb/scratchpad/
+
+- `check_parity.cjs` — fs: loadLocale, flatten (~368 tok)
+- `check_parity.mjs` — loadObj: loadViaFunction, collectKeys, collectPlaceholders, getByPath (~818 tok)
+- `commit-msg-04-17-summary.txt` (~32 tok)
+- `commit-msg-04-17-t1.txt` (~192 tok)
+- `mklink1.bat` (~87 tok)
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
+
+- `log_bug.py` (~1106 tok)
 
 ## ../PatelRep-web-v2/apps/web/
 
@@ -30,14 +41,9 @@
 
 ## ./
 
-- `CLAUDE.md` — OpenWolf (~3005 tok)
-- `HOTEL_STANDARDS_EXECUTION_PLAN.md` — Phased implementation plan for the hotel standards gap analysis. (~2500 tok)
-- `HOTEL_STANDARDS_GAP_ANALYSIS.md` — PatelRep vs. Modern Hotel Operations Standards — Brutal Gap Analysis (~6188 tok)
-- `railway.toml` (~63 tok)
 
 ## .claude/
 
-- `settings.json` (~961 tok)
 
 ## .claude/rules/
 
@@ -64,6 +70,277 @@
 
 
 ## .claude/skills/ui-ux-pro-max/scripts/
+
+
+## .claude/worktrees/agent-a1bf2e7e264f2b198/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-10-SUMMARY.md` — Dependency graph (~3888 tok)
+
+## .claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/components/housekeeping/
+
+- `InspectionModal.tsx` — calcOverallResult (~8159 tok)
+- `OccupancyImportModal.tsx` — OccupancyImportModal (~2961 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~16806 tok)
+
+## .claude/worktrees/agent-a1bf2e7e264f2b198/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~9502 tok)
+- `es.ts` — Declares es (~10398 tok)
+
+## .claude/worktrees/agent-a24f39a42778580f1/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-13-SUMMARY.md` — Dependency graph (~3072 tok)
+
+## .claude/worktrees/agent-a24f39a42778580f1/apps/web/components/engineering/
+
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~14749 tok)
+
+## .claude/worktrees/agent-a24f39a42778580f1/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~12762 tok)
+- `es.ts` — Declares es (~13948 tok)
+
+## .claude/worktrees/agent-a30931930b7adde3e/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-15-SUMMARY.md` — Dependency graph (~3782 tok)
+
+## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/assets/
+
+- `page.tsx` — getRiskFilters (~14283 tok)
+
+## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/predictions/
+
+- `page.tsx` — getRiskLabel (~6995 tok)
+
+## .claude/worktrees/agent-a30931930b7adde3e/apps/web/app/(dashboard)/engineering/work-orders/
+
+- `page.tsx` — dynamic (~5183 tok)
+
+## .claude/worktrees/agent-a30931930b7adde3e/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~15680 tok)
+- `es.ts` — Declares es (~17149 tok)
+
+## .claude/worktrees/agent-a336ff2453981c47c/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-11-SUMMARY.md` — Dependency graph (~2949 tok)
+
+## .claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/
+
+- `page.tsx` — SHIFTS (~9421 tok)
+
+## .claude/worktrees/agent-a336ff2453981c47c/apps/web/app/(dashboard)/housekeeping/assignments/
+
+- `page.tsx` — todayISO — renders table (~3064 tok)
+
+## .claude/worktrees/agent-a336ff2453981c47c/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~10416 tok)
+- `es.ts` — Declares es (~11401 tok)
+
+## .claude/worktrees/agent-a4812a299da98709b/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-a4812a299da98709b/apps/api/routers/
+
+
+## .claude/worktrees/agent-a4812a299da98709b/apps/web/app/(dashboard)/engineering/pm-schedules/
+
+
+## .claude/worktrees/agent-a4812a299da98709b/apps/web/components/engineering/
+
+
+## .claude/worktrees/agent-a4812a299da98709b/apps/web/lib/api/
+
+
+## .claude/worktrees/agent-a5e6ae259dfd58068/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/models/
+
+
+## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/routers/
+
+
+## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/services/programs/
+
+
+## .claude/worktrees/agent-a5e6ae259dfd58068/apps/api/tests/
+
+
+## .claude/worktrees/agent-a60430966657c8504/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-12-SUMMARY.md` — Dependency graph (~3628 tok)
+
+## .claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/inspections/
+
+- `page.tsx` — todayISO (~7237 tok)
+
+## .claude/worktrees/agent-a60430966657c8504/apps/web/app/(dashboard)/housekeeping/rooms/
+
+- `page.tsx` — StatusBadge (~10280 tok)
+
+## .claude/worktrees/agent-a60430966657c8504/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~11757 tok)
+- `es.ts` — Declares es (~12858 tok)
+
+## .claude/worktrees/agent-a6841454fb42a0a85/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-17-SUMMARY.md` — Dependency graph (~2206 tok)
+
+## .claude/worktrees/agent-a6841454fb42a0a85/apps/web/e2e/
+
+- `phase4-programs.spec.ts` — Phase 4 Plan 08 (Slice 4C) — bilingual floor-contract E2E coverage. (~1954 tok)
+
+## .claude/worktrees/agent-a6853cce57da2c8f3/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-09-SUMMARY.md` — Dependency graph (~2882 tok)
+
+## .claude/worktrees/agent-a6853cce57da2c8f3/apps/web/components/housekeeping/
+
+- `AssignmentSidebar.tsx` — AssignmentSidebar (~1303 tok)
+- `PredictionPanel.tsx` — formatETA (~2206 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~4067 tok)
+- `RoomStatusBoard.tsx` — getCleanTypeChips (~8532 tok)
+
+## .claude/worktrees/agent-a6853cce57da2c8f3/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~7126 tok)
+- `es.ts` — Declares es (~7823 tok)
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/app/(dashboard)/engineering/pm-schedules/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/engineering/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/components/programs/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/e2e/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/i18n/locales/
+
+
+## .claude/worktrees/agent-a6dfd7d32cd526899/apps/web/scripts/
+
+
+## .claude/worktrees/agent-a7a17511541f7712d/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-14-SUMMARY.md` — Dependency graph (~3417 tok)
+
+## .claude/worktrees/agent-a7a17511541f7712d/apps/web/components/engineering/
+
+- `CreateWorkOrderModal.tsx` — getCategories (~5537 tok)
+- `EngineeringRoomBoard.tsx` — filterRooms (~2444 tok)
+- `FailurePredictionSidebar.tsx` — getRiskRingColor (~3156 tok)
+- `WorkOrderList.tsx` — getEmptyMessages (~889 tok)
+
+## .claude/worktrees/agent-a7a17511541f7712d/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~13813 tok)
+- `es.ts` — Declares es (~15115 tok)
+
+## .claude/worktrees/agent-a8edd935af30077c8/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-a8edd935af30077c8/apps/api/routers/
+
+
+## .claude/worktrees/agent-a8edd935af30077c8/apps/api/services/programs/
+
+
+## .claude/worktrees/agent-a8edd935af30077c8/apps/api/tests/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/.wolf/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/apps/api/models/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/apps/api/routers/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/apps/api/services/programs/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/apps/api/tests/
+
+
+## .claude/worktrees/agent-ac238caebe6e13063/supabase/migrations/
+
+
+## .claude/worktrees/agent-ac611b03287caadc4/apps/web/app/(dashboard)/programs/
+
+
+## .claude/worktrees/agent-ac611b03287caadc4/apps/web/components/programs/
+
+
+## .claude/worktrees/agent-ac611b03287caadc4/apps/web/lib/api/
+
+
+## .claude/worktrees/agent-acae1ebfaff589201/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-16-SUMMARY.md` — Dependency graph (~5198 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/
+
+- `eslint.config.mjs` — ', '.next-*/**', 'playwright-report-phase0/**', 'test-results/**'], (~608 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/engineering/pm-schedules/
+
+- `page.tsx` — getScheduleStatus (~11674 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/housekeeping/assignments/
+
+- `page.tsx` — todayISO — renders table (~3081 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/housekeeping/rooms/
+
+- `page.tsx` — StatusBadge (~10326 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/app/(dashboard)/tasks/
+
+- `page.tsx` — getTaskTypeOptions — renders form (~10865 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/components/engineering/
+
+- `PMCompletionModal.tsx` — genId (~8616 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~14750 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/components/housekeeping/
+
+- `InspectionModal.tsx` — calcOverallResult (~8160 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~4073 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~16807 tok)
+
+## .claude/worktrees/agent-acae1ebfaff589201/apps/web/i18n/locales/
+
+- `en.ts` — Declares en (~16435 tok)
+- `es.ts` — Declares es (~17950 tok)
+
+## .claude/worktrees/agent-ace50b85e43800034/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-ace50b85e43800034/.wolf/
+
+
+## .claude/worktrees/agent-ace50b85e43800034/apps/api/routers/
+
+
+## .claude/worktrees/agent-ace50b85e43800034/apps/api/tests/
 
 
 ## .claude/worktrees/agent-ad1bc7b7/
@@ -423,23 +700,65 @@
 ## .claude/worktrees/agent-ad340f5a/apps/api/routers/
 
 
+## .claude/worktrees/agent-ad63a662cd950eaee/.planning/phases/04-maintenance-and-housekeeping-programs/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/models/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/routers/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/services/programs/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/tests/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/apps/api/tests/smoke/
+
+
+## .claude/worktrees/agent-ad63a662cd950eaee/supabase/migrations/
+
+
 ## .githooks/
 
-- `pre-push` — Runs before any push to main. Skips on all other branches. (~486 tok)
 
 ## .github/
 
-- `dependabot.yml` (~266 tok)
 
 ## .github/workflows/
 
-- `auto-merge.yml` — CI: Auto-merge (~397 tok)
-- `ci.yml` — CI: CI (~1571 tok)
-- `deploy-check.yml` — CI: Deploy Health Check (~620 tok)
 
 ## .planning/
 
-- `STATE.md` — GSD State (~1099 tok)
+- `PROJECT.md` — PatelRep (~696 tok)
+- `ROADMAP.md` — Roadmap: PatelRep Hotel Standards Execution Plan (~2101 tok)
+
+## .planning/phases/03-texas-compliance-and-staff-safety/
+
+
+## .planning/phases/04-maintenance-and-housekeeping-programs/
+
+- `04-09-PLAN.md` — Trust Boundaries (~2075 tok)
+- `04-10-PLAN.md` — Trust Boundaries (~1892 tok)
+- `04-11-PLAN.md` — Trust Boundaries (~1427 tok)
+- `04-12-PLAN.md` — Trust Boundaries (~1434 tok)
+- `04-13-PLAN.md` — Trust Boundaries (~1683 tok)
+- `04-14-PLAN.md` — Trust Boundaries (~1831 tok)
+- `04-15-PLAN.md` — Trust Boundaries (~1894 tok)
+- `04-16-PLAN.md` — Trust Boundaries (~3311 tok)
+- `04-17-PLAN.md` — Trust Boundaries (~1686 tok)
+- `04-REVIEW.md` — Phase 04: Code Review Report (~4133 tok)
+- `04-SECURITY.md` — Phase 04 — Security Audit: Maintenance and Housekeeping Programs (~5219 tok)
+- `04-VERIFICATION.md` — Phase 4: Maintenance and housekeeping programs Verification Report (~4586 tok)
+- `SECURITY.md` — Phase 04 — Security Audit: Maintenance and Housekeeping Programs (~5212 tok)
+
+## .planning/phases/05-guest-recovery-and-management-roi/
+
+- `05-CONTEXT.md` — Phase 5: Guest recovery and management ROI - Context (~3620 tok)
+- `05-DISCUSS-CHECKPOINT.json` — Declares now (~1943 tok)
+- `05-DISCUSSION-LOG.md` — Phase 5: Guest recovery and management ROI - Discussion Log (~1588 tok)
 
 ## .wolf/
 
@@ -448,6 +767,9 @@
 
 
 ## Docker Context Additions
+
+
+## Phase 3 session additions
 
 
 ## Session Additions 2026-05-24 Assignment Fix
@@ -470,16 +792,9 @@
 
 ## apps/api/
 
-- `Dockerfile` — Production Python API container build and Uvicorn startup command. (~250 tok)
-- `railway.toml` — API Railway health-check and restart policy configuration. (~100 tok)
-- `main.py` — API: 1 endpoints (~3050 tok)
-- `pytest.ini` (~81 tok)
-- `requirements.txt` — Python dependencies (~87 tok)
 
 ## apps/api/core/
 
-- `database.py` — Supabase client construction and API-version compatibility configuration. (~500 tok)
-- `config.py` — API configuration loaded from environment via Pydantic settings. (~500 tok)
 
 ## apps/api/middleware/
 
@@ -489,78 +804,42 @@
 
 ## apps/api/routers/
 
-- `evidence.py` — Tenant-scoped controlled documents, acknowledgements, evidence records, exception export, and reminders. (~5000 tok)
-- `housekeeping.py` — Declares from (~24219 tok)
-- `internal.py` — API: 7 endpoints (~6158 tok)
-- `notifications.py` — In-app notification creation, listing, and delivery state handling. (~1200 tok)
-- `programs.py` — Tenant-scoped PM completion, deep-clean, par-level, sampling, and DND program workflows. (~3000 tok)
-- `safety.py` — Tenant-scoped Texas training, controlled incident, chemical, and emergency-drill workflows. (~4300 tok)
-- `sop.py` — SOP upload, listing, download, and deletion routes backed by Supabase Storage. (~1800 tok)
-- `work_orders.py` — API: 6 endpoints (~5043 tok)
+- `programs.py` — Tenant-scoped PM and housekeeping program configuration and execution. (~6435 tok)
 
 ## apps/api/scripts/
 
 
 ## apps/api/services/
 
-- `opera_pdf.py` — Opera PDF parsers for HK Details and Task Sheet housekeeping reports. (~3260 tok)
 
 ## apps/api/services/ai/
 
-- `providers.py` — Lazy AI-provider client factories with configuration-safe errors. (~250 tok)
-- `assignment_parser.py` — OpenAI-backed natural-language assignment parsing. (~500 tok)
-- `guest_request_parser.py` — OpenAI-backed guest request parsing. (~500 tok)
-- `housekeeping_briefing.py` — Anthropic-backed room-assignment briefing generation. (~900 tok)
-- `insights.py` — Anthropic-backed GM operational insight generation. (~900 tok)
-- `failure_predictions.py` — Anthropic-backed asset-failure prediction workflow. (~1200 tok)
-- `sop_rag.py` — OpenAI embedding and Anthropic SOP-answer pipeline. (~3000 tok)
-- `task_parser.py` — OpenAI-backed natural-language task parsing and fast-path helpers. (~900 tok)
-- `work_order_parser.py` — OpenAI-backed work-order parsing. (~500 tok)
-- `governance.py` — Phase 6 AI recommendation action policy, lifecycle validation, and acceptance/override/outcome metrics. (~500 tok)
-- `model_routing.py` — Central defaults with tenant-scoped model-route override lookup. (~300 tok)
 
 ## apps/api/services/guest_recovery/
 
-- `contracts.py` — Pure Phase 5 SLA selection, guest lifecycle, custody verification, and reconciled guest-recovery metrics. (~900 tok)
-- `evidence/contracts.py` — Pure controlled-document versioning, exception, and reminder policies. (~900 tok)
 
 ## apps/api/services/opera/
 
 
 ## apps/api/services/programs/
 
-- `contracts.py` — Pure Phase 4 evidence, recurrence, DND, par-alert, and default-template policies. (~900 tok)
-- `execution.py` — Shared immutable PM completion persistence and corrective-work-order helper. (~800 tok)
+- `execution.py` — Database-backed program execution helpers shared by PM routes. (~2550 tok)
 
 ## apps/api/services/safety/
 
-- `contracts.py` — Pure training compliance and controlled-incident event policies. (~500 tok)
 
 ## apps/api/services/work_orders/
 
-- `transitions.py` — Canonical work-order statuses, priorities, and validated transition rules. (~950 tok)
 
 ## apps/api/tests/
 
-- `test_ai_provider_configuration.py` — AI provider startup and missing-credential regression coverage. (~500 tok)
-- `test_evidence_foundation.py` — Phase 2 controlled evidence policy contract tests. (~1100 tok)
-- `test_guest_recovery.py` — Phase 5 lifecycle, accessibility priority, custody, metric, and migration contract tests. (~900 tok)
-- `test_operational_programs.py` — Phase 4 PM evidence, recurrence, DND, and par-level contract tests. (~800 tok)
-- `test_phase6_governance.py` — Phase 6 AI authorization, outcome metrics, PMS conflict, and migration contract tests. (~700 tok)
-- `test_programs_routes.py` — Phase 4 programs route contracts: overview manager gate, PM-complete RBAC (incl. chief_engineer), cross-tenant 404, bug-449 None-safety. (~600 tok)
-- `test_safety_compliance.py` — Phase 3 training recurrence and append-only incident policy contracts. (~500 tok)
-- `test_work_order_transitions.py` — Phase 1 contract tests for work-order transitions. (~3360 tok)
+- `test_programs_routes.py` — Route-level contracts for the maintenance/housekeeping programs domain. (~7329 tok)
 
 ## apps/api/tests/load/
 
 
 ## apps/api/tests/smoke/
 
-- `test_database_pooling.py` — Supabase client singleton, options, and cleanup regression coverage. (~700 tok)
-- `test_enum_contracts.py` — test_status_constants_match_json_contract, test_priority_constants_match_json_contract (~391 tok)
-- `test_housekeeping_assignments.py` — FakeDB: table, select, update, insert + 13 more (~15178 tok)
-- `test_notification_delivery.py` — Notification delivery persistence regression tests. (~500 tok)
-- `test_sop_security.py` — SOP upload validation and authorization tests. (~900 tok)
 
 ## apps/api/tests/smoke/test_auth_decode.py
 
@@ -630,7 +909,6 @@
 
 ## apps/mobile/app/(app)/home/
 
-- `index.tsx` — firstName (~5461 tok)
 
 ## apps/mobile/app/(app)/home/index.tsx
 
@@ -646,7 +924,6 @@
 
 ## apps/mobile/app/(app)/my-rooms/
 
-- `index.tsx` — DONE_STATUSES (~4452 tok)
 
 ## apps/mobile/app/(app)/my-rooms/[roomId].tsx
 
@@ -737,11 +1014,11 @@
 
 ## apps/mobile/lib/api/
 
-- `client.ts` — Exports api (~702 tok)
-- `lostFound.ts` — Exports LostFoundItem, listItems, CreateLostFoundPayload, SimpleRoom + 3 more (~575 tok)
-- `workOrders.ts` — Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. (~1004 tok)
 
 ## apps/mobile/lib/api/housekeepingSupervisor.ts
+
+
+## apps/mobile/lib/auth/
 
 
 ## apps/mobile/lib/engineering/
@@ -761,7 +1038,6 @@
 
 ## apps/mobile/lib/offline/
 
-- `db.ts` — Promise-mutex: all concurrent getDb() calls share one initialization promise. (~2435 tok)
 
 ## apps/mobile/lib/offline/db.ts
 
@@ -777,40 +1053,30 @@
 
 ## apps/mobile/stores/
 
-- `appStore.ts` — API routes: PATCH, POST (4 endpoints) (~1726 tok)
 
 ## apps/mobile/stores/appStore.ts
 
 
 ## apps/web/
 
-- `Dockerfile` — Docker container definition (~314 tok)
-- `next.config.mjs` — isDev: getLocalDevOrigins, buildCSP, buildSecurityHeaders (~765 tok)
-- `package.json` — Node.js package manifest (~490 tok)
-- `playwright.phase1.config.ts` (~72 tok)
 
 ## apps/web/app/
 
-- `evidence/page.tsx` — GM Evidence command center for exception review and property applicability. (~1500 tok)
 
 ## apps/web/app/(auth)/login/
 
-- `page.tsx` — decodeJwtPayload — renders form (~4799 tok)
 
 ## apps/web/app/(dashboard)/
 
-- `programs/page.tsx` — Bilingual operational program setup and par-level command page. (~1800 tok)
 
 ## apps/web/app/(dashboard)/ai/
 
-- `page.tsx` — dynamic (~6198 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
 
 ## apps/web/app/(dashboard)/dashboard/
 
-- `page.tsx` — GMDashboard (~2282 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
@@ -820,12 +1086,14 @@
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
+- `page.tsx` — getScheduleStatus (~11669 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
+- `page.tsx` — dynamic (~5202 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
@@ -854,6 +1122,9 @@
 ## apps/web/app/(dashboard)/reports/
 
 
+## apps/web/app/(dashboard)/safety/
+
+
 ## apps/web/app/(dashboard)/scheduling/
 
 
@@ -862,7 +1133,6 @@
 
 ## apps/web/app/(dashboard)/settings/billing/
 
-- `page.tsx` — numberOrDefault (~5358 tok)
 
 ## apps/web/app/(dashboard)/settings/departments/
 
@@ -911,18 +1181,25 @@
 
 ## apps/web/components/dashboard/
 
-- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7387 tok)
-- `TrendChartsRow.tsx` — getHotelIdFromSession (~2430 tok)
 
 ## apps/web/components/engineering/
 
+- `PMCompletionModal.tsx` — genId (~8604 tok)
+- `WorkOrderCard.tsx` — CATEGORY_ICONS (~1389 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~14752 tok)
 
 ## apps/web/components/guest-requests/
 
 
 ## apps/web/components/housekeeping/
 
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~15474 tok)
+
+## apps/web/components/programs/
+
+- `HousekeepingDepthPanels.tsx` — OVERVIEW_KEY — renders form (~3750 tok)
+
+## apps/web/components/safety/
+
 
 ## apps/web/components/settings/
 
@@ -935,8 +1212,6 @@
 
 ## apps/web/e2e/
 
-- `phase0-public-smoke.spec.ts` — Unauthenticated Phase 0 browser smoke coverage for login hydration and honest API/database health display. (~190 tok)
-- `phase1-work-orders.spec.ts` — Phase 1 — Authenticated E2E tests (~4506 tok)
 
 ## apps/web/i18n/
 
@@ -949,12 +1224,6 @@
 
 ## apps/web/lib/api/
 
-- `client.ts` — Exports resolvedApiUrl, ApiClientError, apiClient (~1663 tok)
-- `evidence.ts` — Typed property-applicability and exception-queue API client. (~300 tok)
-- `notifications.ts` — API routes: GET, PATCH, POST (4 endpoints) (~192 tok)
-- `programs.ts` — Typed operational-program overview and configuration API client. (~500 tok)
-- `safety.ts` — Typed safety-training, emergency-plan, and controlled-incident API client. (~500 tok)
-- `sop.ts` — Typed SOP API client used by the controlled-document surface. (~600 tok)
 
 ## apps/web/lib/hooks/
 
@@ -964,15 +1233,12 @@
 
 ## apps/web/lib/utils/
 
-- `routeGuard.ts` — Shared public-route, authentication, hotel, and RBAC redirect decisions used by the Next proxy. (~900 tok)
-- `routeGuard.test.mjs` — Node tests covering public access and role-based route-guard decisions. (~350 tok)
 
 ## apps/web/playwright.phase0.config.ts
 
 
 ## apps/web/scripts/
 
-- `check-programs-i18n.mjs` — CI guard for bilingual operational-program translation keys and common hardcoded floor copy. (~250 tok)
 
 ## apps/web/stores/
 
@@ -1003,23 +1269,12 @@
 
 ## schema/
 
-- `work_order_enums.json` (~43 tok)
 
 ## scripts/
 
-- `public-smoke.mjs` — External deployment check for the public login route and API/database readiness response. (~175 tok)
 
 ## supabase/migrations/
 
-- `065_work_order_transition_audit.sql` — Canonical work-order constraints and atomic append-only transition audit RPC. (~850 tok)
-- `066_inspection_photo_evidence.sql` — Inspection-result-linked photo evidence schema and storage support. (~350 tok)
-- `067_notification_delivery_history.sql` — Notification delivery outcome history. (~250 tok)
-- `068_cron_health.sql` — Phase 0: Cron health tracking so /health can report last successful run per job. (~228 tok)
-- `069_evidence_foundation.sql` — Phase 2 shared evidence schema, RLS, indexes, and private storage bucket. (~1800 tok)
-- `070_texas_safety_compliance.sql` — Phase 3 training, controlled incidents, safety inventory, drills, RLS, and immutability triggers. (~2300 tok)
-- `071_operational_programs.sql` — Phase 4 append-only PM, deep-clean, supply-par, sampling, and DND policy schema. (~2600 tok)
-- `072_guest_recovery_and_roi.sql` — Phase 5 tenant-scoped guest recovery, message, accessibility, custody, and lifecycle audit schema. (~2600 tok)
-- `073_pms_ai_governance.sql` — Phase 6 PMS conflict queue, append-only history, AI authorization/outcome records, and model routes. (~2400 tok)
 
 ## youtubeMobileResearch.md
 

@@ -1,78 +1,12 @@
 {
-  "session_id": "session-2026-07-17-1223",
-  "started": "2026-07-17T17:23:02.344Z",
-  "files_read": {
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/housekeeping.py": {
-      "count": 3,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:24:12.713Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:25:06.427Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/web/lib/utils/cleanType.ts": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:25:17.461Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/railway.toml": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:33:51.690Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/task_parser.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:34:50.415Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/billing.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:34:50.552Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/requirements.txt": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:35:37.569Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/ai_copilot.py": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:35:38.097Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/main.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:36:18.793Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/routers/webhooks.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:36:19.065Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/services/ai/sop_rag.py": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:37:14.077Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/middleware/auth.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:38:43.594Z"
-    },
-    "C:/Users/Henil/projects/PatelRep/apps/api/core/database.py": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-07-17T17:41:36.821Z"
-    }
-  },
+  "session_id": "session-2026-07-24-0844",
+  "started": "2026-07-24T13:44:37.455Z",
+  "files_read": {},
   "files_written": [],
   "edit_counts": {},
   "anatomy_hits": 0,
-  "anatomy_misses": 13,
-  "repeated_reads_warned": 4,
+  "anatomy_misses": 0,
+  "repeated_reads_warned": 0,
   "cerebrum_warnings": 0,
-  "stop_count": 3
+  "stop_count": 0
 }
