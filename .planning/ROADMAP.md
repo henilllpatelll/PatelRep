@@ -85,7 +85,7 @@ Plans:
 - [x] 04-12-PLAN.md — (wave 4) HK route pages: inspections/page, rooms/page → EN/ES
 - [x] 04-13-PLAN.md — (wave 5) ENG WorkOrderDetailDrawer (heaviest floor surface) → EN/ES
 - [x] 04-14-PLAN.md — (wave 6) ENG components: CreateWorkOrderModal, WorkOrderList, EngineeringRoomBoard, FailurePredictionSidebar → EN/ES
-- [ ] 04-15-PLAN.md — (wave 7) ENG route pages: assets/page, predictions/page, work-orders/page, engineering/page → EN/ES
+- [x] 04-15-PLAN.md — (wave 7) ENG route pages: assets/page, predictions/page, work-orders/page, engineering/page → EN/ES
 - [ ] 04-16-PLAN.md — (wave 8) tasks/page → EN/ES + fix 2 non-word placeholder literals + widen no-literal-string gate to the full floor directory set
 
 ### Phase 5: Guest recovery and management ROI
