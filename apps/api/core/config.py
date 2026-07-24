@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     opera_enterprise_id: str = ""  # enterpriseId header (OCIM client_credentials only)
     opera_credential_encryption_key: str = ""
 
+    # Twilio (SMS)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone_number: str = ""
+    twilio_status_callback_url: str = ""
+
     # Billing
     base_plan_price_cents: int = 9900  # $99.00/month base fee
 
