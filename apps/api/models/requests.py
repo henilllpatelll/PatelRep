@@ -897,6 +897,7 @@ class UpdateHotelRequest(SanitizedBaseModel):
     phone: Optional[str] = Field(default=None, max_length=32)
     room_count: Optional[int] = Field(default=None, ge=1, le=1000)
     timezone: Optional[str] = Field(default=None, max_length=64)
+    average_daily_rate_cents: Optional[int] = Field(default=None, ge=0, le=10000000)
     front_desk_modules: Optional[List[str]] = Field(default=None, max_length=32)
 
 
