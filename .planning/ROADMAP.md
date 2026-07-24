@@ -98,9 +98,9 @@ Plans:
 - [x] 05-01-PLAN.md — migration 084 + Twilio SDK pin/settings + fake Twilio client + GM ADR field; `[BLOCKING]` apply to live Supabase before any other plan
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 05-02-PLAN.md — Twilio send wrapper, signed inbound webhook (reply-only match, never invents a request), status-callback webhook, reactive opt-out on error 21610, guest_phone capture
-- [ ] 05-03-PLAN.md — all ROI formulas as pure fixture-reconcilable functions in `services/guest_recovery/contracts.py`
-- [ ] 05-04-PLAN.md — lost & found 90-day retention clock, daily flag-for-review cron, `disposition_due` filter, disposition role set = gm + housekeeping_supervisor + front_desk
+- [x] 05-02-PLAN.md — Twilio send wrapper, signed inbound webhook (reply-only match, never invents a request), status-callback webhook, reactive opt-out on error 21610, guest_phone capture
+- [x] 05-03-PLAN.md — all ROI formulas as pure fixture-reconcilable functions in `services/guest_recovery/contracts.py`
+- [x] 05-04-PLAN.md — lost & found 90-day retention clock, daily flag-for-review cron, `disposition_due` filter, disposition role set = gm + housekeeping_supervisor + front_desk
 
 **Wave 3** *(blocked on Wave 2)*
 - [ ] 05-05-PLAN.md — SLA policy API surface + accessible-room-features enriched with live room status
