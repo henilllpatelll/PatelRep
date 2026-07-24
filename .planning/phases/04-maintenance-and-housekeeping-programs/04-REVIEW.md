@@ -1,222 +1,221 @@
 ---
 phase: 04-maintenance-and-housekeeping-programs
-reviewed: 2026-07-23T00:00:00Z
+reviewed: 2026-07-24T00:00:00Z
 depth: standard
-files_reviewed: 26
+files_reviewed: 25
 files_reviewed_list:
-  - apps/api/models/requests.py
-  - apps/api/routers/assets.py
-  - apps/api/routers/evidence.py
-  - apps/api/routers/internal.py
-  - apps/api/routers/programs.py
-  - apps/api/services/programs/contracts.py
-  - apps/api/services/programs/execution.py
-  - apps/api/tests/test_operational_programs.py
-  - apps/api/tests/test_programs_routes.py
+  - apps/web/app/(dashboard)/engineering/assets/page.tsx
   - apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx
-  - apps/web/app/(dashboard)/programs/page.tsx
+  - apps/web/app/(dashboard)/engineering/predictions/page.tsx
+  - apps/web/app/(dashboard)/engineering/work-orders/page.tsx
+  - apps/web/app/(dashboard)/housekeeping/assignments/page.tsx
+  - apps/web/app/(dashboard)/housekeeping/inspections/page.tsx
+  - apps/web/app/(dashboard)/housekeeping/page.tsx
+  - apps/web/app/(dashboard)/housekeeping/rooms/page.tsx
+  - apps/web/app/(dashboard)/tasks/page.tsx
+  - apps/web/components/engineering/CreateWorkOrderModal.tsx
+  - apps/web/components/engineering/EngineeringRoomBoard.tsx
+  - apps/web/components/engineering/FailurePredictionSidebar.tsx
   - apps/web/components/engineering/PMCompletionModal.tsx
-  - apps/web/components/engineering/WorkOrderCard.tsx
-  - apps/web/components/programs/DeepCleanAreasPanel.tsx
-  - apps/web/components/programs/HousekeepingDepthPanels.tsx
-  - apps/web/components/programs/InspectionDepthPanel.tsx
+  - apps/web/components/engineering/WorkOrderDetailDrawer.tsx
+  - apps/web/components/engineering/WorkOrderList.tsx
+  - apps/web/components/housekeeping/AssignmentSidebar.tsx
+  - apps/web/components/housekeeping/InspectionModal.tsx
+  - apps/web/components/housekeeping/OccupancyImportModal.tsx
+  - apps/web/components/housekeeping/PredictionPanel.tsx
+  - apps/web/components/housekeeping/RoomCard.tsx
+  - apps/web/components/housekeeping/RoomDetailDrawer.tsx
+  - apps/web/components/housekeeping/RoomStatusBoard.tsx
   - apps/web/e2e/phase4-programs.spec.ts
   - apps/web/eslint.config.mjs
   - apps/web/i18n/locales/en.ts
   - apps/web/i18n/locales/es.ts
-  - apps/web/lib/api/engineering.ts
-  - apps/web/lib/api/programs.ts
-  - apps/web/playwright.phase4.config.ts
-  - apps/web/scripts/verify-i18n-gate.mjs
-  - supabase/migrations/081_pm_evidence_linkage.sql
-  - supabase/migrations/083_program_template_facilities.sql
 findings:
   critical: 2
-  warning: 3
-  info: 1
-  total: 6
+  warning: 4
+  info: 3
+  total: 9
 status: issues_found
 ---
 
-# Phase 4: Code Review Report
+# Phase 04: Code Review Report
 
-**Reviewed:** 2026-07-23T00:00:00Z
+**Reviewed:** 2026-07-24T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 26
+**Files Reviewed:** 25
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the PM/housekeeping programs domain (routers, services, models, tests) and its
-web surface (PM Schedules page, PM completion modal, housekeeping program depth panels,
-bilingual EN/ES coverage, and the two new migrations). The core append-only/audit design
-(evidence linkage, deferral separation-of-duty, containment audit events, tenant scoping)
-is solid and well covered by tests — `test_programs_routes.py` in particular exercises
-RBAC, cross-tenant isolation, and the `maybe_single()` None-safety pattern thoroughly.
+Reviewed the 25 files touched by gap-closure plans 04-09..04-17 (react-i18next wiring across housekeeping/engineering route pages and components, ESLint `i18next/no-literal-string` gate widening, and the phase4 bilingual E2E spec).
 
-Two known, pre-existing issues were explicitly excluded per the review brief and are
-**not** re-reported here: bug-478 (`assets.py` `create_pm_schedule` UUID serialization)
-and bug-479/484 (`programs.py` `create_deep_clean_schedule` date serialization).
-`apps/api/routers/internal.py` has zero diff versus the base commit — it was read for
-cross-file context but contains no phase-4 changes to review.
+The `t`-shadowing bug class the task asked me to double-check is **not** fully gone — it recurs in 5 places, though none currently crash at runtime (see WR-01). More seriously, I found a role-based access-control bug in `WorkOrderDetailDrawer.tsx` (`isChief = role === 'engineer'`) that silently gives regular engineers chief-engineer-only actions (hold/cancel/resume/reopen/edit a work order) while chief engineers lose them entirely — this survived two separate i18n-only edits to this exact file (04-13, 04-16) because those touches never re-audited the surrounding logic. I also found one concrete floor-facing bilingual-parity miss: the Kanban `WorkOrderCard` on the Work Orders page hardcodes the English word "Room" in a JS template literal, which the new ESLint gate cannot catch because it's `markupOnly: true` (it only scans JSX text/markup, not string literals inside JS expressions).
 
-Two BLOCKER-level findings stand out: the HK-03 "quality trends by employee" feature
-ships raw UUIDs instead of resolved staff names (making that dimension unusable exactly
-where the codebase already has an established resolve-to-name pattern to follow), and the
-PM-completion `verifier_id` separation-of-duty check that the UI enforces has no
-server-side equivalent, unlike the parallel — and correctly implemented — `approved_by`
-check on PM deferrals (D-07).
+EN/ES key parity in `en.ts`/`es.ts` is solid: both files have identical key structure (1199 leaf keys, verified by exact key-path diff) and identical `{{placeholder}}` sets per line — no missing keys or dropped interpolation variables were found in either file. Spot-checked the specific keys asserted by the new E2E spec (`programs.pmSchedules.title`, `.pmCompletion.title/checklistResults/verifierLabel`) and all match the spec's expected EN/ES strings exactly.
 
 ## Critical Issues
 
-### CR-01: PM completion `verifier_id` self-verification is not blocked server-side
+### CR-01: `isChief` role check tests for `'engineer'`, not `'chief_engineer'` — privilege bug in Work Order actions
 
-**File:** `apps/api/services/programs/execution.py:93-127` (also `apps/api/models/requests.py:657-658`, `apps/api/routers/assets.py:227-256`)
-**Issue:** `PMCompletionModal.tsx` enforces "the verifier must be distinct from the
-technician submitting this completion" purely client-side:
-```tsx
-if (verifierId && verifierId === user?.id) {
-  setError(t('programs.pmCompletion.errorVerifierDistinct'))
-  return
-}
+**File:** `apps/web/components/engineering/WorkOrderDetailDrawer.tsx:120-121`
+**Issue:**
+```ts
+const isEngineer = role === 'engineer'
+const isChief = role === 'engineer'
 ```
-Neither `CompletePMProgramRequest` (`models/requests.py`) nor `persist_pm_completion`
-(`services/programs/execution.py`) nor the `complete_pm_schedule` route
-(`routers/assets.py`) re-validates this server-side. A direct API call (or a modified
-client) can submit `verifier_id == technician_id`, producing a PM completion record that
-*looks* independently verified but was self-attested. This directly undermines the
-two-person control the feature exists to provide, and is inconsistent with this same
-phase's own PM-deferral flow, which enforces the equivalent "approver distinct from
-requester" rule server-side (`routers/programs.py:250-256`, D-07) plus checks the
-approver is an active tenant user (`_require_active_tenant_approver`). `verifier_id` also
-has no "is an active user at this tenant" check at all — an arbitrary string, including a
-non-existent user ID, is accepted and stored as the attesting verifier.
-**Fix:** Add the same two checks `defer_pm_schedule` already does, either in
-`persist_pm_completion` (so both `assets.py` and any future caller get it) or in the
-`complete_pm_schedule` route before calling it:
-```python
-if payload.get("verifier_id") and payload["verifier_id"] == user_id:
-    raise ValueError("Verifier must be distinct from the technician submitting this completion")
-if payload.get("verifier_id"):
-    _require_active_tenant_user(db=db, tenant_id=tenant_id, user_id=payload["verifier_id"])
+`isChief` is defined identically to `isEngineer`. It gates `canHold`, `canCancel`, `canResume`, `canReopen`, the inline "Edit work order" button, and the inline edit form (lines 168-174, 410, 444). As a result:
+- A plain `engineer` (not `chief_engineer`) can put a WO on hold, cancel it, resume it, reopen a completed/cancelled WO, and edit its title/category/priority/notes — actions that are supposed to be chief-engineer/GM-only.
+- An actual `chief_engineer` gets **none** of these actions, because their role string never equals `'engineer'`.
+
+`git log -p` on this file shows the line used to correctly read `role === 'chief_engineer'`, was changed to `role === 'engineer'` in commit `402a2fa6` ("refactor: merge chief_engineer role into engineer" — a business decision to eliminate the two-tier engineering role). That merge was reverted app-wide in a later commit (`fea45b29`, "Refactor dashboard workflows and tighten API integrations", which restored `chief_engineer` to `ENGINEERING_ROLES` in `useRole.ts`) — but this one line in `WorkOrderDetailDrawer.tsx` was never fixed back. Two later, purely i18n-focused commits on this same file (`3af91102`, `83452e37` — Phase 04-13 translation work) and one more (`a857f0f5` — 04-16 lint-gate widening) all touched this file without catching the stale logic, because none of those diffs were logic reviews.
+
+`chief_engineer` is still a first-class, actively used role everywhere else in the codebase (`staff.tsx`, `routeGuard.ts`, `pm-schedules/page.tsx`, `predictions/page.tsx`, `Sidebar.tsx`, `RoleForm.tsx`), so this is a live, current authorization defect, not dead code.
+
+**Fix:**
+```ts
+const isEngineer = role === 'engineer'
+const isChief = role === 'chief_engineer'
 ```
 
-### CR-02: Inspection quality "by employee" trend renders raw UUIDs, not names
+### CR-02: Work Order Kanban card hardcodes "Room" — bypasses the bilingual floor contract this phase built
 
-**File:** `apps/api/services/programs/contracts.py:271-330` (`aggregate_inspection_quality`), `apps/api/routers/programs.py:398-407` (`get_inspection_quality`), `apps/web/components/programs/InspectionDepthPanel.tsx:166-170`
-**Issue:** HK-03 explicitly requires quality trends "broken down by ... employee." The
-aggregation keys `by_employee` on the raw `inspected_by` UUID:
-```python
-employee = inspection.get("inspected_by") or "unknown"
-_bump(by_employee, employee, is_pass)
+**File:** `apps/web/app/(dashboard)/engineering/work-orders/page.tsx:83-85`
+**Issue:**
+```ts
+const location = wo.rooms?.room_number
+    ? `Room ${wo.rooms.room_number}`
+    : wo.location_text ?? null
 ```
-`get_inspection_quality`'s select statement never joins `user_profiles`, and the frontend
-renders the key verbatim:
-```tsx
-<li key={entry.key} ...>
-  <span>{entry.key}</span>
+This is the location chip rendered on every Work Order Kanban card (`WorkOrderCard`, same file, lines 76-130). It always renders the literal English word "Room", even when the Spanish locale is active. Every sibling surface that shows the same information (`assets/page.tsx:382,1008`, `WorkOrderDetailDrawer.tsx:330`) correctly calls `t('engineering.workOrderCard.room')`, which resolves to `"Habitación"` in `es.ts:883`. This card is the one place in the reviewed set that was missed.
+
+This slipped past the newly-widened ESLint `i18next/no-literal-string` gate (`eslint.config.mjs:51-58`) because that rule is configured `markupOnly: true` — it only flags literal strings that appear directly as JSX text/`aria-label`/`placeholder`/`title`, not literals embedded in a JS template expression assigned to a variable (`` `Room ${...}` ``) and later interpolated into JSX. The gate cannot see this pattern, so it is not just a one-off miss — it's a systemic blind spot in the enforcement mechanism the phase built (see WR-03).
+
+**Fix:**
+```ts
+const { t } = useTranslation() // add if not already destructured in this component
+...
+const location = wo.rooms?.room_number
+    ? `${t('engineering.workOrderCard.room')} ${wo.rooms.room_number}`
+    : wo.location_text ?? null
 ```
-So a GM/supervisor viewing "Inspection quality trends → by employee" sees a list of
-opaque UUIDs with no way to identify which housekeeper each row refers to — the feature
-is non-functional for its stated purpose. This is not a hypothetical: the codebase
-already has the exact resolve-pattern needed, used for the near-identical inspection
-list a few hundred lines away in `routers/housekeeping.py`:
-```python
-# housekeeping.py ~1565-1588
-inspector_ids = list({r["inspected_by"] for r in rows if r.get("inspected_by")})
-profiles = supabase.table("user_profiles").select("id, preferred_name, full_name") \
-    .in_("id", inspector_ids).eq("tenant_id", current_user.hotel_id).execute()
-name_map = {p["id"]: p.get("preferred_name") or p.get("full_name") or p["id"] for p in (profiles.data or [])}
-```
-**Fix:** In `get_inspection_quality`, resolve `inspected_by` UUIDs to
-`preferred_name`/`full_name` (same pattern as `housekeeping.py`) before calling
-`aggregate_inspection_quality`, or pass a `{user_id: name}` map into
-`aggregate_inspection_quality` and use it when bumping `by_employee`. The `by_item`
-fallback (`item_result.get("template_item_id") or "unknown"` when no joined description
-exists) has the same class of readability gap and should be checked too.
+(`WorkOrderCard` in this file does not currently call `useTranslation()` — it will need the hook added, following the pattern already used in `assets/page.tsx`.)
 
 ## Warnings
 
-### WR-01: `pm_checklist_templates` create/edit is unaudited despite this phase's audit-trail pattern
+### WR-01: The flagged `t`-shadowing bug class still recurs in 5 places
 
-**File:** `apps/api/routers/programs.py:183-241` (`update_program_template`, `create_program_template`)
-**Issue:** This phase introduces `_record_audit_event` and uses it consistently for
-`pm_deferrals` (`defer_pm_schedule`) and mirrors `routers/evidence.py`'s audit pattern in
-its own docstring ("no parallel audit mechanism"). But `update_program_template` and
-`create_program_template` — both of which can silently rewrite the checklist content of
-life-safety PM programs like `fire_extinguisher` or `fire_alarm_sprinkler` — never call
-`_record_audit_event`. Given the compliance emphasis of this phase (G2, G8, D-06, D-07),
-losing the "who changed this safety checklist and when" trail is a real gap.
-**Fix:** Add `_record_audit_event(... resource_type="pm_checklist_template", action="pm_checklist_template.updated"/"pm_checklist_template.created" ...)` calls in both routes, following the existing pattern used for `pm_deferral.approved`.
+**File:** multiple (see list below)
+**Issue:** Each of these declares or destructures a local variable named `t` inside a component/effect that already has `const { t } = useTranslation()` in an outer scope, shadowing the translate function within that narrower block:
+- `apps/web/app/(dashboard)/housekeeping/inspections/page.tsx:140` — `const t = setTimeout(() => setToast(null), 3500)`
+- `apps/web/components/housekeeping/InspectionModal.tsx:94` — `templates.find((t) => t.is_default) ?? templates[0]`
+- `apps/web/components/housekeeping/RoomDetailDrawer.tsx:441` — `.filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')`
+- `apps/web/components/housekeeping/RoomStatusBoard.tsx:305` — `.filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')`
+- `apps/web/components/engineering/EngineeringRoomBoard.tsx:66` — `.filter((t: any) => t.status !== 'completed' && t.status !== 'cancelled')`
 
-### WR-02: PM completion modal's template query uses a different cache key than the rest of the programs surface, breaking invalidation
+None of these currently crash, because the shadowed `t` is never called as a function inside its narrow scope today. But it is a live footgun: the very next person who adds a `t('some.key')` call inside one of these callbacks (very plausible — e.g. adding a translated empty-state message inside the `.filter` predicate, or a translated toast message inside the `setTimeout` effect) will get `TypeError: t is not a function` at runtime, because `t` there resolves to a task object / `NodeJS.Timeout`, not the i18n function. This is exactly the recurring class the plan history describes fixing repeatedly — it isn't fully gone.
 
-**File:** `apps/web/components/engineering/PMCompletionModal.tsx:122-127`
-**Issue:** Every other component that reads program templates shares one query key so
-edits invalidate everywhere:
+**Fix:** Rename the shadowing locals (`tsHandle`, `tpl`, `task`, etc.) so `t` is never rebound inside a component that also uses the i18n `t`:
 ```ts
-// DeepCleanAreasPanel.tsx / HousekeepingDepthPanels.tsx / InspectionDepthPanel.tsx / programs/page.tsx
-const OVERVIEW_KEY = ['operational-programs']
-```
-`PMCompletionModal.tsx` instead uses its own key:
-```ts
-const { data: overviewData } = useQuery({
-  queryKey: ['program-overview-for-pm-completion'],
-  queryFn: () => programsApi.overview(),
-  ...
-})
-```
-Because `queryClient.invalidateQueries({ queryKey: ['operational-programs'] })` (called
-after `initialize`, template edit, etc. on `/programs`) never touches
-`'program-overview-for-pm-completion'`, a manager who edits or (re)initializes a PM
-checklist template on `/programs` and then immediately opens the PM completion modal on
-`/engineering/pm-schedules` can see stale checklist items for up to the 60s `staleTime`
-(or until the next full navigation). It also issues a redundant network request instead
-of reusing React Query's cache/dedup, since the two keys never share a cache entry.
-**Fix:** Use the shared `['operational-programs']` key in `PMCompletionModal.tsx` (or
-export `OVERVIEW_KEY` from a shared module and import it everywhere, since it is
-currently duplicated as a local `const` in three separate files as well).
+// housekeeping/inspections/page.tsx
+const timeoutId = setTimeout(() => setToast(null), 3500)
+return () => clearTimeout(timeoutId)
 
-### WR-03: `room_type_id` access on `RoomStatus.rooms` forced into `any[]` casts in two new files
+// InspectionModal.tsx
+templates.find((tpl) => tpl.is_default) ?? templates[0]
 
-**File:** `apps/web/components/programs/InspectionDepthPanel.tsx:41-47`, `apps/web/components/programs/DeepCleanAreasPanel.tsx:47-49`
-**Issue:** Both new panels read `row.rooms?.room_type_id`, but `RoomStatus.rooms` in
-`apps/web/lib/api/rooms.ts` does not declare a `room_type_id` field (only a nested
-`room_types: { name, code, base_clean_minutes }`), even though the API does return it per
-CLAUDE.md's documented join (`rooms!inner(id, room_number, floor, room_type_id, room_types(...))`).
-Both new files work around the type gap with `as any[]`:
-```ts
-const roomOptions: RoomOption[] = ((roomsQuery.data?.data ?? []) as any[])
-  .map((row) => ({ id: row.rooms?.id as string, room_number: row.rooms?.room_number as string }))
+// RoomDetailDrawer.tsx / RoomStatusBoard.tsx / EngineeringRoomBoard.tsx
+.filter((task: any) => task.status !== 'completed' && task.status !== 'cancelled')
 ```
+
+### WR-02: Silent `catch {}` blocks hide failures from the user in PM Schedules
+
+**File:** `apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx:582-590` and `:592-606`
+**Issue:**
 ```ts
-((roomsQuery.data?.data ?? []) as any[])
-  .filter((row) => row.rooms?.room_type_id)
-  .map((row) => [row.rooms.room_type_id as string, ...])
+async function handleDeactivate(scheduleId: string) {
+  try {
+    await engineeringApi.deactivatePMSchedule(scheduleId)
+    queryClient.invalidateQueries({ queryKey: ['pm-schedules'] })
+    setConfirmDeactivateId(null)
+  } catch {
+    // deactivation failed — user can retry
+  }
+}
+
+async function handleCreateWOFromPM(schedule: PMSchedule) {
+  try {
+    await engineeringApi.createWorkOrder({ ... })
+    setSuccessMessage(t('programs.pmSchedules.woCreatedMessage', { name: schedule.name }))
+    setTimeout(() => setSuccessMessage(null), 4000)
+  } catch {
+    // work order creation failed — user can retry
+  }
+}
 ```
-This silently disables type-checking for the entire `roomsQuery.data` shape in both
-files, not just the one missing field, so any future unrelated typo on this data would go
-undetected by the compiler.
-**Fix:** Add `room_type_id: string` to `RoomStatus['rooms']` in `apps/web/lib/api/rooms.ts`
-and drop the `any[]` casts in favor of the real type.
+Both handlers swallow the error entirely. On failure, `handleDeactivate` leaves the "Confirm/Cancel" row visibly stuck (harmless but confusing) with zero feedback; `handleCreateWOFromPM` gives the user no indication the WO was not created — they will believe it succeeded since the button simply stops spinning. Every other mutation in this same file (`CreatePMScheduleModal`, `PMCompletionModal`) surfaces a translated error string on failure; these two do not.
+
+**Fix:** Surface a translated error via the existing `successMessage`/error-banner pattern already used elsewhere on this page, e.g.:
+```ts
+} catch {
+  setSuccessMessage(null)
+  setErrorMessage(t('programs.pmSchedules.deactivateError'))
+  setTimeout(() => setErrorMessage(null), 4000)
+}
+```
+
+### WR-03: `i18next/no-literal-string` gate cannot see literals inside JS expressions
+
+**File:** `apps/web/eslint.config.mjs:50-58`
+**Issue:** The rule is configured `markupOnly: true`. That setting is precisely what allowed CR-02 to ship undetected — a raw string embedded in a template literal (`` `Room ${x}` ``) that is later placed into JSX is invisible to the rule, because it only inspects JSX text nodes and the three listed `jsx-attributes`. The phase's own comment block (lines 19-28) frames this gate as the enforcement mechanism that closes out floor-facing bilingual gaps, but as configured it has a structural blind spot for this exact bug pattern.
+**Fix:** Either drop `markupOnly: true` for this file set (accepting some false positives on non-UI strings, e.g. CSS class names, that would need targeted `eslint-disable` comments as already done at `rooms/page.tsx:298`), or add a follow-up manual/automated sweep specifically for string literals assigned to variables that flow into JSX (`location`, `label`, `title` local variables are a good heuristic) in the floor-facing directories this gate covers.
+
+### WR-04: `OccupancyImportModal` is missing dialog semantics and Escape-to-close, unlike every sibling modal reviewed
+
+**File:** `apps/web/components/housekeeping/OccupancyImportModal.tsx:80-92`
+**Issue:** Every other modal touched by this phase (`AssetDetailModal`/`CreateAssetModal` in `assets/page.tsx`, `CreatePMScheduleModal` in `pm-schedules/page.tsx`, `PMCompletionModal.tsx`, `CreateWorkOrderModal.tsx`, `InspectionModal.tsx`) renders its outer container with `role="dialog"`, `aria-modal="true"`, and an accessible name, plus a `keydown` listener that closes on `Escape`. `OccupancyImportModal`'s outer container is a plain `<div className="fixed inset-0 ...">` with none of that — no `role`, no `aria-modal`, no `aria-label`, and no Escape handling (only the `X` button and backdrop click close it). Screen-reader users get no indication this is a modal dialog, and keyboard-only users lose the Escape shortcut every other floor-facing modal in this phase provides.
+**Fix:**
+```tsx
+<div
+  role="dialog"
+  aria-modal="true"
+  aria-label={t('housekeeping.occupancyImport.title')}
+  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+>
+```
+Plus the same `useEffect` Escape-key pattern used in `InspectionModal.tsx:114-120`.
 
 ## Info
 
-### IN-01: `create_program_template` code-uniqueness check has a benign TOCTOU race
+### IN-01: Modal focus-trapping is inconsistent across the reviewed components
 
-**File:** `apps/api/routers/programs.py:216-241`
-**Issue:** `create_program_template` does a `select` + `maybe_single()` existence check
-before `insert`, with no transaction/upsert. Two concurrent requests with the same `code`
-could both pass the check and both insert, unless a DB-level `UNIQUE(tenant_id, code, ...)`
-constraint exists to catch it (in which case the second request would 500 instead of the
-intended 409). This is a pre-existing pattern used throughout the codebase (e.g.
-`assign_controlled_document`'s dedupe check in `evidence.py`), so it's flagged as
-informational rather than a blocker.
-**Fix:** Not required for this phase; worth a follow-up pass across all "check-then-insert"
-uniqueness guards if 409-vs-500 correctness under concurrency becomes a priority.
+**File:** `apps/web/components/engineering/CreateWorkOrderModal.tsx`, `PMCompletionModal.tsx`, `WorkOrderDetailDrawer.tsx`, `apps/web/components/housekeeping/InspectionModal.tsx`, `OccupancyImportModal.tsx`
+**Issue:** Only `CreateTaskModal` (in `tasks/page.tsx:216-230`) implements full Tab-focus trapping (first/last focusable element cycling). All the engineering/housekeeping modals above only close on `Escape` (or, in `OccupancyImportModal`'s case, not even that — see WR-04); Tab can move focus out of the dialog into the page behind it while it's open. This predates this phase's changes (it's a pre-existing pattern across the app) so it's not a regression, but it's worth tracking given the review's accessibility focus.
+**Fix:** Extract the focus-trap logic from `CreateTaskModal` into a shared hook (e.g. `useModalFocusTrap`, already referenced in `CLAUDE.md`'s `lib/hooks/` inventory) and apply it to the remaining dialogs.
+
+### IN-02: Hardcoded "Room" fallback text gets persisted as stored data, not just displayed
+
+**File:** `apps/web/components/engineering/CreateWorkOrderModal.tsx:108-114`, `apps/web/components/engineering/WorkOrderDetailDrawer.tsx:256`
+**Issue:**
+```ts
+location_text: selectedRoomId
+  ? (locationText.trim() || (roomNumber ? `Room ${roomNumber}` : undefined))
+  : locationText.trim() || undefined,
+```
+and
+```ts
+title: hkTaskNote.trim() || `Housekeeping needed — Room ${fullWo.rooms?.room_number}`,
+```
+These English fallback strings get written into `location_text` / task `title` fields in the database, not just rendered client-side. Lower severity than CR-02 because in the WO detail view the room number is displayed via the translated `t('engineering.workOrderCard.room')` join rather than this stored `location_text` (so the effect is mostly latent), but the created Task's title (pushed to Housekeeping) will always read in English regardless of the active locale, since it's stored, not re-derived at render time.
+**Fix:** Not a blocking fix, but worth a follow-up ticket: build these default strings from `t(...)` at creation time, understanding the persisted value will still be frozen in whatever locale was active when the record was created.
+
+### IN-03: Continued heavy use of `any` in the reviewed files
+
+**File:** e.g. `apps/web/app/(dashboard)/housekeeping/assignments/page.tsx:69,85,95`, `apps/web/app/(dashboard)/housekeeping/page.tsx:95-97,506-509`, `apps/web/components/housekeeping/RoomDetailDrawer.tsx` (dozens of `room: any`, `entry: any` etc.)
+**Issue:** Widespread `as any` / implicit `any` typing removes the type safety that would otherwise catch shape mismatches between the API response and the component's expectations. Pre-existing pattern across the codebase, not introduced by this phase, but worth noting since it's exactly the kind of "type assertions" the standard-depth checklist calls out.
+**Fix:** No action required for this phase; consider a follow-up typing pass on `lib/api/housekeeping.ts` response shapes so downstream components stop needing `as any` casts.
 
 ---
 
-_Reviewed: 2026-07-23T00:00:00Z_
+_Reviewed: 2026-07-24T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
