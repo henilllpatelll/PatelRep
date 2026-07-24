@@ -95,7 +95,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 05-01-PLAN.md — migration 084 + Twilio SDK pin/settings + fake Twilio client + GM ADR field; `[BLOCKING]` apply to live Supabase before any other plan
+- [x] 05-01-PLAN.md — migration 084 + Twilio SDK pin/settings + fake Twilio client + GM ADR field; `[BLOCKING]` apply to live Supabase before any other plan
 
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 05-02-PLAN.md — Twilio send wrapper, signed inbound webhook (reply-only match, never invents a request), status-callback webhook, reactive opt-out on error 21610, guest_phone capture
