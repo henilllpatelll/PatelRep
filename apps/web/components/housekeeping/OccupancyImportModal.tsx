@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { CheckCircle2, AlertCircle, Upload, X, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export function OccupancyImportModal({ date, onClose }: Props) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const today = date ?? format(new Date(), 'yyyy-MM-dd')
 
@@ -45,7 +48,7 @@ export function OccupancyImportModal({ date, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['room-status'] })
     },
     onError: (err: any) => {
-      setHkError(err?.response?.data?.detail ?? err.message ?? 'Import failed')
+      setHkError(err?.response?.data?.detail ?? err.message ?? t('housekeeping.occupancyImport.importFailed'))
     },
   })
 
@@ -60,7 +63,7 @@ export function OccupancyImportModal({ date, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['room-status'] })
     },
     onError: (err: any) => {
-      setTsError(err?.response?.data?.detail ?? err.message ?? 'Import failed')
+      setTsError(err?.response?.data?.detail ?? err.message ?? t('housekeeping.occupancyImport.importFailed'))
     },
   })
 
@@ -80,10 +83,10 @@ export function OccupancyImportModal({ date, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">
           <div>
-            <h2 className="text-base font-semibold text-stone-800">Import from Opera</h2>
+            <h2 className="text-base font-semibold text-stone-800">{t('housekeeping.occupancyImport.title')}</h2>
             <p className="text-xs text-stone-500 mt-0.5">{today}</p>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors" aria-label={t('housekeeping.occupancyImport.closeAria')}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -98,7 +101,7 @@ export function OccupancyImportModal({ date, onClose }: Props) {
                 : 'text-stone-500 hover:text-stone-700'
             }`}
           >
-            1. HK Details
+            {t('housekeeping.occupancyImport.tabs.hkDetails')}
           </button>
           <button
             onClick={() => setTab('task-sheet')}
@@ -108,7 +111,7 @@ export function OccupancyImportModal({ date, onClose }: Props) {
                 : 'text-stone-500 hover:text-stone-700'
             }`}
           >
-            2. Task Sheet
+            {t('housekeeping.occupancyImport.tabs.taskSheet')}
           </button>
         </div>
 
@@ -116,53 +119,55 @@ export function OccupancyImportModal({ date, onClose }: Props) {
           {tab === 'hk-details' ? (
             <>
               <p className="text-xs text-stone-500 leading-relaxed">
-                Upload the <span className="font-medium text-stone-700">Opera HK Details</span> report to reset
-                today&apos;s room status — sets Clean rooms to OOO, Dirty Occupied to Dirty, Departure rooms to Dirty,
-                and preserves any rooms currently in progress.
+                {t('housekeeping.occupancyImport.uploadPrefix')}{' '}
+                <span className="font-medium text-stone-700">{t('housekeeping.occupancyImport.hkDetailsLabel')}</span>{' '}
+                {t('housekeeping.occupancyImport.hkDetailsDescription')}
               </p>
 
               <DropZone
                 file={hkFile}
                 inputRef={hkInputRef}
                 onChange={handleHkFile}
-                label="Drop HK Details PDF here"
+                label={t('housekeeping.occupancyImport.hkDropzoneLabel')}
+                t={t}
               />
 
               {hkError && <ErrorBanner message={hkError} />}
-              {hkResult && <ResultBanner result={hkResult} />}
+              {hkResult && <ResultBanner result={hkResult} t={t} />}
 
               <Button
                 onClick={() => hkMutation.mutate()}
                 disabled={!hkFile || hkMutation.isPending}
                 className="w-full"
               >
-                {hkMutation.isPending ? 'Importing…' : 'Apply HK Details'}
+                {hkMutation.isPending ? t('housekeeping.occupancyImport.importing') : t('housekeeping.occupancyImport.applyHkDetails')}
               </Button>
             </>
           ) : (
             <>
               <p className="text-xs text-stone-500 leading-relaxed">
-                Upload the <span className="font-medium text-stone-700">Opera Task Sheet</span> to assign clean types —
-                Full/Light service stayover rooms become Pickup, Departure rooms stay Dirty with DEP clean type.
-                Import HK Details first before running this step.
+                {t('housekeeping.occupancyImport.uploadPrefix')}{' '}
+                <span className="font-medium text-stone-700">{t('housekeeping.occupancyImport.taskSheetLabel')}</span>{' '}
+                {t('housekeeping.occupancyImport.taskSheetDescription')}
               </p>
 
               <DropZone
                 file={tsFile}
                 inputRef={tsInputRef}
                 onChange={handleTsFile}
-                label="Drop Task Sheet PDF here"
+                label={t('housekeeping.occupancyImport.taskSheetDropzoneLabel')}
+                t={t}
               />
 
               {tsError && <ErrorBanner message={tsError} />}
-              {tsResult && <ResultBanner result={tsResult} />}
+              {tsResult && <ResultBanner result={tsResult} t={t} />}
 
               <Button
                 onClick={() => tsMutation.mutate()}
                 disabled={!tsFile || tsMutation.isPending}
                 className="w-full"
               >
-                {tsMutation.isPending ? 'Importing…' : 'Apply Task Sheet'}
+                {tsMutation.isPending ? t('housekeeping.occupancyImport.importing') : t('housekeeping.occupancyImport.applyTaskSheet')}
               </Button>
             </>
           )}
@@ -179,11 +184,13 @@ function DropZone({
   inputRef,
   onChange,
   label,
+  t,
 }: {
   file: File | null
   inputRef: React.RefObject<HTMLInputElement>
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   label: string
+  t: TFunction
 }) {
   return (
     <div
@@ -201,13 +208,13 @@ function DropZone({
         <div className="flex items-center justify-center gap-2 text-sm text-stone-700">
           <FileText className="w-5 h-5 text-amber-600" />
           <span className="font-medium">{file.name}</span>
-          <span className="text-stone-400">({(file.size / 1024).toFixed(0)} KB)</span>
+          <span className="text-stone-400">{t('housekeeping.occupancyImport.dropzone.sizeKb', { size: (file.size / 1024).toFixed(0) })}</span>
         </div>
       ) : (
         <div className="text-stone-400">
           <Upload className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">{label}</p>
-          <p className="text-xs mt-1">or click to browse</p>
+          <p className="text-xs mt-1">{t('housekeeping.occupancyImport.dropzone.orClickToBrowse')}</p>
         </div>
       )}
     </div>
@@ -223,21 +230,21 @@ function ErrorBanner({ message }: { message: string }) {
   )
 }
 
-function ResultBanner({ result }: { result: ImportResult }) {
+function ResultBanner({ result, t }: { result: ImportResult; t: TFunction }) {
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-1.5">
       <div className="flex items-center gap-2">
         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
         <p className="text-sm font-medium text-emerald-800">
-          {result.applied} of {result.total_parsed} rooms updated
+          {t('housekeeping.occupancyImport.result.summary', { applied: result.applied, total: result.total_parsed })}
         </p>
       </div>
       <div className="text-xs text-emerald-700 space-y-0.5 pl-6">
         {result.skipped_active > 0 && (
-          <p>{result.skipped_active} room{result.skipped_active !== 1 ? 's' : ''} skipped (in progress)</p>
+          <p>{t(result.skipped_active !== 1 ? 'housekeeping.occupancyImport.result.skippedActiveOther' : 'housekeeping.occupancyImport.result.skippedActiveOne', { count: result.skipped_active })}</p>
         )}
         {result.not_found > 0 && (
-          <p>{result.not_found} room number{result.not_found !== 1 ? 's' : ''} not found in system</p>
+          <p>{t(result.not_found !== 1 ? 'housekeeping.occupancyImport.result.notFoundOther' : 'housekeeping.occupancyImport.result.notFoundOne', { count: result.not_found })}</p>
         )}
       </div>
       {result.warnings.length > 0 && (
@@ -246,7 +253,7 @@ function ResultBanner({ result }: { result: ImportResult }) {
             <p key={i} className="text-xs text-amber-700">{w}</p>
           ))}
           {result.warnings.length > 3 && (
-            <p className="text-xs text-stone-500">+{result.warnings.length - 3} more warnings</p>
+            <p className="text-xs text-stone-500">{t('housekeeping.occupancyImport.result.moreWarnings', { count: result.warnings.length - 3 })}</p>
           )}
         </div>
       )}
