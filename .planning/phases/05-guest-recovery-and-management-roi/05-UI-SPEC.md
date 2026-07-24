@@ -59,14 +59,16 @@ Exceptions:
 
 ## Typography
 
-Established system (from `layout.tsx` + observed usage). Declaring the **2 core weights** for new Phase 5 elements plus 1 inherited system-wide exception:
+Established system (from `layout.tsx` + observed usage). Declaring the **2 core weights** and **4 font sizes** for new Phase 5 elements, plus 1 inherited system-wide weight exception:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (`text-sm`) | 400 (regular) | 1.5 |
 | Label | 11px, uppercase, `tracking-[0.08em]`–`[0.1em]` | 600 (semibold) | 1.3 (matches `SectionLabel`/drawer section headers) |
-| Heading (page/drawer h1, h2) | 20px (settings h2 `text-base`→18-20px range) / 22px (kanban page h1) | 600 (semibold) | 1.2 |
+| Heading (page/drawer h1, h2) | 20px (settings h2 `text-base`→18-20px range) | 600 (semibold) | 1.2 |
 | Display (KPI/hero numbers only) | 32px, `font-display` (Instrument Serif) | 400 (regular — the serif has no other weight) | 1.1 |
+
+**Legacy exception — do not replicate:** `GuestRequestsPage.tsx`'s existing kanban page `<h1>` uses 22px, a pre-existing value that predates this spec. It is left as-is (no regression work in scope), but every **new** Phase 5 heading — the message thread panel inside `GuestRequestDrawer.tsx`, `settings/guest-requests/page.tsx`, the `settings/rooms/page.tsx` accessibility tab, and `management-roi/page.tsx` — must use **20px**, not 22px. Do not carry the 22px value into any new surface; this keeps the contract at exactly 4 distinct sizes (11 / 14 / 20 / 32).
 
 **Weight exception (inherited, do not extend further):** `font-medium` (500) already appears codebase-wide on buttons (`Button.tsx`), tabs, pills, and table headers. Phase 5 new components should reuse existing `Button`/`Pill`/tab components as-is (which already carry 500) rather than hand-rolling new 500-weight elements — this keeps the "2 new weights" rule honest for anything genuinely new while not requiring a rewrite of shared primitives.
 
@@ -153,3 +155,4 @@ Accent reserved for: primary CTA buttons (listed above), active tab indicator, f
 
 1. **EN/ES scope for Phase 5 new UI is ambiguous and not locked in `05-CONTEXT.md`.** Phase 4's bilingual floor contract was scoped explicitly to Housekeeping and Engineering components/pages (`04-CONTEXT.md` D-03) — it did **not** include Guest Requests, Settings, Lost & Found, or Reports, all of which remain hardcoded English today (verified: `GuestRequestsPage.tsx`, `GuestRequestDrawer.tsx`, `settings/inspections/page.tsx`, `lost-found/page.tsx`, `reports/page.tsx` all hardcode English strings with no `t()` calls). The execution plan's blanket "Definition of done" item 5 says "English and Spanish copy for floor-facing behavior" — recommend: (a) the new message-thread panel inside `GuestRequestDrawer.tsx` is used by `front_desk` (a floor-adjacent role already covered for other surfaces) — **treat as floor-facing, add EN/ES** via the existing `en.ts`/`es.ts` pattern; (b) `settings/guest-requests`, `settings/rooms` accessibility tab, and `management-roi` are GM/admin-only surfaces with zero existing bilingual precedent in any Settings or Reports page — **treat as English-only**, consistent with every other Settings/Reports page; (c) `lost-found/page.tsx`'s new custody/disposition UI extends an already English-only page used by `front_desk`/`housekeeping_supervisor`/`gm` — recommend English-only to match the page's existing precedent, but flag this as the one genuinely gray case for the planner/user to confirm.
 2. The `management-roi` route slug is `/management-roi` per `05-RESEARCH.md`'s Open Question #3 recommendation — confirmed as the design assumption for this spec (sibling to `/reports`, not nested under it).
+</content>
