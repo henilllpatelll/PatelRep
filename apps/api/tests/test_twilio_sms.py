@@ -5,13 +5,17 @@ Every test drives services.sms.twilio_client / routers.guest_requests / routers.
 against FakeTwilioClient and the in-memory FakeDB supabase double.
 """
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import HTTPException
+from twilio.request_validator import RequestValidator
 
 from core.config import settings
 from middleware.auth import CurrentUser
 from models.requests import CreateGuestMessageRequest
 from routers import guest_requests as guest_requests_router
+from routers import webhooks as webhooks_router
 from services.sms import twilio_client
 from services.sms.twilio_client import SmsNotConfiguredError, SmsOptedOutError, SmsSendError
 from tests.smoke.fake_supabase import FakeDB
@@ -270,3 +274,147 @@ async def test_create_guest_request_persists_guest_phone(monkeypatch):
     )
 
     assert response["data"]["guest_phone"] == "+12145550199"
+
+
+# --- Task 3: inbound + status-callback webhooks ---
+
+
+class FakeTwilioRequest:
+    def __init__(self, form: dict, headers: dict | None = None, path: str = "/v1/webhooks/twilio-sms"):
+        self._form = form
+        self.headers = headers or {}
+        self.url = SimpleNamespace(path=path)
+
+    async def form(self):
+        return self._form
+
+
+def _signed_headers(form: dict, path: str, proto: str = "https", host: str = "api.example.com"):
+    url = f"{proto}://{host}{path}"
+    signature = RequestValidator("auth_test").compute_signature(url, form)
+    return {"x-twilio-signature": signature, "x-forwarded-proto": proto, "host": host}
+
+
+@pytest.mark.asyncio
+async def test_twilio_signature_rejected_in_production(monkeypatch):
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "production")
+    db = FakeDB({"guest_messages": []})
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+12145550100", "Body": "hi", "MessageSid": "SMabc"}
+    request = FakeTwilioRequest(form, headers={"x-twilio-signature": "wrong"})
+
+    with pytest.raises(HTTPException) as exc:
+        await webhooks_router.twilio_sms_webhook(request)
+
+    assert exc.value.status_code == 401
+    assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_twilio_signature_skipped_in_development(monkeypatch):
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "development")
+    db = FakeDB({"guest_messages": []})
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+12145550100", "Body": "hi", "MessageSid": "SMabc"}
+    request = FakeTwilioRequest(form, headers={})
+
+    response = await webhooks_router.twilio_sms_webhook(request)
+
+    assert response == {"status": "ignored", "reason": "no_matching_outbound"}
+
+
+@pytest.mark.asyncio
+async def test_signature_url_uses_forwarded_proto(monkeypatch):
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "production")
+    db = FakeDB({"guest_messages": []})
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+12145550100", "Body": "hi", "MessageSid": "SMabc"}
+    headers = _signed_headers(form, "/v1/webhooks/twilio-sms")
+    request = FakeTwilioRequest(form, headers=headers)
+
+    response = await webhooks_router.twilio_sms_webhook(request)
+
+    assert response == {"status": "ignored", "reason": "no_matching_outbound"}
+
+
+@pytest.mark.asyncio
+async def test_reply_only_match_appends_to_existing_request(monkeypatch):
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "development")
+    db = FakeDB({
+        "guest_messages": [{
+            "id": "msg-1", "tenant_id": "hotel-a", "guest_request_id": "gr-1",
+            "direction": "outbound", "recipient": "+12145550100",
+            "created_at": "2026-07-20T10:00:00+00:00",
+        }],
+        "guest_request_events": [],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+12145550100", "Body": "On my way", "MessageSid": "SMreply1"}
+    request = FakeTwilioRequest(form)
+
+    response = await webhooks_router.twilio_sms_webhook(request)
+
+    assert response == {"status": "ok"}
+    inbound = [row for table, row in db.inserts if table == "guest_messages" and row.get("direction") == "inbound"]
+    assert inbound[0]["guest_request_id"] == "gr-1"
+    assert inbound[0]["excluded_from_ai"] is True
+    events = [row for table, row in db.inserts if table == "guest_request_events"]
+    assert events[0]["event_type"] == "guest_contacted"
+    assert events[0]["source"] == "sms"
+
+
+@pytest.mark.asyncio
+async def test_reply_only_no_match_creates_nothing(monkeypatch):
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "development")
+    db = FakeDB({"guest_messages": [], "guest_requests": [], "guest_request_events": []})
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+19995550000", "Body": "hello?", "MessageSid": "SMcold1"}
+    request = FakeTwilioRequest(form)
+
+    response = await webhooks_router.twilio_sms_webhook(request)
+
+    assert response == {"status": "ignored", "reason": "no_matching_outbound"}
+    assert [table for table, _ in db.inserts if table == "guest_requests"] == []
+    assert [table for table, _ in db.inserts if table == "guest_messages"] == []
+    assert [table for table, _ in db.inserts if table == "guest_request_events"] == []
+
+
+@pytest.mark.asyncio
+async def test_status_callback_appends_delivery_event(monkeypatch):
+    monkeypatch.setattr(settings, "app_env", "development")
+    db = FakeDB({
+        "guest_message_delivery_events": [{
+            "id": "ev-1", "tenant_id": "hotel-a", "guest_message_id": "msg-1",
+            "status": "sent", "provider_message_id": "SMsent1",
+            "created_at": "2026-07-20T10:00:00+00:00",
+        }],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"MessageSid": "SMsent1", "MessageStatus": "delivered"}
+    request = FakeTwilioRequest(form, path="/v1/webhooks/twilio-status")
+
+    response = await webhooks_router.twilio_status_webhook(request)
+
+    assert response == {"status": "ok"}
+    inserted = [row for table, row in db.inserts if table == "guest_message_delivery_events"]
+    assert inserted[0]["status"] == "delivered"
+    assert inserted[0]["guest_message_id"] == "msg-1"
+
+
+@pytest.mark.asyncio
+async def test_status_callback_unknown_message_sid_is_ignored(monkeypatch):
+    monkeypatch.setattr(settings, "app_env", "development")
+    db = FakeDB({"guest_message_delivery_events": []})
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"MessageSid": "SMunknown", "MessageStatus": "delivered"}
+    request = FakeTwilioRequest(form, path="/v1/webhooks/twilio-status")
+
+    response = await webhooks_router.twilio_status_webhook(request)
+
+    assert response == {"status": "ignored", "reason": "unknown_message"}
+    assert db.inserts == []
