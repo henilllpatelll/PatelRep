@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -24,6 +25,7 @@ function filterRooms(rooms: any[], mode: FilterMode): any[] {
 }
 
 export function EngineeringRoomBoard() {
+  const { t } = useTranslation()
   const today = format(new Date(), 'yyyy-MM-dd')
   const [filter, setFilter] = useState<FilterMode>('all')
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
@@ -96,7 +98,7 @@ export function EngineeringRoomBoard() {
     return (
       <div className="flex items-center justify-center h-48 gap-2 text-sm text-ink3">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Loading rooms…
+        {t('engineering.roomBoard.loading')}
       </div>
     )
   }
@@ -105,12 +107,12 @@ export function EngineeringRoomBoard() {
     return (
       <div className="flex flex-col items-center justify-center h-48 gap-3 text-sm">
         <AlertCircle className="w-5 h-5 text-[var(--alert)]" />
-        <p className="text-[13px] text-ink3">Failed to load rooms.</p>
+        <p className="text-[13px] text-ink3">{t('engineering.roomBoard.loadError')}</p>
         <button
           onClick={() => refetch()}
           className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
         >
-          Retry
+          {t('engineering.roomBoard.retry')}
         </button>
       </div>
     )
@@ -126,7 +128,7 @@ export function EngineeringRoomBoard() {
           className={chipClass(filter === 'all')}
         >
           <StatusDot tone="neutral" size={7} />
-          All
+          {t('engineering.roomBoard.allFilter')}
           <span className="font-mono font-semibold text-[11px] opacity-70">{allRooms.length}</span>
         </button>
 
@@ -136,7 +138,7 @@ export function EngineeringRoomBoard() {
           className={chipClass(filter === 'vacant')}
         >
           <StatusDot tone="dirty" size={7} />
-          Vacant
+          {t('engineering.roomBoard.vacantFilter')}
           <span className="font-mono font-semibold text-[11px] opacity-70">{vacantCount}</span>
         </button>
 
@@ -153,7 +155,7 @@ export function EngineeringRoomBoard() {
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" />
           </svg>
-          AI risk
+          {t('engineering.roomBoard.aiRiskFilter')}
           <span className="font-mono font-bold text-[11px]">{aiCount}</span>
         </button>
       </div>
@@ -161,7 +163,7 @@ export function EngineeringRoomBoard() {
       {/* Floor-grouped grid */}
       {sortedFloors.length === 0 ? (
         <div className="flex items-center justify-center h-40 text-[13px] text-ink3">
-          No rooms match the current filter
+          {t('engineering.roomBoard.noMatch')}
         </div>
       ) : (
         <div className="space-y-8">
@@ -171,10 +173,12 @@ export function EngineeringRoomBoard() {
               <div key={floor}>
                 <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
                   <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2">
-                    {floor === 0 ? 'Ground Floor' : `Floor ${floor}`}
+                    {floor === 0 ? t('engineering.roomBoard.groundFloor') : t('engineering.roomBoard.floorLabel', { floor })}
                   </h3>
                   <span className="font-mono text-[11px] text-ink3">
-                    {floorRooms.length} room{floorRooms.length !== 1 ? 's' : ''}
+                    {floorRooms.length === 1
+                      ? t('engineering.roomBoard.roomCountOne', { count: floorRooms.length })
+                      : t('engineering.roomBoard.roomCountOther', { count: floorRooms.length })}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">

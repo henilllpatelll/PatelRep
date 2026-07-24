@@ -1,6 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { WorkOrderCard } from './WorkOrderCard'
 import { ClipboardList } from 'lucide-react'
@@ -12,13 +14,15 @@ interface Props {
   onSelect: (wo: WorkOrder) => void
 }
 
-const EMPTY_MESSAGES: Record<string, string> = {
-  open: 'No open work orders. All caught up!',
-  escalated: 'No escalated work orders.',
-  in_progress: 'No work orders currently in progress.',
-  on_hold: 'No work orders on hold.',
-  completed: 'No completed work orders yet.',
-  cancelled: 'No cancelled work orders.',
+function getEmptyMessages(t: TFunction): Record<string, string> {
+  return {
+    open: t('engineering.workOrderList.emptyOpen'),
+    escalated: t('engineering.workOrderList.emptyEscalated'),
+    in_progress: t('engineering.workOrderList.emptyInProgress'),
+    on_hold: t('engineering.workOrderList.emptyOnHold'),
+    completed: t('engineering.workOrderList.emptyCompleted'),
+    cancelled: t('engineering.workOrderList.emptyCancelled'),
+  }
 }
 
 function SkeletonCard() {
@@ -43,6 +47,7 @@ function SkeletonCard() {
 }
 
 export function WorkOrderList({ status, category, priority, onSelect }: Props) {
+  const { t } = useTranslation()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['work-orders', status, category, priority],
     queryFn: () => engineeringApi.listWorkOrders({ status, category, priority }),
@@ -62,7 +67,7 @@ export function WorkOrderList({ status, category, priority, onSelect }: Props) {
   if (isError) {
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-red-600">Failed to load work orders. Please try again.</p>
+        <p className="text-sm text-red-600">{t('engineering.workOrderList.loadError')}</p>
       </div>
     )
   }
@@ -70,11 +75,12 @@ export function WorkOrderList({ status, category, priority, onSelect }: Props) {
   const workOrders: WorkOrder[] = data?.data ?? []
 
   if (!workOrders.length) {
+    const emptyMessages = getEmptyMessages(t)
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <ClipboardList className="w-10 h-10 text-gray-300 mb-3" />
         <p className="text-sm text-gray-400">
-          {EMPTY_MESSAGES[status] ?? `No ${status.replace(/_/g, ' ')} work orders.`}
+          {emptyMessages[status] ?? t('engineering.workOrderList.emptyGeneric', { status: status.replace(/_/g, ' ') })}
         </p>
       </div>
     )
