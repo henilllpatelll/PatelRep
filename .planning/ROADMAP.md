@@ -81,7 +81,7 @@ Plans:
 - [x] 04-09-PLAN.md — (wave 1) HK board: RoomStatusBoard (Realtime surface), RoomCard, AssignmentSidebar, PredictionPanel → EN/ES
 - [x] 04-17-PLAN.md — (wave 1, parallel — spec-file only) Playwright test 3 race fix: wait for gated /programs panels before skip
 - [x] 04-10-PLAN.md — (wave 2) HK drawer/modals: RoomDetailDrawer, InspectionModal, OccupancyImportModal → EN/ES
-- [ ] 04-11-PLAN.md — (wave 3) HK route pages: housekeeping/page, assignments/page → EN/ES
+- [x] 04-11-PLAN.md — (wave 3) HK route pages: housekeeping/page, assignments/page → EN/ES
 - [ ] 04-12-PLAN.md — (wave 4) HK route pages: inspections/page, rooms/page → EN/ES
 - [ ] 04-13-PLAN.md — (wave 5) ENG WorkOrderDetailDrawer (heaviest floor surface) → EN/ES
 - [ ] 04-14-PLAN.md — (wave 6) ENG components: CreateWorkOrderModal, WorkOrderList, EngineeringRoomBoard, FailurePredictionSidebar → EN/ES
