@@ -118,7 +118,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const isEngineer = role === 'engineer'
-  const isChief = role === 'engineer'
+  const isChief = role === 'chief_engineer'
 
   // Completion form state
   const [showCompleteForm, setShowCompleteForm] = useState(false)

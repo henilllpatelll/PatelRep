@@ -80,8 +80,9 @@ function WorkOrderCard({
   wo: WorkOrder
   onClick: () => void
 }) {
+  const { t } = useTranslation()
   const location = wo.rooms?.room_number
-    ? `Room ${wo.rooms.room_number}`
+    ? `${t('engineering.workOrderCard.room')} ${wo.rooms.room_number}`
     : wo.location_text ?? null
 
   const borderColor = PRIORITY_BORDER[wo.priority] ?? PRIORITY_BORDER.normal
