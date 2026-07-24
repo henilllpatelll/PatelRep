@@ -115,6 +115,15 @@ None. Tasks 1–2 completed and committed cleanly; Task 3 was a planned blocking
 - Blocking gate cleared: every Phase 5 endpoint that touches these columns will resolve at runtime rather than 500 on a missing column.
 - No blockers for wave 2. Twilio credentials remain the only external dependency, gated behind FakeTwilioClient for CI.
 
+## Self-Check: PASSED
+
+- `supabase/migrations/084_guest_phone_adr_and_retention.sql` — FOUND
+- `apps/api/tests/smoke/fake_twilio_client.py` — FOUND
+- `apps/api/requirements.txt`, `apps/api/core/config.py`, `apps/api/models/requests.py` — FOUND
+- Commit `2fd7334d` (Task 1) — FOUND
+- Commit `6fe4d84c` (Task 2) — FOUND
+- Commit `fce5060c` (SUMMARY) — FOUND
+
 ---
 *Phase: 05-guest-recovery-and-management-roi*
 *Completed: 2026-07-24*
