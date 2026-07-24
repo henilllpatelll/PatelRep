@@ -14,6 +14,7 @@ from services.guest_recovery.contracts import (
     calculate_repeat_failures,
     calculate_room_downtime_hours,
     calculate_training_readiness,
+    project_seven_day_labor_forecast,
 )
 
 
@@ -342,3 +343,111 @@ def test_training_readiness_empty_input_returns_zero_shape():
     assert result["total_assignments"] == 0
     assert result["readiness_pct"] == 0.0
     assert result["overdue"] == 0
+
+
+# ---------------------------------------------------------------------------
+# project_seven_day_labor_forecast (D-09)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_returns_seven_consecutive_days():
+    result = project_seven_day_labor_forecast([], {}, start_date=date(2026, 8, 1))
+
+    assert len(result) == 7
+    assert [entry["date"] for entry in result] == [
+        "2026-08-01",
+        "2026-08-02",
+        "2026-08-03",
+        "2026-08-04",
+        "2026-08-05",
+        "2026-08-06",
+        "2026-08-07",
+    ]
+
+
+def test_forecast_uses_trailing_weekday_average():
+    # Four prior Mondays (2026-08-03 is a Monday) with 10, 12, 14, 16 rooms
+    # of one room type whose avg clean time is 30 minutes.
+    historical_completions = [
+        {"date": "2026-07-27", "room_type_id": "standard", "rooms": 10},
+        {"date": "2026-07-20", "room_type_id": "standard", "rooms": 12},
+        {"date": "2026-07-13", "room_type_id": "standard", "rooms": 14},
+        {"date": "2026-07-06", "room_type_id": "standard", "rooms": 16},
+    ]
+
+    result = project_seven_day_labor_forecast(
+        historical_completions, {"standard": 30.0}, start_date=date(2026, 8, 1)
+    )
+    monday_entry = next(entry for entry in result if entry["date"] == "2026-08-03")
+
+    # mean(10, 12, 14, 16) = 13 rooms; 13 rooms x 30 min / 60 = 6.5 hours
+    assert monday_entry["projected_rooms"] == 13
+    assert monday_entry["projected_labor_hours"] == 6.5
+    assert monday_entry["confidence"] == "high"
+
+
+def test_forecast_labor_hours_use_room_type_clean_minutes():
+    historical_completions = [
+        {"date": "2026-07-27", "room_type_id": "standard", "rooms": 10},
+        {"date": "2026-07-27", "room_type_id": "suite", "rooms": 4},
+    ]
+
+    result = project_seven_day_labor_forecast(
+        historical_completions,
+        {"standard": 30.0, "suite": 60.0},
+        start_date=date(2026, 8, 1),
+    )
+    monday_entry = next(entry for entry in result if entry["date"] == "2026-08-03")
+
+    # standard: 10 rooms x 30min/60 = 5.0h; suite: 4 rooms x 60min/60 = 4.0h
+    assert monday_entry["projected_rooms"] == 14
+    assert monday_entry["projected_labor_hours"] == 9.0
+    by_type = {row["room_type_id"]: row for row in monday_entry["by_room_type"]}
+    assert by_type["standard"] == {
+        "room_type_id": "standard",
+        "projected_rooms": 10,
+        "projected_labor_hours": 5.0,
+    }
+    assert by_type["suite"] == {
+        "room_type_id": "suite",
+        "projected_rooms": 4,
+        "projected_labor_hours": 4.0,
+    }
+
+
+def test_forecast_falls_back_to_default_clean_minutes():
+    historical_completions = [
+        {"date": "2026-07-27", "room_type_id": "economy", "rooms": 8},
+    ]
+
+    result = project_seven_day_labor_forecast(
+        historical_completions, {}, start_date=date(2026, 8, 1)
+    )
+    monday_entry = next(entry for entry in result if entry["date"] == "2026-08-03")
+
+    # no baseline for "economy" -> falls back to default_clean_minutes=30
+    assert monday_entry["projected_rooms"] == 8
+    assert monday_entry["projected_labor_hours"] == 4.0
+
+
+def test_forecast_confidence_low_with_single_observation():
+    historical_completions = [
+        {"date": "2026-07-27", "room_type_id": "standard", "rooms": 10},
+    ]
+
+    result = project_seven_day_labor_forecast(
+        historical_completions, {"standard": 30.0}, start_date=date(2026, 8, 1)
+    )
+    monday_entry = next(entry for entry in result if entry["date"] == "2026-08-03")
+
+    assert monday_entry["confidence"] == "low"
+
+
+def test_forecast_empty_history_returns_seven_zero_days():
+    result = project_seven_day_labor_forecast([], {}, start_date=date(2026, 8, 1))
+
+    assert len(result) == 7
+    for entry in result:
+        assert entry["projected_rooms"] == 0
+        assert entry["projected_labor_hours"] == 0.0
+        assert entry["confidence"] == "low"
