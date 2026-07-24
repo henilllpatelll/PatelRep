@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Package,
   Plus,
@@ -20,15 +22,23 @@ import { Input } from '@/components/ui/Input'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const RISK_FILTERS = ['All', 'High Risk', 'Medium', 'Low'] as const
-type RiskFilter = (typeof RISK_FILTERS)[number]
+type RiskFilter = 'all' | 'highRisk' | 'medium' | 'low'
+
+function getRiskFilters(t: TFunction): { key: RiskFilter; label: string }[] {
+  return [
+    { key: 'all', label: t('engineering.assetsPage.filterAll') },
+    { key: 'highRisk', label: t('engineering.assetsPage.filterHighRisk') },
+    { key: 'medium', label: t('engineering.assetsPage.filterMedium') },
+    { key: 'low', label: t('engineering.assetsPage.filterLow') },
+  ]
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getRiskBadge(score: number): { label: string; cls: string } {
-  if (score >= 70) return { label: 'HIGH', cls: 'bg-[var(--alert-soft)] text-red-700 border border-red-200' }
-  if (score >= 40) return { label: 'MEDIUM', cls: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' }
-  return { label: 'LOW', cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
+function getRiskBadge(score: number, t: TFunction): { label: string; cls: string } {
+  if (score >= 70) return { label: t('engineering.failurePrediction.riskHigh'), cls: 'bg-[var(--alert-soft)] text-red-700 border border-red-200' }
+  if (score >= 40) return { label: t('engineering.failurePrediction.riskMedium'), cls: 'bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)]' }
+  return { label: t('engineering.failurePrediction.riskLow'), cls: 'bg-blue-50 text-blue-700 border border-blue-200' }
 }
 
 function getRiskBarColor(score: number): string {
@@ -37,13 +47,13 @@ function getRiskBarColor(score: number): string {
   return 'bg-[var(--ready)]'
 }
 
-function getWarrantyLabel(warrantyExpires?: string): { text: string; cls: string } {
-  if (!warrantyExpires) return { text: 'No warranty', cls: 'text-gray-400' }
+function getWarrantyLabel(warrantyExpires: string | undefined, t: TFunction): { text: string; cls: string } {
+  if (!warrantyExpires) return { text: t('engineering.assetsPage.noWarranty'), cls: 'text-gray-400' }
   const expiry = new Date(warrantyExpires)
   const now = new Date()
-  if (expiry < now) return { text: 'Expired', cls: 'text-[var(--alert)] font-medium' }
+  if (expiry < now) return { text: t('engineering.assetsPage.warrantyExpired'), cls: 'text-[var(--alert)] font-medium' }
   return {
-    text: `Expires ${format(expiry, 'MM/yyyy')}`,
+    text: t('engineering.assetsPage.warrantyExpires', { date: format(expiry, 'MM/yyyy') }),
     cls: 'text-green-700',
   }
 }
@@ -106,6 +116,7 @@ interface AssetDetailModalProps {
 }
 
 function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [editMode, setEditMode] = useState(false)
   const [editFields, setEditFields] = useState<Partial<Asset>>({})
@@ -153,14 +164,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
       await queryClient.invalidateQueries({ queryKey: ['asset', assetId] })
       setEditMode(false)
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save changes.')
+      setSaveError(err instanceof Error ? err.message : t('engineering.assetsPage.saveError'))
     } finally {
       setSaving(false)
     }
   }
 
-  const risk = data ? getRiskBadge(data.failure_risk_score) : null
-  const warranty = data ? getWarrantyLabel(data.warranty_expires) : null
+  const risk = data ? getRiskBadge(data.failure_risk_score, t) : null
+  const warranty = data ? getWarrantyLabel(data.warranty_expires, t) : null
   const pmSchedules: PMSchedule[] = (data as (Asset & { pm_schedules?: PMSchedule[] }) | undefined)?.pm_schedules ?? []
 
   return (
@@ -184,7 +195,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 <Package size={16} className="text-[var(--caution)]" />
               </div>
               <h2 className="text-base font-bold text-gray-900">
-                {isLoading ? 'Loading…' : (data?.name ?? 'Asset Detail')}
+                {isLoading ? t('engineering.assetsPage.detailLoading') : (data?.name ?? t('engineering.assetsPage.detailFallbackHeading'))}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -194,14 +205,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   onClick={startEdit}
                   className="px-3 py-1.5 text-sm"
                 >
-                  Edit
+                  {t('engineering.assetsPage.edit')}
                 </Button>
               )}
               <button
                 onClick={onClose}
                 disabled={saving}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Close"
+                aria-label={t('engineering.assetsPage.close')}
               >
                 <X size={18} />
               </button>
@@ -213,7 +224,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
               <Loader2 size={24} className="animate-spin text-gray-400" />
             </div>
           ) : !data ? (
-            <div className="p-6 text-center text-sm text-gray-500">Failed to load asset.</div>
+            <div className="p-6 text-center text-sm text-gray-500">{t('engineering.assetsPage.loadDetailError')}</div>
           ) : (
             <div className="p-6 space-y-6">
               {/* Risk + Status badges */}
@@ -221,7 +232,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 {risk && (
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${risk.cls}`}>
                     <AlertTriangle size={12} />
-                    {risk.label} RISK — {data.failure_risk_score}%
+                    {risk.label} {t('engineering.assetsPage.riskSuffix', { score: data.failure_risk_score })}
                   </span>
                 )}
                 <span
@@ -231,7 +242,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       : 'bg-gray-100 text-gray-500'
                   }`}
                 >
-                  {data.is_active ? 'Active' : 'Inactive'}
+                  {data.is_active ? t('engineering.assetsPage.active') : t('engineering.assetsPage.inactive')}
                 </span>
                 {data.asset_tag && (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono bg-slate-50 text-slate-600 border border-slate-200">
@@ -245,7 +256,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor={`asset-edit-name-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                      <label htmlFor={`asset-edit-name-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.name')}</label>
                       <Input
                         id={`asset-edit-name-${assetId}`}
                         type="text"
@@ -254,7 +265,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-location-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                      <label htmlFor={`asset-edit-location-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.location')}</label>
                       <Input
                         id={`asset-edit-location-${assetId}`}
                         type="text"
@@ -263,7 +274,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-manufacturer-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Manufacturer</label>
+                      <label htmlFor={`asset-edit-manufacturer-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.manufacturer')}</label>
                       <Input
                         id={`asset-edit-manufacturer-${assetId}`}
                         type="text"
@@ -272,7 +283,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-model-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Model</label>
+                      <label htmlFor={`asset-edit-model-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.model')}</label>
                       <Input
                         id={`asset-edit-model-${assetId}`}
                         type="text"
@@ -281,7 +292,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-serial-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Serial Number</label>
+                      <label htmlFor={`asset-edit-serial-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.serialNumber')}</label>
                       <Input
                         id={`asset-edit-serial-${assetId}`}
                         type="text"
@@ -291,7 +302,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-replacement-cost-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Replacement Cost ($)</label>
+                      <label htmlFor={`asset-edit-replacement-cost-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.fieldReplacementCost')}</label>
                       <Input
                         id={`asset-edit-replacement-cost-${assetId}`}
                         type="number"
@@ -306,7 +317,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       />
                     </div>
                     <div>
-                      <label htmlFor={`asset-edit-lifespan-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Expected Lifespan (years)</label>
+                      <label htmlFor={`asset-edit-lifespan-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.fieldLifespan')}</label>
                       <Input
                         id={`asset-edit-lifespan-${assetId}`}
                         type="number"
@@ -322,7 +333,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                     </div>
                   </div>
                   <div>
-                    <label htmlFor={`asset-edit-notes-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <label htmlFor={`asset-edit-notes-${assetId}`} className="block text-xs font-medium text-gray-600 mb-1">{t('engineering.assetsPage.notes')}</label>
                     <textarea
                       id={`asset-edit-notes-${assetId}`}
                       rows={3}
@@ -343,7 +354,7 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       onClick={() => setEditMode(false)}
                       disabled={saving}
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                     <Button
                       variant="primary"
@@ -353,10 +364,10 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                       {saving ? (
                         <>
                           <Loader2 size={13} className="animate-spin" />
-                          Saving…
+                          {t('engineering.assetsPage.saving')}
                         </>
                       ) : (
-                        'Save Changes'
+                        t('engineering.assetsPage.saveChanges')
                       )}
                     </Button>
                   </div>
@@ -365,37 +376,37 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                 /* ── Read-only detail ── */
                 <>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <DetailRow label="Category" value={data.asset_categories?.name ?? '—'} />
+                    <DetailRow label={t('engineering.assetsPage.category')} value={data.asset_categories?.name ?? '—'} />
                     <DetailRow
-                      label="Location"
-                      value={data.rooms?.room_number ? `Room ${data.rooms.room_number}` : (data.location_text ?? '—')}
+                      label={t('engineering.assetsPage.location')}
+                      value={data.rooms?.room_number ? `${t('engineering.workOrderCard.room')} ${data.rooms.room_number}` : (data.location_text ?? '—')}
                     />
-                    <DetailRow label="Manufacturer" value={data.manufacturer ?? '—'} />
-                    <DetailRow label="Model" value={data.model ?? '—'} />
-                    <DetailRow label="Serial Number" value={data.serial_number ?? '—'} mono />
+                    <DetailRow label={t('engineering.assetsPage.manufacturer')} value={data.manufacturer ?? '—'} />
+                    <DetailRow label={t('engineering.assetsPage.model')} value={data.model ?? '—'} />
+                    <DetailRow label={t('engineering.assetsPage.serialNumber')} value={data.serial_number ?? '—'} mono />
                     <DetailRow
-                      label="Purchase Date"
+                      label={t('engineering.assetsPage.purchaseDate')}
                       value={data.purchase_date ? format(new Date(data.purchase_date), 'MMM d, yyyy') : '—'}
                     />
                     <DetailRow
-                      label="Installation Date"
+                      label={t('engineering.assetsPage.installationDate')}
                       value={data.installation_date ? format(new Date(data.installation_date), 'MMM d, yyyy') : '—'}
                     />
                     <DetailRow
-                      label="Warranty"
+                      label={t('engineering.assetsPage.warranty')}
                       value={warranty?.text ?? '—'}
                       valueClass={warranty?.cls}
                     />
                     <DetailRow
-                      label="Expected Lifespan"
-                      value={data.expected_lifespan_years != null ? `${data.expected_lifespan_years} years` : '—'}
+                      label={t('engineering.assetsPage.detailLifespan')}
+                      value={data.expected_lifespan_years != null ? t('engineering.assetsPage.detailLifespanValue', { years: data.expected_lifespan_years }) : '—'}
                     />
-                    <DetailRow label="Replacement Cost" value={formatCurrency(data.replacement_cost)} />
+                    <DetailRow label={t('engineering.assetsPage.detailReplacementCost')} value={formatCurrency(data.replacement_cost)} />
                   </div>
 
                   {data.notes && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Notes</p>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">{t('engineering.assetsPage.notes')}</p>
                       <p className="text-sm text-gray-700 bg-[var(--caution-soft)]/40 rounded-lg px-4 py-3">{data.notes}</p>
                     </div>
                   )}
@@ -406,10 +417,10 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
               {!editMode && (
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                    PM Schedules ({pmSchedules.length})
+                    {t('engineering.assetsPage.pmSchedulesHeading', { count: pmSchedules.length })}
                   </p>
                   {pmSchedules.length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No PM schedules linked to this asset.</p>
+                    <p className="text-sm text-gray-400 italic">{t('engineering.assetsPage.noPmSchedules')}</p>
                   ) : (
                     <div className="space-y-2">
                       {pmSchedules.map((pm) => {
@@ -423,8 +434,8 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                               <p className="text-sm font-medium text-gray-900">{pm.name}</p>
                               <p className="text-xs text-gray-500 mt-0.5 capitalize">
                                 {pm.interval_type}
-                                {pm.interval_days ? ` (${pm.interval_days} days)` : ''} •{' '}
-                                {pm.estimated_minutes} min
+                                {pm.interval_days ? ` ${t('engineering.assetsPage.pmIntervalDays', { days: pm.interval_days })}` : ''} •{' '}
+                                {t('engineering.assetsPage.pmMinutesSuffix', { minutes: pm.estimated_minutes })}
                               </p>
                             </div>
                             <div className="text-right shrink-0 ml-4">
@@ -433,13 +444,13 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                                   isOverdue ? 'text-[var(--alert)]' : 'text-gray-600'
                                 }`}
                               >
-                                {isOverdue ? 'Overdue' : 'Due'}{' '}
+                                {isOverdue ? t('engineering.assetsPage.pmOverdue') : t('engineering.assetsPage.pmDue')}{' '}
                                 {format(new Date(pm.next_due_at), 'MMM d, yyyy')}
                               </p>
                               <p className="text-xs text-gray-400 mt-0.5">
                                 {pm.last_completed_at
-                                  ? `Last done ${format(new Date(pm.last_completed_at), 'MMM d, yyyy')}`
-                                  : 'Never completed'}
+                                  ? t('engineering.assetsPage.pmLastDone', { date: format(new Date(pm.last_completed_at), 'MMM d, yyyy') })
+                                  : t('engineering.assetsPage.pmNeverCompleted')}
                               </p>
                             </div>
                           </div>
@@ -487,6 +498,7 @@ interface CreateAssetModalProps {
 }
 
 function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps) {
+  const { t } = useTranslation()
   const [fields, setFields] = useState({
     name: '',
     category_id: '',
@@ -536,7 +548,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 
   async function handleCreate() {
     if (!fields.name.trim()) {
-      setError('Asset name is required.')
+      setError(t('engineering.assetsPage.createNameRequired'))
       return
     }
     setSaving(true)
@@ -560,7 +572,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create asset.')
+      setError(err instanceof Error ? err.message : t('engineering.assetsPage.createError'))
     } finally {
       setSaving(false)
     }
@@ -577,7 +589,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Add asset"
+          aria-label={t('engineering.assetsPage.createAriaLabel')}
           className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
@@ -587,13 +599,13 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
               <div className="w-8 h-8 rounded-lg bg-[var(--caution)] flex items-center justify-center shrink-0">
                 <Plus size={16} className="text-white" />
               </div>
-              <h2 className="text-base font-bold text-gray-900">Add Asset</h2>
+              <h2 className="text-base font-bold text-gray-900">{t('engineering.assetsPage.addAsset')}</h2>
             </div>
             {!saving && (
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Close"
+                aria-label={t('engineering.assetsPage.close')}
               >
                 <X size={18} />
               </button>
@@ -604,84 +616,84 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Name */}
             <div>
               <label htmlFor="asset-create-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Asset Name <span className="text-[var(--alert)]">*</span>
+                {t('engineering.assetsPage.createNameLabel')} <span className="text-[var(--alert)]">*</span>
               </label>
               <Input
                 id="asset-create-name"
                 type="text"
                 value={fields.name}
                 onChange={(e) => set('name', e.target.value)}
-                placeholder="e.g. Rooftop HVAC Unit A"
+                placeholder={t('engineering.assetsPage.createNamePlaceholder')}
               />
             </div>
 
             {/* Category ID */}
             <div>
               <label htmlFor="asset-create-category-id" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Category ID{' '}
-                <span className="text-gray-400 font-normal">(UUID from system)</span>
+                {t('engineering.assetsPage.createCategoryIdLabel')}{' '}
+                <span className="text-gray-400 font-normal">{t('engineering.assetsPage.createCategoryIdHint')}</span>
               </label>
               <Input
                 id="asset-create-category-id"
                 type="text"
                 value={fields.category_id}
                 onChange={(e) => set('category_id', e.target.value)}
-                placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                placeholder={t('engineering.assetsPage.createCategoryIdPlaceholder')}
                 className="font-mono"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Obtain from Settings or leave blank if not yet categorised.
+                {t('engineering.assetsPage.createCategoryIdHelp')}
               </p>
             </div>
 
             {/* Location */}
             <div>
               <label htmlFor="asset-create-location" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Location / Description{' '}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                {t('engineering.assetsPage.createLocationLabel')}{' '}
+                <span className="text-gray-400 font-normal">{t('engineering.assetsPage.optional')}</span>
               </label>
               <Input
                 id="asset-create-location"
                 type="text"
                 value={fields.location_text}
                 onChange={(e) => set('location_text', e.target.value)}
-                placeholder="e.g. Boiler Room, Floor 3 North Wing"
+                placeholder={t('engineering.assetsPage.createLocationPlaceholder')}
               />
             </div>
 
             {/* Manufacturer + Model */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="asset-create-manufacturer" className="block text-sm font-medium text-gray-700 mb-1.5">Manufacturer</label>
+                <label htmlFor="asset-create-manufacturer" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.manufacturer')}</label>
                 <Input
                   id="asset-create-manufacturer"
                   type="text"
                   value={fields.manufacturer}
                   onChange={(e) => set('manufacturer', e.target.value)}
-                  placeholder="e.g. Carrier"
+                  placeholder={t('engineering.assetsPage.createManufacturerPlaceholder')}
                 />
               </div>
               <div>
-                <label htmlFor="asset-create-model" className="block text-sm font-medium text-gray-700 mb-1.5">Model</label>
+                <label htmlFor="asset-create-model" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.model')}</label>
                 <Input
                   id="asset-create-model"
                   type="text"
                   value={fields.model}
                   onChange={(e) => set('model', e.target.value)}
-                  placeholder="e.g. 38CKC036"
+                  placeholder={t('engineering.assetsPage.createModelPlaceholder')}
                 />
               </div>
             </div>
 
             {/* Serial */}
             <div>
-              <label htmlFor="asset-create-serial" className="block text-sm font-medium text-gray-700 mb-1.5">Serial Number</label>
+              <label htmlFor="asset-create-serial" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.serialNumber')}</label>
               <Input
                 id="asset-create-serial"
                 type="text"
                 value={fields.serial_number}
                 onChange={(e) => set('serial_number', e.target.value)}
-                placeholder="e.g. SN-20241001-001"
+                placeholder={t('engineering.assetsPage.createSerialPlaceholder')}
                 className="font-mono"
               />
             </div>
@@ -689,7 +701,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="asset-create-purchase-date" className="block text-sm font-medium text-gray-700 mb-1.5">Purchase Date</label>
+                <label htmlFor="asset-create-purchase-date" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.purchaseDate')}</label>
                 <Input
                   id="asset-create-purchase-date"
                   type="date"
@@ -698,7 +710,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
                 />
               </div>
               <div>
-                <label htmlFor="asset-create-warranty-expires" className="block text-sm font-medium text-gray-700 mb-1.5">Warranty Expires</label>
+                <label htmlFor="asset-create-warranty-expires" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.createWarrantyExpiresLabel')}</label>
                 <Input
                   id="asset-create-warranty-expires"
                   type="date"
@@ -711,25 +723,25 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
             {/* Lifespan + Cost */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="asset-create-lifespan" className="block text-sm font-medium text-gray-700 mb-1.5">Expected Lifespan (years)</label>
+                <label htmlFor="asset-create-lifespan" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.fieldLifespan')}</label>
                 <Input
                   id="asset-create-lifespan"
                   type="number"
                   min={0}
                   value={fields.expected_lifespan_years}
                   onChange={(e) => set('expected_lifespan_years', e.target.value)}
-                  placeholder="e.g. 15"
+                  placeholder={t('engineering.assetsPage.createLifespanPlaceholder')}
                 />
               </div>
               <div>
-                <label htmlFor="asset-create-replacement-cost" className="block text-sm font-medium text-gray-700 mb-1.5">Replacement Cost ($)</label>
+                <label htmlFor="asset-create-replacement-cost" className="block text-sm font-medium text-gray-700 mb-1.5">{t('engineering.assetsPage.fieldReplacementCost')}</label>
                 <Input
                   id="asset-create-replacement-cost"
                   type="number"
                   min={0}
                   value={fields.replacement_cost}
                   onChange={(e) => set('replacement_cost', e.target.value)}
-                  placeholder="e.g. 8500"
+                  placeholder={t('engineering.assetsPage.createCostPlaceholder')}
                 />
               </div>
             </div>
@@ -750,7 +762,7 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
               onClick={onClose}
               disabled={saving}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -760,12 +772,12 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
               {saving ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  Creating…
+                  {t('engineering.assetsPage.creating')}
                 </>
               ) : (
                 <>
                   <Plus size={14} />
-                  Add Asset
+                  {t('engineering.assetsPage.addAsset')}
                 </>
               )}
             </Button>
@@ -779,12 +791,15 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AssetRegisterPage() {
+  const { t } = useTranslation()
   const { isGM, role } = useRole()
   const canEdit = isGM || role === 'engineer'
   const queryClient = useQueryClient()
 
+  const RISK_FILTERS = getRiskFilters(t)
+
   const [search, setSearch] = useState('')
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('All')
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
@@ -817,10 +832,10 @@ export default function AssetRegisterPage() {
       (a.rooms?.room_number ?? '').toLowerCase().includes(q)
 
     const matchesRisk =
-      riskFilter === 'All' ||
-      (riskFilter === 'High Risk' && a.failure_risk_score >= 70) ||
-      (riskFilter === 'Medium' && a.failure_risk_score >= 40 && a.failure_risk_score < 70) ||
-      (riskFilter === 'Low' && a.failure_risk_score < 40)
+      riskFilter === 'all' ||
+      (riskFilter === 'highRisk' && a.failure_risk_score >= 70) ||
+      (riskFilter === 'medium' && a.failure_risk_score >= 40 && a.failure_risk_score < 70) ||
+      (riskFilter === 'low' && a.failure_risk_score < 40)
 
     return matchesSearch && matchesRisk
   })
@@ -836,10 +851,10 @@ export default function AssetRegisterPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <Package size={22} className="text-[var(--caution)] shrink-0" />
-            Asset Register
+            {t('engineering.assetsPage.heading')}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Track all hotel equipment, warranties, and maintenance history
+            {t('engineering.assetsPage.subtitle')}
           </p>
         </div>
         {canEdit && (
@@ -849,30 +864,30 @@ export default function AssetRegisterPage() {
             className="shrink-0"
           >
             <Plus size={15} />
-            Add Asset
+            {t('engineering.assetsPage.addAsset')}
           </Button>
         )}
       </div>
 
       {/* ── Stats row ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Assets" value={activeAssets.length} sub="active" />
+        <StatCard label={t('engineering.assetsPage.statTotalAssets')} value={activeAssets.length} sub={t('engineering.assetsPage.statActive')} />
         <StatCard
-          label="High Risk"
+          label={t('engineering.assetsPage.statHighRisk')}
           value={highRiskCount}
-          sub="score >= 70"
+          sub={t('engineering.assetsPage.statHighRiskSub')}
           accent={highRiskCount > 0 ? 'red' : 'default'}
         />
         <StatCard
-          label="Under Warranty"
+          label={t('engineering.assetsPage.statUnderWarranty')}
           value={underWarrantyCount}
-          sub="active warranties"
+          sub={t('engineering.assetsPage.statUnderWarrantySub')}
           accent="green"
         />
         <StatCard
-          label="Total Value"
+          label={t('engineering.assetsPage.statTotalValue')}
           value={formatCurrency(totalValue)}
-          sub="replacement cost"
+          sub={t('engineering.assetsPage.statTotalValueSub')}
         />
       </div>
 
@@ -884,8 +899,8 @@ export default function AssetRegisterPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search assets"
-            placeholder="Search by name, tag, location…"
+            aria-label={t('engineering.assetsPage.searchAriaLabel')}
+            placeholder={t('engineering.assetsPage.searchPlaceholder')}
             className="pl-9"
           />
         </div>
@@ -893,16 +908,16 @@ export default function AssetRegisterPage() {
         <div className="flex items-center gap-1 flex-wrap">
           {RISK_FILTERS.map((f) => (
             <button
-              key={f}
-              onClick={() => setRiskFilter(f)}
-              aria-pressed={riskFilter === f}
+              key={f.key}
+              onClick={() => setRiskFilter(f.key)}
+              aria-pressed={riskFilter === f.key}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                riskFilter === f
+                riskFilter === f.key
                   ? 'bg-[var(--caution)] text-white'
                   : 'bg-surface/70 border border-[var(--caution-line)]/40 backdrop-blur-sm text-gray-700 hover:bg-[var(--caution-soft)]'
               }`}
             >
-              {f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -913,13 +928,13 @@ export default function AssetRegisterPage() {
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center p-6">
             <AlertTriangle size={28} className="text-red-400 mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">Failed to load assets</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">{t('engineering.assetsPage.loadError')}</p>
             <Button
               variant="primary"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['assets'] })}
               className="mt-2"
             >
-              Retry
+              {t('engineering.assetsPage.retry')}
             </Button>
           </div>
         ) : (
@@ -928,22 +943,22 @@ export default function AssetRegisterPage() {
               <thead>
                 <tr className="border-b border-amber-100 bg-[var(--caution-soft)]/60">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Asset
+                    {t('engineering.assetsPage.colAsset')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Category
+                    {t('engineering.assetsPage.category')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Location
+                    {t('engineering.assetsPage.location')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Risk Score
+                    {t('engineering.assetsPage.colRiskScore')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Warranty
+                    {t('engineering.assetsPage.warranty')}
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Status
+                    {t('engineering.assetsPage.colStatus')}
                   </th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -956,37 +971,41 @@ export default function AssetRegisterPage() {
                     <td colSpan={7} className="text-center py-14 text-sm text-gray-400">
                       {assets.length === 0 ? (
                         <div className="mx-auto max-w-2xl">
-                          <p className="text-sm font-semibold text-gray-700">No assets registered yet</p>
+                          <p className="text-sm font-semibold text-gray-700">{t('engineering.assetsPage.emptyHeading')}</p>
                           <p className="mt-1 text-xs text-gray-400">
-                            Add your hotel's equipment to track maintenance history and AI predictions.
+                            {t('engineering.assetsPage.emptyHelp')}
                           </p>
                           <div className="mt-5 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
-                            {['HVAC units', 'Laundry equipment', 'Elevators'].map((item) => (
+                            {[
+                              t('engineering.assetsPage.emptySampleHvac'),
+                              t('engineering.assetsPage.emptySampleLaundry'),
+                              t('engineering.assetsPage.emptySampleElevators'),
+                            ].map((item) => (
                               <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
                                 <p className="text-sm font-semibold text-ink">{item}</p>
-                                <p className="mt-1 text-xs text-ink3">High-value asset</p>
+                                <p className="mt-1 text-xs text-ink3">{t('engineering.assetsPage.emptySampleSub')}</p>
                               </div>
                             ))}
                           </div>
                           {canEdit && (
                             <Button variant="primary" onClick={() => setShowCreateModal(true)} className="mt-5">
                               <Plus size={14} />
-                              Add Asset
+                              {t('engineering.assetsPage.addAsset')}
                             </Button>
                           )}
                         </div>
                       ) : (
-                        'No assets match your current filters.'
+                        t('engineering.assetsPage.noMatchFilters')
                       )}
                     </td>
                   </tr>
                 ) : (
                   filtered.map((asset) => {
-                    const risk = getRiskBadge(asset.failure_risk_score)
+                    const risk = getRiskBadge(asset.failure_risk_score, t)
                     const barColor = getRiskBarColor(asset.failure_risk_score)
-                    const warranty = getWarrantyLabel(asset.warranty_expires)
+                    const warranty = getWarrantyLabel(asset.warranty_expires, t)
                     const location = asset.rooms?.room_number
-                      ? `Room ${asset.rooms.room_number}`
+                      ? `${t('engineering.workOrderCard.room')} ${asset.rooms.room_number}`
                       : (asset.location_text ?? '—')
                     return (
                       <tr
@@ -1051,7 +1070,7 @@ export default function AssetRegisterPage() {
                                 : 'bg-gray-100 text-gray-500'
                             }`}
                           >
-                            {asset.is_active ? 'Active' : 'Inactive'}
+                            {asset.is_active ? t('engineering.assetsPage.active') : t('engineering.assetsPage.inactive')}
                           </span>
                         </td>
 
@@ -1065,7 +1084,7 @@ export default function AssetRegisterPage() {
                             }}
                             className="text-xs px-3 py-1.5"
                           >
-                            View
+                            {t('engineering.assetsPage.viewButton')}
                             <ChevronRight size={13} />
                           </Button>
                         </td>
@@ -1082,7 +1101,7 @@ export default function AssetRegisterPage() {
         {!isLoading && !isError && filtered.length > 0 && (
           <div className="px-4 py-2.5 border-t border-[var(--caution-line)] bg-[var(--caution-soft)]/40">
             <p className="text-xs text-gray-400">
-              Showing {filtered.length} of {assets.length} assets
+              {t('engineering.assetsPage.footerCount', { filtered: filtered.length, total: assets.length })}
             </p>
           </div>
         )}
