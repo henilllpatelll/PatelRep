@@ -4,7 +4,7 @@ Style follows test_guest_recovery.py: direct imports, literal fixture dicts,
 plain asserts, no mocks.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from services.guest_recovery.contracts import (
     calculate_downtime_revenue_impact,
@@ -19,8 +19,8 @@ from services.guest_recovery.contracts import (
 
 
 def test_repeat_failure_requires_two_within_window():
-    window_start = datetime(2026, 5, 1, tzinfo=None)
-    window_end = datetime(2026, 7, 30, tzinfo=None)
+    window_start = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    window_end = datetime(2026, 7, 30, tzinfo=timezone.utc)
     work_orders = [
         # asset-a1: day 1 and day 40 of the 90-day window -> repeat (2 work orders)
         {"asset_id": "asset-a1", "room_id": None, "created_at": "2026-05-01T08:00:00+00:00"},
@@ -42,8 +42,8 @@ def test_repeat_failure_requires_two_within_window():
 
 
 def test_repeat_failure_ignores_work_orders_outside_window():
-    window_start = datetime(2026, 5, 1, tzinfo=None)
-    window_end = datetime(2026, 7, 30, tzinfo=None)
+    window_start = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    window_end = datetime(2026, 7, 30, tzinfo=timezone.utc)
     work_orders = [
         {"asset_id": "asset-b1", "room_id": None, "created_at": "2026-05-02T08:00:00+00:00"},
         # outside the window entirely -> must not count toward asset-b1's total
@@ -62,8 +62,8 @@ def test_repeat_failure_ignores_work_orders_outside_window():
 
 
 def test_repeat_failure_empty_input_returns_zero_shape():
-    window_start = datetime(2026, 5, 1)
-    window_end = datetime(2026, 7, 30)
+    window_start = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    window_end = datetime(2026, 7, 30, tzinfo=timezone.utc)
 
     result = calculate_repeat_failures(
         [], window_start=window_start, window_end=window_end
@@ -80,8 +80,8 @@ def test_repeat_failure_empty_input_returns_zero_shape():
 
 
 def test_repeat_failure_room_grouping_independent_of_asset_grouping():
-    window_start = datetime(2026, 5, 1)
-    window_end = datetime(2026, 7, 30)
+    window_start = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    window_end = datetime(2026, 7, 30, tzinfo=timezone.utc)
     work_orders = [
         {"asset_id": None, "room_id": "room-101", "created_at": "2026-05-01T08:00:00+00:00"},
         {"asset_id": None, "room_id": "room-101", "created_at": "2026-05-15T08:00:00+00:00"},

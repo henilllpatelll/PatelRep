@@ -130,3 +130,129 @@ def _parse_timestamp(value: Any) -> datetime | None:
 
 def _average(values: list[float]) -> float:
     return round(sum(values) / len(values), 1) if values else 0.0
+
+
+def calculate_repeat_failures(
+    work_orders: list[dict[str, Any]],
+    *,
+    window_start: datetime,
+    window_end: datetime,
+    window_days: int = 90,
+    minimum_failures: int = 2,
+) -> dict[str, Any]:
+    """D-08: an asset or room with 2+ work orders inside a trailing window is a repeat failure."""
+    asset_counts: dict[str, int] = {}
+    room_counts: dict[str, int] = {}
+
+    for work_order in work_orders:
+        created_at = _parse_timestamp(work_order.get("created_at"))
+        if created_at is None or not (window_start <= created_at <= window_end):
+            continue
+        asset_id = work_order.get("asset_id")
+        if asset_id is not None:
+            asset_counts[asset_id] = asset_counts.get(asset_id, 0) + 1
+        room_id = work_order.get("room_id")
+        if room_id is not None:
+            room_counts[room_id] = room_counts.get(room_id, 0) + 1
+
+    repeat_assets = sorted(
+        (
+            {"asset_id": asset_id, "failure_count": count}
+            for asset_id, count in asset_counts.items()
+            if count >= minimum_failures
+        ),
+        key=lambda entry: entry["failure_count"],
+        reverse=True,
+    )
+    repeat_rooms = sorted(
+        (
+            {"room_id": room_id, "failure_count": count}
+            for room_id, count in room_counts.items()
+            if count >= minimum_failures
+        ),
+        key=lambda entry: entry["failure_count"],
+        reverse=True,
+    )
+    total_repeat_work_orders = sum(entry["failure_count"] for entry in repeat_assets) + sum(
+        entry["failure_count"] for entry in repeat_rooms
+    )
+
+    return {
+        "window_days": window_days,
+        "repeat_asset_count": len(repeat_assets),
+        "repeat_room_count": len(repeat_rooms),
+        "repeat_assets": repeat_assets,
+        "repeat_rooms": repeat_rooms,
+        "total_repeat_work_orders": total_repeat_work_orders,
+    }
+
+
+def calculate_room_downtime_hours(
+    transitions: list[dict[str, Any]],
+    *,
+    window_end: datetime,
+    downtime_status: str = "OOO",
+) -> dict[str, Any]:
+    """Total out-of-order hours per room. `transitions` items: {"room_id", "to_status", "at"}."""
+    by_room: dict[str, list[dict[str, Any]]] = {}
+    for transition in transitions:
+        room_id = transition.get("room_id")
+        at = _parse_timestamp(transition.get("at"))
+        if room_id is None or at is None:
+            continue
+        by_room.setdefault(room_id, []).append({"to_status": transition.get("to_status"), "at": at})
+
+    room_hours: dict[str, float] = {}
+    for room_id, room_transitions in by_room.items():
+        room_transitions.sort(key=lambda entry: entry["at"])
+        open_at: datetime | None = None
+        total_hours = 0.0
+        for entry in room_transitions:
+            if entry["to_status"] == downtime_status:
+                if open_at is None:
+                    open_at = entry["at"]
+            elif open_at is not None:
+                delta_hours = (entry["at"] - open_at).total_seconds() / 3600
+                total_hours += max(delta_hours, 0.0)
+                open_at = None
+        if open_at is not None:
+            delta_hours = (window_end - open_at).total_seconds() / 3600
+            total_hours += max(delta_hours, 0.0)
+        if total_hours > 0:
+            room_hours[room_id] = round(total_hours, 1)
+
+    rooms = sorted(
+        (
+            {"room_id": room_id, "downtime_hours": hours}
+            for room_id, hours in room_hours.items()
+        ),
+        key=lambda entry: entry["downtime_hours"],
+        reverse=True,
+    )
+    total_downtime_hours = round(sum(room_hours.values()), 1)
+
+    return {
+        "total_downtime_hours": total_downtime_hours,
+        "rooms": rooms,
+        "rooms_affected": len(rooms),
+    }
+
+
+def calculate_downtime_revenue_impact(
+    *, downtime_hours: float, average_daily_rate_cents: int | None
+) -> dict[str, Any]:
+    """D-07: revenue impact = downtime hours x (GM-configured ADR / 24). No Opera dependency."""
+    if average_daily_rate_cents is None:
+        return {
+            "configured": False,
+            "average_daily_rate_cents": None,
+            "downtime_hours": downtime_hours,
+            "revenue_impact_cents": None,
+        }
+    revenue_impact_cents = int(round(downtime_hours * (average_daily_rate_cents / 24)))
+    return {
+        "configured": True,
+        "average_daily_rate_cents": average_daily_rate_cents,
+        "downtime_hours": downtime_hours,
+        "revenue_impact_cents": revenue_impact_cents,
+    }
