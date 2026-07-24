@@ -83,7 +83,7 @@ Plans:
 - [x] 04-10-PLAN.md — (wave 2) HK drawer/modals: RoomDetailDrawer, InspectionModal, OccupancyImportModal → EN/ES
 - [x] 04-11-PLAN.md — (wave 3) HK route pages: housekeeping/page, assignments/page → EN/ES
 - [x] 04-12-PLAN.md — (wave 4) HK route pages: inspections/page, rooms/page → EN/ES
-- [ ] 04-13-PLAN.md — (wave 5) ENG WorkOrderDetailDrawer (heaviest floor surface) → EN/ES
+- [x] 04-13-PLAN.md — (wave 5) ENG WorkOrderDetailDrawer (heaviest floor surface) → EN/ES
 - [ ] 04-14-PLAN.md — (wave 6) ENG components: CreateWorkOrderModal, WorkOrderList, EngineeringRoomBoard, FailurePredictionSidebar → EN/ES
 - [ ] 04-15-PLAN.md — (wave 7) ENG route pages: assets/page, predictions/page, work-orders/page, engineering/page → EN/ES
 - [ ] 04-16-PLAN.md — (wave 8) tasks/page → EN/ES + fix 2 non-word placeholder literals + widen no-literal-string gate to the full floor directory set
