@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-24T13:41:13.728Z
-> Files: 88 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-24T13:47:19.215Z
+> Files: 89 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../.claude/
 
@@ -1059,6 +1059,7 @@
 
 ## apps/web/
 
+- `package.json` — Node.js package manifest (~565 tok)
 
 ## apps/web/app/
 
