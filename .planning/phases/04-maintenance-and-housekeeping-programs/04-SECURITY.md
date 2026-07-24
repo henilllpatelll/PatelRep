@@ -132,11 +132,21 @@ Beyond grepping cited files, this audit independently executed (not merely read 
 
 Migrations `081_pm_evidence_linkage.sql` and `083_program_template_facilities.sql` exist locally and are structurally correct (independently confirmed: `081` adds `'pm_completion'` to `evidence_records`'s related-entity CHECK + trigger function; `083` adds `backflow`/`domestic_water` to the facilities/applicability canonical allowlists). Three consecutive plan executors (04-02, 04-04, and by extension the code that depends on them) reported being unable to apply these to production because no Supabase MCP tool or DB password was available in their worktree sandboxes. A later session logged in `.wolf/memory.md:7175` that it applied both migrations via Supabase MCP `apply_migration` and confirmed via a live `pg_constraint` query. `04-VERIFICATION.md` (an earlier verification pass) treated this as "IMPROVED, not independently re-confirmed."
 
-This audit has **no Supabase MCP tool in its own tool surface** and therefore cannot independently re-run that `pg_constraint` query either. It is not counted as an open threat here because:
-- The threats that reference evidence linkage (T-04-06, T-04-07, T-04-09) do not functionally depend on migration 081 for their *security* property — `_validate_tenant_evidence_ids` (T-04-07) validates against `evidence_records.tenant_id` regardless of the `related_entity_type` CHECK constraint's contents, and the signed-URL-only delivery (T-04-06) does not touch that constraint at all. Migration 081 only affects whether the post-insert traceability backfill (T-04-09) succeeds or raises a DB error; if it were not applied, the failure mode is a loud 500, not a silent security bypass.
-- The corroborating log entry is specific (names the exact constraint checked and its confirmed contents), not a vague assertion of intent.
+This audit had no Supabase MCP tool in its own tool surface and therefore could not independently re-run that `pg_constraint` query. **A later session (2026-07-24, with genuine Supabase MCP access) ran the recommended query directly against project `oacnwalhcpqdabivweki` and retired this caveat:**
 
-**Recommendation:** the next session with genuine Supabase MCP access should run `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname IN ('evidence_records_related_entity_type_check','property_applicability_facilities_canonical','controlled_documents_applicability_canonical');` against project `oacnwalhcpqdabivweki` and record the result directly in this file's accepted-risk log if this caveat is to be fully retired.
+```
+SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint
+WHERE conname IN ('evidence_records_related_entity_type_check','property_applicability_facilities_canonical','controlled_documents_applicability_canonical');
+```
+
+Result:
+| Constraint | Definition confirms |
+|------------|---------------------|
+| `evidence_records_related_entity_type_check` | `related_entity_type = ANY (ARRAY[..., 'pm_completion'])` — migration 081 landed |
+| `property_applicability_facilities_canonical` | `facilities` allowlist includes `'backflow'`, `'domestic_water'` — migration 083 landed |
+| `controlled_documents_applicability_canonical` | `applicability` allowlist includes `'backflow'`, `'domestic_water'` — consistent with 083 |
+
+`list_migrations` on the same project also shows both `081_pm_evidence_linkage` (version `20260723143709`) and `083_program_template_facilities` (version `20260723143723`) as applied. **Caveat retired — no longer open.**
 
 ## Unregistered Flags
 
@@ -150,7 +160,7 @@ None requiring a new threat entry beyond T-04-49/T-04-50 (already added and clos
 | T-04-28 / T-04-45 | GM/admin/config/export dirs stay English, exempt from the i18n gate | D-03 explicit carve-out — those roles are English-only by design | N/A unless D-03 changes |
 | T-04-46 | `eslint-plugin-i18next`'s `markupOnly` heuristic cannot see literals inside JS template expressions | Plugin limitation, out of phase scope; one instance (CR-02) already found and fixed directly | Consider a supplementary regex sweep for `` `${...}` ``-adjacent literal prefixes in floor dirs |
 | T-04-48 | No local E2E credentials for full production confirmation | Documented `CLAUDE.md` environment constraint | Re-run `phase4-programs.spec.ts` against a deployed environment with real creds |
-| (caveat) | Migrations 081/083 production-application not independently re-confirmed by this audit | No Supabase MCP tool available to this auditor; corroborating log evidence exists but is self-reported | Re-run the `pg_constraint` query above with real MCP access |
+| (retired 2026-07-24) | Migrations 081/083 production-application — previously unconfirmed by the auditor | Independently re-confirmed via live `pg_constraint` query and `list_migrations` against project `oacnwalhcpqdabivweki` — see Production Migration Caveat section | None — closed |
 
 ---
 
