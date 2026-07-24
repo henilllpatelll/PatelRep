@@ -90,6 +90,7 @@ jobs:
           fire evidence/reminders || rc=1
           fire safety/training-assignments || rc=1
           fire safety/drill-follow-up || rc=1
+          fire lost-found/retention-check || rc=1
           exit $rc
 
   shift-summary:

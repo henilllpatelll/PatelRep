@@ -2,18 +2,21 @@
 
 Mirrors the TestClient + real-JWT harness used in tests/test_programs_routes.py for
 HTTP-level RBAC checks, and the direct-router-call + FakeDB harness for logic checks
-that need database-state assertions.
+that need database-state assertions (mirrors tests/test_internal_escalations.py for
+cron-endpoint conventions).
 """
 
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from jose import jwt
 
 from core.config import settings
 from main import app
 from middleware.auth import CurrentUser
+from routers import internal as internal_router
 from routers import lost_found as lost_found_router
 from tests.smoke.fake_supabase import FakeDB
 
@@ -195,3 +198,103 @@ def test_disposition_rbac_rejects_engineer_with_403(monkeypatch):
 
     assert response.status_code == 403
     assert db.rows["lost_found_items"][0]["status"] == "unclaimed"
+
+
+# ---------------------------------------------------------------------------
+# Task 2: retention-check cron endpoint (flag only, never dispose) — D-11
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_retention_check_rejects_bad_cron_secret():
+    with pytest.raises(HTTPException) as exc:
+        await internal_router.check_lost_found_retention(x_cron_secret="wrong-secret")
+
+    assert exc.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_retention_check_flags_expired_unclaimed_items(monkeypatch):
+    now = datetime.now(timezone.utc)
+    db = FakeDB({
+        "lost_found_items": [
+            {
+                "id": "item-a",
+                "tenant_id": "hotel-a",
+                "status": "unclaimed",
+                "retention_due_at": (now - timedelta(days=1)).isoformat(),
+                "disposition_flagged_at": None,
+            },
+            {
+                "id": "item-b",
+                "tenant_id": "hotel-a",
+                "status": "unclaimed",
+                "retention_due_at": (now + timedelta(days=1)).isoformat(),
+                "disposition_flagged_at": None,
+            },
+        ],
+    })
+    monkeypatch.setattr(internal_router, "supabase", db)
+
+    result = await internal_router.check_lost_found_retention(x_cron_secret=settings.cron_secret)
+
+    assert result == {"status": "ok", "flagged": 1}
+    flagged = next(row for row in db.rows["lost_found_items"] if row["id"] == "item-a")
+    not_due = next(row for row in db.rows["lost_found_items"] if row["id"] == "item-b")
+    assert flagged["disposition_flagged_at"] is not None
+    assert not_due["disposition_flagged_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_retention_check_does_not_change_status_or_create_custody_event(monkeypatch):
+    now = datetime.now(timezone.utc)
+    db = FakeDB({
+        "lost_found_items": [
+            {
+                "id": "item-a",
+                "tenant_id": "hotel-a",
+                "status": "unclaimed",
+                "retention_due_at": (now - timedelta(days=1)).isoformat(),
+                "disposition_flagged_at": None,
+            },
+        ],
+        "lost_found_custody_events": [],
+    })
+    monkeypatch.setattr(internal_router, "supabase", db)
+
+    await internal_router.check_lost_found_retention(x_cron_secret=settings.cron_secret)
+
+    assert db.rows["lost_found_items"][0]["status"] == "unclaimed"
+    assert db.rows["lost_found_items"][0]["disposition_flagged_at"] is not None
+    assert db.rows["lost_found_custody_events"] == []
+    assert all(table != "lost_found_custody_events" for table, _ in db.inserts)
+    # db.updates records the post-update row snapshot; confirm status was never
+    # written to anything but its original value on every lost_found_items update.
+    assert all(
+        row_snapshot.get("status") == "unclaimed"
+        for table, row_snapshot in db.updates
+        if table == "lost_found_items"
+    )
+
+
+@pytest.mark.asyncio
+async def test_retention_check_is_idempotent_on_second_run(monkeypatch):
+    now = datetime.now(timezone.utc)
+    db = FakeDB({
+        "lost_found_items": [
+            {
+                "id": "item-a",
+                "tenant_id": "hotel-a",
+                "status": "unclaimed",
+                "retention_due_at": (now - timedelta(days=1)).isoformat(),
+                "disposition_flagged_at": None,
+            },
+        ],
+    })
+    monkeypatch.setattr(internal_router, "supabase", db)
+
+    first = await internal_router.check_lost_found_retention(x_cron_secret=settings.cron_secret)
+    second = await internal_router.check_lost_found_retention(x_cron_secret=settings.cron_secret)
+
+    assert first == {"status": "ok", "flagged": 1}
+    assert second == {"status": "ok", "flagged": 0}

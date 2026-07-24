@@ -673,6 +673,29 @@ async def check_escalations(x_cron_secret: str = Header(None)):
     return {"status": "ok", "escalated": escalated, "notified": notified, "dnd_welfare_notified": dnd_notified}
 
 
+@router.post("/lost-found/retention-check")
+async def check_lost_found_retention(x_cron_secret: str = Header(None)):
+    """D-11: flag expired unclaimed items for manager review. Never auto-donates or discards."""
+    verify_cron(x_cron_secret)
+    now = datetime.now(timezone.utc).isoformat()
+    flagged = 0
+    try:
+        due = supabase.table("lost_found_items").select("id, tenant_id").eq(
+            "status", "unclaimed"
+        ).lt("retention_due_at", now).is_("disposition_flagged_at", "null").execute().data or []
+        for item in due:
+            supabase.table("lost_found_items").update(
+                {"disposition_flagged_at": now}
+            ).eq("id", item["id"]).eq("tenant_id", item["tenant_id"]).execute()
+            flagged += 1
+    except Exception as exc:  # noqa: BLE001
+        logger.error("lost-found retention check failed: %s", exc)
+        _record_cron_run("lost-found.retention-check", error=str(exc))
+        raise HTTPException(status_code=500, detail="Retention check failed") from exc
+    _record_cron_run("lost-found.retention-check")
+    return {"status": "ok", "flagged": flagged}
+
+
 @router.post("/logbook/cleanup-expired")
 async def cleanup_expired_logbook_entries(x_cron_secret: str = Header(None)):
     """Cron job: hard-delete logbook entries past their expires_at."""
