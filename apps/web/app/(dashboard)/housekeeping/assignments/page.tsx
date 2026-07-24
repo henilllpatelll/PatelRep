@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
 import { Card } from '@/components/ui/Card'
@@ -48,6 +49,7 @@ function statusBadge(status: string) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AssignmentsPage() {
+  const { t } = useTranslation()
   const [date, setDate] = useState('')
   useEffect(() => {
     setDate(todayISO())
@@ -83,14 +85,16 @@ export default function AssignmentsPage() {
       setAiMessage({
         type: 'success',
         text: count !== null
-          ? `AI suggested ${count} assignment${count !== 1 ? 's' : ''} — review the table below.`
-          : 'AI suggestions applied — review the table below.',
+          ? (count === 1
+            ? t('housekeeping.assignmentsPage.aiSuccessOne', { count })
+            : t('housekeeping.assignmentsPage.aiSuccessOther', { count }))
+          : t('housekeeping.assignmentsPage.aiSuccessGeneric'),
       })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments-page', date] })
     } catch (err: any) {
       setAiMessage({
         type: 'error',
-        text: err?.message || 'AI auto-assign failed. Please try again.',
+        text: err?.message || t('housekeeping.assignmentsPage.aiFailure'),
       })
     } finally {
       setAiLoading(false)
@@ -109,9 +113,9 @@ export default function AssignmentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Room Assignments</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('housekeeping.assignmentsPage.heading')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage housekeeper assignments for a given date.
+            {t('housekeeping.assignmentsPage.subtitle')}
           </p>
         </div>
 
@@ -121,7 +125,7 @@ export default function AssignmentsPage() {
             onClick={() => setShowImport(true)}
             className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
           >
-            Import from Opera
+            {t('housekeeping.assignmentsPage.importFromOpera')}
           </Button>
           <Button
             variant="primary"
@@ -132,10 +136,10 @@ export default function AssignmentsPage() {
             {aiLoading ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Thinking...
+                {t('housekeeping.assignmentsPage.thinking')}
               </>
             ) : (
-              'Auto-Assign with AI'
+              t('housekeeping.assignmentsPage.autoAssignWithAi')
             )}
           </Button>
         </div>
@@ -143,7 +147,7 @@ export default function AssignmentsPage() {
 
       {/* Date picker */}
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-700">Date</label>
+        <label className="text-sm font-medium text-gray-700">{t('housekeeping.assignmentsPage.dateLabel')}</label>
         <Input
           type="date"
           value={date}
@@ -155,7 +159,7 @@ export default function AssignmentsPage() {
           onClick={() => setDate(todayISO())}
           className="px-3 py-1.5 text-sm"
         >
-          Today
+          {t('housekeeping.assignmentsPage.today')}
         </Button>
         {date && (
           <span className="text-sm text-gray-400">
@@ -172,7 +176,7 @@ export default function AssignmentsPage() {
             : 'bg-red-50 border-red-200 text-red-800'
         }`}>
           <span className="font-medium">{aiMessage.text}</span>
-          <button onClick={() => setAiMessage(null)} className="ml-auto shrink-0 opacity-60 hover:opacity-100">✕</button>
+          <button onClick={() => setAiMessage(null)} aria-label={t('housekeeping.assignmentsPage.dismissAria')} className="ml-auto shrink-0 opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -186,23 +190,23 @@ export default function AssignmentsPage() {
           </div>
         ) : isError ? (
           <div className="p-8 text-center text-sm text-gray-500">
-            Failed to load assignments. Please try again.
+            {t('housekeeping.assignmentsPage.loadError')}
           </div>
         ) : housekeepers.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-400 text-sm">No assignments found for this date.</p>
+            <p className="text-gray-400 text-sm">{t('housekeeping.assignmentsPage.emptyTitle')}</p>
             <p className="text-gray-300 text-xs mt-1">
-              Use AI Auto-Assign or assign rooms from the Housekeeping Board.
+              {t('housekeeping.assignmentsPage.emptySubtitle')}
             </p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/60 bg-amber-50/60 text-xs text-gray-500 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Housekeeper</th>
-                <th className="text-center px-4 py-3">Rooms Assigned</th>
-                <th className="text-center px-4 py-3">Rooms Done</th>
-                <th className="text-center px-4 py-3">In Progress</th>
+                <th className="text-left px-4 py-3">{t('housekeeping.assignmentsPage.table.housekeeper')}</th>
+                <th className="text-center px-4 py-3">{t('housekeeping.assignmentsPage.table.roomsAssigned')}</th>
+                <th className="text-center px-4 py-3">{t('housekeeping.assignmentsPage.table.roomsDone')}</th>
+                <th className="text-center px-4 py-3">{t('housekeeping.assignmentsPage.table.inProgress')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -226,7 +230,7 @@ export default function AssignmentsPage() {
                         <span className="text-blue-600 font-medium">{hk.in_progress}</span>
                       </td>
                       <td className="px-4 py-3 text-right text-gray-400 text-xs">
-                        {expanded ? 'Hide' : 'Show'} rooms
+                        {expanded ? t('housekeeping.assignmentsPage.table.hideRooms') : t('housekeeping.assignmentsPage.table.showRooms')}
                         <span className="ml-1">{expanded ? '▲' : '▼'}</span>
                       </td>
                     </tr>
@@ -236,7 +240,7 @@ export default function AssignmentsPage() {
                         <td colSpan={5} className="px-6 pb-3 pt-1">
                           <div className="flex flex-wrap gap-2">
                             {(hk.rooms ?? []).length === 0 ? (
-                              <span className="text-xs text-gray-400">No rooms listed</span>
+                              <span className="text-xs text-gray-400">{t('housekeeping.assignmentsPage.table.noRoomsListed')}</span>
                             ) : (
                               [...(hk.rooms ?? [])].sort((a, b) =>
                               a.room_number.localeCompare(b.room_number, undefined, { numeric: true })
