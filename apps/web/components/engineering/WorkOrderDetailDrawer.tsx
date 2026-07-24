@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   X,
@@ -67,31 +69,32 @@ const PRIORITY_TONE: Record<string, 'alert' | 'caution' | 'ready'> = {
   low:    'ready',
 }
 
-function formatTs(iso: string | undefined | null): string | null {
+function formatTs(iso: string | undefined | null, t: TFunction): string | null {
   if (!iso) return null
   try {
     const d = new Date(iso)
     const time = format(d, 'h:mm a')
-    if (isToday(d)) return `Today ${time}`
-    if (isYesterday(d)) return `Yesterday ${time}`
+    if (isToday(d)) return t('engineering.workOrderDetail.todayTime', { time })
+    if (isYesterday(d)) return t('engineering.workOrderDetail.yesterdayTime', { time })
     return `${format(d, 'MMM d')} ${time}`
   } catch {
     return iso
   }
 }
 
-function slaDisplay(dueAt: string, status: string): { text: string; overdue: boolean } | null {
+function slaDisplay(dueAt: string, status: string, t: TFunction): { text: string; overdue: boolean } | null {
   if (status === 'completed' || status === 'cancelled') return null
   const diff = new Date(dueAt).getTime() - Date.now()
   const overdue = diff < 0
   const abs = Math.abs(diff)
   const h = Math.floor(abs / 3600000)
   const m = Math.floor((abs % 3600000) / 60000)
-  const suffix = overdue ? 'overdue' : 'left'
+  const suffix = overdue ? t('engineering.workOrderCard.overdue') : t('engineering.workOrderCard.left')
   let text: string
   if (h >= 24) {
     const d = Math.floor(h / 24)
-    text = `${d} ${d === 1 ? 'day' : 'days'} ${suffix}`
+    const dayLabel = d === 1 ? t('engineering.workOrderCard.day') : t('engineering.workOrderCard.days')
+    text = `${d} ${dayLabel} ${suffix}`
   } else if (h > 0) {
     text = `${h}h ${m}m ${suffix}`
   } else {
@@ -108,6 +111,7 @@ function getPhotoUrl(storagePath: string, photoUrl?: string): string {
 }
 
 export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEditMode }: Props) {
+  const { t } = useTranslation()
   const { role, isGM } = useRole()
   const queryClient = useQueryClient()
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -243,7 +247,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
       setPhotoError(null)
       refetchDetail()
     },
-    onError: () => setPhotoError('Upload failed — please try again.'),
+    onError: () => setPhotoError(t('engineering.workOrderDetail.uploadError')),
   })
 
   const hkTaskMutation = useMutation({
@@ -321,9 +325,9 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
   if (!isOpen || !wo) return null
 
-  const sla = fullWo.due_at ? slaDisplay(fullWo.due_at, fullWo.status) : null
+  const sla = fullWo.due_at ? slaDisplay(fullWo.due_at, fullWo.status, t) : null
   const location = fullWo.rooms?.room_number
-    ? `Room ${fullWo.rooms.room_number}`
+    ? `${t('engineering.workOrderCard.room')} ${fullWo.rooms.room_number}`
     : fullWo.location_text ?? null
 
   // AI insight: show if ai_created with description or notes resembling insight text
@@ -344,7 +348,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={`Work Order WO-${fullWo.work_order_number} details`}
+        aria-label={t('engineering.workOrderDetail.ariaLabel', { number: fullWo.work_order_number })}
         className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-surface/[0.88] backdrop-blur-2xl border-l border-white/[0.95] z-50 flex flex-col outline-none"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 300ms ease-in-out' }}
       >
@@ -364,10 +368,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   {fullWo.priority}
                 </Pill>
                 {fullWo.is_pm_generated && (
-                  <Pill tone="ready" size="sm">PM</Pill>
+                  <Pill tone="ready" size="sm">{t('engineering.workOrderCard.pm')}</Pill>
                 )}
                 {fullWo.is_ai_created && (
-                  <AILabel>AI</AILabel>
+                  <AILabel>{t('engineering.workOrderDetail.ai')}</AILabel>
                 )}
               </div>
 
@@ -395,7 +399,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   className={`inline-flex items-center gap-1 mt-2 text-[11px] font-medium font-mono ${sla.overdue ? 'text-[var(--alert)]' : 'text-ink3'}`}
                 >
                   <Clock className="w-3 h-3" />
-                  {sla.overdue ? 'SLA breached — ' : ''}
+                  {sla.overdue ? t('engineering.workOrderDetail.slaBreachedPrefix') : ''}
                   {sla.text}
                 </div>
               )}
@@ -407,7 +411,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 <button
                   onClick={() => setIsEditing((v) => !v)}
                   className="p-1.5 rounded-lg text-ink3 hover:text-ink hover:bg-surface-3 transition-colors"
-                  aria-label="Edit work order"
+                  aria-label={t('engineering.workOrderDetail.editWorkOrder')}
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -415,7 +419,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-ink3 hover:text-ink hover:bg-surface-3 transition-colors"
-                aria-label="Close drawer"
+                aria-label={t('engineering.workOrderDetail.closeDrawer')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -425,7 +429,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           {/* AI insight callout */}
           {aiInsightText && (
             <div className="bg-[var(--ai-soft)] border border-[var(--ai-line)] rounded-[var(--r-md)] p-3.5 mt-3">
-              <AILabel confidence={undefined}>AI Analysis</AILabel>
+              <AILabel confidence={undefined}>{t('engineering.workOrderDetail.aiAnalysis')}</AILabel>
               <p className="font-display italic text-[13px] leading-[1.45] text-ink mt-2">
                 {aiInsightText}
               </p>
@@ -439,26 +443,26 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           {/* Inline edit — chief/GM only */}
           {isEditing && (isChief || isGM) && (
             <div className="p-5 bg-[var(--caution-soft)]/60 border-b border-[var(--caution-line)]/40">
-              <p className="text-xs font-semibold text-[var(--caution)] mb-3">Edit Work Order</p>
+              <p className="text-xs font-semibold text-[var(--caution)] mb-3">{t('engineering.workOrderDetail.editHeading')}</p>
               <div className="space-y-3">
                 <input
-                  aria-label="Work order title"
+                  aria-label={t('engineering.workOrderDetail.titleAriaLabel')}
                   value={editForm.title}
                   onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="Title"
+                  placeholder={t('engineering.workOrderDetail.titlePlaceholder')}
                   className="w-full text-sm border border-line rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-surface"
                 />
                 <textarea
-                  aria-label="Work order description"
+                  aria-label={t('engineering.workOrderDetail.descriptionAriaLabel')}
                   value={editForm.description}
                   onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
                   rows={2}
-                  placeholder="Description (optional)"
+                  placeholder={t('engineering.workOrderDetail.descriptionPlaceholder')}
                   className="w-full text-sm border border-line rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none bg-surface"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <select
-                    aria-label="Work order category"
+                    aria-label={t('engineering.workOrderDetail.categoryAriaLabel')}
                     value={editForm.category}
                     onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value as WorkOrder['category'] }))}
                     className="text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -468,22 +472,22 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ))}
                   </select>
                   <select
-                    aria-label="Work order priority"
+                    aria-label={t('engineering.workOrderDetail.priorityAriaLabel')}
                     value={editForm.priority}
                     onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value as WorkOrder['priority'] }))}
                     className="text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                   >
-                    <option value="urgent">Urgent</option>
-                    <option value="normal">Normal</option>
-                    <option value="low">Low</option>
+                    <option value="urgent">{t('engineering.workOrderDetail.priorityUrgent')}</option>
+                    <option value="normal">{t('engineering.workOrderDetail.priorityNormal')}</option>
+                    <option value="low">{t('engineering.workOrderDetail.priorityLow')}</option>
                   </select>
                 </div>
                 <textarea
-                  aria-label="Work order notes"
+                  aria-label={t('engineering.workOrderDetail.notesAriaLabel')}
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
-                  placeholder="Notes (optional)"
+                  placeholder={t('engineering.workOrderDetail.notesEditPlaceholder')}
                   className="w-full text-sm border border-line rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none bg-surface"
                 />
                 <div className="flex gap-2">
@@ -494,13 +498,13 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     className="flex-1"
                   >
                     {editMutation.isPending && <Loader2 size={12} className="animate-spin" />}
-                    Save
+                    {t('engineering.workOrderDetail.save')}
                   </Button>
                   <button
                     onClick={() => setIsEditing(false)}
                     className="px-4 py-2 text-sm text-ink2 border border-line rounded-lg hover:bg-surface-3 transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -509,54 +513,54 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
           {/* Section: Details */}
           <div className="p-5">
-            <SectionLabel>Details</SectionLabel>
+            <SectionLabel>{t('engineering.workOrderDetail.details')}</SectionLabel>
             <dl className="space-y-2 text-sm">
               {fullWo.description && (
                 <div>
-                  <dt className="font-mono text-[11px] text-ink3 mb-0.5">Description</dt>
+                  <dt className="font-mono text-[11px] text-ink3 mb-0.5">{t('engineering.workOrderDetail.descriptionLabel')}</dt>
                   <dd className="text-ink2 leading-relaxed">{fullWo.description}</dd>
                 </div>
               )}
               {fullWo.assets && (
                 <div className="flex items-center gap-1.5 text-ink2">
                   <Wrench className="w-3.5 h-3.5 shrink-0 text-ink3" />
-                  <span>Asset: <span className="font-medium text-ink">{fullWo.assets.name}</span></span>
+                  <span>{t('engineering.workOrderDetail.assetLabel')} <span className="font-medium text-ink">{fullWo.assets.name}</span></span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
                 {fullWo.created_at && (
                   <div>
-                    <span className="font-mono text-[11px] text-ink3">Created</span>
-                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.created_at)}</p>
+                    <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.createdLabel')}</span>
+                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.created_at, t)}</p>
                   </div>
                 )}
                 {fullWo.started_at && (
                   <div>
-                    <span className="font-mono text-[11px] text-ink3">Started</span>
-                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.started_at)}</p>
+                    <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.startedLabel')}</span>
+                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.started_at, t)}</p>
                   </div>
                 )}
                 {fullWo.completed_at && (
                   <div>
-                    <span className="font-mono text-[11px] text-ink3">Completed</span>
-                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.completed_at)}</p>
+                    <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.completedLabel')}</span>
+                    <p className="text-[13px] text-ink font-medium">{formatTs(fullWo.completed_at, t)}</p>
                   </div>
                 )}
                 {fullWo.labor_hours != null && (
                   <div>
-                    <span className="font-mono text-[11px] text-ink3">Labor hours</span>
+                    <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.laborHoursLabel')}</span>
                     <p className="text-[13px] text-ink font-medium">{fullWo.labor_hours}h</p>
                   </div>
                 )}
                 {fullWo.parts_used && (
                   <div className="col-span-2">
-                    <span className="font-mono text-[11px] text-ink3">Parts used</span>
+                    <span className="font-mono text-[11px] text-ink3">{t('programs.pmCompletion.partsUsed')}</span>
                     <p className="text-[13px] text-ink font-medium">{fullWo.parts_used}</p>
                   </div>
                 )}
                 {fullWo.notes && (
                   <div className="col-span-2">
-                    <span className="font-mono text-[11px] text-ink3">Notes</span>
+                    <span className="font-mono text-[11px] text-ink3">{t('programs.pmCompletion.notesLabel')}</span>
                     <p className="text-[13px] text-ink2">{fullWo.notes}</p>
                   </div>
                 )}
@@ -567,7 +571,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           {/* Section: Actions (role-gated) */}
           {(canClaim || canComplete || canHold || canCancel || canResume || canReopen || canEscalate) && (
             <div className="p-5">
-              <SectionLabel>Actions</SectionLabel>
+              <SectionLabel>{t('engineering.workOrderDetail.sectionActions')}</SectionLabel>
               <div className="flex flex-wrap gap-2">
 
                 {canClaim && (
@@ -581,7 +585,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ) : (
                       <Wrench className="w-3.5 h-3.5" />
                     )}
-                    Claim Work Order
+                    {t('engineering.workOrderDetail.claimWorkOrder')}
                   </Button>
                 )}
 
@@ -592,7 +596,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     className="border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Mark Complete
+                    {t('engineering.workOrderDetail.markComplete')}
                   </Button>
                 )}
 
@@ -608,7 +612,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ) : (
                       <PauseCircle className="w-3.5 h-3.5" />
                     )}
-                    Put On Hold
+                    {t('engineering.workOrderDetail.putOnHold')}
                   </Button>
                 )}
 
@@ -620,7 +624,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     className="text-[var(--info)] border-[var(--info-line)] hover:bg-[var(--info-soft)]"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Resume
+                    {t('engineering.workOrderDetail.resume')}
                   </Button>
                 )}
 
@@ -636,7 +640,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ) : (
                       <RotateCcw className="w-3.5 h-3.5" />
                     )}
-                    Reopen
+                    {t('engineering.workOrderDetail.reopen')}
                   </Button>
                 )}
 
@@ -651,7 +655,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     ) : (
                       <XCircle className="w-3.5 h-3.5" />
                     )}
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                 )}
 
@@ -663,7 +667,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     className="text-[var(--alert)] border-[var(--alert-line)] hover:bg-[var(--alert-soft)]"
                   >
                     <AlertCircle className="w-3.5 h-3.5" />
-                    Escalate
+                    {t('engineering.workOrderDetail.escalate')}
                   </Button>
                 )}
               </div>
@@ -671,35 +675,35 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
               {pendingTransition && (
                 <div className="mt-4 p-4 bg-surface-2 border border-line rounded-xl space-y-3">
                   <p className="text-sm font-semibold text-ink">
-                    {pendingTransition === 'on_hold' ? 'Why is this work on hold?' : pendingTransition === 'cancelled' ? 'Why is this work order cancelled?' : 'Why is this work order reopening?'}
+                    {pendingTransition === 'on_hold' ? t('engineering.workOrderDetail.reasonOnHold') : pendingTransition === 'cancelled' ? t('engineering.workOrderDetail.reasonCancelled') : t('engineering.workOrderDetail.reasonReopening')}
                   </p>
                   <label className="block font-mono text-[11px] text-ink3">
-                    Required reason
+                    {t('engineering.workOrderDetail.requiredReason')}
                     <select
                       value={transitionReason}
                       onChange={(event) => setTransitionReason(event.target.value)}
                       className="mt-1.5 w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface"
                     >
-                      <option value="">Select a reason</option>
+                      <option value="">{t('engineering.workOrderDetail.selectReason')}</option>
                       {pendingTransition === 'on_hold' && <>
-                        <option value="awaiting_parts">Awaiting parts</option>
-                        <option value="awaiting_vendor">Awaiting vendor</option>
-                        <option value="schedule_deferral">Schedule deferral</option>
-                        <option value="safety_review">Safety review</option>
+                        <option value="awaiting_parts">{t('engineering.workOrderDetail.awaitingParts')}</option>
+                        <option value="awaiting_vendor">{t('engineering.workOrderDetail.awaitingVendor')}</option>
+                        <option value="schedule_deferral">{t('engineering.workOrderDetail.scheduleDeferral')}</option>
+                        <option value="safety_review">{t('engineering.workOrderDetail.safetyReview')}</option>
                       </>}
                       {pendingTransition === 'cancelled' && <>
-                        <option value="duplicate">Duplicate</option>
-                        <option value="no_longer_needed">No longer needed</option>
-                        <option value="safety_review">Safety review</option>
+                        <option value="duplicate">{t('engineering.workOrderDetail.duplicate')}</option>
+                        <option value="no_longer_needed">{t('engineering.workOrderDetail.noLongerNeeded')}</option>
+                        <option value="safety_review">{t('engineering.workOrderDetail.safetyReview')}</option>
                       </>}
                       {pendingTransition === 'open' && <>
-                        <option value="reopened_after_failure">Reopened after failure</option>
-                        <option value="reopened_on_request">Reopened on request</option>
+                        <option value="reopened_after_failure">{t('engineering.workOrderDetail.reopenedAfterFailure')}</option>
+                        <option value="reopened_on_request">{t('engineering.workOrderDetail.reopenedOnRequest')}</option>
                       </>}
                     </select>
                   </label>
                   <label className="block font-mono text-[11px] text-ink3">
-                    Note <span className="font-normal">(optional)</span>
+                    {t('engineering.workOrderDetail.noteLabel')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
                     <textarea
                       value={transitionNote}
                       onChange={(event) => setTransitionNote(event.target.value)}
@@ -707,12 +711,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       className="mt-1.5 w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface resize-none"
                     />
                   </label>
-                  {transitionMutation.isError && <p className="text-xs text-[var(--alert)]">Unable to record this transition. Please try again.</p>}
+                  {transitionMutation.isError && <p className="text-xs text-[var(--alert)]">{t('engineering.workOrderDetail.transitionError')}</p>}
                   <div className="flex gap-2 justify-end">
-                    <Button variant="ghost" onClick={() => setPendingTransition(null)} disabled={transitionMutation.isPending}>Cancel</Button>
+                    <Button variant="ghost" onClick={() => setPendingTransition(null)} disabled={transitionMutation.isPending}>{t('common.cancel')}</Button>
                     <Button variant="primary" onClick={submitTransition} disabled={!transitionReason || transitionMutation.isPending}>
                       {transitionMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                      Save change
+                      {t('engineering.workOrderDetail.saveChange')}
                     </Button>
                   </div>
                 </div>
@@ -721,17 +725,17 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
               {/* Inline completion form */}
               {showCompleteForm && (
                 <div className="mt-4 p-4 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-xl space-y-3">
-                  <p className="text-sm font-semibold text-[var(--ready)]">Complete Work Order</p>
+                  <p className="text-sm font-semibold text-[var(--ready)]">{t('engineering.workOrderDetail.completeWorkOrderHeading')}</p>
 
                   <div>
                     <label className="block font-mono text-[11px] text-ink3 mb-1">
-                      Notes <span className="font-normal">(optional)</span>
+                      {t('programs.pmCompletion.notesLabel')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
                     </label>
                     <textarea
                       value={completionNotes}
                       onChange={(e) => setCompletionNotes(e.target.value)}
                       rows={3}
-                      placeholder="What was done, findings, etc."
+                      placeholder={t('engineering.workOrderDetail.completionNotesPlaceholder')}
                       className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ready-line)] resize-none bg-surface/70 backdrop-blur-sm"
                     />
                   </div>
@@ -739,7 +743,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block font-mono text-[11px] text-ink3 mb-1">
-                        Labor hours <span className="font-normal">(optional)</span>
+                        {t('engineering.workOrderDetail.laborHoursLabel')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
                       </label>
                       <input
                         type="number"
@@ -747,19 +751,19 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                         step="0.25"
                         value={laborHours}
                         onChange={(e) => setLaborHours(e.target.value)}
-                        placeholder="e.g. 1.5"
+                        placeholder={t('engineering.workOrderDetail.laborHoursPlaceholder')}
                         className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ready-line)] bg-surface/70 backdrop-blur-sm"
                       />
                     </div>
                     <div>
                       <label className="block font-mono text-[11px] text-ink3 mb-1">
-                        Parts used <span className="font-normal">(optional)</span>
+                        {t('programs.pmCompletion.partsUsed')} <span className="font-normal">{t('programs.pmCompletion.optionalTag')}</span>
                       </label>
                       <input
                         type="text"
                         value={partsUsed}
                         onChange={(e) => setPartsUsed(e.target.value)}
-                        placeholder="e.g. Filter, belt"
+                        placeholder={t('engineering.workOrderDetail.partsUsedPlaceholder')}
                         className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ready-line)] bg-surface/70 backdrop-blur-sm"
                       />
                     </div>
@@ -767,7 +771,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
                   {completeMutation.isError && (
                     <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
-                      Failed to complete work order. Please try again.
+                      {t('engineering.workOrderDetail.completeError')}
                     </p>
                   )}
 
@@ -783,14 +787,14 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       ) : (
                         <CheckCircle className="w-3.5 h-3.5" />
                       )}
-                      Submit Completion
+                      {t('engineering.workOrderDetail.submitCompletion')}
                     </Button>
                     <button
                       type="button"
                       onClick={() => setShowCompleteForm(false)}
                       className="px-3 py-2 text-sm text-ink2 hover:text-ink transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
@@ -801,16 +805,16 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           {/* Section: Push to Housekeeping */}
           {fullWo.room_id && (isEngineer || isChief || isGM) && (
             <div className="p-5">
-              <SectionLabel>Push to Housekeeping</SectionLabel>
+              <SectionLabel>{t('engineering.workOrderDetail.pushToHousekeepingHeading')}</SectionLabel>
               {hkTaskSuccess ? (
                 <div className="flex items-center gap-2 text-sm text-[var(--ready)] bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2">
                   <CheckCircle className="w-4 h-4 shrink-0" />
-                  Task pushed to housekeeping.
+                  {t('engineering.workOrderDetail.taskPushed')}
                   <button
                     type="button"
                     onClick={() => setHkTaskSuccess(false)}
                     className="ml-auto text-[var(--ready)] hover:text-[var(--ready)]"
-                    aria-label="Dismiss"
+                    aria-label={t('engineering.workOrderDetail.dismiss')}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -818,30 +822,30 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
               ) : (
                 <div className="space-y-3">
                   <p className="text-[12px] text-ink3">
-                    Create a housekeeping task for{' '}
+                    {t('engineering.workOrderDetail.createTaskFor')}{' '}
                     <span className="font-medium text-ink">
-                      Room {fullWo.rooms?.room_number}
+                      {t('engineering.workOrderCard.room')} {fullWo.rooms?.room_number}
                     </span>.
                   </p>
                   <textarea
-                    aria-label="Message to housekeeping team"
+                    aria-label={t('engineering.workOrderDetail.hkMessageAriaLabel')}
                     value={hkTaskNote}
                     onChange={(e) => setHkTaskNote(e.target.value)}
                     rows={2}
-                    placeholder="e.g. Deep clean needed — repair complete, debris in bathroom"
+                    placeholder={t('engineering.workOrderDetail.hkNotePlaceholder')}
                     className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-surface/70 backdrop-blur-sm resize-none"
                   />
                   <div className="flex items-center gap-2">
-                    <label htmlFor="hk-push-priority" className="sr-only">Priority</label>
+                    <label htmlFor="hk-push-priority" className="sr-only">{t('engineering.workOrderDetail.priorityLabel')}</label>
                     <select
                       id="hk-push-priority"
                       value={hkTaskPriority}
                       onChange={(e) => setHkTaskPriority(e.target.value as 'urgent' | 'normal' | 'low')}
                       className="text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                     >
-                      <option value="normal">Normal</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="low">Low</option>
+                      <option value="normal">{t('engineering.workOrderDetail.priorityNormal')}</option>
+                      <option value="urgent">{t('engineering.workOrderDetail.priorityUrgent')}</option>
+                      <option value="low">{t('engineering.workOrderDetail.priorityLow')}</option>
                     </select>
                     <Button
                       variant="ghost"
@@ -854,12 +858,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       ) : (
                         <ClipboardList className="w-3.5 h-3.5" />
                       )}
-                      Push to Housekeeping
+                      {t('engineering.workOrderDetail.pushToHousekeepingHeading')}
                     </Button>
                   </div>
                   {hkTaskMutation.isError && (
                     <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
-                      Failed to create task. Please try again.
+                      {t('engineering.workOrderDetail.hkTaskError')}
                     </p>
                   )}
                 </div>
@@ -870,7 +874,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
           {/* Section: Photos */}
           {(isEngineer || isChief || isGM) && (
             <div className="p-5">
-              <SectionLabel>Photos</SectionLabel>
+              <SectionLabel>{t('engineering.workOrderDetail.photosHeading')}</SectionLabel>
 
               {/* Photo grid */}
               {photos.length > 0 && (
@@ -920,27 +924,27 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 <div className="space-y-2">
                   <div className="relative rounded-lg overflow-hidden border border-line bg-surface-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photoPreview} alt="Preview" className="w-full max-h-40 object-contain" />
+                    <img src={photoPreview} alt={t('engineering.workOrderDetail.previewAlt')} className="w-full max-h-40 object-contain" />
                     <button
                       type="button"
                       onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
                       className="absolute top-1.5 right-1.5 p-1 bg-white/90 rounded-full shadow-sm text-gray-600 hover:text-gray-900 border border-gray-200 transition-colors"
-                      aria-label="Remove photo"
+                      aria-label={t('engineering.workOrderDetail.removePhoto')}
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label htmlFor="wo-photo-type" className="sr-only">Photo type</label>
+                    <label htmlFor="wo-photo-type" className="sr-only">{t('engineering.workOrderDetail.photoTypeLabel')}</label>
                     <select
                       id="wo-photo-type"
                       value={photoType}
                       onChange={(e) => setPhotoType(e.target.value as 'before' | 'after' | 'progress')}
                       className="text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                     >
-                      <option value="before">Before</option>
-                      <option value="progress">Progress</option>
-                      <option value="after">After</option>
+                      <option value="before">{t('engineering.workOrderDetail.photoTypeBefore')}</option>
+                      <option value="progress">{t('engineering.workOrderDetail.photoTypeProgress')}</option>
+                      <option value="after">{t('engineering.workOrderDetail.photoTypeAfter')}</option>
                     </select>
                     <Button
                       variant="primary"
@@ -953,7 +957,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       ) : (
                         <ImageIcon className="w-3.5 h-3.5" />
                       )}
-                      Upload Photo
+                      {t('engineering.workOrderDetail.uploadPhoto')}
                     </Button>
                   </div>
                   {photoError && (
@@ -969,7 +973,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   className="w-full h-16 border border-dashed border-line rounded-lg flex items-center justify-center gap-2 text-sm text-ink3 hover:bg-surface-3 hover:border-line-2 transition-colors"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  Add photo
+                  {t('engineering.workOrderDetail.addPhoto')}
                 </button>
               )}
             </div>
@@ -977,7 +981,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
 
           {/* Section: Timeline / Comments */}
           <div className="p-5">
-            <SectionLabel>Timeline</SectionLabel>
+            <SectionLabel>{t('engineering.workOrderDetail.timelineHeading')}</SectionLabel>
 
             {detailLoading ? (
               <div className="space-y-3">
@@ -992,7 +996,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 ))}
               </div>
             ) : comments.length === 0 ? (
-              <p className="text-sm text-ink3 mb-4">No activity yet.</p>
+              <p className="text-sm text-ink3 mb-4">{t('engineering.workOrderDetail.noActivity')}</p>
             ) : (
               <div className="relative mb-4">
                 {/* Timeline line */}
@@ -1008,10 +1012,10 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-1.5 flex-wrap">
                           <span className="font-mono text-[11px] text-ink3 shrink-0">
-                            {formatTs(c.created_at) ?? '—'}
+                            {formatTs(c.created_at, t) ?? '—'}
                           </span>
                           {c.is_system && (
-                            <span className="text-[11px] text-[var(--ai)] font-medium">System</span>
+                            <span className="text-[11px] text-[var(--ai)] font-medium">{t('engineering.workOrderDetail.systemLabel')}</span>
                           )}
                         </div>
                         <p className="text-[13px] text-ink2 mt-0.5 leading-snug">{c.comment}</p>
@@ -1025,11 +1029,11 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             {/* Add comment form */}
             <div className="space-y-2">
               <textarea
-                aria-label="Add comment"
+                aria-label={t('engineering.workOrderDetail.addCommentAriaLabel')}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 rows={2}
-                placeholder="Add a comment…"
+                placeholder={t('engineering.workOrderDetail.addCommentPlaceholder')}
                 className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-[var(--caution-line)] bg-surface/70 backdrop-blur-sm resize-none transition-colors"
               />
               <Button
@@ -1043,7 +1047,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 ) : (
                   <MessageSquare className="w-3.5 h-3.5" />
                 )}
-                Add Comment
+                {t('engineering.workOrderDetail.addComment')}
               </Button>
             </div>
           </div>
@@ -1064,7 +1068,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 ) : (
                   <Wrench className="w-3.5 h-3.5" />
                 )}
-                Claim
+                {t('engineering.workOrderDetail.claim')}
               </Button>
             )}
             {canComplete && (
@@ -1074,7 +1078,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 className="flex-1 border-[var(--ready-line)] text-[var(--ready)] bg-[var(--ready-soft)] hover:bg-green-100"
               >
                 <CheckCircle className="w-3.5 h-3.5" />
-                Complete
+                {t('engineering.workOrderDetail.complete')}
               </Button>
             )}
             {canCancel && (
@@ -1089,14 +1093,14 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 ) : (
                   <XCircle className="w-3.5 h-3.5" />
                 )}
-                Cancel
+                {t('common.cancel')}
               </Button>
             )}
             <button
               onClick={onClose}
               className="px-3 py-2 text-sm text-ink3 hover:text-ink border border-line rounded-lg hover:bg-surface-3 transition-colors"
             >
-              Close
+              {t('engineering.workOrderDetail.closeButton')}
             </button>
           </div>
         )}
