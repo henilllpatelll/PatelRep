@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { CheckCircle2, ClipboardCheck, Clock, Scissors } from 'lucide-react'
 import { housekeepingApi, InspectionRecord, ReadyForInspectionRoom, ReadyToStripRoom } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
@@ -33,12 +34,6 @@ function resultPillTone(result: InspectionResult): 'ready' | 'alert' | 'caution'
   return 'caution'
 }
 
-function resultLabel(result: InspectionResult): string {
-  if (result === 'passed') return 'Passed'
-  if (result === 'failed') return 'Failed'
-  return 'Conditional'
-}
-
 function StripQueueCard({
   room,
   onStrip,
@@ -48,6 +43,7 @@ function StripQueueCard({
   onStrip: () => void
   isBusy: boolean
 }) {
+  const { t } = useTranslation()
   const checkoutLabel = room.checkout_time
     ? format(new Date(room.checkout_time), 'h:mm a')
     : null
@@ -58,13 +54,15 @@ function StripQueueCard({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-ink">Departure</span>
-          {room.floor != null && <span className="text-xs text-ink4">Floor {room.floor}</span>}
+          <span className="text-sm font-semibold text-ink">{t('housekeeping.inspectionsPage.stripSection.departure')}</span>
+          {room.floor != null && (
+            <span className="text-xs text-ink4">{t('housekeeping.inspectionsPage.floorLabel', { floor: room.floor })}</span>
+          )}
         </div>
         {checkoutLabel && (
           <p className="text-xs text-ink3 mt-0.5 flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            Due out {checkoutLabel}
+            {t('housekeeping.inspectionsPage.stripSection.dueOut', { time: checkoutLabel })}
           </p>
         )}
       </div>
@@ -75,13 +73,16 @@ function StripQueueCard({
         className="shrink-0 text-sm px-3 py-1.5"
       >
         <Scissors className="w-4 h-4 mr-1.5" />
-        {isBusy ? 'Marking…' : 'Mark Stripped'}
+        {isBusy
+          ? t('housekeeping.inspectionsPage.stripSection.marking')
+          : t('housekeeping.inspectionsPage.stripSection.markStripped')}
       </Button>
     </div>
   )
 }
 
 function QueueCard({ room, onInspect }: { room: ReadyForInspectionRoom; onInspect: () => void }) {
+  const { t } = useTranslation()
   const cleanLabel = getCleanTypeLabel(room.clean_type)
   return (
     <div className="flex items-center gap-4 px-4 py-3.5 border-b border-line last:border-b-0">
@@ -90,25 +91,32 @@ function QueueCard({ room, onInspect }: { room: ReadyForInspectionRoom; onInspec
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-ink">{room.cleaned_by || 'Unassigned'}</span>
+          <span className="text-sm font-semibold text-ink">
+            {room.cleaned_by || t('housekeeping.inspectionsPage.queueSection.unassigned')}
+          </span>
           {cleanLabel && <span className="text-xs text-ink3 font-mono">{cleanLabel}</span>}
-          {room.floor != null && <span className="text-xs text-ink4">Floor {room.floor}</span>}
+          {room.floor != null && (
+            <span className="text-xs text-ink4">{t('housekeeping.inspectionsPage.floorLabel', { floor: room.floor })}</span>
+          )}
         </div>
         {room.cleaned_at && (
           <p className="text-xs text-ink3 mt-0.5">
-            Cleaned at {format(new Date(room.cleaned_at), 'h:mm a')}
+            {t('housekeeping.inspectionsPage.queueSection.cleanedAt', {
+              time: format(new Date(room.cleaned_at), 'h:mm a'),
+            })}
           </p>
         )}
       </div>
       <Button variant="secondary" onClick={onInspect} className="shrink-0 text-sm px-3 py-1.5">
         <ClipboardCheck className="w-4 h-4 mr-1.5" />
-        Inspect
+        {t('housekeeping.inspectionsPage.queueSection.inspect')}
       </Button>
     </div>
   )
 }
 
 export default function InspectionsPage() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<'live' | 'history'>('live')
 
   const [inspectingRoom, setInspectingRoom] = useState<ReadyForInspectionRoom | null>(null)
@@ -171,9 +179,15 @@ export default function InspectionsPage() {
       await housekeepingApi.markRoomStripped(room.room_id)
       queryClient.invalidateQueries({ queryKey: ['ready-to-strip'] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
-      setToast({ type: 'success', message: `Room ${room.room_number} marked stripped.` })
+      setToast({
+        type: 'success',
+        message: t('housekeeping.inspectionsPage.toast.strippedSuccess', { number: room.room_number }),
+      })
     } catch {
-      setToast({ type: 'error', message: `Failed to mark room ${room.room_number} stripped.` })
+      setToast({
+        type: 'error',
+        message: t('housekeeping.inspectionsPage.toast.strippedError', { number: room.room_number }),
+      })
     } finally {
       setStrippingId(null)
     }
@@ -194,8 +208,8 @@ export default function InspectionsPage() {
         type: 'success',
         message:
           result === 'passed'
-            ? `Room ${room.room_number} passed — marked Inspected.`
-            : `Room ${room.room_number} saved as Conditional.`,
+            ? t('housekeeping.inspectionsPage.toast.passedSuccess', { number: room.room_number })
+            : t('housekeeping.inspectionsPage.toast.conditionalSuccess', { number: room.room_number }),
       })
     }
   }
@@ -218,9 +232,12 @@ export default function InspectionsPage() {
       queryClient.invalidateQueries({ queryKey: ['ready-for-inspection'] })
       const roomNum = reassignCtx.room.room_number
       setReassignCtx(null)
-      setToast({ type: 'success', message: `Room ${roomNum} re-assigned for re-clean.` })
+      setToast({
+        type: 'success',
+        message: t('housekeeping.inspectionsPage.toast.reassignSuccess', { number: roomNum }),
+      })
     } catch {
-      setToast({ type: 'error', message: 'Failed to re-assign room.' })
+      setToast({ type: 'error', message: t('housekeeping.inspectionsPage.toast.reassignError') })
     } finally {
       setReassignBusy(false)
     }
@@ -241,9 +258,9 @@ export default function InspectionsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <PageHeader
-        eyebrow="Housekeeping"
-        title="Inspections"
-        subtitle="Inspect cleaned rooms — pass, flag conditional, or send back for re-clean."
+        eyebrow={t('housekeeping.inspectionsPage.eyebrow')}
+        title={t('housekeeping.inspectionsPage.title')}
+        subtitle={t('housekeeping.inspectionsPage.subtitle')}
       />
 
       {toast && (
@@ -265,22 +282,24 @@ export default function InspectionsPage() {
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-line">
-        {(['live', 'history'] as const).map((t) => (
+        {(['live', 'history'] as const).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-              tab === t
+              tab === tabKey
                 ? 'border-[var(--accent)] text-ink'
                 : 'border-transparent text-ink3 hover:text-ink2'
             }`}
           >
-            {t === 'live'
+            {tabKey === 'live'
               ? (() => {
                   const total = readyRooms.length + stripRooms.length
-                  return `Live${total > 0 ? ` · ${total}` : ''}`
+                  return total > 0
+                    ? t('housekeeping.inspectionsPage.tabs.liveCount', { count: total })
+                    : t('housekeeping.inspectionsPage.tabs.live')
                 })()
-              : 'History'}
+              : t('housekeeping.inspectionsPage.tabs.history')}
           </button>
         ))}
       </div>
@@ -293,7 +312,7 @@ export default function InspectionsPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Scissors className="w-4 h-4 text-[var(--alert)]" />
-                <h2 className="text-sm font-semibold text-ink">Ready to Strip</h2>
+                <h2 className="text-sm font-semibold text-ink">{t('housekeeping.inspectionsPage.stripSection.heading')}</h2>
                 {stripRooms.length > 0 && (
                   <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]">
                     {stripRooms.length}
@@ -326,7 +345,7 @@ export default function InspectionsPage() {
             {stripRooms.length > 0 || isLoadingStrip ? (
               <div className="flex items-center gap-2">
                 <ClipboardCheck className="w-4 h-4 text-[var(--info)]" />
-                <h2 className="text-sm font-semibold text-ink">Inspection Queue</h2>
+                <h2 className="text-sm font-semibold text-ink">{t('housekeeping.inspectionsPage.queueSection.heading')}</h2>
                 {readyRooms.length > 0 && (
                   <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info-line)]">
                     {readyRooms.length}
@@ -343,9 +362,9 @@ export default function InspectionsPage() {
             ) : readyRooms.length === 0 ? (
               <Card className="p-10 text-center">
                 <ClipboardCheck className="w-10 h-10 text-ink4 mx-auto mb-3" />
-                <p className="text-sm font-medium text-ink2">No rooms waiting for inspection</p>
+                <p className="text-sm font-medium text-ink2">{t('housekeeping.inspectionsPage.empty.title')}</p>
                 <p className="text-xs text-ink3 mt-1">
-                  Rooms appear here when a housekeeper marks them clean.
+                  {t('housekeeping.inspectionsPage.empty.subtitle')}
                 </p>
               </Card>
             ) : (
@@ -368,7 +387,7 @@ export default function InspectionsPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-ink2">From</label>
+              <label className="text-sm font-medium text-ink2">{t('housekeeping.inspectionsPage.history.from')}</label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -377,7 +396,7 @@ export default function InspectionsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-ink2">To</label>
+              <label className="text-sm font-medium text-ink2">{t('housekeeping.inspectionsPage.history.to')}</label>
               <Input
                 type="date"
                 value={dateTo}
@@ -387,10 +406,10 @@ export default function InspectionsPage() {
               />
             </div>
             <Button variant="ghost" onClick={setToday} className="px-3 py-1.5 text-sm">
-              Today
+              {t('housekeeping.inspectionsPage.history.today')}
             </Button>
             <Button variant="ghost" onClick={setThisWeek} className="px-3 py-1.5 text-sm">
-              This Week
+              {t('housekeeping.inspectionsPage.history.thisWeek')}
             </Button>
             <div className="ml-auto">
               <select
@@ -398,10 +417,10 @@ export default function InspectionsPage() {
                 onChange={(e) => setResultFilter(e.target.value)}
                 className="px-3 py-1.5 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-surface"
               >
-                <option value="all">All Results</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="conditional">Conditional</option>
+                <option value="all">{t('housekeeping.inspectionsPage.history.allResults')}</option>
+                <option value="passed">{t('housekeeping.inspectionModal.manualResult.passed')}</option>
+                <option value="failed">{t('housekeeping.inspectionModal.manualResult.failed')}</option>
+                <option value="conditional">{t('housekeeping.inspectionModal.manualResult.conditional')}</option>
               </select>
             </div>
           </div>
@@ -417,18 +436,18 @@ export default function InspectionsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line-2 text-xs text-ink3 uppercase tracking-wide">
-                    <th className="text-left px-4 py-2.5">Room</th>
-                    <th className="text-left px-4 py-2.5">Inspector</th>
-                    <th className="text-left px-4 py-2.5">Result</th>
-                    <th className="text-left px-4 py-2.5">Date</th>
-                    <th className="text-left px-4 py-2.5 hidden sm:table-cell">Notes</th>
+                    <th className="text-left px-4 py-2.5">{t('housekeeping.inspectionsPage.history.table.room')}</th>
+                    <th className="text-left px-4 py-2.5">{t('housekeeping.inspectionsPage.history.table.inspector')}</th>
+                    <th className="text-left px-4 py-2.5">{t('housekeeping.inspectionsPage.history.table.result')}</th>
+                    <th className="text-left px-4 py-2.5">{t('housekeeping.inspectionsPage.history.table.date')}</th>
+                    <th className="text-left px-4 py-2.5 hidden sm:table-cell">{t('housekeeping.inspectionsPage.history.table.notes')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inspections.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-14 text-center text-sm text-ink3">
-                        No inspections in this period
+                        {t('housekeeping.inspectionsPage.history.empty')}
                       </td>
                     </tr>
                   ) : (
@@ -440,18 +459,20 @@ export default function InspectionsPage() {
                         <td className="px-4 py-3 font-mono font-medium text-ink">
                           {row.room_number}
                         </td>
-                        <td className="px-4 py-3 text-ink2">{row.inspector_name || 'Unknown'}</td>
+                        <td className="px-4 py-3 text-ink2">
+                          {row.inspector_name || t('housekeeping.inspectionsPage.history.unknownInspector')}
+                        </td>
                         <td className="px-4 py-3">
                           {row.overall_result ? (
                             <Pill
                               tone={resultPillTone(row.overall_result as InspectionResult)}
                               size="sm"
                             >
-                              {resultLabel(row.overall_result as InspectionResult)}
+                              {t(`housekeeping.inspectionModal.manualResult.${row.overall_result}`)}
                             </Pill>
                           ) : (
                             <Pill tone="caution" size="sm">
-                              Pending
+                              {t('housekeeping.inspectionsPage.history.pending')}
                             </Pill>
                           )}
                         </td>
@@ -499,25 +520,31 @@ export default function InspectionsPage() {
           <div className="fixed bottom-0 inset-x-0 z-50 sm:bottom-6 sm:right-6 sm:left-auto sm:w-[380px]">
             <div className="bg-surface border border-line shadow-2xl rounded-t-[var(--r-lg)] sm:rounded-[var(--r-lg)] p-5">
               <p className="text-sm font-bold text-ink mb-0.5">
-                Room {reassignCtx.room.room_number} failed — re-assign for re-clean
+                {t('housekeeping.inspectionsPage.reassign.title', {
+                  roomNumber: reassignCtx.room.room_number,
+                })}
               </p>
               <p className="text-xs text-ink3 mb-4">
-                The room has been returned to Dirty. Assign a housekeeper to re-clean.
+                {t('housekeeping.inspectionsPage.reassign.subtitle')}
               </p>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-ink2 mb-1">Housekeeper</label>
+                  <label className="block text-xs font-medium text-ink2 mb-1">
+                    {t('housekeeping.inspectionsPage.reassign.housekeeperLabel')}
+                  </label>
                   <select
                     value={reassignHkId}
                     onChange={(e) => setReassignHkId(e.target.value)}
                     className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 bg-surface"
                   >
-                    <option value="">— select housekeeper —</option>
+                    <option value="">{t('housekeeping.inspectionsPage.reassign.selectHousekeeper')}</option>
                     {housekeepers.map((hk) => (
                       <option key={hk.user_id} value={hk.user_id}>
                         {hk.full_name}
-                        {hk.user_id === reassignCtx.room.housekeeper_id ? ' (original)' : ''}
+                        {hk.user_id === reassignCtx.room.housekeeper_id
+                          ? t('housekeeping.inspectionsPage.reassign.originalSuffix')
+                          : ''}
                       </option>
                     ))}
                   </select>
@@ -525,14 +552,14 @@ export default function InspectionsPage() {
 
                 <div>
                   <label className="block text-xs font-medium text-ink2 mb-1">
-                    Note for housekeeper{' '}
-                    <span className="font-normal text-ink4">(optional)</span>
+                    {t('housekeeping.inspectionsPage.reassign.noteLabel')}{' '}
+                    <span className="font-normal text-ink4">{t('housekeeping.inspectionModal.optionalTag')}</span>
                   </label>
                   <textarea
                     value={reassignNote}
                     onChange={(e) => setReassignNote(e.target.value)}
                     rows={2}
-                    placeholder="e.g. Towels not replaced, bathroom needs attention"
+                    placeholder={t('housekeeping.inspectionsPage.reassign.notePlaceholder')}
                     className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none bg-surface"
                   />
                 </div>
@@ -544,7 +571,7 @@ export default function InspectionsPage() {
                   onClick={() => setReassignCtx(null)}
                   className="flex-1"
                 >
-                  Skip
+                  {t('housekeeping.inspectionsPage.reassign.skip')}
                 </Button>
                 <Button
                   variant="primary"
@@ -552,7 +579,9 @@ export default function InspectionsPage() {
                   disabled={!reassignHkId || reassignBusy}
                   className="flex-1"
                 >
-                  {reassignBusy ? 'Re-assigning…' : 'Re-assign'}
+                  {reassignBusy
+                    ? t('housekeeping.inspectionsPage.reassign.reassigning')
+                    : t('housekeeping.inspectionsPage.reassign.reassignButton')}
                 </Button>
               </div>
             </div>
