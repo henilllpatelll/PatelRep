@@ -373,7 +373,7 @@ export function InspectionModal({ roomId, roomNumber, cleanedBy, cleanedAt, clea
                   <div className="flex items-center gap-3 mt-1.5">
                     <span className="flex items-center gap-1 text-xs text-gray-500">
                       <Timer className="w-3 h-3" />
-                      {lastCleanMinutes}m{lastCleanBaseMinutes != null ? t('housekeeping.inspectionModal.lastCleanBase', { minutes: lastCleanBaseMinutes }) : ''}
+                      {`${lastCleanMinutes}m`}{lastCleanBaseMinutes != null ? t('housekeeping.inspectionModal.lastCleanBase', { minutes: lastCleanBaseMinutes }) : ''}
                     </span>
                     {checklistTotal > 0 && (
                       <span className="flex items-center gap-1 text-xs text-gray-500">

@@ -16,28 +16,25 @@ const config = [
       'react-hooks/set-state-in-effect': 'off',
     },
   },
-  // ── Scoped bilingual-floor hard-fail gate (04-08 / D-04) ──────────────────
+  // ── Full floor-facing bilingual hard-fail gate (04-08..04-16 / D-03/D-04) ──
   // A raw user-facing string literal in JSX text, aria-label, placeholder, or
-  // title on a floor-facing surface now fails `npm run lint`. This is scoped
-  // to the exact files this plan (04-08) brought to full EN/ES parity, not
-  // the whole components/engineering|housekeeping/** or
-  // app/(dashboard)/{housekeeping,engineering,tasks,programs}/** tree --
-  // several sibling engineering/housekeeping/tasks files predate this phase's
-  // i18n work and still contain untranslated floor copy (WorkOrderList.tsx,
-  // FailurePredictionSidebar.tsx, EngineeringRoomBoard.tsx,
-  // CreateWorkOrderModal.tsx, WorkOrderDetailDrawer.tsx, app/(dashboard)/tasks,
-  // components/housekeeping/**). Turning the rule on for those paths today
-  // would hard-fail `npm run lint` on pre-existing, unrelated code -- see
-  // deferred-items.md for the follow-up hardening pass that closes that gap
-  // and widens this glob to the full floor-facing directory set.
+  // title on a floor-facing surface now fails `npm run lint`. This originally
+  // shipped in 04-08 scoped to a narrow 6-file list, because several sibling
+  // engineering/housekeeping/tasks files predated this phase's i18n work and
+  // still contained untranslated floor copy at that time. Plans 04-09 through
+  // 04-16 translated every remaining file in the full D-04 floor directory
+  // set (components/housekeeping/**, components/engineering/**,
+  // components/programs/**, and app/(dashboard)/{housekeeping,engineering,
+  // tasks,programs}/**), so the gate now covers that full set directly.
   {
     files: [
-      'app/(dashboard)/engineering/pm-schedules/page.tsx',
-      'components/engineering/PMCompletionModal.tsx',
-      'components/engineering/WorkOrderCard.tsx',
-      'components/programs/HousekeepingDepthPanels.tsx',
-      'components/programs/DeepCleanAreasPanel.tsx',
-      'components/programs/InspectionDepthPanel.tsx',
+      'components/housekeeping/**',
+      'components/engineering/**',
+      'components/programs/**',
+      'app/(dashboard)/housekeeping/**',
+      'app/(dashboard)/engineering/**',
+      'app/(dashboard)/tasks/**',
+      'app/(dashboard)/programs/**',
     ],
     ignores: [
       // GM/admin/config/inspector-export/analytics dirs stay English (D-03) --
