@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   X,
   AlertTriangle,
@@ -38,15 +40,15 @@ import { Button } from '@/components/ui/Button'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
 
 const WO_CATEGORIES = [
-  { value: 'appliance',   label: 'Appliance' },
-  { value: 'electrical',  label: 'Electrical' },
-  { value: 'furniture',   label: 'Furniture' },
-  { value: 'general',     label: 'General' },
-  { value: 'hvac',        label: 'HVAC / A/C' },
-  { value: 'plumbing',    label: 'Plumbing' },
-  { value: 'safety',      label: 'Safety' },
-  { value: 'structural',  label: 'Structural' },
-]
+  { value: 'appliance' },
+  { value: 'electrical' },
+  { value: 'furniture' },
+  { value: 'general' },
+  { value: 'hvac' },
+  { value: 'plumbing' },
+  { value: 'safety' },
+  { value: 'structural' },
+] as const
 
 interface Props {
   room: any | null
@@ -58,12 +60,12 @@ interface Props {
 type RoomStatus = 'DIRTY' | 'IN_PROGRESS' | 'CLEAN' | 'INSPECTED' | 'OOO' | 'PICKUP' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'OUT_OF_SERVICE'
 type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
-function formatHistoryTimestamp(isoString: string): string {
+function formatHistoryTimestamp(isoString: string, t: TFunction): string {
   try {
     const date = new Date(isoString)
     const timeStr = format(date, 'h:mm a')
     if (isToday(date)) return timeStr
-    if (isYesterday(date)) return `Yesterday ${timeStr}`
+    if (isYesterday(date)) return t('housekeeping.roomDetail.history.yesterdayTime', { time: timeStr })
     return `${format(date, 'MMM d')} ${timeStr}`
   } catch {
     return isoString
@@ -97,17 +99,17 @@ function buildCheckoutTimeIso(timeValue: string, existingIso?: string | null): s
   return date.toISOString()
 }
 
-function getActionLabel(status: string): string {
+function getActionLabel(status: string, t: TFunction): string {
   switch (status) {
-    case 'IN_PROGRESS': return 'Started'
-    case 'CLEAN': return 'Marked clean'
-    case 'INSPECTED': return 'Marked ready'
-    case 'DIRTY': return 'Returned to cleaning'
+    case 'IN_PROGRESS': return t('housekeeping.roomDetail.actionLabels.started')
+    case 'CLEAN': return t('housekeeping.roomDetail.actionLabels.markedClean')
+    case 'INSPECTED': return t('housekeeping.roomDetail.actionLabels.markedReady')
+    case 'DIRTY': return t('housekeeping.roomDetail.actionLabels.returnedToCleaning')
     case 'OOO':
     case 'OUT_OF_ORDER':
-    case 'OUT_OF_SERVICE': return 'Marked out of order'
-    case 'PICKUP': return 'Marked pickup'
-    default: return 'Updated'
+    case 'OUT_OF_SERVICE': return t('housekeeping.roomDetail.actionLabels.markedOutOfOrder')
+    case 'PICKUP': return t('housekeeping.roomDetail.actionLabels.markedPickup')
+    default: return t('housekeeping.roomDetail.actionLabels.updated')
   }
 }
 
@@ -115,7 +117,7 @@ function getLastUpdateAt(room: any | null): string | null {
   return room?.updated_at ?? room?.last_cleaned_at ?? room?.last_inspected_at ?? null
 }
 
-function formatLastAction(entry: any | null, room: any | null, currentUserId?: string): string | null {
+function formatLastAction(entry: any | null, room: any | null, currentUserId: string | undefined, t: TFunction): string | null {
   const status = entry?.to_status ?? room?.status
   const timestamp = entry?.created_at ?? getLastUpdateAt(room)
   if (!status || !timestamp) return null
@@ -123,12 +125,16 @@ function formatLastAction(entry: any | null, room: any | null, currentUserId?: s
   const actorName = entry?.actor_name ?? entry?.user_profiles?.preferred_name ?? null
   const actor =
     entry?.changed_by && entry.changed_by === currentUserId
-      ? ' by you'
+      ? ` ${t('housekeeping.roomDetail.history.byYou')}`
       : actorName
-      ? ` by ${actorName}`
+      ? ` ${t('housekeeping.roomDetail.history.byName', { name: actorName })}`
       : ''
 
-  return `${getActionLabel(status)}${actor} at ${formatHistoryTimestamp(timestamp)}`
+  return t('housekeeping.roomDetail.history.lastActionLine', {
+    action: getActionLabel(status, t),
+    actor,
+    time: formatHistoryTimestamp(timestamp, t),
+  })
 }
 
 const SYSTEM_NOTE_REGEXES = [
@@ -181,6 +187,7 @@ function getStatusChipClass(status: string): string {
 }
 
 export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }: Props) {
+  const { t } = useTranslation()
   const { role, isSupervisor, isGM } = useRole()
   const isHousekeeper = role === 'housekeeper'
   const canSupervise = isSupervisor || isGM
@@ -260,7 +267,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       queryClient.invalidateQueries({ queryKey: ['room-history-last-action', roomId] })
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
     } catch {
-      setNoteError('Failed to save note. Please try again.')
+      setNoteError(t('housekeeping.roomDetail.noteForm.error'))
     } finally {
       setNoteLoading(false)
     }
@@ -284,12 +291,12 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       setWoPriority('normal')
       setWoOpen(false)
       const roomLabel = room?.rooms?.room_number ?? room?.room_number ?? roomId
-      setWoSuccess(`Work order submitted — engineering team notified for Room ${roomLabel}`)
+      setWoSuccess(t('housekeeping.roomDetail.workOrderForm.successMessage', { room: roomLabel }))
       setTimeout(() => setWoSuccess(null), 6000)
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
     } catch {
-      setWoError('Failed to submit work order. Please try again.')
+      setWoError(t('housekeeping.roomDetail.workOrderForm.error'))
     } finally {
       setWoLoading(false)
     }
@@ -310,7 +317,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     } catch {
-      setSaveTimeError('Failed to save. Please try again.')
+      setSaveTimeError(t('housekeeping.roomDetail.departureCheckout.saveError'))
     } finally {
       setSaveTimeLoading(false)
     }
@@ -329,7 +336,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
       queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
     } catch {
-      setCheckoutError('Failed to mark checked out. Please try again.')
+      setCheckoutError(t('housekeeping.roomDetail.departureCheckout.checkoutError'))
     } finally {
       setCheckoutLoading(false)
     }
@@ -347,7 +354,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
       queryClient.invalidateQueries({ queryKey: ['rooms'] })
     } catch {
-      setUndoCheckoutError('Failed to undo checkout. Please try again.')
+      setUndoCheckoutError(t('housekeeping.roomDetail.departureCheckout.undoCheckoutError'))
     } finally {
       setUndoCheckoutLoading(false)
     }
@@ -366,7 +373,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
       queryClient.invalidateQueries({ queryKey: ['room-history', roomId] })
       queryClient.invalidateQueries({ queryKey: ['my-rooms'] })
     } catch {
-      setStayoverError('Failed to mark stayover. Please try again.')
+      setStayoverError(t('housekeeping.roomDetail.departureCheckout.stayoverError'))
     } finally {
       setStayoverLoading(false)
     }
@@ -476,7 +483,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
   const allTasks: any[] = (roomTasksData as any)?.data ?? []
   const roomSessions: any[] = (roomSessionsData as any)?.data ?? []
   const latestAction = lastActionData?.data?.[0] ?? null
-  const lastAction = formatLastAction(latestAction, room, currentUser?.id)
+  const lastAction = formatLastAction(latestAction, room, currentUser?.id, t)
   const actionNote = getActionableNote(latestAction)
 
   if (!isOpen) return null
@@ -496,7 +503,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={`Room ${roomNumber} details`}
+        aria-label={t('housekeeping.roomDetail.roomDetailsAria', { roomNumber })}
         className="fixed right-0 top-0 h-full w-[400px] max-w-full bg-white shadow-2xl border-l border-stone-200 z-50 flex flex-col outline-none transform transition-transform duration-300 ease-in-out"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
       >
@@ -509,7 +516,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2 flex-wrap">
                 <h2 className="text-[22px] font-black text-stone-900 tracking-tight leading-none">
-                  Room {roomNumber}
+                  {t('housekeeping.roomDetail.roomLabel', { roomNumber })}
                 </h2>
                 {roomTypeName && (
                   <span className="text-sm font-medium text-stone-400 leading-none">{roomTypeName}</span>
@@ -523,7 +530,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 {vipFlag && (
                   <span className="inline-flex items-center gap-0.5 text-amber-600 text-[11px] font-bold">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
-                    VIP
+                    {t('housekeeping.roomCard.vip')}
                   </span>
                 )}
                 {cleanTypeLabel && (
@@ -532,14 +539,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               </div>
               {(guestName || checkinTime || scheduledCheckoutTime || actualCheckoutTime || lateCheckoutTime) && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-stone-400">
-                  {guestName && <span>Guest: <span className="text-stone-600">{guestName}</span></span>}
-                  {checkinTime && <span>In: <span className="text-stone-600">{checkinTime}</span></span>}
-                  {scheduledCheckoutTime && <span>Out: <span className="text-stone-600">{scheduledCheckoutTime}</span></span>}
+                  {guestName && <span>{t('housekeeping.roomDetail.guestLabel')} <span className="text-stone-600">{guestName}</span></span>}
+                  {checkinTime && <span>{t('housekeeping.roomDetail.inLabel')} <span className="text-stone-600">{checkinTime}</span></span>}
+                  {scheduledCheckoutTime && <span>{t('housekeeping.roomDetail.outLabel')} <span className="text-stone-600">{scheduledCheckoutTime}</span></span>}
                   {actualCheckoutTime && (
-                    <span className="text-rose-500 font-medium">Checked out: {actualCheckoutTime}</span>
+                    <span className="text-rose-500 font-medium">{t('housekeeping.roomDetail.checkedOutLabel', { time: actualCheckoutTime })}</span>
                   )}
                   {lateCheckoutTime && (
-                    <span className="text-rose-600 font-semibold">Late: {lateCheckoutTime}</span>
+                    <span className="text-rose-600 font-semibold">{t('housekeeping.roomDetail.lateLabel', { time: lateCheckoutTime })}</span>
                   )}
                 </div>
               )}
@@ -548,7 +555,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               variant="ghost"
               onClick={onClose}
               className="ml-1 shrink-0 p-1.5 rounded-lg"
-              aria-label="Close drawer"
+              aria-label={t('housekeeping.roomDetail.closeAria')}
             >
               <X className="w-5 h-5 text-stone-400" />
             </Button>
@@ -566,7 +573,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               <div className="mb-3">
                 {assignedName && (
                   <p className="text-sm text-stone-700">
-                    Assigned to <span className="font-semibold">{assignedName}</span>
+                    {t('housekeeping.roomDetail.assignedToPrefix')} <span className="font-semibold">{assignedName}</span>
                   </p>
                 )}
                 {lastAction && (
@@ -587,9 +594,9 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs">
                 <LogOut className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
                 <div>
-                  <p className="font-semibold text-rose-700">Late checkout requested</p>
+                  <p className="font-semibold text-rose-700">{t('housekeeping.roomDetail.lateCheckoutBanner.title')}</p>
                   <p className="mt-0.5 text-rose-500">
-                    Housekeeper reported guest says {lateCheckoutTime}.
+                    {t('housekeeping.roomDetail.lateCheckoutBanner.body', { time: lateCheckoutTime })}
                   </p>
                 </div>
               </div>
@@ -602,17 +609,17 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-700">
                       <LogOut className="h-3.5 w-3.5 text-rose-500" />
-                      {isCheckedOut ? 'Guest checked out' : 'Departure checkout'}
+                      {isCheckedOut ? t('housekeeping.roomDetail.departureCheckout.guestCheckedOut') : t('housekeeping.roomDetail.departureCheckout.title')}
                     </div>
                     <p className="mt-0.5 text-[11px] text-stone-500">
                       {actualCheckoutTime
-                        ? `Checked out at ${actualCheckoutTime}`
+                        ? t('housekeeping.roomDetail.departureCheckout.checkedOutAt', { time: actualCheckoutTime })
                         : scheduledCheckoutTime
-                        ? `Scheduled for ${scheduledCheckoutTime}`
-                        : 'No checkout time set'}
+                        ? t('housekeeping.roomDetail.departureCheckout.scheduledFor', { time: scheduledCheckoutTime })
+                        : t('housekeeping.roomDetail.departureCheckout.noCheckoutTime')}
                     </p>
                   </div>
-                  <label className="sr-only" htmlFor="room-checkout-time">Checkout time</label>
+                  <label className="sr-only" htmlFor="room-checkout-time">{t('housekeeping.roomDetail.departureCheckout.checkoutTimeLabel')}</label>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <input
                       id="room-checkout-time"
@@ -627,7 +634,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       disabled={saveTimeLoading || !checkoutTimeInput}
                       className="h-8 px-2.5 rounded-lg border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-40"
                     >
-                      {saveTimeLoading ? '…' : saveTimeSuccess ? '✓' : 'Save'}
+                      {saveTimeLoading ? '…' : saveTimeSuccess ? '✓' : t('housekeeping.roomDetail.departureCheckout.save')}
                     </button>
                   </div>
                 </div>
@@ -647,7 +654,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       ) : (
                         <Clock className="h-3.5 w-3.5" />
                       )}
-                      Mark Checked Out
+                      {t('housekeeping.roomDetail.departureCheckout.markCheckedOut')}
                     </button>
                   ) : (
                     <button
@@ -661,11 +668,11 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       ) : (
                         <RotateCcw className="h-3.5 w-3.5" />
                       )}
-                      Undo Checkout
+                      {t('housekeeping.roomDetail.departureCheckout.undoCheckout')}
                     </button>
                   )}
                   {checkoutSuccess && (
-                    <span className="text-xs text-teal-600 font-medium">Housekeeping notified</span>
+                    <span className="text-xs text-teal-600 font-medium">{t('housekeeping.roomDetail.departureCheckout.notified')}</span>
                   )}
                   {checkoutError && (
                     <span className="text-xs text-rose-500">{checkoutError}</span>
@@ -687,10 +694,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       ) : (
                         <BedDouble className="h-3.5 w-3.5" />
                       )}
-                      Stayover
+                      {t('housekeeping.roomDetail.departureCheckout.stayoverButton')}
                     </button>
                     {stayoverSuccess && (
-                      <span className="text-xs text-teal-600 font-medium">Marked occupied — clean cancelled</span>
+                      <span className="text-xs text-teal-600 font-medium">{t('housekeeping.roomDetail.departureCheckout.stayoverSuccess')}</span>
                     )}
                     {stayoverError && (
                       <span className="text-xs text-rose-500">{stayoverError}</span>
@@ -708,7 +715,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
                 <MessageSquare className="h-4 w-4 text-blue-500" />
-                <span className="text-[11px] font-semibold leading-none">Add Note</span>
+                <span className="text-[11px] font-semibold leading-none">{t('housekeeping.roomDetail.actions.addNote')}</span>
               </button>
               <button
                 type="button"
@@ -716,7 +723,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
                 <Wrench className="h-4 w-4 text-orange-500" />
-                <span className="text-[11px] font-semibold leading-none">Work Order</span>
+                <span className="text-[11px] font-semibold leading-none">{t('housekeeping.roomDetail.actions.workOrder')}</span>
               </button>
               <button
                 type="button"
@@ -724,7 +731,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
               >
                 <Package className="h-4 w-4 text-amber-500" />
-                <span className="text-[11px] font-semibold leading-none">Lost &amp; Found</span>
+                <span className="text-[11px] font-semibold leading-none">{t('housekeeping.roomDetail.actions.lostFound')}</span>
               </button>
             </div>
 
@@ -733,7 +740,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               <div className="mt-3 flex items-start gap-2.5 bg-stone-50 rounded-xl p-3.5 text-xs text-stone-600 border border-stone-100">
                 <Wrench className="w-3.5 h-3.5 shrink-0 mt-0.5 text-stone-400" />
                 <div>
-                  {openWorkOrder && <p className="font-semibold">WO-{openWorkOrder} open</p>}
+                  {openWorkOrder && <p className="font-semibold">{t('housekeeping.roomDetail.oooInfo.workOrderOpen', { number: openWorkOrder })}</p>}
                   {maintenanceNote && <p className="mt-0.5 text-stone-500">{maintenanceNote}</p>}
                 </div>
               </div>
@@ -752,7 +759,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               {noteSuccess && (
                 <div className="flex items-start gap-2 rounded-xl bg-teal-50 border border-teal-200 px-3.5 py-2.5 text-xs text-teal-700">
                   <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-teal-500" />
-                  <span>Note saved</span>
+                  <span>{t('housekeeping.roomDetail.noteSaved')}</span>
                 </div>
               )}
             </div>
@@ -762,10 +769,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           {noteOpen && (
             <div id="room-add-note-form" className="px-5 py-4 border-b border-stone-100 bg-stone-50 space-y-2.5">
               <textarea
-                aria-label="Add room note"
+                aria-label={t('housekeeping.roomDetail.noteForm.addNoteAria')}
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Leave a note for your supervisor or team…"
+                placeholder={t('housekeeping.roomDetail.noteForm.placeholder')}
                 rows={3}
                 className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none shadow-sm"
               />
@@ -781,13 +788,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   ) : (
                     <Send className="w-3 h-3" />
                   )}
-                  {noteLoading ? 'Saving…' : 'Save Note'}
+                  {noteLoading ? t('housekeeping.roomDetail.noteForm.saving') : t('housekeeping.roomDetail.noteForm.save')}
                 </Button>
                 <button
                   onClick={() => setNoteOpen(false)}
                   className="text-xs text-stone-400 hover:text-stone-600"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 {noteError && (
                   <span className="text-xs text-rose-500">{noteError}</span>
@@ -801,14 +808,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
             <div id="room-report-issue-form" className="px-5 py-4 border-b border-stone-100 bg-stone-50 space-y-3">
               <div>
                 <label htmlFor="room-wo-title" className="block text-xs font-semibold text-stone-500 mb-1.5">
-                  Issue title <span className="text-rose-400">*</span>
+                  {t('housekeeping.roomDetail.workOrderForm.issueTitleLabel')} <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="room-wo-title"
                   type="text"
                   value={woTitle}
                   onChange={(e) => setWoTitle(e.target.value)}
-                  placeholder="e.g. Toilet not flushing, A/C not cooling"
+                  placeholder={t('housekeeping.roomDetail.workOrderForm.titlePlaceholder')}
                   className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
                 />
               </div>
@@ -816,7 +823,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label htmlFor="room-wo-category" className="block text-xs font-semibold text-stone-500 mb-1.5">
-                    Category <span className="text-rose-400">*</span>
+                    {t('housekeeping.roomDetail.workOrderForm.categoryLabel')} <span className="text-rose-400">*</span>
                   </label>
                   <select
                     id="room-wo-category"
@@ -824,33 +831,33 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     onChange={(e) => setWoCategory(e.target.value)}
                     className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
                   >
-                    <option value="" disabled>Select category</option>
+                    <option value="" disabled>{t('housekeeping.roomDetail.workOrderForm.selectCategory')}</option>
                     {WO_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
+                      <option key={c.value} value={c.value}>{t(`housekeeping.roomDetail.workOrderForm.categories.${c.value}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div className="w-28">
-                  <label htmlFor="room-wo-priority" className="block text-xs font-semibold text-stone-500 mb-1.5">Priority</label>
+                  <label htmlFor="room-wo-priority" className="block text-xs font-semibold text-stone-500 mb-1.5">{t('housekeeping.roomDetail.workOrderForm.priorityLabel')}</label>
                   <select
                     id="room-wo-priority"
                     value={woPriority}
                     onChange={(e) => setWoPriority(e.target.value as 'urgent' | 'normal' | 'low')}
                     className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
                   >
-                    <option value="urgent">Urgent</option>
-                    <option value="normal">Normal</option>
-                    <option value="low">Low</option>
+                    <option value="urgent">{t('housekeeping.roomDetail.workOrderForm.priority.urgent')}</option>
+                    <option value="normal">{t('housekeeping.roomDetail.workOrderForm.priority.normal')}</option>
+                    <option value="low">{t('housekeeping.roomDetail.workOrderForm.priority.low')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-500 mb-1.5">Details (optional)</label>
+                <label className="block text-xs font-semibold text-stone-500 mb-1.5">{t('housekeeping.roomDetail.workOrderForm.detailsLabel')}</label>
                 <textarea
                   value={woDescription}
                   onChange={(e) => setWoDescription(e.target.value)}
-                  placeholder="Describe what you found…"
+                  placeholder={t('housekeeping.roomDetail.workOrderForm.detailsPlaceholder')}
                   rows={2}
                   className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none shadow-sm"
                 />
@@ -868,13 +875,13 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   ) : (
                     <Wrench className="w-3 h-3" />
                   )}
-                  {woLoading ? 'Submitting…' : 'Submit to Engineering'}
+                  {woLoading ? t('housekeeping.roomDetail.workOrderForm.submitting') : t('housekeeping.roomDetail.workOrderForm.submit')}
                 </Button>
                 <button
                   onClick={() => setWoOpen(false)}
                   className="text-xs text-stone-400 hover:text-stone-600"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
               {woError && (
@@ -887,7 +894,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           {activeGuestRequests.length > 0 && (
             <div className="px-5 py-4 border-b border-stone-100">
               <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
-                Active Guest Requests
+                {t('housekeeping.roomDetail.guestRequests.heading')}
               </h3>
               <div className="space-y-2">
                 {activeGuestRequests.map((req: any) => (
@@ -896,7 +903,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     <div className="min-w-0">
                       <p className="text-sm text-stone-800 font-medium truncate">{req.title}</p>
                       <p className="text-[11px] text-stone-400 mt-0.5">
-                        {req.status === 'in_progress' ? 'In progress' : 'Open'}
+                        {req.status === 'in_progress' ? t('housekeeping.roomDetail.guestRequests.inProgress') : t('housekeeping.roomDetail.guestRequests.open')}
                         {req.guest_name ? ` · ${req.guest_name}` : ''}
                       </p>
                     </div>
@@ -910,7 +917,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           {openTasks.length > 0 && (
             <div className="px-5 py-4 border-b border-stone-100">
               <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
-                Open Tasks
+                {t('housekeeping.roomDetail.tasks.heading')}
               </h3>
               <div className="space-y-2">
                 {openTasks.map((task: any) => (
@@ -934,27 +941,27 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           {/* Last Clean Evidence — supervisors/GMs only */}
           {canSupervise && room?.last_session_id && (
             <div className="px-5 py-4 border-b border-stone-100">
-              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">Last Clean</h3>
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">{t('housekeeping.roomDetail.lastClean.heading')}</h3>
               <div className="flex flex-wrap gap-3 mb-3">
                 {room.last_clean_minutes != null && (
                   <div className="flex items-center gap-1.5 text-xs text-stone-600">
                     <Timer className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <span className="font-mono font-semibold">{room.last_clean_minutes}m</span>
                     {room.last_clean_base_minutes != null && (
-                      <span className="text-stone-400">/ base {room.last_clean_base_minutes}m</span>
+                      <span className="text-stone-400">{t('housekeeping.roomDetail.lastClean.base', { minutes: room.last_clean_base_minutes })}</span>
                     )}
                   </div>
                 )}
                 {room.last_clean_checklist_total > 0 && (
                   <div className="flex items-center gap-1.5 text-xs text-stone-600">
                     <CheckCircle className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    <span>{room.last_clean_checklist_done}/{room.last_clean_checklist_total} items</span>
+                    <span>{t('housekeeping.roomDetail.lastClean.itemsCount', { done: room.last_clean_checklist_done, total: room.last_clean_checklist_total })}</span>
                   </div>
                 )}
                 {room.last_clean_photo_count > 0 && (
                   <div className="flex items-center gap-1.5 text-xs text-stone-600">
                     <Camera className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    <span>{room.last_clean_photo_count} photo{room.last_clean_photo_count > 1 ? 's' : ''}</span>
+                    <span>{t(room.last_clean_photo_count > 1 ? 'housekeeping.roomDetail.lastClean.photoOther' : 'housekeeping.roomDetail.lastClean.photoOne', { count: room.last_clean_photo_count })}</span>
                   </div>
                 )}
               </div>
@@ -972,7 +979,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       className="w-16 h-16 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0 hover:opacity-80 transition-opacity"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photo.url} alt="Clean photo" className="w-full h-full object-cover" />
+                      <img src={photo.url} alt={t('housekeeping.roomDetail.lastClean.photoAlt')} className="w-full h-full object-cover" />
                     </a>
                   ))}
                 </div>
@@ -987,7 +994,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
           {prediction && (
             <div className="px-5 py-4 border-b border-stone-100">
               <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
-                AI Prediction
+                {t('housekeeping.roomDetail.aiPrediction.heading')}
               </h3>
               <div className={`rounded-xl p-3.5 ${
                 riskLevel === 'HIGH'
@@ -1007,18 +1014,18 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                     riskLevel === 'MEDIUM' ? 'text-orange-700' :
                     'text-teal-700'
                   }`}>
-                    {riskLevel ?? 'LOW'} RISK
-                    {etaTime && ` — ETA ${etaTime}`}
+                    {t('housekeeping.roomDetail.aiPrediction.riskBadge', { level: riskLevel ?? 'LOW' })}
+                    {etaTime && ` ${t('housekeeping.roomDetail.aiPrediction.etaSuffix', { time: etaTime })}`}
                   </span>
                 </div>
                 {delayMinutes !== null && delayMinutes > 0 && checkinTime && (
                   <p className="text-xs text-stone-600 mb-1">
-                    {delayMinutes} min late for check-in
+                    {t('housekeeping.roomDetail.aiPrediction.lateForCheckin', { minutes: delayMinutes })}
                   </p>
                 )}
                 {riskFactors.length > 0 && (
                   <div className="text-xs text-stone-600">
-                    <span className="font-medium">Risk factors: </span>
+                    <span className="font-medium">{t('housekeeping.roomDetail.aiPrediction.riskFactorsLabel')} </span>
                     {riskFactors.join(', ')}
                   </div>
                 )}
@@ -1035,7 +1042,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 aria-expanded={showStatusHistory}
                 className="w-full flex items-center justify-between mb-3"
               >
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Room History</span>
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('housekeeping.roomDetail.history.heading')}</span>
                 {showStatusHistory ? (
                   <ChevronUp className="w-4 h-4 text-stone-400" />
                 ) : (
@@ -1083,7 +1090,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 const woEvents: RoomEvent[] = roomWorkOrders.map((wo: any): RoomEvent => ({
                   kind: 'wo',
                   timestamp: wo.created_at ?? '',
-                  title: wo.title ?? 'Work order',
+                  title: wo.title ?? t('housekeeping.roomDetail.history.workOrderFallback'),
                   category: wo.category ?? '',
                   status: wo.status ?? '',
                 }))
@@ -1091,15 +1098,15 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 const grEvents: RoomEvent[] = allGuestRequests.map((gr: any): RoomEvent => ({
                   kind: 'gr',
                   timestamp: gr.created_at ?? '',
-                  title: gr.title ?? 'Guest request',
+                  title: gr.title ?? t('housekeeping.roomDetail.history.guestRequestFallback'),
                   status: gr.status ?? '',
                 }))
 
-                const taskEvents: RoomEvent[] = allTasks.map((t: any): RoomEvent => ({
+                const taskEvents: RoomEvent[] = allTasks.map((taskItem: any): RoomEvent => ({
                   kind: 'task',
-                  timestamp: t.created_at ?? '',
-                  title: t.title ?? 'Task',
-                  status: t.status ?? '',
+                  timestamp: taskItem.created_at ?? '',
+                  title: taskItem.title ?? t('housekeeping.roomDetail.history.taskFallback'),
+                  status: taskItem.status ?? '',
                 }))
 
                 const sessionEvents: RoomEvent[] = roomSessions.map((s: any): RoomEvent => ({
@@ -1116,7 +1123,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 )
 
                 if (events.length === 0) {
-                  return <p className="text-sm text-stone-400 text-center py-4">No room history yet</p>
+                  return <p className="text-sm text-stone-400 text-center py-4">{t('housekeeping.roomDetail.history.empty')}</p>
                 }
 
                 return (
@@ -1136,7 +1143,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                               {event.kind === 'task' && <ClipboardList className="w-3 h-3 text-amber-400 shrink-0" />}
                               {event.kind === 'session' && <CheckCircle className="w-3 h-3 text-teal-400 shrink-0" />}
                               <span className="text-xs text-stone-400 shrink-0">
-                                {event.timestamp ? formatHistoryTimestamp(event.timestamp) : '—'}
+                                {event.timestamp ? formatHistoryTimestamp(event.timestamp, t) : '—'}
                               </span>
                               {event.kind === 'note' && event.actor && (
                                 <span className="text-xs text-stone-500 truncate">— {event.actor}</span>
@@ -1167,10 +1174,10 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                             )}
                             {event.kind === 'session' && (
                               <p className="text-xs text-stone-700 leading-snug">
-                                Clean session
+                                {t('housekeeping.roomDetail.history.cleanSession')}
                                 {event.durationSeconds != null ? ` · ${Math.round(event.durationSeconds / 60)}m` : ''}
-                                {event.checklistTotal > 0 ? ` · ${event.checklistDone}/${event.checklistTotal} items` : ''}
-                                {event.status === 'abandoned' ? ' · abandoned' : ''}
+                                {event.checklistTotal > 0 ? ` · ${t('housekeeping.roomDetail.lastClean.itemsCount', { done: event.checklistDone, total: event.checklistTotal })}` : ''}
+                                {event.status === 'abandoned' ? ` · ${t('housekeeping.roomDetail.history.abandoned')}` : ''}
                               </p>
                             )}
                           </div>
