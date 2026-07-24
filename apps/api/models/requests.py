@@ -795,6 +795,7 @@ class CreateGuestRequestRequest(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     room_id: Optional[UUID4] = None
     guest_name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    guest_phone: Optional[str] = Field(default=None, max_length=32)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     priority: Optional[Literal["normal", "urgent"]] = "normal"
     category: Literal["service", "housekeeping", "maintenance", "accessibility", "other"] = "service"
@@ -813,7 +814,7 @@ class TransitionGuestRequestRequest(SanitizedBaseModel):
 
 class CreateGuestMessageRequest(SanitizedBaseModel):
     body: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
-    recipient: str = Field(min_length=7, max_length=MEDIUM_TEXT_MAX)
+    recipient: Optional[str] = Field(default=None, min_length=7, max_length=MEDIUM_TEXT_MAX)
     channel: Literal["sms", "email"] = "sms"
 
 

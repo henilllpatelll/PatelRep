@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone as tz, date
 from fastapi import APIRouter, Request, HTTPException
 import stripe
+from twilio.request_validator import RequestValidator
 from core.database import supabase
 from core.config import settings
 from services.opera.webhooks import (
@@ -18,6 +19,17 @@ from services.opera.webhooks import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+
+
+def _verify_twilio_signature(request: Request, params: dict) -> bool:
+    """Twilio signs the exact public URL. Railway terminates TLS, so request.url may say http://."""
+    signature = request.headers.get("x-twilio-signature", "")
+    if not signature or not settings.twilio_auth_token:
+        return False
+    proto = request.headers.get("x-forwarded-proto", "https")
+    host = request.headers.get("host", "")
+    url = f"{proto}://{host}{request.url.path}"
+    return RequestValidator(settings.twilio_auth_token).validate(url, params, signature)
 
 
 def _verify_opera_signature(payload: bytes, signature_header: str, hotel_id: str) -> bool:
@@ -165,5 +177,104 @@ async def stripe_webhook(request: Request):
                     .lte("period_start", today)\
                     .gte("period_end", today)\
                     .execute()
+
+    return {"status": "ok"}
+
+
+@router.post("/twilio-sms")
+async def twilio_sms_webhook(request: Request):
+    """Inbound guest SMS. Reply-only matching (D-02) — never creates a guest request."""
+    form = await request.form()
+    params = {k: str(v) for k, v in form.items()}
+    if settings.app_env == "production" and not _verify_twilio_signature(request, params):
+        raise HTTPException(status_code=401, detail="Invalid Twilio signature")
+
+    from_number = params.get("From", "")
+    body = params.get("Body", "")
+    provider_sid = params.get("MessageSid")
+    if not from_number or not body:
+        return {"status": "ignored", "reason": "missing_from_or_body"}
+
+    try:
+        recent = supabase.table("guest_messages").select(
+            "guest_request_id, tenant_id"
+        ).eq("direction", "outbound").eq("recipient", from_number).order(
+            "created_at", desc=True
+        ).limit(1).execute().data or []
+        if not recent:
+            # D-02: never auto-create a guest request from a cold inbound text.
+            logger.warning("Inbound SMS with no matching outbound thread (from=***%s)", from_number[-4:])
+            return {"status": "ignored", "reason": "no_matching_outbound"}
+
+        match = recent[0]
+        tenant_id = match["tenant_id"]
+        guest_request_id = match["guest_request_id"]
+        message = supabase.table("guest_messages").insert({
+            "tenant_id": tenant_id,
+            "guest_request_id": guest_request_id,
+            "direction": "inbound",
+            "channel": "sms",
+            "body": body,
+            "recipient": from_number,
+            "delivery_status": "received",
+            "provider_message_id": provider_sid,
+            "excluded_from_ai": True,
+        }).execute().data[0]
+        supabase.table("guest_request_events").insert({
+            "tenant_id": tenant_id,
+            "guest_request_id": guest_request_id,
+            "event_type": "guest_contacted",
+            "source": "sms",
+            "detail": "Guest replied by SMS",
+            "metadata": {"message_id": message["id"]},
+        }).execute()
+    except Exception as exc:  # noqa: BLE001
+        # Log but never crash — Twilio retry-storms on non-2xx.
+        logger.error("Twilio inbound handler error: %s", exc)
+        return {"status": "error_logged"}
+
+    return {"status": "ok"}
+
+
+TWILIO_STATUS_MAP = {
+    "queued": "queued", "accepted": "queued", "sending": "sent", "sent": "sent",
+    "delivered": "delivered", "undelivered": "undelivered", "failed": "failed",
+}
+
+
+@router.post("/twilio-status")
+async def twilio_status_webhook(request: Request):
+    """Delivery status callback. guest_messages is append-only, so status lands in its event table."""
+    form = await request.form()
+    params = {k: str(v) for k, v in form.items()}
+    if settings.app_env == "production" and not _verify_twilio_signature(request, params):
+        raise HTTPException(status_code=401, detail="Invalid Twilio signature")
+
+    provider_sid = params.get("MessageSid", "")
+    raw_status = params.get("MessageStatus", "")
+    error_code = params.get("ErrorCode") or None
+    mapped = TWILIO_STATUS_MAP.get(raw_status)
+    if not provider_sid or not mapped:
+        return {"status": "ignored", "reason": "unknown_status"}
+
+    try:
+        prior = supabase.table("guest_message_delivery_events").select(
+            "guest_message_id, tenant_id"
+        ).eq("provider_message_id", provider_sid).order(
+            "created_at", desc=True
+        ).limit(1).execute().data or []
+        if not prior:
+            return {"status": "ignored", "reason": "unknown_message"}
+        supabase.table("guest_message_delivery_events").insert({
+            "tenant_id": prior[0]["tenant_id"],
+            "guest_message_id": prior[0]["guest_message_id"],
+            "status": mapped,
+            "provider_message_id": provider_sid,
+            "error_code": error_code,
+            "failure_reason": "provider_callback" if mapped in ("failed", "undelivered") else None,
+        }).execute()
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Twilio status handler error: %s", exc)
+        return {"status": "error_logged"}
 
     return {"status": "ok"}
