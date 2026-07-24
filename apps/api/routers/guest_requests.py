@@ -18,6 +18,7 @@ from services.guest_recovery.contracts import (
     resolve_sla_minutes,
     validate_guest_request_transition,
 )
+from services.sms.twilio_client import SmsNotConfiguredError, SmsOptedOutError, SmsSendError, send_sms
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "description",
     "room_id",
     "guest_name",
+    "guest_phone",
     "status",
     "priority",
     "resolved_at",
@@ -47,6 +49,22 @@ def _record_guest_request_event(
         "source": source,
         "detail": detail,
         "metadata": metadata or {},
+    }).execute()
+
+
+def _record_message_delivery(
+    *, tenant_id: str, message_id: str, status: str,
+    provider_message_id: str | None = None, error_code: str | None = None,
+    failure_reason: str | None = None,
+) -> None:
+    """guest_messages is append-only (migration 072) — delivery state lives in its own event table."""
+    supabase.table("guest_message_delivery_events").insert({
+        "tenant_id": tenant_id,
+        "guest_message_id": message_id,
+        "status": status,
+        "provider_message_id": provider_message_id,
+        "error_code": error_code,
+        "failure_reason": failure_reason,
     }).execute()
 
 
@@ -88,6 +106,7 @@ async def create_guest_request(
         "description": request.description,
         "room_id": str(request.room_id) if request.room_id else None,
         "guest_name": request.guest_name,
+        "guest_phone": request.guest_phone,
         "created_by": current_user.user_id,
         "status": "open",
         "priority": request.priority or "normal",
@@ -177,28 +196,110 @@ async def send_guest_message(
     if current_user.role not in MESSAGE_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to contact guests")
     guest_request = supabase.table("guest_requests").select(
-        "id, contact_consent_at, contact_opted_out_at, contact_preference"
+        "id, contact_consent_at, contact_opted_out_at, contact_preference, guest_phone"
     ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
     if not guest_request:
         raise HTTPException(status_code=404, detail="Guest request not found")
     if request.channel == "sms" and (not guest_request.get("contact_consent_at") or guest_request.get("contact_opted_out_at")):
         raise HTTPException(status_code=422, detail="SMS consent is required and may not be opted out")
+
+    recipient = request.recipient or guest_request.get("guest_phone")
+    if not recipient and request.channel == "sms":
+        raise HTTPException(status_code=422, detail="No recipient phone number on file for this guest request")
+
     message = supabase.table("guest_messages").insert({
         "tenant_id": current_user.hotel_id,
         "guest_request_id": request_id,
         "direction": "outbound",
         "channel": request.channel,
         "body": request.body,
-        "recipient": request.recipient,
+        "recipient": recipient,
         "delivery_status": "queued",
         "excluded_from_ai": True,
         "created_by": current_user.user_id,
     }).execute().data[0]
+
+    if request.channel != "sms":
+        # Email is out of scope this phase — queue only, no send attempt.
+        _record_message_delivery(
+            tenant_id=current_user.hotel_id, message_id=message["id"], status="queued",
+            failure_reason="channel_not_implemented",
+        )
+        _record_guest_request_event(
+            request_id=request_id, event_type="guest_contacted", current_user=current_user,
+            detail="Guest message queued", metadata={"message_id": message["id"], "channel": request.channel},
+        )
+        return {"data": message}
+
+    try:
+        result = send_sms(to=recipient, body=request.body)
+    except SmsOptedOutError as exc:
+        supabase.table("guest_requests").update({
+            "contact_opted_out_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", request_id).eq("tenant_id", current_user.hotel_id).execute()
+        _record_message_delivery(
+            tenant_id=current_user.hotel_id, message_id=message["id"], status="opted_out",
+            error_code=exc.error_code, failure_reason="unsubscribed_recipient",
+        )
+        _record_guest_request_event(
+            request_id=request_id, event_type="note", current_user=current_user,
+            detail="Guest opted out of SMS", source="automation",
+        )
+        raise HTTPException(status_code=422, detail="Guest has opted out of SMS") from exc
+    except SmsNotConfiguredError:
+        _record_message_delivery(
+            tenant_id=current_user.hotel_id, message_id=message["id"], status="queued",
+            failure_reason="sms_provider_not_configured",
+        )
+    except SmsSendError as exc:
+        _record_message_delivery(
+            tenant_id=current_user.hotel_id, message_id=message["id"], status="failed",
+            error_code=exc.error_code, failure_reason="provider_error",
+        )
+        raise HTTPException(status_code=502, detail="SMS provider rejected the message") from exc
+    else:
+        _record_message_delivery(
+            tenant_id=current_user.hotel_id, message_id=message["id"], status="sent",
+            provider_message_id=result["provider_message_id"],
+        )
+
     _record_guest_request_event(
         request_id=request_id, event_type="guest_contacted", current_user=current_user,
         detail="Guest message queued", metadata={"message_id": message["id"], "channel": request.channel},
     )
     return {"data": message}
+
+
+@router.get("/{request_id}/messages")
+async def list_guest_messages(
+    request_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in MESSAGE_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to view guest messages")
+    guest_request = supabase.table("guest_requests").select("id").eq("id", request_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute().data
+    if not guest_request:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    messages = supabase.table("guest_messages").select(
+        "id, direction, channel, body, recipient, delivery_status, created_at"
+    ).eq("guest_request_id", request_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).order("created_at").execute().data or []
+    events = supabase.table("guest_message_delivery_events").select(
+        "guest_message_id, status, error_code, failure_reason, created_at"
+    ).eq("tenant_id", current_user.hotel_id).in_(
+        "guest_message_id", [m["id"] for m in messages] or ["00000000-0000-0000-0000-000000000000"]
+    ).order("created_at").execute().data or []
+    latest: dict[str, dict] = {}
+    for event in events:
+        latest[event["guest_message_id"]] = event
+    for message in messages:
+        event = latest.get(message["id"])
+        message["effective_delivery_status"] = event["status"] if event else message["delivery_status"]
+        message["failure_reason"] = event.get("failure_reason") if event else None
+    return {"data": messages}
 
 
 @router.post("/{request_id}/recovery-actions")
