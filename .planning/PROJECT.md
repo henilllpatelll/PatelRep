@@ -14,10 +14,11 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 - ✓ Production trust and monitoring — Phases 0–1 closed 2026-07-19.
 - ✓ Core engineering state, escalation, and append-only audit integrity — Phase 1 closed 2026-07-19.
+- ✓ Recurring, evidence-backed PM and housekeeping programs, plus the full D-03 bilingual (EN/ES) floor contract across housekeeping, engineering/work-orders, tasks, and programs surfaces — Validated in Phase 4: Maintenance and housekeeping programs, closed 2026-07-24 (17/17 plans; gap-closure batch 04-09..04-17 widened the `i18next/no-literal-string` CI gate to the full locked scope after 04-08 shipped a narrowed version).
 
 ### Active
 
-- [ ] Phase 2 evidence foundation: property applicability, controlled documents, evidence, competency, and exceptions.
+- [ ] Phase 5: Guest recovery and management ROI.
 
 ### Out of Scope
 
@@ -45,4 +46,4 @@ The stack is FastAPI with direct Supabase SDK queries and Next.js 14. Tenant iso
 | Review before execution | This two-week phase requires plan review before implementation begins. | — Pending |
 
 ---
-*Last updated: 2026-07-19 after GSD bootstrap for Phase 2 planning.*
+*Last updated: 2026-07-24 after Phase 4 completion (maintenance and housekeeping programs + bilingual floor contract).*
