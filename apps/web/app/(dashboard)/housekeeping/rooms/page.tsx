@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Upload, Plus, X, AlertCircle, CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
 import { roomsApi, type RoomStatus, type ImportRoomPayload } from '@/lib/api/rooms'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
@@ -45,6 +46,7 @@ function RoomMobileCard({
   onConfirmDelete: () => void
   onCancelDelete: () => void
 }) {
+  const { t } = useTranslation()
   const assigneeName =
     room.user_profiles?.preferred_name ||
     room.user_profiles?.full_name ||
@@ -55,29 +57,29 @@ function RoomMobileCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-base font-semibold text-gray-900">
-            Room {room.rooms?.room_number ?? '-'}
+            {t('housekeeping.roomsPage.roomLabel', { number: room.rooms?.room_number ?? '-' })}
           </p>
           <p className="mt-0.5 text-sm text-gray-500">
-            {room.rooms?.room_types?.code ?? 'Room type unknown'}
+            {room.rooms?.room_types?.code ?? t('housekeeping.roomsPage.roomTypeUnknown')}
           </p>
         </div>
         <StatusBadge status={room.status} />
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Floor</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('housekeeping.roomsPage.floorDtLabel')}</dt>
           <dd className="mt-1 text-gray-700">{room.rooms?.floor ?? '-'}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Assigned</dt>
-          <dd className="mt-1 truncate text-gray-700">{assigneeName ?? 'Unassigned'}</dd>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('housekeeping.roomsPage.assignedDtLabel')}</dt>
+          <dd className="mt-1 truncate text-gray-700">{assigneeName ?? t('housekeeping.roomsPage.unassigned')}</dd>
         </div>
       </dl>
       {(canEdit || canDelete) && (
         <div className="mt-4 flex gap-2">
           {canEdit && (
             <Button variant="secondary" className="flex-1" onClick={onEdit}>
-              Edit Room
+              {t('housekeeping.roomsPage.editRoom')}
             </Button>
           )}
           {canDelete && !confirmingDelete && (
@@ -91,13 +93,13 @@ function RoomMobileCard({
                 onClick={onConfirmDelete}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600"
               >
-                Confirm
+                {t('housekeeping.roomsPage.confirm')}
               </button>
               <button
                 onClick={onCancelDelete}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </>
           )}
@@ -123,6 +125,7 @@ interface ImportResult {
 }
 
 function ImportModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<'csv' | 'manual'>('csv')
 
@@ -165,7 +168,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     setImportError(null)
     const parsed = roomsApi.parseCSVPreview(csvText)
     if (parsed.length === 0) {
-      setImportError('No valid rows found. Check that your CSV has a header row and room_number column.')
+      setImportError(t('housekeeping.roomsPage.import.noValidRows'))
       return
     }
     setCsvPreview(parsed)
@@ -209,7 +212,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     setImportError(null)
     const validRows = manualRows.filter((r) => r.room_number.trim() !== '')
     if (validRows.length === 0) {
-      setImportError('Please enter at least one room number.')
+      setImportError(t('housekeeping.roomsPage.import.noRoomNumber'))
       return
     }
     manualMutation.mutate(validRows)
@@ -222,7 +225,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
       <div className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-gray-900">Import Rooms</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('housekeeping.roomsPage.importRooms')}</h2>
           <Button
             variant="ghost"
             onClick={onClose}
@@ -234,22 +237,24 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
         {/* Tabs */}
         <div className="flex border-b border-white/60 px-6">
-          {(['csv', 'manual'] as const).map((t) => (
+          {(['csv', 'manual'] as const).map((tabKey) => (
             <button
-              key={t}
+              key={tabKey}
               onClick={() => {
-                setTab(t)
+                setTab(tabKey)
                 setImportResult(null)
                 setImportError(null)
                 setCsvPreview(null)
               }}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === t
+                tab === tabKey
                   ? 'border-accent text-accent'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              {t === 'csv' ? 'CSV Upload' : 'Manual Entry'}
+              {tabKey === 'csv'
+                ? t('housekeeping.roomsPage.import.tabs.csv')
+                : t('housekeeping.roomsPage.import.tabs.manual')}
             </button>
           ))}
         </div>
@@ -261,9 +266,16 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-start gap-3 p-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg">
               <CheckCircle2 size={18} className="text-[var(--ready)] mt-0.5 shrink-0" />
               <p className="text-sm text-green-800">
-                Imported <span className="font-semibold">{importResult.imported}</span> {importResult.imported === 1 ? 'room' : 'rooms'}
+                {t('housekeeping.roomsPage.import.importedPrefix')}{' '}
+                <span className="font-semibold">{importResult.imported}</span>{' '}
+                {importResult.imported === 1
+                  ? t('housekeeping.roomsPage.import.roomWord')
+                  : t('housekeeping.roomsPage.import.roomsWord')}
                 {importResult.skipped > 0 && (
-                  <>, <span className="font-semibold">{importResult.skipped}</span> skipped</>
+                  <>
+                    , <span className="font-semibold">{importResult.skipped}</span>{' '}
+                    {t('housekeeping.roomsPage.import.skippedWord')}
+                  </>
                 )}
                 .
               </p>
@@ -282,7 +294,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {tab === 'csv' && (
             <div className="space-y-4">
               <p className="text-sm text-gray-500">
-                Expected columns:{' '}
+                {t('housekeeping.roomsPage.import.expectedColumns')}{' '}
                 <code className="font-mono text-xs bg-gray-100 px-1 rounded">
                   room_number, floor, room_type_code, room_type_name, building
                 </code>
@@ -291,7 +303,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               {/* File input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload CSV file
+                  {t('housekeeping.roomsPage.import.uploadCsvFile')}
                 </label>
                 <input
                   ref={fileInputRef}
@@ -307,7 +319,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   <div className="w-full border-t border-white/60" />
                 </div>
                 <div className="relative flex justify-center text-xs text-gray-400">
-                  <span className="bg-surface/60 px-2">or paste CSV</span>
+                  <span className="bg-surface/60 px-2">{t('housekeeping.roomsPage.import.orPasteCsv')}</span>
                 </div>
               </div>
 
@@ -326,22 +338,28 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               {csvPreview && csvPreview.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-700">
-                    Preview — {csvPreview.length} room{csvPreview.length !== 1 ? 's' : ''} found
+                    {csvPreview.length === 1
+                      ? t('housekeeping.roomsPage.import.previewHeadingOne', { count: csvPreview.length })
+                      : t('housekeeping.roomsPage.import.previewHeadingOther', { count: csvPreview.length })}
                   </p>
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-white/60">
                     <table className="min-w-full text-sm">
                       <thead className="bg-[var(--caution-soft)]/60 sticky top-0">
                         <tr>
-                          {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building'].map(
-                            (h) => (
-                              <th
-                                key={h}
-                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                              >
-                                {h}
-                              </th>
-                            ),
-                          )}
+                          {[
+                            t('housekeeping.roomsPage.import.previewHeaders.roomNumber'),
+                            t('housekeeping.roomsPage.import.previewHeaders.floor'),
+                            t('housekeeping.roomsPage.import.previewHeaders.typeCode'),
+                            t('housekeeping.roomsPage.import.previewHeaders.typeName'),
+                            t('housekeeping.roomsPage.import.previewHeaders.building'),
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                            >
+                              {h}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/40">
@@ -366,22 +384,27 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {tab === 'manual' && (
             <div className="space-y-3">
               <p className="text-sm text-gray-500">
-                Fill in room details below. Rows with an empty Room # will be ignored.
+                {t('housekeeping.roomsPage.import.manualHelpText')}
               </p>
               <div className="overflow-x-auto rounded-lg border border-white/60">
                 <table className="min-w-full text-sm">
                   <thead className="bg-[var(--caution-soft)]/60">
                     <tr>
-                      {['Room #', 'Floor', 'Type Code', 'Type Name', 'Building', ''].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
-                          >
-                            {h}
-                          </th>
-                        ),
-                      )}
+                      {[
+                        t('housekeeping.roomsPage.import.previewHeaders.roomNumber'),
+                        t('housekeeping.roomsPage.import.previewHeaders.floor'),
+                        t('housekeeping.roomsPage.import.previewHeaders.typeCode'),
+                        t('housekeeping.roomsPage.import.previewHeaders.typeName'),
+                        t('housekeeping.roomsPage.import.previewHeaders.building'),
+                        '',
+                      ].map((h, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/40">
@@ -460,7 +483,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 className="flex items-center gap-1.5 text-sm text-accent hover:text-accent font-medium"
               >
                 <Plus size={15} />
-                Add Row
+                {t('housekeeping.roomsPage.import.addRow')}
               </button>
             </div>
           )}
@@ -472,7 +495,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             variant="ghost"
             onClick={onClose}
           >
-            {importResult ? 'Close' : 'Cancel'}
+            {importResult ? t('housekeeping.roomsPage.import.close') : t('housekeeping.roomsPage.import.cancel')}
           </Button>
 
           {tab === 'csv' && !csvPreview && (
@@ -481,7 +504,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               onClick={handlePreview}
               disabled={!csvText.trim()}
             >
-              Preview
+              {t('housekeeping.roomsPage.import.preview')}
             </Button>
           )}
 
@@ -495,7 +518,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               }}
               disabled={isPending}
             >
-              {isPending ? 'Importing…' : `Import ${csvPreview.length} Rooms`}
+              {isPending
+                ? t('housekeeping.roomsPage.import.importing')
+                : t('housekeeping.roomsPage.import.importCount', { count: csvPreview.length })}
             </Button>
           )}
 
@@ -505,7 +530,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               onClick={handleManualSubmit}
               disabled={isPending}
             >
-              {isPending ? 'Importing…' : 'Import Rooms'}
+              {isPending ? t('housekeeping.roomsPage.import.importing') : t('housekeeping.roomsPage.importRooms')}
             </Button>
           )}
         </div>
@@ -517,6 +542,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function RoomsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { role, canAssignRooms } = useRole()
   const isHousekeeper = role === 'housekeeper'
@@ -579,9 +605,11 @@ export default function RoomsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">All Rooms</h1>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('housekeeping.roomsPage.heading')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {rooms.length} total room{rooms.length !== 1 ? 's' : ''}
+            {rooms.length === 1
+              ? t('housekeeping.roomsPage.totalRoomsOne', { count: rooms.length })
+              : t('housekeeping.roomsPage.totalRoomsOther', { count: rooms.length })}
           </p>
         </div>
         <Button
@@ -589,7 +617,7 @@ export default function RoomsPage() {
           onClick={() => setShowImportModal(true)}
         >
           <Upload size={15} />
-          Import Rooms
+          {t('housekeeping.roomsPage.importRooms')}
         </Button>
       </div>
 
@@ -604,10 +632,10 @@ export default function RoomsPage() {
             }
             className="appearance-none pl-3 pr-8 py-2 border border-[var(--caution-line)]/40 rounded-lg text-sm text-gray-700 bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
-            <option value="all">All Floors</option>
+            <option value="all">{t('housekeeping.roomsPage.filters.allFloors')}</option>
             {floors.map((f) => (
               <option key={f} value={f}>
-                Floor {f}
+                {t('housekeeping.roomsPage.filters.floorOption', { floor: f })}
               </option>
             ))}
           </select>
@@ -624,7 +652,7 @@ export default function RoomsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="appearance-none pl-3 pr-8 py-2 border border-[var(--caution-line)]/40 rounded-lg text-sm text-gray-700 bg-surface/70 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 cursor-pointer"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">{t('housekeeping.roomsPage.filters.allStatuses')}</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -642,14 +670,16 @@ export default function RoomsPage() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search room..."
+          placeholder={t('housekeeping.roomsPage.filters.searchPlaceholder')}
           className="w-40 py-2"
         />
 
         {/* Active filter count pill */}
         {(floorFilter !== 'all' || statusFilter !== 'all' || searchQuery) && (
           <span className="text-xs text-gray-500">
-            {filteredRooms.length} result{filteredRooms.length !== 1 ? 's' : ''}
+            {filteredRooms.length === 1
+              ? t('housekeeping.roomsPage.filters.resultsCountOne', { count: filteredRooms.length })
+              : t('housekeeping.roomsPage.filters.resultsCountOther', { count: filteredRooms.length })}
           </span>
         )}
       </div>
@@ -658,26 +688,30 @@ export default function RoomsPage() {
       <Card className="overflow-hidden p-0">
         {isLoading && (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
-            Loading rooms…
+            {t('housekeeping.roomsPage.loading')}
           </div>
         )}
 
         {isError && (
           <div className="flex items-center justify-center gap-2 py-16 text-[var(--alert)] text-sm">
             <AlertCircle size={16} />
-            {(error as Error)?.message ?? 'Failed to load rooms'}
+            {(error as Error)?.message ?? t('housekeeping.roomsPage.loadError')}
           </div>
         )}
 
         {!isLoading && !isError && filteredRooms.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-sm gap-2">
-            <p>{rooms.length === 0 ? 'No rooms imported yet.' : 'No rooms match the current filters.'}</p>
+            <p>
+              {rooms.length === 0
+                ? t('housekeeping.roomsPage.empty.noRoomsImported')
+                : t('housekeeping.roomsPage.empty.noMatch')}
+            </p>
             {rooms.length === 0 && (
               <button
                 onClick={() => setShowImportModal(true)}
                 className="text-accent hover:text-accent font-medium text-sm"
               >
-                Import rooms to get started
+                {t('housekeeping.roomsPage.empty.importToStart')}
               </button>
             )}
           </div>
@@ -705,23 +739,23 @@ export default function RoomsPage() {
               <thead>
                 <tr className="bg-[var(--caution-soft)]/60 border-b border-white/60">
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Room
+                    {t('housekeeping.roomsPage.table.room')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Type
+                    {t('housekeeping.roomsPage.table.type')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Floor
+                    {t('housekeeping.roomsPage.table.floor')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Status
+                    {t('housekeeping.roomsPage.table.status')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Assigned To
+                    {t('housekeeping.roomsPage.table.assignedTo')}
                   </th>
                   {(!isHousekeeper || canAssignRooms) && (
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Actions
+                      {t('housekeeping.roomsPage.table.actions')}
                     </th>
                   )}
                 </tr>
@@ -760,14 +794,14 @@ export default function RoomsPage() {
                                 className="px-3 py-1 text-xs"
                                 onClick={() => setSelectedRoom(room)}
                               >
-                                Edit
+                                {t('housekeeping.roomsPage.edit')}
                               </Button>
                             )}
                             {canAssignRooms && confirmDeleteId !== room.room_id && (
                               <button
                                 onClick={() => setConfirmDeleteId(room.room_id)}
                                 className="p-1.5 text-gray-400 hover:text-[var(--alert)] transition-colors rounded"
-                                title="Delete room"
+                                title={t('housekeeping.roomsPage.deleteRoomTitle')}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -779,13 +813,13 @@ export default function RoomsPage() {
                                   disabled={deleteMutation.isPending}
                                   className="px-2 py-1 rounded text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600 disabled:opacity-50"
                                 >
-                                  Confirm
+                                  {t('housekeeping.roomsPage.confirm')}
                                 </button>
                                 <button
                                   onClick={() => setConfirmDeleteId(null)}
                                   className="px-2 py-1 rounded text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
                                 >
-                                  Cancel
+                                  {t('common.cancel')}
                                 </button>
                               </div>
                             )}
