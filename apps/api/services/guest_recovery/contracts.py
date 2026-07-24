@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 
@@ -241,7 +241,7 @@ def calculate_room_downtime_hours(
 def calculate_downtime_revenue_impact(
     *, downtime_hours: float, average_daily_rate_cents: int | None
 ) -> dict[str, Any]:
-    """D-07: revenue impact = downtime hours x (GM-configured ADR / 24). No Opera dependency."""
+    """D-07: revenue impact = downtime hours x (GM-configured ADR / 24). No external PMS dependency."""
     if average_daily_rate_cents is None:
         return {
             "configured": False,
@@ -439,3 +439,82 @@ def calculate_training_readiness(
         "overdue": overdue,
         "readiness_pct": readiness_pct,
     }
+
+
+def project_seven_day_labor_forecast(
+    historical_completions: list[dict[str, Any]],
+    avg_clean_minutes_by_room_type: dict[str, float],
+    *,
+    start_date: date,
+    horizon_days: int = 7,
+    lookback_weeks: int = 4,
+    default_clean_minutes: float = 30.0,
+) -> list[dict[str, Any]]:
+    """D-09: trailing weekday-average capacity projection.
+
+    `historical_completions` items: {"date": "YYYY-MM-DD", "room_type_id": str, "rooms": int}.
+    Deliberately NOT occupancy-based: no reliable multi-day-forward check-in data exists
+    outside the pilot-gated PMS sync, so an occupancy projection would read as zero for
+    every standalone hotel. This projects turnover capacity from observed history instead.
+    """
+    lookback_days = lookback_weeks * 7
+    buckets: dict[tuple[int, str], list[float]] = {}
+
+    for row in historical_completions:
+        row_date_raw = row.get("date")
+        room_type_id = row.get("room_type_id")
+        rooms = row.get("rooms")
+        if not row_date_raw or room_type_id is None or rooms is None:
+            continue
+        row_date = row_date_raw if isinstance(row_date_raw, date) else date.fromisoformat(str(row_date_raw))
+        delta_days = (start_date - row_date).days
+        if delta_days < 0 or delta_days > lookback_days:
+            continue
+        buckets.setdefault((row_date.weekday(), room_type_id), []).append(float(rooms))
+
+    results: list[dict[str, Any]] = []
+    for offset in range(horizon_days):
+        target_date = start_date + timedelta(days=offset)
+        weekday = target_date.weekday()
+
+        by_room_type: list[dict[str, Any]] = []
+        total_rooms = 0.0
+        total_labor_hours = 0.0
+        max_observations = 0
+
+        for (bucket_weekday, room_type_id), rooms_observations in buckets.items():
+            if bucket_weekday != weekday:
+                continue
+            avg_rooms = sum(rooms_observations) / len(rooms_observations)
+            clean_minutes = avg_clean_minutes_by_room_type.get(room_type_id, default_clean_minutes)
+            labor_hours = avg_rooms * clean_minutes / 60
+            by_room_type.append(
+                {
+                    "room_type_id": room_type_id,
+                    "projected_rooms": round(avg_rooms),
+                    "projected_labor_hours": round(labor_hours, 1),
+                }
+            )
+            total_rooms += avg_rooms
+            total_labor_hours += labor_hours
+            max_observations = max(max_observations, len(rooms_observations))
+
+        if max_observations >= 4:
+            confidence = "high"
+        elif max_observations >= 2:
+            confidence = "medium"
+        else:
+            confidence = "low"
+
+        results.append(
+            {
+                "date": target_date.isoformat(),
+                "weekday": weekday,
+                "projected_rooms": round(total_rooms),
+                "projected_labor_hours": round(total_labor_hours, 1),
+                "confidence": confidence,
+                "by_room_type": by_room_type,
+            }
+        )
+
+    return results
