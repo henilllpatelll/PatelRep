@@ -1,6 +1,8 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { CheckCircle, Loader2, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
@@ -20,10 +22,10 @@ function getRiskBgColor(score: number): string {
   return 'bg-[var(--ready-soft)] border-[var(--ready-line)]'
 }
 
-function getRiskLabel(score: number): string {
-  if (score >= 70) return 'HIGH'
-  if (score >= 40) return 'MEDIUM'
-  return 'LOW'
+function getRiskLabel(score: number, t: TFunction): string {
+  if (score >= 70) return t('engineering.failurePrediction.riskHigh')
+  if (score >= 40) return t('engineering.failurePrediction.riskMedium')
+  return t('engineering.failurePrediction.riskLow')
 }
 
 function getRiskBadgeCls(score: number): string {
@@ -73,14 +75,15 @@ function PredictionCard({
   onCreateWO,
   isCreatingWO,
 }: PredictionCardProps) {
+  const { t } = useTranslation()
   const asset = prediction.assets
-  const assetName = asset?.name ?? 'Unknown Asset'
+  const assetName = asset?.name ?? t('engineering.failurePrediction.unknownAsset')
   const categoryName = asset?.asset_categories?.name
   const indicators = (prediction.failure_indicators ?? []).slice(0, 2)
   const ringColor = getRiskRingColor(prediction.risk_score)
   const bgCls = getRiskBgColor(prediction.risk_score)
   const badgeCls = getRiskBadgeCls(prediction.risk_score)
-  const riskLabel = getRiskLabel(prediction.risk_score)
+  const riskLabel = getRiskLabel(prediction.risk_score, t)
 
   return (
     <div className={`p-3 rounded-lg border ${bgCls} ${prediction.is_acknowledged ? 'opacity-60' : ''}`}>
@@ -131,7 +134,7 @@ function PredictionCard({
       {/* Predicted failure window */}
       {prediction.predicted_failure_window && (
         <p className="text-xs text-ink2 mb-1.5">
-          <span className="font-medium">Failure window:</span>{' '}
+          <span className="font-medium">{t('engineering.failurePrediction.failureWindowLabel')}</span>{' '}
           {prediction.predicted_failure_window}
         </p>
       )}
@@ -166,7 +169,7 @@ function PredictionCard({
             ) : (
               <Plus size={12} />
             )}
-            Create WO
+            {t('engineering.failurePrediction.createWO')}
           </button>
           <button
             onClick={() => onAcknowledge(prediction.id)}
@@ -178,7 +181,7 @@ function PredictionCard({
             ) : (
               <CheckCircle size={12} />
             )}
-            Acknowledge
+            {t('engineering.failurePrediction.acknowledge')}
           </button>
         </div>
       )}
@@ -186,7 +189,7 @@ function PredictionCard({
       {prediction.is_acknowledged && (
         <p className="flex items-center gap-1 text-xs text-[var(--ready)] font-medium">
           <CheckCircle size={12} />
-          Acknowledged
+          {t('engineering.failurePrediction.acknowledged')}
         </p>
       )}
     </div>
@@ -196,6 +199,7 @@ function PredictionCard({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FailurePredictionSidebar() {
+  const { t } = useTranslation()
   const { isGM, role } = useRole()
   const canAcknowledge = isGM || role === 'engineer'
   const queryClient = useQueryClient()
@@ -231,10 +235,10 @@ export function FailurePredictionSidebar() {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-ink">Asset Failure Risks</h3>
+        <h3 className="text-sm font-semibold text-ink">{t('engineering.failurePrediction.heading')}</h3>
         {items.length > 0 && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] font-medium">
-            {items.filter((p) => !p.is_acknowledged).length} active
+            {t('engineering.failurePrediction.activeCount', { count: items.filter((p) => !p.is_acknowledged).length })}
           </span>
         )}
       </div>
@@ -251,8 +255,8 @@ export function FailurePredictionSidebar() {
           <div className="w-10 h-10 rounded-full bg-[var(--ready-soft)] flex items-center justify-center mb-2.5">
             <CheckCircle size={18} className="text-[var(--ready)]" />
           </div>
-          <p className="text-sm font-medium text-ink2">No high-risk assets</p>
-          <p className="text-xs text-ink4 mt-1">All assets are within normal risk levels.</p>
+          <p className="text-sm font-medium text-ink2">{t('engineering.failurePrediction.noHighRisk')}</p>
+          <p className="text-xs text-ink4 mt-1">{t('engineering.failurePrediction.allNormal')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -279,7 +283,7 @@ export function FailurePredictionSidebar() {
       {/* Footer note */}
       <div className="mt-4 pt-3 border-t border-white/60">
         <p className="text-xs text-ink4 text-center">
-          Predictions updated nightly by AI
+          {t('engineering.failurePrediction.footerNote')}
         </p>
       </div>
     </Card>

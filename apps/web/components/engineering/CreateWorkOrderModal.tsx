@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { X, Loader2, Sparkles, ClipboardList, ImagePlus } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { roomsApi } from '@/lib/api/rooms'
@@ -14,27 +16,34 @@ interface Props {
   onCreate: (wo: WorkOrder) => void
 }
 
-const CATEGORIES = [
-  { value: 'plumbing', label: 'Plumbing' },
-  { value: 'electrical', label: 'Electrical' },
-  { value: 'hvac', label: 'HVAC' },
-  { value: 'furniture', label: 'Furniture' },
-  { value: 'appliance', label: 'Appliance' },
-  { value: 'structural', label: 'Structural' },
-  { value: 'safety', label: 'Safety' },
-  { value: 'general', label: 'General' },
-]
+function getCategories(t: TFunction) {
+  return [
+    { value: 'plumbing', label: t('engineering.createWorkOrder.categoryPlumbing') },
+    { value: 'electrical', label: t('engineering.createWorkOrder.categoryElectrical') },
+    { value: 'hvac', label: t('engineering.createWorkOrder.categoryHvac') },
+    { value: 'furniture', label: t('engineering.createWorkOrder.categoryFurniture') },
+    { value: 'appliance', label: t('engineering.createWorkOrder.categoryAppliance') },
+    { value: 'structural', label: t('engineering.createWorkOrder.categoryStructural') },
+    { value: 'safety', label: t('engineering.createWorkOrder.categorySafety') },
+    { value: 'general', label: t('engineering.createWorkOrder.categoryGeneral') },
+  ]
+}
 
-const PRIORITIES = [
-  { value: 'emergency', label: 'Emergency', desc: 'Immediate threat to life, safety, or critical building systems' },
-  { value: 'urgent', label: 'Urgent', desc: 'Safety issue or guest impact — immediate' },
-  { value: 'normal', label: 'Normal', desc: 'Standard maintenance' },
-  { value: 'low', label: 'Low', desc: 'Non-urgent, schedule when available' },
-]
+function getPriorities(t: TFunction) {
+  return [
+    { value: 'emergency', label: t('engineering.createWorkOrder.priorityEmergencyLabel'), desc: t('engineering.createWorkOrder.priorityEmergencyDesc') },
+    { value: 'urgent', label: t('engineering.createWorkOrder.priorityUrgentLabel'), desc: t('engineering.createWorkOrder.priorityUrgentDesc') },
+    { value: 'normal', label: t('engineering.createWorkOrder.priorityNormalLabel'), desc: t('engineering.createWorkOrder.priorityNormalDesc') },
+    { value: 'low', label: t('engineering.createWorkOrder.priorityLowLabel'), desc: t('engineering.createWorkOrder.priorityLowDesc') },
+  ]
+}
 
 export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const CATEGORIES = useMemo(() => getCategories(t), [t])
+  const PRIORITIES = useMemo(() => getPriorities(t), [t])
 
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('general')
@@ -121,7 +130,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
       onCreate(res.data)
     },
     onError: () => {
-      setValidationError('Failed to create work order. Please try again.')
+      setValidationError(t('engineering.createWorkOrder.createError'))
     },
   })
 
@@ -129,15 +138,15 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
     setValidationError(null)
 
     if (!useAI && !title.trim()) {
-      setValidationError('Title is required.')
+      setValidationError(t('engineering.createWorkOrder.titleRequired'))
       return
     }
     if (useAI && !nlInput.trim()) {
-      setValidationError('Please describe the issue for AI to process.')
+      setValidationError(t('engineering.createWorkOrder.describeRequired'))
       return
     }
     if (!selectedRoomId && !locationText.trim()) {
-      setValidationError('Select a room or enter a location.')
+      setValidationError(t('engineering.createWorkOrder.locationRequired'))
       return
     }
 
@@ -163,7 +172,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Create Work Order"
+          aria-label={t('engineering.createWorkOrder.ariaLabel')}
           className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
@@ -171,12 +180,12 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/60 shrink-0">
             <div className="flex items-center gap-2.5">
               <ClipboardList className="w-5 h-5 text-[var(--caution)] shrink-0" />
-              <h2 className="text-base font-bold text-ink">New Work Order</h2>
+              <h2 className="text-base font-bold text-ink">{t('engineering.createWorkOrder.title')}</h2>
             </div>
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
-              aria-label="Close modal"
+              aria-label={t('engineering.createWorkOrder.closeModal')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -190,8 +199,8 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[var(--ai)] shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-ink">Use AI to create</p>
-                  <p className="text-xs text-ink2">Describe the issue in plain language</p>
+                  <p className="text-sm font-medium text-ink">{t('engineering.createWorkOrder.aiToggleTitle')}</p>
+                  <p className="text-xs text-ink2">{t('engineering.createWorkOrder.aiToggleDesc')}</p>
                 </div>
               </div>
               <button
@@ -215,32 +224,34 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             <div className="space-y-2">
               <div>
                 <label className="block text-sm font-medium text-ink2 mb-1">
-                  Room <span className="text-[var(--alert)]">*</span>
+                  {t('engineering.workOrderCard.room')} <span className="text-[var(--alert)]">*</span>
                 </label>
                 <select
                   value={selectedRoomId}
                   onChange={(e) => setSelectedRoomId(e.target.value)}
                   className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors"
                 >
-                  <option value="">— not a specific room —</option>
+                  <option value="">{t('engineering.createWorkOrder.noSpecificRoom')}</option>
                   {roomsList.map((r: any) => (
                     <option key={r.room_id} value={r.room_id}>
-                      Room {r.rooms?.room_number}{r.rooms?.floor != null ? ` · Floor ${r.rooms.floor}` : ''}
+                      {r.rooms?.floor != null
+                        ? t('engineering.createWorkOrder.roomOptionFloor', { number: r.rooms?.room_number, floor: r.rooms.floor })
+                        : t('engineering.createWorkOrder.roomOption', { number: r.rooms?.room_number })}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-ink2 mb-1">
-                  {selectedRoomId ? 'Location detail' : 'Other location'}{' '}
+                  {selectedRoomId ? t('engineering.createWorkOrder.locationDetailLabel') : t('engineering.createWorkOrder.otherLocationLabel')}{' '}
                   {!selectedRoomId && <span className="text-[var(--alert)]">*</span>}
-                  {selectedRoomId && <span className="text-ink4 font-normal">(optional)</span>}
+                  {selectedRoomId && <span className="text-ink4 font-normal">{t('programs.pmCompletion.optionalTag')}</span>}
                 </label>
                 <Input
                   type="text"
                   value={locationText}
                   onChange={(e) => setLocationText(e.target.value)}
-                  placeholder={selectedRoomId ? 'e.g. Bathroom, A/C unit' : 'e.g. Lobby restroom, Pool area'}
+                  placeholder={selectedRoomId ? t('engineering.createWorkOrder.locationDetailPlaceholder') : t('engineering.createWorkOrder.otherLocationPlaceholder')}
                 />
               </div>
             </div>
@@ -249,13 +260,13 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {!useAI && (
               <div>
                 <label className="block text-sm font-medium text-ink2 mb-1">
-                  Title <span className="text-[var(--alert)]">*</span>
+                  {t('engineering.createWorkOrder.titleLabel')} <span className="text-[var(--alert)]">*</span>
                 </label>
                 <Input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. A/C not cooling in Room 214"
+                  placeholder={t('engineering.createWorkOrder.titlePlaceholder')}
                 />
               </div>
             )}
@@ -264,24 +275,24 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {useAI && (
               <div>
                 <label className="block text-sm font-medium text-ink2 mb-1">
-                  Describe the issue <span className="text-[var(--alert)]">*</span>
+                  {t('engineering.createWorkOrder.describeIssueLabel')} <span className="text-[var(--alert)]">*</span>
                 </label>
                 <textarea
                   value={nlInput}
                   onChange={(e) => setNlInput(e.target.value)}
                   rows={3}
-                  placeholder="e.g. The toilet in room 214 is leaking from the base and the guest is complaining..."
+                  placeholder={t('engineering.createWorkOrder.describeIssuePlaceholder')}
                   className="w-full border border-line rounded-[var(--r-md)] px-3 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-colors resize-none"
                 />
                 <p className="text-xs text-ink4 mt-1">
-                  AI will generate the title and categorize automatically.
+                  {t('engineering.createWorkOrder.aiHint')}
                 </p>
               </div>
             )}
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-ink2 mb-1">Category</label>
+              <label className="block text-sm font-medium text-ink2 mb-1">{t('engineering.createWorkOrder.categoryLabel')}</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -297,7 +308,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-ink2 mb-2">Priority</label>
+              <label className="block text-sm font-medium text-ink2 mb-2">{t('engineering.workOrderDetail.priorityLabel')}</label>
               <div className="space-y-2">
                 {PRIORITIES.map((p) => (
                   <label
@@ -333,7 +344,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
 
             {/* Guest reported */}
             <label className="flex items-center justify-between gap-3 cursor-pointer">
-              <span className="text-sm font-medium text-ink2">Guest reported</span>
+              <span className="text-sm font-medium text-ink2">{t('engineering.createWorkOrder.guestReportedLabel')}</span>
               <button
                 type="button"
                 role="switch"
@@ -354,7 +365,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
             {/* Photo */}
             <div>
               <label className="block text-sm font-medium text-ink2 mb-1">
-                Photo <span className="text-ink4 font-normal">(optional)</span>
+                {t('engineering.createWorkOrder.photoLabel')} <span className="text-ink4 font-normal">{t('programs.pmCompletion.optionalTag')}</span>
               </label>
               <input
                 ref={fileInputRef}
@@ -366,15 +377,15 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               {photoPreview ? (
                 <div className="relative rounded-xl overflow-hidden border border-line bg-surface-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoPreview} alt="Preview" className="w-full max-h-48 object-contain" />
+                  <img src={photoPreview} alt={t('engineering.workOrderDetail.previewAlt')} className="w-full max-h-48 object-contain" />
                   <button
                     type="button"
                     onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-surface/90 rounded-full text-xs font-medium text-ink2 hover:bg-surface shadow-sm transition-colors border border-line"
-                    aria-label="Remove photo"
+                    aria-label={t('engineering.createWorkOrder.removePhotoAriaLabel')}
                   >
                     <X className="w-3 h-3" />
-                    Remove
+                    {t('engineering.createWorkOrder.remove')}
                   </button>
                 </div>
               ) : (
@@ -384,7 +395,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                   className="w-full h-20 border border-dashed border-line rounded-[var(--r-md)] flex items-center justify-center gap-2 text-sm text-ink3 hover:bg-surface-2 hover:border-line-2 transition-colors"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  Add photo
+                  {t('engineering.workOrderDetail.addPhoto')}
                 </button>
               )}
             </div>
@@ -404,7 +415,7 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               variant="ghost"
               onClick={onClose}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -415,10 +426,10 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               {mutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {useAI ? 'Processing…' : 'Creating…'}
+                  {useAI ? t('engineering.createWorkOrder.processing') : t('engineering.createWorkOrder.creating')}
                 </>
               ) : (
-                useAI ? 'Create with AI' : 'Create Work Order'
+                useAI ? t('engineering.createWorkOrder.createWithAi') : t('engineering.createWorkOrder.createButton')
               )}
             </Button>
           </div>
