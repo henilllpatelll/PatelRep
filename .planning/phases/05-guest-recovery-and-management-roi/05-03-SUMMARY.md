@@ -121,3 +121,14 @@ None - no external service configuration required. All eight functions are pure 
 - `contracts.py` is now 520 lines — 20 lines over the project's general "keep files under 500 lines" guideline (global CLAUDE.md). This is plan-directed (all three tasks explicitly append to this single existing module to match the established pure-contracts-module pattern from plan 05-01, and plan 05-06's imports depend on this exact module path). Flagging rather than restructuring unilaterally, since 05-02 and 05-04 are concurrent sibling worktree agents editing other files in this same domain this wave; splitting the module now would be an architectural change out of this plan's scope.
 
 ## Self-Check: PASSED
+
+- `apps/api/services/guest_recovery/contracts.py` — FOUND
+- `apps/api/tests/test_management_roi.py` — FOUND
+- `.planning/phases/05-guest-recovery-and-management-roi/05-03-SUMMARY.md` — FOUND
+- Commit `bc8bb677` (Task 1 RED) — FOUND
+- Commit `2542c77e` (Task 1 GREEN) — FOUND
+- Commit `ce266dbc` (Task 2 RED) — FOUND
+- Commit `f88a29c6` (Task 2 GREEN) — FOUND
+- Commit `779fe98f` (Task 3 RED) — FOUND
+- Commit `69f94310` (Task 3 GREEN) — FOUND
+- Commit `4fad2ba5` (SUMMARY) — FOUND
