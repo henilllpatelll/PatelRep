@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Wrench, AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
 import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
@@ -26,13 +28,15 @@ type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const COLUMNS: { status: KanbanStatus; label: string; tone: PillTone }[] = [
-  { status: 'open',        label: 'Open',        tone: 'info'    },
-  { status: 'escalated',   label: 'Escalated',   tone: 'alert'   },
-  { status: 'in_progress', label: 'In Progress', tone: 'caution' },
-  { status: 'on_hold',     label: 'On Hold',     tone: 'alert'   },
-  { status: 'completed',   label: 'Completed',   tone: 'ready'   },
-]
+function getColumns(t: TFunction): { status: KanbanStatus; label: string; tone: PillTone }[] {
+  return [
+    { status: 'open',        label: t('engineering.workOrdersPage.columnOpen'),       tone: 'info'    },
+    { status: 'escalated',   label: t('engineering.workOrdersPage.columnEscalated'),  tone: 'alert'   },
+    { status: 'in_progress', label: t('engineering.workOrdersPage.columnInProgress'), tone: 'caution' },
+    { status: 'on_hold',     label: t('engineering.workOrdersPage.columnOnHold'),     tone: 'alert'   },
+    { status: 'completed',   label: t('engineering.workOrdersPage.columnCompleted'),  tone: 'ready'   },
+  ]
+}
 
 const PRIORITY_BORDER: Record<string, string> = {
   emergency: 'border-l-red-700',
@@ -146,6 +150,7 @@ function KanbanColumn({
   onCardClick: (wo: WorkOrder) => void
   isLoading: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <div
       data-testid={`work-order-column-${status}`}
@@ -160,7 +165,7 @@ function KanbanColumn({
         {canAdd && status === 'open' && (
           <button
             onClick={onAdd}
-            aria-label="New work order"
+            aria-label={t('engineering.workOrdersPage.newWorkOrderAriaLabel')}
             className="w-6 h-6 flex items-center justify-center rounded-md text-ink3 hover:bg-surface-3 hover:text-ink transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -181,7 +186,7 @@ function KanbanColumn({
           </>
         ) : workOrders.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-[12px] text-ink3">No {label.toLowerCase()} orders</p>
+            <p className="text-[12px] text-ink3">{t('engineering.workOrdersPage.emptyColumn', { label: label.toLowerCase() })}</p>
           </div>
         ) : (
           workOrders.map((wo) => (
@@ -222,6 +227,7 @@ function sortWOs(wos: WorkOrder[], aiTriageActive = false): WorkOrder[] {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WorkOrdersPage() {
+  const { t } = useTranslation()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
   const session = useAuthStore((s) => s.session)
@@ -237,6 +243,7 @@ export default function WorkOrdersPage() {
   const [aiTriageNotice, setAiTriageNotice] = useState<string | null>(null)
   const isEngineer = role === 'engineer'
   const canManage = role === 'engineer' || role === 'gm'
+  const COLUMNS = getColumns(t)
 
   // Realtime subscription
   useEffect(() => {
@@ -309,9 +316,9 @@ export default function WorkOrdersPage() {
           room_number: wo.rooms?.room_number,
         })),
       })
-      setAiTriageNotice('AI triage applied: overdue, unassigned, and urgent work is floated first.')
+      setAiTriageNotice(t('engineering.workOrdersPage.aiTriageApplied'))
     } catch {
-      setAiTriageNotice('AI triage fallback applied while the service is unavailable.')
+      setAiTriageNotice(t('engineering.workOrdersPage.aiTriageFallback'))
     } finally {
       setAiTriageActive(true)
       setAiTriageLoading(false)
@@ -346,10 +353,10 @@ export default function WorkOrdersPage() {
           <div>
             <h1 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2.5">
               <Wrench className="w-5 h-5 text-[var(--caution)] shrink-0" />
-              Engineering
+              {t('engineering.workOrdersPage.heading')}
             </h1>
             <p className="text-sm text-ink3 mt-0.5">
-              {isEngineer ? 'Your assigned work orders' : 'All hotel work orders'}
+              {isEngineer ? t('engineering.workOrdersPage.subtitleEngineer') : t('engineering.workOrdersPage.subtitleAll')}
             </p>
           </div>
           {activeTab === 'work-orders' && (
@@ -361,12 +368,12 @@ export default function WorkOrdersPage() {
                 className="shrink-0"
               >
                 {aiTriageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                AI triage
+                {t('engineering.workOrdersPage.aiTriage')}
               </Button>
               {canManage && (
                 <Button variant="primary" onClick={() => setShowCreateModal(true)} className="shrink-0">
                   <Plus className="w-4 h-4" />
-                  New Work Order
+                  {t('engineering.workOrdersPage.newWorkOrder')}
                 </Button>
               )}
             </div>
@@ -379,13 +386,13 @@ export default function WorkOrdersPage() {
             onClick={() => setActiveTab('work-orders')}
             className={tabClass(activeTab === 'work-orders')}
           >
-            Work Orders
+            {t('engineering.workOrdersPage.tabWorkOrders')}
           </button>
           <button
             onClick={() => setActiveTab('room-board')}
             className={tabClass(activeTab === 'room-board')}
           >
-            Room Board
+            {t('engineering.workOrdersPage.tabRoomBoard')}
           </button>
         </div>
 
@@ -396,9 +403,19 @@ export default function WorkOrdersPage() {
               <div className="flex items-start gap-2.5 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-xl text-sm text-[var(--alert)]">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="font-medium">
-                  {emergencyCount > 0 && `${emergencyCount} emergency ${emergencyCount === 1 ? 'work order requires' : 'work orders require'} immediate attention`}
+                  {emergencyCount > 0 && t(
+                    emergencyCount === 1
+                      ? 'engineering.workOrdersPage.emergencyAlertOne'
+                      : 'engineering.workOrdersPage.emergencyAlertOther',
+                    { count: emergencyCount },
+                  )}
                   {emergencyCount > 0 && urgentCount > 0 && ' · '}
-                  {urgentCount > 0 && `${urgentCount} urgent ${urgentCount === 1 ? 'work order requires' : 'work orders require'} attention`}
+                  {urgentCount > 0 && t(
+                    urgentCount === 1
+                      ? 'engineering.workOrdersPage.urgentAlertOne'
+                      : 'engineering.workOrdersPage.urgentAlertOther',
+                    { count: urgentCount },
+                  )}
                 </span>
               </div>
             )}

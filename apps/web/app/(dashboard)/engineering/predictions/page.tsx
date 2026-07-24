@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   AlertTriangle,
   CheckCircle,
@@ -25,10 +27,10 @@ type StatusFilter = 'all' | 'active' | 'acknowledged'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getRiskLabel(score: number): string {
-  if (score >= 70) return 'HIGH'
-  if (score >= 40) return 'MEDIUM'
-  return 'LOW'
+function getRiskLabel(score: number, t: TFunction): string {
+  if (score >= 70) return t('engineering.failurePrediction.riskHigh')
+  if (score >= 40) return t('engineering.failurePrediction.riskMedium')
+  return t('engineering.failurePrediction.riskLow')
 }
 
 function getRiskBadgeCls(score: number): string {
@@ -76,12 +78,13 @@ function SkeletonCard() {
 // ─── Risk ring (48×48) ────────────────────────────────────────────────────────
 
 function RiskRing({ score }: { score: number }) {
+  const { t } = useTranslation()
   const ringColor = getRiskRingColor(score)
   // circumference = 2π×20 ≈ 125.66; dash for 48×48 viewBox with r=20
   const circumference = 125.66
   return (
     <div className="relative shrink-0 w-12 h-12">
-      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48" aria-label={`Risk score: ${score}%`}>
+      <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48" aria-label={t('engineering.predictionsPage.riskAriaLabel', { score })}>
         <circle
           cx="24"
           cy="24"
@@ -139,11 +142,12 @@ function PredictionCard({
   onAuthorize,
   isAuthorizing,
 }: PredictionCardProps) {
+  const { t } = useTranslation()
   const score = prediction.risk_score
   const borderColor = getBorderColor(score)
   const badgeCls = getRiskBadgeCls(score)
-  const riskLabel = getRiskLabel(score)
-  const assetName = prediction.assets?.name ?? 'Unknown Asset'
+  const riskLabel = getRiskLabel(score, t)
+  const assetName = prediction.assets?.name ?? t('engineering.failurePrediction.unknownAsset')
   const categoryName = prediction.assets?.asset_categories?.name
   const indicators = prediction.failure_indicators ?? []
   const isExpanded = expandedId === prediction.id
@@ -190,7 +194,7 @@ function PredictionCard({
               {prediction.is_acknowledged && (
                 <span className="text-xs font-medium text-[var(--ready)] flex items-center gap-1">
                   <CheckCircle size={12} />
-                  Acknowledged
+                  {t('engineering.failurePrediction.acknowledged')}
                 </span>
               )}
             </div>
@@ -203,7 +207,7 @@ function PredictionCard({
         {/* Failure window */}
         {prediction.predicted_failure_window && (
           <p className="text-sm text-gray-600">
-            <span className="font-medium">Failure window:</span>{' '}
+            <span className="font-medium">{t('engineering.failurePrediction.failureWindowLabel')}</span>{' '}
             {prediction.predicted_failure_window}
           </p>
         )}
@@ -229,7 +233,7 @@ function PredictionCard({
         {reasoning && (
           <div className="pt-1">
             <p className="text-sm text-gray-600">
-              <span className="font-medium">AI Reasoning: </span>
+              <span className="font-medium">{t('engineering.predictionsPage.aiReasoningLabel')}</span>
               {isExpanded ? reasoning : reasoningPreview}
               {!isExpanded && hasMoreReasoning && '…'}
             </p>
@@ -240,11 +244,11 @@ function PredictionCard({
               >
                 {isExpanded ? (
                   <>
-                    <ChevronUp size={13} /> Show less
+                    <ChevronUp size={13} /> {t('engineering.predictionsPage.showLess')}
                   </>
                 ) : (
                   <>
-                    <ChevronDown size={13} /> Show more
+                    <ChevronDown size={13} /> {t('engineering.predictionsPage.showMore')}
                   </>
                 )}
               </button>
@@ -255,11 +259,10 @@ function PredictionCard({
         {/* Costs */}
         {(repairCost != null || replaceCost != null) && (
           <p className="text-sm text-gray-600">
-            <span className="font-medium">Costs: </span>
+            <span className="font-medium">{t('engineering.predictionsPage.costsLabel')}</span>
             {repairCost != null && (
               <span>
-                Repair ~$
-                {repairCost.toLocaleString()}
+                {t('engineering.predictionsPage.repairCost', { cost: repairCost.toLocaleString() })}
               </span>
             )}
             {repairCost != null && replaceCost != null && (
@@ -267,8 +270,7 @@ function PredictionCard({
             )}
             {replaceCost != null && (
               <span>
-                Replace ~$
-                {replaceCost.toLocaleString()}
+                {t('engineering.predictionsPage.replaceCost', { cost: replaceCost.toLocaleString() })}
               </span>
             )}
           </p>
@@ -276,7 +278,7 @@ function PredictionCard({
 
         {/* Generated at */}
         {generatedAt && (
-          <p className="text-xs text-gray-400">Generated: {generatedAt}</p>
+          <p className="text-xs text-gray-400">{t('engineering.predictionsPage.generatedLabel', { date: generatedAt })}</p>
         )}
 
         {/* Actions */}
@@ -285,7 +287,7 @@ function PredictionCard({
             {canAuthorize && (
               <Button variant="secondary" onClick={() => onAuthorize(prediction.id)} disabled={isAuthorizing} className="text-xs px-3 py-1.5">
                 {isAuthorizing ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
-                Authorize AI action
+                {t('engineering.predictionsPage.authorizeAiAction')}
               </Button>
             )}
             <Button
@@ -299,7 +301,7 @@ function PredictionCard({
               ) : (
                 <Plus size={12} />
               )}
-              Create Work Order
+              {t('engineering.predictionsPage.createWorkOrder')}
             </Button>
             <Button
               variant="secondary"
@@ -312,7 +314,7 @@ function PredictionCard({
               ) : (
                 <CheckCircle size={12} />
               )}
-              Acknowledge
+              {t('engineering.failurePrediction.acknowledge')}
             </Button>
           </div>
         )}
@@ -320,7 +322,7 @@ function PredictionCard({
         {prediction.is_acknowledged && acknowledgedAt && (
           <p className="flex items-center gap-1.5 text-xs text-[var(--ready)] font-medium pt-1">
             <CheckCircle size={12} />
-            Acknowledged {acknowledgedAt}
+            {t('engineering.predictionsPage.acknowledgedDate', { date: acknowledgedAt })}
           </p>
         )}
       </div>
@@ -348,6 +350,7 @@ function StatCard({ label, value, accent = 'text-gray-900' }: StatCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PredictionsPage() {
+  const { t } = useTranslation()
   const { isGM, role } = useRole()
   const canManage = isGM || role === 'engineer'
   const canAuthorize = isGM || role === 'chief_engineer'
@@ -378,7 +381,7 @@ export default function PredictionsPage() {
     mutationFn: (id: string) => engineeringApi.createWorkOrderFromPrediction(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-      showSuccess('Work order created successfully')
+      showSuccess(t('engineering.predictionsPage.workOrderCreated'))
     },
   })
 
@@ -387,7 +390,7 @@ export default function PredictionsPage() {
       const recommendation = await aiApi.createFailurePredictionRecommendation(predictionId)
       return aiApi.authorizeRecommendation(recommendation.data.id)
     },
-    onSuccess: () => showSuccess('AI action authorized. Record the outcome after the work is complete.'),
+    onSuccess: () => showSuccess(t('engineering.predictionsPage.aiActionAuthorized')),
   })
 
   function showSuccess(msg: string) {
@@ -437,19 +440,19 @@ export default function PredictionsPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <AlertTriangle size={22} className="text-orange-500 shrink-0" />
-            Asset Failure Predictions
+            {t('engineering.predictionsPage.heading')}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            AI-powered failure risk analysis — updated nightly
+            {t('engineering.predictionsPage.subtitle')}
           </p>
         </div>
 
         {canManage && (
           <div className="shrink-0">
             <p className="text-xs text-gray-400 text-right leading-tight">
-              To run a fresh analysis,
+              {t('engineering.predictionsPage.freshAnalysisHint')}
               <br />
-              open an asset from the Asset Register.
+              {t('engineering.predictionsPage.freshAnalysisHint2')}
             </p>
           </div>
         )}
@@ -466,22 +469,22 @@ export default function PredictionsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
-          label="Active Alerts"
+          label={t('engineering.predictionsPage.statActiveAlerts')}
           value={activeCount}
           accent={activeCount > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
         />
         <StatCard
-          label="High Risk"
+          label={t('engineering.predictionsPage.statHighRisk')}
           value={highRiskCount}
           accent={highRiskCount > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
         />
         <StatCard
-          label="Acknowledged"
+          label={t('engineering.failurePrediction.acknowledged')}
           value={acknowledgedCount}
           accent={acknowledgedCount > 0 ? 'text-[var(--ready)]' : 'text-gray-500'}
         />
         <StatCard
-          label="Avg Risk Score"
+          label={t('engineering.predictionsPage.statAvgRiskScore')}
           value={avgScore || '—'}
           accent={getAvgScoreColor(avgScore)}
         />
@@ -493,10 +496,10 @@ export default function PredictionsPage() {
         <div className="flex items-center gap-1 bg-surface/70 backdrop-blur-sm border border-[var(--caution-line)]/40 rounded-lg p-1">
           {(
             [
-              { key: 'all', label: 'All Risk' },
-              { key: 'high', label: 'High' },
-              { key: 'medium', label: 'Medium' },
-              { key: 'low', label: 'Low' },
+              { key: 'all', label: t('engineering.predictionsPage.riskFilterAll') },
+              { key: 'high', label: t('engineering.predictionsPage.riskFilterHigh') },
+              { key: 'medium', label: t('engineering.predictionsPage.riskFilterMedium') },
+              { key: 'low', label: t('engineering.predictionsPage.riskFilterLow') },
             ] as { key: RiskFilter; label: string }[]
           ).map(({ key, label }) => (
             <button
@@ -518,9 +521,9 @@ export default function PredictionsPage() {
         <div className="flex items-center gap-1 bg-surface/70 backdrop-blur-sm border border-[var(--caution-line)]/40 rounded-lg p-1">
           {(
             [
-              { key: 'all', label: 'All Status' },
-              { key: 'active', label: 'Active' },
-              { key: 'acknowledged', label: 'Acknowledged' },
+              { key: 'all', label: t('engineering.predictionsPage.statusFilterAll') },
+              { key: 'active', label: t('engineering.predictionsPage.statusFilterActive') },
+              { key: 'acknowledged', label: t('engineering.failurePrediction.acknowledged') },
             ] as { key: StatusFilter; label: string }[]
           ).map(({ key, label }) => (
             <button
@@ -546,7 +549,7 @@ export default function PredictionsPage() {
             }}
             className="text-sm text-[var(--caution)] hover:text-amber-800 font-medium transition-colors"
           >
-            Clear filters
+            {t('engineering.predictionsPage.clearFilters')}
           </button>
         )}
       </div>
@@ -563,10 +566,10 @@ export default function PredictionsPage() {
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
             <ShieldCheck size={24} className="text-[var(--ready)]" />
           </div>
-          <p className="text-base font-semibold text-gray-800">No predictions found</p>
+          <p className="text-base font-semibold text-gray-800">{t('engineering.predictionsPage.emptyHeading')}</p>
           {filtersActive ? (
             <p className="text-sm text-gray-500 mt-1 max-w-xs">
-              No predictions match these filters.{' '}
+              {t('engineering.predictionsPage.emptyFilteredText')}{' '}
               <button
                 onClick={() => {
                   setRiskFilter('all')
@@ -574,29 +577,33 @@ export default function PredictionsPage() {
                 }}
                 className="text-[var(--caution)] hover:underline font-medium"
               >
-                Clear filters
+                {t('engineering.predictionsPage.clearFilters')}
               </button>{' '}
-              to see all predictions.
+              {t('engineering.predictionsPage.emptyFilteredSuffix')}
             </p>
           ) : (
             <>
               <p className="text-sm text-gray-500 mt-1 max-w-xs">
-                AI predictions generate automatically once assets and work orders are added.
+                {t('engineering.predictionsPage.emptyHelp')}
               </p>
               <a
                 href="/engineering/assets"
                 className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--caution)] hover:text-[var(--caution)] hover:underline transition-colors"
               >
-                Go to Asset Register
+                {t('engineering.predictionsPage.goToAssetRegister')}
               </a>
             </>
           )}
           {!filtersActive && (
             <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-              {['Filter replacements', 'Noisy PTACs', 'Repeat outages'].map((item) => (
+              {[
+                t('engineering.predictionsPage.emptySampleFilter'),
+                t('engineering.predictionsPage.emptySampleNoisy'),
+                t('engineering.predictionsPage.emptySampleRepeat'),
+              ].map((item) => (
                 <div key={item} className="rounded-xl border border-amber-100 bg-[var(--caution-soft)]/50 px-4 py-3">
                   <p className="text-sm font-semibold text-ink">{item}</p>
-                  <p className="mt-1 text-xs text-ink3">Risk signal to watch</p>
+                  <p className="mt-1 text-xs text-ink3">{t('engineering.predictionsPage.emptySampleSub')}</p>
                 </div>
               ))}
             </div>
