@@ -8,8 +8,12 @@ from datetime import date, datetime, timezone
 
 from services.guest_recovery.contracts import (
     calculate_downtime_revenue_impact,
+    calculate_housekeeping_efficiency,
+    calculate_inspection_trends,
+    calculate_pm_compliance,
     calculate_repeat_failures,
     calculate_room_downtime_hours,
+    calculate_training_readiness,
 )
 
 
@@ -175,3 +179,166 @@ def test_revenue_impact_reports_unconfigured_when_adr_is_null():
         "downtime_hours": 48.0,
         "revenue_impact_cents": None,
     }
+
+
+# ---------------------------------------------------------------------------
+# calculate_housekeeping_efficiency
+# ---------------------------------------------------------------------------
+
+
+def test_housekeeping_efficiency_minutes_per_occupied_room():
+    clean_sessions = [
+        {"room_id": "room-1", "room_type_id": "standard", "date": "2026-07-01", "minutes": 30},
+        {"room_id": "room-2", "room_type_id": "standard", "date": "2026-07-01", "minutes": 40},
+    ]
+    baselines = {"standard": 35.0}
+
+    result = calculate_housekeeping_efficiency(
+        clean_sessions, room_type_baselines=baselines
+    )
+
+    assert result["occupied_room_days"] == 2
+    assert result["total_clean_minutes"] == 70.0
+    assert result["minutes_per_occupied_room"] == 35.0
+    assert result["by_room_type"] == [
+        {
+            "room_type_id": "standard",
+            "sessions": 2,
+            "avg_minutes": 35.0,
+            "baseline_minutes": 35.0,
+            "variance_minutes": 0.0,
+            "variance_pct": 0.0,
+        }
+    ]
+    assert "definition" in result
+
+
+def test_housekeeping_efficiency_missing_baseline_reports_none():
+    clean_sessions = [
+        {"room_id": "room-3", "room_type_id": "suite", "date": "2026-07-01", "minutes": 60},
+    ]
+
+    result = calculate_housekeeping_efficiency(clean_sessions, room_type_baselines={})
+
+    assert result["by_room_type"] == [
+        {
+            "room_type_id": "suite",
+            "sessions": 1,
+            "avg_minutes": 60.0,
+            "baseline_minutes": None,
+            "variance_minutes": None,
+            "variance_pct": None,
+        }
+    ]
+
+
+def test_housekeeping_efficiency_empty_input_returns_zero_shape():
+    result = calculate_housekeeping_efficiency([], room_type_baselines={})
+
+    assert result["occupied_room_days"] == 0
+    assert result["total_clean_minutes"] == 0.0
+    assert result["minutes_per_occupied_room"] == 0.0
+    assert result["by_room_type"] == []
+
+
+# ---------------------------------------------------------------------------
+# calculate_inspection_trends
+# ---------------------------------------------------------------------------
+
+
+def test_inspection_trends_conditional_is_not_a_pass():
+    inspections = [
+        {"id": "i1", "overall_result": "passed"},
+        {"id": "i2", "overall_result": "conditional"},
+        {"id": "i3", "overall_result": "failed"},
+    ]
+
+    result = calculate_inspection_trends(inspections, [])
+
+    assert result["total_inspections"] == 3
+    assert result["passed"] == 1
+    assert result["conditional"] == 1
+    assert result["failed"] == 1
+    assert result["pass_rate_pct"] == 33.3
+
+
+def test_inspection_trends_repeat_defect_requires_two_inspections():
+    inspections = [
+        {"id": "i1", "overall_result": "failed"},
+        {"id": "i2", "overall_result": "failed"},
+        {"id": "i3", "overall_result": "failed"},
+    ]
+    inspection_results = [
+        {"inspection_id": "i1", "template_item_id": "item-a", "result": "fail"},
+        {"inspection_id": "i2", "template_item_id": "item-a", "result": "fail"},
+        {"inspection_id": "i3", "template_item_id": "item-b", "result": "fail"},
+    ]
+
+    result = calculate_inspection_trends(inspections, inspection_results)
+
+    assert result["repeat_defect_count"] == 1
+    assert result["repeat_defects"] == [
+        {"template_item_id": "item-a", "fail_count": 2, "inspection_count": 2}
+    ]
+
+
+# ---------------------------------------------------------------------------
+# calculate_pm_compliance
+# ---------------------------------------------------------------------------
+
+
+def test_pm_compliance_rates_from_completion_and_deferral_tables():
+    active_schedules = [{"id": "sched-1"}, {"id": "sched-2"}]
+    completions = [{"pm_schedule_id": "sched-1"}]
+    deferrals = [
+        {"pm_schedule_id": "sched-2"},
+        {"pm_schedule_id": "sched-2"},
+    ]
+
+    result = calculate_pm_compliance(active_schedules, completions, deferrals)
+
+    assert result["active_schedules"] == 2
+    assert result["completed_schedules"] == 1
+    assert result["completion_rate_pct"] == 50.0
+    assert result["deferred_schedules"] == 1
+    assert result["deferral_rate_pct"] == 50.0
+    assert result["repeated_deferrals"] == [{"pm_schedule_id": "sched-2", "deferral_count": 2}]
+    assert result["repeated_deferral_count"] == 1
+
+
+def test_pm_compliance_zero_active_schedules_does_not_divide_by_zero():
+    result = calculate_pm_compliance([], [], [])
+
+    assert result["completion_rate_pct"] == 0.0
+    assert result["deferral_rate_pct"] == 0.0
+    assert result["active_schedules"] == 0
+
+
+# ---------------------------------------------------------------------------
+# calculate_training_readiness
+# ---------------------------------------------------------------------------
+
+
+def test_training_readiness_counts_overdue():
+    as_of = date(2026, 7, 24)
+    assignments = [
+        {"id": "a1", "completed_at": "2026-07-01T00:00:00+00:00", "due_date": "2026-07-05"},
+        {"id": "a2", "completed_at": None, "due_date": "2026-07-01"},
+        {"id": "a3", "completed_at": None, "due_date": "2026-08-01"},
+    ]
+
+    result = calculate_training_readiness(assignments, as_of=as_of)
+
+    assert result["total_assignments"] == 3
+    assert result["completed"] == 1
+    assert result["outstanding"] == 2
+    assert result["overdue"] == 1
+    assert result["readiness_pct"] == 33.3
+
+
+def test_training_readiness_empty_input_returns_zero_shape():
+    result = calculate_training_readiness([], as_of=date(2026, 7, 24))
+
+    assert result["total_assignments"] == 0
+    assert result["readiness_pct"] == 0.0
+    assert result["overdue"] == 0
