@@ -386,7 +386,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
                 type="text"
                 value={fields.asset_id}
                 onChange={(e) => set('asset_id', e.target.value)}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                placeholder={t('programs.pmSchedules.addModal.assetIdPlaceholder')}
                 className="font-mono"
               />
               <p className="text-xs text-gray-400 mt-1">

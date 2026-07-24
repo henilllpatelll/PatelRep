@@ -469,7 +469,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
                 max={1440}
                 value={laborMinutes}
                 onChange={(e) => setLaborMinutes(e.target.value)}
-                placeholder="e.g. 45"
+                placeholder={t('programs.pmCompletion.laborMinutesPlaceholder')}
               />
             </div>
 
