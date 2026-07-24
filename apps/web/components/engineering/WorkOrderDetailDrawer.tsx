@@ -549,7 +549,7 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 {fullWo.labor_hours != null && (
                   <div>
                     <span className="font-mono text-[11px] text-ink3">{t('engineering.workOrderDetail.laborHoursLabel')}</span>
-                    <p className="text-[13px] text-ink font-medium">{fullWo.labor_hours}h</p>
+                    <p className="text-[13px] text-ink font-medium">{`${fullWo.labor_hours}h`}</p>
                   </div>
                 )}
                 {fullWo.parts_used && (

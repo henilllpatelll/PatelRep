@@ -299,12 +299,12 @@ export function RoomCard({
         <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink3 font-mono">
           <Timer className="w-3 h-3 shrink-0" />
           <span>
-            {room.last_clean_minutes}m
-            {room.last_clean_base_minutes != null ? ` / ${room.last_clean_base_minutes}m` : ''}
-            {room.last_clean_checklist_total > 0
-              ? ` · ${room.last_clean_checklist_done}/${room.last_clean_checklist_total}`
-              : ''}
-            {room.last_clean_photo_count > 0 ? ` · ${room.last_clean_photo_count} 📷` : ''}
+            {`${room.last_clean_minutes}m` +
+              (room.last_clean_base_minutes != null ? ` / ${room.last_clean_base_minutes}m` : '') +
+              (room.last_clean_checklist_total > 0
+                ? ` · ${room.last_clean_checklist_done}/${room.last_clean_checklist_total}`
+                : '') +
+              (room.last_clean_photo_count > 0 ? ` · ${room.last_clean_photo_count} 📷` : '')}
           </span>
         </div>
       )}

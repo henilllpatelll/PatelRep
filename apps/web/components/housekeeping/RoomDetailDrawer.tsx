@@ -946,7 +946,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 {room.last_clean_minutes != null && (
                   <div className="flex items-center gap-1.5 text-xs text-stone-600">
                     <Timer className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    <span className="font-mono font-semibold">{room.last_clean_minutes}m</span>
+                    <span className="font-mono font-semibold">{`${room.last_clean_minutes}m`}</span>
                     {room.last_clean_base_minutes != null && (
                       <span className="text-stone-400">{t('housekeeping.roomDetail.lastClean.base', { minutes: room.last_clean_base_minutes })}</span>
                     )}

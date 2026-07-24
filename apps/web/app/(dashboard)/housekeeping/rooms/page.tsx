@@ -295,6 +295,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             <div className="space-y-4">
               <p className="text-sm text-gray-500">
                 {t('housekeeping.roomsPage.import.expectedColumns')}{' '}
+                {/* eslint-disable-next-line i18next/no-literal-string -- literal CSV column syntax the user must type verbatim, not prose (04-12 decision) */}
                 <code className="font-mono text-xs bg-gray-100 px-1 rounded">
                   room_number, floor, room_type_code, room_type_name, building
                 </code>
