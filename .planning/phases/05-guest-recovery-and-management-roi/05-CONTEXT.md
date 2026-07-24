@@ -58,6 +58,13 @@ Research and planning should treat sub-domains 1–3's *data layer and core vali
 - **D-14:** Manage `accessible_room_features` via a **new panel/tab on the existing Settings > Rooms page** (not a standalone top-level page) — reuse its existing room list/selection UI.
 - **D-15:** "Staff guidance for matching requests to suitable rooms" = when viewing/creating an accessibility-category guest request, **show a list of rooms with the relevant operational `accessible_room_features` and their status** inline on the request. This is informational guidance only — not an automated room-assignment or booking action.
 
+### Closing the loop (added 2026-07-24, post-planning)
+
+Both decisions below were surfaced by the plan-checker, not by discuss-phase: they are named deliverables in `HOTEL_STANDARDS_EXECUTION_PLAN.md` §Phase 5 that the original discussion silently skipped, so no D-number covered them and no plan implemented them. Confirmed with the user 2026-07-24 and added here so the decision-coverage gate tracks them.
+
+- **D-16:** **Satisfaction capture** (execution plan line 299) is **in scope** for Phase 5 and gets its own plan (`05-12`) rather than being folded into existing plans. The `satisfaction_score` column has existed since migration 011 and is entirely dead — no API endpoint reads or writes it, no component renders it. Build a role-gated update path that accepts `satisfaction_score`, plus a capture surface in `GuestRequestDrawer.tsx` that appears once a request reaches `resolved`/`verified`. No new column needed.
+- **D-17:** **Resolution confirmation** (execution plan line 305) is satisfied by a **human-in-the-loop prompt, not an automatic send**. When a request transitions to `resolved`/`verified`, the drawer presents a pre-filled confirmation message that staff can edit and send through the existing D-05 message thread. Explicitly rejected: auto-sending a templated SMS on transition — that would push guest-facing messages with no human approval, breaking the human-authorized pattern this codebase holds throughout Phases 1–4. The generic reply box alone was also rejected as too weak to make the deliverable observable or testable.
+
 </decisions>
 
 <canonical_refs>

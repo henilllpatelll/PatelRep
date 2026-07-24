@@ -91,7 +91,37 @@ Plans:
 ### Phase 5: Guest recovery and management ROI
 **Goal**: Close guest service loops and quantify hotel operational value.
 **Depends on**: Phase 4
-**Plans**: TBD
+**Plans**: 12 plans across 6 waves. Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 5 + 05-CONTEXT.md (no formal REQ-XXX IDs; decisions labeled D-01…D-17). **Brownfield phase** — commit `fea45b29` already shipped migration 072, `services/guest_recovery/contracts.py`, `routers/guest_requests.py`, `routers/lost_found.py`, and the 9-status kanban; plans extend these in place. One new migration: 084 (guest_phone, retention/disposition, GM ADR field) — `[BLOCKING]` apply gates all of Wave 2+. Live SMS delivery will remain UNVERIFIED at phase close: no Twilio credentials exist locally (D-01).
+
+Plans:
+**Wave 1**
+- [ ] 05-01-PLAN.md — migration 084 + Twilio SDK pin/settings + fake Twilio client + GM ADR field; `[BLOCKING]` apply to live Supabase before any other plan
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 05-02-PLAN.md — Twilio send wrapper, signed inbound webhook (reply-only match, never invents a request), status-callback webhook, reactive opt-out on error 21610, guest_phone capture
+- [ ] 05-03-PLAN.md — all ROI formulas as pure fixture-reconcilable functions in `services/guest_recovery/contracts.py`
+- [ ] 05-04-PLAN.md — lost & found 90-day retention clock, daily flag-for-review cron, `disposition_due` filter, disposition role set = gm + housekeeping_supervisor + front_desk
+
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 05-05-PLAN.md — SLA policy API surface + accessible-room-features enriched with live room status
+- [ ] 05-06-PLAN.md — seven GM-only tenant-scoped `/v1/reports/roi/*` endpoints feeding 05-03's calculators
+- [ ] 05-08-PLAN.md — lost & found retention/custody/disposition web UI
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 05-07-PLAN.md — web data layer: typed API clients, guest phone/consent/category fields on new-request modal, EN/ES strings
+
+**Wave 5** *(blocked on Wave 4)*
+- [ ] 05-09-PLAN.md — drawer message thread with per-message delivery status, role-gated reply box, accessibility room guidance
+- [ ] 05-10-PLAN.md — GM ADR input + unified Management ROI dashboard at `/management-roi` (time saved / quality / response / revenue protected)
+- [ ] 05-11-PLAN.md — Settings > Guest Requests (SLA rules) + Accessibility Features tab on Settings > Rooms
+
+**Wave 6** *(blocked on Wave 5)*
+- [ ] 05-12-PLAN.md — satisfaction capture (D-16) + human-in-the-loop resolution confirmation prompt (D-17)
+
+Cross-cutting constraints:
+- Tenant scoping (`.eq("hotel_id"/"tenant_id", current_user.hotel_id)`) on every new query — flagged in research as the phase's highest risk of omission across the ~7 new ROI endpoints.
+- Every guest-facing send requires an explicit human action; no unattended templated SMS (D-17).
+- Append-only discipline on `guest_request_events`, `guest_messages`, `guest_recovery_actions`, `lost_found_custody_events` — insert only, never UPDATE/DELETE.
 
 ### Phase 6: PMS and AI expansion
 **Goal**: Expand integrations and AI only after pilot validation, with evidence and human authorization for every recommendation.

@@ -1,10 +1,11 @@
 ---
 phase: 5
 slug: guest-recovery-and-management-roi
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-24
+approved: 2026-07-24
 ---
 
 # Phase 5 — Validation Strategy
@@ -76,11 +77,13 @@ created: 2026-07-24
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 90s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 90s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-24 by gsd-plan-checker (iteration 2, `## VERIFICATION PASSED`).
+
+**Wave 0 note:** this phase has no separate Wave 0 plan. Test files (`test_twilio_sms.py`, `test_management_roi.py`, retention tests) are created inside the same TDD tasks that consume them — accepted by the checker as an equivalent satisfaction of the Wave 0 contract. `05-01`'s single checkpoint task is exempt from the `<automated>` requirement by task type.

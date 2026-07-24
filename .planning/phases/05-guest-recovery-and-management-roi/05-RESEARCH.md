@@ -349,17 +349,17 @@ Then register in `.github/workflows/cron-jobs.yml` under a fitting existing sche
 
 ## Open Questions
 
-1. **Does the opt-out design need Twilio Messaging Service + Advanced Opt-Out, or is reactive (send-error) detection acceptable for D-03?**
+1. **Does the opt-out design need Twilio Messaging Service + Advanced Opt-Out, or is reactive (send-error) detection acceptable for D-03?** — **(RESOLVED 2026-07-24)** Confirmed with the user: reactive design. Catch outbound error code 21610 and set `contact_opted_out_at` at that moment. No custom keyword parsing, no Messaging Service/Advanced Opt-Out provisioning. Locked in `05-CONTEXT.md` D-03; implemented by plan `05-02`.
    - What we know: Twilio's default STOP/START handling is invisible to the app unless Advanced Opt-Out is enabled on a Messaging Service.
    - What's unclear: Whether the user's mental model for D-03 ("provider-level... status webhook reports an opt-out") assumed the webhook path without knowing this requires extra Twilio console setup.
    - Recommendation: Planner should surface this distinction explicitly and default to the reactive (error-code) design as the credential-independent, code-complete option, noting the Messaging Service path as a future enhancement.
 
-2. **Is the pilot hotel expected to have Opera Cloud connected when the 7-day forecast ships?**
+2. **Is the pilot hotel expected to have Opera Cloud connected when the 7-day forecast ships?** — **(RESOLVED 2026-07-24)** No Opera dependency. Trailing-average forecast only, per D-09 and the standalone-first constraint (A4). An Opera-aware path can layer into Phase 6 without redesign. Implemented by plans `05-03` (formula) and `05-06` (endpoint).
    - What we know: Opera integration is feature-flagged/pilot-gated (A4 in CLAUDE.md); `opera_reservations` is the only forward-looking occupancy data source.
    - What's unclear: Whether Phase 5's forecast should have an Opera-aware code path (use real reservations when connected, fall back to trailing-average when not) or just always use trailing-average for simplicity.
    - Recommendation: Build the trailing-average version first (works standalone); an Opera-aware enhancement can be layered in Phase 6 (PMS expansion) without redesign, since the trailing-average function's output shape can stay the same.
 
-3. **Route name for the new Management ROI page** — `/management-roi` vs. `/reports/roi` vs. something else.
+3. **Route name for the new Management ROI page** — `/management-roi` vs. `/reports/roi` vs. something else. — **(RESOLVED 2026-07-24)** `/management-roi`, a new top-level dashboard section sibling to `/reports`, matching D-06's intent literally. Implemented by plan `05-10`.
    - What we know: D-06 explicitly wants this to NOT be more `/reports` tabs.
    - What's unclear: Exact slug/route name.
    - Recommendation: `/management-roi` as a new top-level dashboard section (sibling to `/reports`, not nested under it), matching D-06's intent literally.
