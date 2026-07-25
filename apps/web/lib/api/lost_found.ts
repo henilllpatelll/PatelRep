@@ -17,6 +17,10 @@ export interface LostFoundItem {
   claimed_by_name?: string
   claimed_by_contact?: string
   claimed_at?: string
+  disposition_flagged_at?: string
+  disposition_approved_by?: string
+  release_verified_at?: string
+  release_verification_method?: string
   created_at: string
   updated_at?: string
   // Joined
@@ -30,6 +34,7 @@ export const lostFoundApi = {
     date_from?: string
     date_to?: string
     search?: string
+    disposition_due?: boolean
     page?: number
     per_page?: number
   }) =>
@@ -76,8 +81,19 @@ export const lostFoundApi = {
   listCustodyEvents: (id: string) =>
     apiClient.get(`/lost-found/${id}/custody-events`) as Promise<{ data: LostFoundCustodyEvent[] }>,
 
-  recordCustodyEvent: (id: string, payload: Omit<LostFoundCustodyEvent, 'id' | 'created_at'>) =>
-    apiClient.post(`/lost-found/${id}/custody-events`, payload) as Promise<{ data: LostFoundCustodyEvent }>,
+  recordCustodyEvent: (
+    id: string,
+    payload: {
+      event_type: LostFoundCustodyEvent['event_type']
+      storage_location?: string
+      recipient_name?: string
+      verification_method?: string
+      disposition?: 'claimed' | 'donated' | 'discarded'
+      note?: string
+    },
+  ) =>
+    apiClient.post(`/lost-found/${id}/custody-events`, payload) as
+      Promise<{ data: LostFoundCustodyEvent }>,
 }
 
 export interface LostFoundCustodyEvent {
@@ -89,4 +105,11 @@ export interface LostFoundCustodyEvent {
   disposition?: 'claimed' | 'donated' | 'discarded'
   note?: string
   created_at: string
+}
+
+/** D-10: shared "is this item due for a disposition decision" predicate — status still unclaimed
+ * (the API's `disposition_due` filter is equivalent) but past its retention date. */
+export function isDispositionDue(item: LostFoundItem, now: Date = new Date()): boolean {
+  if (item.status !== 'unclaimed' || !item.retention_due_at) return false
+  return new Date(item.retention_due_at).getTime() < now.getTime()
 }
