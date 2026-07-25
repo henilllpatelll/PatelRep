@@ -1325,6 +1325,21 @@ const es = {
     floorLabel: 'Piso {{floor}}',
     featureStatus: { operational: 'Operativo', out_of_service: 'Fuera de servicio', inspection_due: 'Inspeccion pendiente' },
   },
+  satisfaction: {
+    heading: 'Satisfaccion del Huesped',
+    prompt: 'Que tan satisfecho quedo el huesped?',
+    hint: 'Se registra una vez, despues de que el huesped confirme el resultado.',
+    save: 'Guardar Calificacion',
+    saving: 'Guardando...',
+    recorded: 'Registrado {{score}} de 5',
+    saveFailed: 'No se pudo guardar la calificacion. Intenta de nuevo.',
+  },
+  resolutionConfirmation: {
+    heading: 'Confirmar con el huesped',
+    body: 'Esta solicitud esta resuelta, pero aun no se le ha avisado al huesped. Revise el mensaje y enviela.',
+    useTemplate: 'Usar este mensaje',
+    template: 'Le escribimos de recepcion — su solicitud para el cuarto {{room}} ha sido completada. Responda a este mensaje si algo aun necesita atencion.',
+  },
   guestRequests: {
     newRequest: 'Nueva Solicitud de Huesped',
     roomNumber: 'Numero de Cuarto',
