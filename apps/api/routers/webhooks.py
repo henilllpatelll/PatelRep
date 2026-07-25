@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone as tz, date
+from datetime import datetime, timedelta, timezone as tz, date
 from fastapi import APIRouter, Request, HTTPException
 import stripe
 from twilio.request_validator import RequestValidator
@@ -19,6 +19,11 @@ from services.opera.webhooks import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+
+# WR-04: the Twilio sending number is global across tenants, so inbound `To` cannot
+# disambiguate the owning hotel. Bound reply matching to a recent window so a stale
+# outbound from another tenant months ago can't capture a fresh inbound reply.
+INBOUND_MATCH_WINDOW_HOURS = 72
 
 
 def _verify_twilio_signature(request: Request, params: dict) -> bool:
@@ -196,11 +201,12 @@ async def twilio_sms_webhook(request: Request):
         return {"status": "ignored", "reason": "missing_from_or_body"}
 
     try:
+        match_since = (datetime.now(tz.utc) - timedelta(hours=INBOUND_MATCH_WINDOW_HOURS)).isoformat()
         recent = supabase.table("guest_messages").select(
             "guest_request_id, tenant_id"
-        ).eq("direction", "outbound").eq("recipient", from_number).order(
-            "created_at", desc=True
-        ).limit(1).execute().data or []
+        ).eq("direction", "outbound").eq("recipient", from_number).gte(
+            "created_at", match_since
+        ).order("created_at", desc=True).limit(1).execute().data or []
         if not recent:
             # D-02: never auto-create a guest request from a cold inbound text.
             logger.warning("Inbound SMS with no matching outbound thread (from=***%s)", from_number[-4:])
