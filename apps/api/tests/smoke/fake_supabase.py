@@ -103,6 +103,10 @@ class FakeQuery:
         self.filters.append(("lt", column, value))
         return self
 
+    def lte(self, column, value):
+        self.filters.append(("lte", column, value))
+        return self
+
     def is_(self, column, value):
         self.filters.append(("is", column, value))
         return self
@@ -143,6 +147,8 @@ class FakeQuery:
             if op == "gte" and (actual is None or str(actual) < str(value)):
                 return False
             if op == "lt" and not (actual is not None and str(actual) < str(value)):
+                return False
+            if op == "lte" and (actual is None or str(actual) > str(value)):
                 return False
             if op == "is":
                 if value in (None, "null"):

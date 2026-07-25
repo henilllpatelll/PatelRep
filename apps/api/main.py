@@ -32,6 +32,7 @@ from routers import (
     scheduling,
     guest_requests,
     logbook,
+    management_roi,
     reports,
     onboarding,
     staff,
@@ -234,6 +235,7 @@ app.include_router(notifications.router, prefix=PREFIX)
 app.include_router(scheduling.router, prefix=PREFIX)
 app.include_router(guest_requests.router, prefix=PREFIX)
 app.include_router(logbook.router, prefix=PREFIX)
+app.include_router(management_roi.router, prefix=PREFIX)
 app.include_router(reports.router, prefix=PREFIX)
 app.include_router(onboarding.router, prefix=PREFIX)
 app.include_router(staff.router, prefix=PREFIX)
