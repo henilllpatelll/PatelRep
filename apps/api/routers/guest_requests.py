@@ -122,6 +122,7 @@ async def create_guest_request(
     }
     result = supabase.table("guest_requests").insert(gr_data).execute()
 
+    task_created = False
     if result.data:
         gr_id = result.data[0]["id"]
         # Auto-create a housekeeping task linked to this guest request
@@ -137,6 +138,7 @@ async def create_guest_request(
             "due_at": (now + timedelta(minutes=sla_minutes)).isoformat(),
         }).execute()
         if task_result.data:
+            task_created = True
             task_id = task_result.data[0]["id"]
             refreshed = supabase.table("guest_requests")\
                 .update({"task_id": task_id})\
@@ -146,16 +148,28 @@ async def create_guest_request(
             if refreshed.data:
                 result = refreshed
         else:
+            # The linked task is what the escalation cron watches for SLA breaches.
+            # Surface the gap rather than returning a silent success (WR-05).
             logger.error("Auto-task creation failed for guest_request=%s", gr_id)
 
         _record_guest_request_event(
             request_id=gr_id,
             event_type="created",
             current_user=current_user,
-            metadata={"category": request.category, "priority": request.priority or "normal"},
+            metadata={
+                "category": request.category,
+                "priority": request.priority or "normal",
+                "task_created": task_created,
+            },
         )
 
-    return {"data": result.data[0] if result.data else None}
+    response: dict = {"data": result.data[0] if result.data else None}
+    if result.data and not task_created:
+        response["meta"] = {
+            "degraded": True,
+            "warning": "SLA task creation failed; this request will not auto-escalate until a task is linked.",
+        }
+    return response
 
 
 @router.post("/{request_id}/transition")
