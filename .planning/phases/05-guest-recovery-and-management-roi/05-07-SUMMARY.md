@@ -127,3 +127,15 @@ None. All UI added in this plan is wired to real API calls via the typed client 
 ## Threat Flags
 
 None. All new surface area (guest_phone capture, SMS consent, SLA/accessibility client methods) was already anticipated and dispositioned in this plan's `<threat_model>` (T-05-07-01 through T-05-07-06); no undocumented network endpoint, auth path, or schema change was introduced.
+
+## Self-Check: PASSED
+
+- `apps/web/lib/api/guest_requests.ts` — FOUND
+- `apps/web/components/guest-requests/NewRequestModal.tsx` — FOUND
+- `apps/web/i18n/locales/en.ts` — FOUND
+- `apps/web/i18n/locales/es.ts` — FOUND
+- `.planning/phases/05-guest-recovery-and-management-roi/05-07-SUMMARY.md` — FOUND
+- Commit `26f328bb` (Task 1) — FOUND
+- Commit `4c379470` (Task 2) — FOUND
+- Commit `0cbe5c0c` (Task 3) — FOUND
+- Commit `91177dae` (SUMMARY) — FOUND
