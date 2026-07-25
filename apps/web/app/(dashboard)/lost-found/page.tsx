@@ -15,8 +15,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import {
   lostFoundApi,
+  isDispositionDue,
   type LostFoundItem,
   type LostFoundStatus,
+  type LostFoundCustodyEvent,
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
@@ -25,6 +27,7 @@ import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { cn } from '@/lib/utils'
 
 const STATUS_TONE: Record<LostFoundStatus, 'info' | 'ready' | 'ai' | 'neutral'> = {
   unclaimed: 'info',
@@ -58,6 +61,63 @@ function SkeletonCard() {
   )
 }
 
+// -- Custody History -----------------------------------------------------------
+
+const CUSTODY_EVENT_LABELS: Record<LostFoundCustodyEvent['event_type'], string> = {
+  intake: 'Logged',
+  moved: 'Moved',
+  released: 'Released',
+  disposition: 'Disposition approved',
+}
+
+function CustodyHistory({ itemId }: { itemId: string }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const { data: events, isLoading } = useQuery({
+    queryKey: ['lost-found-custody', itemId],
+    queryFn: () => lostFoundApi.listCustodyEvents(itemId),
+    select: (res) => res.data,
+    enabled: expanded,
+  })
+
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-100">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3 hover:text-ink2 transition-colors"
+      >
+        Custody history {expanded ? '▲' : '▼'}
+      </button>
+      {expanded && (
+        <div className="mt-2 space-y-2">
+          {isLoading ? (
+            <p className="text-[12px] text-ink3">Loading...</p>
+          ) : events && events.length > 0 ? (
+            events.map((event) => (
+              <div key={event.id} className="text-[12px] text-ink3">
+                <span className="font-medium text-ink2">
+                  {CUSTODY_EVENT_LABELS[event.event_type]}
+                </span>
+                {' · '}
+                {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+                {event.storage_location && <div>Storage: {event.storage_location}</div>}
+                {event.recipient_name && <div>Recipient: {event.recipient_name}</div>}
+                {event.verification_method && <div>Verified via: {event.verification_method}</div>}
+                {event.disposition && <div>Disposition: {event.disposition}</div>}
+                {event.note && <div className="italic">{event.note}</div>}
+              </div>
+            ))
+          ) : (
+            <p className="text-[12px] text-ink3">No custody events recorded.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // -- Item Card ---------------------------------------------------------------
 
 interface ItemCardProps {
@@ -74,11 +134,16 @@ function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardPro
     item.user_profiles?.full_name ||
     'Unknown'
 
+  const dispositionDue = isDispositionDue(item)
+
   return (
     <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
-      {/* Top row: status badge + time + kebab */}
+      {/* Top row: status badge + disposition-due flag + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
-        <Pill tone={STATUS_TONE[item.status]}>{STATUS_LABELS[item.status]}</Pill>
+        <div className="flex items-center gap-1.5">
+          <Pill tone={STATUS_TONE[item.status]}>{STATUS_LABELS[item.status]}</Pill>
+          {dispositionDue && <Pill tone="caution">Due for disposition</Pill>}
+        </div>
         <div className="flex items-center gap-1">
           <span className="text-xs text-gray-400 flex items-center gap-1">
             <Clock className="w-3 h-3" />
@@ -114,7 +179,19 @@ function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardPro
           <User className="w-3 h-3" />
           {staffName}
         </span>
+
+        {item.tag_identifier && (
+          <span className="font-mono">{item.tag_identifier}</span>
+        )}
       </div>
+
+      {/* Retention line (D-10) */}
+      {item.status === 'unclaimed' && item.retention_due_at && !dispositionDue && (
+        <p className="flex items-center gap-1 text-[12px] text-ink3 mb-3">
+          <Clock className="w-3 h-3" />
+          Retention ends {formatDistanceToNow(new Date(item.retention_due_at), { addSuffix: true })}
+        </p>
+      )}
 
       {/* Notes */}
       {item.notes && (
@@ -133,6 +210,8 @@ function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardPro
           </button>
         </div>
       )}
+
+      <CustodyHistory itemId={item.id} />
     </div>
   )
 }
@@ -225,10 +304,12 @@ export default function LostFoundPage() {
   const [verificationMethod, setVerificationMethod] = useState('')
   const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
+  const [dispositionDueOnly, setDispositionDueOnly] = useState(false)
 
   const { data: items, isLoading } = useQuery({
-    queryKey: ['lost-found'],
-    queryFn: () => lostFoundApi.listItems({ per_page: 100 }),
+    queryKey: ['lost-found', dispositionDueOnly],
+    queryFn: () =>
+      lostFoundApi.listItems({ per_page: 100, disposition_due: dispositionDueOnly }),
     select: (res) => res.data as LostFoundItem[],
     refetchInterval: 60_000,
   })
@@ -298,15 +379,30 @@ export default function LostFoundPage() {
         )}
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        aria-label="Search lost and found items"
-        placeholder="Search by description..."
-        className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-      />
+      {/* Search + filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search lost and found items"
+          placeholder="Search by description..."
+          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+        />
+        <button
+          type="button"
+          onClick={() => setDispositionDueOnly((v) => !v)}
+          aria-pressed={dispositionDueOnly}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
+            dispositionDueOnly
+              ? 'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]'
+              : 'bg-surface text-gray-500 border-gray-300 hover:bg-surface-2'
+          )}
+        >
+          Due for disposition
+        </button>
+      </div>
 
       {/* Items grid */}
       <SectionLabel>Items</SectionLabel>
@@ -321,9 +417,15 @@ export default function LostFoundPage() {
           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
             <Package className="w-6 h-6 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-700">No items found</p>
+          <p className="text-sm font-medium text-gray-700">
+            {dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
+          </p>
           <p className="text-xs text-gray-400 mt-1">
-            {search ? `No items match "${search}"` : 'No lost & found items logged yet.'}
+            {dispositionDueOnly
+              ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
+              : search
+              ? `No items match "${search}"`
+              : 'No lost & found items logged yet.'}
           </p>
         </div>
       ) : (
