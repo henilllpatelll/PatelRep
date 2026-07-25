@@ -123,12 +123,22 @@ function CustodyHistory({ itemId }: { itemId: string }) {
 interface ItemCardProps {
   item: LostFoundItem
   canAct: boolean
+  canApproveDisposition: boolean
   onMarkClaimed: (item: LostFoundItem) => void
   onEdit: (item: LostFoundItem) => void
   onDelete: (item: LostFoundItem) => void
+  onApproveDisposition: (item: LostFoundItem) => void
 }
 
-function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardProps) {
+function ItemCard({
+  item,
+  canAct,
+  canApproveDisposition,
+  onMarkClaimed,
+  onEdit,
+  onDelete,
+  onApproveDisposition,
+}: ItemCardProps) {
   const staffName =
     item.user_profiles?.preferred_name ||
     item.user_profiles?.full_name ||
@@ -207,6 +217,23 @@ function ItemCard({ item, canAct, onMarkClaimed, onEdit, onDelete }: ItemCardPro
           >
             <CheckCircle className="w-3 h-3" />
             Release Item
+          </button>
+        </div>
+      )}
+
+      {/* Approve Disposition button (D-11, D-12) */}
+      {canApproveDisposition && item.status === 'unclaimed' && (
+        <div className={cn('pt-2', !canAct && 'border-t border-gray-100')}>
+          <button
+            onClick={() => onApproveDisposition(item)}
+            className={cn(
+              'w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1',
+              dispositionDue
+                ? 'bg-[var(--caution)] text-white hover:opacity-90'
+                : 'border border-line text-ink2 hover:bg-surface-2'
+            )}
+          >
+            Approve Disposition
           </button>
         </div>
       )}
@@ -296,6 +323,8 @@ export default function LostFoundPage() {
   const isSupervisor = role === 'housekeeping_supervisor'
   const canCreate = isGM || isFrontDesk || isSupervisor
   const canAct = isGM || isFrontDesk || isSupervisor
+  // D-12: front_desk is included deliberately — the user explicitly rejected narrowing this to supervisor+.
+  const canApproveDisposition = isGM || role === 'housekeeping_supervisor' || role === 'front_desk'
 
   const [search, setSearch] = useState('')
   const [showLogModal, setShowLogModal] = useState(false)
@@ -305,6 +334,11 @@ export default function LostFoundPage() {
   const [editTarget, setEditTarget] = useState<LostFoundItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LostFoundItem | null>(null)
   const [dispositionDueOnly, setDispositionDueOnly] = useState(false)
+  const [dispositionTarget, setDispositionTarget] = useState<LostFoundItem | null>(null)
+  const [dispositionChoice, setDispositionChoice] = useState<'donated' | 'discarded'>('donated')
+  const [dispositionNote, setDispositionNote] = useState('')
+  const [dispositionError, setDispositionError] = useState<string | null>(null)
+  const dispositionDialogRef = useRef<HTMLFormElement>(null)
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['lost-found', dispositionDueOnly],
@@ -355,6 +389,25 @@ export default function LostFoundPage() {
       queryClient.invalidateQueries({ queryKey: ['lost-found'] })
     },
   })
+
+  const { mutate: approveDisposition, isPending: approvingDisposition } = useMutation({
+    mutationFn: (item: LostFoundItem) =>
+      lostFoundApi.recordCustodyEvent(item.id, {
+        event_type: 'disposition',
+        disposition: dispositionChoice,
+        note: dispositionNote.trim() || undefined,
+      }),
+    onSuccess: () => {
+      setDispositionTarget(null)
+      setDispositionNote('')
+      setDispositionError(null)
+      queryClient.invalidateQueries({ queryKey: ['lost-found'] })
+      queryClient.invalidateQueries({ queryKey: ['lost-found-custody'] })
+    },
+    onError: (err: any) => setDispositionError(err?.message || 'Failed to approve disposition'),
+  })
+
+  useModalFocusTrap(dispositionDialogRef, !!dispositionTarget, () => setDispositionTarget(null))
 
   return (
     <div className="space-y-6">
@@ -435,9 +488,16 @@ export default function LostFoundPage() {
               key={item.id}
               item={item}
               canAct={canAct}
+              canApproveDisposition={canApproveDisposition}
               onMarkClaimed={setClaimTarget}
               onEdit={setEditTarget}
               onDelete={setDeleteTarget}
+              onApproveDisposition={(target) => {
+                setDispositionTarget(target)
+                setDispositionChoice('donated')
+                setDispositionNote('')
+                setDispositionError(null)
+              }}
             />
           ))}
         </div>
@@ -485,6 +545,76 @@ export default function LostFoundPage() {
               <Button type="button" variant="ghost" onClick={() => setClaimTarget(null)}>Cancel</Button>
               <Button type="submit" variant="primary" disabled={releasing || !releaseRecipient.trim() || !verificationMethod.trim()}>
                 {releasing ? 'Recording...' : 'Record Release'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {dispositionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setDispositionTarget(null)} />
+          <form
+            ref={dispositionDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="approve-disposition-title"
+            tabIndex={-1}
+            className="relative z-10 w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-5 shadow-xl"
+            onSubmit={(event) => { event.preventDefault(); approveDisposition(dispositionTarget) }}
+          >
+            <h2 id="approve-disposition-title" className="text-[20px] font-semibold text-ink">
+              Approve disposition: mark as {dispositionChoice}
+            </h2>
+            <p className="mt-1 text-sm text-ink3">
+              This creates a permanent, append-only record and cannot be undone.
+            </p>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDispositionChoice('donated')}
+                className={cn(
+                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                  dispositionChoice === 'donated'
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                    : 'border-line text-ink2 hover:bg-surface-2'
+                )}
+              >
+                Donated
+              </button>
+              <button
+                type="button"
+                onClick={() => setDispositionChoice('discarded')}
+                className={cn(
+                  'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                  dispositionChoice === 'discarded'
+                    ? 'border-[var(--alert)] bg-[var(--alert-soft)] text-[var(--alert)]'
+                    : 'border-line text-ink2 hover:bg-surface-2'
+                )}
+              >
+                Discarded
+              </button>
+            </div>
+
+            <label className="mt-3 block text-sm font-medium text-ink2">
+              Note (optional)
+              <textarea
+                value={dispositionNote}
+                onChange={(event) => setDispositionNote(event.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm resize-none"
+              />
+            </label>
+
+            {dispositionError && (
+              <p className="mt-3 text-[12px] text-[var(--alert)]">{dispositionError}</p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setDispositionTarget(null)}>Cancel</Button>
+              <Button type="submit" variant="primary" disabled={approvingDisposition}>
+                {approvingDisposition ? 'Approving...' : 'Approve Disposition'}
               </Button>
             </div>
           </form>
