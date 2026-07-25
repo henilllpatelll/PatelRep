@@ -1322,6 +1322,7 @@ const en = {
     heading: 'Accessible rooms',
     body: 'Rooms with the accessible features recorded for this property, and whether they are usable right now. Informational only — this does not assign or book a room.',
     empty: 'No accessible room features recorded yet.',
+    floorLabel: 'Floor {{floor}}',
     featureStatus: { operational: 'Operational', out_of_service: 'Out of service', inspection_due: 'Inspection due' },
   },
   guestRequests: {

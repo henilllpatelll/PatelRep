@@ -5,7 +5,12 @@ import { X, Send, Clock } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
-import { guestRequestsApi, type GuestRequest, type GuestMessage } from '@/lib/api/guest_requests'
+import {
+  guestRequestsApi,
+  type GuestRequest,
+  type GuestMessage,
+  type AccessibleRoomFeature,
+} from '@/lib/api/guest_requests'
 import { Button } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { useRole } from '@/lib/hooks/useRole'
@@ -27,6 +32,18 @@ const DELIVERY_TONE: Record<GuestMessage['effective_delivery_status'], 'ready' |
   undelivered: 'alert',
   failed: 'alert',
   opted_out: 'blocked',
+}
+
+const FEATURE_STATUS_TONE: Record<AccessibleRoomFeature['operational_status'], 'ready' | 'alert' | 'caution'> = {
+  operational: 'ready',
+  out_of_service: 'alert',
+  inspection_due: 'caution',
+}
+
+const FEATURE_STATUS_ORDER: Record<AccessibleRoomFeature['operational_status'], number> = {
+  operational: 0,
+  inspection_due: 1,
+  out_of_service: 2,
 }
 
 export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Props) {
@@ -54,6 +71,14 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
     queryKey: ['guest-messages', request?.id],
     queryFn: () => guestRequestsApi.listMessages(request!.id),
     enabled: isOpen && !!request?.id,
+    select: (res) => res.data ?? [],
+  })
+
+  const { data: accessibleFeatures = [], isLoading: featuresLoading } = useQuery({
+    queryKey: ['accessible-room-features'],
+    queryFn: () => guestRequestsApi.listAccessibleRoomFeatures(),
+    enabled: isOpen && request?.category === 'accessibility',
+    staleTime: 60_000,
     select: (res) => res.data ?? [],
   })
 
@@ -111,6 +136,54 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
             <Clock size={12} />
             <span>Logged {createdAt}</span>
           </div>
+
+          {/* Accessibility guidance (informational only, no assignment/booking action) */}
+          {request?.category === 'accessibility' && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-1.5">
+                {t('accessibilityGuidance.heading')}
+              </p>
+              <p className="text-[12px] text-ink3 mb-2">{t('accessibilityGuidance.body')}</p>
+              {!featuresLoading && accessibleFeatures.length === 0 ? (
+                <p className="text-[14px] text-ink3">{t('accessibilityGuidance.empty')}</p>
+              ) : (
+                <div className="max-h-[200px] overflow-y-auto space-y-2">
+                  {[...accessibleFeatures]
+                    .sort((a, b) => FEATURE_STATUS_ORDER[a.operational_status] - FEATURE_STATUS_ORDER[b.operational_status])
+                    .map((feature) => (
+                      <div
+                        key={feature.id}
+                        className="flex flex-col gap-0.5 pb-2 border-b border-line last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[14px] text-ink">
+                            {feature.rooms?.room_number ?? '—'}
+                            {feature.rooms?.floor != null && (
+                              <span className="ml-1 font-sans text-[12px] text-ink3">
+                                {t('accessibilityGuidance.floorLabel', { floor: feature.rooms.floor })}
+                              </span>
+                            )}
+                          </span>
+                          <Pill tone={FEATURE_STATUS_TONE[feature.operational_status]} size="sm">
+                            {t(`accessibilityGuidance.featureStatus.${feature.operational_status}`)}
+                          </Pill>
+                        </div>
+                        <p className="text-[14px] text-ink">
+                          {feature.feature_code}
+                          {feature.description ? ` — ${feature.description}` : ''}
+                        </p>
+                        {feature.room_status && (
+                          <p className="text-[12px] text-ink3">{feature.room_status}</p>
+                        )}
+                        {feature.guidance && (
+                          <p className="text-[12px] text-ink2">{feature.guidance}</p>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Message thread + reply */}
           <div>

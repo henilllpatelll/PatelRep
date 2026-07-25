@@ -1322,6 +1322,7 @@ const es = {
     heading: 'Cuartos accesibles',
     body: 'Cuartos con las caracteristicas accesibles registradas para esta propiedad, y si estan utilizables en este momento. Solo informativo — no asigna ni reserva un cuarto.',
     empty: 'Aun no hay caracteristicas accesibles registradas.',
+    floorLabel: 'Piso {{floor}}',
     featureStatus: { operational: 'Operativo', out_of_service: 'Fuera de servicio', inspection_due: 'Inspeccion pendiente' },
   },
   guestRequests: {
