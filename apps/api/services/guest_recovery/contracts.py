@@ -141,41 +141,47 @@ def calculate_repeat_failures(
     minimum_failures: int = 2,
 ) -> dict[str, Any]:
     """D-08: an asset or room with 2+ work orders inside a trailing window is a repeat failure."""
-    asset_counts: dict[str, int] = {}
-    room_counts: dict[str, int] = {}
+    asset_work_orders: dict[str, set] = {}
+    room_work_orders: dict[str, set] = {}
 
-    for work_order in work_orders:
+    for index, work_order in enumerate(work_orders):
         created_at = _parse_timestamp(work_order.get("created_at"))
         if created_at is None or not (window_start <= created_at <= window_end):
             continue
+        wo_key = work_order.get("id") or f"__row_{index}"
         asset_id = work_order.get("asset_id")
         if asset_id is not None:
-            asset_counts[asset_id] = asset_counts.get(asset_id, 0) + 1
+            asset_work_orders.setdefault(asset_id, set()).add(wo_key)
         room_id = work_order.get("room_id")
         if room_id is not None:
-            room_counts[room_id] = room_counts.get(room_id, 0) + 1
+            room_work_orders.setdefault(room_id, set()).add(wo_key)
 
     repeat_assets = sorted(
         (
-            {"asset_id": asset_id, "failure_count": count}
-            for asset_id, count in asset_counts.items()
-            if count >= minimum_failures
+            {"asset_id": asset_id, "failure_count": len(wo_keys)}
+            for asset_id, wo_keys in asset_work_orders.items()
+            if len(wo_keys) >= minimum_failures
         ),
         key=lambda entry: entry["failure_count"],
         reverse=True,
     )
     repeat_rooms = sorted(
         (
-            {"room_id": room_id, "failure_count": count}
-            for room_id, count in room_counts.items()
-            if count >= minimum_failures
+            {"room_id": room_id, "failure_count": len(wo_keys)}
+            for room_id, wo_keys in room_work_orders.items()
+            if len(wo_keys) >= minimum_failures
         ),
         key=lambda entry: entry["failure_count"],
         reverse=True,
     )
-    total_repeat_work_orders = sum(entry["failure_count"] for entry in repeat_assets) + sum(
-        entry["failure_count"] for entry in repeat_rooms
-    )
+    # Count DISTINCT work orders: a WO tagged with both a repeat asset and a repeat room
+    # (an asset lives in a room) must not be counted once per dimension.
+    contributing_wo_keys: set = set()
+    for entry in repeat_assets:
+        contributing_wo_keys |= asset_work_orders[entry["asset_id"]]
+    for entry in repeat_rooms:
+        contributing_wo_keys |= room_work_orders[entry["room_id"]]
+    total_repeat_work_orders = len(contributing_wo_keys)
 
     return {
         "window_days": window_days,
