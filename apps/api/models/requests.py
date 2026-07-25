@@ -831,6 +831,10 @@ class RecordGuestRecoveryActionRequest(SanitizedBaseModel):
     compensation_amount: Optional[float] = Field(default=None, ge=0, le=100000)
 
 
+class RecordGuestSatisfactionRequest(SanitizedBaseModel):
+    satisfaction_score: int = Field(ge=1, le=5)
+
+
 class UpsertAccessibleRoomFeatureRequest(SanitizedBaseModel):
     room_id: UUID4
     feature_code: str = Field(min_length=1, max_length=MEDIUM_TEXT_MAX)
