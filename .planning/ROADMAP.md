@@ -103,9 +103,9 @@ Plans:
 - [x] 05-04-PLAN.md — lost & found 90-day retention clock, daily flag-for-review cron, `disposition_due` filter, disposition role set = gm + housekeeping_supervisor + front_desk
 
 **Wave 3** *(blocked on Wave 2)*
-- [ ] 05-05-PLAN.md — SLA policy API surface + accessible-room-features enriched with live room status
-- [ ] 05-06-PLAN.md — seven GM-only tenant-scoped `/v1/reports/roi/*` endpoints feeding 05-03's calculators
-- [ ] 05-08-PLAN.md — lost & found retention/custody/disposition web UI
+- [x] 05-05-PLAN.md — SLA policy API surface + accessible-room-features enriched with live room status
+- [x] 05-06-PLAN.md — seven GM-only tenant-scoped `/v1/reports/roi/*` endpoints feeding 05-03's calculators
+- [x] 05-08-PLAN.md — lost & found retention/custody/disposition web UI
 
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 05-07-PLAN.md — web data layer: typed API clients, guest phone/consent/category fields on new-request modal, EN/ES strings
