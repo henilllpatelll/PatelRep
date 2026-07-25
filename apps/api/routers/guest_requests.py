@@ -31,11 +31,10 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "room_id",
     "guest_name",
     "guest_phone",
-    "status",
     "priority",
-    "resolved_at",
-    "resolved_by",
 }
+# status transitions must route through transition_guest_request() so the milestone
+# state machine and _status_timestamp() ROI stamping are never bypassed.
 MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
 SATISFACTION_STATUSES = ("resolved", "verified")
 SLA_POLICY_ROLES = {"gm", "housekeeping_supervisor"}
@@ -525,11 +524,6 @@ async def update_guest_request(
     """Update guest request — full edit with cascade to linked task."""
     notes = body.get("notes")
     update_data = {k: v for k, v in body.items() if k in GUEST_REQUEST_UPDATE_COLUMNS}
-
-    if update_data.get("status") == "resolved" and "resolved_at" not in update_data:
-        update_data["resolved_at"] = datetime.now(timezone.utc).isoformat()
-    if update_data.get("status") == "resolved" and "resolved_by" not in update_data:
-        update_data["resolved_by"] = current_user.user_id
 
     if update_data:
         result = supabase.table("guest_requests")\
