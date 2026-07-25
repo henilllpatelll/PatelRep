@@ -674,3 +674,65 @@ def test_roi_empty_tenant_returns_zero_shapes_not_500(monkeypatch):
     ):
         response = client.get(_roi_url(path), headers=_auth_header("gm"))
         assert response.status_code == 200, f"{path} should return 200 for an empty tenant, got {response.status_code}"
+
+
+# ---------------------------------------------------------------------------
+# Task 3 router tests: forecast-7day + cross-endpoint RBAC/tenant sweep
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_endpoint_returns_seven_days(monkeypatch):
+    monkeypatch.setattr(management_roi_router, "supabase", FakeDB())
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/forecast-7day"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert "generated_for" in body
+    assert body["lookback_weeks"] == 4
+    assert len(body["days"]) == 7
+
+
+def test_forecast_endpoint_ignores_opera_sources():
+    import inspect
+
+    source = inspect.getsource(management_roi_router)
+    assert "opera_reservations" not in source
+    assert "room_readiness_predictions" not in source
+    assert "services.ai" not in source
+
+
+def test_every_roi_route_is_gm_only(monkeypatch):
+    monkeypatch.setattr(management_roi_router, "supabase", FakeDB())
+    client = TestClient(app)
+
+    for route in management_roi_router.router.routes:
+        url = f"/v1{route.path}"
+        response = client.get(url, headers=_auth_header("housekeeper"))
+        assert response.status_code == 403, f"{url} should be GM-only"
+
+
+def test_every_roi_route_is_tenant_scoped(monkeypatch):
+    leaked_rows = {
+        "work_orders": [{"id": "wo-b1", "tenant_id": "hotel-b", "asset_id": "TENANT-B-LEAK", "room_id": "TENANT-B-LEAK", "category": "hvac", "created_at": "2026-07-01T00:00:00+00:00"}],
+        "room_status_history": [{"room_id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "to_status": "OOO", "created_at": "2026-07-01T00:00:00+00:00"}],
+        "rooms": [{"id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "room_type_id": "TENANT-B-LEAK"}],
+        "room_types": [{"id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "base_clean_minutes": 30}],
+        "inspections": [{"id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "room_id": "TENANT-B-LEAK", "overall_result": "passed", "completed_at": "2026-07-01T00:00:00+00:00"}],
+        "pm_schedules": [{"id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "asset_id": "TENANT-B-LEAK", "name": "TENANT-B-LEAK", "next_due_at": "2026-08-01T00:00:00+00:00", "is_active": True}],
+        "pm_completion_records": [{"pm_schedule_id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "labor_minutes": 60, "completed_at": "2026-07-01T00:00:00+00:00"}],
+        "pm_deferrals": [{"pm_schedule_id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "deferred_until": "2026-08-01T00:00:00+00:00", "created_at": "2026-07-01T00:00:00+00:00"}],
+        "safety_training_assignments": [{"id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "course_id": "TENANT-B-LEAK", "employee_id": "TENANT-B-LEAK", "due_date": "2026-07-01", "completed_at": None}],
+        "housekeeper_profiles": [{"room_type_id": "TENANT-B-LEAK", "tenant_id": "hotel-b", "avg_clean_minutes": 99, "completion_count": 5}],
+        "tenants": [{"id": "hotel-b", "average_daily_rate_cents": 99999}],
+    }
+    db = FakeDB(leaked_rows)
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    for route in management_roi_router.router.routes:
+        url = f"/v1{route.path}"
+        response = client.get(url, headers=_auth_header("gm", hotel_id="hotel-a"))
+        assert response.status_code == 200, f"{url} should return 200 for hotel-a even with only hotel-b data seeded"
+        assert "TENANT-B-LEAK" not in json.dumps(response.json()), f"{url} leaked tenant-b data"
