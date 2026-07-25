@@ -5,6 +5,7 @@ from middleware.auth import get_current_user, CurrentUser
 from models.requests import (
     CreateGuestMessageRequest,
     CreateGuestRequestRequest,
+    CreateGuestRequestSlaPolicyRequest,
     RecordGuestRecoveryActionRequest,
     TransitionGuestRequestRequest,
     UpsertAccessibleRoomFeatureRequest,
@@ -35,6 +36,7 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "resolved_by",
 }
 MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
+SLA_POLICY_ROLES = {"gm", "housekeeping_supervisor"}
 
 
 def _record_guest_request_event(
@@ -340,12 +342,91 @@ async def get_guest_request_metrics(current_user: CurrentUser = Depends(get_curr
 
 @router.get("/accessibility/features")
 async def list_accessible_room_features(
+    feature_code: Optional[str] = Query(None),
+    operational_status: Optional[str] = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    features = supabase.table("accessible_room_features").select(
-        "*, rooms(room_number, floor)"
-    ).eq("tenant_id", current_user.hotel_id).order("feature_code").execute().data or []
+    """D-15: staff guidance — which accessible rooms exist, and are they usable right now."""
+    query = supabase.table("accessible_room_features").select(
+        "*, rooms(room_number, floor, room_status(status, updated_at))"
+    ).eq("tenant_id", current_user.hotel_id).order("feature_code")
+    if feature_code:
+        query = query.eq("feature_code", feature_code)
+    if operational_status:
+        query = query.eq("operational_status", operational_status)
+    features = query.execute().data or []
+    for feature in features:
+        room = feature.get("rooms") or {}
+        room_status = room.get("room_status")
+        if isinstance(room_status, list):
+            room_status = room_status[0] if room_status else None
+        feature["room_status"] = (room_status or {}).get("status")
     return {"data": features}
+
+
+@router.get("/sla-policies")
+async def list_guest_request_sla_policies(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    policies = supabase.table("guest_request_sla_policies").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).order("created_at").execute().data or []
+    policies.sort(
+        key=lambda policy: sum(
+            policy.get(field) is not None for field in ("category", "priority", "guest_impact")
+        ),
+        reverse=True,
+    )
+    return {"data": policies}
+
+
+@router.post("/sla-policies")
+async def create_guest_request_sla_policy(
+    request: CreateGuestRequestSlaPolicyRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in SLA_POLICY_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
+    if request.category is None and request.priority is None and request.guest_impact is None:
+        raise HTTPException(
+            status_code=422,
+            detail="An SLA rule must set at least one of category, priority, or guest impact",
+        )
+    # The table has no unique constraint on the triple; enforce it here so the settings UI
+    # cannot silently create two rules that the specificity resolver would tie-break arbitrarily.
+    duplicates = supabase.table("guest_request_sla_policies").select(
+        "id, category, priority, guest_impact"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    for policy in duplicates:
+        if (
+            policy.get("category") == request.category
+            and policy.get("priority") == request.priority
+            and policy.get("guest_impact") == request.guest_impact
+        ):
+            raise HTTPException(status_code=409, detail="An SLA rule already exists for this combination")
+    record = supabase.table("guest_request_sla_policies").insert({
+        "tenant_id": current_user.hotel_id,
+        **request.model_dump(),
+        "created_by": current_user.user_id,
+    }).execute().data[0]
+    return {"data": record}
+
+
+@router.delete("/sla-policies/{policy_id}", status_code=204)
+async def delete_guest_request_sla_policy(
+    policy_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role not in SLA_POLICY_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to manage SLA rules")
+    existing = supabase.table("guest_request_sla_policies").select("id").eq(
+        "id", policy_id
+    ).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
+    if not existing:
+        raise HTTPException(status_code=404, detail="SLA rule not found")
+    supabase.table("guest_request_sla_policies").delete().eq("id", policy_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
 
 
 @router.put("/accessibility/features")

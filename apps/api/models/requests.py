@@ -818,6 +818,13 @@ class CreateGuestMessageRequest(SanitizedBaseModel):
     channel: Literal["sms", "email"] = "sms"
 
 
+class CreateGuestRequestSlaPolicyRequest(SanitizedBaseModel):
+    category: Optional[Literal["service", "housekeeping", "maintenance", "accessibility", "other"]] = None
+    priority: Optional[Literal["normal", "urgent"]] = None
+    guest_impact: Optional[Literal["low", "standard", "high"]] = None
+    sla_minutes: int = Field(ge=1, le=10080)
+
+
 class RecordGuestRecoveryActionRequest(SanitizedBaseModel):
     action_type: Literal["apology", "amenity", "discount", "refund", "points", "other"]
     description: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
