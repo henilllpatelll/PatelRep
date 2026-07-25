@@ -207,9 +207,14 @@ async def send_guest_message(
     if request.channel == "sms" and (not guest_request.get("contact_consent_at") or guest_request.get("contact_opted_out_at")):
         raise HTTPException(status_code=422, detail="SMS consent is required and may not be opted out")
 
-    recipient = request.recipient or guest_request.get("guest_phone")
-    if not recipient and request.channel == "sms":
-        raise HTTPException(status_code=422, detail="No recipient phone number on file for this guest request")
+    if request.channel == "sms":
+        # SMS consent is bound to the on-file guest_phone; never honor a caller-supplied
+        # recipient for SMS or consent could be applied to an unconsented number (TCPA/PII).
+        recipient = guest_request.get("guest_phone")
+        if not recipient:
+            raise HTTPException(status_code=422, detail="No recipient phone number on file for this guest request")
+    else:
+        recipient = request.recipient or guest_request.get("guest_phone")
 
     message = supabase.table("guest_messages").insert({
         "tenant_id": current_user.hotel_id,
