@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reports/roi", tags=["management-roi"])
 
 DEFAULT_WINDOW_DAYS = 90  # D-08
+PRIOR_STATE_LOOKBACK_DAYS = 90  # WR-03: how far before the window to seek an open interval
 
 
 def _window(start_date: Optional[date], end_date: Optional[date], *, days: int = DEFAULT_WINDOW_DAYS):
@@ -101,6 +102,29 @@ def _build_clean_sessions(transitions: list[dict], room_type_by_room: dict[str, 
     return sessions
 
 
+def _prior_state_by_room(hotel_id: str, window_start: datetime) -> dict[str, dict]:
+    """Most recent room_status_history transition per room in the lookback before window_start.
+
+    Interval pairing (downtime, clean sessions) otherwise drops any interval opened
+    before the window and closed inside it — a room sitting OOO for weeks would report
+    zero downtime until its next status change (WR-03). Lookback is bounded to
+    PRIOR_STATE_LOOKBACK_DAYS so this stays a small, indexed scan.
+    """
+    lookback_start = window_start - timedelta(days=PRIOR_STATE_LOOKBACK_DAYS)
+    prior = supabase.table("room_status_history").select(
+        "room_id, to_status, created_at"
+    ).eq("tenant_id", hotel_id).gte(
+        "created_at", lookback_start.isoformat()
+    ).lt("created_at", window_start.isoformat()).order("created_at", desc=True).execute().data or []
+    state: dict[str, dict] = {}
+    for row in prior:
+        room_id = row["room_id"]
+        if room_id in state:
+            continue
+        state[room_id] = {"to_status": row["to_status"], "at": row["created_at"]}
+    return state
+
+
 @router.get("/repeat-failures")
 async def get_repeat_failures(
     start_date: Optional[date] = Query(None),
@@ -136,7 +160,14 @@ async def get_downtime_revenue(
     ).eq("tenant_id", current_user.hotel_id).gte(
         "created_at", window_start.isoformat()
     ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
+    # Seed each room's boundary status clamped to window_start so an interval opened
+    # before the window (and closed inside it, or still open) counts from the window
+    # start rather than being discarded (WR-03).
     transitions = [
+        {"room_id": room_id, "to_status": state["to_status"], "at": window_start.isoformat()}
+        for room_id, state in prior_state.items()
+    ] + [
         {"room_id": row["room_id"], "to_status": row["to_status"], "at": row["created_at"]}
         for row in history
     ]
@@ -166,7 +197,13 @@ async def get_housekeeping_efficiency(
     ).eq("tenant_id", current_user.hotel_id).gte(
         "created_at", window_start.isoformat()
     ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
+    # Keep the real prior timestamp so a clean that opened before the window and
+    # closed inside it reports its true duration rather than being dropped (WR-03).
     transitions = [
+        {"room_id": room_id, "to_status": state["to_status"], "at": state["at"]}
+        for room_id, state in prior_state.items()
+    ] + [
         {"room_id": row["room_id"], "to_status": row["to_status"], "at": row["created_at"]}
         for row in history
     ]
@@ -269,7 +306,13 @@ async def get_seven_day_forecast(
     ).eq("tenant_id", current_user.hotel_id).gte(
         "created_at", window_start.isoformat()
     ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    prior_state = _prior_state_by_room(current_user.hotel_id, window_start)
+    # Seed clean sessions opened before the lookback window so cross-boundary cleans
+    # are counted in the trailing average rather than dropped (WR-03).
     transitions = [
+        {"room_id": room_id, "to_status": state["to_status"], "at": state["at"]}
+        for room_id, state in prior_state.items()
+    ] + [
         {"room_id": row["room_id"], "to_status": row["to_status"], "at": row["created_at"]}
         for row in history
     ]
