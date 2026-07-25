@@ -2,10 +2,18 @@
 
 import { useState } from 'react'
 import { X, Send, Clock } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
-import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
+import {
+  guestRequestsApi,
+  type GuestRequest,
+  type GuestMessage,
+  type AccessibleRoomFeature,
+} from '@/lib/api/guest_requests'
 import { Button } from '@/components/ui/Button'
+import { Pill } from '@/components/ui/primitives'
+import { useRole } from '@/lib/hooks/useRole'
 
 interface Props {
   request: GuestRequest | null
@@ -14,9 +22,40 @@ interface Props {
   onNoteAdded: () => void
 }
 
+const MESSAGE_ROLES = ['front_desk', 'housekeeping_supervisor', 'engineer', 'gm'] as const
+
+const DELIVERY_TONE: Record<GuestMessage['effective_delivery_status'], 'ready' | 'info' | 'caution' | 'alert' | 'blocked'> = {
+  delivered: 'ready',
+  received: 'ready',
+  sent: 'info',
+  queued: 'caution',
+  undelivered: 'alert',
+  failed: 'alert',
+  opted_out: 'blocked',
+}
+
+const FEATURE_STATUS_TONE: Record<AccessibleRoomFeature['operational_status'], 'ready' | 'alert' | 'caution'> = {
+  operational: 'ready',
+  out_of_service: 'alert',
+  inspection_due: 'caution',
+}
+
+const FEATURE_STATUS_ORDER: Record<AccessibleRoomFeature['operational_status'], number> = {
+  operational: 0,
+  inspection_due: 1,
+  out_of_service: 2,
+}
+
 export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Props) {
+  const { t } = useTranslation()
+  const { role } = useRole()
+  const queryClient = useQueryClient()
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [reply, setReply] = useState('')
+  const [replyError, setReplyError] = useState<string | null>(null)
+
+  const canReply = MESSAGE_ROLES.includes((role ?? '') as (typeof MESSAGE_ROLES)[number])
 
   const noteMutation = useMutation({
     mutationFn: (notes: string) => guestRequestsApi.updateRequest(request!.id, { notes }),
@@ -28,12 +67,42 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
     onError: (err: any) => setError(err.message || 'Failed to save note'),
   })
 
+  const { data: messages = [], isLoading: messagesLoading, isError: messagesError } = useQuery({
+    queryKey: ['guest-messages', request?.id],
+    queryFn: () => guestRequestsApi.listMessages(request!.id),
+    enabled: isOpen && !!request?.id,
+    select: (res) => res.data ?? [],
+  })
+
+  const { data: accessibleFeatures = [], isLoading: featuresLoading } = useQuery({
+    queryKey: ['accessible-room-features'],
+    queryFn: () => guestRequestsApi.listAccessibleRoomFeatures(),
+    enabled: isOpen && request?.category === 'accessibility',
+    staleTime: 60_000,
+    select: (res) => res.data ?? [],
+  })
+
+  const replyMutation = useMutation({
+    mutationFn: (body: string) => guestRequestsApi.sendMessage(request!.id, { body, channel: 'sms' }),
+    onSuccess: () => {
+      setReply('')
+      setReplyError(null)
+      queryClient.invalidateQueries({ queryKey: ['guest-messages', request!.id] })
+      onNoteAdded()
+    },
+    onError: (err: any) => setReplyError(err?.message || t('guestMessages.sendFailed')),
+  })
+
   if (!isOpen || !request) return null
 
   const roomNum = request.rooms?.room_number ?? '—'
   const createdAt = request.created_at
     ? format(new Date(request.created_at), 'MMM d, h:mm a')
     : '—'
+
+  const isOptedOut = !!request.contact_opted_out_at
+  const hasPhone = !!request.guest_phone
+  const replyDisabled = isOptedOut || !hasPhone || replyMutation.isPending
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -66,6 +135,125 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
           <div className="flex items-center gap-1.5 text-[12px] text-ink3">
             <Clock size={12} />
             <span>Logged {createdAt}</span>
+          </div>
+
+          {/* Accessibility guidance (informational only, no assignment/booking action) */}
+          {request?.category === 'accessibility' && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-1.5">
+                {t('accessibilityGuidance.heading')}
+              </p>
+              <p className="text-[12px] text-ink3 mb-2">{t('accessibilityGuidance.body')}</p>
+              {!featuresLoading && accessibleFeatures.length === 0 ? (
+                <p className="text-[14px] text-ink3">{t('accessibilityGuidance.empty')}</p>
+              ) : (
+                <div className="max-h-[200px] overflow-y-auto space-y-2">
+                  {[...accessibleFeatures]
+                    .sort((a, b) => FEATURE_STATUS_ORDER[a.operational_status] - FEATURE_STATUS_ORDER[b.operational_status])
+                    .map((feature) => (
+                      <div
+                        key={feature.id}
+                        className="flex flex-col gap-0.5 pb-2 border-b border-line last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[14px] text-ink">
+                            {feature.rooms?.room_number ?? '—'}
+                            {feature.rooms?.floor != null && (
+                              <span className="ml-1 font-sans text-[12px] text-ink3">
+                                {t('accessibilityGuidance.floorLabel', { floor: feature.rooms.floor })}
+                              </span>
+                            )}
+                          </span>
+                          <Pill tone={FEATURE_STATUS_TONE[feature.operational_status]} size="sm">
+                            {t(`accessibilityGuidance.featureStatus.${feature.operational_status}`)}
+                          </Pill>
+                        </div>
+                        <p className="text-[14px] text-ink">
+                          {feature.feature_code}
+                          {feature.description ? ` — ${feature.description}` : ''}
+                        </p>
+                        {feature.room_status && (
+                          <p className="text-[12px] text-ink3">{feature.room_status}</p>
+                        )}
+                        {feature.guidance && (
+                          <p className="text-[12px] text-ink2">{feature.guidance}</p>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Message thread + reply */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-2">{t('guestMessages.heading')}</p>
+
+            {messagesError ? (
+              <p className="text-[14px] text-ink3">{t('guestMessages.loadFailed')}</p>
+            ) : !messagesLoading && messages.length === 0 ? (
+              <div>
+                <p className="text-[14px] font-semibold text-ink">{t('guestMessages.emptyHeading')}</p>
+                <p className="mt-1 text-[14px] text-ink3">{t('guestMessages.emptyBody')}</p>
+              </div>
+            ) : (
+              <div className="max-h-[280px] overflow-y-auto space-y-2">
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`flex flex-col gap-1 max-w-[85%] rounded-[var(--r-md)] px-3 py-2 ${
+                      m.direction === 'outbound' ? 'ml-auto bg-[var(--accent-soft)]' : 'bg-surface-2'
+                    }`}
+                  >
+                    <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap">{m.body}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-ink3">
+                        {format(new Date(m.created_at), 'MMM d, h:mm a')}
+                      </span>
+                      {m.direction === 'outbound' && (
+                        <Pill tone={DELIVERY_TONE[m.effective_delivery_status]} size="sm">
+                          {t(`guestMessages.status.${m.effective_delivery_status}`)}
+                        </Pill>
+                      )}
+                    </div>
+                    {m.failure_reason && (
+                      <p className="text-[12px] text-[var(--alert)]">{m.failure_reason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {canReply && (
+              <div className="mt-3">
+                <textarea
+                  value={reply}
+                  onChange={e => setReply(e.target.value)}
+                  placeholder={t('guestMessages.placeholder')}
+                  rows={3}
+                  disabled={replyDisabled}
+                  className="w-full bg-surface border border-line rounded-[var(--r-md)] px-3 py-2.5 text-sm text-ink placeholder:text-ink4 focus:border-accent focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none resize-none disabled:opacity-60"
+                />
+                {isOptedOut ? (
+                  <p className="mt-1 text-[12px] text-[var(--alert)]">{t('guestMessages.optedOut')}</p>
+                ) : !hasPhone ? (
+                  <p className="mt-1 text-[12px] text-[var(--alert)]">{t('guestMessages.noPhone')}</p>
+                ) : replyError ? (
+                  <p className="mt-1 text-[12px] text-[var(--alert)]">{replyError}</p>
+                ) : null}
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    variant="primary"
+                    className="text-xs py-1.5"
+                    disabled={!reply.trim() || replyDisabled}
+                    onClick={() => replyMutation.mutate(reply.trim())}
+                  >
+                    <Send size={13} />
+                    {replyMutation.isPending ? t('guestMessages.sending') : t('guestMessages.sendReply')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
