@@ -5,6 +5,7 @@ Every test drives services.sms.twilio_client / routers.guest_requests / routers.
 against FakeTwilioClient and the in-memory FakeDB supabase double.
 """
 
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -344,11 +345,12 @@ async def test_signature_url_uses_forwarded_proto(monkeypatch):
 async def test_reply_only_match_appends_to_existing_request(monkeypatch):
     _configure(monkeypatch)
     monkeypatch.setattr(settings, "app_env", "development")
+    recent = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     db = FakeDB({
         "guest_messages": [{
             "id": "msg-1", "tenant_id": "hotel-a", "guest_request_id": "gr-1",
             "direction": "outbound", "recipient": "+12145550100",
-            "created_at": "2026-07-20T10:00:00+00:00",
+            "created_at": recent,
         }],
         "guest_request_events": [],
     })
@@ -365,6 +367,34 @@ async def test_reply_only_match_appends_to_existing_request(monkeypatch):
     events = [row for table, row in db.inserts if table == "guest_request_events"]
     assert events[0]["event_type"] == "guest_contacted"
     assert events[0]["source"] == "sms"
+
+
+@pytest.mark.asyncio
+async def test_reply_ignores_outbound_older_than_match_window(monkeypatch):
+    # WR-04: the global Twilio number cannot disambiguate tenants, so a stale outbound
+    # from another hotel must not capture a fresh inbound reply.
+    _configure(monkeypatch)
+    monkeypatch.setattr(settings, "app_env", "development")
+    stale = (
+        datetime.now(timezone.utc)
+        - timedelta(hours=webhooks_router.INBOUND_MATCH_WINDOW_HOURS + 1)
+    ).isoformat()
+    db = FakeDB({
+        "guest_messages": [{
+            "id": "msg-1", "tenant_id": "hotel-a", "guest_request_id": "gr-1",
+            "direction": "outbound", "recipient": "+12145550100",
+            "created_at": stale,
+        }],
+        "guest_request_events": [],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    form = {"From": "+12145550100", "Body": "On my way", "MessageSid": "SMreply2"}
+    request = FakeTwilioRequest(form)
+
+    response = await webhooks_router.twilio_sms_webhook(request)
+
+    assert response == {"status": "ignored", "reason": "no_matching_outbound"}
+    assert [table for table, _ in db.inserts if table == "guest_messages"] == []
 
 
 @pytest.mark.asyncio
