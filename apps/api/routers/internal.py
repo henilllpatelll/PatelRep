@@ -245,7 +245,7 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
             cap_cents = sub.get("cap_cents")
             overage_cents = int(overage_credits * 2)  # $0.02/credit
             if cap_cents:
-                overage_cents = min(overage_cents, cap_cents - 9900)
+                overage_cents = min(overage_cents, cap_cents - settings.base_plan_price_cents)
             if overage_cents > 0:
                 try:
                     stripe.InvoiceItem.create(
