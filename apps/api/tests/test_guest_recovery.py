@@ -1,7 +1,12 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 
+from middleware.auth import CurrentUser
+from models.requests import CreateGuestRequestRequest, CreateGuestRequestSlaPolicyRequest
+from routers import guest_requests as guest_requests_router
 from services.guest_recovery.contracts import (
     AccessibilityPriorityError,
     InvalidGuestRequestTransition,
@@ -11,6 +16,7 @@ from services.guest_recovery.contracts import (
     validate_guest_request_transition,
     validate_lost_found_custody_event,
 )
+from tests.smoke.fake_supabase import FakeDB
 
 
 def test_sla_policy_prefers_exact_category_priority_and_guest_impact_match():
@@ -98,3 +104,133 @@ def test_phase_five_migration_preserves_auditable_guest_and_custody_records():
     assert "guest_request_events_immutable" in sql
     assert "lost_found_custody_events_immutable" in sql
     assert "excluded_from_ai" in sql
+
+
+# --- Plan 05-05 Task 1: SLA policy CRUD ---
+
+GM = CurrentUser(user_id="gm-1", hotel_id="hotel-a", role="gm", email="gm@example.com")
+SUPERVISOR = CurrentUser(
+    user_id="sup-1", hotel_id="hotel-a", role="housekeeping_supervisor", email="sup@example.com"
+)
+FRONT_DESK = CurrentUser(user_id="fd-1", hotel_id="hotel-a", role="front_desk", email="fd@example.com")
+HOUSEKEEPER = CurrentUser(user_id="hk-1", hotel_id="hotel-a", role="housekeeper", email="hk@example.com")
+
+
+@pytest.mark.asyncio
+async def test_sla_policy_create_requires_manager_role(monkeypatch):
+    db = FakeDB({"guest_request_sla_policies": []})
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.create_guest_request_sla_policy(
+            CreateGuestRequestSlaPolicyRequest(category="housekeeping", sla_minutes=30),
+            current_user=FRONT_DESK,
+        )
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Not authorized to manage SLA rules"
+    assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_sla_policy_create_rejects_all_null_dimensions(monkeypatch):
+    db = FakeDB({"guest_request_sla_policies": []})
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.create_guest_request_sla_policy(
+            CreateGuestRequestSlaPolicyRequest(sla_minutes=30),
+            current_user=GM,
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "An SLA rule must set at least one of category, priority, or guest impact"
+    assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_sla_policy_create_rejects_duplicate_combination(monkeypatch):
+    db = FakeDB({
+        "guest_request_sla_policies": [
+            {
+                "id": "p1", "tenant_id": "hotel-a", "category": "housekeeping",
+                "priority": "urgent", "guest_impact": None, "sla_minutes": 30,
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.create_guest_request_sla_policy(
+            CreateGuestRequestSlaPolicyRequest(category="housekeeping", priority="urgent", sla_minutes=45),
+            current_user=SUPERVISOR,
+        )
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail == "An SLA rule already exists for this combination"
+    assert db.inserts == []
+
+
+@pytest.mark.asyncio
+async def test_sla_policy_list_is_tenant_scoped(monkeypatch):
+    db = FakeDB({
+        "guest_request_sla_policies": [
+            {
+                "id": "p1", "tenant_id": "hotel-a", "category": "housekeeping",
+                "priority": None, "guest_impact": None, "sla_minutes": 30,
+                "created_at": "2026-07-20T10:00:00+00:00",
+            },
+            {
+                "id": "p2", "tenant_id": "hotel-b", "category": "housekeeping",
+                "priority": None, "guest_impact": None, "sla_minutes": 90,
+                "created_at": "2026-07-20T10:00:00+00:00",
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.list_guest_request_sla_policies(current_user=FRONT_DESK)
+
+    assert [policy["id"] for policy in response["data"]] == ["p1"]
+
+
+@pytest.mark.asyncio
+async def test_sla_policy_delete_other_tenant_returns_404(monkeypatch):
+    db = FakeDB({
+        "guest_request_sla_policies": [
+            {
+                "id": "p1", "tenant_id": "hotel-b", "category": "housekeeping",
+                "priority": None, "guest_impact": None, "sla_minutes": 30,
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.delete_guest_request_sla_policy("p1", current_user=GM)
+
+    assert exc.value.status_code == 404
+    assert db.deletes == []
+
+
+@pytest.mark.asyncio
+async def test_new_request_uses_created_sla_policy_minutes(monkeypatch):
+    db = FakeDB({"guest_request_sla_policies": [], "tasks": []})
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    await guest_requests_router.create_guest_request_sla_policy(
+        CreateGuestRequestSlaPolicyRequest(category="housekeeping", priority="urgent", sla_minutes=30),
+        current_user=GM,
+    )
+
+    before = datetime.now(timezone.utc)
+    response = await guest_requests_router.create_guest_request(
+        CreateGuestRequestRequest(title="AC broken", category="housekeeping", priority="urgent"),
+        current_user=FRONT_DESK,
+    )
+    after = datetime.now(timezone.utc)
+
+    record = response["data"]
+    assert record["sla_minutes"] == 30
+    due_at = datetime.fromisoformat(record["due_at"])
+    assert before + timedelta(minutes=30) <= due_at <= after + timedelta(minutes=30)
