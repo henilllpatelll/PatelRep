@@ -4,8 +4,15 @@ Style follows test_guest_recovery.py: direct imports, literal fixture dicts,
 plain asserts, no mocks.
 """
 
+import json
 from datetime import date, datetime, timedelta, timezone
 
+from fastapi.testclient import TestClient
+from jose import jwt
+
+from core.config import settings
+from main import app
+from routers import management_roi as management_roi_router
 from services.guest_recovery.contracts import (
     calculate_downtime_revenue_impact,
     calculate_housekeeping_efficiency,
@@ -16,6 +23,7 @@ from services.guest_recovery.contracts import (
     calculate_training_readiness,
     project_seven_day_labor_forecast,
 )
+from tests.smoke.fake_supabase import FakeDB
 
 
 # ---------------------------------------------------------------------------
@@ -459,16 +467,6 @@ def test_forecast_empty_history_returns_seven_zero_days():
 # Mirrors the TestClient + monkeypatch(supabase, FakeDB) harness from
 # test_programs_routes.py — real router, real RBAC, fake in-memory DB.
 # ---------------------------------------------------------------------------
-
-import json
-
-from fastapi.testclient import TestClient
-from jose import jwt
-
-from core.config import settings
-from main import app
-from routers import management_roi as management_roi_router
-from tests.smoke.fake_supabase import FakeDB
 
 NON_GM_ROLES = ("engineer", "housekeeping_supervisor", "front_desk", "housekeeper")
 
