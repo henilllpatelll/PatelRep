@@ -137,6 +137,11 @@ async def update_hotel(
         raise HTTPException(status_code=403, detail="Access denied to this hotel")
 
     update_data = body.model_dump(exclude_none=True)
+    # average_daily_rate_cents is nullable: a GM can clear it by sending explicit null,
+    # which exclude_none would otherwise drop, stranding a stale ADR on the D-07 estimate.
+    fields_set = body.model_dump(exclude_unset=True)
+    if "average_daily_rate_cents" in fields_set and fields_set["average_daily_rate_cents"] is None:
+        update_data["average_daily_rate_cents"] = None
     if not update_data:
         raise HTTPException(status_code=422, detail="No valid fields to update")
 

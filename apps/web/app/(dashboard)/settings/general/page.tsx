@@ -141,7 +141,7 @@ export default function GeneralSettingsPage() {
         const payload: UpdateHotelData = {
           ...rest,
           average_daily_rate_cents:
-            values.average_daily_rate != null ? Math.round(values.average_daily_rate * 100) : undefined,
+            values.average_daily_rate != null ? Math.round(values.average_daily_rate * 100) : null,
         }
         void average_daily_rate
         const res = await hotelsApi.update(hotel.id, payload)
