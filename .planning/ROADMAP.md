@@ -111,9 +111,9 @@ Plans:
 - [x] 05-07-PLAN.md — web data layer: typed API clients, guest phone/consent/category fields on new-request modal, EN/ES strings
 
 **Wave 5** *(blocked on Wave 4)*
-- [ ] 05-09-PLAN.md — drawer message thread with per-message delivery status, role-gated reply box, accessibility room guidance
-- [ ] 05-10-PLAN.md — GM ADR input + unified Management ROI dashboard at `/management-roi` (time saved / quality / response / revenue protected)
-- [ ] 05-11-PLAN.md — Settings > Guest Requests (SLA rules) + Accessibility Features tab on Settings > Rooms
+- [x] 05-09-PLAN.md — drawer message thread with per-message delivery status, role-gated reply box, accessibility room guidance
+- [x] 05-10-PLAN.md — GM ADR input + unified Management ROI dashboard at `/management-roi` (time saved / quality / response / revenue protected)
+- [x] 05-11-PLAN.md — Settings > Guest Requests (SLA rules) + Accessibility Features tab on Settings > Rooms
 
 **Wave 6** *(blocked on Wave 5)*
 - [ ] 05-12-PLAN.md — satisfaction capture (D-16) + human-in-the-loop resolution confirmation prompt (D-17)
