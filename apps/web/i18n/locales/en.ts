@@ -1325,6 +1325,21 @@ const en = {
     floorLabel: 'Floor {{floor}}',
     featureStatus: { operational: 'Operational', out_of_service: 'Out of service', inspection_due: 'Inspection due' },
   },
+  satisfaction: {
+    heading: 'Guest Satisfaction',
+    prompt: 'How satisfied was the guest?',
+    hint: 'Recorded once, after the guest confirms the outcome.',
+    save: 'Save Rating',
+    saving: 'Saving...',
+    recorded: 'Recorded {{score}} of 5',
+    saveFailed: 'Failed to save the rating. Please try again.',
+  },
+  resolutionConfirmation: {
+    heading: 'Confirm with the guest',
+    body: 'This request is resolved, but the guest has not been told yet. Review the message and send it.',
+    useTemplate: 'Use this message',
+    template: 'Hello from the front desk — your request for Room {{room}} has been completed. Please reply here if anything still needs attention.',
+  },
   guestRequests: {
     newRequest: 'New Guest Request',
     roomNumber: 'Room Number',

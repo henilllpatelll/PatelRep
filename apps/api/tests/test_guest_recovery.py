@@ -5,7 +5,11 @@ import pytest
 from fastapi import HTTPException
 
 from middleware.auth import CurrentUser
-from models.requests import CreateGuestRequestRequest, CreateGuestRequestSlaPolicyRequest
+from models.requests import (
+    CreateGuestRequestRequest,
+    CreateGuestRequestSlaPolicyRequest,
+    RecordGuestSatisfactionRequest,
+)
 from routers import guest_requests as guest_requests_router
 from services.guest_recovery.contracts import (
     AccessibilityPriorityError,
@@ -307,3 +311,136 @@ async def test_accessibility_features_are_tenant_scoped(monkeypatch):
     )
 
     assert [feature["id"] for feature in response["data"]] == ["f1"]
+
+
+# --- Plan 05-12 Task 1: satisfaction capture endpoint ---
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_requires_guest_contact_role(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "resolved", "satisfaction_score": None},
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.record_guest_satisfaction(
+            "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=4), current_user=HOUSEKEEPER,
+        )
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Not authorized to record guest satisfaction"
+    assert db.updates == []
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_rejected_before_resolved(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "acknowledged", "satisfaction_score": None},
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.record_guest_satisfaction(
+            "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=4), current_user=FRONT_DESK,
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "Satisfaction can only be recorded once a request is resolved or verified"
+    assert db.updates == []
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_recorded_on_resolved_request(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "resolved", "satisfaction_score": None},
+        ],
+        "guest_request_events": [],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.record_guest_satisfaction(
+        "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=4), current_user=FRONT_DESK,
+    )
+
+    assert response["data"]["satisfaction_score"] == 4
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_recorded_on_verified_request(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "verified", "satisfaction_score": None},
+        ],
+        "guest_request_events": [],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.record_guest_satisfaction(
+        "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=5), current_user=SUPERVISOR,
+    )
+
+    assert response["data"]["satisfaction_score"] == 5
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_rejects_second_capture(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "verified", "satisfaction_score": 3},
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.record_guest_satisfaction(
+            "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=1), current_user=GM,
+        )
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail == "Satisfaction has already been recorded for this request"
+    assert db.updates == []
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_other_tenant_returns_404(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-b", "status": "resolved", "satisfaction_score": None},
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    with pytest.raises(HTTPException) as exc:
+        await guest_requests_router.record_guest_satisfaction(
+            "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=4), current_user=FRONT_DESK,
+        )
+
+    assert exc.value.status_code == 404
+    assert db.updates == []
+
+
+@pytest.mark.asyncio
+async def test_satisfaction_capture_writes_note_event_with_score(monkeypatch):
+    db = FakeDB({
+        "guest_requests": [
+            {"id": "gr-1", "tenant_id": "hotel-a", "status": "resolved", "satisfaction_score": None},
+        ],
+        "guest_request_events": [],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    await guest_requests_router.record_guest_satisfaction(
+        "gr-1", RecordGuestSatisfactionRequest(satisfaction_score=4), current_user=FRONT_DESK,
+    )
+
+    events = db.rows["guest_request_events"]
+    assert len(events) == 1
+    assert events[0]["event_type"] == "note"
+    assert events[0]["detail"] == "Guest satisfaction recorded"
+    assert events[0]["metadata"] == {"satisfaction_score": 4}

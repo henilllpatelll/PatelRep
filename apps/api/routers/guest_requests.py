@@ -7,6 +7,7 @@ from models.requests import (
     CreateGuestRequestRequest,
     CreateGuestRequestSlaPolicyRequest,
     RecordGuestRecoveryActionRequest,
+    RecordGuestSatisfactionRequest,
     TransitionGuestRequestRequest,
     UpsertAccessibleRoomFeatureRequest,
 )
@@ -36,6 +37,7 @@ GUEST_REQUEST_UPDATE_COLUMNS = {
     "resolved_by",
 }
 MESSAGE_ROLES = ("front_desk", "housekeeping_supervisor", "engineer", "gm")
+SATISFACTION_STATUSES = ("resolved", "verified")
 SLA_POLICY_ROLES = {"gm", "housekeeping_supervisor"}
 
 
@@ -302,6 +304,42 @@ async def list_guest_messages(
         message["effective_delivery_status"] = event["status"] if event else message["delivery_status"]
         message["failure_reason"] = event.get("failure_reason") if event else None
     return {"data": messages}
+
+
+@router.post("/{request_id}/satisfaction")
+async def record_guest_satisfaction(
+    request_id: str,
+    request: RecordGuestSatisfactionRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """D-16: capture the post-resolution 1-5 satisfaction score that migration 011 has always had a column for."""
+    if current_user.role not in MESSAGE_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to record guest satisfaction")
+    guest_request = supabase.table("guest_requests").select(
+        "id, status, satisfaction_score"
+    ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute().data
+    if not guest_request:
+        raise HTTPException(status_code=404, detail="Guest request not found")
+    if guest_request.get("status") not in SATISFACTION_STATUSES:
+        raise HTTPException(
+            status_code=422,
+            detail="Satisfaction can only be recorded once a request is resolved or verified",
+        )
+    if guest_request.get("satisfaction_score") is not None:
+        raise HTTPException(
+            status_code=409, detail="Satisfaction has already been recorded for this request"
+        )
+    record = supabase.table("guest_requests").update(
+        {"satisfaction_score": request.satisfaction_score}
+    ).eq("id", request_id).eq("tenant_id", current_user.hotel_id).execute().data[0]
+    _record_guest_request_event(
+        request_id=request_id,
+        event_type="note",
+        current_user=current_user,
+        detail="Guest satisfaction recorded",
+        metadata={"satisfaction_score": request.satisfaction_score},
+    )
+    return {"data": record}
 
 
 @router.post("/{request_id}/recovery-actions")

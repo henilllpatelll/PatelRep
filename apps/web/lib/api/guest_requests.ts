@@ -130,6 +130,9 @@ export const guestRequestsApi = {
     payload: { action_type: 'apology' | 'amenity' | 'discount' | 'refund' | 'points' | 'other'; description: string; compensation_amount?: number },
   ) => apiClient.post(`/guest-requests/${id}/recovery-actions`, payload),
 
+  recordSatisfaction: (id: string, payload: { satisfaction_score: number }) =>
+    apiClient.post(`/guest-requests/${id}/satisfaction`, payload) as Promise<{ data: GuestRequest }>,
+
   getMetrics: () => apiClient.get('/guest-requests/metrics/summary') as Promise<{ data: GuestRequestMetrics }>,
 
   deleteRequest: (id: string) =>
