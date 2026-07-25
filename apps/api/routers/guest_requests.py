@@ -342,11 +342,25 @@ async def get_guest_request_metrics(current_user: CurrentUser = Depends(get_curr
 
 @router.get("/accessibility/features")
 async def list_accessible_room_features(
+    feature_code: Optional[str] = Query(None),
+    operational_status: Optional[str] = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    features = supabase.table("accessible_room_features").select(
-        "*, rooms(room_number, floor)"
-    ).eq("tenant_id", current_user.hotel_id).order("feature_code").execute().data or []
+    """D-15: staff guidance — which accessible rooms exist, and are they usable right now."""
+    query = supabase.table("accessible_room_features").select(
+        "*, rooms(room_number, floor, room_status(status, updated_at))"
+    ).eq("tenant_id", current_user.hotel_id).order("feature_code")
+    if feature_code:
+        query = query.eq("feature_code", feature_code)
+    if operational_status:
+        query = query.eq("operational_status", operational_status)
+    features = query.execute().data or []
+    for feature in features:
+        room = feature.get("rooms") or {}
+        room_status = room.get("room_status")
+        if isinstance(room_status, list):
+            room_status = room_status[0] if room_status else None
+        feature["room_status"] = (room_status or {}).get("status")
     return {"data": features}
 
 

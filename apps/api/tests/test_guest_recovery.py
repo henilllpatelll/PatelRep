@@ -255,7 +255,9 @@ async def test_accessibility_features_include_room_status(monkeypatch):
     })
     monkeypatch.setattr(guest_requests_router, "supabase", db)
 
-    response = await guest_requests_router.list_accessible_room_features(current_user=FRONT_DESK)
+    response = await guest_requests_router.list_accessible_room_features(
+        feature_code=None, operational_status=None, current_user=FRONT_DESK,
+    )
 
     assert response["data"][0]["room_status"] == "CLEAN"
     assert response["data"][0]["operational_status"] == "operational"
@@ -278,7 +280,7 @@ async def test_accessibility_features_filter_by_feature_code(monkeypatch):
     monkeypatch.setattr(guest_requests_router, "supabase", db)
 
     response = await guest_requests_router.list_accessible_room_features(
-        feature_code="grab_bars", current_user=FRONT_DESK
+        feature_code="grab_bars", operational_status=None, current_user=FRONT_DESK
     )
 
     assert [feature["id"] for feature in response["data"]] == ["f2"]
@@ -300,6 +302,8 @@ async def test_accessibility_features_are_tenant_scoped(monkeypatch):
     })
     monkeypatch.setattr(guest_requests_router, "supabase", db)
 
-    response = await guest_requests_router.list_accessible_room_features(current_user=FRONT_DESK)
+    response = await guest_requests_router.list_accessible_room_features(
+        feature_code=None, operational_status=None, current_user=FRONT_DESK,
+    )
 
     assert [feature["id"] for feature in response["data"]] == ["f1"]
