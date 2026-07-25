@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, ClipboardList, ShieldCheck,
-  Package, Sparkles, ChevronDown, MessageSquare,
+  Package, Sparkles, ChevronDown, MessageSquare, TrendingUp,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -40,13 +40,14 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/evidence',       label: 'Evidence',       icon: ShieldCheck },
   { href: '/safety',         label: 'Safety',         icon: ShieldCheck },
   { href: '/reports',        label: 'Reports',        icon: FileText },
+  { href: '/management-roi', label: 'Management ROI', icon: TrendingUp },
   { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
   { href: '/staff',          label: 'Staff',          icon: Users },
   { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
 ]
 
 const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/ai'],
+  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
   housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
   housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
   engineer:       ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
@@ -81,6 +82,7 @@ const NAV_LABEL_KEYS: Record<string, string> = {
   Evidence: 'nav.evidence',
   Safety: 'nav.safety',
   Reports: 'nav.reports',
+  'Management ROI': 'nav.managementRoi',
   Logbook: 'nav.logbook',
   Staff: 'nav.staff',
   Schedule: 'nav.schedule',
@@ -91,7 +93,7 @@ const NAV_LABEL_KEYS: Record<string, string> = {
 }
 
 const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks']
-const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports']
+const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports','/management-roi']
 const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 
 interface SidebarProps {

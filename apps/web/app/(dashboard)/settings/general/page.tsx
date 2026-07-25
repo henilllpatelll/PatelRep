@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
+import type { UpdateHotelData } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -27,6 +28,7 @@ const hotelProfileSchema = z.object({
     .int()
     .min(1, 'Must be at least 1 room')
     .max(999, 'Max 999 rooms'),
+  average_daily_rate: z.number().min(0, 'Must be 0 or more').max(100000, 'Max $100,000').optional(),
 })
 
 type HotelProfileFormValues = z.infer<typeof hotelProfileSchema>
@@ -98,6 +100,7 @@ export default function GeneralSettingsPage() {
       phone: '',
       timezone: 'America/Chicago',
       room_count: 50,
+      average_daily_rate: undefined,
     },
   })
 
@@ -113,6 +116,10 @@ export default function GeneralSettingsPage() {
         phone: fullHotel.phone ?? '',
         timezone: fullHotel.timezone ?? 'America/Chicago',
         room_count: fullHotel.room_count ?? 50,
+        average_daily_rate:
+          fullHotel.average_daily_rate_cents != null
+            ? fullHotel.average_daily_rate_cents / 100
+            : undefined,
       })
       hydratedRef.current = true
     }
@@ -130,7 +137,14 @@ export default function GeneralSettingsPage() {
       if (!hotel?.id) return
       setSaving(true)
       try {
-        const res = await hotelsApi.update(hotel.id, values)
+        const { average_daily_rate, ...rest } = values
+        const payload: UpdateHotelData = {
+          ...rest,
+          average_daily_rate_cents:
+            values.average_daily_rate != null ? Math.round(values.average_daily_rate * 100) : undefined,
+        }
+        void average_daily_rate
+        const res = await hotelsApi.update(hotel.id, payload)
         const updated = res.data
         setHotel({
           id: hotel.id,
@@ -249,6 +263,33 @@ export default function GeneralSettingsPage() {
             </FormField>
           </div>
 
+          <FormField
+            id="settings-adr"
+            label="Average Daily Rate ($)"
+            error={errors.average_daily_rate?.message}
+          >
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink3">
+                $
+              </span>
+              <Input
+                id="settings-adr"
+                {...register('average_daily_rate', {
+                  setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+                })}
+                type="number"
+                min={0}
+                max={100000}
+                step="0.01"
+                placeholder="129.00"
+                className={`pl-6 ${errors.average_daily_rate ? 'border-red-300 focus:ring-red-500' : ''}`}
+              />
+            </div>
+            <p className="text-xs text-ink3">
+              Used to estimate revenue lost to room downtime on the Management ROI dashboard. Leave blank if you would rather not estimate it.
+            </p>
+          </FormField>
+
           <FormField id="settings-timezone" label="Timezone" error={errors.timezone?.message}>
             <select
               id="settings-timezone"
@@ -283,6 +324,10 @@ export default function GeneralSettingsPage() {
                 phone: fullHotel.phone ?? '',
                 timezone: fullHotel.timezone ?? 'America/Chicago',
                 room_count: fullHotel.room_count ?? 50,
+                average_daily_rate:
+                  fullHotel.average_daily_rate_cents != null
+                    ? fullHotel.average_daily_rate_cents / 100
+                    : undefined,
               })
             }
             disabled={!isDirty || saving}
