@@ -234,3 +234,72 @@ async def test_new_request_uses_created_sla_policy_minutes(monkeypatch):
     assert record["sla_minutes"] == 30
     due_at = datetime.fromisoformat(record["due_at"])
     assert before + timedelta(minutes=30) <= due_at <= after + timedelta(minutes=30)
+
+
+# --- Plan 05-05 Task 2: room-status-aware accessible-room-features listing ---
+
+
+@pytest.mark.asyncio
+async def test_accessibility_features_include_room_status(monkeypatch):
+    db = FakeDB({
+        "accessible_room_features": [
+            {
+                "id": "f1", "tenant_id": "hotel-a", "room_id": "room-1", "feature_code": "roll_in_shower",
+                "operational_status": "operational", "guidance": None, "last_verified_at": None,
+                "rooms": {
+                    "room_number": "101", "floor": 1,
+                    "room_status": {"status": "CLEAN", "updated_at": "2026-07-20T10:00:00+00:00"},
+                },
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.list_accessible_room_features(current_user=FRONT_DESK)
+
+    assert response["data"][0]["room_status"] == "CLEAN"
+    assert response["data"][0]["operational_status"] == "operational"
+
+
+@pytest.mark.asyncio
+async def test_accessibility_features_filter_by_feature_code(monkeypatch):
+    db = FakeDB({
+        "accessible_room_features": [
+            {
+                "id": "f1", "tenant_id": "hotel-a", "room_id": "room-1", "feature_code": "roll_in_shower",
+                "rooms": {"room_number": "101", "floor": 1, "room_status": {"status": "CLEAN"}},
+            },
+            {
+                "id": "f2", "tenant_id": "hotel-a", "room_id": "room-2", "feature_code": "grab_bars",
+                "rooms": {"room_number": "102", "floor": 1, "room_status": {"status": "DIRTY"}},
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.list_accessible_room_features(
+        feature_code="grab_bars", current_user=FRONT_DESK
+    )
+
+    assert [feature["id"] for feature in response["data"]] == ["f2"]
+
+
+@pytest.mark.asyncio
+async def test_accessibility_features_are_tenant_scoped(monkeypatch):
+    db = FakeDB({
+        "accessible_room_features": [
+            {
+                "id": "f1", "tenant_id": "hotel-a", "room_id": "room-1", "feature_code": "roll_in_shower",
+                "rooms": {"room_number": "101", "floor": 1, "room_status": {"status": "CLEAN"}},
+            },
+            {
+                "id": "f2", "tenant_id": "hotel-b", "room_id": "room-2", "feature_code": "roll_in_shower",
+                "rooms": {"room_number": "201", "floor": 2, "room_status": {"status": "CLEAN"}},
+            },
+        ],
+    })
+    monkeypatch.setattr(guest_requests_router, "supabase", db)
+
+    response = await guest_requests_router.list_accessible_room_features(current_user=FRONT_DESK)
+
+    assert [feature["id"] for feature in response["data"]] == ["f1"]
