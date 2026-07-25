@@ -108,7 +108,7 @@ Plans:
 - [x] 05-08-PLAN.md — lost & found retention/custody/disposition web UI
 
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 05-07-PLAN.md — web data layer: typed API clients, guest phone/consent/category fields on new-request modal, EN/ES strings
+- [x] 05-07-PLAN.md — web data layer: typed API clients, guest phone/consent/category fields on new-request modal, EN/ES strings
 
 **Wave 5** *(blocked on Wave 4)*
 - [ ] 05-09-PLAN.md — drawer message thread with per-message delivery status, role-gated reply box, accessibility room guidance
