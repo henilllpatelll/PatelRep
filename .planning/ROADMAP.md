@@ -116,7 +116,7 @@ Plans:
 - [x] 05-11-PLAN.md — Settings > Guest Requests (SLA rules) + Accessibility Features tab on Settings > Rooms
 
 **Wave 6** *(blocked on Wave 5)*
-- [ ] 05-12-PLAN.md — satisfaction capture (D-16) + human-in-the-loop resolution confirmation prompt (D-17)
+- [x] 05-12-PLAN.md — satisfaction capture (D-16) + human-in-the-loop resolution confirmation prompt (D-17)
 
 Cross-cutting constraints:
 - Tenant scoping (`.eq("hotel_id"/"tenant_id", current_user.hotel_id)`) on every new query — flagged in research as the phase's highest risk of omission across the ~7 new ROI endpoints.
