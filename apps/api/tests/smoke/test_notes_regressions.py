@@ -154,6 +154,7 @@ async def test_guest_request_update_does_not_forward_notes_or_assigned_to(monkey
     response = await guest_requests_router.update_guest_request(
         "gr-1",
         {
+            "title": "Updated request",
             "status": "resolved",
             "notes": "Guest confirmed delivery",
             "assigned_to": "user-2",
@@ -166,8 +167,10 @@ async def test_guest_request_update_does_not_forward_notes_or_assigned_to(monkey
     )
     assert "notes" not in guest_update[2]
     assert "assigned_to" not in guest_update[2]
-    assert response["data"]["status"] == "resolved"
-    assert response["data"]["resolved_by"] == USER.user_id
+    # CR-02: status must route through /transition, never PATCH.
+    assert "status" not in guest_update[2]
+    assert guest_update[2]["title"] == "Updated request"
+    assert response["data"]["status"] == "open"
     assert fake.comments[0]["comment"] == "Guest confirmed delivery"
     assert fake.comments[0]["task_id"] == "task-1"
 
