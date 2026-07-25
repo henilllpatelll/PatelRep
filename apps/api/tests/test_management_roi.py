@@ -564,3 +564,113 @@ def test_roi_endpoints_are_tenant_scoped(monkeypatch):
 
     assert response.status_code == 200
     assert "TENANT-B-LEAK" not in json.dumps(response.json())
+
+
+# ---------------------------------------------------------------------------
+# Task 2 router tests: housekeeping-efficiency, inspection-trends,
+# pm-compliance, training-readiness
+# ---------------------------------------------------------------------------
+
+
+def test_roi_housekeeping_efficiency_pairs_in_progress_to_clean(monkeypatch):
+    db = FakeDB({
+        "rooms": [{"id": "room-1", "tenant_id": "hotel-a", "room_type_id": "standard"}],
+        "room_types": [{"id": "standard", "tenant_id": "hotel-a", "base_clean_minutes": 30}],
+        "room_status_history": [
+            {"room_id": "room-1", "tenant_id": "hotel-a", "to_status": "IN_PROGRESS", "created_at": "2026-07-01T08:00:00+00:00"},
+            {"room_id": "room-1", "tenant_id": "hotel-a", "to_status": "CLEAN", "created_at": "2026-07-01T08:30:00+00:00"},
+        ],
+    })
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/housekeeping-efficiency"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["occupied_room_days"] == 1
+    assert body["total_clean_minutes"] == 30.0
+    assert body["by_room_type"][0]["room_type_id"] == "standard"
+    assert body["by_room_type"][0]["baseline_minutes"] == 30
+
+
+def test_roi_inspection_trends_skips_result_query_when_no_inspections(monkeypatch):
+    class _CountingDB(FakeDB):
+        def __init__(self, rows=None):
+            super().__init__(rows)
+            self.table_calls: list[str] = []
+
+        def table(self, name):
+            self.table_calls.append(name)
+            return super().table(name)
+
+    db = _CountingDB({"inspections": []})
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/inspection-trends"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    assert "inspection_results" not in db.table_calls
+
+
+def test_roi_pm_compliance_reads_pm_deferrals_table(monkeypatch):
+    db = FakeDB({
+        "pm_schedules": [
+            {"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "name": "HVAC PM", "next_due_at": "2026-08-01T00:00:00+00:00", "is_active": True},
+            {"id": "sched-2", "tenant_id": "hotel-a", "asset_id": "asset-2", "name": "Boiler PM", "next_due_at": "2026-08-01T00:00:00+00:00", "is_active": True},
+        ],
+        "pm_completion_records": [
+            {"pm_schedule_id": "sched-1", "tenant_id": "hotel-a", "labor_minutes": 60, "completed_at": "2026-07-10T00:00:00+00:00"},
+        ],
+        "pm_deferrals": [
+            {"pm_schedule_id": "sched-2", "tenant_id": "hotel-a", "deferred_until": "2026-08-01T00:00:00+00:00", "created_at": "2026-07-10T00:00:00+00:00"},
+            {"pm_schedule_id": "sched-2", "tenant_id": "hotel-a", "deferred_until": "2026-08-05T00:00:00+00:00", "created_at": "2026-07-15T00:00:00+00:00"},
+        ],
+    })
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/pm-compliance"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["active_schedules"] == 2
+    assert body["completed_schedules"] == 1
+    assert body["repeated_deferrals"] == [{"pm_schedule_id": "sched-2", "deferral_count": 2}]
+
+
+def test_roi_training_readiness_returns_point_in_time_state(monkeypatch):
+    db = FakeDB({
+        "safety_training_assignments": [
+            {"id": "a1", "tenant_id": "hotel-a", "course_id": "c1", "employee_id": "e1", "due_date": "2026-07-01", "completed_at": "2026-06-30T00:00:00+00:00"},
+            {"id": "a2", "tenant_id": "hotel-a", "course_id": "c1", "employee_id": "e2", "due_date": "2026-07-01", "completed_at": None},
+        ],
+    })
+    monkeypatch.setattr(management_roi_router, "supabase", db)
+    client = TestClient(app)
+
+    response = client.get(_roi_url("/training-readiness"), headers=_auth_header("gm"))
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert "generated_for" in body
+    assert body["total_assignments"] == 2
+    assert body["completed"] == 1
+    assert body["readiness_pct"] == 50.0
+
+
+def test_roi_empty_tenant_returns_zero_shapes_not_500(monkeypatch):
+    monkeypatch.setattr(management_roi_router, "supabase", FakeDB())
+    client = TestClient(app)
+
+    for path in (
+        "/repeat-failures",
+        "/downtime-revenue",
+        "/housekeeping-efficiency",
+        "/inspection-trends",
+        "/pm-compliance",
+        "/training-readiness",
+    ):
+        response = client.get(_roi_url(path), headers=_auth_header("gm"))
+        assert response.status_code == 200, f"{path} should return 200 for an empty tenant, got {response.status_code}"
