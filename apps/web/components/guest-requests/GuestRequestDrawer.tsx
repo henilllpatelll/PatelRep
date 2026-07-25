@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X, Send, Clock } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -93,6 +93,24 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
     onError: (err: any) => setReplyError(err?.message || t('guestMessages.sendFailed')),
   })
 
+  const [score, setScore] = useState<number | null>(null)
+  const [scoreError, setScoreError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setScore(null)
+    setScoreError(null)
+  }, [request?.id])
+
+  const satisfactionMutation = useMutation({
+    mutationFn: (value: number) => guestRequestsApi.recordSatisfaction(request!.id, { satisfaction_score: value }),
+    onSuccess: () => {
+      setScore(null)
+      setScoreError(null)
+      onNoteAdded()
+    },
+    onError: (err: any) => setScoreError(err?.message || t('satisfaction.saveFailed')),
+  })
+
   if (!isOpen || !request) return null
 
   const roomNum = request.rooms?.room_number ?? '—'
@@ -103,6 +121,14 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
   const isOptedOut = !!request.contact_opted_out_at
   const hasPhone = !!request.guest_phone
   const replyDisabled = isOptedOut || !hasPhone || replyMutation.isPending
+
+  const isResolved = request.status === 'resolved' || request.status === 'verified'
+  const resolvedAtMs = request.resolved_at ? new Date(request.resolved_at).getTime() : 0
+  const confirmationSent = messages.some(
+    (m: GuestMessage) => m.direction === 'outbound' && new Date(m.created_at).getTime() >= resolvedAtMs,
+  )
+  const needsConfirmation =
+    isResolved && !confirmationSent && canReply && !request.contact_opted_out_at && !!request.guest_phone
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -224,6 +250,22 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
               </div>
             )}
 
+            {needsConfirmation && (
+              <div className="mt-3 rounded-[var(--r-md)] border border-line bg-surface-2 p-3 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3">
+                  {t('resolutionConfirmation.heading')}
+                </p>
+                <p className="text-[12px] text-ink3">{t('resolutionConfirmation.body')}</p>
+                <Button
+                  variant="secondary"
+                  className="text-xs py-1.5"
+                  onClick={() => setReply(t('resolutionConfirmation.template', { room: roomNum }))}
+                >
+                  {t('resolutionConfirmation.useTemplate')}
+                </Button>
+              </div>
+            )}
+
             {canReply && (
               <div className="mt-3">
                 <textarea
@@ -255,6 +297,64 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
               </div>
             )}
           </div>
+
+          {isResolved && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-2">
+                {t('satisfaction.heading')}
+              </p>
+              {request.satisfaction_score != null ? (
+                (() => {
+                  const scoreStr = String(request.satisfaction_score)
+                  const recordedText = t('satisfaction.recorded', { score: request.satisfaction_score })
+                  const scoreIndex = recordedText.indexOf(scoreStr)
+                  const before = scoreIndex >= 0 ? recordedText.slice(0, scoreIndex) : recordedText
+                  const after = scoreIndex >= 0 ? recordedText.slice(scoreIndex + scoreStr.length) : ''
+                  return (
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] text-ink">
+                        {before}
+                        <span className="font-mono">{scoreStr}</span>
+                        {after}
+                      </p>
+                      <Pill tone="ready" size="sm">{scoreStr}/5</Pill>
+                    </div>
+                  )
+                })()
+              ) : canReply ? (
+                <div>
+                  <p className="text-[14px] text-ink">{t('satisfaction.prompt')}</p>
+                  <div className="mt-2 flex gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        aria-pressed={score === n}
+                        onClick={() => setScore(n)}
+                        className={`min-h-[44px] min-w-[44px] rounded-[var(--r-md)] border font-mono text-[14px] transition-colors ${
+                          score === n ? 'border-accent text-accent' : 'border-line text-ink2'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[12px] text-ink3">{t('satisfaction.hint')}</p>
+                  {scoreError && <p className="mt-1 text-[12px] text-[var(--alert)]">{scoreError}</p>}
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="primary"
+                      className="text-xs py-1.5"
+                      disabled={score === null || satisfactionMutation.isPending}
+                      onClick={() => satisfactionMutation.mutate(score!)}
+                    >
+                      {satisfactionMutation.isPending ? t('satisfaction.saving') : t('satisfaction.save')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3 mb-2">Add Note</p>
