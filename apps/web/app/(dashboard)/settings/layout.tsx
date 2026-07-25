@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Building2, Layers, Sliders, ShieldCheck,
-  ClipboardList, Hotel, CreditCard, Link2, MessageSquareWarning, Brush,
+  ClipboardList, Hotel, CreditCard, Link2, MessageSquareWarning, MessageSquare, Brush,
 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
@@ -37,6 +37,10 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/settings/roles', label: 'Roles', icon: ShieldCheck, roles: ['gm'] },
       {
         href: '/settings/inspections', label: 'Inspections', icon: ClipboardList,
+        roles: ['gm', 'housekeeping_supervisor'],
+      },
+      {
+        href: '/settings/guest-requests', label: 'Guest Requests', icon: MessageSquare,
         roles: ['gm', 'housekeeping_supervisor'],
       },
       {
