@@ -16,6 +16,7 @@ from services.guest_recovery.contracts import (
     calculate_repeat_failures,
     calculate_room_downtime_hours,
     calculate_training_readiness,
+    project_seven_day_labor_forecast,
 )
 
 logger = logging.getLogger(__name__)
@@ -240,3 +241,78 @@ async def get_training_readiness(
     ).eq("tenant_id", current_user.hotel_id).execute().data or []
     metrics = calculate_training_readiness(assignments, as_of=date.today())
     return {"data": {"generated_for": date.today().isoformat(), **metrics}}
+
+
+@router.get("/forecast-7day")
+async def get_seven_day_forecast(
+    lookback_weeks: int = Query(4, ge=1, le=12),
+    current_user: CurrentUser = Depends(require_role("gm")),
+):
+    """D-09: trailing-average rooms-to-clean and labor-hours projection.
+
+    Deliberately NOT built on services/ai/predictions.py — that pipeline's only
+    forward-looking signal is room_status.checkin_time from the pilot-gated PMS
+    sync, so stretching it to 7 days would read as near-zero for every
+    standalone hotel. This projects turnover capacity from observed history.
+    """
+    today = date.today()
+    history_start = today - timedelta(days=lookback_weeks * 7)
+    window_start, window_end = _bounds(history_start, today)
+
+    rooms = supabase.table("rooms").select("id, room_type_id").eq(
+        "tenant_id", current_user.hotel_id
+    ).execute().data or []
+    room_type_by_room = {row["id"]: row["room_type_id"] for row in rooms}
+
+    history = supabase.table("room_status_history").select(
+        "room_id, to_status, created_at"
+    ).eq("tenant_id", current_user.hotel_id).gte(
+        "created_at", window_start.isoformat()
+    ).lte("created_at", window_end.isoformat()).order("created_at").execute().data or []
+    transitions = [
+        {"room_id": row["room_id"], "to_status": row["to_status"], "at": row["created_at"]}
+        for row in history
+    ]
+    clean_sessions = _build_clean_sessions(transitions, room_type_by_room)
+
+    session_counts: dict[tuple[str, str], int] = {}
+    for session in clean_sessions:
+        room_type_id = session.get("room_type_id")
+        if room_type_id is None:
+            continue
+        key = (session["date"], room_type_id)
+        session_counts[key] = session_counts.get(key, 0) + 1
+    historical = [
+        {"date": session_date, "room_type_id": room_type_id, "rooms": count}
+        for (session_date, room_type_id), count in session_counts.items()
+    ]
+
+    profiles = supabase.table("housekeeper_profiles").select(
+        "room_type_id, avg_clean_minutes, completion_count"
+    ).eq("tenant_id", current_user.hotel_id).execute().data or []
+    weighted_sums: dict[str, float] = {}
+    weight_totals: dict[str, float] = {}
+    for profile in profiles:
+        room_type_id = profile.get("room_type_id")
+        avg_minutes = profile.get("avg_clean_minutes")
+        weight = profile.get("completion_count") or 0
+        if room_type_id is None or avg_minutes is None or weight <= 0:
+            continue
+        weighted_sums[room_type_id] = weighted_sums.get(room_type_id, 0.0) + float(avg_minutes) * weight
+        weight_totals[room_type_id] = weight_totals.get(room_type_id, 0.0) + weight
+    clean_minutes_by_type = {
+        room_type_id: weighted_sums[room_type_id] / weight_totals[room_type_id]
+        for room_type_id in weighted_sums
+    }
+
+    room_types = supabase.table("room_types").select("id, base_clean_minutes").eq(
+        "tenant_id", current_user.hotel_id
+    ).execute().data or []
+    for row in room_types:
+        clean_minutes_by_type.setdefault(row["id"], float(row["base_clean_minutes"]))
+
+    days = project_seven_day_labor_forecast(
+        historical, clean_minutes_by_type,
+        start_date=today + timedelta(days=1), lookback_weeks=lookback_weeks,
+    )
+    return {"data": {"generated_for": today.isoformat(), "lookback_weeks": lookback_weeks, "days": days}}
