@@ -9142,6 +9142,1070 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-07-24T13:39:00.901Z"
+    },
+    {
+      "id": "bug-549",
+      "timestamp": "2026-07-24T14:23:32.907Z",
+      "error_message": "Missing error handling in unknown",
+      "file": ".planning/phases/05-guest-recovery-and-management-roi/05-CONTEXT.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:23:32.907Z"
+    },
+    {
+      "id": "bug-550",
+      "timestamp": "2026-07-24T19:15:49.442Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/05-guest-recovery-and-management-roi/05-VALIDATION.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:15:49.442Z"
+    },
+    {
+      "id": "bug-551",
+      "timestamp": "2026-07-24T19:15:56.743Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/phases/05-guest-recovery-and-management-roi/05-UI-SPEC.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:15:56.743Z"
+    },
+    {
+      "id": "bug-552",
+      "timestamp": "2026-07-24T19:42:57.648Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a1deedb1de40cf2d7/apps/api/tests/test_management_roi.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:42:57.648Z"
+    },
+    {
+      "id": "bug-553",
+      "timestamp": "2026-07-24T19:44:36.781Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/tests/test_twilio_sms.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: # --- Task 3: inbound + status-callback webhooks ---; class FakeTwilioRequest:",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T19:46:56.663Z"
+    },
+    {
+      "id": "bug-554",
+      "timestamp": "2026-07-24T19:45:02.445Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/routers/guest_requests.py",
+      "root_cause": "Had \"created_by\"",
+      "fix": "Changed to \"guest_phone\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:45:02.445Z"
+    },
+    {
+      "id": "bug-555",
+      "timestamp": "2026-07-24T19:45:20.634Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/routers/guest_requests.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 31→113 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:45:20.634Z"
+    },
+    {
+      "id": "bug-556",
+      "timestamp": "2026-07-24T19:46:50.379Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-a69e9e7d5fb511518/apps/api/routers/internal.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:46:50.379Z"
+    },
+    {
+      "id": "bug-557",
+      "timestamp": "2026-07-24T19:46:53.001Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a1deedb1de40cf2d7/apps/api/services/guest_recovery/contracts.py",
+      "root_cause": "Had \"D-07: revenue impact = downtime hours x (GM-confi",
+      "fix": "Changed to \"D-07: revenue impact = downtime hours x (GM-confi",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:46:53.001Z"
+    },
+    {
+      "id": "bug-558",
+      "timestamp": "2026-07-24T19:47:39.174Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a5d3701dd07c9de0a/apps/api/routers/webhooks.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:47:39.174Z"
+    },
+    {
+      "id": "bug-559",
+      "timestamp": "2026-07-24T19:48:46.962Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a69e9e7d5fb511518/apps/api/tests/test_lost_found_retention.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:48:46.962Z"
+    },
+    {
+      "id": "bug-560",
+      "timestamp": "2026-07-24T19:51:34.717Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a69e9e7d5fb511518/apps/api/tests/test_lost_found_retention.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:51:34.717Z"
+    },
+    {
+      "id": "bug-561",
+      "timestamp": "2026-07-24T19:57:21.860Z",
+      "error_message": "Missing guard clause",
+      "file": ".claude/worktrees/agent-a2c056484e57e516c/apps/web/lib/api/lost_found.ts",
+      "root_cause": "No early return/throw for edge case: item.status !== 'unclaimed' || !item.retention_due_at",
+      "fix": "Added guard clause: if (item.status !== 'unclaimed' || !item.ret)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:57:21.860Z"
+    },
+    {
+      "id": "bug-562",
+      "timestamp": "2026-07-24T19:57:35.940Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/routers/guest_requests.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:57:35.940Z"
+    },
+    {
+      "id": "bug-563",
+      "timestamp": "2026-07-24T19:57:54.950Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/routers/guest_requests.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:57:54.950Z"
+    },
+    {
+      "id": "bug-564",
+      "timestamp": "2026-07-24T19:58:37.058Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/tests/test_guest_recovery.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:58:37.058Z"
+    },
+    {
+      "id": "bug-565",
+      "timestamp": "2026-07-24T19:58:47.908Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a22358a4b73c0bf0c/apps/api/tests/test_guest_recovery.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 15→8 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T19:58:47.908Z"
+    },
+    {
+      "id": "bug-566",
+      "timestamp": "2026-07-24T20:00:03.007Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-af573ee409c8e2e3d/apps/api/tests/test_management_roi.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 18→32 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T20:00:03.007Z"
+    },
+    {
+      "id": "bug-567",
+      "timestamp": "2026-07-24T20:00:30.020Z",
+      "error_message": "CSS fix: queryKey, queryFn",
+      "file": ".claude/worktrees/agent-a2c056484e57e516c/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "queryKey: ['lost-found'], → ['lost-found', dispositionDueOnly],; queryFn: () => lostFoundApi.listItems({ per_page: 100 → () =>",
+      "fix": "Changed queryKey: ['lost-found'], → ['lost-found', dispositionDueOnly],; queryFn: () => lostFoundApi.listItems({ per_page: 100 → () =>",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T20:00:30.020Z"
+    },
+    {
+      "id": "bug-568",
+      "timestamp": "2026-07-24T20:00:47.190Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a2c056484e57e516c/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T20:00:47.190Z"
+    },
+    {
+      "id": "bug-569",
+      "timestamp": "2026-07-25T00:18:03.920Z",
+      "error_message": "Missing guard clause",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/lib/api/lost_found.ts",
+      "root_cause": "No early return/throw for edge case: item.status !== 'unclaimed' || !item.retention_due_at",
+      "fix": "Added guard clause: if (item.status !== 'unclaimed' || !item.ret)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:18:03.920Z"
+    },
+    {
+      "id": "bug-570",
+      "timestamp": "2026-07-25T00:18:43.108Z",
+      "error_message": "Missing await",
+      "file": ".claude/worktrees/agent-a514d8908057cd9d5/apps/api/tests/test_guest_recovery.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: # --- Plan 05-05 Task 2: room-status-aware accessible-room-f; @pytest.mark.asyncio",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-25T00:23:04.134Z"
+    },
+    {
+      "id": "bug-571",
+      "timestamp": "2026-07-25T00:19:29.656Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a514d8908057cd9d5/apps/api/tests/test_guest_recovery.py",
+      "root_cause": "55 lines replaced/restructured",
+      "fix": "Rewrote 73→4 lines (55 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:19:29.656Z"
+    },
+    {
+      "id": "bug-572",
+      "timestamp": "2026-07-25T00:21:02.012Z",
+      "error_message": "Wrong reference: timezone should be timedelta",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/tests/test_management_roi.py",
+      "root_cause": "Used \"timezone\" instead of \"timedelta\"",
+      "fix": "Changed timezone → timedelta",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:21:02.013Z"
+    },
+    {
+      "id": "bug-573",
+      "timestamp": "2026-07-25T00:23:32.239Z",
+      "error_message": "Wrong reference: reports should be management_roi",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/main.py",
+      "root_cause": "Used \"reports\" instead of \"management_roi\"",
+      "fix": "Changed reports → management_roi",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:23:32.239Z"
+    },
+    {
+      "id": "bug-574",
+      "timestamp": "2026-07-25T00:23:38.305Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a514d8908057cd9d5/apps/api/routers/guest_requests.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:23:38.305Z"
+    },
+    {
+      "id": "bug-575",
+      "timestamp": "2026-07-25T00:26:16.971Z",
+      "error_message": "CSS fix: row",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "row: status badge + time + kebab */ → status badge + disposition-due flag + time + kebab */",
+      "fix": "Changed row: status badge + time + kebab */ → status badge + disposition-due flag + time + kebab */",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-25T00:26:26.091Z"
+    },
+    {
+      "id": "bug-576",
+      "timestamp": "2026-07-25T00:26:40.495Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→12 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:26:40.495Z"
+    },
+    {
+      "id": "bug-577",
+      "timestamp": "2026-07-25T00:27:48.777Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/routers/management_roi.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:27:48.777Z"
+    },
+    {
+      "id": "bug-578",
+      "timestamp": "2026-07-25T00:30:08.827Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/routers/management_roi.py",
+      "root_cause": "Had \"Completion/deferral rates sourced from the real p",
+      "fix": "Changed to \"Completion/deferral rates sourced from the real c",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:30:08.827Z"
+    },
+    {
+      "id": "bug-579",
+      "timestamp": "2026-07-25T00:34:08.461Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/routers/management_roi.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:34:08.461Z"
+    },
+    {
+      "id": "bug-580",
+      "timestamp": "2026-07-25T00:34:35.705Z",
+      "error_message": "CSS fix: hover",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "hover: bg-green-700 transition-colors flex items-center justify-center gap-1\" → bg-surface-2'",
+      "fix": "Changed hover: bg-green-700 transition-colors flex items-center justify-center gap-1\" → bg-surface-2'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:34:35.705Z"
+    },
+    {
+      "id": "bug-581",
+      "timestamp": "2026-07-25T00:35:01.123Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:35:01.123Z"
+    },
+    {
+      "id": "bug-582",
+      "timestamp": "2026-07-25T00:35:51.252Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:35:51.252Z"
+    },
+    {
+      "id": "bug-583",
+      "timestamp": "2026-07-25T00:35:57.747Z",
+      "error_message": "Wrong reference: HTMLDivElement should be HTMLFormElement",
+      "file": ".claude/worktrees/agent-a2bb151da78ecf04f/apps/web/app/(dashboard)/lost-found/page.tsx",
+      "root_cause": "Used \"HTMLDivElement\" instead of \"HTMLFormElement\"",
+      "fix": "Changed HTMLDivElement → HTMLFormElement",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:35:57.748Z"
+    },
+    {
+      "id": "bug-584",
+      "timestamp": "2026-07-25T00:37:33.424Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ab83cdaf338d7250d/apps/api/tests/test_management_roi.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 18→8 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:37:33.424Z"
+    },
+    {
+      "id": "bug-585",
+      "timestamp": "2026-07-25T00:49:33.716Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ac54fef4f965eb79f/apps/web/lib/api/guest_requests.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 15→43 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:49:33.716Z"
+    },
+    {
+      "id": "bug-586",
+      "timestamp": "2026-07-25T00:53:44.447Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-ac54fef4f965eb79f/apps/web/components/guest-requests/NewRequestModal.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T00:53:44.447Z"
+    },
+    {
+      "id": "bug-587",
+      "timestamp": "2026-07-25T00:53:53.901Z",
+      "error_message": "CSS fix: onError",
+      "file": ".claude/worktrees/agent-ac54fef4f965eb79f/apps/web/components/guest-requests/NewRequestModal.tsx",
+      "root_cause": "onError: (err: any) => setError(err.message || 'Failed to create request'), → (err: any) => setError(err.message || t('guestRequests.createFailed')),",
+      "fix": "Changed onError: (err: any) => setError(err.message || 'Failed to create request'), → (err: any) => setError(err.message || t('guestRequests.createFailed')),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-25T00:54:30.735Z"
+    },
+    {
+      "id": "bug-588",
+      "timestamp": "2026-07-25T01:05:56.072Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/settings/general/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const { average_daily_rate, ...rest } = values; const payload: UpdateHotelData = { | Also: average_daily_rate:; fullHotel.average_daily_rate_cents != null",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-25T01:06:06.541Z"
+    },
+    {
+      "id": "bug-589",
+      "timestamp": "2026-07-25T01:06:13.130Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/settings/general/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:06:13.130Z"
+    },
+    {
+      "id": "bug-590",
+      "timestamp": "2026-07-25T01:12:39.972Z",
+      "error_message": "CSS fix: average_daily_rate",
+      "file": ".claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/settings/general/page.tsx",
+      "root_cause": "average_daily_rate: z.preprocess( → z.number().min(0, 'Must be 0 or more').max(100000, 'Max $100,000').optional(),",
+      "fix": "Changed average_daily_rate: z.preprocess( → z.number().min(0, 'Must be 0 or more').max(100000, 'Max $100,000').optional(),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:12:39.972Z"
+    },
+    {
+      "id": "bug-591",
+      "timestamp": "2026-07-25T01:17:43.665Z",
+      "error_message": "CSS fix: CONFIDENCE_TONE",
+      "file": ".claude/worktrees/agent-a64dbc154accdbfb5/apps/web/app/(dashboard)/management-roi/page.tsx",
+      "root_cause": "CONFIDENCE_TONE: Record<string, PillTone> = { → Record<string, 'caution' | 'info' | 'ready'> = {",
+      "fix": "Changed CONFIDENCE_TONE: Record<string, PillTone> = { → Record<string, 'caution' | 'info' | 'ready'> = {",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:17:43.665Z"
+    },
+    {
+      "id": "bug-592",
+      "timestamp": "2026-07-25T01:21:28.691Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".claude/worktrees/agent-aaf45efee8be146c4/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:21:28.691Z"
+    },
+    {
+      "id": "bug-593",
+      "timestamp": "2026-07-25T01:28:03.580Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-a64dbc154accdbfb5/apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "Had '/logbook'",
+      "fix": "Changed to '/management-roi'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-25T01:28:14.937Z"
+    },
+    {
+      "id": "bug-594",
+      "timestamp": "2026-07-25T01:47:51.269Z",
+      "error_message": "Function not marked async",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/api/tests/test_guest_recovery.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:47:51.269Z"
+    },
+    {
+      "id": "bug-595",
+      "timestamp": "2026-07-25T01:49:05.402Z",
+      "error_message": "Incorrect value in code",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/api/routers/guest_requests.py",
+      "root_cause": "Had \"gm\"",
+      "fix": "Changed to \"resolved\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:49:05.402Z"
+    },
+    {
+      "id": "bug-596",
+      "timestamp": "2026-07-25T01:50:56.874Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/lib/api/guest_requests.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:50:56.874Z"
+    },
+    {
+      "id": "bug-597",
+      "timestamp": "2026-07-25T01:56:17.294Z",
+      "error_message": "CSS fix: mutationFn, onError",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "mutationFn: (body: string) => guestRequestsApi.sendMessage(request!.id, { body, channel: 'sms' → (value: number) => guestRequestsApi.recordSatisfaction(request!.id, { satisfaction_score: value; onError: (err: any) => setReplyError(err?.message || t('guestMessages.sendFailed')), → (err: any) => setScoreError(err?.message || t('satisfaction.saveFailed')),",
+      "fix": "Changed mutationFn: (body: string) => guestRequestsApi.sendMessage(request!.id, { body, channel: 'sms' → (value: number) => guestRequestsApi.recordSatisfaction(request!.id, { satisfaction_score: value; onError: (err: any) => setReplyError(err?.message || t('guestMessages.sendFailed')), → (err: any) => setScoreError(err?.message || t('satisfaction.saveFailed')),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:56:17.294Z"
+    },
+    {
+      "id": "bug-598",
+      "timestamp": "2026-07-25T01:56:24.202Z",
+      "error_message": "Type error",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:56:24.202Z"
+    },
+    {
+      "id": "bug-599",
+      "timestamp": "2026-07-25T01:57:19.372Z",
+      "error_message": "Null/undefined access in ",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:57:19.372Z"
+    },
+    {
+      "id": "bug-600",
+      "timestamp": "2026-07-25T01:58:07.897Z",
+      "error_message": "Significant refactor of ",
+      "file": ".claude/worktrees/agent-ab77d676d75b1b8ba/apps/web/components/guest-requests/GuestRequestDrawer.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 12→19 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T01:58:07.897Z"
+    },
+    {
+      "id": "bug-601",
+      "timestamp": "2026-07-25T09:20:50.985Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/routers/guest_requests.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 11→10 lines (3 removed) | Also: if update_data.get(\"status\") == \"resolved\" and \"re; update_data[\"resolved_at\"] = datetime.now(timezone",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-25T09:20:56.773Z"
+    },
+    {
+      "id": "bug-602",
+      "timestamp": "2026-07-25T09:21:59.755Z",
+      "error_message": "Wrong reference: undefined should be null",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/web/app/(dashboard)/settings/general/page.tsx",
+      "root_cause": "Used \"undefined\" instead of \"null\"",
+      "fix": "Changed undefined → null",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:21:59.755Z"
+    },
+    {
+      "id": "bug-603",
+      "timestamp": "2026-07-25T09:23:02.203Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/services/guest_recovery/contracts.py",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 35→41 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:23:02.203Z"
+    },
+    {
+      "id": "bug-604",
+      "timestamp": "2026-07-25T09:26:34.348Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/routers/webhooks.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:26:34.348Z"
+    },
+    {
+      "id": "bug-605",
+      "timestamp": "2026-07-25T09:27:11.002Z",
+      "error_message": "Significant refactor of ",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/routers/guest_requests.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 34→48 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:27:11.002Z"
+    },
+    {
+      "id": "bug-606",
+      "timestamp": "2026-07-25T09:27:32.293Z",
+      "error_message": "Wrong reference: 9900 should be settings",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/routers/internal.py",
+      "root_cause": "Used \"9900\" instead of \"settings\"",
+      "fix": "Changed 9900 → settings",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:27:32.293Z"
+    },
+    {
+      "id": "bug-607",
+      "timestamp": "2026-07-25T09:29:20.432Z",
+      "error_message": "Function not marked async",
+      "file": "../../../../tmp/sv-05-reviewfix-QJvcXS/apps/api/tests/test_twilio_sms.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T09:29:20.432Z"
+    },
+    {
+      "id": "bug-608",
+      "timestamp": "2026-07-26T01:12:44.146Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/package.json",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T01:12:44.146Z"
+    },
+    {
+      "id": "bug-609",
+      "timestamp": "2026-07-26T01:22:32.569Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"9.39.4\"",
+      "fix": "Changed to \"10.8.0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T01:22:32.569Z"
+    },
+    {
+      "id": "bug-610",
+      "timestamp": "2026-07-26T02:59:26.321Z",
+      "error_message": "Incorrect value in code",
+      "file": ".planning/ROADMAP.md",
+      "root_cause": "Had `origin/main`",
+      "fix": "Changed to `754f0076`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T02:59:26.321Z"
+    },
+    {
+      "id": "bug-611",
+      "timestamp": "2026-07-26T03:00:15.060Z",
+      "error_message": "Significant refactor of ",
+      "file": ".planning/STATE.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 11→12 lines (8 removed) | Also: ## Current phase; **Phase 3 — Texas compliance and staff safety: CLO | Also: - **None blocking Phase 3 (closed + deployed 2026-; - **Operational (pre-existing, not Phase 3):** pro",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-26T03:00:46.209Z"
+    },
+    {
+      "id": "bug-612",
+      "timestamp": "2026-07-26T03:15:51.134893+00:00",
+      "error_message": "Production /health reported all 11 cron jobs \"stale\" even though the GitHub Actions cron workflow was firing successfully every run.",
+      "file": "apps/api/main.py",
+      "root_cause": "health() judged cron staleness with a single flat 65-minute threshold applied to every job. Daily jobs (0 6) and monthly billing (0 0 28-31) only run once per day/month, so they read \"stale\" ~23h/day (or ~30d/mo) even when they had just run on schedule. 8 of 11 jobs were false positives; only the 3 */30 frequent jobs (predictions/opera/escalations) were genuinely behind, due to GitHub Actions dropping high-frequency scheduled runs (separate infra issue).",
+      "fix": "Added per-job CRON_TOLERANCE_MINUTES map + pure _cron_status(job,last,now) helper in main.py: frequent=65m, shift-summary=600m, daily=1560m, billing=46080m, default=1560m; never-run rows now report \"pending\" instead of \"stale\". health() cron block calls the helper. Also fixed internal.py _record_cron_run to increment run_count (was hardcoded to 1). Verified against real prod cron_health data: 8 false positives -> ok/pending, 3 genuine */30 drops stay stale. 8 new tests in tests/test_cron_health_status.py; full suite 435 passing.",
+      "tags": [
+        "cron",
+        "health",
+        "stale",
+        "false-positive",
+        "monitoring",
+        "github-actions"
+      ],
+      "related_bugs": [
+        "bug-449"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T03:15:51.134893+00:00"
+    },
+    {
+      "id": "bug-613",
+      "timestamp": "2026-07-26T03:31:48.276Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/package.json",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T03:31:48.276Z"
+    },
+    {
+      "id": "bug-613",
+      "timestamp": "2026-07-26T03:34:00.138734+00:00",
+      "error_message": "Pre-push npm audit gate blocked all pushes to main: 8 high-severity brace-expansion DoS advisories (GHSA-mh99-v99m-4gvg).",
+      "file": "apps/web/package.json",
+      "root_cause": "The advisory was broadened to \"brace-expansion <=5.0.7\", so npm now flags even 1.1.16 (1.1.16 <= 5.0.7 in semver) in eslint minimatch@3.x chain. The prior @eslint/config-array-only mitigation (commit 25a1c29f) no longer satisfied it. Unrelated to the API cron fix being pushed.",
+      "fix": "Added overrides.brace-expansion=^5.0.8 (real registry latest) in apps/web/package.json, deduping all instances to the single patched copy. Verified 5.x is API-compatible for minimatch usage: npm run lint exit 0, type-check exit 0, npm audit 0 vulns. Pre-push gate then passed.",
+      "tags": [
+        "npm-audit",
+        "brace-expansion",
+        "security",
+        "pre-push-hook",
+        "eslint",
+        "dependency-override"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T03:34:00.138734+00:00"
     }
   ]
 }
