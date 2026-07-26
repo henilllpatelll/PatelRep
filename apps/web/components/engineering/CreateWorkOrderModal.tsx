@@ -7,7 +7,7 @@ import type { TFunction } from 'i18next'
 import { X, Loader2, Sparkles, ClipboardList, ImagePlus } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { roomsApi } from '@/lib/api/rooms'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 interface Props {
@@ -182,13 +182,12 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
               <ClipboardList className="w-5 h-5 text-[var(--caution)] shrink-0" />
               <h2 className="text-base font-bold text-ink">{t('engineering.createWorkOrder.title')}</h2>
             </div>
-            <button
+            <IconButton
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
               aria-label={t('engineering.createWorkOrder.closeModal')}
             >
               <X className="w-5 h-5" />
-            </button>
+            </IconButton>
           </div>
 
           {/* Body */}
@@ -378,15 +377,17 @@ export function CreateWorkOrderModal({ isOpen, onClose, onCreate }: Props) {
                 <div className="relative rounded-xl overflow-hidden border border-line bg-surface-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={photoPreview} alt={t('engineering.workOrderDetail.previewAlt')} className="w-full max-h-48 object-contain" />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     type="button"
                     onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
-                    className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-surface/90 rounded-full text-xs font-medium text-ink2 hover:bg-surface shadow-sm transition-colors border border-line"
+                    className="absolute top-2 right-2 rounded-full bg-surface/90 shadow-sm"
                     aria-label={t('engineering.createWorkOrder.removePhotoAriaLabel')}
                   >
                     <X className="w-3 h-3" />
                     {t('engineering.createWorkOrder.remove')}
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <button

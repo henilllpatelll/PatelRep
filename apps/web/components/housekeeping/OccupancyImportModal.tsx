@@ -7,7 +7,7 @@ import type { TFunction } from 'i18next'
 import { CheckCircle2, AlertCircle, Upload, X, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { housekeepingApi } from '@/lib/api/housekeeping'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 
 interface ImportResult {
   applied: number
@@ -86,9 +86,9 @@ export function OccupancyImportModal({ date, onClose }: Props) {
             <h2 className="text-base font-semibold text-stone-800">{t('housekeeping.occupancyImport.title')}</h2>
             <p className="text-xs text-stone-500 mt-0.5">{today}</p>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors" aria-label={t('housekeeping.occupancyImport.closeAria')}>
+          <IconButton onClick={onClose} aria-label={t('housekeeping.occupancyImport.closeAria')}>
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Tabs */}

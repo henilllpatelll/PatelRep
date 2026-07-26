@@ -7,6 +7,7 @@ import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { STATUS_SHORT_LABELS } from '@/lib/utils/roomStatus'
 import { Pill } from '@/components/ui/primitives'
+import { Button } from '@/components/ui/Button'
 
 // ── Status → border color ─────────────────────────────────────────────────────
 const STATUS_BORDER: Record<string, string> = {
@@ -324,8 +325,10 @@ export function RoomCard({
             <User className="w-3 h-3 text-[var(--ai)] shrink-0" />
             <span className="text-xs text-[var(--ai)] font-medium">{t('housekeeping.roomCard.assigned')}</span>
           </div>
-          <button
-            className="mt-0.5 text-xs px-2 py-0.5 rounded-md bg-ai-soft border border-ai-line text-ai font-medium hover:opacity-80 transition-opacity w-full"
+          <Button
+            variant="ai"
+            size="sm"
+            className="mt-0.5 w-full"
             onClick={(e) => {
               e.stopPropagation()
               if (isPending) {
@@ -338,7 +341,7 @@ export function RoomCard({
             }}
           >
             {t('housekeeping.roomCard.remove')}
-          </button>
+          </Button>
         </>
       )}
 

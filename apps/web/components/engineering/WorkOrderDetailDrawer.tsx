@@ -31,7 +31,7 @@ import {
 } from '@/lib/api/engineering'
 import { tasksApi } from '@/lib/api/tasks'
 import { useRole } from '@/lib/hooks/useRole'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Pill, AILabel, SectionLabel } from '@/components/ui/primitives'
 
 interface Props {
@@ -408,21 +408,19 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
             {/* Edit + close */}
             <div className="flex items-center gap-1 shrink-0">
               {(isChief || isGM) && (
-                <button
+                <IconButton
                   onClick={() => setIsEditing((v) => !v)}
-                  className="p-1.5 rounded-lg text-ink3 hover:text-ink hover:bg-surface-3 transition-colors"
                   aria-label={t('engineering.workOrderDetail.editWorkOrder')}
                 >
                   <Pencil className="w-4 h-4" />
-                </button>
+                </IconButton>
               )}
-              <button
+              <IconButton
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-ink3 hover:text-ink hover:bg-surface-3 transition-colors"
                 aria-label={t('engineering.workOrderDetail.closeDrawer')}
               >
                 <X className="w-5 h-5" />
-              </button>
+              </IconButton>
             </div>
           </div>
 
@@ -500,12 +498,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                     {editMutation.isPending && <Loader2 size={12} className="animate-spin" />}
                     {t('engineering.workOrderDetail.save')}
                   </Button>
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 text-sm text-ink2 border border-line rounded-lg hover:bg-surface-3 transition-colors"
                   >
                     {t('common.cancel')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -789,13 +787,14 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                       )}
                       {t('engineering.workOrderDetail.submitCompletion')}
                     </Button>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       type="button"
                       onClick={() => setShowCompleteForm(false)}
-                      className="px-3 py-2 text-sm text-ink2 hover:text-ink transition-colors"
                     >
                       {t('common.cancel')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -810,14 +809,16 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 <div className="flex items-center gap-2 text-sm text-[var(--ready)] bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2">
                   <CheckCircle className="w-4 h-4 shrink-0" />
                   {t('engineering.workOrderDetail.taskPushed')}
-                  <button
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     type="button"
                     onClick={() => setHkTaskSuccess(false)}
                     className="ml-auto text-[var(--ready)] hover:text-[var(--ready)]"
                     aria-label={t('engineering.workOrderDetail.dismiss')}
                   >
                     <X className="w-3.5 h-3.5" />
-                  </button>
+                  </IconButton>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -925,14 +926,16 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                   <div className="relative rounded-lg overflow-hidden border border-line bg-surface-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={photoPreview} alt={t('engineering.workOrderDetail.previewAlt')} className="w-full max-h-40 object-contain" />
-                    <button
+                    <IconButton
+                      variant="outline"
+                      size="sm"
                       type="button"
                       onClick={() => { setPhotoFile(null); setPhotoPreview(null) }}
-                      className="absolute top-1.5 right-1.5 p-1 bg-white/90 rounded-full shadow-sm text-gray-600 hover:text-gray-900 border border-gray-200 transition-colors"
+                      className="absolute top-1.5 right-1.5 rounded-full bg-white/90 shadow-sm"
                       aria-label={t('engineering.workOrderDetail.removePhoto')}
                     >
                       <X className="w-3 h-3" />
-                    </button>
+                    </IconButton>
                   </div>
                   <div className="flex items-center gap-2">
                     <label htmlFor="wo-photo-type" className="sr-only">{t('engineering.workOrderDetail.photoTypeLabel')}</label>
@@ -1096,12 +1099,12 @@ export function WorkOrderDetailDrawer({ wo, isOpen, onClose, onUpdate, startInEd
                 {t('common.cancel')}
               </Button>
             )}
-            <button
+            <Button
+              variant="outline"
               onClick={onClose}
-              className="px-3 py-2 text-sm text-ink3 hover:text-ink border border-line rounded-lg hover:bg-surface-3 transition-colors"
             >
               {t('engineering.workOrderDetail.closeButton')}
-            </button>
+            </Button>
           </div>
         )}
       </div>

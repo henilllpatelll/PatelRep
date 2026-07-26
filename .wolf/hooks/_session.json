@@ -376,6 +376,36 @@
       "count": 1,
       "tokens": 0,
       "first_read": "2026-07-26T06:52:23.335Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-26T11:59:38.539Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/PredictionPanel.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-26T11:59:38.823Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/OccupancyImportModal.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-26T12:00:24.384Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx": {
+      "count": 3,
+      "tokens": 16578,
+      "first_read": "2026-07-26T12:02:33.110Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/FailurePredictionSidebar.tsx": {
+      "count": 2,
+      "tokens": 0,
+      "first_read": "2026-07-26T12:04:28.382Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/EngineeringRoomBoard.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-26T12:05:04.107Z"
     }
   },
   "files_written": [
@@ -930,6 +960,234 @@
       "action": "edit",
       "tokens": 40,
       "at": "2026-07-26T06:47:31.815Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+      "action": "edit",
+      "tokens": 28,
+      "at": "2026-07-26T12:00:11.939Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomCard.tsx",
+      "action": "edit",
+      "tokens": 160,
+      "at": "2026-07-26T12:00:19.310Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/OccupancyImportModal.tsx",
+      "action": "edit",
+      "tokens": 34,
+      "at": "2026-07-26T12:00:40.384Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/OccupancyImportModal.tsx",
+      "action": "edit",
+      "tokens": 46,
+      "at": "2026-07-26T12:00:45.859Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "action": "edit",
+      "tokens": 33,
+      "at": "2026-07-26T12:01:22.876Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "action": "edit",
+      "tokens": 69,
+      "at": "2026-07-26T12:01:28.417Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "action": "edit",
+      "tokens": 93,
+      "at": "2026-07-26T12:01:40.479Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "action": "edit",
+      "tokens": 96,
+      "at": "2026-07-26T12:01:50.460Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "action": "edit",
+      "tokens": 84,
+      "at": "2026-07-26T12:01:57.019Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 129,
+      "at": "2026-07-26T12:02:57.598Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 145,
+      "at": "2026-07-26T12:03:05.401Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 147,
+      "at": "2026-07-26T12:03:12.911Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 157,
+      "at": "2026-07-26T12:03:21.204Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 82,
+      "at": "2026-07-26T12:03:33.608Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 82,
+      "at": "2026-07-26T12:03:46.757Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "action": "edit",
+      "tokens": 26,
+      "at": "2026-07-26T12:04:39.521Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "action": "edit",
+      "tokens": 192,
+      "at": "2026-07-26T12:04:46.831Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "action": "edit",
+      "tokens": 14,
+      "at": "2026-07-26T12:04:55.288Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "action": "edit",
+      "tokens": 30,
+      "at": "2026-07-26T12:05:10.230Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "action": "edit",
+      "tokens": 33,
+      "at": "2026-07-26T12:05:19.261Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "action": "edit",
+      "tokens": 30,
+      "at": "2026-07-26T12:05:39.479Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "action": "edit",
+      "tokens": 59,
+      "at": "2026-07-26T12:05:45.045Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/CreateWorkOrderModal.tsx",
+      "action": "edit",
+      "tokens": 156,
+      "at": "2026-07-26T12:05:53.105Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 17,
+      "at": "2026-07-26T12:06:10.297Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 142,
+      "at": "2026-07-26T12:06:16.903Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-07-26T12:06:21.449Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 84,
+      "at": "2026-07-26T12:06:26.694Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 129,
+      "at": "2026-07-26T12:06:33.601Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 144,
+      "at": "2026-07-26T12:06:39.993Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "action": "edit",
+      "tokens": 52,
+      "at": "2026-07-26T12:06:45.050Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 17,
+      "at": "2026-07-26T12:07:02.215Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 43,
+      "at": "2026-07-26T12:07:08.264Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 64,
+      "at": "2026-07-26T12:07:13.830Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 96,
+      "at": "2026-07-26T12:07:25.361Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 66,
+      "at": "2026-07-26T12:07:31.670Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 98,
+      "at": "2026-07-26T12:07:37.865Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 57,
+      "at": "2026-07-26T12:07:42.906Z"
+    },
+    {
+      "file": "C:/Users/Henil/projects/PatelRep/apps/web/components/engineering/PMCompletionModal.tsx",
+      "action": "edit",
+      "tokens": 79,
+      "at": "2026-07-26T12:07:48.771Z"
     }
   ],
   "edit_counts": {
@@ -973,11 +1231,20 @@
     "apps/web/app/(dashboard)/settings/integrations/page.tsx": 2,
     "apps/web/app/(dashboard)/sop/page.tsx": 3,
     "apps/web/app/(dashboard)/staff/page.tsx": 2,
-    "apps/web/app/(dashboard)/settings/billing/page.tsx": 2
+    "apps/web/app/(dashboard)/settings/billing/page.tsx": 2,
+    "apps/web/components/housekeeping/RoomCard.tsx": 2,
+    "apps/web/components/housekeeping/OccupancyImportModal.tsx": 2,
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": 5,
+    "apps/web/components/housekeeping/RoomDetailDrawer.tsx": 6,
+    "apps/web/components/engineering/FailurePredictionSidebar.tsx": 3,
+    "apps/web/components/engineering/EngineeringRoomBoard.tsx": 2,
+    "apps/web/components/engineering/CreateWorkOrderModal.tsx": 3,
+    "apps/web/components/engineering/WorkOrderDetailDrawer.tsx": 7,
+    "apps/web/components/engineering/PMCompletionModal.tsx": 8
   },
   "anatomy_hits": 3,
-  "anatomy_misses": 72,
-  "repeated_reads_warned": 30,
+  "anatomy_misses": 78,
+  "repeated_reads_warned": 33,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 2
 }

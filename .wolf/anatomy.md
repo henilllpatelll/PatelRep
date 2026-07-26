@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T06:47:31.801Z
-> Files: 37 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T12:07:48.757Z
+> Files: 46 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -1360,12 +1360,21 @@
 
 ## apps/web/components/engineering/
 
+- `CreateWorkOrderModal.tsx` — getCategories (~5503 tok)
+- `EngineeringRoomBoard.tsx` — filterRooms (~2417 tok)
+- `FailurePredictionSidebar.tsx` — getRiskRingColor (~3071 tok)
+- `PMCompletionModal.tsx` — genId (~8608 tok)
+- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~14658 tok)
 
 ## apps/web/components/guest-requests/
 
 
 ## apps/web/components/housekeeping/
 
+- `OccupancyImportModal.tsx` — OccupancyImportModal (~2948 tok)
+- `RoomCard.tsx` — STATUS_BORDER (~4067 tok)
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~16594 tok)
+- `RoomStatusBoard.tsx` — getCleanTypeChips (~8534 tok)
 
 ## apps/web/components/programs/
 

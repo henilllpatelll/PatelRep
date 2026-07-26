@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-26 | UI Refresh Wave 2 (partial — floor components checkpoint): converted raw <button> to Button/IconButton in components/housekeeping/{RoomCard,OccupancyImportModal,RoomStatusBoard,RoomDetailDrawer}.tsx and components/engineering/{FailurePredictionSidebar,EngineeringRoomBoard,CreateWorkOrderModal,WorkOrderDetailDrawer,PMCompletionModal}.tsx — ~28 buttons converted, using Button's new `loading` prop to replace hand-rolled spinners where the button had a leading icon (icon hidden while loading so it doesn't double up with the spinner). Left legitimate custom cases raw: filter-chip pills (RoomStatusBoard/EngineeringRoomBoard, matches existing chipClass() pattern), Pass/Fail/N/A 3-way segmented toggles (InspectionModal, PMCompletionModal), disclosure/accordion headers (PredictionPanel, RoomDetailDrawer history), icon-over-label grid action tiles (RoomDetailDrawer note/WO/lost-found), and dropzone trigger areas. tsc + lint clean; manually verified /housekeeping loads with no console errors and RoomDetailDrawer opens showing all converted button labels correctly. NOT yet committed — remaining Wave 2 scope is large: floor app pages (housekeeping/engineering/tasks page.tsx files), then guest-facing (lost-found, guest-requests), then managers/settings (scheduling, logbook, staff, settings/*) — roughly 250+ more raw buttons across ~45 files. | apps/web/components/housekeeping/*.tsx, apps/web/components/engineering/*.tsx | in_progress | ~200 tok |
 | 2026-07-26 | UI Refresh Wave 1 (header unification): migrated all 22 hand-rolled `<h1>` content pages to PageHeader (eyebrow/title/subtitle/tabs/actions), folded existing in-page tab bars (work-orders, safety, sop, reports) into PageHeader.tabs, converted all 6 role-dashboard greetings (GM/Housekeeper/Supervisor/Engineer/FrontDesk/ChiefEngineer) to DashboardGreeting with a generalized subtitle prop. Downgraded management-roi's access-denied h1 to p (not a page title). tsc + lint + i18n gate + EN/ES parity (1375/1375) all clean; manually verified 9 pages (dashboard, tasks, work-orders incl. tab switch, safety incl. tab switch, sop, staff, housekeeping board) as GM in light+dark, no console errors, no regressions. Not yet committed — pending user review. | 22 app/(dashboard) page.tsx files, apps/web/components/dashboard/*.tsx (6 files), apps/web/components/shared/Sidebar.tsx (untouched this wave) | complete | ~150 tok |
 | 2026-07-26 | UI Refresh Wave 0 (foundation): upgraded Button (+size/loading), new IconButton, EmptyState, StateBlock, Toast (Toaster+useToast, mounted in DashboardShell), CommandPalette, DashboardGreeting, Breadcrumbs, MobileFloorNav; extracted Sidebar allow-list to lib/utils/navigation.ts; added i18n keys with verified EN/ES parity (1375/1375); built /dev/ui scratch demo page; manually verified light/dark/dense + mobile 390px via playwright-cli as GM. tsc + lint + i18n gate all clean. Not yet committed — pending user review. | apps/web/components/ui/{Button,EmptyState,StateBlock,Toast}.tsx, apps/web/components/shared/{Sidebar,DashboardShell,Breadcrumbs,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/DashboardGreeting.tsx, apps/web/lib/utils/navigation.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/app/(dashboard)/dev/ui/page.tsx | complete | ~180 tok |
 | 2026-07-17 | opera_pdf.py parse_task_sheet: added cross-page pending pattern — room whose task column is cut at page break now resolved on next recognized continuation line; Opera's repeated column header ("Tasks") correctly skipped. New test test_task_sheet_parser_resolves_clean_type_split_across_page_boundary added. 28 tests pass. | apps/api/services/opera_pdf.py, apps/api/tests/smoke/test_housekeeping_assignments.py | complete | ~60 tok |
@@ -8047,3 +8048,42 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:46 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | added 1 import(s) | ~44 |
 | 01:47 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | 7→5 lines | ~47 |
 | 01:47 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 3→3 lines | ~40 |
+| 01:54 | Session end: 92 writes across 19 files (navigation.ts, Sidebar.tsx, Button.tsx, EmptyState.tsx, StateBlock.tsx) | 75 reads | ~59720 tok |
+| 07:00 | Edited apps/web/components/housekeeping/RoomCard.tsx | added 1 import(s) | ~28 |
+| 07:00 | Edited apps/web/components/housekeeping/RoomCard.tsx | modified if() | ~160 |
+| 07:00 | Edited apps/web/components/housekeeping/OccupancyImportModal.tsx | 2→2 lines | ~34 |
+| 07:00 | Edited apps/web/components/housekeeping/OccupancyImportModal.tsx | 3→3 lines | ~46 |
+| 07:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~33 |
+| 07:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 6→6 lines | ~69 |
+| 07:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 7→9 lines | ~93 |
+| 07:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: hover | ~96 |
+| 07:01 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 8→8 lines | ~84 |
+| 07:02 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 8→9 lines | ~129 |
+| 07:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 13→10 lines | ~145 |
+| 07:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 13→10 lines | ~147 |
+| 07:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 13→11 lines | ~157 |
+| 07:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 6→8 lines | ~82 |
+| 07:03 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | 6→8 lines | ~82 |
+| 07:04 | Edited apps/web/components/engineering/FailurePredictionSidebar.tsx | added 1 import(s) | ~26 |
+| 07:04 | Edited apps/web/components/engineering/FailurePredictionSidebar.tsx | 24→19 lines | ~192 |
+| 07:04 | Edited apps/web/components/engineering/FailurePredictionSidebar.tsx | inline fix | ~14 |
+| 07:05 | Edited apps/web/components/engineering/EngineeringRoomBoard.tsx | added 1 import(s) | ~30 |
+| 07:05 | Edited apps/web/components/engineering/EngineeringRoomBoard.tsx | 6→3 lines | ~33 |
+| 07:05 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 2→2 lines | ~30 |
+| 07:05 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 7→6 lines | ~59 |
+| 07:05 | Edited apps/web/components/engineering/CreateWorkOrderModal.tsx | 9→11 lines | ~156 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | inline fix | ~17 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 15→13 lines | ~142 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 6→6 lines | ~60 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 7→8 lines | ~84 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 8→10 lines | ~129 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 8→10 lines | ~144 |
+| 07:06 | Edited apps/web/components/engineering/WorkOrderDetailDrawer.tsx | 6→6 lines | ~52 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | inline fix | ~17 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~43 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~64 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~96 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~66 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~98 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~57 |
+| 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~79 |

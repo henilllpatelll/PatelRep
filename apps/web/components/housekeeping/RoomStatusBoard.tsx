@@ -16,6 +16,7 @@ import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
+import { Button, IconButton } from '@/components/ui/Button'
 import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
 import type { CleanType } from '@/lib/utils/cleanType'
 import { getPendingLateCheckoutByRoom, withPendingLateCheckout } from '@/lib/utils/lateCheckoutRequests'
@@ -525,12 +526,12 @@ export function RoomStatusBoard() {
     return (
       <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm">
         <p className="text-[13px] text-ink3">{t('housekeeping.roomStatus.error.failedToLoad')}</p>
-        <button
+        <Button
+          size="sm"
           onClick={() => queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })}
-          className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
         >
           {t('housekeeping.roomStatus.error.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -588,13 +589,15 @@ export function RoomStatusBoard() {
       {assignError && (
         <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] text-sm text-[var(--alert)]">
           <span>{assignError}</span>
-          <button
+          <IconButton
             onClick={() => setAssignError(null)}
-            className="shrink-0 font-medium"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-[var(--alert)] font-medium hover:text-[var(--alert)]"
             aria-label={t('housekeeping.roomStatus.error.dismiss')}
           >
             &times;
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -683,14 +686,14 @@ export function RoomStatusBoard() {
                   {t('housekeeping.roomStatus.cleanTypePrompt.subtitle')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-sm text-ink3 hover:bg-surface-2"
+              <IconButton
+                variant="ghost"
+                size="sm"
                 onClick={() => setCleanTypePrompt(null)}
                 aria-label={t('housekeeping.roomStatus.cleanTypePrompt.cancelAria')}
               >
                 &times;
-              </button>
+              </IconButton>
             </div>
             <div className="mt-4 space-y-2">
               {CLEAN_TYPE_OPTIONS.map((option) => {

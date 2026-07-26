@@ -23,7 +23,7 @@ import {
 import type { PMSchedule } from '@/lib/api/engineering'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 // ─── Local (form-only) types ────────────────────────────────────────────────
@@ -329,9 +329,9 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
               </div>
             </div>
             {!saving && (
-              <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" aria-label={t('programs.pmCompletion.close')}>
+              <IconButton onClick={onClose} aria-label={t('programs.pmCompletion.close')}>
                 <X size={18} />
-              </button>
+              </IconButton>
             )}
           </div>
 
@@ -477,18 +477,18 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-700">{t('programs.pmCompletion.partsUsed')}</p>
-                <button type="button" onClick={addPart} className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1">
+                <Button variant="ghost" size="sm" type="button" onClick={addPart} className="text-blue-600 hover:underline">
                   <Plus size={12} /> {t('programs.pmCompletion.addPart')}
-                </button>
+                </Button>
               </div>
               {parts.map((part) => (
                 <div key={part.localId} className="grid grid-cols-[1fr_80px_90px_28px] gap-2 items-center">
                   <Input placeholder={t('programs.pmCompletion.partNamePlaceholder')} value={part.name} onChange={(e) => setParts((prev) => prev.map((p) => (p.localId === part.localId ? { ...p, name: e.target.value } : p)))} />
                   <Input type="number" placeholder={t('programs.pmCompletion.qtyPlaceholder')} value={part.qty ?? ''} onChange={(e) => setParts((prev) => prev.map((p) => (p.localId === part.localId ? { ...p, qty: e.target.value ? Number(e.target.value) : undefined } : p)))} />
                   <Input type="number" placeholder={t('programs.pmCompletion.costPlaceholder')} value={part.cost ?? ''} onChange={(e) => setParts((prev) => prev.map((p) => (p.localId === part.localId ? { ...p, cost: e.target.value ? Number(e.target.value) : undefined } : p)))} />
-                  <button type="button" onClick={() => setParts((prev) => prev.filter((p) => p.localId !== part.localId))} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removePartLabel')}>
+                  <IconButton variant="ghost" size="sm" type="button" onClick={() => setParts((prev) => prev.filter((p) => p.localId !== part.localId))} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removePartLabel')}>
                     <Trash2 size={14} />
-                  </button>
+                  </IconButton>
                 </div>
               ))}
             </div>
@@ -497,9 +497,9 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-700">{t('programs.pmCompletion.defectsFound')}</p>
-                <button type="button" onClick={addDefect} className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1">
+                <Button variant="ghost" size="sm" type="button" onClick={addDefect} className="text-blue-600 hover:underline">
                   <Plus size={12} /> {t('programs.pmCompletion.addDefect')}
-                </button>
+                </Button>
               </div>
               {defects.map((defect) => (
                 <div key={defect.localId} className="grid grid-cols-[1fr_120px_28px] gap-2 items-center">
@@ -514,9 +514,9 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
                     <option value="medium">{t('programs.pmCompletion.severityMedium')}</option>
                     <option value="high">{t('programs.pmCompletion.severityHigh')}</option>
                   </select>
-                  <button type="button" onClick={() => setDefects((prev) => prev.filter((d) => d.localId !== defect.localId))} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removeDefectLabel')}>
+                  <IconButton variant="ghost" size="sm" type="button" onClick={() => setDefects((prev) => prev.filter((d) => d.localId !== defect.localId))} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removeDefectLabel')}>
                     <Trash2 size={14} />
-                  </button>
+                  </IconButton>
                 </div>
               ))}
             </div>
@@ -615,17 +615,17 @@ function KeyValueEditor({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-700">{title}</p>
-        <button type="button" onClick={onAdd} className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1">
+        <Button variant="ghost" size="sm" type="button" onClick={onAdd} className="text-blue-600 hover:underline">
           <Plus size={12} /> {t('programs.pmCompletion.addRow')}
-        </button>
+        </Button>
       </div>
       {rows.map((row) => (
         <div key={row.localId} className="grid grid-cols-[1fr_1fr_24px] gap-1.5 items-center">
           <Input placeholder={t('programs.pmCompletion.keyPlaceholder')} value={row.key} onChange={(e) => onChange(row.localId, 'key', e.target.value)} className="text-xs" />
           <Input placeholder={t('programs.pmCompletion.valuePlaceholder')} value={row.value} onChange={(e) => onChange(row.localId, 'value', e.target.value)} className="text-xs" />
-          <button type="button" onClick={() => onRemove(row.localId)} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removeRowLabel', { title })}>
+          <IconButton variant="ghost" size="sm" type="button" onClick={() => onRemove(row.localId)} className="text-gray-400 hover:text-[var(--alert)]" aria-label={t('programs.pmCompletion.removeRowLabel', { title })}>
             <Trash2 size={13} />
-          </button>
+          </IconButton>
         </div>
       ))}
     </div>

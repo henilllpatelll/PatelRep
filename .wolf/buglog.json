@@ -10430,6 +10430,118 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-07-26T06:46:14.948Z"
+    },
+    {
+      "id": "bug-629",
+      "timestamp": "2026-07-26T12:00:45.865Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/housekeeping/OccupancyImportModal.tsx",
+      "root_cause": "Had \"text-stone-400 hover:text-stone-600 transition-co",
+      "fix": "Changed to 'housekeeping.occupancyImport.closeAria'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:00:45.865Z"
+    },
+    {
+      "id": "bug-630",
+      "timestamp": "2026-07-26T12:01:28.425Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (3 removed) | Also: <button; className=\"shrink-0 font-medium\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T12:01:40.486Z"
+    },
+    {
+      "id": "bug-631",
+      "timestamp": "2026-07-26T12:03:05.407Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/housekeeping/RoomDetailDrawer.tsx",
+      "root_cause": "hover: bg-rose-600 disabled:opacity-50 transition-colors\" → bg-rose-600\"",
+      "fix": "Changed hover: bg-rose-600 disabled:opacity-50 transition-colors\" → bg-rose-600\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-26T12:03:21.213Z"
+    },
+    {
+      "id": "bug-632",
+      "timestamp": "2026-07-26T12:04:46.841Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/components/engineering/FailurePredictionSidebar.tsx",
+      "root_cause": "hover: text-ink transition-colors disabled:opacity-50\" → opacity-80\"",
+      "fix": "Changed hover: text-ink transition-colors disabled:opacity-50\" → opacity-80\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:04:46.841Z"
+    },
+    {
+      "id": "bug-633",
+      "timestamp": "2026-07-26T12:05:19.267Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/EngineeringRoomBoard.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:05:19.267Z"
+    },
+    {
+      "id": "bug-634",
+      "timestamp": "2026-07-26T12:06:45.059Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/engineering/WorkOrderDetailDrawer.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:06:45.059Z"
+    },
+    {
+      "id": "bug-635",
+      "timestamp": "2026-07-26T12:07:08.274Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/engineering/PMCompletionModal.tsx",
+      "root_cause": "Had \"p-1.5 rounded-lg text-gray-400 hover:text-gray-60",
+      "fix": "Changed to 'programs.pmCompletion.close'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-26T12:07:48.778Z"
     }
   ]
 }

@@ -11,6 +11,7 @@ import { tasksApi } from '@/lib/api/tasks'
 import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { StatusDot } from '@/components/ui/primitives'
+import { Button } from '@/components/ui/Button'
 import { normalizeHousekeepingBoardRoom } from '@/lib/utils/housekeepingBoardFilters'
 
 type FilterMode = 'all' | 'vacant' | 'ai'
@@ -108,12 +109,9 @@ export function EngineeringRoomBoard() {
       <div className="flex flex-col items-center justify-center h-48 gap-3 text-sm">
         <AlertCircle className="w-5 h-5 text-[var(--alert)]" />
         <p className="text-[13px] text-ink3">{t('engineering.roomBoard.loadError')}</p>
-        <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
-        >
+        <Button size="sm" onClick={() => refetch()}>
           {t('engineering.roomBoard.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
