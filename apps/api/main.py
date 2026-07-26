@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -142,11 +143,49 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 
+# Per-job cron staleness tolerance in minutes. A single flat threshold wrongly
+# reported daily/monthly jobs as "stale" ~23h/day even when they ran exactly on
+# schedule; each job is only stale once it is past its own cadence + slack for
+# GitHub Actions scheduled-run delivery lag.
+CRON_TOLERANCE_MINUTES = {
+    # Frequent group (*/30) — 30-min cadence + slack.
+    "predictions.run": 65,
+    "opera.sync-reservations": 65,
+    "escalations.check": 65,
+    # Shift summaries (0 7,15,23) — up to 8h between runs + slack.
+    "logbook.shift-summary": 600,
+    # Daily jobs (0 6 / 0 0 / 0 3) — 24h cadence + generous delivery slack.
+    "pm.check-due": 1560,
+    "reports.daily-summary-email": 1560,
+    "evidence.reminders": 1560,
+    "safety.training-assignments": 1560,
+    "safety.drill-follow-up": 1560,
+    "lost-found.retention-check": 1560,
+    "ai.failure-predictions": 1560,
+    # Month-end billing (0 0 28-31) — up to ~1 month between runs.
+    "billing.monthly-trueup": 46080,
+}
+DEFAULT_CRON_TOLERANCE_MINUTES = 1560
+
+
+def _cron_status(job_name: str, last_success_at: str | None, now: datetime) -> str:
+    """Health status for one cron job: 'pending' (never run), 'ok', or 'stale'.
+
+    Staleness is judged against the job's own cadence (CRON_TOLERANCE_MINUTES),
+    not one flat threshold, so once-a-day and once-a-month jobs are not reported
+    stale in the long gaps between their scheduled runs.
+    """
+    if not last_success_at:
+        return "pending"
+    tolerance = CRON_TOLERANCE_MINUTES.get(job_name, DEFAULT_CRON_TOLERANCE_MINUTES)
+    threshold = (now - timedelta(minutes=tolerance)).isoformat()
+    return "ok" if last_success_at > threshold else "stale"
+
+
 # Health check (no auth required)
 @app.get("/health")
 async def health():
     from core.database import supabase
-    from datetime import datetime, timedelta, timezone
 
     db_ok = True
     try:
@@ -155,15 +194,17 @@ async def health():
         db_ok = False
         logger.warning("Health database ping failed: %s", e)
 
-    # Cron staleness: flag jobs that haven't run successfully in 2× their expected interval.
-    # Threshold is 65 min (covers 30-min crons with generous slack).
+    # Cron staleness: each job is judged against its own cadence (see
+    # CRON_TOLERANCE_MINUTES), so daily/monthly jobs are not flagged stale in the
+    # normal gaps between scheduled runs. "pending" = seeded but never run yet.
     cron_payload: dict = {}
     try:
         rows = supabase.table("cron_health").select("job_name, last_success_at").execute()
-        stale_threshold = (datetime.now(timezone.utc) - timedelta(minutes=65)).isoformat()
+        now = datetime.now(timezone.utc)
         for row in (rows.data or []):
-            last_ok = row.get("last_success_at")
-            cron_payload[row["job_name"]] = "ok" if (last_ok and last_ok > stale_threshold) else "stale"
+            cron_payload[row["job_name"]] = _cron_status(
+                row["job_name"], row.get("last_success_at"), now
+            )
     except Exception as e:
         logger.warning("Health cron_health query failed: %s", e)
         cron_payload = {"error": "unavailable"}

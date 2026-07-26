@@ -20,7 +20,12 @@ def _record_cron_run(job_name: str, *, error: str | None = None) -> None:
     """Write last success/failure timestamp for health monitoring. Best-effort."""
     try:
         now = datetime.now(timezone.utc).isoformat()
-        patch: dict = {"updated_at": now, "run_count": 1}
+        prior = (
+            supabase.table("cron_health").select("run_count")
+            .eq("job_name", job_name).maybe_single().execute()
+        )
+        prior_count = (prior.data or {}).get("run_count", 0) if (prior and prior.data) else 0
+        patch: dict = {"updated_at": now, "run_count": (prior_count or 0) + 1}
         if error:
             patch["last_failure_at"] = now
             patch["last_error"] = error[:500]
