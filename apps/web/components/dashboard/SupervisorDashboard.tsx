@@ -16,6 +16,7 @@ import { LiveOpsGrid } from './LiveOpsGrid'
 import {
   Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
 } from '@/components/ui/primitives'
+import { DashboardGreeting } from './DashboardGreeting'
 
 // ── BroadcastModal ────────────────────────────────────────────────────────────
 
@@ -474,14 +475,7 @@ function ActivityFeed({ requests, tasks, risks }: { requests: GuestRequest[]; ta
 export function SupervisorDashboard() {
   const storedFullName = useAuthStore(s => s.fullName)
   const user = useAuthStore(s => s.user)
-  const [greeting, setGreeting] = useState('Good morning')
   const [broadcastOpen, setBroadcastOpen] = useState(false)
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'Supervisor'
@@ -546,22 +540,16 @@ export function SupervisorDashboard() {
       {/* Greeting */}
       <div className="flex items-end justify-between gap-6">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            {' · '}
-            {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-          </p>
-          <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.05] text-ink mt-2">
-            {greeting}, <em className="italic">{firstName}</em>.
-          </h1>
-          <p className="mt-2.5 text-[14px] text-ink2 max-w-[580px] leading-relaxed">
-            {hkRisks.length > 0
-              ? `${hkRisks.length} room${hkRisks.length > 1 ? 's' : ''} flagged. ${cleanPending > 0 ? `${cleanPending} ready for inspection.` : 'Inspections up to date.'}`
-              : cleanPending > 0
-              ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
-              : 'All rooms accounted for. Good start to the shift.'
+          <DashboardGreeting
+            name={firstName}
+            subtitle={
+              hkRisks.length > 0
+                ? `${hkRisks.length} room${hkRisks.length > 1 ? 's' : ''} flagged. ${cleanPending > 0 ? `${cleanPending} ready for inspection.` : 'Inspections up to date.'}`
+                : cleanPending > 0
+                ? `${cleanPending} room${cleanPending > 1 ? 's' : ''} ready for inspection. Housekeeping on track.`
+                : 'All rooms accounted for. Good start to the shift.'
             }
-          </p>
+          />
         </div>
         <div className="flex gap-2 pb-1 shrink-0">
           <button

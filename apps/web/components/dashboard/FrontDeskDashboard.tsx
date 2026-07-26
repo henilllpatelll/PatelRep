@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bell, Package, Bed, CheckCircle2, Clock, Check, X, Loader2, ShieldAlert } from 'lucide-react'
@@ -10,6 +10,7 @@ import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { hotelsApi } from '@/lib/api/hotels'
 import { lateCheckoutApi, type LateCheckoutRequest } from '@/lib/api/lateCheckout'
 import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
   if (!accessToken) return ''
@@ -167,15 +168,8 @@ export function FrontDeskDashboard() {
   const queryClient = useQueryClient()
   const { user, session, fullName: storedFullName } = useAuthStore()
   const hotelId = getHotelIdFromSession(session?.access_token)
-  const [greeting, setGreeting] = useState('Good morning')
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [actionRoomId, setActionRoomId] = useState<string | null>(null)
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'Front Desk'
@@ -278,20 +272,14 @@ export function FrontDeskDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Greeting */}
-      <div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display italic text-[34px] leading-[1.1] tracking-[-0.5px] text-ink mt-1">
-          {greeting}, {firstName}.
-        </h1>
-        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
-          {openRequests.length > 0
+      <DashboardGreeting
+        name={firstName}
+        subtitle={
+          openRequests.length > 0
             ? `${openRequests.length} open guest ${openRequests.length === 1 ? 'request' : 'requests'} — ${readyPct}% of rooms ready.`
-            : `${readyPct}% of rooms ready. No open guest requests.`}
-        </p>
-      </div>
+            : `${readyPct}% of rooms ready. No open guest requests.`
+        }
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

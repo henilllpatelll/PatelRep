@@ -25,6 +25,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
@@ -772,16 +773,11 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[1.2px] text-ink-3 mb-1">Organization</p>
-          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Staff</h1>
-          <p className="text-[13px] text-ink-3 mt-0.5">
-            {staffQuery.data?.length ?? 0} team member{staffQuery.data?.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        {canManageStaff && (
+      <PageHeader
+        eyebrow="Organization"
+        title="Staff"
+        subtitle={`${staffQuery.data?.length ?? 0} team member${staffQuery.data?.length !== 1 ? 's' : ''}`}
+        actions={canManageStaff && (
           <>
           <div className="relative sm:hidden">
             <Button
@@ -830,7 +826,7 @@ export default function StaffPage() {
           </div>
           </>
         )}
-      </div>
+      />
 
       {/* Invite success banner */}
       {inviteSuccess && (

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { Wrench, AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
+import { AlertCircle, Plus, Sparkles, Loader2 } from 'lucide-react'
 import { engineeringApi, type WorkOrder, type WorkOrderStatus } from '@/lib/api/engineering'
 import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { FailurePredictionSidebar } from '@/components/engineering/FailurePredictionSidebar'
@@ -339,29 +340,19 @@ export default function WorkOrdersPage() {
     queryClient.invalidateQueries({ queryKey: ['work-orders'] })
   }
 
-  const tabClass = (active: boolean) =>
-    `px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-      active
-        ? 'border-[var(--accent)] text-ink'
-        : 'border-transparent text-ink3 hover:text-ink2 hover:border-line'
-    }`
-
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       <div className="flex-1 min-w-0 space-y-5">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2.5">
-              <Wrench className="w-5 h-5 text-[var(--caution)] shrink-0" />
-              {t('engineering.workOrdersPage.heading')}
-            </h1>
-            <p className="text-sm text-ink3 mt-0.5">
-              {isEngineer ? t('engineering.workOrdersPage.subtitleEngineer') : t('engineering.workOrdersPage.subtitleAll')}
-            </p>
-          </div>
-          {activeTab === 'work-orders' && (
-            <div className="flex items-center gap-2">
+        <PageHeader
+          eyebrow="Engineering"
+          title={t('engineering.workOrdersPage.heading')}
+          subtitle={isEngineer ? t('engineering.workOrdersPage.subtitleEngineer') : t('engineering.workOrdersPage.subtitleAll')}
+          tabs={[
+            { label: t('engineering.workOrdersPage.tabWorkOrders'), active: activeTab === 'work-orders', onClick: () => setActiveTab('work-orders') },
+            { label: t('engineering.workOrdersPage.tabRoomBoard'), active: activeTab === 'room-board', onClick: () => setActiveTab('room-board') },
+          ]}
+          actions={activeTab === 'work-orders' && (
+            <>
               <Button
                 variant="ai"
                 onClick={handleAITriage}
@@ -377,25 +368,9 @@ export default function WorkOrdersPage() {
                   {t('engineering.workOrdersPage.newWorkOrder')}
                 </Button>
               )}
-            </div>
+            </>
           )}
-        </div>
-
-        {/* Tab bar */}
-        <div className="flex gap-0 border-b border-line -mb-1">
-          <button
-            onClick={() => setActiveTab('work-orders')}
-            className={tabClass(activeTab === 'work-orders')}
-          >
-            {t('engineering.workOrdersPage.tabWorkOrders')}
-          </button>
-          <button
-            onClick={() => setActiveTab('room-board')}
-            className={tabClass(activeTab === 'room-board')}
-          >
-            {t('engineering.workOrdersPage.tabRoomBoard')}
-          </button>
-        </div>
+        />
 
         {activeTab === 'work-orders' ? (
           <>

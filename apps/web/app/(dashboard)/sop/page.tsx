@@ -9,6 +9,7 @@ import { SOPQueryModal } from '@/components/ai/SOPQueryModal'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const CATEGORIES = ['All', 'Housekeeping', 'Engineering', 'HR', 'Emergency', 'General'] as const
 type FilterCategory = (typeof CATEGORIES)[number]
@@ -409,39 +410,33 @@ export default function SOPLibraryPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-line shrink-0">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Intelligence</p>
-            <h1 className="font-display text-[24px] leading-none text-ink font-normal tracking-[-0.2px]">SOP Library</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowQueryModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-ai-soft text-ai border border-ai-line text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-80 transition-opacity">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/></svg>
-              Ask AI
-            </button>
-            <button onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-90 transition-opacity">
-              <Plus size={13} /> New SOP
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 px-5 border-b border-line overflow-x-auto shrink-0">
-          {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat
-            const count = cat === 'All' ? documents.length : documents.filter((d) => (d.category ?? '').toLowerCase() === cat.toLowerCase()).length
-            return (
-              <button key={cat} onClick={() => setActiveCategory(cat)} aria-pressed={isActive}
-                className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-[12.5px] font-medium whitespace-nowrap border-b-2 transition-colors ${isActive ? 'border-accent text-accent' : 'border-transparent text-ink3 hover:text-ink hover:border-line'}`}>
-                {cat}
-                {count > 0 && (
-                  <span className={`text-[11px] px-1.5 py-px rounded-full font-medium ${isActive ? 'bg-accent-soft text-accent' : 'bg-surface-3 text-ink3'}`}>{count}</span>
-                )}
+        <PageHeader
+          className="px-5 pt-4 shrink-0"
+          eyebrow="Intelligence"
+          title="SOP Library"
+          actions={
+            <>
+              <button onClick={() => setShowQueryModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-ai-soft text-ai border border-ai-line text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-80 transition-opacity">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/></svg>
+                Ask AI
               </button>
-            )
+              <button onClick={() => setShowUploadModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-90 transition-opacity">
+                <Plus size={13} /> New SOP
+              </button>
+            </>
+          }
+          tabs={CATEGORIES.map((cat) => {
+            const count = cat === 'All' ? documents.length : documents.filter((d) => (d.category ?? '').toLowerCase() === cat.toLowerCase()).length
+            return {
+              label: cat,
+              count: count > 0 ? count : undefined,
+              active: activeCategory === cat,
+              onClick: () => setActiveCategory(cat),
+            }
           })}
-        </div>
+        />
 
         <div className="flex-1 overflow-y-auto p-5">
           <div className="flex items-center gap-2 border border-line rounded-[var(--r-md)] px-3 py-2 mb-4 bg-surface">

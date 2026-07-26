@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ClipboardCheck, RefreshCw, ShieldAlert } from 'lucide-react'
 import { safetyApi, type EmergencyPlan, type TrainingStatusRow } from '@/lib/api/safety'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { useRole } from '@/lib/hooks/useRole'
 import { SafetyInformation } from '@/components/safety/SafetyInformation'
@@ -61,15 +62,15 @@ export default function SafetyPage() {
   const [tab, setTab] = useState<Tab>('my_safety')
 
   return <main className="mx-auto max-w-5xl space-y-6 p-5">
-    <header><p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('safety.eyebrow')}</p><h1 className="font-display text-[28px] text-ink">{t('safety.title')}</h1><p className="mt-1 text-sm text-ink2">{t('safety.subtitle')}</p></header>
+    <PageHeader
+      eyebrow={t('safety.eyebrow')}
+      title={t('safety.title')}
+      subtitle={t('safety.subtitle')}
+      tabs={isManager ? MANAGER_TABS.map((item) => ({ label: item.label, active: tab === item.id, onClick: () => setTab(item.id) })) : undefined}
+    />
 
     {isManager ? (
       <>
-        <nav className="flex flex-wrap gap-1 border-b border-line">
-          {MANAGER_TABS.map((item) => (
-            <button key={item.id} onClick={() => setTab(item.id)} className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${tab === item.id ? 'border-accent text-ink' : 'border-transparent text-ink3 hover:text-ink2'}`}>{item.label}</button>
-          ))}
-        </nav>
         {tab === 'my_safety' ? <StaffSafety /> : null}
         {tab === 'compliance' ? <ComplianceDashboard /> : null}
         {tab === 'programs' ? <SafetyPrograms /> : null}

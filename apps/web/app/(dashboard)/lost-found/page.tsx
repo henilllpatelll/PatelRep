@@ -23,6 +23,7 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
@@ -411,26 +412,17 @@ export default function LostFoundPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
-            <Package className="w-5 h-5 text-[var(--caution)]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Lost &amp; Found</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
-            </p>
-          </div>
-        </div>
-        {canCreate && (
+      <PageHeader
+        eyebrow="Operations"
+        title="Lost & Found"
+        subtitle={items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
+        actions={canCreate && (
           <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />
             Log Found Item
           </Button>
         )}
-      </div>
+      />
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2">

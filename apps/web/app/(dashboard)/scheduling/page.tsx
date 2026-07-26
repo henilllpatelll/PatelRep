@@ -40,6 +40,7 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -1313,15 +1314,11 @@ export default function SchedulingPage() {
 
   return (
     <div className="space-y-5">
-      {/* â”€â”€ Page header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Staff Scheduling</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Manage shift assignments and view weekly coverage
-          </p>
-        </div>
-        {isSupervisor && (
+      <PageHeader
+        eyebrow="Organization"
+        title="Staff Scheduling"
+        subtitle="Manage shift assignments and view weekly coverage"
+        actions={isSupervisor && (
           <Button
             variant="primary"
             onClick={() => {
@@ -1334,7 +1331,7 @@ export default function SchedulingPage() {
             Assign Staff
           </Button>
         )}
-      </div>
+      />
 
       {/* â”€â”€ Today's Roster */}
       <TodayRoster />

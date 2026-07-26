@@ -604,10 +604,7 @@ function HousekeeperMyRoomsView() {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
-      <div>
-        <h1 className="font-display text-[32px] font-normal text-ink tracking-[-0.4px]">{t('housekeeping.page.myRooms.heading')}</h1>
-        <p className="text-sm text-ink3 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
-      </div>
+      <PageHeader title={t('housekeeping.page.myRooms.heading')} subtitle={format(new Date(), 'EEEE, MMMM d')} />
 
       {myRooms.length > 0 && (
         <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">

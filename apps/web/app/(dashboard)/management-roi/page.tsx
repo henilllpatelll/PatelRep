@@ -17,6 +17,7 @@ import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Stat, Pill } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -188,9 +189,9 @@ export default function ManagementRoiPage() {
     return (
       <div className="flex h-full items-center justify-center p-6">
         <div className="max-w-md rounded-[var(--r-lg)] border border-line bg-surface p-6 text-center">
-          <h1 className="text-[20px] font-semibold text-ink">
+          <p className="text-[20px] font-semibold text-ink">
             Management ROI is available to the general manager.
-          </h1>
+          </p>
           <p className="mt-2 text-sm text-ink3">
             Ask your GM for access to hotel-wide ROI reporting.
           </p>
@@ -245,19 +246,12 @@ export default function ManagementRoiPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-            <Gauge className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-[20px] font-semibold text-ink">Management ROI</h1>
-            <p className="text-sm text-gray-500">Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone</p>
-          </div>
-        </div>
-        <DateRangeSelector value={range} onChange={setRange} />
-      </div>
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Management ROI"
+        subtitle="Time saved, quality, response, and revenue protected — trends and exceptions, not totals alone"
+        actions={<DateRangeSelector value={range} onChange={setRange} />}
+      />
 
       {errors.length > 0 && (
         <div className="space-y-2">

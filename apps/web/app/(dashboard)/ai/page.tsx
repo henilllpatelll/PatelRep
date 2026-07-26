@@ -26,6 +26,7 @@ import {
   WorkOrderCard,
 } from '@/components/ai/cards'
 import { AILabel, Mono, SectionLabel, Bar, Pill } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 function genId() { return Math.random().toString(36).slice(2) }
 
@@ -328,20 +329,21 @@ export default function AICopilotPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex-1 flex flex-col min-w-0 p-5">
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Intelligence</p>
-            <h1 className="font-display text-[26px] leading-none text-ink font-normal tracking-[-0.2px]">Copilot</h1>
-          </div>
-          <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
-              <History size={13} /> History
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
-              <Settings size={13} /> Model
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Intelligence"
+          title="Copilot"
+          className="mb-4 shrink-0"
+          actions={
+            <>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
+                <History size={13} /> History
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
+                <Settings size={13} /> Model
+              </button>
+            </>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto space-y-5 pr-1" aria-live="polite" aria-label="AI Copilot conversation">
           {messages.map((msg, idx) =>

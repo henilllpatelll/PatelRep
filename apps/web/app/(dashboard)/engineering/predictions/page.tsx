@@ -6,7 +6,6 @@ import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
-  AlertTriangle,
   CheckCircle,
   Loader2,
   Plus,
@@ -19,6 +18,7 @@ import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -435,28 +435,18 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <AlertTriangle size={22} className="text-orange-500 shrink-0" />
-            {t('engineering.predictionsPage.heading')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('engineering.predictionsPage.subtitle')}
+      <PageHeader
+        eyebrow="Engineering"
+        title={t('engineering.predictionsPage.heading')}
+        subtitle={t('engineering.predictionsPage.subtitle')}
+        actions={canManage && (
+          <p className="text-xs text-gray-400 text-right leading-tight shrink-0">
+            {t('engineering.predictionsPage.freshAnalysisHint')}
+            <br />
+            {t('engineering.predictionsPage.freshAnalysisHint2')}
           </p>
-        </div>
-
-        {canManage && (
-          <div className="shrink-0">
-            <p className="text-xs text-gray-400 text-right leading-tight">
-              {t('engineering.predictionsPage.freshAnalysisHint')}
-              <br />
-              {t('engineering.predictionsPage.freshAnalysisHint2')}
-            </p>
-          </div>
         )}
-      </div>
+      />
 
       {/* Success banner */}
       {successMsg && (

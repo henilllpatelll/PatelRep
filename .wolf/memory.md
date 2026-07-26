@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-26 | UI Refresh Wave 1 (header unification): migrated all 22 hand-rolled `<h1>` content pages to PageHeader (eyebrow/title/subtitle/tabs/actions), folded existing in-page tab bars (work-orders, safety, sop, reports) into PageHeader.tabs, converted all 6 role-dashboard greetings (GM/Housekeeper/Supervisor/Engineer/FrontDesk/ChiefEngineer) to DashboardGreeting with a generalized subtitle prop. Downgraded management-roi's access-denied h1 to p (not a page title). tsc + lint + i18n gate + EN/ES parity (1375/1375) all clean; manually verified 9 pages (dashboard, tasks, work-orders incl. tab switch, safety incl. tab switch, sop, staff, housekeeping board) as GM in light+dark, no console errors, no regressions. Not yet committed — pending user review. | 22 app/(dashboard) page.tsx files, apps/web/components/dashboard/*.tsx (6 files), apps/web/components/shared/Sidebar.tsx (untouched this wave) | complete | ~150 tok |
 | 2026-07-26 | UI Refresh Wave 0 (foundation): upgraded Button (+size/loading), new IconButton, EmptyState, StateBlock, Toast (Toaster+useToast, mounted in DashboardShell), CommandPalette, DashboardGreeting, Breadcrumbs, MobileFloorNav; extracted Sidebar allow-list to lib/utils/navigation.ts; added i18n keys with verified EN/ES parity (1375/1375); built /dev/ui scratch demo page; manually verified light/dark/dense + mobile 390px via playwright-cli as GM. tsc + lint + i18n gate all clean. Not yet committed — pending user review. | apps/web/components/ui/{Button,EmptyState,StateBlock,Toast}.tsx, apps/web/components/shared/{Sidebar,DashboardShell,Breadcrumbs,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/DashboardGreeting.tsx, apps/web/lib/utils/navigation.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/app/(dashboard)/dev/ui/page.tsx | complete | ~180 tok |
 | 2026-07-17 | opera_pdf.py parse_task_sheet: added cross-page pending pattern — room whose task column is cut at page break now resolved on next recognized continuation line; Opera's repeated column header ("Tasks") correctly skipped. New test test_task_sheet_parser_resolves_clean_type_split_across_page_boundary added. 28 tests pass. | apps/api/services/opera_pdf.py, apps/api/tests/smoke/test_housekeeping_assignments.py | complete | ~60 tok |
 | 11:25 | Phase 0+1 final commit fd6c5873: cron_health table (migration 068) applied to production; _record_cron_run() added to all 8 cron endpoints; /health extended with cron/notifications/pms_sync telemetry; schema/work_order_enums.json + test_enum_contracts.py enum drift guard (2 tests pass); Playwright phase1 E2E spec committed; honest occupancy language ("Mark Occupied/Departed") in GMDashboard + FrontDeskDashboard. 229 smoke tests pass. Pushed to main. STATE.md updated. Only remaining item: 48-hour monitoring window expires ~2026-07-18. | apps/api/main.py, apps/api/routers/internal.py, apps/api/tests/smoke/test_enum_contracts.py, schema/work_order_enums.json, supabase/migrations/068_cron_health.sql, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/playwright.phase1.config.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~200 tok |
@@ -7976,3 +7977,73 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 01:17 | Created apps/web/app/(dashboard)/dev/ui/page.tsx | — | ~1734 |
 | 01:18 | Edited apps/web/components/ui/Button.tsx | 3→4 lines | ~39 |
 | 01:20 | Edited apps/web/components/ui/Button.tsx | 9→11 lines | ~68 |
+| 01:28 | Session end: 23 writes across 14 files (navigation.ts, Sidebar.tsx, Button.tsx, EmptyState.tsx, StateBlock.tsx) | 38 reads | ~21868 tok |
+| 01:33 | Edited apps/web/app/(dashboard)/ai/page.tsx | added 1 import(s) | ~41 |
+| 01:33 | Edited apps/web/app/(dashboard)/ai/page.tsx | 14→15 lines | ~194 |
+| 01:33 | Edited apps/web/app/(dashboard)/billing/page.tsx | added 1 import(s) | ~66 |
+| 01:33 | Edited apps/web/app/(dashboard)/billing/page.tsx | 7→4 lines | ~39 |
+| 01:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 1 import(s) | ~59 |
+| 01:33 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 19→14 lines | ~142 |
+| 01:35 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | modified GMDashboard() | ~114 |
+| 01:35 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 3→2 lines | ~26 |
+| 01:35 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added optional chaining | ~29 |
+| 01:36 | Edited apps/web/components/dashboard/DashboardGreeting.tsx | added 1 import(s) | ~192 |
+| 01:36 | Edited apps/web/components/dashboard/DashboardGreeting.tsx | inline fix | ~30 |
+| 01:36 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | inline fix | ~20 |
+| 01:36 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | 3→2 lines | ~14 |
+| 01:36 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | added 1 import(s) | ~50 |
+| 01:36 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | reduced (-7 lines) | ~34 |
+| 01:36 | Edited apps/web/components/dashboard/HousekeeperDashboard.tsx | reduced (-6 lines) | ~74 |
+| 01:37 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | 8→8 lines | ~117 |
+| 01:37 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | reduced (-7 lines) | ~52 |
+| 01:37 | Edited apps/web/components/dashboard/EngineerDashboard.tsx | reduced (-6 lines) | ~107 |
+| 01:37 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | 10→10 lines | ~164 |
+| 01:37 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | reduced (-7 lines) | ~53 |
+| 01:37 | Edited apps/web/components/dashboard/ChiefEngineerDashboard.tsx | reduced (-6 lines) | ~107 |
+| 01:38 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | added 1 import(s) | ~216 |
+| 01:38 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | reduced (-7 lines) | ~69 |
+| 01:38 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | reduced (-6 lines) | ~93 |
+| 01:38 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 1 import(s) | ~46 |
+| 01:38 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | reduced (-7 lines) | ~55 |
+| 01:38 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | reduced (-6 lines) | ~157 |
+| 01:39 | Edited apps/web/app/(dashboard)/dev/ui/page.tsx | inline fix | ~23 |
+| 01:39 | Edited apps/web/app/(dashboard)/safety/page.tsx | added 1 import(s) | ~56 |
+| 01:39 | Edited apps/web/app/(dashboard)/safety/page.tsx | CSS: label, active, onClick | ~188 |
+| 01:40 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | added 1 import(s) | ~33 |
+| 01:40 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | reduced (-7 lines) | ~79 |
+| 01:40 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 import(s) | ~36 |
+| 01:40 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 24→25 lines | ~282 |
+| 01:40 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | added 1 import(s) | ~70 |
+| 01:41 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | modified t() | ~387 |
+| 01:41 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | inline fix | ~20 |
+| 01:41 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | removed 8 lines | ~3 |
+| 01:41 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | added 1 import(s) | ~57 |
+| 01:41 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | reduced (-7 lines) | ~130 |
+| 01:42 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 4→1 lines | ~33 |
+| 01:42 | Edited apps/web/app/(dashboard)/evidence/page.tsx | added 1 import(s) | ~59 |
+| 01:42 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 11→11 lines | ~120 |
+| 01:42 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | added 1 import(s) | ~57 |
+| 01:42 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 34→31 lines | ~314 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~52 |
+| 01:43 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | reduced (-9 lines) | ~122 |
+| 01:43 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | added 1 import(s) | ~31 |
+| 01:43 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 22→18 lines | ~153 |
+| 01:43 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | added 1 import(s) | ~53 |
+| 01:43 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | reduced (-7 lines) | ~128 |
+| 01:44 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | added 1 import(s) | ~80 |
+| 01:44 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | modified t() | ~166 |
+| 01:44 | Edited apps/web/app/(dashboard)/reports/page.tsx | added 1 import(s) | ~33 |
+| 01:44 | Edited apps/web/app/(dashboard)/reports/page.tsx | CSS: label, active, onClick | ~89 |
+| 01:44 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | added 1 import(s) | ~67 |
+| 01:44 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | reduced (-10 lines) | ~133 |
+| 01:45 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | 9→8 lines | ~31 |
+| 01:45 | Edited apps/web/app/(dashboard)/settings/integrations/page.tsx | added 1 import(s) | ~62 |
+| 01:45 | Edited apps/web/app/(dashboard)/settings/integrations/page.tsx | 5→5 lines | ~46 |
+| 01:45 | Edited apps/web/app/(dashboard)/sop/page.tsx | added 1 import(s) | ~62 |
+| 01:46 | Edited apps/web/app/(dashboard)/sop/page.tsx | reduced (-9 lines) | ~363 |
+| 01:46 | Edited apps/web/app/(dashboard)/sop/page.tsx | 6→9 lines | ~119 |
+| 01:46 | Edited apps/web/app/(dashboard)/staff/page.tsx | added 1 import(s) | ~31 |
+| 01:46 | Edited apps/web/app/(dashboard)/staff/page.tsx | 59→54 lines | ~641 |
+| 01:46 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | added 1 import(s) | ~44 |
+| 01:47 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | 7→5 lines | ~47 |
+| 01:47 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 3→3 lines | ~40 |

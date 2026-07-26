@@ -19,6 +19,7 @@ import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -720,36 +721,16 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--caution-soft)] text-[var(--caution)]">
-          <BarChart2 className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Reports</h1>
-          <p className="text-sm text-gray-500">Operational analytics and performance metrics</p>
-        </div>
-      </div>
-
-      {/* Tab navigation */}
-      <div className="border-b border-gray-200 overflow-x-auto">
-        <nav className="-mb-px flex gap-1 min-w-max">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                currentTab === tab.id
-                  ? 'border-amber-500 text-[var(--caution)]'
-                  : 'border-transparent text-ink3 hover:border-line hover:text-ink2'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Reports"
+        subtitle="Operational analytics and performance metrics"
+        tabs={tabs.map((tab) => ({
+          label: tab.label,
+          active: currentTab === tab.id,
+          onClick: () => setActiveTab(tab.id),
+        }))}
+      />
 
       {/* Tab content */}
       <div>

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T06:20:06.049Z
-> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T06:47:31.801Z
+> Files: 37 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -1211,70 +1211,94 @@
 
 ## apps/web/app/(dashboard)/ai/
 
+- `page.tsx` — dynamic (~6157 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
+- `page.tsx` — numberOrDefault (~3597 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
 
+- `page.tsx` — GMDashboard (~2090 tok)
 
 ## apps/web/app/(dashboard)/dev/ui/
 
-- `page.tsx` — TEMPORARY Wave 0 scratch page demoing every new shared component (light/dark/density); remove before Wave 6 (~1400 tok)
+- `page.tsx` — TEMPORARY Wave 0 scratch page — demonstrates every new/upgraded shared (~1734 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
 
 ## apps/web/app/(dashboard)/engineering/assets/
 
+- `page.tsx` — getRiskFilters (~14181 tok)
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
+- `page.tsx` — getScheduleStatus (~11571 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
+- `page.tsx` — getRiskLabel (~6896 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
+- `page.tsx` — dynamic (~4965 tok)
+
+## apps/web/app/(dashboard)/evidence/
+
+- `page.tsx` — EMPTY_APPLICABILITY (~11725 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
 
 ## apps/web/app/(dashboard)/housekeeping/
 
+- `page.tsx` — SHIFTS (~9382 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
+- `page.tsx` — todayISO — renders table (~3041 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — StatusBadge (~10302 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
+- `page.tsx` — todayIso (~10710 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
+- `page.tsx` — STATUS_TONE — renders form (~7470 tok)
+
+## apps/web/app/(dashboard)/management-roi/
+
+- `page.tsx` — toLocalDateStr (~5358 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
 
 ## apps/web/app/(dashboard)/reports/
 
+- `page.tsx` — dynamic — renders table (~8134 tok)
 
 ## apps/web/app/(dashboard)/safety/
 
+- `page.tsx` — STATUS_STYLE — renders form (~2047 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
+- `page.tsx` — DEPARTMENTS (~16631 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
 
 ## apps/web/app/(dashboard)/settings/billing/
 
+- `page.tsx` — numberOrDefault (~5340 tok)
 
 ## apps/web/app/(dashboard)/settings/departments/
 
@@ -1296,6 +1320,7 @@
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
+- `page.tsx` — relativeTime (~6516 tok)
 
 ## apps/web/app/(dashboard)/settings/roles/
 
@@ -1305,12 +1330,15 @@
 
 ## apps/web/app/(dashboard)/sop/
 
+- `page.tsx` — CATEGORIES (~7733 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
+- `page.tsx` — ROLE_OPTIONS (~13969 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
+- `page.tsx` — getTaskTypeOptions — renders form (~11024 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -1323,7 +1351,12 @@
 
 ## apps/web/components/dashboard/
 
-- `DashboardGreeting.tsx` — Wave 0 sanctioned role-dashboard greeting header, spacing matches PageHeader (~250 tok)
+- `ChiefEngineerDashboard.tsx` — SkeletonRow (~3865 tok)
+- `DashboardGreeting.tsx` — One contextual line under the greeting — hotel name for GM, a shift summary for floor roles, etc. (~477 tok)
+- `EngineerDashboard.tsx` — PRIORITY_TONE (~1753 tok)
+- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7317 tok)
+- `HousekeeperDashboard.tsx` — STATUS_TONE (~2754 tok)
+- `SupervisorDashboard.tsx` — QUICK_MESSAGES (~8283 tok)
 
 ## apps/web/components/engineering/
 
@@ -1364,7 +1397,6 @@
 
 ## apps/web/i18n/locales/
 
-- `en.ts` / `es.ts` — Wave 0 added common.retry/noResults/error/search/searchPlaceholder/commandHint, nav.floorNavigation, dashboard.greeting.* — key parity verified (1375/1375)
 
 ## apps/web/lib/ai/
 
@@ -1381,7 +1413,6 @@
 ## apps/web/lib/utils/
 
 - `navigation.ts` — Wave 0: single source of truth for nav — ALL_NAV_ITEMS, NAV_BY_ROLE, getAllowedNavItems/getAllowedHrefs; extracted out of Sidebar.tsx so CommandPalette/Breadcrumbs share the exact RBAC allow-list (~700 tok)
-
 
 ## apps/web/playwright.phase0.config.ts
 

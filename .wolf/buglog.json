@@ -10238,6 +10238,198 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-07-26T06:14:18.067Z"
+    },
+    {
+      "id": "bug-617",
+      "timestamp": "2026-07-26T06:33:40.868Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/app/(dashboard)/billing/page.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (7 removed) | Also: {/* Header */}; <div className=\"flex flex-col gap-4 sm:flex-row sm | Also: const [greeting, setGreeting] = useState('Good mor; useEffect(() => { | Also: <header><p className=\"text-[11px] font-semibold up; <nav className=\"flex flex-wrap gap-1 border-b bord | Also: {/* Page header */}; <div className=\"flex flex-wrap items-center justif | Also: {/* Header */}; <div className=\"flex items-start justify-between g | Also: {/* ── Header ────────────────────────────────────; <div className=\"flex flex-col gap-3 sm:flex-row sm | Also: <header className=\"flex flex-wrap items-start just; <div> | Also: {/* â”€â”€ Page header */}; <div className=\"flex flex-col gap-3 sm:flex-row sm | Also: {/* Page header */}; <div className=\"flex items-center gap-3\"> | Also: {/* Page header */}; <div>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 15,
+      "last_seen": "2026-07-26T06:47:00.777Z"
+    },
+    {
+      "id": "bug-618",
+      "timestamp": "2026-07-26T06:35:35.489Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Had 'react'",
+      "fix": "Changed to '@tanstack/react-query'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T06:35:35.489Z"
+    },
+    {
+      "id": "bug-619",
+      "timestamp": "2026-07-26T06:35:42.268Z",
+      "error_message": "Null/undefined access in ",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T06:35:42.268Z"
+    },
+    {
+      "id": "bug-620",
+      "timestamp": "2026-07-26T06:36:22.645Z",
+      "error_message": "Wrong reference: hotelName should be subtitle",
+      "file": "apps/web/app/(dashboard)/dashboard/page.tsx",
+      "root_cause": "Used \"hotelName\" instead of \"subtitle\"",
+      "fix": "Changed hotelName → subtitle",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:39:21.772Z"
+    },
+    {
+      "id": "bug-621",
+      "timestamp": "2026-07-26T06:36:37.034Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "Had 'react'",
+      "fix": "Changed to 'date-fns'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T06:36:37.034Z"
+    },
+    {
+      "id": "bug-622",
+      "timestamp": "2026-07-26T06:36:46.924Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/HousekeeperDashboard.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 11→4 lines (7 removed) | Also: {/* Greeting */}; <div>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:36:56.921Z"
+    },
+    {
+      "id": "bug-623",
+      "timestamp": "2026-07-26T06:37:18.060Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/EngineerDashboard.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→6 lines (7 removed) | Also: {/* Greeting */}; <div>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:37:25.090Z"
+    },
+    {
+      "id": "bug-624",
+      "timestamp": "2026-07-26T06:37:48.249Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/ChiefEngineerDashboard.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→6 lines (7 removed) | Also: {/* Greeting */}; <div>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:37:54.628Z"
+    },
+    {
+      "id": "bug-625",
+      "timestamp": "2026-07-26T06:38:17.890Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/FrontDeskDashboard.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→5 lines (7 removed) | Also: {/* Greeting */}; <div>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:38:24.394Z"
+    },
+    {
+      "id": "bug-626",
+      "timestamp": "2026-07-26T06:38:44.656Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/dashboard/SupervisorDashboard.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→5 lines (7 removed) | Also: <p className=\"text-[11px] font-semibold uppercase ; {new Date().toLocaleDateString('en-US', { weekday:",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:38:53.897Z"
+    },
+    {
+      "id": "bug-627",
+      "timestamp": "2026-07-26T06:43:45.045Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx",
+      "root_cause": "Had '@/components/engineering/PMCompletionModal'",
+      "fix": "Changed to '@/components/shared/PageHeader'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T06:43:45.045Z"
+    },
+    {
+      "id": "bug-628",
+      "timestamp": "2026-07-26T06:46:03.413Z",
+      "error_message": "CSS fix: hover",
+      "file": "apps/web/app/(dashboard)/sop/page.tsx",
+      "root_cause": "hover: text-ink hover:border-line' → opacity-90 transition-opacity\">",
+      "fix": "Changed hover: text-ink hover:border-line' → opacity-90 transition-opacity\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:46:14.948Z"
     }
   ]
 }

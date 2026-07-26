@@ -11,6 +11,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -603,24 +604,24 @@ export default function RoomsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('housekeeping.roomsPage.heading')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {rooms.length === 1
-              ? t('housekeeping.roomsPage.totalRoomsOne', { count: rooms.length })
-              : t('housekeeping.roomsPage.totalRoomsOther', { count: rooms.length })}
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setShowImportModal(true)}
-        >
-          <Upload size={15} />
-          {t('housekeeping.roomsPage.importRooms')}
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Housekeeping"
+        title={t('housekeeping.roomsPage.heading')}
+        subtitle={
+          rooms.length === 1
+            ? t('housekeeping.roomsPage.totalRoomsOne', { count: rooms.length })
+            : t('housekeeping.roomsPage.totalRoomsOther', { count: rooms.length })
+        }
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload size={15} />
+            {t('housekeeping.roomsPage.importRooms')}
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

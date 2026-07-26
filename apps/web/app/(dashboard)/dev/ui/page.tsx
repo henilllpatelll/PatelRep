@@ -34,7 +34,7 @@ export default function DevUIPage() {
 
       <Card className="p-5 space-y-3">
         <SectionLabel>DashboardGreeting</SectionLabel>
-        <DashboardGreeting name="Alex" hotelName="Lone Star Inn - Austin TX" />
+        <DashboardGreeting name="Alex" subtitle="Lone Star Inn - Austin TX" />
       </Card>
 
       <Card className="p-5 space-y-3">

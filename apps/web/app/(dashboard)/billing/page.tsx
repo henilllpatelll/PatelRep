@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { billingApi, Subscription, CreditUsage } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -138,13 +139,10 @@ export default function BillingPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Billing &amp; Usage</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage your subscription and monitor AI credit consumption
-        </p>
-      </div>
+      <PageHeader
+        title="Billing & Usage"
+        subtitle="Manage your subscription and monitor AI credit consumption"
+      />
 
       {/* ── Section 1: Subscription Status ── */}
       {subLoading ? (

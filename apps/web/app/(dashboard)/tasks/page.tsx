@@ -15,6 +15,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { Pill, AILabel, Mono } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 function getTaskTypeOptions(t: TFunction): Array<{ value: TaskType; label: string }> {
   return [
@@ -595,12 +596,11 @@ function TasksPageContent() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3 mb-0.5">{t('tasks.eyebrow')}</p>
-          <h1 className="text-[22px] font-semibold text-ink leading-tight">{t('tasks.title')}</h1>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+      <PageHeader
+        eyebrow={t('tasks.eyebrow')}
+        title={t('tasks.title')}
+        meta={
+          <>
             {overdueCount > 0 && (
               <Pill tone="alert" size="sm"><Clock size={9} /> <Mono>{overdueCount}</Mono> {t('tasks.overdueLabel')}</Pill>
             )}
@@ -610,15 +610,17 @@ function TasksPageContent() {
             {inProgressCount > 0 && (
               <Pill tone="info" size="sm"><Mono>{inProgressCount}</Mono> {t('tasks.inProgressLabel')}</Pill>
             )}
-          </div>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity shrink-0"
-        >
-          <Plus size={15} />{t('tasks.newTaskButton')}
-        </button>
-      </div>
+          </>
+        }
+        actions={
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity shrink-0"
+          >
+            <Plus size={15} />{t('tasks.newTaskButton')}
+          </button>
+        }
+      />
 
       {/* Filters row */}
       <div className="flex items-center gap-3 flex-wrap">

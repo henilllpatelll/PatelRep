@@ -10,6 +10,7 @@ import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportM
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -111,40 +112,37 @@ export default function AssignmentsPage() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('housekeeping.assignmentsPage.heading')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('housekeeping.assignmentsPage.subtitle')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => setShowImport(true)}
-            className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
-          >
-            {t('housekeeping.assignmentsPage.importFromOpera')}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAiAutoAssign}
-            disabled={aiLoading}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            {aiLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                {t('housekeeping.assignmentsPage.thinking')}
-              </>
-            ) : (
-              t('housekeeping.assignmentsPage.autoAssignWithAi')
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Housekeeping"
+        title={t('housekeeping.assignmentsPage.heading')}
+        subtitle={t('housekeeping.assignmentsPage.subtitle')}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setShowImport(true)}
+              className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
+            >
+              {t('housekeeping.assignmentsPage.importFromOpera')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAiAutoAssign}
+              disabled={aiLoading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {aiLoading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  {t('housekeeping.assignmentsPage.thinking')}
+                </>
+              ) : (
+                t('housekeeping.assignmentsPage.autoAssignWithAi')
+              )}
+            </Button>
+          </>
+        }
+      />
 
       {/* Date picker */}
       <div className="flex items-center gap-3">

@@ -19,6 +19,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -607,18 +608,11 @@ export default function PMSchedulesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Calendar size={22} className="text-[var(--caution)] shrink-0" />
-            {t('programs.pmSchedules.title')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('programs.pmSchedules.subtitle')}
-          </p>
-        </div>
-        {canEdit && (
+      <PageHeader
+        eyebrow="Engineering"
+        title={t('programs.pmSchedules.title')}
+        subtitle={t('programs.pmSchedules.subtitle')}
+        actions={canEdit && (
           <Button
             variant="primary"
             onClick={() => setShowCreateModal(true)}
@@ -628,7 +622,7 @@ export default function PMSchedulesPage() {
             {t('programs.pmSchedules.addSchedule')}
           </Button>
         )}
-      </div>
+      />
 
       {/* ── Success banner ─────────────────────────────────────────────────── */}
       {successMessage && (

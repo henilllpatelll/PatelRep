@@ -23,6 +23,7 @@ import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -748,25 +749,20 @@ export default function LogbookPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen size={22} className="text-[var(--caution)] shrink-0" />
-            Shift Logbook
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Record and review shift notes across all departments
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors shrink-0"
-        >
-          <Plus size={15} />
-          Add Entry
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Organization"
+        title="Shift Logbook"
+        subtitle="Record and review shift notes across all departments"
+        actions={
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors shrink-0"
+          >
+            <Plus size={15} />
+            Add Entry
+          </button>
+        }
+      />
 
       {/* AI Shift Summary */}
       {mounted && isToday && (

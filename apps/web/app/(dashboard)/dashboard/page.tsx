@@ -1,5 +1,4 @@
 'use client'
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Loader2, LogOut, CheckCircle2 } from 'lucide-react'
@@ -16,19 +15,13 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
   const storedFullName = useAuthStore((state) => state.fullName)
   const user = useAuthStore((state) => state.user)
   const queryClient = useQueryClient()
-  const [greeting, setGreeting] = useState('Good morning')
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'there'
@@ -60,17 +53,7 @@ function GMDashboard() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink mt-1 italic">
-          {greeting}, {firstName}.
-        </h1>
-        {hotel && (
-          <p className="text-[13px] text-ink3 mt-1">{hotel.name}</p>
-        )}
-      </div>
+      <DashboardGreeting name={firstName} subtitle={hotel?.name} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">

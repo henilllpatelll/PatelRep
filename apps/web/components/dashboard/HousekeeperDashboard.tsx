@@ -1,5 +1,4 @@
 'use client'
-import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -13,6 +12,7 @@ import {
   getHousekeeperDashboardRooms,
 } from '@/lib/utils/housekeepingDashboardMetrics'
 import { Stat, Pill, StatusDot, SectionLabel, Mono, AILabel } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 
 const STATUS_TONE: Record<string, string> = {
   DIRTY: 'dirty', IN_PROGRESS: 'progress', CLEAN: 'clean',
@@ -29,13 +29,6 @@ type PillTone = 'dirty' | 'progress' | 'clean' | 'inspected' | 'ooo' | 'pickup' 
 export function HousekeeperDashboard() {
   const user = useAuthStore(s => s.user)
   const today = format(new Date(), 'yyyy-MM-dd')
-  const [greeting, setGreeting] = useState('Good morning')
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -84,20 +77,14 @@ export function HousekeeperDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Greeting */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.05] text-ink mt-2">
-          {greeting}, <em className="italic">{firstName}</em>.
-        </h1>
-        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
-          {rooms.length > 0
+      <DashboardGreeting
+        name={firstName}
+        subtitle={
+          rooms.length > 0
             ? `${rooms.length} rooms today, ${remaining} left.${done > 0 ? ` ${done} done.` : ''}`
-            : 'No rooms assigned yet today.'}
-        </p>
-      </div>
+            : 'No rooms assigned yet today.'
+        }
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

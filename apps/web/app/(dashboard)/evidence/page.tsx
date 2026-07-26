@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/authStore'
 import { useTranslation } from 'react-i18next'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const EMPTY_APPLICABILITY: PropertyApplicability = {
   facilities: [],
@@ -353,16 +354,16 @@ export default function EvidenceDashboardPage() {
   }
 
   return <div className="mx-auto max-w-6xl space-y-6 p-5">
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('evidence.eyebrow')}</p>
-        <h1 className="font-display text-[28px] text-ink">{t('evidence.title')}</h1>
-        <p className="mt-1 text-sm text-ink2">{t('evidence.subtitle')}</p>
-      </div>
-      <Button variant="secondary" onClick={() => void load()} disabled={loading}>
-        <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('evidence.refresh')}
-      </Button>
-    </header>
+    <PageHeader
+      eyebrow={t('evidence.eyebrow')}
+      title={t('evidence.title')}
+      subtitle={t('evidence.subtitle')}
+      actions={
+        <Button variant="secondary" onClick={() => void load()} disabled={loading}>
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('evidence.refresh')}
+        </Button>
+      }
+    />
 
     <section className="grid gap-3 sm:grid-cols-3" aria-label={t('evidence.summary')}>
       <SummaryCard icon={<AlertTriangle />} label={t('evidence.critical')} value={summary.critical} tone="alert" />
