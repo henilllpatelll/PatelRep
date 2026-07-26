@@ -10206,6 +10206,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-26T03:34:00.138734+00:00"
+    },
+    {
+      "id": "bug-615",
+      "timestamp": "2026-07-26T06:13:46.103Z",
+      "error_message": "Wrong reference: LifeBuoy should be ShieldCheck",
+      "file": "apps/web/lib/utils/navigation.ts",
+      "root_cause": "Used \"LifeBuoy\" instead of \"ShieldCheck\"",
+      "fix": "Changed LifeBuoy → ShieldCheck",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T06:13:46.103Z"
+    },
+    {
+      "id": "bug-616",
+      "timestamp": "2026-07-26T06:14:04.688Z",
+      "error_message": "Significant refactor of ",
+      "file": "apps/web/components/shared/Sidebar.tsx",
+      "root_cause": "61 lines replaced/restructured",
+      "fix": "Rewrote 87→24 lines (61 removed) | Also: const allowedHrefs: string[] =; customRoleModules",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T06:14:18.067Z"
     }
   ]
 }

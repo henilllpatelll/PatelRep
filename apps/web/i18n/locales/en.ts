@@ -6,6 +6,12 @@ const en = {
     loading: 'Loading...',
     rooms: '{{count}} rooms',
     cancel: 'Cancel',
+    retry: 'Retry',
+    noResults: 'Nothing here yet',
+    error: 'Something went wrong',
+    search: 'Search',
+    searchPlaceholder: 'Search rooms, work orders, guests...',
+    commandHint: 'Press Enter to go',
   },
   login: {
     brandTag: 'Hotel AI',
@@ -88,6 +94,7 @@ const en = {
     manageHotelProfile: 'Manage hotel profile',
     hotelOperationsAI: 'Hotel Operations AI',
     managementRoi: 'Management ROI',
+    floorNavigation: 'Floor navigation',
   },
   roles: {
     gm: 'General Manager',
@@ -95,6 +102,13 @@ const en = {
     housekeeper: 'Housekeeper',
     engineer: 'Engineer',
     front_desk: 'Front Desk',
+  },
+  dashboard: {
+    greeting: {
+      morning: 'Good morning',
+      afternoon: 'Good afternoon',
+      evening: 'Good evening',
+    },
   },
   commands: {
     todayOverview: 'Today overview',

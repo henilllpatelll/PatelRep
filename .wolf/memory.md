@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-26 | UI Refresh Wave 0 (foundation): upgraded Button (+size/loading), new IconButton, EmptyState, StateBlock, Toast (Toaster+useToast, mounted in DashboardShell), CommandPalette, DashboardGreeting, Breadcrumbs, MobileFloorNav; extracted Sidebar allow-list to lib/utils/navigation.ts; added i18n keys with verified EN/ES parity (1375/1375); built /dev/ui scratch demo page; manually verified light/dark/dense + mobile 390px via playwright-cli as GM. tsc + lint + i18n gate all clean. Not yet committed — pending user review. | apps/web/components/ui/{Button,EmptyState,StateBlock,Toast}.tsx, apps/web/components/shared/{Sidebar,DashboardShell,Breadcrumbs,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/DashboardGreeting.tsx, apps/web/lib/utils/navigation.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/app/(dashboard)/dev/ui/page.tsx | complete | ~180 tok |
 | 2026-07-17 | opera_pdf.py parse_task_sheet: added cross-page pending pattern — room whose task column is cut at page break now resolved on next recognized continuation line; Opera's repeated column header ("Tasks") correctly skipped. New test test_task_sheet_parser_resolves_clean_type_split_across_page_boundary added. 28 tests pass. | apps/api/services/opera_pdf.py, apps/api/tests/smoke/test_housekeeping_assignments.py | complete | ~60 tok |
 | 11:25 | Phase 0+1 final commit fd6c5873: cron_health table (migration 068) applied to production; _record_cron_run() added to all 8 cron endpoints; /health extended with cron/notifications/pms_sync telemetry; schema/work_order_enums.json + test_enum_contracts.py enum drift guard (2 tests pass); Playwright phase1 E2E spec committed; honest occupancy language ("Mark Occupied/Departed") in GMDashboard + FrontDeskDashboard. 229 smoke tests pass. Pushed to main. STATE.md updated. Only remaining item: 48-hour monitoring window expires ~2026-07-18. | apps/api/main.py, apps/api/routers/internal.py, apps/api/tests/smoke/test_enum_contracts.py, schema/work_order_enums.json, supabase/migrations/068_cron_health.sql, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/playwright.phase1.config.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~200 tok |
 | 2026-07-16 | Phase 1 E2E: playwright.phase1.config.ts + e2e/phase1-work-orders.spec.ts (5 authenticated tests: emergency WO, escalation, hold+reason, resume, inspection photo prompt). Occupancy language: "Check out"→"Mark Departed", "Check in"→"Mark Occupied", section labels updated. API field names unchanged. tsc clean. | apps/web/playwright.phase1.config.ts, apps/web/e2e/phase1-work-orders.spec.ts, apps/web/package.json, apps/web/app/(dashboard)/dashboard/page.tsx, apps/web/components/dashboard/FrontDeskDashboard.tsx | complete | ~80 tok |
@@ -7939,3 +7940,39 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 22:57 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 14 reads | ~22639 tok |
 | 22:58 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 15 reads | ~22639 tok |
 | 23:02 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 15 reads | ~22639 tok |
+| 23:42 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 15 reads | ~22639 tok |
+| 23:47 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 15 reads | ~22639 tok |
+| 23:56 | Session end: 20 writes across 10 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 15 reads | ~22639 tok |
+| 00:11 | Created .planning/UI-REFRESH-PLAN.md | — | ~6326 |
+| 00:11 | Created UI refresh plan (phases 0-5, apps/web). Explored design system: strong tokens/primitives but low adoption (PageHeader 3/25 pages, 330 hand-rolled buttons, per-page toasts, no shared empty/loading states, ambiguous nav icons). Wrote 7-wave decision-locked plan; NOT executed per user. | .planning/UI-REFRESH-PLAN.md | plan file created | ~30k |
+| 00:12 | Session end: 21 writes across 11 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 21 reads | ~29417 tok |
+| 01:01 | Session end: 21 writes across 11 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 21 reads | ~29417 tok |
+| 01:03 | Session end: 21 writes across 11 files (ROADMAP.md, STATE.md, main.py, internal.py, test_cron_health_status.py) | 21 reads | ~29417 tok |
+
+## Session: 2026-07-26 01:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:13 | Created apps/web/lib/utils/navigation.ts | — | ~1456 |
+| 01:13 | Edited apps/web/lib/utils/navigation.ts | 5→5 lines | ~56 |
+| 01:13 | Edited apps/web/lib/utils/navigation.ts | 2→2 lines | ~43 |
+| 01:14 | Edited apps/web/components/shared/Sidebar.tsx | reduced (-63 lines) | ~304 |
+| 01:14 | Edited apps/web/components/shared/Sidebar.tsx | 5→1 lines | ~12 |
+| 01:14 | Edited apps/web/components/shared/Sidebar.tsx | CSS: frontDeskModules | ~155 |
+| 01:14 | Created apps/web/components/ui/Button.tsx | — | ~1055 |
+| 01:14 | Created apps/web/components/ui/EmptyState.tsx | — | ~232 |
+| 01:14 | Created apps/web/components/ui/StateBlock.tsx | — | ~540 |
+| 01:14 | Created apps/web/components/ui/Toast.tsx | — | ~919 |
+| 01:15 | Created apps/web/components/shared/CommandPalette.tsx | — | ~1320 |
+| 01:15 | Created apps/web/components/dashboard/DashboardGreeting.tsx | — | ~436 |
+| 01:15 | Created apps/web/components/shared/Breadcrumbs.tsx | — | ~426 |
+| 01:15 | Created apps/web/components/shared/MobileFloorNav.tsx | — | ~786 |
+| 01:15 | Edited apps/web/components/shared/DashboardShell.tsx | added 1 import(s) | ~60 |
+| 01:16 | Edited apps/web/components/shared/DashboardShell.tsx | 4→5 lines | ~29 |
+| 01:16 | Edited apps/web/i18n/locales/en.ts | expanded (+6 lines) | ~110 |
+| 01:16 | Edited apps/web/i18n/locales/es.ts | expanded (+6 lines) | ~113 |
+| 01:16 | Edited apps/web/i18n/locales/en.ts | expanded (+8 lines) | ~130 |
+| 01:16 | Edited apps/web/i18n/locales/es.ts | expanded (+8 lines) | ~130 |
+| 01:17 | Created apps/web/app/(dashboard)/dev/ui/page.tsx | — | ~1734 |
+| 01:18 | Edited apps/web/components/ui/Button.tsx | 3→4 lines | ~39 |
+| 01:20 | Edited apps/web/components/ui/Button.tsx | 9→11 lines | ~68 |

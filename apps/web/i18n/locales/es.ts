@@ -6,6 +6,12 @@ const es = {
     loading: 'Cargando...',
     rooms: '{{count}} cuartos',
     cancel: 'Cancelar',
+    retry: 'Reintentar',
+    noResults: 'Nada por aqui todavia',
+    error: 'Algo salio mal',
+    search: 'Buscar',
+    searchPlaceholder: 'Buscar cuartos, ordenes, huespedes...',
+    commandHint: 'Presiona Enter para ir',
   },
   login: {
     brandTag: 'IA Hotelera',
@@ -88,6 +94,7 @@ const es = {
     manageHotelProfile: 'Administrar hotel',
     hotelOperationsAI: 'IA Operativa Hotelera',
     managementRoi: 'ROI Gerencial',
+    floorNavigation: 'Navegacion de piso',
   },
   roles: {
     gm: 'Gerente General',
@@ -95,6 +102,13 @@ const es = {
     housekeeper: 'Camarista',
     engineer: 'Técnico',
     front_desk: 'Recepcion',
+  },
+  dashboard: {
+    greeting: {
+      morning: 'Buenos dias',
+      afternoon: 'Buenas tardes',
+      evening: 'Buenas noches',
+    },
   },
   commands: {
     todayOverview: 'Resumen de hoy',
