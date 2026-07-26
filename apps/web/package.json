@@ -58,6 +58,7 @@
   "overrides": {
     "sharp": "^0.35.3",
     "postcss": "^8.5.20",
-    "@eslint/config-array": "^0.23.5"
+    "@eslint/config-array": "^0.23.5",
+    "valibot": "^1.0.0"
   }
 }
