@@ -1,24 +1,35 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: Executing Phase 05
-last_updated: "2026-07-24T19:21:18.041Z"
+milestone_name: Hotel Standards Execution Plan
+status: "Phases 0–5 closed + deployed; Phase 6 deferred (pilot-gated)"
+last_updated: "2026-07-25T00:00:00.000Z"
 progress:
-  total_phases: 5
-  completed_phases: 2
-  total_plans: 35
-  completed_plans: 22
-  percent: 63
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 37
+  completed_plans: 37
+  percent: 100
+  note: "Phase 6 (PMS & AI expansion) is deferred backlog — pilot-gated on two successful pilot hotels; not counted in active milestone scope."
 ---
 
 # GSD State
 
 **Active milestone:** Hotel Standards Execution Plan
 
-## Current phase
+## Current status
 
-**Phase 3 — Texas compliance and staff safety: CLOSED + DEPLOYED (2026-07-21).**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Next = Phase 6 (PMS & AI expansion), which is DEFERRED — pilot-gated on two successful pilot hotels; no plans authored yet.**
+
+### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
+
+`05-VERIFICATION.md`: 17/17 decision contracts (D-01…D-17), 60/60 plan truths, 92 phase-5 tests + full 427-test API suite pass. `05-HUMAN-UAT.md`: 5/6 human-verification items PASS on localhost; item 1 (live Twilio SMS) blocked on missing local credentials per D-01 — accepted deferral, not a gap. **Deployed:** full Phase 5 commit chain (through `754f0076`) is on `origin/main`, `git rev-list origin/main..main` = 0, Railway auto-deployed. Verified live 2026-07-25: API `/health` 200 (env production, db ok); web `/management-roi` 307 → /login (route exists, auth-gated). Live Twilio SMS remains unexercised in prod (no Twilio credentials — accepted deferral per D-01).
+
+### Phase 4 — Maintenance and housekeeping programs: CLOSED + DEPLOYED (2026-07-25)
+
+`04-VERIFICATION.md`: **passed, 36/36 must-haves, gaps: [], deferred: []** (re-verification after the 9 gap-closure plans 04-09..04-17 closed the D-03 bilingual floor contract — full floor scope now bilingual EN/ES with key parity, ESLint `no-literal-string` gate widened to the whole floor directory set and confirmed firing). `04-SECURITY.md`: **verified, 50/50 threats closed, 0 open** (ASVS L1). All 17 plan files executed and merged to `main`. Residual advisory findings (warnings/info in 04-REVIEW.md) are non-blocking per phase scope. Closed as a tracking update on 2026-07-25 — the verification/security passes predate this (2026-07-24); ROADMAP + this STATE were the only stale artifacts, now reconciled.
+
+### Phase 3 — Texas compliance and staff safety: CLOSED + DEPLOYED (2026-07-21).
 
 **Deployed to production 2026-07-21** (merge `eba6d066` pushed to origin/main). Railway auto-redeployed both services; API rolled over in ~60s. Verified live: API `/health` 200 (env production, db ok), Phase 3 route `/v1/safety/safety-information` now returns 401 (route exists, auth-gated — was 404 pre-deploy), web `/login` 200. The push cleared three gates unrelated to Phase 3 logic: (1) ruff removed two orphaned imports in safety.py (`c83ab890`); (2) the pre-push `npm audit` gate flagged 4 newly-disclosed 2026 high CVEs (js-yaml, brace-expansion, sharp→libvips) — remediated non-breaking via `overrides.sharp ^0.35.3` (keeps Next 16, avoids npm's proposed Next 16→14.2.35 downgrade) plus `npm audit fix` → 0 vulns (`4a79204c`); (3) origin/main had diverged with 5 Dependabot merges (zustand 4→5, @hookform/resolvers 3→5, next canary.87→preview.6, an 8-pkg non-major group, setup-python 6→7) — merged cleanly, lockfile reconciled, re-verified type-check + web build green against the new majors. **These major dep bumps (zustand 5 / hookform 5 / next preview.6) are now in production for the first time; if prod UI misbehaves, suspect these before Phase 3 code.**
 
@@ -116,9 +127,10 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 ## Current blockers
 
-- **None blocking Phase 3 (closed + deployed 2026-07-21).** Push landed (`eba6d066`); production verified healthy (see above). Remaining follow-ups: (a) authenticated prod smoke of `/safety` + the new safety surfaces with a GM session, and (b) confirm the safety crons (`safety.training-assignments`, `safety.drill-follow-up`) actually fire — see the stale-cron item below.
-- **Operational (pre-existing, not Phase 3):** production `/health` shows every cron `stale` (predictions, billing, logbook, evidence reminders, safety, etc.) — the Railway cron scheduler appears not to be firing. Investigate before relying on any automated safety/training assignment or reminder in production.
-- Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path is still unavailable locally; that RBAC is covered by the passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
+- **None blocking the active milestone.** Phases 0–5 are all closed + deployed and production is verified healthy (API `/health` 200, web live). The only remaining phase, Phase 6 (PMS & AI expansion), is intentionally **deferred — pilot-gated on two successful pilot hotels**; it is not startable now and has no authored plans.
+- **Operational (pre-existing, cross-phase — highest-priority open item):** production `/health` still shows most crons `stale` (predictions, billing, logbook, evidence reminders, safety, escalations, etc.; only `ai.failure-predictions` reads `ok`). Crons run via GitHub Actions → `/v1/internal/*`, not Railway's scheduler. This gates any reliance on automated safety/training assignments, reminders, SLA escalations, billing true-up, or ROI/lost-found retention crons in production. **Investigate the GitHub Actions cron workflow before trusting any automated loop.**
+- **Phase 5 deferral (accepted, not a blocker):** live Twilio SMS send/inbound/status-callback paths are unexercised in production — no Twilio credentials exist (D-01). Guest-recovery SMS cannot be confirmed end-to-end until credentials are provisioned.
+- Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
 
 ## Verification commands
 
