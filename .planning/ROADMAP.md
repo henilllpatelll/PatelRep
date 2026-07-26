@@ -11,7 +11,7 @@ PatelRep moves from production trust through reusable operational evidence, Texa
 - [x] **Phase 2: Evidence foundation** - Shared documents, acknowledgements, evidence, exceptions, and audit exports. Closed 2026-07-21.
 - [x] **Phase 3: Texas compliance and staff safety** - Training, incidents, safety documents, and emergency evidence. Closed 2026-07-21.
 - [ ] **Phase 4: Maintenance and housekeeping programs** - Complete recurring PM and housekeeping programs, plus bilingual floor coverage.
-- [ ] **Phase 5: Guest recovery and management ROI** - Guest-service closure and measurable operational value.
+- [x] **Phase 5: Guest recovery and management ROI** - Guest-service closure and measurable operational value. Closed 2026-07-25 (verified; not yet deployed).
 - [ ] **Phase 6: PMS and AI expansion** - Pilot-gated integrations and approval-based AI loops.
 
 ## Phase Details
@@ -91,7 +91,9 @@ Plans:
 ### Phase 5: Guest recovery and management ROI
 **Goal**: Close guest service loops and quantify hotel operational value.
 **Depends on**: Phase 4
-**Plans**: 12 plans across 6 waves. Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 5 + 05-CONTEXT.md (no formal REQ-XXX IDs; decisions labeled D-01…D-17). **Brownfield phase** — commit `fea45b29` already shipped migration 072, `services/guest_recovery/contracts.py`, `routers/guest_requests.py`, `routers/lost_found.py`, and the 9-status kanban; plans extend these in place. One new migration: 084 (guest_phone, retention/disposition, GM ADR field) — `[BLOCKING]` apply gates all of Wave 2+. Live SMS delivery will remain UNVERIFIED at phase close: no Twilio credentials exist locally (D-01).
+**Plans**: 12 plans across 6 waves. Scope authority = HOTEL_STANDARDS_EXECUTION_PLAN.md §Phase 5 + 05-CONTEXT.md (no formal REQ-XXX IDs; decisions labeled D-01…D-17). **Brownfield phase** — commit `fea45b29` already shipped migration 072, `services/guest_recovery/contracts.py`, `routers/guest_requests.py`, `routers/lost_found.py`, and the 9-status kanban; plans extend these in place. One new migration: 084 (guest_phone, retention/disposition, GM ADR field) — `[BLOCKING]` apply gates all of Wave 2+. Live SMS delivery remains UNVERIFIED at phase close: no Twilio credentials exist locally (D-01, accepted deferral).
+
+**Closed 2026-07-25.** `05-VERIFICATION.md`: 17/17 decision contracts (D-01…D-17) verified in code, 60/60 plan truths, 92 phase-5 tests + full 427-test API suite pass. `05-HUMAN-UAT.md`: 5/6 human-verification items PASS on localhost (Management ROI dashboard role-gating, ADR set/clear persistence, guest-request drawer thread/reply/satisfaction, SLA + accessibility settings, lost & found disposition queue); item 1 (live Twilio SMS) blocked on missing local credentials per D-01 — not a gap. **Not yet deployed** — local is ahead of `origin/main`; Railway production still runs pre-Phase-5 code.
 
 Plans:
 **Wave 1**
@@ -144,5 +146,5 @@ Cross-cutting constraints:
 | 2. Evidence foundation | 5/5 | Complete — deployed + verified | 2026-07-21 |
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 8/17 | Gap closure planned — 9 plans (04-09..04-17) close the D-03 bilingual floor contract; see 04-VERIFICATION.md | - |
-| 5. Guest recovery and management ROI | 0/TBD | Not started | - |
+| 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT on localhost; not yet deployed | 2026-07-25 |
 | 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |
