@@ -1,5 +1,6 @@
 fastapi==0.139.2
 uvicorn[standard]==0.51.0
+apscheduler==3.11.3
 pydantic==2.13.4
 pydantic-settings==2.14.2
 supabase==2.31.0

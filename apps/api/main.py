@@ -66,7 +66,21 @@ _EXPOSE_HEADERS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("PatelRep API starting in %s mode", settings.app_env)
+
+    from core.scheduler import build_scheduler, should_run_scheduler, CRON_SCHEDULE
+
+    scheduler = None
+    if should_run_scheduler():
+        scheduler = build_scheduler()
+        scheduler.start()
+        logger.info("In-process cron scheduler started (%d jobs)", len(CRON_SCHEDULE))
+
     yield
+
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+        logger.info("Cron scheduler stopped")
+
     from core.database import close_supabase
 
     close_supabase()

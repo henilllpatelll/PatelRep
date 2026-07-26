@@ -41,6 +41,9 @@ class Settings(BaseSettings):
 
     # Internal
     cron_secret: str
+    # In-process cron scheduler. Starts only in production (see core.scheduler);
+    # this is an emergency kill-switch to disable it there without a code change.
+    cron_scheduler_enabled: bool = True
     app_env: str = "development"
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
