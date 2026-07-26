@@ -238,9 +238,11 @@ function PredictionCard({
               {!isExpanded && hasMoreReasoning && '…'}
             </p>
             {hasMoreReasoning && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onToggleExpand(prediction.id)}
-                className="mt-1 flex items-center gap-1 text-xs font-medium text-[var(--caution)] hover:text-amber-800 transition-colors"
+                className="mt-1 gap-1 px-0 h-auto min-h-0 text-xs text-[var(--caution)] hover:text-amber-800"
               >
                 {isExpanded ? (
                   <>
@@ -251,7 +253,7 @@ function PredictionCard({
                     <ChevronDown size={13} /> {t('engineering.predictionsPage.showMore')}
                   </>
                 )}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -532,15 +534,17 @@ export default function PredictionsPage() {
         </div>
 
         {filtersActive && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setRiskFilter('all')
               setStatusFilter('all')
             }}
-            className="text-sm text-[var(--caution)] hover:text-amber-800 font-medium transition-colors"
+            className="text-[var(--caution)] hover:text-amber-800"
           >
             {t('engineering.predictionsPage.clearFilters')}
-          </button>
+          </Button>
         )}
       </div>
 

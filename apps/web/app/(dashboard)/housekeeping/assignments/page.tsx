@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportModal'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 
@@ -175,7 +175,7 @@ export default function AssignmentsPage() {
             : 'bg-red-50 border-red-200 text-red-800'
         }`}>
           <span className="font-medium">{aiMessage.text}</span>
-          <button onClick={() => setAiMessage(null)} aria-label={t('housekeeping.assignmentsPage.dismissAria')} className="ml-auto shrink-0 opacity-60 hover:opacity-100"><X size={14} aria-hidden /></button>
+          <IconButton variant="ghost" size="sm" onClick={() => setAiMessage(null)} aria-label={t('housekeeping.assignmentsPage.dismissAria')} className="ml-auto opacity-60 hover:opacity-100"><X size={14} aria-hidden /></IconButton>
         </div>
       )}
 

@@ -874,6 +874,7 @@ const en = {
         },
         manualHelpText: 'Fill in room details below. Rows with an empty Room # will be ignored.',
         addRow: 'Add Row',
+        removeRow: 'Remove row',
         close: 'Close',
         cancel: 'Cancel',
         preview: 'Preview',

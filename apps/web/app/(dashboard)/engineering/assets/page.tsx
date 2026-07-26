@@ -17,7 +17,7 @@ import {
 import { engineeringApi, Asset, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 
@@ -209,14 +209,14 @@ function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModalProps) 
                   {t('engineering.assetsPage.edit')}
                 </Button>
               )}
-              <button
+              <IconButton
+                variant="ghost"
                 onClick={onClose}
                 disabled={saving}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 aria-label={t('engineering.assetsPage.close')}
               >
                 <X size={18} />
-              </button>
+              </IconButton>
             </div>
           </div>
 
@@ -603,13 +603,13 @@ function CreateAssetModal({ isOpen, onClose, onSuccess }: CreateAssetModalProps)
               <h2 className="text-base font-bold text-gray-900">{t('engineering.assetsPage.addAsset')}</h2>
             </div>
             {!saving && (
-              <button
+              <IconButton
+                variant="ghost"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 aria-label={t('engineering.assetsPage.close')}
               >
                 <X size={18} />
-              </button>
+              </IconButton>
             )}
           </div>
 

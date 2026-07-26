@@ -9,7 +9,7 @@ import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 
@@ -90,18 +90,12 @@ function RoomMobileCard({
           )}
           {canDelete && confirmingDelete && (
             <>
-              <button
-                onClick={onConfirmDelete}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600"
-              >
+              <Button variant="primary" size="sm" onClick={onConfirmDelete} className="bg-[var(--alert)]">
                 {t('housekeeping.roomsPage.confirm')}
-              </button>
-              <button
-                onClick={onCancelDelete}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
-              >
+              </Button>
+              <Button variant="outline" size="sm" onClick={onCancelDelete}>
                 {t('common.cancel')}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -468,25 +462,25 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <button
+                          <IconButton
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('housekeeping.roomsPage.import.removeRow')}
                             onClick={() => handleRemoveRow(idx)}
-                            className="text-gray-400 hover:text-[var(--alert)] transition-colors"
+                            className="text-gray-400 hover:text-[var(--alert)]"
                           >
                             <X size={14} />
-                          </button>
+                          </IconButton>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <button
-                onClick={handleAddRow}
-                className="flex items-center gap-1.5 text-sm text-accent hover:text-accent font-medium"
-              >
+              <Button variant="ghost" size="sm" onClick={handleAddRow} className="gap-1.5 text-accent hover:text-accent">
                 <Plus size={15} />
                 {t('housekeeping.roomsPage.import.addRow')}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -709,12 +703,9 @@ export default function RoomsPage() {
                 : t('housekeeping.roomsPage.empty.noMatch')}
             </p>
             {rooms.length === 0 && (
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="text-accent hover:text-accent font-medium text-sm"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowImportModal(true)} className="text-accent hover:text-accent">
                 {t('housekeeping.roomsPage.empty.importToStart')}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -800,29 +791,35 @@ export default function RoomsPage() {
                               </Button>
                             )}
                             {canAssignRooms && confirmDeleteId !== room.room_id && (
-                              <button
+                              <IconButton
+                                variant="ghost"
+                                size="sm"
+                                aria-label={t('housekeeping.roomsPage.deleteRoomTitle')}
                                 onClick={() => setConfirmDeleteId(room.room_id)}
-                                className="p-1.5 text-gray-400 hover:text-[var(--alert)] transition-colors rounded"
-                                title={t('housekeeping.roomsPage.deleteRoomTitle')}
+                                className="text-gray-400 hover:text-[var(--alert)]"
                               >
                                 <Trash2 size={14} />
-                              </button>
+                              </IconButton>
                             )}
                             {canAssignRooms && confirmDeleteId === room.room_id && (
                               <div className="flex items-center gap-1.5">
-                                <button
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  loading={deleteMutation.isPending}
                                   onClick={() => deleteMutation.mutate(room.room_id)}
-                                  disabled={deleteMutation.isPending}
-                                  className="px-2 py-1 rounded text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600 disabled:opacity-50"
+                                  className="bg-[var(--alert)] px-2 py-1"
                                 >
                                   {t('housekeeping.roomsPage.confirm')}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => setConfirmDeleteId(null)}
-                                  className="px-2 py-1 rounded text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                  className="px-2 py-1"
                                 >
                                   {t('common.cancel')}
-                                </button>
+                                </Button>
                               </div>
                             )}
                           </div>

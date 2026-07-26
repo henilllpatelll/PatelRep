@@ -12,7 +12,7 @@ import { aiApi } from '@/lib/api/ai'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { CreateWorkOrderModal } from '@/components/engineering/CreateWorkOrderModal'
@@ -165,13 +165,15 @@ function KanbanColumn({
           <Pill tone={tone} size="sm">{workOrders.length}</Pill>
         </div>
         {canAdd && status === 'open' && (
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onAdd}
             aria-label={t('engineering.workOrdersPage.newWorkOrderAriaLabel')}
-            className="w-6 h-6 flex items-center justify-center rounded-md text-ink3 hover:bg-surface-3 hover:text-ink transition-colors"
+            className="w-6 h-6 text-ink3 hover:text-ink"
           >
             <Plus className="w-3.5 h-3.5" />
-          </button>
+          </IconButton>
         )}
       </div>
 

@@ -874,6 +874,7 @@ const es = {
         },
         manualHelpText: 'Complete los detalles del cuarto a continuación. Las filas con un Cuarto # vacío serán ignoradas.',
         addRow: 'Agregar Fila',
+        removeRow: 'Eliminar fila',
         close: 'Cerrar',
         cancel: 'Cancelar',
         preview: 'Vista previa',
