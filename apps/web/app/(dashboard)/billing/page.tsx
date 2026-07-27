@@ -7,6 +7,7 @@ import { billingApi, Subscription, CreditUsage } from '@/lib/api/billing'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -196,15 +197,11 @@ export default function BillingPage() {
 
           {/* Manage Subscription CTA — coming soon */}
           <div className="mt-5">
-            <button
-              disabled
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-            >
+            <Button variant="outline" disabled className="gap-1.5">
               Manage Subscription
               <ExternalLink className="h-3.5 w-3.5" />
               <span className="ml-1 text-xs font-normal text-gray-400">(Coming soon)</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}
