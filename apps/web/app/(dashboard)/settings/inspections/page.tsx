@@ -1,13 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ClipboardList, Plus, CheckCircle2 } from 'lucide-react'
+import { ClipboardList, Plus } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { housekeepingApi, type InspectionTemplate } from '@/lib/api/housekeeping'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import {
   TemplateCard,
   TemplateFormCard,
@@ -21,11 +22,11 @@ export default function InspectionsSettingsPage() {
   const { hotel } = useHotelStore()
   const { isGM, role } = useRole()
   const canManageTemplates = isGM || role === 'housekeeping_supervisor'
+  const toast = useToast()
 
   const [templateFormOpen, setTemplateFormOpen] = useState<'create' | string | null>(null)
   const [templateForm, setTemplateForm] = useState<TemplateFormValues>(EMPTY_TEMPLATE_FORM)
   const [templateSaving, setTemplateSaving] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const {
     data: inspectionTemplates = [],
@@ -36,12 +37,6 @@ export default function InspectionsSettingsPage() {
     enabled: !!hotel?.id && canManageTemplates,
     select: (res: any) => (res.data ?? []) as InspectionTemplate[],
   })
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
 
   const saveTemplate = useCallback(async () => {
     if (!hotel?.id) return
@@ -67,47 +62,27 @@ export default function InspectionsSettingsPage() {
       }
       setTemplateFormOpen(null)
       await refetchTemplates()
-      setToast({
-        type: 'success',
-        message: templateFormOpen === 'create' ? 'Template created.' : 'Template updated.',
-      })
+      toast.success(templateFormOpen === 'create' ? 'Template created.' : 'Template updated.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Failed to save template.' })
+      toast.error(err.message || 'Failed to save template.')
     } finally {
       setTemplateSaving(false)
     }
-  }, [hotel, templateFormOpen, templateForm, refetchTemplates])
+  }, [hotel, templateFormOpen, templateForm, refetchTemplates, toast])
 
   const deleteTemplate = useCallback(async (templateId: string) => {
     if (!hotel?.id) return
     try {
       await housekeepingApi.deleteInspectionTemplate(templateId)
       await refetchTemplates()
-      setToast({ type: 'success', message: 'Template removed.' })
+      toast.success('Template removed.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Failed to delete template.' })
+      toast.error(err.message || 'Failed to delete template.')
     }
-  }, [hotel, refetchTemplates])
+  }, [hotel, refetchTemplates, toast])
 
   return (
     <div className="space-y-4 max-w-2xl">
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-stone-900">Inspection Templates</h2>
@@ -144,13 +119,11 @@ export default function InspectionsSettingsPage() {
 
       {inspectionTemplates.filter(t => t.id !== null).length === 0 &&
         templateFormOpen !== 'create' && (
-          <Card className="p-8 text-center">
-            <ClipboardList className="w-8 h-8 text-stone-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-stone-500">No custom templates yet</p>
-            <p className="text-xs text-stone-400 mt-1">
-              Create a template to define your room inspection checklist.
-            </p>
-          </Card>
+          <EmptyState
+            icon={<ClipboardList className="w-5 h-5" />}
+            title="No custom templates yet"
+            body="Create a template to define your room inspection checklist."
+          />
         )}
 
       <div className="space-y-3">

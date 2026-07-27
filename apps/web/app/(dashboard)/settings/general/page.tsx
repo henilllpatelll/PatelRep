@@ -5,13 +5,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { hotelsApi } from '@/lib/api/hotels'
 import type { UpdateHotelData } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -73,8 +73,8 @@ function FormField({
 
 export default function GeneralSettingsPage() {
   const { hotel, setHotel } = useHotelStore()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const hydratedRef = useRef(false)
 
   const { data: fullHotel } = useQuery({
@@ -125,13 +125,6 @@ export default function GeneralSettingsPage() {
     }
   }, [fullHotel, reset])
 
-  // Auto-dismiss toast after 3 seconds
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
-
   const onSubmit = useCallback(
     async (values: HotelProfileFormValues) => {
       if (!hotel?.id) return
@@ -154,35 +147,18 @@ export default function GeneralSettingsPage() {
           logo_url: updated.logo_url,
         })
         reset(values)
-        setToast({ type: 'success', message: 'Hotel profile saved successfully.' })
+        toast.success('Hotel profile saved successfully.')
       } catch (err: any) {
-        setToast({ type: 'error', message: err.message || 'Failed to save. Please try again.' })
+        toast.error(err.message || 'Failed to save. Please try again.')
       } finally {
         setSaving(false)
       }
     },
-    [hotel, setHotel, reset],
+    [hotel, setHotel, reset, toast],
   )
 
   return (
     <div className="space-y-6 max-w-2xl">
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card className="p-6 space-y-5">
           <h2 className="text-base font-semibold text-stone-900">Hotel Profile</h2>

@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Bed, Wrench, Bell, Package, ClipboardList,
-  Users, Calendar, BookOpen, Library, FileText, Sparkles, CheckCircle2,
+  Users, Calendar, BookOpen, Library, FileText, Sparkles,
 } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { hotelsApi } from '@/lib/api/hotels'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,9 +36,9 @@ const DEFAULT_FD_MODULES = ['housekeeping', 'engineering', 'guest-requests', 'lo
 export default function FrontDeskSettingsPage() {
   const { hotel, setHotel } = useHotelStore()
   const { isGM } = useRole()
+  const toast = useToast()
   const [fdModules, setFdModules] = useState<string[]>(DEFAULT_FD_MODULES)
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data: fullHotel } = useQuery({
     queryKey: ['hotel-full', hotel?.id],
@@ -52,45 +53,22 @@ export default function FrontDeskSettingsPage() {
     }
   }, [fullHotel])
 
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
-
   const saveAccess = useCallback(async () => {
     if (!hotel?.id) return
     setSaving(true)
     try {
       const res = await hotelsApi.update(hotel.id, { front_desk_modules: fdModules })
       setHotel({ ...hotel, front_desk_modules: res.data.front_desk_modules ?? fdModules })
-      setToast({ type: 'success', message: 'Front desk access saved.' })
+      toast.success('Front desk access saved.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Failed to save. Please try again.' })
+      toast.error(err.message || 'Failed to save. Please try again.')
     } finally {
       setSaving(false)
     }
-  }, [hotel, fdModules, setHotel])
+  }, [hotel, fdModules, setHotel, toast])
 
   return (
     <div className="space-y-4 max-w-2xl">
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
-
       <div>
         <h2 className="text-base font-semibold text-stone-900 mb-1">Front Desk Access</h2>
         <p className="text-sm text-stone-500">

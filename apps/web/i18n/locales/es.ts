@@ -733,7 +733,6 @@ const es = {
       aiSuccessOther: 'La IA sugirió {{count}} asignaciones — revise la tabla a continuación.',
       aiSuccessGeneric: 'Se aplicaron las sugerencias de la IA — revise la tabla a continuación.',
       aiFailure: 'Falló la asignación automática con IA. Intente de nuevo.',
-      dismissAria: 'Descartar mensaje',
       table: {
         housekeeper: 'Mucama/o',
         roomsAssigned: 'Cuartos Asignados',

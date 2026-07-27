@@ -733,7 +733,6 @@ const en = {
       aiSuccessOther: 'AI suggested {{count}} assignments — review the table below.',
       aiSuccessGeneric: 'AI suggestions applied — review the table below.',
       aiFailure: 'AI auto-assign failed. Please try again.',
-      dismissAria: 'Dismiss message',
       table: {
         housekeeper: 'Housekeeper',
         roomsAssigned: 'Rooms Assigned',

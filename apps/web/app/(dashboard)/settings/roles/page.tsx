@@ -1,15 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ShieldCheck, Plus, CheckCircle2 } from 'lucide-react'
+import { ShieldCheck, Plus } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { staffApi } from '@/lib/api/staff'
 import type { CreateCustomRoleData } from '@/lib/api/staff'
 import type { UserRole } from '@/stores/authStore'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import {
   RoleCard,
   RoleFormCard,
@@ -23,11 +24,11 @@ export default function RolesSettingsPage() {
   const { hotel } = useHotelStore()
   const { isGM } = useRole()
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const [roleFormOpen, setRoleFormOpen] = useState<'create' | string | null>(null)
   const [roleForm, setRoleForm] = useState<RoleFormValues>(EMPTY_ROLE_FORM)
   const [roleSaving, setRoleSaving] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data: customRoles = [], refetch: refetchCustomRoles } = useQuery({
     queryKey: ['custom-roles', hotel?.id],
@@ -35,12 +36,6 @@ export default function RolesSettingsPage() {
     enabled: !!hotel?.id && isGM,
     select: res => res.data,
   })
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
 
   const saveRole = useCallback(async () => {
     if (!hotel?.id) return
@@ -59,47 +54,27 @@ export default function RolesSettingsPage() {
       }
       setRoleFormOpen(null)
       await refetchCustomRoles()
-      setToast({
-        type: 'success',
-        message: roleFormOpen === 'create' ? 'Role created.' : 'Role updated.',
-      })
+      toast.success(roleFormOpen === 'create' ? 'Role created.' : 'Role updated.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Failed to save role.' })
+      toast.error(err.message || 'Failed to save role.')
     } finally {
       setRoleSaving(false)
     }
-  }, [hotel, roleFormOpen, roleForm, refetchCustomRoles])
+  }, [hotel, roleFormOpen, roleForm, refetchCustomRoles, toast])
 
   const deleteRole = useCallback(async (roleId: string) => {
     if (!hotel?.id) return
     try {
       await staffApi.deleteCustomRole(roleId)
       await refetchCustomRoles()
-      setToast({ type: 'success', message: 'Role removed.' })
+      toast.success('Role removed.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Failed to delete role.' })
+      toast.error(err.message || 'Failed to delete role.')
     }
-  }, [hotel, refetchCustomRoles])
+  }, [hotel, refetchCustomRoles, toast])
 
   return (
     <div className="space-y-4 max-w-2xl">
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-stone-900">Custom Roles</h2>
@@ -134,13 +109,11 @@ export default function RolesSettingsPage() {
       )}
 
       {customRoles.length === 0 && roleFormOpen !== 'create' && (
-        <Card className="p-8 text-center">
-          <ShieldCheck className="w-8 h-8 text-stone-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-stone-500">No custom roles yet</p>
-          <p className="text-xs text-stone-400 mt-1">
-            Create a role to define custom module access for your team.
-          </p>
-        </Card>
+        <EmptyState
+          icon={<ShieldCheck className="w-5 h-5" />}
+          title="No custom roles yet"
+          body="Create a role to define custom module access for your team."
+        />
       )}
 
       <div className="space-y-3">

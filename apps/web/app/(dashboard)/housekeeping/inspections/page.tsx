@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, ClipboardCheck, Clock, Scissors } from 'lucide-react'
+import { ClipboardCheck, Clock, Scissors } from 'lucide-react'
 import { housekeepingApi, InspectionRecord, ReadyForInspectionRoom, ReadyToStripRoom } from '@/lib/api/housekeeping'
 import { staffApi } from '@/lib/api/staff'
 import { Card } from '@/components/ui/Card'
@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill } from '@/components/ui/primitives'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import { InspectionModal } from '@/components/housekeeping/InspectionModal'
 import { getCleanTypeLabel } from '@/lib/utils/cleanType'
 
@@ -117,6 +119,7 @@ function QueueCard({ room, onInspect }: { room: ReadyForInspectionRoom; onInspec
 
 export default function InspectionsPage() {
   const { t } = useTranslation()
+  const toast = useToast()
   const [tab, setTab] = useState<'live' | 'history'>('live')
 
   const [inspectingRoom, setInspectingRoom] = useState<ReadyForInspectionRoom | null>(null)
@@ -127,19 +130,12 @@ export default function InspectionsPage() {
   const [reassignBusy, setReassignBusy] = useState(false)
 
   const [strippingId, setStrippingId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const [dateFrom, setDateFrom] = useState(sevenDaysAgoISO())
   const [dateTo, setDateTo] = useState(todayISO())
   const [resultFilter, setResultFilter] = useState('all')
 
   const queryClient = useQueryClient()
-
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3500)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const { data: readyRooms = [], isLoading: isLoadingReady } = useQuery<ReadyForInspectionRoom[]>({
     queryKey: ['ready-for-inspection', todayISO()],
@@ -179,15 +175,9 @@ export default function InspectionsPage() {
       await housekeepingApi.markRoomStripped(room.room_id)
       queryClient.invalidateQueries({ queryKey: ['ready-to-strip'] })
       queryClient.invalidateQueries({ queryKey: ['housekeeping-board'] })
-      setToast({
-        type: 'success',
-        message: t('housekeeping.inspectionsPage.toast.strippedSuccess', { number: room.room_number }),
-      })
+      toast.success(t('housekeeping.inspectionsPage.toast.strippedSuccess', { number: room.room_number }))
     } catch {
-      setToast({
-        type: 'error',
-        message: t('housekeeping.inspectionsPage.toast.strippedError', { number: room.room_number }),
-      })
+      toast.error(t('housekeeping.inspectionsPage.toast.strippedError', { number: room.room_number }))
     } finally {
       setStrippingId(null)
     }
@@ -204,13 +194,11 @@ export default function InspectionsPage() {
       setReassignHkId(room.housekeeper_id ?? '')
       setReassignNote('')
     } else {
-      setToast({
-        type: 'success',
-        message:
-          result === 'passed'
-            ? t('housekeeping.inspectionsPage.toast.passedSuccess', { number: room.room_number })
-            : t('housekeeping.inspectionsPage.toast.conditionalSuccess', { number: room.room_number }),
-      })
+      toast.success(
+        result === 'passed'
+          ? t('housekeeping.inspectionsPage.toast.passedSuccess', { number: room.room_number })
+          : t('housekeeping.inspectionsPage.toast.conditionalSuccess', { number: room.room_number }),
+      )
     }
   }
 
@@ -232,12 +220,9 @@ export default function InspectionsPage() {
       queryClient.invalidateQueries({ queryKey: ['ready-for-inspection'] })
       const roomNum = reassignCtx.room.room_number
       setReassignCtx(null)
-      setToast({
-        type: 'success',
-        message: t('housekeeping.inspectionsPage.toast.reassignSuccess', { number: roomNum }),
-      })
+      toast.success(t('housekeeping.inspectionsPage.toast.reassignSuccess', { number: roomNum }))
     } catch {
-      setToast({ type: 'error', message: t('housekeeping.inspectionsPage.toast.reassignError') })
+      toast.error(t('housekeeping.inspectionsPage.toast.reassignError'))
     } finally {
       setReassignBusy(false)
     }
@@ -262,23 +247,6 @@ export default function InspectionsPage() {
         title={t('housekeeping.inspectionsPage.title')}
         subtitle={t('housekeeping.inspectionsPage.subtitle')}
       />
-
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-line">
@@ -360,13 +328,11 @@ export default function InspectionsPage() {
                 ))}
               </div>
             ) : readyRooms.length === 0 ? (
-              <Card className="p-10 text-center">
-                <ClipboardCheck className="w-10 h-10 text-ink4 mx-auto mb-3" />
-                <p className="text-sm font-medium text-ink2">{t('housekeeping.inspectionsPage.empty.title')}</p>
-                <p className="text-xs text-ink3 mt-1">
-                  {t('housekeeping.inspectionsPage.empty.subtitle')}
-                </p>
-              </Card>
+              <EmptyState
+                icon={<ClipboardCheck className="w-5 h-5" />}
+                title={t('housekeeping.inspectionsPage.empty.title')}
+                body={t('housekeeping.inspectionsPage.empty.subtitle')}
+              />
             ) : (
               <Card className="p-0 overflow-hidden">
                 {readyRooms.map((room) => (

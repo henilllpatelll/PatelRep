@@ -1,13 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Clock, Plus, CheckCircle2 } from 'lucide-react'
+import { Clock, Plus } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { guestRequestsApi, type SlaPolicy } from '@/lib/api/guest_requests'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import {
   SlaPolicyCard,
@@ -22,13 +23,13 @@ export default function GuestRequestsSettingsPage() {
   const { hotel } = useHotelStore()
   const { isGM, role } = useRole()
   const canManage = isGM || role === 'housekeeping_supervisor'
+  const toast = useToast()
 
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState<SlaPolicyFormValues>(EMPTY_SLA_POLICY_FORM)
   const [saving, setSaving] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const {
     data: slaPolicies = [],
@@ -39,12 +40,6 @@ export default function GuestRequestsSettingsPage() {
     enabled: !!hotel?.id,
     select: (res: any) => (res.data ?? []) as SlaPolicy[],
   })
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
 
   const savePolicy = useCallback(async () => {
     if (!hotel?.id) return
@@ -59,13 +54,13 @@ export default function GuestRequestsSettingsPage() {
       setFormOpen(false)
       setForm({ ...EMPTY_SLA_POLICY_FORM })
       await refetchPolicies()
-      setToast({ type: 'success', message: 'SLA rule created.' })
+      toast.success('SLA rule created.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err?.message || 'Failed to save SLA rule.' })
+      toast.error(err?.message || 'Failed to save SLA rule.')
     } finally {
       setSaving(false)
     }
-  }, [hotel, form, refetchPolicies])
+  }, [hotel, form, refetchPolicies, toast])
 
   const deletePolicy = useCallback(async () => {
     if (!hotel?.id || !deleteTargetId) return
@@ -74,33 +69,16 @@ export default function GuestRequestsSettingsPage() {
       await guestRequestsApi.deleteSlaPolicy(deleteTargetId)
       setDeleteTargetId(null)
       await refetchPolicies()
-      setToast({ type: 'success', message: 'SLA rule deleted.' })
+      toast.success('SLA rule deleted.')
     } catch (err: any) {
-      setToast({ type: 'error', message: err?.message || 'Failed to delete SLA rule.' })
+      toast.error(err?.message || 'Failed to delete SLA rule.')
     } finally {
       setDeleting(false)
     }
-  }, [hotel, deleteTargetId, refetchPolicies])
+  }, [hotel, deleteTargetId, refetchPolicies, toast])
 
   return (
     <div className="space-y-4 max-w-2xl">
-      {toast && (
-        <div
-          role="alert"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium ${
-            toast.type === 'success'
-              ? 'bg-[var(--ready-soft)] border-[var(--ready-line)] text-green-800'
-              : 'bg-[var(--alert-soft)] border-[var(--alert-line)] text-red-800'
-          }`}
-        >
-          <CheckCircle2
-            size={16}
-            className={toast.type === 'success' ? 'text-[var(--ready)]' : 'text-[var(--alert)]'}
-          />
-          {toast.message}
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-[20px] font-semibold text-ink">Guest Request SLA Rules</h2>
@@ -134,13 +112,11 @@ export default function GuestRequestsSettingsPage() {
       )}
 
       {slaPolicies.length === 0 && !formOpen && (
-        <Card className="p-8 text-center">
-          <Clock className="w-8 h-8 text-stone-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-stone-500">No SLA rules yet</p>
-          <p className="text-xs text-stone-400 mt-1">
-            Create a rule to override the default 240-minute response time by category, priority, and guest impact.
-          </p>
-        </Card>
+        <EmptyState
+          icon={<Clock className="w-5 h-5" />}
+          title="No SLA rules yet"
+          body="Create a rule to override the default 240-minute response time by category, priority, and guest impact."
+        />
       )}
 
       <div className="space-y-3">

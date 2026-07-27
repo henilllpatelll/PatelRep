@@ -8,13 +8,14 @@ import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 
 export function AssignmentSidebar() {
   const { t } = useTranslation()
+  const toast = useToast()
   const queryClient = useQueryClient()
   const { selectedDate, selectedShift, rooms, buildingFilter } = useHousekeepingStore()
   const [aiLoading, setAiLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const scopedRooms = buildingFilter != null
     ? rooms.filter((room: any) => room.rooms?.building === buildingFilter)
@@ -25,7 +26,6 @@ export function AssignmentSidebar() {
 
   const handleAiAutoAssign = async () => {
     setAiLoading(true)
-    setMessage(null)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(selectedDate, selectedShift ?? undefined)
       const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
@@ -34,19 +34,15 @@ export function AssignmentSidebar() {
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments', selectedDate] })
       queryClient.invalidateQueries({ queryKey: ['staff-list'] })
 
-      setMessage({
-        type: 'success',
-        text: count !== null
+      toast.success(
+        count !== null
           ? (count === 1
               ? t('housekeeping.assignmentSidebar.successCountOne', { count })
               : t('housekeeping.assignmentSidebar.successCountOther', { count }))
           : t('housekeeping.assignmentSidebar.successGeneric'),
-      })
+      )
     } catch (err: any) {
-      setMessage({
-        type: 'error',
-        text: err?.message || t('housekeeping.assignmentSidebar.failure'),
-      })
+      toast.error(err?.message || t('housekeeping.assignmentSidebar.failure'))
     } finally {
       setAiLoading(false)
     }
@@ -76,16 +72,6 @@ export function AssignmentSidebar() {
           <p className="mt-1 font-mono text-lg font-semibold text-ink">{dirtyCount}</p>
         </div>
       </div>
-
-      {message && (
-        <div className={`mt-3 rounded-[var(--r-md)] border px-3 py-2 text-xs ${
-          message.type === 'success'
-            ? 'border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)]'
-            : 'border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)]'
-        }`}>
-          {message.text}
-        </div>
-      )}
 
       <Button
         variant="primary"
