@@ -27,6 +27,7 @@ import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -899,20 +900,16 @@ export default function StaffPage() {
       {/* Staff table */}
       <SectionLabel hint={filteredStaff.length > 0 ? String(filteredStaff.length) : undefined}>Team Members</SectionLabel>
       <Card className="overflow-hidden p-0">
-        {staffQuery.isLoading ? (
-          <div className="px-6 py-12 text-center text-[13px] text-ink-3">Loading staff&hellip;</div>
-        ) : staffQuery.isError ? (
-          <div className="px-6 py-12 text-center">
-            <p className="text-[13px] text-[var(--alert)] font-medium">Failed to load staff.</p>
-            <button onClick={() => staffQuery.refetch()} className="mt-2 text-[13px] text-accent hover:underline">Try again</button>
-          </div>
-        ) : filteredStaff.length === 0 ? (
-          <div className="px-6 py-12 text-center text-[13px] text-ink-3">
-            {searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
+        <StateBlock
+          status={staffQuery.isLoading ? 'loading' : staffQuery.isError ? 'error' : filteredStaff.length === 0 ? 'empty' : null}
+          loadingLabel="Loading staff…"
+          error={{ message: 'Failed to load staff.', onRetry: () => staffQuery.refetch() }}
+          empty={{
+            title: searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
               ? 'No staff match the current filters.'
-              : 'No staff members yet. Invite your first team member above.'}
-          </div>
-        ) : (
+              : 'No staff members yet. Invite your first team member above.',
+          }}
+        >
           <table className="w-full">
             <thead>
               <tr className="border-b border-line bg-surface-2">
@@ -968,7 +965,7 @@ export default function StaffPage() {
               ))}
             </tbody>
           </table>
-        )}
+        </StateBlock>
       </Card>
 
       {/* Pending Invitations */}
@@ -977,11 +974,7 @@ export default function StaffPage() {
           <h2 className="text-[13px] font-semibold text-ink-2">Pending Invitations</h2>
 
           <Card className="overflow-hidden p-0">
-            {invitationsQuery.isLoading ? (
-              <div className="px-6 py-8 text-center text-[13px] text-ink-3">
-                Loading invitations&hellip;
-              </div>
-            ) : (
+            <StateBlock status={invitationsQuery.isLoading ? 'loading' : null} loadingLabel="Loading invitations…">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-line bg-surface-2">
@@ -1041,7 +1034,7 @@ export default function StaffPage() {
                   ))}
                 </tbody>
               </table>
-            )}
+            </StateBlock>
           </Card>
         </div>
       )}

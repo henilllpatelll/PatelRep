@@ -13,6 +13,7 @@ import { RoomsImportModal } from '@/components/settings/RoomsImportModal'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { cn } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,26 +273,19 @@ export default function RoomsSettingsPage() {
           </div>
 
           <Card className="overflow-hidden p-0">
-            {roomsLoading && (
-              <div className="flex items-center justify-center py-12 text-stone-400 text-sm">
-                Loading rooms…
-              </div>
-            )}
-            {!roomsLoading && filteredRooms.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-sm gap-2">
-                <p>
-                  {allRooms.length === 0
-                    ? 'No rooms imported yet.'
-                    : 'No rooms match the current filters.'}
-                </p>
-                {allRooms.length === 0 && (
+            <StateBlock
+              status={roomsLoading ? 'loading' : filteredRooms.length === 0 ? 'empty' : null}
+              loadingLabel="Loading rooms…"
+              empty={{
+                title: allRooms.length === 0 ? 'No rooms imported yet.' : 'No rooms match the current filters.',
+                action: allRooms.length === 0 ? (
                   <Button variant="ghost" size="sm" onClick={() => setShowRoomImportModal(true)} className="text-[var(--accent)]">
                     Import rooms to get started
                   </Button>
-                )}
-              </div>
-            )}
-            {!roomsLoading && filteredRooms.length > 0 && (
+                ) : undefined,
+              }}
+            >
+            {filteredRooms.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
@@ -419,6 +413,7 @@ export default function RoomsSettingsPage() {
                 </table>
               </div>
             )}
+            </StateBlock>
           </Card>
 
           {showRoomImportModal && (
@@ -558,22 +553,19 @@ export default function RoomsSettingsPage() {
           )}
 
           <Card className="overflow-hidden p-0">
-            {featuresLoading && (
-              <div className="flex items-center justify-center py-12 text-stone-400 text-sm">
-                Loading accessible-room features…
-              </div>
-            )}
-            {!featuresLoading && accessibleFeatures.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-sm gap-2">
-                <p>No accessible room features recorded yet.</p>
-                {canManageAccessibility && (
+            <StateBlock
+              status={featuresLoading ? 'loading' : accessibleFeatures.length === 0 ? 'empty' : null}
+              loadingLabel="Loading accessible-room features…"
+              empty={{
+                title: 'No accessible room features recorded yet.',
+                action: canManageAccessibility ? (
                   <Button variant="ghost" size="sm" onClick={() => { setFeatureForm({ ...EMPTY_FEATURE_FORM }); setAddFeatureOpen(true) }} className="text-[var(--accent)]">
                     Add the first feature
                   </Button>
-                )}
-              </div>
-            )}
-            {!featuresLoading && accessibleFeatures.length > 0 && (
+                ) : undefined,
+              }}
+            >
+            {accessibleFeatures.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
@@ -630,6 +622,7 @@ export default function RoomsSettingsPage() {
                 </table>
               </div>
             )}
+            </StateBlock>
           </Card>
         </div>
       )}

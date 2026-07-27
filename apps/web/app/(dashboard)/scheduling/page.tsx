@@ -41,6 +41,8 @@ import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -160,22 +162,12 @@ function TodayRoster() {
                 </div>
               ))}
             </div>
-          ) : rosterQuery.isError ? (
-            <div className="px-5 py-4 flex items-center gap-2 text-sm text-[var(--alert)]">
-              <AlertCircle size={15} />
-              Failed to load roster.
-              <button
-                onClick={() => rosterQuery.refetch()}
-                className="underline hover:no-underline"
-              >
-                Retry
-              </button>
-            </div>
-          ) : roster.length === 0 ? (
-            <div className="px-5 py-4 text-[13px] text-ink-3">
-              No staff scheduled for today yet.
-            </div>
           ) : (
+            <StateBlock
+              status={rosterQuery.isError ? 'error' : roster.length === 0 ? 'empty' : null}
+              error={{ message: 'Failed to load roster.', onRetry: () => rosterQuery.refetch() }}
+              empty={{ title: 'No staff scheduled for today yet.' }}
+            >
             <div className="px-5 py-3 flex flex-wrap gap-3">
               {roster.map((entry) => {
                 const color = getShiftColor(entry.shift.name)
@@ -228,6 +220,7 @@ function TodayRoster() {
                 )
               })}
             </div>
+            </StateBlock>
           )}
         </div>
       )}
@@ -717,9 +710,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
           ) : (
             <>
               {shifts.length === 0 ? (
-                <div className="px-5 py-4 text-sm text-slate-400">
-                  No shifts defined yet. Create your first shift below.
-                </div>
+                <EmptyState title="No shifts defined yet. Create your first shift below." className="py-4" />
               ) : (
                 <div className="divide-y divide-white/30">
                   {shifts.map((shift) => {
@@ -1045,11 +1036,8 @@ function WeekCalendar({
             <tbody className="divide-y divide-gray-50">
               {filteredStaff.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-5 py-10 text-center text-sm text-gray-400"
-                  >
-                    No staff found for the selected department.
+                  <td colSpan={8}>
+                    <EmptyState title="No staff found for the selected department." className="py-10" />
                   </td>
                 </tr>
               ) : (
@@ -1157,8 +1145,8 @@ function WeekCalendar({
             <tbody className="divide-y divide-gray-50">
               {byShiftRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-gray-400">
-                    No active shifts found.
+                  <td colSpan={8}>
+                    <EmptyState title="No active shifts found." className="py-10" />
                   </td>
                 </tr>
               ) : (

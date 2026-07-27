@@ -26,6 +26,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { cn } from '@/lib/utils'
 
@@ -455,21 +456,18 @@ export default function LostFoundPage() {
           <SkeletonCard />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <Package className="w-6 h-6 text-gray-400" />
-          </div>
-          <p className="text-sm font-medium text-gray-700">
-            {dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {dispositionDueOnly
+        <EmptyState
+          icon={<Package className="w-5 h-5" />}
+          title={dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
+          body={
+            dispositionDueOnly
               ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
               : search
               ? `No items match "${search}"`
-              : 'No lost & found items logged yet.'}
-          </p>
-        </div>
+              : 'No lost & found items logged yet.'
+          }
+          className="py-16"
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => (

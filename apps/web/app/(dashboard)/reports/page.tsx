@@ -20,6 +20,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -335,11 +336,12 @@ function StaffPerformanceTab() {
         </div>
       ) : (
         !isLoading && (
-          <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
-            <Users className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm font-medium text-gray-600">No staff performance data yet</p>
-            <p className="mt-1 text-sm text-gray-400">Assign tasks and mark them complete to generate staff performance data.</p>
-          </div>
+          <EmptyState
+            icon={<Users className="w-5 h-5" />}
+            title="No staff performance data yet"
+            body="Assign tasks and mark them complete to generate staff performance data."
+            className="rounded-xl border border-dashed border-gray-300"
+          />
         )
       )}
     </div>
@@ -654,11 +656,12 @@ function AIUsageTab() {
         </div>
       ) : (
         !isLoading && (
-          <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
-            <Zap className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm font-medium text-gray-600">No AI usage data yet</p>
-            <p className="mt-1 text-sm text-gray-400">Use the AI Copilot to create tasks or query SOPs — usage will appear here.</p>
-          </div>
+          <EmptyState
+            icon={<Zap className="w-5 h-5" />}
+            title="No AI usage data yet"
+            body="Use the AI Copilot to create tasks or query SOPs — usage will appear here."
+            className="rounded-xl border border-dashed border-gray-300"
+          />
         )
       )}
     </div>

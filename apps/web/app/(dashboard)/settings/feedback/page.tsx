@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, Clock3, MessageSquareWarning } from 'lucide-
 import { feedbackApi, type FeedbackSubmission } from '@/lib/api/feedback'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 const CATEGORY_LABELS: Record<string, string> = {
   bug: 'Bug',
@@ -79,38 +80,22 @@ export default function FeedbackSettingsPage() {
         <p className="mt-1 text-sm text-ink3">Staff reports from the floating feedback button.</p>
       </div>
 
-      {isLoading && (
-        <div className="space-y-3">
-          {[0, 1, 2].map((item) => (
-            <Card key={item} className="h-28 animate-pulse bg-surface-2">
-              <span className="sr-only">Loading feedback</span>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {isError && (
-        <Card className="flex items-center gap-2 p-4 text-sm text-alert">
-          <AlertCircle size={16} />
-          Feedback could not load.
-        </Card>
-      )}
-
-      {!isLoading && !isError && feedback.length === 0 && (
-        <Card className="flex min-h-[180px] flex-col items-center justify-center p-6 text-center">
-          <MessageSquareWarning size={24} className="mb-3 text-ink3" />
-          <p className="text-sm font-medium text-ink">No feedback yet</p>
-          <p className="mt-1 text-sm text-ink3">New staff reports will appear here.</p>
-        </Card>
-      )}
-
-      {!isLoading && !isError && feedback.length > 0 && (
+      <StateBlock
+        status={isLoading ? 'loading' : isError ? 'error' : feedback.length === 0 ? 'empty' : null}
+        loadingLabel="Loading feedback…"
+        error={{ message: 'Feedback could not load.' }}
+        empty={{
+          icon: <MessageSquareWarning size={20} />,
+          title: 'No feedback yet',
+          body: 'New staff reports will appear here.',
+        }}
+      >
         <div className="space-y-3">
           {feedback.map((item) => (
             <FeedbackRow key={item.id} item={item} />
           ))}
         </div>
-      )}
+      </StateBlock>
     </div>
   )
 }

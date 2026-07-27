@@ -4,6 +4,7 @@ import { X, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { InspectionTemplate } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ export function TemplateFormCard({
         </div>
 
         {values.items.length === 0 && (
-          <p className="text-xs text-stone-400 italic py-1">No items yet.</p>
+          <EmptyState title="No items yet." className="py-4" />
         )}
 
         <div className="space-y-2">
