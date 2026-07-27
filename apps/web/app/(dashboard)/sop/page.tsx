@@ -7,7 +7,7 @@ import {
 import { sopApi, SOPDocument } from '@/lib/api/sop'
 import { SOPQueryModal } from '@/components/ai/SOPQueryModal'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { AILabel, Mono, Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
 
@@ -82,10 +82,9 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       <p className="text-sm text-ink3 mb-5 max-w-xs">
         Upload your hotel's standard operating procedures to make them searchable with AI.
       </p>
-      <button onClick={onUpload}
-        className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-[var(--r-md)] hover:opacity-90 transition-opacity">
+      <Button variant="primary" onClick={onUpload} className="gap-2">
         <Upload size={15} /> Upload your first SOP
-      </button>
+      </Button>
       <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
         {['Room turns', 'Emergency calls', 'PM checklists'].map((item) => (
           <div key={item} className="rounded-[var(--r-lg)] border border-line bg-surface-2 px-4 py-3">
@@ -151,14 +150,16 @@ function DocumentCard({ doc, onDeleteRequest, onOpen, deleting, isSelected, refe
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] text-ink3 font-mono">{formatRelativeDate(doc.created_at)}</span>
-            <button
+            <IconButton
+              variant="ghost"
+              size="sm"
+              loading={deleting}
               onClick={(e) => { e.stopPropagation(); onDeleteRequest(doc) }}
-              disabled={deleting}
               aria-label={`Delete ${doc.title}`}
-              className="p-1 rounded text-ink4 hover:text-alert hover:bg-alert-soft transition-colors disabled:opacity-50"
+              className="text-ink4 hover:text-alert hover:bg-alert-soft"
             >
-              {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-            </button>
+              <Trash2 size={13} />
+            </IconButton>
           </div>
         </div>
       </div>
@@ -183,14 +184,14 @@ function ConfirmDeleteDialog({ doc, loading, onCancel, onConfirm }: {
             <h2 id="delete-sop-title" className="text-base font-semibold text-ink">Delete SOP?</h2>
             <p className="mt-2 text-sm text-ink2">Delete "{doc.title}" from the library. This cannot be undone.</p>
           </div>
-          <button type="button" onClick={onCancel} disabled={loading} aria-label="Close" className="rounded-[var(--r-md)] p-1.5 text-ink3 hover:bg-surface-3 hover:text-ink2 transition-colors disabled:opacity-50">
+          <IconButton variant="ghost" size="sm" onClick={onCancel} disabled={loading} aria-label="Close" className="text-ink3 hover:bg-surface-3 hover:text-ink2">
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>Cancel</Button>
-          <Button type="button" variant="secondary" onClick={onConfirm} disabled={loading} className="border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:bg-[var(--alert-soft)]">
-            {loading && <Loader2 size={13} className="animate-spin" />} Delete
+          <Button type="button" variant="secondary" loading={loading} onClick={onConfirm} className="border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:bg-[var(--alert-soft)]">
+            Delete
           </Button>
         </div>
       </div>
@@ -213,9 +214,9 @@ function NoticeDialog({ title, message, onClose }: { title: string; message: str
             <h2 id="sop-notice-title" className="text-base font-semibold text-ink">{title}</h2>
             <p className="mt-2 text-sm text-ink2">{message}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-[var(--r-md)] p-1.5 text-ink3 hover:bg-surface-3 hover:text-ink2 transition-colors">
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-ink3 hover:bg-surface-3 hover:text-ink2">
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
         <Button type="button" variant="primary" onClick={onClose} className="mt-6 w-full justify-center">OK</Button>
       </div>
@@ -283,9 +284,9 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-ink">Upload SOP Document</h2>
             {!uploading && (
-              <button onClick={onClose} className="p-1.5 rounded-[var(--r-md)] text-ink3 hover:text-ink hover:bg-surface-3 transition-colors" aria-label="Close modal">
+              <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close modal" className="text-ink3 hover:text-ink hover:bg-surface-3">
                 <X size={18} />
-              </button>
+              </IconButton>
             )}
           </div>
 
@@ -416,15 +417,13 @@ export default function SOPLibraryPage() {
           title="SOP Library"
           actions={
             <>
-              <button onClick={() => setShowQueryModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-ai-soft text-ai border border-ai-line text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-80 transition-opacity">
+              <Button variant="ai" size="sm" onClick={() => setShowQueryModal(true)} className="gap-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/></svg>
                 Ask AI
-              </button>
-              <button onClick={() => setShowUploadModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-90 transition-opacity">
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => setShowUploadModal(true)} className="gap-1.5">
                 <Plus size={13} /> New SOP
-              </button>
+              </Button>
             </>
           }
           tabs={CATEGORIES.map((cat) => {
@@ -510,10 +509,9 @@ export default function SOPLibraryPage() {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <button onClick={() => setShowQueryModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 border border-line text-[12.5px] text-ink2 rounded-[var(--r-md)] hover:bg-surface-2 transition-colors">
+              <Button variant="outline" size="sm" onClick={() => setShowQueryModal(true)} className="gap-1.5">
                 <MessageSquare size={13} /> Ask AI about this SOP
-              </button>
+              </Button>
             </div>
           </div>
         </div>
