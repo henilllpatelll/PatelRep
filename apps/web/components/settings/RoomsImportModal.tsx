@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, AlertCircle, X, Plus } from 'lucide-react'
 import { roomsApi, type ImportRoomPayload } from '@/lib/api/rooms'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,12 +101,9 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 className="text-lg font-semibold text-stone-900">Import Rooms</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-stone-600 rounded transition-colors"
-          >
+          <IconButton variant="ghost" onClick={onClose} aria-label="Close" className="text-stone-400 hover:text-stone-600">
             <X size={20} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Tabs */}
@@ -291,25 +288,25 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
                           />
                         </td>
                         <td className="px-2 py-1">
-                          <button
+                          <IconButton
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setManualRows(prev => prev.filter((_, i) => i !== idx))}
-                            className="text-stone-400 hover:text-[var(--alert)] transition-colors"
+                            aria-label="Remove row"
+                            className="text-stone-400 hover:text-[var(--alert)]"
                           >
                             <X size={14} />
-                          </button>
+                          </IconButton>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <button
-                onClick={() => setManualRows(prev => [...prev, EMPTY_IMPORT_ROW()])}
-                className="flex items-center gap-1.5 text-sm text-[var(--accent)] font-medium"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setManualRows(prev => [...prev, EMPTY_IMPORT_ROW()])} className="gap-1.5 text-[var(--accent)]">
                 <Plus size={15} />
                 Add Row
-              </button>
+              </Button>
             </div>
           )}
         </div>

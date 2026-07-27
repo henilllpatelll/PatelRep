@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, RotateCcw, Save, ChevronUp, ChevronDown } from 'lucide-react'
 import { checklistsApi, CLEAN_TYPE_NAMES, type ChecklistTemplate, type ChecklistItemInput } from '@/lib/api/checklists'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 
 const CLEAN_TYPES = ['DEP', 'FULL', 'LIGHT', 'DEFAULT'] as const
@@ -214,24 +214,26 @@ export function CleaningChecklistEditor() {
             {items.map((item, idx) => (
               <div key={item._key} className="flex items-start gap-3 px-4 py-3">
                 <div className="flex flex-col gap-0.5 mt-1.5 shrink-0">
-                  <button
-                    type="button"
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveItem(item._key, -1)}
                     disabled={idx === 0}
-                    className="p-0.5 rounded text-stone-300 hover:text-stone-600 disabled:opacity-20 transition-colors"
+                    className="h-5 w-5 text-stone-300 hover:text-stone-600"
                     aria-label="Move up"
                   >
                     <ChevronUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
+                  </IconButton>
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveItem(item._key, 1)}
                     disabled={idx === items.length - 1}
-                    className="p-0.5 rounded text-stone-300 hover:text-stone-600 disabled:opacity-20 transition-colors"
+                    className="h-5 w-5 text-stone-300 hover:text-stone-600"
                     aria-label="Move down"
                   >
                     <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
+                  </IconButton>
                 </div>
                 <div className="flex-1 grid grid-cols-[140px_1fr] gap-2 min-w-0">
                   <select
@@ -260,27 +262,24 @@ export function CleaningChecklistEditor() {
                   />
                   <span className="text-xs text-stone-500">Required</span>
                 </label>
-                <button
-                  type="button"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleRemoveItem(item._key)}
-                  className="mt-2 p-1 rounded text-stone-300 hover:text-[var(--alert)] transition-colors shrink-0"
+                  className="mt-2 text-stone-300 hover:text-[var(--alert)] shrink-0"
                   aria-label="Remove item"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                </IconButton>
               </div>
             ))}
           </div>
 
           <div className="px-4 py-3 border-t border-line">
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:opacity-80 transition-opacity"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddItem} className="gap-1.5 text-[var(--caution)] hover:opacity-80">
               <Plus className="w-4 h-4" />
               Add item
-            </button>
+            </Button>
           </div>
         </Card>
       )}
