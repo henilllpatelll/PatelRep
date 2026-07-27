@@ -6,7 +6,6 @@ import {
   Plus,
   Clock,
   X,
-  Loader2,
   MapPin,
   User,
   CheckCircle,
@@ -22,7 +21,7 @@ import {
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
@@ -212,30 +211,29 @@ function ItemCard({
       {/* Mark Claimed button */}
       {canAct && (
         <div className="pt-2 border-t border-gray-100">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onMarkClaimed(item)}
-            className="w-full px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+            className="w-full gap-1 bg-[var(--ready)]"
           >
             <CheckCircle className="w-3 h-3" />
             Release Item
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Approve Disposition button (D-11, D-12) */}
       {canApproveDisposition && item.status === 'unclaimed' && (
         <div className={cn('pt-2', !canAct && 'border-t border-gray-100')}>
-          <button
+          <Button
+            variant={dispositionDue ? 'primary' : 'outline'}
+            size="sm"
             onClick={() => onApproveDisposition(item)}
-            className={cn(
-              'w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1',
-              dispositionDue
-                ? 'bg-[var(--caution)] text-white hover:opacity-90'
-                : 'border border-line text-ink2 hover:bg-surface-2'
-            )}
+            className={cn('w-full', dispositionDue && 'bg-[var(--caution)]')}
           >
             Approve Disposition
-          </button>
+          </Button>
         </div>
       )}
 
@@ -286,9 +284,9 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-lost-found-title" className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <IconButton variant="ghost" onClick={onClose} aria-label="Close">
             <X className="w-4 h-4" />
-          </button>
+          </IconButton>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -302,11 +300,10 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
           </div>
           {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
-            <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+            <Button type="submit" variant="primary" loading={isPending} disabled={!form.description.trim()} className="flex-1">
               {isPending ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -11,7 +11,7 @@ import {
   type GuestMessage,
   type AccessibleRoomFeature,
 } from '@/lib/api/guest_requests'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { useRole } from '@/lib/hooks/useRole'
 
@@ -140,12 +140,9 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink3">Room</p>
             <p className="font-mono text-[26px] font-bold text-ink leading-tight">Room {roomNum}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--r-sm)] text-ink3 hover:text-ink hover:bg-surface-2 transition-colors"
-          >
+          <IconButton variant="ghost" onClick={onClose} aria-label={t('guestRequests.closeDrawer')}>
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Content */}

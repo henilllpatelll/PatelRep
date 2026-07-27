@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { guestRequestsApi } from '@/lib/api/guest_requests'
 import { roomsApi } from '@/lib/api/rooms'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
 
@@ -105,12 +105,9 @@ export function NewRequestModal({ isOpen, onClose, onSuccess }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <h2 className="text-[20px] font-semibold text-ink">{t('guestRequests.newRequest')}</h2>
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded text-ink3 hover:text-ink hover:bg-surface-2 transition-colors"
-          >
+          <IconButton variant="ghost" size="sm" onClick={handleClose} aria-label={t('guestRequests.closeDrawer')}>
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         <div className="px-5 py-5 space-y-4">

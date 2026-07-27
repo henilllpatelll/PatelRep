@@ -1378,6 +1378,7 @@ const es = {
     creating: 'Creando...',
     createRequest: 'Crear Solicitud',
     createFailed: 'No se pudo crear la solicitud',
+    closeDrawer: 'Cerrar panel',
   },
 }
 

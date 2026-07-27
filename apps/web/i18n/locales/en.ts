@@ -1378,6 +1378,7 @@ const en = {
     creating: 'Creating...',
     createRequest: 'Create Request',
     createFailed: 'Failed to create request',
+    closeDrawer: 'Close drawer',
   },
 }
 
