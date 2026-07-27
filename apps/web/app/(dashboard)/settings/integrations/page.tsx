@@ -212,7 +212,6 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <PageHeader
-        eyebrow="Settings"
         title="Integrations"
         subtitle="Connect external systems to power your hotel operations."
       />

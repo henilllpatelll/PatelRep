@@ -37,6 +37,12 @@ export function CommandPalette() {
   }, [])
 
   useEffect(() => {
+    const handleOpen = () => setOpen(true)
+    document.addEventListener('command-palette:open', handleOpen)
+    return () => document.removeEventListener('command-palette:open', handleOpen)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
     setQuery('')
     requestAnimationFrame(() => inputRef.current?.focus())

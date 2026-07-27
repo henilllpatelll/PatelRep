@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
-  FileText, Library, Settings, ClipboardList, ShieldCheck,
-  Package, Sparkles, MessageSquare, TrendingUp,
+  FileText, Library, Settings, ClipboardList, ShieldCheck, LifeBuoy,
+  Package, Sparkles, MessageSquare, TrendingUp, ListChecks,
 } from 'lucide-react'
 import type { UserRole } from '@/stores/authStore'
 
@@ -17,14 +17,14 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     { href: '/engineering/pm-schedules', label: 'PM Schedules' },
     { href: '/engineering/predictions',  label: 'Predictions' },
   ]},
-  { href: '/programs',       label: 'Operational Programs', icon: ClipboardList },
+  { href: '/programs',       label: 'Programs',       icon: ClipboardList },
   { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
   { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
-  { href: '/tasks',          label: 'Tasks',          icon: ClipboardList },
+  { href: '/tasks',          label: 'Tasks',          icon: ListChecks },
   { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
   { href: '/sop',            label: 'SOP Library',    icon: Library },
   { href: '/evidence',       label: 'Evidence',       icon: ShieldCheck },
-  { href: '/safety',         label: 'Safety',         icon: ShieldCheck },
+  { href: '/safety',         label: 'Safety',         icon: LifeBuoy },
   { href: '/reports',        label: 'Reports',        icon: FileText },
   { href: '/management-roi', label: 'Management ROI', icon: TrendingUp },
   { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
@@ -32,7 +32,22 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
 ]
 
-export const SETTINGS_NAV_ITEM: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
+export const SETTINGS_NAV_ITEM: NavItem = {
+  href: '/settings', label: 'Settings', icon: Settings,
+  subNav: [
+    { href: '/settings/general',        label: 'General' },
+    { href: '/settings/departments',    label: 'Departments' },
+    { href: '/settings/front-desk',     label: 'Front Desk' },
+    { href: '/settings/roles',          label: 'Roles' },
+    { href: '/settings/inspections',    label: 'Inspections' },
+    { href: '/settings/guest-requests', label: 'Guest Requests' },
+    { href: '/settings/housekeeping',   label: 'Housekeeping' },
+    { href: '/settings/rooms',          label: 'Rooms' },
+    { href: '/settings/billing',        label: 'Billing' },
+    { href: '/settings/integrations',   label: 'Integrations' },
+    { href: '/settings/feedback',       label: 'Feedback' },
+  ],
+}
 
 export const NAV_BY_ROLE: Record<UserRole, string[]> = {
   gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
@@ -53,7 +68,7 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   'Work Orders': 'nav.workOrders',
   Assets: 'nav.assets',
   'PM Schedules': 'nav.pmSchedules',
-  'Operational Programs': 'nav.programs',
+  Programs: 'nav.programs',
   Predictions: 'nav.predictions',
   'Lost & Found': 'nav.lostFound',
   'Guest Requests': 'nav.guestRequests',
@@ -71,6 +86,14 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   'Room Board': 'nav.roomBoard',
   Assignments: 'nav.assignments',
   Inspections: 'nav.inspections',
+  General: 'nav.general',
+  Departments: 'nav.departments',
+  'Front Desk': 'nav.frontDesk',
+  Roles: 'nav.roles',
+  Rooms: 'nav.rooms',
+  Billing: 'nav.billing',
+  Integrations: 'nav.integrations',
+  Feedback: 'nav.feedback',
 }
 
 export const OPERATIONS_HREFS   = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks']

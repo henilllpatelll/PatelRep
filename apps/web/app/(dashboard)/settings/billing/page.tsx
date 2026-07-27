@@ -193,7 +193,6 @@ export default function SettingsBillingPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <PageHeader
-        eyebrow="Settings"
         title="Billing & Usage"
         subtitle="Manage your subscription and monitor AI credit consumption"
       />

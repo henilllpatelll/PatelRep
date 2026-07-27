@@ -1,6 +1,6 @@
 'use client'
 
-import { Bed, ClipboardList, LayoutDashboard, MessageSquare, Sparkles, Wrench } from 'lucide-react'
+import { Bed, LayoutDashboard, ListChecks, MessageSquare, Sparkles, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
@@ -21,14 +21,14 @@ const FLOOR_NAV: Record<FloorRole, FloorNavItem[]> = {
   engineer: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/engineering/work-orders', label: 'Work Orders', icon: Wrench },
-    { href: '/tasks', label: 'Tasks', icon: ClipboardList },
+    { href: '/tasks', label: 'Tasks', icon: ListChecks },
     { href: '/ai', label: 'AI Copilot', icon: Sparkles },
   ],
   front_desk: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/housekeeping', label: 'Housekeeping', icon: Bed },
     { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
-    { href: '/tasks', label: 'Tasks', icon: ClipboardList },
+    { href: '/tasks', label: 'Tasks', icon: ListChecks },
   ],
 }
 
