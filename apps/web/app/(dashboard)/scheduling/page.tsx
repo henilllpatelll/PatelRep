@@ -39,7 +39,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -319,13 +319,15 @@ function AssignShiftModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-line">
           <h2 id="assign-shift-title" className="text-[13px] font-semibold text-ink">Assign Shift</h2>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-ink-3 hover:text-ink rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors"
+            className="text-ink-3 hover:text-ink"
           >
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}
@@ -540,13 +542,15 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
           <h2 id="shift-form-title" className="text-[13px] font-semibold text-ink">
             {isEdit ? 'Edit Shift' : 'New Shift'}
           </h2>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-ink-3 hover:text-ink rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors"
+            className="text-ink-3 hover:text-ink"
           >
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}
@@ -748,13 +752,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
                             {shift.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
-                        <button
-                          onClick={() => setEditShift(shift)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditShift(shift)} className="gap-1 bg-gray-100 text-gray-500 hover:bg-gray-200">
                           <Pencil size={11} />
                           Edit
-                        </button>
+                        </Button>
                       </div>
                     )
                   })}
@@ -763,13 +764,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
 
               {/* Create shift button */}
               <div className="px-5 py-3 border-t border-white/40">
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 text-sm font-medium text-[var(--caution)] hover:text-[var(--caution)] transition-colors"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(true)} className="gap-2 text-[var(--caution)]">
                   <Plus size={15} />
                   Create Shift
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -1356,23 +1354,17 @@ export default function SchedulingPage() {
 
       {/* â”€â”€ Week navigation */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={prevWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
-        >
+        <Button variant="outline" onClick={prevWeek} className="gap-1.5">
           <ChevronLeft size={15} />
           Prev
-        </button>
+        </Button>
         <span className="text-sm font-semibold text-gray-800 min-w-[200px] text-center">
           Week of {weekLabel}
         </span>
-        <button
-          onClick={nextWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
-        >
+        <Button variant="outline" onClick={nextWeek} className="gap-1.5">
           Next
           <ChevronRight size={15} />
-        </button>
+        </Button>
       </div>
 
       {/* â”€â”€ Weekly Calendar */}

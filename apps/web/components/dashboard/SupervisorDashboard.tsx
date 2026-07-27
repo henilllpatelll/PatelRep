@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Megaphone, Send, X, Check, Loader2 } from 'lucide-react'
+import { Megaphone, Send, X, Check } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { reportsApi } from '@/lib/api/reports'
 import { aiApi } from '@/lib/api/ai'
@@ -17,6 +17,7 @@ import {
   Pill, Bar, Stat, SectionLabel, AILabel, Mono, StatusDot,
 } from '@/components/ui/primitives'
 import { DashboardGreeting } from './DashboardGreeting'
+import { Button, IconButton } from '@/components/ui/Button'
 
 // ── BroadcastModal ────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function BroadcastModal({ onClose }: { onClose: () => void }) {
               <p className="text-[11px] text-ink3">All housekeeping staff on shift</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-ink3 hover:text-ink transition-colors p-1"><X size={16} /></button>
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-ink3 hover:text-ink"><X size={16} /></IconButton>
         </div>
 
         {sent ? (
@@ -65,12 +66,9 @@ function BroadcastModal({ onClose }: { onClose: () => void }) {
             </div>
             <p className="text-[14px] font-semibold text-ink">Message sent</p>
             <p className="text-[12px] text-ink3 text-center">Your team will see this in their notifications.</p>
-            <button
-              onClick={onClose}
-              className="mt-2 px-4 py-2 bg-surface-2 border border-line text-[13px] font-medium text-ink rounded-[var(--r-md)] hover:bg-surface-3 transition-colors"
-            >
+            <Button variant="outline" onClick={onClose} className="mt-2">
               Close
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="px-5 pb-5 flex flex-col gap-3">
@@ -99,14 +97,16 @@ function BroadcastModal({ onClose }: { onClose: () => void }) {
                   rows={2}
                   className="flex-1 resize-none px-3 py-2.5 border border-line rounded-lg text-[13px] bg-surface text-ink placeholder:text-ink4 focus:outline-none focus:border-[var(--accent-line)] transition-colors"
                 />
-                <button
+                <Button
+                  variant="primary"
+                  loading={isPending}
+                  disabled={!text.trim()}
                   onClick={() => handleSend(text)}
-                  disabled={isPending || !text.trim()}
-                  className="self-end flex items-center gap-1.5 px-3.5 py-2.5 bg-accent text-white text-[12px] font-semibold rounded-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                  className="self-end gap-1.5"
                 >
-                  {isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <Send size={13} />
                   Send
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -552,13 +552,10 @@ export function SupervisorDashboard() {
           />
         </div>
         <div className="flex gap-2 pb-1 shrink-0">
-          <button
-            onClick={() => setBroadcastOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-line text-[12px] font-semibold text-ink rounded-[var(--r-md)] hover:bg-surface-2 transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={() => setBroadcastOpen(true)} className="gap-1.5">
             <Megaphone size={13} />
             Broadcast
-          </button>
+          </Button>
           <Link
             href="/tasks"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-ink text-paper text-[12px] font-semibold rounded-[var(--r-md)] hover:opacity-90 transition-opacity"

@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Pill, SectionLabel, Mono } from '@/components/ui/primitives'
 import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
+import { Button } from '@/components/ui/Button'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
@@ -76,14 +77,16 @@ function GMDashboard() {
                     {room.status === 'IN_PROGRESS' ? 'Cleaning' : room.status === 'OCCUPIED' ? 'Occupied' : 'Vacant Dirty'}
                   </Pill>
                   {(room.status === 'OCCUPIED' || room.fo_status === 'OCC') && (
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={checkoutMutation.isPending}
                       onClick={() => checkoutMutation.mutate(room.room_id)}
-                      disabled={checkoutMutation.isPending}
-                      className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg hover:bg-[var(--alert)] hover:text-white transition-colors disabled:opacity-50"
+                      className="ml-auto gap-1 border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:bg-[var(--alert)] hover:text-white"
                     >
                       <LogOut className="w-3 h-3" />
                       Mark Departed
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
@@ -108,14 +111,16 @@ function GMDashboard() {
                     {room.room_number}
                   </Mono>
                   <Pill tone="ready" size="sm">Inspected</Pill>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={checkinMutation.isPending}
                     onClick={() => checkinMutation.mutate(room.room_id)}
-                    disabled={checkinMutation.isPending}
-                    className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors disabled:opacity-50"
+                    className="ml-auto gap-1 border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white"
                   >
                     <CheckCircle2 className="w-3 h-3" />
                     Mark Occupied
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

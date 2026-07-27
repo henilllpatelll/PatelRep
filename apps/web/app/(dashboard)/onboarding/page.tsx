@@ -379,13 +379,10 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
             'disabled:opacity-60'
           )}
         />
-        <button
+        <Button
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
-          className={cn(
-            'shrink-0 w-8 h-8 rounded-lg bg-[var(--caution)] text-white flex items-center justify-center',
-            'hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-          )}
+          className="shrink-0 w-8 h-8 p-0"
           aria-label="Send"
         >
           {isLoading ? (
@@ -393,7 +390,7 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
           ) : (
             <ChevronRight className="w-4 h-4" />
           )}
-        </button>
+        </Button>
       </div>
 
       <div className="mt-3">
@@ -868,29 +865,33 @@ function Step2ImportRooms({
                 type="number"
                 min={1}
               />
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() =>
                   setManualRooms((prev) => prev.filter((r) => r.id !== room.id))
                 }
-                className="text-gray-300 hover:text-red-400 transition-colors p-1"
+                className="text-gray-300 hover:text-red-400 p-1"
                 title="Remove row"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           ))}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() =>
               setManualRooms((prev) => [
                 ...prev,
                 { id: uid(), room_number: '', floor: '' },
               ])
             }
-            className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:text-amber-800 font-medium mt-1"
+            className="gap-1.5 text-[var(--caution)] hover:text-amber-800 mt-1"
           >
             <Plus className="w-4 h-4" />
             Add row
-          </button>
+          </Button>
           <Button
             onClick={onComplete}
             disabled={manualRooms.every((r) => !r.room_number)}
@@ -901,13 +902,10 @@ function Step2ImportRooms({
         </div>
       )}
 
-      <button
-        onClick={onSkip}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mt-2"
-      >
+      <Button variant="ghost" size="sm" onClick={onSkip} className="gap-1.5 text-gray-400 hover:text-gray-600 mt-2">
         <SkipForward className="w-3.5 h-3.5" />
         Skip for now — I'll add rooms in Settings
-      </button>
+      </Button>
     </div>
   )
 }
@@ -1026,25 +1024,24 @@ function Step3InviteStaff({
                 </option>
               ))}
             </Select>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => removeRow(invite.id)}
               disabled={invites.length === 1}
-              className="text-gray-300 hover:text-red-400 disabled:opacity-30 transition-colors p-1"
+              className="text-gray-300 hover:text-red-400 p-1"
               title="Remove"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={addRow}
-        className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:text-amber-800 font-medium"
-      >
+      <Button variant="ghost" size="sm" onClick={addRow} className="gap-1.5 text-[var(--caution)] hover:text-amber-800">
         <Plus className="w-4 h-4" />
         Add another invite
-      </button>
+      </Button>
 
       {/* Progress feedback */}
       {progress && (
@@ -1091,13 +1088,10 @@ function Step3InviteStaff({
         </Button>
       </div>
 
-      <button
-        onClick={onSkip}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-      >
+      <Button variant="ghost" size="sm" onClick={onSkip} className="gap-1.5 text-gray-400 hover:text-gray-600">
         <SkipForward className="w-3.5 h-3.5" />
         Skip for now — I'll invite staff later
-      </button>
+      </Button>
     </div>
   )
 }
@@ -1282,13 +1276,10 @@ function Step4OperaCloud({
         )}
       </div>
 
-      <button
-        onClick={onSkip}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-      >
+      <Button variant="ghost" size="sm" onClick={onSkip} className="gap-1.5 text-gray-400 hover:text-gray-600">
         <SkipForward className="w-3.5 h-3.5" />
         Skip for now — Connect later in Settings › Integrations
-      </button>
+      </Button>
     </div>
   )
 }
@@ -1417,12 +1408,14 @@ function Step5UploadSOPs({
               <span className="text-xs text-gray-400 shrink-0">
                 {(f.size / 1024).toFixed(0)} KB
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={(e) => { e.stopPropagation(); removeQueued(f.name) }}
-                className="text-gray-300 hover:text-red-400 transition-colors"
+                className="text-gray-300 hover:text-red-400 p-1"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           ))}
           <Button onClick={handleUpload} loading={uploading} disabled={uploading}>
@@ -1466,13 +1459,10 @@ function Step5UploadSOPs({
         </Button>
       )}
 
-      <button
-        onClick={onSkip}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-      >
+      <Button variant="ghost" size="sm" onClick={onSkip} className="gap-1.5 text-gray-400 hover:text-gray-600">
         <SkipForward className="w-3.5 h-3.5" />
         Skip for now — Upload SOPs later in Settings
-      </button>
+      </Button>
     </div>
   )
 }

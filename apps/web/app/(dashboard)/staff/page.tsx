@@ -24,7 +24,7 @@ import { staffApi, type StaffMember, type StaffInvitation, type RoleSchedule, ty
 import { useRole } from '@/lib/hooks/useRole'
 import type { UserRole } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
@@ -218,7 +218,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         <div ref={successDialogRef} role="dialog" aria-modal="true" aria-labelledby="staff-added-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
             <h2 id="staff-added-title" className="text-lg font-semibold text-gray-900">Staff Member Added</h2>
-            <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"><X size={18} /></button>
+            <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"><X size={18} /></IconButton>
           </div>
           <div className="px-6 py-5 space-y-4">
             <p className="text-sm text-gray-600"><span className="font-medium">{createdCredentials.name}</span> has been added. Share these login credentials with them:</p>
@@ -240,7 +240,7 @@ function AddDirectModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
       <div ref={addDialogRef} role="dialog" aria-modal="true" aria-labelledby="add-staff-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 id="add-staff-title" className="text-lg font-semibold text-gray-900">Add Staff Manually</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"><X size={18} /></button>
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"><X size={18} /></IconButton>
         </div>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="px-6 py-5 space-y-4">
           <p className="text-xs text-gray-500">Creates an account immediately — no email sent. You set the initial password to share with the staff member.</p>
@@ -337,13 +337,15 @@ function InviteModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
           <h2 id="modal-title" className="text-lg font-semibold text-gray-900">Invite Staff Member</h2>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors"
+            className="text-gray-400 hover:text-gray-600 hover:bg-surface/60"
           >
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Form */}
@@ -527,9 +529,9 @@ function EditStaffModal({
         {/* Sticky header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60 sticky top-0 bg-surface/80 backdrop-blur-xl z-10">
           <h2 id="edit-staff-title" className="text-lg font-semibold text-gray-900">Edit Staff Member</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-surface/60 transition-colors">
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 hover:bg-surface/60">
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
 
         <div className="px-6 py-5 space-y-5">
@@ -612,13 +614,16 @@ function EditStaffModal({
                           → {ROLE_LABELS[overrideRole]}
                         </span>
                       </span>
-                      <button
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteScheduleMutation.mutate(s.id)}
                         disabled={deleteScheduleMutation.isPending}
-                        className="p-1 text-gray-400 hover:text-[var(--alert)] rounded transition-colors disabled:opacity-40"
+                        aria-label="Remove schedule"
+                        className="text-gray-400 hover:text-[var(--alert)]"
                       >
                         <Trash2 size={13} />
-                      </button>
+                      </IconButton>
                     </div>
                   ))}
                 </div>
@@ -948,13 +953,13 @@ export default function StaffPage() {
                   {canManageStaff && (
                     <td className="px-6 py-3.5">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => setEditStaff(member)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-ink-2 bg-surface-2 border border-line rounded-[var(--r-sm)] hover:bg-surface-3 transition-colors">
+                        <Button variant="ghost" size="sm" onClick={() => setEditStaff(member)} className="gap-1.5 bg-surface-2 border border-line hover:bg-surface-3">
                           <Pencil size={11} />Edit
-                        </button>
+                        </Button>
                         {member.status === 'active' && (
-                          <button onClick={() => setConfirmDeactivate(member)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-sm)] hover:opacity-80 transition-opacity">
+                          <Button variant="secondary" size="sm" onClick={() => setConfirmDeactivate(member)} className="gap-1.5 border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:opacity-80">
                             <UserX size={11} />Deactivate
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -1019,14 +1024,16 @@ export default function StaffPage() {
                       {canManageStaff && (
                         <td className="px-6 py-3.5">
                           <div className="flex items-center justify-end gap-2 transition-opacity">
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              loading={resendMutation.isPending}
                               onClick={() => resendMutation.mutate(inv.id)}
-                              disabled={resendMutation.isPending}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ink-2 bg-surface-2 border border-line rounded-[var(--r-sm)] hover:bg-surface-3 transition-colors disabled:opacity-50"
+                              className="gap-1.5 bg-surface-2 border border-line hover:bg-surface-3"
                             >
                               <RefreshCw size={12} />
                               Resend
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       )}
