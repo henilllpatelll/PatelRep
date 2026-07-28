@@ -74,7 +74,7 @@ const inviteSchema = z.object({
   full_name: z.string().min(2, 'Full name is required'),
   email: z.string().email('Enter a valid email address'),
   role: z.enum(['gm', 'housekeeping_supervisor', 'housekeeper', 'engineer', 'chief_engineer', 'front_desk'], {
-    errorMap: () => ({ message: 'Select a role' }),
+    error: 'Select a role',
   }),
   department_id: z.string().optional(),
 })

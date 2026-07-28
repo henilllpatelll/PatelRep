@@ -69,7 +69,7 @@ const hotelSchema = z.object({
   zip: z.string().regex(/^\d{5}(-\d{4})?$/, 'Enter a valid ZIP code'),
   phone: z.string().regex(/^\+?[\d\s\-().]{7,}$/, 'Enter a valid phone number'),
   room_count: z
-    .number({ invalid_type_error: 'Room count is required' })
+    .number({ error: 'Room count is required' })
     .int()
     .min(1, 'Must have at least 1 room')
     .max(1000, 'Max 1000 rooms'),
