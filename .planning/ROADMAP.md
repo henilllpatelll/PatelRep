@@ -128,7 +128,19 @@ Cross-cutting constraints:
 ### Phase 6: PMS and AI expansion
 **Goal**: Verify, harden, and gate the already-shipped AI copilot expansion and Opera PMS integration to production-trust standard, fixing any real bugs found in-phase — before any new AI/PMS capability work.
 **Depends on**: Phase 5. Pilot gate confirmed satisfied by user 2026-07-28 (was previously "two successful pilot hotels").
-**Plans**: TBD — discuss-phase complete 2026-07-28 (`06-CONTEXT.md`); next is `/gsd-plan-phase 6`.
+**Plans**: 5 plans across 3 waves (planned 2026-07-28). Audit-first hardening pass — no REQ-XXX IDs; traceability anchored to 06-CONTEXT.md decisions D-01…D-06. One new migration: 085 (`tenants.opera_pilot_enabled`, D-03) — `[BLOCKING]` apply in 06-02 before any live-column dependency. Three real bugs found in research are fixed in-phase (D-05): flat credit cost (credits.py A3 violation), SOP double-log (sop_rag.py/ai_copilot.py), Opera webhook wrong-secret signature (webhooks.py). AI copilot stays ungated (D-04); Opera gets the pilot flag (D-03). Full Phase 1–5 test rigor + live browser walkthrough (D-06). Credential-dependent E2E (live LLM output, real OHIP round-trip) is an accepted deferral — no local keys/sandbox.
+
+Plans:
+**Wave 1** *(AI-copilot slice and Opera slice run in parallel — zero file overlap)*
+- [ ] 06-01-PLAN.md — AI copilot credit-accounting + SOP double-log fix (TDD): token-derived credits in credits.py, single ai_interactions owner (D-02/D-06)
+- [ ] 06-02-PLAN.md — Opera pilot-flag migration 085 + `[BLOCKING]` apply + 403 gate on all 7 Opera endpoints + routes RBAC/tenant-isolation tests (D-01/D-03/D-06)
+
+**Wave 2** *(06-03 blocked on 06-01 — shares ai_copilot.py; 06-04 blocked on 06-02 — needs migration 085 + pilot pattern)*
+- [ ] 06-03-PLAN.md — AI copilot RBAC matrix + tenant isolation + typed confirm_tasks (TaskPreview, 422-not-500) (D-01/D-05/D-06)
+- [ ] 06-04-PLAN.md — Opera webhook signature fix (opera_credentials.webhook_secret, fail-closed) + webhook pilot no-op + dispatch tests (D-03/D-05/D-06)
+
+**Wave 3** *(blocked on all)*
+- [ ] 06-05-PLAN.md — Phase gate: full API suite + web type-check + live authenticated GM browser walkthrough (AI copilot fast-path + Opera settings surface) (D-06)
 
 **Reframed 2026-07-28.** The AI-expansion backlog docs below were discovered during discuss-phase to already be fully implemented and deployed (commit `e4ac615a`, 2026-05-22) — ungated for all hotels, zero test coverage. Opera integration is likewise more built than previously documented (conflict list/resolve endpoints already exist). Phase 6 is therefore an audit-first hardening pass mirroring Phase 4's S0 slice, not a greenfield build. See `.planning/phases/06-pms-and-ai-expansion/06-CONTEXT.md` for full decisions.
 
@@ -149,4 +161,4 @@ Cross-cutting constraints:
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 17/17 | Complete — verified (36/36 must-haves) + security-audited (50/50 threats closed); deployed on `main` | 2026-07-25 |
 | 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT; deployed + live on Railway | 2026-07-25 |
-| 6. PMS and AI expansion | 0/TBD | Context gathered — audit-first hardening pass; planning next | - |
+| 6. PMS and AI expansion | 0/5 | Planned — audit-first hardening pass; 5 plans across 3 waves | - |
