@@ -121,6 +121,16 @@
       "count": 1,
       "tokens": 0,
       "first_read": "2026-07-28T01:20:38.465Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/.planning/STATE.md": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-28T01:25:05.404Z"
+    },
+    "C:/Users/Henil/projects/PatelRep/apps/web/app/(dashboard)/dev/ui/page.tsx": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-07-28T01:34:28.930Z"
     }
   },
   "files_written": [
@@ -300,7 +310,7 @@
     "apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx": 4
   },
   "anatomy_hits": 0,
-  "anatomy_misses": 24,
+  "anatomy_misses": 26,
   "repeated_reads_warned": 14,
   "cerebrum_warnings": 0,
   "stop_count": 1
