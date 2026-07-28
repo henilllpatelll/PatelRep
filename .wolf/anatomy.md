@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T01:08:48.514Z
-> Files: 11 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T01:54:36.207Z
+> Files: 12 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -1205,6 +1205,7 @@
 
 ## apps/web/
 
+- `package.json` — Node.js package manifest (~594 tok)
 
 ## apps/web/app/
 

@@ -11617,6 +11617,22 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-07-28T01:08:43.014Z"
+    },
+    {
+      "id": "bug-703",
+      "timestamp": "2026-07-28T01:54:36.235Z",
+      "error_message": "Incorrect value in code",
+      "file": "apps/web/package.json",
+      "root_cause": "Had \"^8.5.20\"",
+      "fix": "Changed to \"$postcss\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-28T01:54:36.235Z"
     }
   ]
 }
