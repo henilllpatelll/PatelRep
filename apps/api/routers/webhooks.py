@@ -37,16 +37,25 @@ def _verify_twilio_signature(request: Request, params: dict) -> bool:
     return RequestValidator(settings.twilio_auth_token).validate(url, params, signature)
 
 
-def _verify_opera_signature(payload: bytes, signature_header: str, hotel_id: str) -> bool:
+def _verify_opera_signature(payload: bytes, signature_header: str, webhook_secret: str | None) -> bool:
     """
     Validate HMAC-SHA256 signature from Opera Business Events.
-    The secret is derived from CRON_SECRET + hotel_id for MVP.
-    """
-    if not signature_header:
-        return False  # If no signature header, accept in dev (fail in prod)
 
-    secret = f"{settings.cron_secret}:{hotel_id}".encode()
-    expected = hmac.new(secret, payload, hashlib.sha256).hexdigest()
+    The key is the per-hotel opera_credentials.webhook_secret (schema-provisioned,
+    migration 002), mirroring the correct _verify_twilio_signature pattern above —
+    NOT a CRON_SECRET derivation, which Oracle never knows and can never sign with.
+
+    NOTE (06-RESEARCH Open Question 1 / Assumption A1): Oracle OHIP's exact webhook
+    signing scheme (header name/algorithm/canonicalization) is unverified against a
+    live OHIP sandbox. This uses the per-hotel shared secret from
+    opera_credentials.webhook_secret per the schema contract. If a real pilot's
+    webhooks fail verification, confirm the header name/algorithm against Oracle
+    OHIP's Business Events docs.
+    """
+    if not signature_header or not webhook_secret:
+        return False  # fail closed — missing signature or unprovisioned secret
+
+    expected = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
     return hmac.compare_digest(f"sha256={expected}", signature_header)
 
 
@@ -71,7 +80,7 @@ async def opera_webhook(request: Request):
 
     # Resolve PatelRep hotel_id from Opera hotel identifier
     creds = supabase.table("opera_credentials")\
-        .select("tenant_id")\
+        .select("tenant_id, webhook_secret")\
         .eq("hotel_id_opera", opera_hotel_id)\
         .eq("is_connected", True)\
         .maybe_single()\
@@ -82,9 +91,19 @@ async def opera_webhook(request: Request):
 
     hotel_id = creds.data["tenant_id"]
 
+    # D-03: webhooks cannot 403 — Oracle isn't redirectable — so a non-pilot hotel
+    # is a silent no-op, mirroring the "hotel not found or not connected" ignore
+    # above. Same lookup + None-guard as services/opera/sync.py::sync_reservations
+    # and routers/integrations.py::_require_opera_pilot.
+    tenant = supabase.table("tenants").select("opera_pilot_enabled")\
+        .eq("id", hotel_id).maybe_single().execute()
+    if not tenant or not tenant.data or not tenant.data.get("opera_pilot_enabled"):
+        return {"status": "ignored", "reason": "opera_pilot_not_enabled"}
+
     # Optional HMAC validation (non-fatal in development)
     signature = request.headers.get("x-oracle-signature", "")
-    if settings.app_env == "production" and not _verify_opera_signature(payload, signature, hotel_id):
+    webhook_secret = creds.data.get("webhook_secret")
+    if settings.app_env == "production" and not _verify_opera_signature(payload, signature, webhook_secret):
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     # Dispatch to handlers
