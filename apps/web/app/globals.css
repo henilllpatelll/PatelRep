@@ -20,7 +20,7 @@
     /* Type */
     --ink:   #1a1815;
     --ink-2: #4a4640;
-    --ink-3: #807a70;
+    --ink-3: #6e685e;
     --ink-4: #a8a195;
 
     /* Accent — terracotta */
@@ -86,7 +86,7 @@
 
     --ink:   #f1ede4;
     --ink-2: #c5beaf;
-    --ink-3: #918a7e;
+    --ink-3: #968f82;
     --ink-4: #5e584f;
 
     --accent:      #d97757;
@@ -104,6 +104,10 @@
     --alert:      #d96479;
     --alert-soft: #2e1620;
     --alert-line: #5a2a38;
+
+    --info:      #5b9bd5;
+    --info-soft: #182a3d;
+    --info-line: #34557a;
 
     --progress:      #a78bfa;
     --progress-soft: #2e2348;
@@ -176,6 +180,34 @@
   --accent:      #a6263c;
   --accent-soft: #f5d8de;
   --accent-line: #e8a8b3;
+}
+
+/* Dark-mode accent overrides — must win over .accent-* above regardless of
+   source order, so compound selectors (higher specificity) instead of relying
+   on cascade position. Without these, dark mode + any accent swap silently
+   reverts --accent/--accent-soft to light-mode hex values. */
+.theme-dark.accent-terracotta {
+  --accent:      #d97757;
+  --accent-soft: #2e1e16;
+  --accent-line: #5e3c2a;
+}
+
+.theme-dark.accent-teal {
+  --accent:      #4ab8a8;
+  --accent-soft: #14302d;
+  --accent-line: #2d5550;
+}
+
+.theme-dark.accent-blue {
+  --accent:      #5b9bd5;
+  --accent-soft: #182a3d;
+  --accent-line: #34557a;
+}
+
+.theme-dark.accent-rose {
+  --accent:      #d96479;
+  --accent-soft: #2e1620;
+  --accent-line: #5a2a38;
 }
 
 @keyframes shimmer {

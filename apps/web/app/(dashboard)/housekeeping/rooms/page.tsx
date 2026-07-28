@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -214,13 +215,21 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   }
 
   const isPending = csvMutation.isPending || manualMutation.isPending
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, true, onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
-      <div className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-rooms-title"
+        className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-gray-900">{t('housekeeping.roomsPage.importRooms')}</h2>
+          <h2 id="import-rooms-title" className="text-lg font-semibold text-gray-900">{t('housekeeping.roomsPage.importRooms')}</h2>
           <Button
             variant="ghost"
             onClick={onClose}

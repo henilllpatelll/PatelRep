@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -21,6 +21,7 @@ import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -280,13 +281,8 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saving) onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, saving, onClose])
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, isOpen, () => { if (!saving) onClose() })
 
   useEffect(() => {
     if (isOpen) {
@@ -351,6 +347,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
+          ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-label={t('programs.pmSchedules.addModal.title')}

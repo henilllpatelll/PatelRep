@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -25,6 +25,7 @@ import { staffApi, type StaffMember } from '@/lib/api/staff'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Local (form-only) types ────────────────────────────────────────────────
 // LocalItem mirrors PMChecklistItemInput but tracks an unset result ('') so the
@@ -161,13 +162,8 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable from i18next; re-running this reset on language change would wipe in-progress form state
   }, [isOpen])
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saving) onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, saving, onClose])
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, isOpen, () => { if (!saving) onClose() })
 
   if (!isOpen || !schedule) return null
 
@@ -308,6 +304,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
+          ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-label={t('programs.pmCompletion.title')}

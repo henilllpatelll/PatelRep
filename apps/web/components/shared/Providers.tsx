@@ -1,6 +1,7 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Session } from '@supabase/supabase-js'
@@ -263,10 +264,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageSync>
-        <AuthListener />
-        {children}
-      </LanguageSync>
+      <MotionConfig reducedMotion="user">
+        <LanguageSync>
+          <AuthListener />
+          {children}
+        </LanguageSync>
+      </MotionConfig>
     </QueryClientProvider>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { roomsApi } from '@/lib/api/rooms'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface Props {
   isOpen: boolean
@@ -90,6 +91,9 @@ export function NewRequestModal({ isOpen, onClose, onSuccess }: Props) {
     onClose()
   }
 
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, isOpen, handleClose)
+
   if (!isOpen) return null
 
   const canSubmit = !!selectedRoom && description.trim().length >= 3 && !createMutation.isPending
@@ -101,10 +105,16 @@ export function NewRequestModal({ isOpen, onClose, onSuccess }: Props) {
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
       {/* Modal card — relative z-10 so it sits above the backdrop sibling */}
-      <div className="relative z-10 w-full max-w-md bg-surface rounded-[var(--r-xl)] border border-line shadow-2xl">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-request-modal-title"
+        className="relative z-10 w-full max-w-md bg-surface rounded-[var(--r-xl)] border border-line shadow-2xl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
-          <h2 className="text-[20px] font-semibold text-ink">{t('guestRequests.newRequest')}</h2>
+          <h2 id="new-request-modal-title" className="text-[20px] font-semibold text-ink">{t('guestRequests.newRequest')}</h2>
           <IconButton variant="ghost" size="sm" onClick={handleClose} aria-label={t('guestRequests.closeDrawer')}>
             <X size={16} />
           </IconButton>

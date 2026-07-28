@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, AlertCircle, X, Plus } from 'lucide-react'
 import { roomsApi, type ImportRoomPayload } from '@/lib/api/rooms'
 import { Button, IconButton } from '@/components/ui/Button'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,13 +95,21 @@ export function RoomsImportModal({ onClose }: { onClose: () => void }) {
   }
 
   const isPending = csvMutation.isPending || manualMutation.isPending
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, true, onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm">
-      <div className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rooms-import-title"
+        className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/60">
-          <h2 className="text-lg font-semibold text-stone-900">Import Rooms</h2>
+          <h2 id="rooms-import-title" className="text-lg font-semibold text-stone-900">Import Rooms</h2>
           <IconButton variant="ghost" onClick={onClose} aria-label="Close" className="text-stone-400 hover:text-stone-600">
             <X size={20} />
           </IconButton>

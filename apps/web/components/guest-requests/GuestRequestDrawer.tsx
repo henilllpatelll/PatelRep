@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Send, Clock } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ import {
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
 import { useRole } from '@/lib/hooks/useRole'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface Props {
   request: GuestRequest | null
@@ -111,6 +112,9 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
     onError: (err: any) => setScoreError(err?.message || t('satisfaction.saveFailed')),
   })
 
+  const drawerRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(drawerRef, isOpen && !!request, onClose)
+
   if (!isOpen || !request) return null
 
   const roomNum = request.rooms?.room_number ?? '—'
@@ -133,7 +137,13 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded }: Pr
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-      <div className="relative z-10 h-full w-[400px] bg-surface border-l border-line shadow-2xl flex flex-col">
+      <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Room ${roomNum} guest request`}
+        className="relative z-10 h-full w-[400px] bg-surface border-l border-line shadow-2xl flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div>

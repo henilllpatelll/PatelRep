@@ -38,6 +38,7 @@ import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { Button } from '@/components/ui/Button'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 const WO_CATEGORIES = [
   { value: 'appliance' },
@@ -441,19 +442,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     (t: any) => t.status !== 'completed' && t.status !== 'cancelled',
   )
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
-
-  useEffect(() => {
-    if (isOpen && drawerRef.current) {
-      drawerRef.current.focus()
-    }
-  }, [isOpen])
+  useModalFocusTrap(drawerRef, isOpen, onClose)
 
   const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
   const roomTypeName = getRoomTypeCode(room) ?? ''
