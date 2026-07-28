@@ -15,7 +15,10 @@ OPERA_SECRET = "opera" + "-password"
 
 class FakeOperaDB:
     def __init__(self):
-        self.rows = {"opera_credentials": []}
+        self.rows = {
+            "opera_credentials": [],
+            "tenants": [{"id": "hotel-a", "opera_pilot_enabled": True}],
+        }
         self.upserts = []
 
     def table(self, name):
@@ -27,16 +30,36 @@ class FakeQuery:
         self.db = db
         self.table_name = table_name
         self.payload = {}
+        self.filters = []
+        self.single = False
+
+    def select(self, *_args, **_kwargs):
+        return self
+
+    def eq(self, column, value):
+        self.filters.append((column, value))
+        return self
+
+    def maybe_single(self):
+        self.single = True
+        return self
 
     def upsert(self, payload, **_kwargs):
         self.payload = payload
         return self
 
     def execute(self):
-        row = {"id": f"{self.table_name}-{len(self.db.rows[self.table_name]) + 1}", **self.payload}
-        self.db.rows[self.table_name].append(row)
-        self.db.upserts.append((self.table_name, row))
-        return SimpleNamespace(data=[row])
+        if self.payload:
+            row = {"id": f"{self.table_name}-{len(self.db.rows[self.table_name]) + 1}", **self.payload}
+            self.db.rows[self.table_name].append(row)
+            self.db.upserts.append((self.table_name, row))
+            return SimpleNamespace(data=[row])
+
+        rows = self.db.rows.get(self.table_name, [])
+        matched = [r for r in rows if all(r.get(c) == v for c, v in self.filters)]
+        if self.single:
+            return SimpleNamespace(data=matched[0] if matched else None)
+        return SimpleNamespace(data=matched)
 
 
 def _body() -> OperaConnectRequest:

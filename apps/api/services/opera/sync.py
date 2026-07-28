@@ -166,7 +166,18 @@ def sync_reservations(hotel_id: str) -> dict:
     Fetch today's and tomorrow's arrivals from Opera Cloud.
     Endpoint: GET /rsv/v1/hotels/{hotelId}/reservations
     Returns {"synced": count, "error": None|str}.
+
+    D-03: single source of truth for the pilot-flag gate. Both the 30-min
+    reservation-sync cron (routers/internal.py::sync_opera_reservations, which
+    calls this function directly and bypasses integrations.py entirely) and the
+    manual /integrations/opera/sync handler go through this check, so a
+    connected-but-non-pilot hotel is never auto-synced.
     """
+    tenant_result = supabase.table("tenants").select("opera_pilot_enabled") \
+        .eq("id", hotel_id).maybe_single().execute()
+    if not tenant_result or not tenant_result.data or not tenant_result.data.get("opera_pilot_enabled"):
+        return {"synced": 0, "skipped": True, "reason": "opera_pilot_not_enabled", "error": None}
+
     creds = get_opera_credentials(hotel_id)
     if not creds or not creds.get("hotel_id_opera"):
         return {"synced": 0, "error": "Opera not connected or hotel_id_opera not set"}

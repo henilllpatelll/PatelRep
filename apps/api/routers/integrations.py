@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 
+def _require_opera_pilot(current_user: CurrentUser) -> None:
+    """D-03: gate every Opera endpoint to explicitly enrolled pilot hotels."""
+    result = supabase.table("tenants").select("opera_pilot_enabled") \
+        .eq("id", current_user.hotel_id).maybe_single().execute()
+    if not result or not result.data or not result.data.get("opera_pilot_enabled"):
+        raise HTTPException(status_code=403, detail="Opera pilot not enabled for this hotel")
+
+
 @router.post("/opera/connect")
 async def opera_connect(
     body: OperaConnectRequest,
@@ -24,6 +32,7 @@ async def opera_connect(
     Tests the connection by obtaining an access token, then stores credentials.
     OHIP supports password grant (integration user) and client_credentials (OCIM).
     """
+    _require_opera_pilot(current_user)
     ohip_base = body.ohip_base_url.rstrip("/")
 
     try:
@@ -68,6 +77,7 @@ async def opera_status(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Return current Opera Cloud integration status for the hotel."""
+    _require_opera_pilot(current_user)
     result = supabase.table("opera_credentials")\
         .select("hotel_id_opera, ohip_base_url, is_connected, last_sync_at, created_at, updated_at")\
         .eq("tenant_id", current_user.hotel_id)\
@@ -94,6 +104,7 @@ async def opera_sync(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """Manually trigger a reservation sync from Opera Cloud."""
+    _require_opera_pilot(current_user)
     result = sync_reservations(current_user.hotel_id)
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -110,6 +121,7 @@ async def list_opera_sync_conflicts(
     current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
 ):
     """Show unresolved source-of-truth conflicts without exposing OHIP credentials."""
+    _require_opera_pilot(current_user)
     result = supabase.table("integration_sync_conflicts") \
         .select("*") \
         .eq("tenant_id", current_user.hotel_id) \
@@ -128,6 +140,7 @@ async def resolve_opera_sync_conflict(
     current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
 ):
     """Record an explicit human source-of-truth decision for an Opera conflict."""
+    _require_opera_pilot(current_user)
     lookup = supabase.table("integration_sync_conflicts") \
         .select("*") \
         .eq("tenant_id", current_user.hotel_id) \
@@ -171,6 +184,7 @@ async def opera_test(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """Test the Opera Cloud connection by validating the current access token."""
+    _require_opera_pilot(current_user)
     creds = get_opera_credentials(current_user.hotel_id)
     if not creds:
         raise HTTPException(status_code=400, detail="Opera Cloud is not connected")
@@ -187,6 +201,7 @@ async def opera_disconnect(
     current_user: CurrentUser = Depends(require_role("gm"))
 ):
     """Disconnect Opera Cloud integration and clear stored tokens."""
+    _require_opera_pilot(current_user)
     supabase.table("opera_credentials")\
         .update({
             "is_connected": False,
