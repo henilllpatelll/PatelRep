@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
-status: "Phases 0–5 closed + deployed; Phase 6 deferred (pilot-gated)"
-last_updated: "2026-07-25T00:00:00.000Z"
+status: "Phases 0–5 closed + deployed; Phase 6 context gathered, planning next"
+last_updated: "2026-07-28T00:00:00.000Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
   total_plans: 37
   completed_plans: 37
-  percent: 100
-  note: "Phase 6 (PMS & AI expansion) is deferred backlog — pilot-gated on two successful pilot hotels; not counted in active milestone scope."
+  percent: 86
+  note: "Phase 6 (PMS & AI expansion) gate confirmed satisfied by user 2026-07-28; discuss-phase complete, reframed as audit-first hardening (see 06-CONTEXT.md) rather than greenfield build. Not yet planned or executed."
 ---
 
 # GSD State
@@ -19,7 +19,15 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Next = Phase 6 (PMS & AI expansion), which is DEFERRED — pilot-gated on two successful pilot hotels; no plans authored yet.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) discuss-phase is complete (2026-07-28) — context gathered at `.planning/phases/06-pms-and-ai-expansion/06-CONTEXT.md`, next step is `/gsd-plan-phase 6`.**
+
+### Phase 6 — PMS and AI expansion: CONTEXT GATHERED (2026-07-28)
+
+Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Codebase scouting during discuss-phase found the roadmap's premise was stale: `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md` — the docs ROADMAP.md cites as Phase 6's AI-expansion backlog — were already fully implemented and deployed to production in commit `e4ac615a` (2026-05-22), ungated for all hotels, with zero test coverage. Opera PMS integration (`services/opera/`, `routers/integrations.py`) is also more built than CLAUDE.md's "two-way sync hardening deferred" note suggests (conflict list/resolve endpoints already exist).
+
+**Reframed scope (06-CONTEXT.md):** audit-first hardening pass on the already-shipped AI copilot expansion + Opera integration, mirroring Phase 4's S0 slice — not a greenfield build. Key decisions: audit scope = copilot intents + Opera + adjacent insight endpoints + credit middleware (D-01/D-02); Opera gets a new hotel-level pilot flag, AI copilot stays ungated (D-03/D-04); bugs found are fixed in-phase, not deferred (D-05); test coverage target = full Phase 1–5 rigor for both surfaces (D-06). New capabilities beyond what's shipped are explicitly deferred to a later phase.
+
+**Next:** `/gsd-plan-phase 6`.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 
