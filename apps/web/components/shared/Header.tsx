@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, ArrowRight, X, CheckCheck } from 'lucide-react'
+import { LogOut, Settings, ChevronDown, Menu, Search, Sparkles, Bell, CheckCheck } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getInitials, getAvatarColor } from '@/lib/utils/avatar'
@@ -11,19 +11,6 @@ import type { UserRole } from '@/stores/authStore'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
 import { notificationsApi, type Notification } from '@/lib/api/notifications'
-
-const COMMANDS = [
-  { labelKey: 'nav.dashboard', href: '/dashboard', hintKey: 'commands.todayOverview' },
-  { labelKey: 'nav.roomBoard', href: '/housekeeping', hintKey: 'commands.housekeepingStatus' },
-  { labelKey: 'nav.workOrders', href: '/engineering/work-orders', hintKey: 'commands.maintenanceKanban' },
-  { labelKey: 'nav.guestRequests', href: '/guest-requests', hintKey: 'commands.serviceRecovery' },
-  { labelKey: 'nav.tasks', href: '/tasks', hintKey: 'commands.openTaskList' },
-  { labelKey: 'nav.staff', href: '/staff', hintKey: 'commands.teamDirectory' },
-  { labelKey: 'nav.schedule', href: '/scheduling', hintKey: 'commands.sevenDayMatrix' },
-  { labelKey: 'nav.sopLibrary', href: '/sop', hintKey: 'commands.searchProcedures' },
-  { labelKey: 'nav.reports', href: '/reports', hintKey: 'commands.kpiReports' },
-  { labelKey: 'nav.settings', href: '/settings', hintKey: 'commands.hotelProfile' },
-]
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -37,12 +24,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
-  const [commandOpen, setCommandOpen] = useState(false)
-  const [commandQuery, setCommandQuery] = useState('')
   const [dateShiftLabel, setDateShiftLabel] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
-  const commandInputRef = useRef<HTMLInputElement>(null)
 
   const { data: notificationsData, refetch: refetchNotifications } = useQuery({
     queryKey: ['notifications-unread'],
@@ -89,15 +73,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
   }, [])
 
   const openCommandPalette = useCallback(() => {
-    setCommandOpen(true)
-    requestAnimationFrame(() => commandInputRef.current?.focus())
+    document.dispatchEvent(new CustomEvent('command-palette:open'))
   }, [])
-
-  const runCommand = useCallback((href: string) => {
-    setCommandOpen(false)
-    setCommandQuery('')
-    router.push(href)
-  }, [router])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -105,24 +82,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
         e.preventDefault()
         handleCopilotOpen()
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        openCommandPalette()
-      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleCopilotOpen, openCommandPalette])
-
-  useEffect(() => {
-    if (!commandOpen) return
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setCommandOpen(false)
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    requestAnimationFrame(() => commandInputRef.current?.focus())
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [commandOpen])
+  }, [handleCopilotOpen])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -178,12 +141,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
     setDateShiftLabel(`${today} · ${shift}`)
   }, [i18n.language, t])
 
-  const filteredCommands = COMMANDS.filter((command) => {
-    const q = commandQuery.toLowerCase().trim()
-    if (!q) return true
-    return `${t(command.labelKey)} ${t(command.hintKey)}`.toLowerCase().includes(q)
-  }).slice(0, 7)
-
   return (
     <header className="h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 z-50 shrink-0 gap-3">
       {/* Hamburger — mobile only */}
@@ -216,64 +173,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
           ⌘K
         </kbd>
       </div>
-
-      {commandOpen && (
-        <div className="fixed inset-0 z-[80] bg-ink/25 backdrop-blur-sm p-4 pt-[12vh]" role="presentation" onMouseDown={() => setCommandOpen(false)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('header.commandPalette')}
-            className="mx-auto w-full max-w-xl overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-pop"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-              <Search size={15} className="text-ink3 shrink-0" />
-              <input
-                ref={commandInputRef}
-                value={commandQuery}
-                onChange={(e) => setCommandQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && filteredCommands[0]) {
-                    e.preventDefault()
-                    runCommand(filteredCommands[0].href)
-                  }
-                }}
-                placeholder={t('header.searchPlaceholder')}
-                className="flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink4"
-              />
-              <button
-                onClick={() => setCommandOpen(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-ink3 hover:bg-surface-2 hover:text-ink"
-                aria-label={t('header.closeCommandPalette')}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div className="max-h-[360px] overflow-y-auto p-2">
-              {filteredCommands.length === 0 ? (
-                <p className="px-3 py-6 text-center text-[13px] text-ink3">{t('header.noMatchingCommand')}</p>
-              ) : (
-                filteredCommands.map((command) => (
-                  <button
-                    key={command.href}
-                    onClick={() => runCommand(command.href)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-surface-2 focus:bg-surface-2 focus:outline-none"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent-soft text-accent">
-                      <ArrowRight size={14} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-medium text-ink">{t(command.labelKey)}</span>
-                      <span className="block text-[11px] text-ink3">{t(command.hintKey)}</span>
-                    </span>
-                    <span className="font-mono text-[10px] text-ink4">{command.href}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Spacer */}
       <div className="flex-1" />

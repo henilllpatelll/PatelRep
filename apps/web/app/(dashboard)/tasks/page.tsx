@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
   Plus, ClipboardList, Clock, Bed, Users, HelpCircle,
-  X, Send, Loader2, Pencil,
+  X, Send, Pencil,
 } from 'lucide-react'
 import { tasksApi, type Task, type TaskStatus, type TaskType, type Priority, type CreateTaskData } from '@/lib/api/tasks'
 import { staffApi, type StaffMember } from '@/lib/api/staff'
@@ -15,6 +15,8 @@ import { useRole } from '@/lib/hooks/useRole'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { Pill, AILabel, Mono } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Button, IconButton } from '@/components/ui/Button'
 
 function getTaskTypeOptions(t: TFunction): Array<{ value: TaskType; label: string }> {
   return [
@@ -259,7 +261,7 @@ function CreateTaskModal({ onClose, onCreate, creating }: {
       <div ref={modalRef} className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)]">
           <h2 id="create-task-title" className="text-base font-semibold text-ink">{t('tasks.createModal.title')}</h2>
-          <button onClick={onClose} aria-label={t('tasks.createModal.closeAria')} className="text-ink3 hover:text-ink2 p-1"><X size={18} /></button>
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label={t('tasks.createModal.closeAria')} className="text-ink3 hover:text-ink2"><X size={18} /></IconButton>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
@@ -299,10 +301,10 @@ function CreateTaskModal({ onClose, onCreate, creating }: {
           </div>
           {error && <p className="text-xs text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-medium text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3 transition-colors">{t('common.cancel')}</button>
-            <button type="submit" disabled={creating || !form.title.trim()} className="flex-1 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-opacity">
-              {creating && <Loader2 size={13} className="animate-spin" />}{t('tasks.createModal.create')}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">{t('common.cancel')}</Button>
+            <Button type="submit" variant="primary" loading={creating} disabled={!form.title.trim()} className="flex-1">
+              {t('tasks.createModal.create')}
+            </Button>
           </div>
         </form>
       </div>
@@ -364,9 +366,9 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
           </div>
           <div className="flex items-center gap-1">
             {!isDone && (
-              <button onClick={() => setIsEditing((v) => !v)} aria-label={t('tasks.detail.editAria')} className="text-ink3 hover:text-ink2 p-1"><Pencil size={15} /></button>
+              <IconButton variant="ghost" size="sm" onClick={() => setIsEditing((v) => !v)} aria-label={t('tasks.detail.editAria')} className="text-ink3 hover:text-ink2"><Pencil size={15} /></IconButton>
             )}
-            <button onClick={onClose} aria-label={t('tasks.detail.closeAria')} className="text-ink3 hover:text-ink2 p-1"><X size={18} /></button>
+            <IconButton variant="ghost" size="sm" onClick={onClose} aria-label={t('tasks.detail.closeAria')} className="text-ink3 hover:text-ink2"><X size={18} /></IconButton>
           </div>
         </div>
 
@@ -386,10 +388,10 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
               </div>
               <input value={editForm.location_text} onChange={(e) => setEditForm((f) => ({ ...f, location_text: e.target.value }))} className="text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none w-full" placeholder={t('tasks.detail.locationPlaceholder')} />
               <div className="flex gap-2">
-                <button onClick={() => saveEdit()} disabled={saving || !editForm.title.trim()} className="flex-1 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1">
-                  {saving && <Loader2 size={12} className="animate-spin" />}{t('tasks.detail.save')}
-                </button>
-                <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3">{t('common.cancel')}</button>
+                <Button variant="primary" loading={saving} disabled={!editForm.title.trim()} onClick={() => saveEdit()} className="flex-1">
+                  {t('tasks.detail.save')}
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>{t('common.cancel')}</Button>
               </div>
             </div>
           )}
@@ -445,22 +447,22 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
               <p className="text-xs font-medium text-ink3 mb-2">{t('tasks.detail.updateStatus')}</p>
               <div className="flex gap-2">
                 {task.status === 'open' && (
-                  <button onClick={() => onStatusChange(task.id, 'in_progress')} disabled={updating} className="flex-1 py-2 text-sm font-medium bg-[var(--caution)] text-white rounded-lg disabled:opacity-50 transition-colors">{t('tasks.detail.start')}</button>
+                  <Button variant="primary" disabled={updating} onClick={() => onStatusChange(task.id, 'in_progress')} className="flex-1 bg-[var(--caution)]">{t('tasks.detail.start')}</Button>
                 )}
                 {task.status === 'in_progress' && !showCompleteForm && (
-                  <button onClick={() => setShowCompleteForm(true)} disabled={updating} className="flex-1 py-2 text-sm font-medium bg-[var(--ready)] text-white rounded-lg disabled:opacity-50 transition-colors">{t('tasks.detail.markComplete')}</button>
+                  <Button variant="primary" disabled={updating} onClick={() => setShowCompleteForm(true)} className="flex-1 bg-[var(--ready)]">{t('tasks.detail.markComplete')}</Button>
                 )}
-                <button onClick={() => onStatusChange(task.id, 'cancelled')} disabled={updating} className="px-3 py-2 text-sm text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3 disabled:opacity-50 transition-colors">{t('common.cancel')}</button>
+                <Button variant="outline" disabled={updating} onClick={() => onStatusChange(task.id, 'cancelled')}>{t('common.cancel')}</Button>
               </div>
               {showCompleteForm && (
                 <div className="mt-3 bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-xl p-4 space-y-3">
                   <p className="text-xs font-semibold text-[var(--ready)]">{t('tasks.detail.completionNotesLabel')}</p>
                   <textarea value={completeNotes} onChange={(e) => setCompleteNotes(e.target.value)} rows={2} className="w-full text-sm border border-[var(--line)] rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--ready)]/40 resize-none" />
                   <div className="flex gap-2">
-                    <button onClick={() => completeTask()} disabled={completing} className="flex-1 py-2 text-sm font-medium bg-[var(--ready)] text-white rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                      {completing && <Loader2 size={12} className="animate-spin" />}{t('tasks.detail.confirm')}
-                    </button>
-                    <button onClick={() => { setShowCompleteForm(false); setCompleteNotes('') }} className="px-4 py-2 text-sm text-ink2 border border-[var(--line)] rounded-lg hover:bg-surface-3">{t('common.cancel')}</button>
+                    <Button variant="primary" loading={completing} onClick={() => completeTask()} className="flex-1 bg-[var(--ready)]">
+                      {t('tasks.detail.confirm')}
+                    </Button>
+                    <Button variant="outline" onClick={() => { setShowCompleteForm(false); setCompleteNotes('') }}>{t('common.cancel')}</Button>
                   </div>
                 </div>
               )}
@@ -496,9 +498,15 @@ function TaskDetailDrawer({ task, onClose, onStatusChange, onComment, onSaved, u
               aria-label={t('tasks.detail.commentAria')}
               className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-[var(--line)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40"
             />
-            <button onClick={handleComment} disabled={submitting || !comment.trim()} className="p-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity">
+            <IconButton
+              variant="primary"
+              loading={submitting}
+              disabled={!comment.trim()}
+              onClick={handleComment}
+              aria-label={t('tasks.detail.commentAria')}
+            >
               <Send size={14} />
-            </button>
+            </IconButton>
           </div>
         </div>
       </div>
@@ -595,12 +603,11 @@ function TasksPageContent() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3 mb-0.5">{t('tasks.eyebrow')}</p>
-          <h1 className="text-[22px] font-semibold text-ink leading-tight">{t('tasks.title')}</h1>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+      <PageHeader
+        eyebrow={t('tasks.eyebrow')}
+        title={t('tasks.title')}
+        meta={
+          <>
             {overdueCount > 0 && (
               <Pill tone="alert" size="sm"><Clock size={9} /> <Mono>{overdueCount}</Mono> {t('tasks.overdueLabel')}</Pill>
             )}
@@ -610,15 +617,14 @@ function TasksPageContent() {
             {inProgressCount > 0 && (
               <Pill tone="info" size="sm"><Mono>{inProgressCount}</Mono> {t('tasks.inProgressLabel')}</Pill>
             )}
-          </div>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity shrink-0"
-        >
-          <Plus size={15} />{t('tasks.newTaskButton')}
-        </button>
-      </div>
+          </>
+        }
+        actions={
+          <Button variant="primary" onClick={() => setShowCreate(true)} className="gap-1.5 shrink-0">
+            <Plus size={15} />{t('tasks.newTaskButton')}
+          </Button>
+        }
+      />
 
       {/* Filters row */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -671,12 +677,9 @@ function TasksPageContent() {
           <ClipboardList size={36} className="mx-auto text-ink4 mb-3" />
           <p className="text-ink2 font-medium">{t('tasks.empty.title')}</p>
           <p className="text-sm text-ink3 mt-1">{t('tasks.empty.subtitle')}</p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-4 flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:opacity-90 mx-auto"
-          >
+          <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4 gap-1.5 mx-auto">
             <Plus size={14} />{t('tasks.empty.button')}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="bg-surface border border-[var(--line)] rounded-[var(--r-lg)] overflow-hidden">

@@ -24,6 +24,7 @@ import {
 } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/primitives'
 
 // -- Shift options -------------------------------------------------------------
@@ -172,12 +173,9 @@ function HousekeeperBar() {
             <span className="text-xs text-[var(--alert)] font-medium">{saveError}</span>
           )}
           {hasPending && (
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity"
-            >
+            <Button variant="primary" size="sm" onClick={handleSave} className="gap-1.5">
               {t('housekeeping.page.assignBar.save')} <span className="inline-flex items-center justify-center w-4 h-4 bg-white/20 rounded-full text-[10px] font-bold">{pendingCount}</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -350,53 +348,37 @@ function HousekeeperRoomItem({
 
   const doneButton = donePending ? (
     <div className="flex flex-col gap-1 items-end">
-      <button
-        disabled={loading}
-        onClick={handleDonePress}
-        className="px-4 py-1.5 bg-[var(--ready)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
-      >
+      <Button variant="primary" size="sm" loading={loading} onClick={handleDonePress} className="bg-[var(--ready)]">
         {t('housekeeping.page.roomItem.confirmDone')}
-      </button>
-      <button onClick={cancelDone} className="px-3 py-1 text-ink3 text-xs">
+      </Button>
+      <Button variant="ghost" size="sm" onClick={cancelDone} className="text-ink3">
         {t('housekeeping.page.roomItem.cancel')}
-      </button>
+      </Button>
     </div>
   ) : (
-    <button
-      disabled={loading}
-      onClick={handleDonePress}
-      className="px-4 py-2 bg-[var(--ready)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-    >
-      {loading ? '...' : t('housekeeping.page.roomItem.done')}
-    </button>
+    <Button variant="primary" loading={loading} onClick={handleDonePress} className="bg-[var(--ready)]">
+      {t('housekeeping.page.roomItem.done')}
+    </Button>
   )
 
   const undoButton = undoPending ? (
     <div className="flex flex-col gap-1 items-end">
-      <button
-        disabled={loading}
-        onClick={handleUndoPress}
-        className="px-4 py-1.5 bg-[var(--alert)] text-white text-xs font-semibold rounded-xl transition-colors disabled:opacity-50"
-      >
+      <Button variant="primary" size="sm" loading={loading} onClick={handleUndoPress} className="bg-[var(--alert)]">
         {t('housekeeping.page.roomItem.confirmUndo')}
-      </button>
-      <button onClick={cancelUndo} className="px-3 py-1 text-ink3 text-xs">
+      </Button>
+      <Button variant="ghost" size="sm" onClick={cancelUndo} className="text-ink3">
         {t('housekeeping.page.roomItem.cancel')}
-      </button>
+      </Button>
     </div>
   ) : (
-    <button
-      disabled={loading}
-      onClick={handleUndoPress}
-      className="px-4 py-1.5 bg-surface border border-line text-ink2 text-xs font-semibold rounded-xl hover:bg-surface-2 transition-colors disabled:opacity-50"
-    >
+    <Button variant="outline" size="sm" loading={loading} onClick={handleUndoPress}>
       {t('housekeeping.page.roomItem.undo')}
-    </button>
+    </Button>
   )
 
   return (
-    <div
-      className="flex items-center justify-between gap-3 p-4 bg-surface rounded-[var(--r-lg)] border border-line cursor-pointer active:bg-surface-2 transition-colors"
+    <Card
+      className="flex items-center justify-between gap-3 p-4 active:bg-surface-2 transition-colors"
       onClick={() => onOpenDetail(room)}
     >
       <div className="min-w-0">
@@ -445,13 +427,9 @@ function HousekeeperRoomItem({
 
       <div className="shrink-0 text-right">
         {(status === 'DIRTY' || status === 'PICKUP' || status === 'OCCUPIED') && (
-          <button
-            disabled={loading}
-            onClick={(e) => handle('IN_PROGRESS', e)}
-            className="px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? '...' : t('housekeeping.page.roomItem.start')}
-          </button>
+          <Button variant="primary" loading={loading} onClick={(e) => handle('IN_PROGRESS', e)}>
+            {t('housekeeping.page.roomItem.start')}
+          </Button>
         )}
         {status === 'IN_PROGRESS' && (
           <div className="flex flex-col gap-1.5 items-end">
@@ -479,7 +457,7 @@ function HousekeeperRoomItem({
           <span className="text-sm text-[var(--ready)] font-semibold">{readyLabel}</span>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -604,17 +582,14 @@ function HousekeeperMyRoomsView() {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
-      <div>
-        <h1 className="font-display text-[32px] font-normal text-ink tracking-[-0.4px]">{t('housekeeping.page.myRooms.heading')}</h1>
-        <p className="text-sm text-ink3 mt-0.5">{format(new Date(), 'EEEE, MMMM d')}</p>
-      </div>
+      <PageHeader title={t('housekeeping.page.myRooms.heading')} subtitle={format(new Date(), 'EEEE, MMMM d')} />
 
       {myRooms.length > 0 && (
-        <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">
+        <Card hover={false} className="flex gap-5 px-4 py-3 text-sm">
           <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
           <span><strong className="font-display text-[var(--progress)]">{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
           <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
-        </div>
+        </Card>
       )}
 
       {isLoading ? (
@@ -715,23 +690,25 @@ function SupervisorHousekeepingPage() {
         actions={
           <>
             {/* Date navigation */}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate(-1)}
-              className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
               aria-label={t('housekeeping.page.board.previousDay')}
             >
               &larr; {format(addDays(parseISO(selectedDate), -1), 'MMM d')}
-            </button>
+            </Button>
             <span className="px-3 py-1.5 rounded-lg bg-surface border border-line text-sm font-semibold text-ink">
               {format(parseISO(selectedDate), 'MMM d')}
             </span>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate(1)}
-              className="px-2.5 py-2 rounded-lg bg-surface border border-line text-xs font-medium text-ink2 hover:bg-surface-2 transition-colors"
               aria-label={t('housekeeping.page.board.nextDay')}
             >
               {format(addDays(parseISO(selectedDate), 1), 'MMM d')} &rarr;
-            </button>
+            </Button>
             <select
               value={selectedShift ?? ''}
               onChange={(e) => setSelectedShift(e.target.value || null)}

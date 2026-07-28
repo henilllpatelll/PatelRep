@@ -3,7 +3,7 @@
 import { Trash2 } from 'lucide-react'
 import type { SlaPolicy } from '@/lib/api/guest_requests'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -71,14 +71,15 @@ export function SlaPolicyCard({
             <span className="text-[14px] text-ink3">min</span>
           </div>
           {canManage && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="sm"
               onClick={onDelete}
-              className="p-1.5 text-stone-400 hover:text-[var(--alert)] hover:bg-red-50 rounded-lg transition-colors"
+              className="text-stone-400 hover:text-[var(--alert)] hover:bg-red-50"
               aria-label="Delete SLA rule"
             >
               <Trash2 size={14} />
-            </button>
+            </IconButton>
           )}
         </div>
       </div>

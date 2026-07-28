@@ -11,8 +11,9 @@ import { guestRequestsApi, type AccessibleRoomFeature } from '@/lib/api/guest_re
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/roomStatus'
 import { RoomsImportModal } from '@/components/settings/RoomsImportModal'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { cn } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,29 +273,19 @@ export default function RoomsSettingsPage() {
           </div>
 
           <Card className="overflow-hidden p-0">
-            {roomsLoading && (
-              <div className="flex items-center justify-center py-12 text-stone-400 text-sm">
-                Loading rooms…
-              </div>
-            )}
-            {!roomsLoading && filteredRooms.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-sm gap-2">
-                <p>
-                  {allRooms.length === 0
-                    ? 'No rooms imported yet.'
-                    : 'No rooms match the current filters.'}
-                </p>
-                {allRooms.length === 0 && (
-                  <button
-                    onClick={() => setShowRoomImportModal(true)}
-                    className="text-[var(--accent)] font-medium text-sm"
-                  >
+            <StateBlock
+              status={roomsLoading ? 'loading' : filteredRooms.length === 0 ? 'empty' : null}
+              loadingLabel="Loading rooms…"
+              empty={{
+                title: allRooms.length === 0 ? 'No rooms imported yet.' : 'No rooms match the current filters.',
+                action: allRooms.length === 0 ? (
+                  <Button variant="ghost" size="sm" onClick={() => setShowRoomImportModal(true)} className="text-[var(--accent)]">
                     Import rooms to get started
-                  </button>
-                )}
-              </div>
-            )}
-            {!roomsLoading && filteredRooms.length > 0 && (
+                  </Button>
+                ) : undefined,
+              }}
+            >
+            {filteredRooms.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
@@ -358,12 +349,9 @@ export default function RoomsSettingsPage() {
                                 {changeStatusMutation.isPending ? (
                                   <Loader2 size={12} className="animate-spin text-stone-400" />
                                 ) : (
-                                  <button
-                                    onClick={() => setChangingStatusRoomId(null)}
-                                    className="text-xs text-stone-400 hover:text-stone-600"
-                                  >
+                                  <Button variant="ghost" size="sm" onClick={() => setChangingStatusRoomId(null)} className="text-stone-400 hover:text-stone-600">
                                     Cancel
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             ) : (
@@ -386,28 +374,34 @@ export default function RoomsSettingsPage() {
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {confirmDeleteRoomId !== room.room_id ? (
-                                <button
+                                <IconButton
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => setConfirmDeleteRoomId(room.room_id)}
-                                  className="p-1.5 text-stone-400 hover:text-[var(--alert)] transition-colors rounded"
-                                  title="Delete room"
+                                  aria-label="Delete room"
+                                  className="text-stone-400 hover:text-[var(--alert)]"
                                 >
                                   <Trash2 size={14} />
-                                </button>
+                                </IconButton>
                               ) : (
                                 <div className="flex items-center gap-1.5">
-                                  <button
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    loading={deleteRoomMutation.isPending}
                                     onClick={() => deleteRoomMutation.mutate(room.room_id)}
-                                    disabled={deleteRoomMutation.isPending}
-                                    className="px-2 py-1 rounded text-xs font-medium bg-[var(--alert)] text-white hover:bg-red-600 disabled:opacity-50"
+                                    className="bg-[var(--alert)] px-2 py-1"
                                   >
                                     Confirm
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => setConfirmDeleteRoomId(null)}
-                                    className="px-2 py-1 rounded text-xs font-medium border border-stone-200 text-stone-600 hover:bg-stone-50"
+                                    className="px-2 py-1"
                                   >
                                     Cancel
-                                  </button>
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -419,6 +413,7 @@ export default function RoomsSettingsPage() {
                 </table>
               </div>
             )}
+            </StateBlock>
           </Card>
 
           {showRoomImportModal && (
@@ -558,25 +553,19 @@ export default function RoomsSettingsPage() {
           )}
 
           <Card className="overflow-hidden p-0">
-            {featuresLoading && (
-              <div className="flex items-center justify-center py-12 text-stone-400 text-sm">
-                Loading accessible-room features…
-              </div>
-            )}
-            {!featuresLoading && accessibleFeatures.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-sm gap-2">
-                <p>No accessible room features recorded yet.</p>
-                {canManageAccessibility && (
-                  <button
-                    onClick={() => { setFeatureForm({ ...EMPTY_FEATURE_FORM }); setAddFeatureOpen(true) }}
-                    className="text-[var(--accent)] font-medium text-sm"
-                  >
+            <StateBlock
+              status={featuresLoading ? 'loading' : accessibleFeatures.length === 0 ? 'empty' : null}
+              loadingLabel="Loading accessible-room features…"
+              empty={{
+                title: 'No accessible room features recorded yet.',
+                action: canManageAccessibility ? (
+                  <Button variant="ghost" size="sm" onClick={() => { setFeatureForm({ ...EMPTY_FEATURE_FORM }); setAddFeatureOpen(true) }} className="text-[var(--accent)]">
                     Add the first feature
-                  </button>
-                )}
-              </div>
-            )}
-            {!featuresLoading && accessibleFeatures.length > 0 && (
+                  </Button>
+                ) : undefined,
+              }}
+            >
+            {accessibleFeatures.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
@@ -616,13 +605,15 @@ export default function RoomsSettingsPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           {canManageAccessibility && (
-                            <button
+                            <IconButton
+                              variant="ghost"
+                              size="sm"
                               onClick={() => editFeature(feature)}
-                              className="p-1.5 text-stone-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)] rounded-lg transition-colors"
                               aria-label="Edit accessible-room feature"
+                              className="text-stone-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)]"
                             >
                               <Pencil size={14} />
-                            </button>
+                            </IconButton>
                           )}
                         </td>
                       </tr>
@@ -631,6 +622,7 @@ export default function RoomsSettingsPage() {
                 </table>
               </div>
             )}
+            </StateBlock>
           </Card>
         </div>
       )}

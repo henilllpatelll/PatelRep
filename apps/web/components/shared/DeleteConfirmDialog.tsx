@@ -1,6 +1,8 @@
 ﻿'use client'
 
 import { Loader2 } from 'lucide-react'
+import { useRef } from 'react'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface DeleteConfirmDialogProps {
   open: boolean
@@ -21,13 +23,22 @@ export function DeleteConfirmDialog({
   onCancel,
   loading,
 }: DeleteConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(dialogRef, open, onCancel)
+
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-surface rounded-[var(--r-lg)] shadow-xl border border-line w-full max-w-sm mx-4 p-6">
-        <h2 className="font-semibold text-ink text-base mb-1">{title}</h2>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+        className="relative bg-surface rounded-[var(--r-lg)] shadow-xl border border-line w-full max-w-sm mx-4 p-6"
+      >
+        <h2 id="delete-confirm-title" className="font-semibold text-ink text-base mb-1">{title}</h2>
         {description ? (
           <p className="text-sm text-ink3 mb-5">{description}</p>
         ) : (

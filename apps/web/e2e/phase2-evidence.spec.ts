@@ -22,6 +22,7 @@ test('GM can save canonical property applicability', async ({ page }) => {
   test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable a state-changing authenticated check')
   await loginAsGM(page)
   await page.goto('/evidence')
+  await page.getByRole('button', { name: 'Property applicability' }).click()
 
   const pool = page.getByTestId('applicability-facilities-pool')
   await expect(pool).toBeVisible()
@@ -49,6 +50,7 @@ test('GM can open the controlled-document lifecycle workspace', async ({ page })
   test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
   await loginAsGM(page)
   await page.goto('/evidence')
+  await page.getByRole('button', { name: 'Controlled documents' }).click()
 
   await expect(page.getByTestId('controlled-document-title')).toBeVisible()
   await expect(page.getByTestId('create-controlled-document')).toBeVisible()
@@ -58,6 +60,7 @@ test('authorized staff can open secure evidence capture and review', async ({ pa
   test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
   await loginAsGM(page)
   await page.goto('/evidence')
+  await page.getByRole('button', { name: 'Evidence records' }).click()
 
   await expect(page.getByTestId('evidence-label')).toBeVisible()
   await expect(page.getByTestId('evidence-file')).toBeVisible()
@@ -68,6 +71,7 @@ test('GM can filter the exception queue and open inspector export controls', asy
   test.skip(process.env.RUN_EVIDENCE_E2E !== 'true', 'Set RUN_EVIDENCE_E2E=true to enable authenticated evidence coverage')
   await loginAsGM(page)
   await page.goto('/evidence')
+  await page.getByRole('button', { name: 'Exception queue' }).click()
 
   await expect(page.getByTestId('evidence-exception-queue')).toBeVisible()
   await expect(page.getByTestId('exception-state-filter')).toBeVisible()

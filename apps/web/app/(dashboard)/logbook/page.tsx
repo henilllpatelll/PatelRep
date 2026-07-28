@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Loader2,
   AlertCircle,
   Sparkles,
   ChevronDown,
@@ -23,6 +22,9 @@ import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Button, IconButton } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -285,23 +287,25 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   </span>
                 </div>
               )}
-              <div className="bg-surface rounded-lg border border-[var(--caution-line)] p-4">
+              <Card hover={false} className="border-[var(--caution-line)] p-4">
                 <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {summaryText}
                 </p>
-              </div>
-              <button
+              </Card>
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={generateMutation.isPending}
                 onClick={() => {
                   setSummaryText(null)
                   setStats(null)
                   generateMutation.mutate()
                 }}
-                disabled={generateMutation.isPending}
-                className="flex items-center gap-1.5 text-xs text-[var(--caution)] hover:text-amber-800 font-medium disabled:opacity-50 transition-colors"
+                className="gap-1.5 text-[var(--caution)] hover:text-amber-800"
               >
                 <Sparkles size={12} />
                 Regenerate
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="mt-3 space-y-3">
@@ -314,23 +318,15 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   <p className="text-xs text-[var(--alert)]">{generateError}</p>
                 </div>
               )}
-              <button
+              <Button
+                variant="primary"
+                loading={generateMutation.isPending}
                 onClick={() => generateMutation.mutate()}
-                disabled={generateMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[var(--caution)] rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="gap-2 bg-[var(--caution)] hover:bg-amber-600"
               >
-                {generateMutation.isPending ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    Generate for today
-                  </>
-                )}
-              </button>
+                <Sparkles size={14} />
+                Generate for today
+              </Button>
             </div>
           )}
         </div>
@@ -421,9 +417,9 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
               </div>
               <h2 className="text-base font-bold text-gray-900">Add Logbook Entry</h2>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" aria-label="Close modal">
+            <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close modal" className="text-gray-400 hover:text-gray-600">
               <X size={18} />
-            </button>
+            </IconButton>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -484,25 +480,18 @@ function CreateEntryModal({ isOpen, onClose, onSuccess, deptMap }: CreateEntryMo
             )}
 
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={mutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-surface border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-              >
+              <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={mutation.isPending || !content.trim() || !deptId.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                variant="primary"
+                loading={mutation.isPending}
+                disabled={!content.trim() || !deptId.trim()}
+                className="gap-2"
               >
-                {mutation.isPending ? (
-                  <><Loader2 size={14} className="animate-spin" />Saving…</>
-                ) : (
-                  <><Plus size={14} />Add Entry</>
-                )}
-              </button>
+                <Plus size={14} />Add Entry
+              </Button>
             </div>
           </form>
         </div>
@@ -561,9 +550,9 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-entry-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-entry-title" className="text-base font-bold text-gray-900">Edit Entry</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="text-gray-500 hover:bg-gray-100">
             <X className="w-4 h-4" />
-          </button>
+          </IconButton>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -590,17 +579,18 @@ function EditEntryModal({ entry, onClose, onSaved }: EditEntryModalProps) {
           {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex gap-3 pt-1 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isPending || !content.trim()}
-              className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+              variant="primary"
+              loading={isPending}
+              disabled={!content.trim()}
+              className="flex-1"
             >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isPending ? 'Saving…' : 'Save Changes'}
-            </button>
+              Save Changes
+            </Button>
           </div>
         </form>
       </div>
@@ -748,25 +738,17 @@ export default function LogbookPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen size={22} className="text-[var(--caution)] shrink-0" />
-            Shift Logbook
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Record and review shift notes across all departments
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors shrink-0"
-        >
-          <Plus size={15} />
-          Add Entry
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Organization"
+        title="Shift Logbook"
+        subtitle="Record and review shift notes across all departments"
+        actions={
+          <Button variant="primary" onClick={() => setShowCreateModal(true)} className="gap-2 shrink-0">
+            <Plus size={15} />
+            Add Entry
+          </Button>
+        }
+      />
 
       {/* AI Shift Summary */}
       {mounted && isToday && (
@@ -775,34 +757,23 @@ export default function LogbookPage() {
 
       {/* Date navigation */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={handlePrevDay}
-          className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-          aria-label="Previous day"
-        >
+        <IconButton variant="outline" onClick={handlePrevDay} aria-label="Previous day">
           <ChevronLeft size={16} />
-        </button>
-        <button
+        </IconButton>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleToday}
-          className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
-            isToday
-              ? 'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]'
-              : 'text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
-          }`}
+          className={isToday ? 'bg-[var(--caution-soft)] text-[var(--caution)] border-[var(--caution-line)]' : ''}
         >
           Today
-        </button>
+        </Button>
         <span className="px-3 py-1.5 text-sm font-semibold text-gray-900 bg-surface border border-gray-200 rounded-lg min-w-[130px] text-center">
           {formatDisplayDate(selectedDate)}
         </span>
-        <button
-          onClick={handleNextDay}
-          disabled={isToday}
-          className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Next day"
-        >
+        <IconButton variant="outline" onClick={handleNextDay} disabled={isToday} aria-label="Next day">
           <ChevronRight size={16} />
-        </button>
+        </IconButton>
       </div>
 
       {/* Department filter tabs */}
@@ -892,13 +863,10 @@ export default function LogbookPage() {
             </p>
           )}
           {isToday && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:opacity-90 transition-colors"
-            >
+            <Button variant="primary" onClick={() => setShowCreateModal(true)} className="gap-2">
               <Plus size={15} />
               Add first entry
-            </button>
+            </Button>
           )}
           <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
             {['Guest handoff', 'Maintenance note', 'Shift concern'].map((item) => (

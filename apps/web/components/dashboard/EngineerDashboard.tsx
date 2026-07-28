@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { engineeringApi, type WorkOrder } from '@/lib/api/engineering'
 import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 
 type PillTone = 'alert' | 'caution' | 'info' | 'ready' | 'neutral'
 
@@ -38,13 +38,6 @@ function SkeletonRow() {
 
 export function EngineerDashboard() {
   const user = useAuthStore(s => s.user)
-  const [greeting, setGreeting] = useState('Good morning')
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -73,22 +66,16 @@ export function EngineerDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Greeting */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.05] text-ink mt-2">
-          {greeting}, <em className="italic">{firstName}</em>.
-        </h1>
-        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
-          {urgentWOs.length > 0
+      <DashboardGreeting
+        name={firstName}
+        subtitle={
+          urgentWOs.length > 0
             ? `${activeWOs.length} open work orders, ${urgentWOs.length} high priority.`
             : activeWOs.length > 0
             ? `${activeWOs.length} open work orders. All clear on urgent items.`
-            : 'No open work orders. Good shift.'}
-        </p>
-      </div>
+            : 'No open work orders. Good shift.'
+        }
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

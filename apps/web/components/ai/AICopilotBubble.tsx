@@ -23,6 +23,7 @@ import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientF
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { usePathname } from 'next/navigation'
+import { Button, IconButton } from '@/components/ui/Button'
 
 type MessageRole = 'user' | 'ai'
 
@@ -65,14 +66,12 @@ function ConfirmView<T>({ items, onConfirm, onCancel, renderItem, confirmLabel }
     <div className="mt-1 space-y-2">
       <div className="space-y-1.5 max-h-40 overflow-y-auto">{items.map((item, i) => renderItem(item, i))}</div>
       <div className="flex gap-2 pt-1">
-        <button onClick={handleConfirm} disabled={confirming || items.length === 0}
-          className="flex-1 py-2 bg-accent text-white text-xs font-medium rounded-[var(--r-sm)] hover:opacity-90 disabled:opacity-50 transition-opacity">
-          {confirming ? 'Creating...' : 'Confirm & Create'}
-        </button>
-        <button onClick={onCancel}
-          className="px-3 py-2 border border-line text-xs font-medium text-ink2 rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors">
+        <Button variant="primary" size="sm" loading={confirming} disabled={items.length === 0} onClick={handleConfirm} className="flex-1">
+          Confirm & Create
+        </Button>
+        <Button variant="outline" size="sm" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -94,21 +93,20 @@ function TaskConfirmView({ data, onConfirm, onCancel }: { data: TaskPreviewRespo
     <div className="mt-1 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10.5px] text-ink3">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
-        <button onClick={() => setEditMode((e) => !e)} className="text-[10.5px] text-ai hover:opacity-80 font-medium">
+        <Button variant="ghost" size="sm" onClick={() => setEditMode((e) => !e)} className="h-auto min-h-0 px-0 text-[10.5px] text-ai hover:opacity-80">
           {editMode ? 'Done' : 'Edit'}
-        </button>
+        </Button>
       </div>
       <div className="space-y-1.5 max-h-40 overflow-y-auto">
         {tasks.map((task, i) => <TaskPreviewCard key={i} task={task} index={i} editMode={editMode} onChange={handleChange} />)}
       </div>
       <div className="flex gap-2 pt-1">
-        <button onClick={handleConfirm} disabled={confirming || tasks.length === 0}
-          className="flex-1 py-2 bg-accent text-white text-xs font-medium rounded-[var(--r-sm)] hover:opacity-90 disabled:opacity-50 transition-opacity">
-          {confirming ? 'Creating...' : 'Confirm & Create'}
-        </button>
-        <button onClick={onCancel} className="px-3 py-2 border border-line text-xs font-medium text-ink2 rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors">
+        <Button variant="primary" size="sm" loading={confirming} disabled={tasks.length === 0} onClick={handleConfirm} className="flex-1">
+          Confirm & Create
+        </Button>
+        <Button variant="outline" size="sm" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -337,10 +335,10 @@ export function AICopilotBubble() {
                 <p className="text-[10px] font-mono text-paper/50 leading-tight">Operations Copilot</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close AI Copilot"
-              className="text-paper/50 hover:text-paper p-1 rounded transition-colors">
+            <IconButton variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close AI Copilot"
+              className="text-paper/50 hover:text-paper hover:bg-transparent">
               <X size={15} />
-            </button>
+            </IconButton>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3.5 space-y-3" aria-live="polite" aria-label="AI Copilot conversation">
@@ -397,24 +395,25 @@ export function AICopilotBubble() {
                 className="flex-1 text-sm px-3 py-2 bg-surface-2 border border-line rounded-[var(--r-md)] focus:outline-none focus:ring-1 focus:ring-ai-line text-ink placeholder:text-ink4"
                 disabled={loading}
               />
-              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} aria-label="Send message"
-                className="min-w-[36px] min-h-[36px] flex items-center justify-center bg-ai text-white rounded-[var(--r-md)] hover:opacity-90 disabled:opacity-40 transition-opacity">
+              <IconButton variant="primary" loading={loading} disabled={!input.trim()} onClick={() => sendMessage()} aria-label="Send message"
+                className="bg-ai">
                 <Send size={13} />
-              </button>
+              </IconButton>
             </div>
           </div>
         </div>
       )}
 
-      <button
+      <Button
+        variant="primary"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Close AI Copilot' : 'Open AI Copilot'}
-        className="flex items-center gap-2 px-3.5 py-2.5 bg-ai text-white rounded-full shadow-[var(--shadow-pop)] hover:opacity-90 transition-opacity"
+        className="gap-2 rounded-full bg-ai shadow-[var(--shadow-pop)]"
       >
         <SparkIcon size={15} className="text-white" />
         <span className="text-[13px] font-medium hidden sm:inline">Ask copilot</span>
         <span className="font-mono text-[10px] opacity-60 hidden sm:inline">⌘J</span>
-      </button>
+      </Button>
     </div>
   )
 }

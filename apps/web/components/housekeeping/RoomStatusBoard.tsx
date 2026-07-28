@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { ChevronDown } from 'lucide-react'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -16,6 +17,7 @@ import { RoomCard } from '@/components/housekeeping/RoomCard'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/primitives'
+import { Button, IconButton } from '@/components/ui/Button'
 import { CLEAN_TYPE_OPTIONS, getEffectiveRoomStatusForCleanType } from '@/lib/utils/cleanType'
 import type { CleanType } from '@/lib/utils/cleanType'
 import { getPendingLateCheckoutByRoom, withPendingLateCheckout } from '@/lib/utils/lateCheckoutRequests'
@@ -329,6 +331,15 @@ export function RoomStatusBoard() {
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set())
+  const toggleFloorCollapsed = useCallback((floor: number) => {
+    setCollapsedFloors((prev) => {
+      const next = new Set(prev)
+      if (next.has(floor)) next.delete(floor)
+      else next.add(floor)
+      return next
+    })
+  }, [])
 
   const assignmentToRoomId = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
@@ -525,12 +536,12 @@ export function RoomStatusBoard() {
     return (
       <div className="flex flex-col items-center justify-center h-40 gap-3 text-sm">
         <p className="text-[13px] text-ink3">{t('housekeeping.roomStatus.error.failedToLoad')}</p>
-        <button
+        <Button
+          size="sm"
           onClick={() => queryClient.invalidateQueries({ queryKey: ['housekeeping-board', selectedDate, selectedShift] })}
-          className="px-4 py-2 bg-accent text-white rounded-[var(--r-md)] text-xs font-medium hover:opacity-90 transition-opacity"
         >
           {t('housekeeping.roomStatus.error.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -588,13 +599,15 @@ export function RoomStatusBoard() {
       {assignError && (
         <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-[var(--alert-soft)] border border-[var(--alert-line)] text-sm text-[var(--alert)]">
           <span>{assignError}</span>
-          <button
+          <IconButton
             onClick={() => setAssignError(null)}
-            className="shrink-0 font-medium"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-[var(--alert)] font-medium hover:text-[var(--alert)]"
             aria-label={t('housekeeping.roomStatus.error.dismiss')}
           >
             &times;
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -607,11 +620,21 @@ export function RoomStatusBoard() {
         <div className="space-y-8">
           {sortedFloors.map((floor) => {
             const floorRooms = byFloor[floor]
+            const isCollapsed = collapsedFloors.has(floor)
             return (
               <div key={floor}>
                 {/* Floor divider header */}
-                <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
-                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2">
+                <button
+                  type="button"
+                  onClick={() => toggleFloorCollapsed(floor)}
+                  aria-expanded={!isCollapsed}
+                  className="w-full flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2 text-left group"
+                >
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-ink3 shrink-0 self-center transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2 group-hover:text-ink transition-colors">
                     {floor === 0 ? t('housekeeping.roomStatus.floor.ground') : t('housekeeping.roomStatus.floor.numbered', { floor })}
                   </h3>
                   <span className="font-mono text-[11px] text-ink3">
@@ -619,7 +642,8 @@ export function RoomStatusBoard() {
                       ? t('housekeeping.roomStatus.floor.roomCountOne', { count: floorRooms.length })
                       : t('housekeeping.roomStatus.floor.roomCountOther', { count: floorRooms.length })}
                   </span>
-                </div>
+                </button>
+                {!isCollapsed && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
                   {floorRooms.map((room) => {
                     const pendingCleanType = pendingAssignmentCleanTypes[room.room_id] ?? null
@@ -652,6 +676,7 @@ export function RoomStatusBoard() {
                     )
                   })}
                 </div>
+                )}
               </div>
             )
           })}
@@ -683,14 +708,14 @@ export function RoomStatusBoard() {
                   {t('housekeeping.roomStatus.cleanTypePrompt.subtitle')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-sm text-ink3 hover:bg-surface-2"
+              <IconButton
+                variant="ghost"
+                size="sm"
                 onClick={() => setCleanTypePrompt(null)}
                 aria-label={t('housekeeping.roomStatus.cleanTypePrompt.cancelAria')}
               >
                 &times;
-              </button>
+              </IconButton>
             </div>
             <div className="mt-4 space-y-2">
               {CLEAN_TYPE_OPTIONS.map((option) => {

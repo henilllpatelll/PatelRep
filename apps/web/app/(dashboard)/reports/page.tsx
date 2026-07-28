@@ -14,11 +14,16 @@ import {
   CheckCircle,
   AlertTriangle,
   MessageSquare,
+  ChevronDown,
 } from 'lucide-react'
 import { reportsApi } from '@/lib/api/reports'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { Card } from '@/components/ui/Card'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -126,13 +131,13 @@ function KpiCard({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
+    <Card hover={false} className="p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500">{label}</p>
         {icon && <span className="text-gray-400">{icon}</span>}
       </div>
       <p className={`mt-2 text-3xl font-bold ${colorClass}`}>{value}</p>
-    </div>
+    </Card>
   )
 }
 
@@ -334,11 +339,12 @@ function StaffPerformanceTab() {
         </div>
       ) : (
         !isLoading && (
-          <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
-            <Users className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm font-medium text-gray-600">No staff performance data yet</p>
-            <p className="mt-1 text-sm text-gray-400">Assign tasks and mark them complete to generate staff performance data.</p>
-          </div>
+          <EmptyState
+            icon={<Users className="w-5 h-5" />}
+            title="No staff performance data yet"
+            body="Assign tasks and mark them complete to generate staff performance data."
+            className="rounded-xl border border-dashed border-gray-300"
+          />
         )
       )}
     </div>
@@ -349,6 +355,7 @@ function StaffPerformanceTab() {
 
 function MaintenanceTab() {
   const [range, setRange] = useState<DateRange>('30d')
+  const [showMoreMetrics, setShowMoreMetrics] = useState(false)
   const params = getDateRange(range)
 
   const { data, isLoading, isError } = useQuery({
@@ -415,10 +422,6 @@ function MaintenanceTab() {
             colorClass={maintenanceSlaColor(report.sla_compliance_pct)}
           />
           <KpiCard
-            label="Avg Resolution Time"
-            value={`${report.avg_resolution_hours} hrs`}
-          />
-          <KpiCard
             label="Active SLA Breaches"
             value={report.active_sla_breaches}
             colorClass={report.active_sla_breaches > 0 ? 'text-[var(--alert)]' : 'text-gray-900'}
@@ -428,29 +431,51 @@ function MaintenanceTab() {
               ) : undefined
             }
           />
-          <KpiCard
-            label="Avg Response Time"
-            value={report.avg_response_hours > 0 ? `${report.avg_response_hours} hrs` : '—'}
-            colorClass="text-[var(--info)]"
-          />
-          <KpiCard
-            label="Avg Repair Time"
-            value={report.avg_repair_hours > 0 ? `${report.avg_repair_hours} hrs` : '—'}
-            colorClass="text-[var(--caution)]"
-          />
-          <KpiCard
-            label="Guest Reported"
-            value={report.guest_reported_count}
-            colorClass="text-[var(--alert)]"
-          />
         </div>
       ) : null}
+
+      {report && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowMoreMetrics((v) => !v)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            aria-expanded={showMoreMetrics}
+          >
+            {showMoreMetrics ? 'Hide detailed timing metrics' : 'Show detailed timing metrics'}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showMoreMetrics ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+          {showMoreMetrics && (
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <KpiCard
+                label="Avg Resolution Time"
+                value={`${report.avg_resolution_hours} hrs`}
+              />
+              <KpiCard
+                label="Avg Response Time"
+                value={report.avg_response_hours > 0 ? `${report.avg_response_hours} hrs` : '—'}
+                colorClass="text-[var(--info)]"
+              />
+              <KpiCard
+                label="Avg Repair Time"
+                value={report.avg_repair_hours > 0 ? `${report.avg_repair_hours} hrs` : '—'}
+                colorClass="text-[var(--caution)]"
+              />
+              <KpiCard
+                label="Guest Reported"
+                value={report.guest_reported_count}
+                colorClass="text-[var(--alert)]"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Breakdowns */}
       {report && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {/* By Category */}
-          <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
+          <Card hover={false} className="p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Category</h4>
             {Object.keys(report.by_category).length === 0 ? (
               <p className="text-sm text-gray-400">No data.</p>
@@ -474,10 +499,10 @@ function MaintenanceTab() {
                   ))}
               </div>
             )}
-          </div>
+          </Card>
 
           {/* By Priority */}
-          <div className="bg-surface border border-line rounded-[var(--r-lg)] p-5">
+          <Card hover={false} className="p-5">
             <h4 className="mb-4 text-sm font-semibold text-gray-700">By Priority</h4>
             <div className="space-y-3">
               {[
@@ -495,7 +520,7 @@ function MaintenanceTab() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
@@ -534,14 +559,14 @@ function GuestRecoveryTab() {
             <KpiCard label="Avg Acknowledgement" value={`${report.average_acknowledgement_minutes} min`} colorClass="text-[var(--info)]" />
             <KpiCard label="Avg Verified Resolution" value={`${report.average_verified_resolution_minutes} min`} colorClass="text-[var(--ready)]" />
           </div>
-          <div className="rounded-[var(--r-lg)] border border-line bg-surface p-5">
+          <Card hover={false} className="p-5">
             <h4 className="text-sm font-semibold text-gray-700">Requests by category</h4>
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(report.by_category).length ? Object.entries(report.by_category).map(([category, count]) => (
                 <span key={category} className="rounded-full bg-gray-100 px-3 py-1.5 text-sm text-gray-700">{formatType(category)}: <strong>{count}</strong></span>
               )) : <p className="text-sm text-gray-400">No guest requests in this period.</p>}
             </div>
-          </div>
+          </Card>
         </>
       ) : null}
     </div>
@@ -653,11 +678,12 @@ function AIUsageTab() {
         </div>
       ) : (
         !isLoading && (
-          <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
-            <Zap className="mx-auto h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm font-medium text-gray-600">No AI usage data yet</p>
-            <p className="mt-1 text-sm text-gray-400">Use the AI Copilot to create tasks or query SOPs — usage will appear here.</p>
-          </div>
+          <EmptyState
+            icon={<Zap className="w-5 h-5" />}
+            title="No AI usage data yet"
+            body="Use the AI Copilot to create tasks or query SOPs — usage will appear here."
+            className="rounded-xl border border-dashed border-gray-300"
+          />
         )
       )}
     </div>
@@ -720,36 +746,16 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--caution-soft)] text-[var(--caution)]">
-          <BarChart2 className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Reports</h1>
-          <p className="text-sm text-gray-500">Operational analytics and performance metrics</p>
-        </div>
-      </div>
-
-      {/* Tab navigation */}
-      <div className="border-b border-gray-200 overflow-x-auto">
-        <nav className="-mb-px flex gap-1 min-w-max">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                currentTab === tab.id
-                  ? 'border-amber-500 text-[var(--caution)]'
-                  : 'border-transparent text-ink3 hover:border-line hover:text-ink2'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Reports"
+        subtitle="Operational analytics and performance metrics"
+        tabs={tabs.map((tab) => ({
+          label: tab.label,
+          active: currentTab === tab.id,
+          onClick: () => setActiveTab(tab.id),
+        }))}
+      />
 
       {/* Tab content */}
       <div>

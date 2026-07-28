@@ -3,7 +3,8 @@
 import { X, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { InspectionTemplate } from '@/lib/api/housekeeping'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ─── Types & constants ────────────────────────────────────────────────────────
 
@@ -84,22 +85,24 @@ export function TemplateCard({
           )}
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onEdit}
-            className="p-1.5 text-stone-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)] rounded-lg transition-colors"
+            className="text-stone-400 hover:text-[var(--caution)] hover:bg-[var(--caution-soft)]"
             aria-label="Edit template"
           >
             <Pencil size={14} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onDelete}
-            className="p-1.5 text-stone-400 hover:text-[var(--alert)] hover:bg-red-50 rounded-lg transition-colors"
+            className="text-stone-400 hover:text-[var(--alert)] hover:bg-red-50"
             aria-label="Delete template"
           >
             <Trash2 size={14} />
-          </button>
+          </IconButton>
         </div>
       </div>
     </Card>
@@ -144,14 +147,15 @@ export function TemplateFormCard({
         <h3 className="text-sm font-semibold text-stone-900">
           {isNew ? 'New Template' : 'Edit Template'}
         </h3>
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="sm"
           onClick={onCancel}
-          className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
+          className="text-stone-400 hover:text-stone-600"
           aria-label="Close"
         >
           <X size={16} />
-        </button>
+        </IconButton>
       </div>
 
       <div className="space-y-1.5">
@@ -192,7 +196,7 @@ export function TemplateFormCard({
         </div>
 
         {values.items.length === 0 && (
-          <p className="text-xs text-stone-400 italic py-1">No items yet.</p>
+          <EmptyState title="No items yet." className="py-4" />
         )}
 
         <div className="space-y-2">
@@ -237,14 +241,15 @@ export function TemplateFormCard({
               >
                 Photo on fail
               </button>
-              <button
-                type="button"
+              <IconButton
+                variant="ghost"
+                size="sm"
                 onClick={() => removeItem(idx)}
-                className="p-1.5 text-stone-400 hover:text-[var(--alert)] hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                className="text-stone-400 hover:text-[var(--alert)] hover:bg-red-50 shrink-0"
                 aria-label="Remove item"
               >
                 <Trash2 size={13} />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>

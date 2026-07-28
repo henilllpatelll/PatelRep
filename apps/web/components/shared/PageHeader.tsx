@@ -1,4 +1,8 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { Breadcrumbs } from './Breadcrumbs'
 import type { ReactNode } from 'react'
 
 interface Tab {
@@ -19,14 +23,23 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, className }: PageHeaderProps) {
+  const pathname = usePathname()
+  const isSubRoute = pathname.split('/').filter(Boolean).length >= 2
+
   return (
     <div className={cn('pb-0', className)}>
       <div className="flex justify-between items-end gap-6">
         <div className="flex-1 min-w-0">
-          {eyebrow && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3 mb-2">
-              {eyebrow}
-            </p>
+          {isSubRoute ? (
+            <div className="mb-2">
+              <Breadcrumbs />
+            </div>
+          ) : (
+            eyebrow && (
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3 mb-2">
+                {eyebrow}
+              </p>
+            )
           )}
           <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink">
             {title}

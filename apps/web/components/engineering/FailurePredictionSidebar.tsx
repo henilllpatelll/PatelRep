@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { CheckCircle, Loader2, Plus } from 'lucide-react'
+import { CheckCircle, Plus } from 'lucide-react'
 import { engineeringApi, FailurePrediction } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -159,30 +160,25 @@ function PredictionCard({
       {/* Acknowledge + Create WO buttons */}
       {canAcknowledge && !prediction.is_acknowledged && (
         <div className="flex items-center gap-2 mt-1">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onCreateWO(prediction.id)}
-            disabled={isCreatingWO}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--info)] hover:opacity-80 transition-colors disabled:opacity-50"
+            loading={isCreatingWO}
+            className="text-[var(--info)] hover:opacity-80"
           >
-            {isCreatingWO ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Plus size={12} />
-            )}
+            {!isCreatingWO && <Plus size={12} />}
             {t('engineering.failurePrediction.createWO')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onAcknowledge(prediction.id)}
-            disabled={isAcknowledging}
-            className="flex items-center gap-1.5 text-xs font-medium text-ink2 hover:text-ink transition-colors disabled:opacity-50"
+            loading={isAcknowledging}
           >
-            {isAcknowledging ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <CheckCircle size={12} />
-            )}
+            {!isAcknowledging && <CheckCircle size={12} />}
             {t('engineering.failurePrediction.acknowledge')}
-          </button>
+          </Button>
         </div>
       )}
 

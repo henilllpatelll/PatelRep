@@ -4,8 +4,11 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, RotateCcw, Save, ChevronUp, ChevronDown } from 'lucide-react'
 import { checklistsApi, CLEAN_TYPE_NAMES, type ChecklistTemplate, type ChecklistItemInput } from '@/lib/api/checklists'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 
 const CLEAN_TYPES = ['DEP', 'FULL', 'LIGHT', 'DEFAULT'] as const
 type CleanType = typeof CLEAN_TYPES[number]
@@ -34,10 +37,10 @@ let keyCounter = 1000
 
 export function CleaningChecklistEditor() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [activeTab, setActiveTab] = useState<CleanType>('DEP')
   const [editItems, setEditItems] = useState<EditableItem[] | null>(null)
   const [dirty, setDirty] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['cleaning-checklists'],
@@ -106,9 +109,9 @@ export function CleaningChecklistEditor() {
       queryClient.invalidateQueries({ queryKey: ['cleaning-checklists'] })
       setEditItems(null)
       setDirty(false)
-      showToast('success', 'Checklist saved.')
+      toast.success('Checklist saved.')
     },
-    onError: () => showToast('error', 'Failed to save checklist.'),
+    onError: () => toast.error('Failed to save checklist.'),
   })
 
   const resetMutation = useMutation({
@@ -117,21 +120,16 @@ export function CleaningChecklistEditor() {
       queryClient.invalidateQueries({ queryKey: ['cleaning-checklists'] })
       setEditItems(null)
       setDirty(false)
-      showToast('success', 'Checklist restored to defaults.')
+      toast.success('Checklist restored to defaults.')
     },
-    onError: () => showToast('error', 'Failed to reset checklist.'),
+    onError: () => toast.error('Failed to reset checklist.'),
   })
-
-  function showToast(type: 'success' | 'error', message: string) {
-    setToast({ type, message })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   function handleSave() {
     const items = getItems()
     const invalid = items.filter((item) => !item.label.trim())
     if (invalid.length > 0) {
-      showToast('error', `${invalid.length} item(s) have empty labels.`)
+      toast.error(`${invalid.length} item(s) have empty labels.`)
       return
     }
     saveMutation.mutate(items.map(({ section, label, is_required }) => ({ section, label, is_required })))
@@ -165,20 +163,7 @@ export function CleaningChecklistEditor() {
         ))}
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div className={`rounded-lg px-3 py-2 text-sm ${
-          toast.type === 'success'
-            ? 'bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)]'
-            : 'bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)]'
-        }`}>
-          {toast.message}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="py-8 text-center text-sm text-stone-400">Loading checklists…</div>
-      ) : (
+      <StateBlock status={isLoading ? 'loading' : null} loadingLabel="Loading checklists…">
         <Card>
           <div className="px-4 py-3 border-b border-line flex items-center justify-between">
             <div>
@@ -209,29 +194,31 @@ export function CleaningChecklistEditor() {
 
           <div className="divide-y divide-line">
             {items.length === 0 && (
-              <p className="px-4 py-6 text-sm text-stone-400 text-center">No items yet. Add one below.</p>
+              <EmptyState title="No items yet" body="Add one below." className="py-6" />
             )}
             {items.map((item, idx) => (
               <div key={item._key} className="flex items-start gap-3 px-4 py-3">
                 <div className="flex flex-col gap-0.5 mt-1.5 shrink-0">
-                  <button
-                    type="button"
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveItem(item._key, -1)}
                     disabled={idx === 0}
-                    className="p-0.5 rounded text-stone-300 hover:text-stone-600 disabled:opacity-20 transition-colors"
+                    className="h-5 w-5 text-stone-300 hover:text-stone-600"
                     aria-label="Move up"
                   >
                     <ChevronUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
+                  </IconButton>
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => moveItem(item._key, 1)}
                     disabled={idx === items.length - 1}
-                    className="p-0.5 rounded text-stone-300 hover:text-stone-600 disabled:opacity-20 transition-colors"
+                    className="h-5 w-5 text-stone-300 hover:text-stone-600"
                     aria-label="Move down"
                   >
                     <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
+                  </IconButton>
                 </div>
                 <div className="flex-1 grid grid-cols-[140px_1fr] gap-2 min-w-0">
                   <select
@@ -260,30 +247,27 @@ export function CleaningChecklistEditor() {
                   />
                   <span className="text-xs text-stone-500">Required</span>
                 </label>
-                <button
-                  type="button"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleRemoveItem(item._key)}
-                  className="mt-2 p-1 rounded text-stone-300 hover:text-[var(--alert)] transition-colors shrink-0"
+                  className="mt-2 text-stone-300 hover:text-[var(--alert)] shrink-0"
                   aria-label="Remove item"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                </IconButton>
               </div>
             ))}
           </div>
 
           <div className="px-4 py-3 border-t border-line">
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="flex items-center gap-1.5 text-sm text-[var(--caution)] hover:opacity-80 transition-opacity"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddItem} className="gap-1.5 text-[var(--caution)] hover:opacity-80">
               <Plus className="w-4 h-4" />
               Add item
-            </button>
+            </Button>
           </div>
         </Card>
-      )}
+      </StateBlock>
     </div>
   )
 }

@@ -3,11 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
-  FileText, Library, Settings, ClipboardList, ShieldCheck,
-  Package, Sparkles, ChevronDown, MessageSquare, TrendingUp,
-} from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -16,44 +12,13 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/stores/authStore'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
+import {
+  ALL_NAV_ITEMS, SETTINGS_NAV_ITEM, NAV_LABEL_KEYS,
+  OPERATIONS_HREFS, INTELLIGENCE_HREFS, PEOPLE_HREFS,
+  getAllowedNavItems, type NavItem,
+} from '@/lib/utils/navigation'
 import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
-
-interface SubNavItem { href: string; label: string }
-interface NavItem { href: string; label: string; icon: React.ElementType; subNav?: SubNavItem[]; count?: number; tag?: string }
-
-const ALL_NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',      label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/housekeeping',   label: 'Housekeeping',   icon: Bed },
-  { href: '/engineering',    label: 'Engineering',    icon: Wrench,      subNav: [
-    { href: '/engineering/work-orders',  label: 'Work Orders' },
-    { href: '/engineering/assets',       label: 'Assets' },
-    { href: '/engineering/pm-schedules', label: 'PM Schedules' },
-    { href: '/engineering/predictions',  label: 'Predictions' },
-  ]},
-  { href: '/programs',       label: 'Operational Programs', icon: ClipboardList },
-  { href: '/lost-found',     label: 'Lost & Found',   icon: Package },
-  { href: '/guest-requests', label: 'Guest Requests', icon: MessageSquare },
-  { href: '/tasks',          label: 'Tasks',          icon: ClipboardList },
-  { href: '/ai',             label: 'AI Copilot',     icon: Sparkles,    tag: 'AI' },
-  { href: '/sop',            label: 'SOP Library',    icon: Library },
-  { href: '/evidence',       label: 'Evidence',       icon: ShieldCheck },
-  { href: '/safety',         label: 'Safety',         icon: ShieldCheck },
-  { href: '/reports',        label: 'Reports',        icon: FileText },
-  { href: '/management-roi', label: 'Management ROI', icon: TrendingUp },
-  { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
-  { href: '/staff',          label: 'Staff',          icon: Users },
-  { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
-]
-
-const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  housekeeper:    ['/dashboard','/housekeeping','/guest-requests'],
-  engineer:       ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  chief_engineer: ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  front_desk:     ['/dashboard','/housekeeping','/guest-requests','/tasks','/logbook','/lost-found','/ai'],
-}
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gm:                      'roles.gm',
@@ -63,38 +28,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   chief_engineer:          'roles.chief_engineer',
   front_desk:              'roles.front_desk',
 }
-
-const NAV_LABEL_KEYS: Record<string, string> = {
-  Dashboard: 'nav.dashboard',
-  Housekeeping: 'nav.housekeeping',
-  'My Rooms': 'nav.myRooms',
-  Engineering: 'nav.engineering',
-  'Work Orders': 'nav.workOrders',
-  Assets: 'nav.assets',
-  'PM Schedules': 'nav.pmSchedules',
-  'Operational Programs': 'nav.programs',
-  Predictions: 'nav.predictions',
-  'Lost & Found': 'nav.lostFound',
-  'Guest Requests': 'nav.guestRequests',
-  Tasks: 'nav.tasks',
-  'AI Copilot': 'nav.aiCopilot',
-  'SOP Library': 'nav.sopLibrary',
-  Evidence: 'nav.evidence',
-  Safety: 'nav.safety',
-  Reports: 'nav.reports',
-  'Management ROI': 'nav.managementRoi',
-  Logbook: 'nav.logbook',
-  Staff: 'nav.staff',
-  Schedule: 'nav.schedule',
-  Settings: 'nav.settings',
-  'Room Board': 'nav.roomBoard',
-  Assignments: 'nav.assignments',
-  Inspections: 'nav.inspections',
-}
-
-const OPERATIONS_HREFS  = ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/guest-requests','/tasks']
-const INTELLIGENCE_HREFS = ['/ai','/sop','/evidence','/safety','/reports','/management-roi']
-const PEOPLE_HREFS       = ['/staff','/scheduling','/logbook']
 
 interface SidebarProps {
   mobileOpen?: boolean
@@ -122,15 +55,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const roleLabel = role ? t(ROLE_LABELS[role]) : null
   const navLabel = (label: string) => t(NAV_LABEL_KEYS[label] ?? label)
 
-  const allowedHrefs: string[] =
-    customRoleModules
-      ? ['/dashboard', ...customRoleModules.map(m => `/${m}`)]
-      : role === 'front_desk'
-      ? ['/dashboard', ...(hotel?.front_desk_modules ?? ['housekeeping','lost-found','tasks','logbook']).map(m => `/${m}`)]
-      : role ? NAV_BY_ROLE[role] : []
-
   const visibleNavItems = role
-    ? ALL_NAV_ITEMS.filter(item => allowedHrefs.includes(item.href))
+    ? getAllowedNavItems({ role, customRoleModules, frontDeskModules: hotel?.front_desk_modules ?? null })
         .map(item =>
           item.href === '/housekeeping' && role === 'housekeeper'
             ? { ...item, label: 'My Rooms' }
@@ -143,8 +69,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         )
     : ALL_NAV_ITEMS
 
-  const settingsItem: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
-  const bottomItems = role === 'gm' ? [settingsItem] : []
+  const bottomItems = role === 'gm' ? [SETTINGS_NAV_ITEM] : []
 
   const opsItems   = visibleNavItems.filter(i => OPERATIONS_HREFS.includes(i.href))
   const intelItems = visibleNavItems.filter(i => INTELLIGENCE_HREFS.includes(i.href))

@@ -7,6 +7,9 @@ import { AICopilotBubble } from '@/components/ai/AICopilotBubble'
 import { PageTransition } from './PageTransition'
 import { TweaksPanel } from './TweaksPanel'
 import { FeedbackButton } from './FeedbackButton'
+import { CommandPalette } from './CommandPalette'
+import { MobileFloorNav } from './MobileFloorNav'
+import { Toaster } from '@/components/ui/Toast'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -35,6 +38,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <AICopilotBubble />
       <FeedbackButton />
       <TweaksPanel />
+      <Toaster />
+      <CommandPalette />
+      <MobileFloorNav />
     </div>
   )
 }

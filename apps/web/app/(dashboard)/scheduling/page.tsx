@@ -39,7 +39,10 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -159,22 +162,12 @@ function TodayRoster() {
                 </div>
               ))}
             </div>
-          ) : rosterQuery.isError ? (
-            <div className="px-5 py-4 flex items-center gap-2 text-sm text-[var(--alert)]">
-              <AlertCircle size={15} />
-              Failed to load roster.
-              <button
-                onClick={() => rosterQuery.refetch()}
-                className="underline hover:no-underline"
-              >
-                Retry
-              </button>
-            </div>
-          ) : roster.length === 0 ? (
-            <div className="px-5 py-4 text-[13px] text-ink-3">
-              No staff scheduled for today yet.
-            </div>
           ) : (
+            <StateBlock
+              status={rosterQuery.isError ? 'error' : roster.length === 0 ? 'empty' : null}
+              error={{ message: 'Failed to load roster.', onRetry: () => rosterQuery.refetch() }}
+              empty={{ title: 'No staff scheduled for today yet.' }}
+            >
             <div className="px-5 py-3 flex flex-wrap gap-3">
               {roster.map((entry) => {
                 const color = getShiftColor(entry.shift.name)
@@ -227,6 +220,7 @@ function TodayRoster() {
                 )
               })}
             </div>
+            </StateBlock>
           )}
         </div>
       )}
@@ -318,13 +312,15 @@ function AssignShiftModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-line">
           <h2 id="assign-shift-title" className="text-[13px] font-semibold text-ink">Assign Shift</h2>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-ink-3 hover:text-ink rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors"
+            className="text-ink-3 hover:text-ink"
           >
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}
@@ -539,13 +535,15 @@ function CreateShiftModal({ existingShift, onClose, onSuccess }: CreateShiftModa
           <h2 id="shift-form-title" className="text-[13px] font-semibold text-ink">
             {isEdit ? 'Edit Shift' : 'New Shift'}
           </h2>
-          <button
+          <IconButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 text-ink-3 hover:text-ink rounded-[var(--r-sm)] hover:bg-surface-2 transition-colors"
+            className="text-ink-3 hover:text-ink"
           >
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}
@@ -712,9 +710,7 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
           ) : (
             <>
               {shifts.length === 0 ? (
-                <div className="px-5 py-4 text-sm text-slate-400">
-                  No shifts defined yet. Create your first shift below.
-                </div>
+                <EmptyState title="No shifts defined yet. Create your first shift below." className="py-4" />
               ) : (
                 <div className="divide-y divide-white/30">
                   {shifts.map((shift) => {
@@ -747,13 +743,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
                             {shift.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
-                        <button
-                          onClick={() => setEditShift(shift)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditShift(shift)} className="gap-1 bg-gray-100 text-gray-500 hover:bg-gray-200">
                           <Pencil size={11} />
                           Edit
-                        </button>
+                        </Button>
                       </div>
                     )
                   })}
@@ -762,13 +755,10 @@ function ShiftManagement({ shifts, isLoading }: ShiftManagementProps) {
 
               {/* Create shift button */}
               <div className="px-5 py-3 border-t border-white/40">
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 text-sm font-medium text-[var(--caution)] hover:text-[var(--caution)] transition-colors"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(true)} className="gap-2 text-[var(--caution)]">
                   <Plus size={15} />
                   Create Shift
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -1046,11 +1036,8 @@ function WeekCalendar({
             <tbody className="divide-y divide-gray-50">
               {filteredStaff.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-5 py-10 text-center text-sm text-gray-400"
-                  >
-                    No staff found for the selected department.
+                  <td colSpan={8}>
+                    <EmptyState title="No staff found for the selected department." className="py-10" />
                   </td>
                 </tr>
               ) : (
@@ -1158,8 +1145,8 @@ function WeekCalendar({
             <tbody className="divide-y divide-gray-50">
               {byShiftRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-gray-400">
-                    No active shifts found.
+                  <td colSpan={8}>
+                    <EmptyState title="No active shifts found." className="py-10" />
                   </td>
                 </tr>
               ) : (
@@ -1313,15 +1300,11 @@ export default function SchedulingPage() {
 
   return (
     <div className="space-y-5">
-      {/* â”€â”€ Page header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-normal text-ink tracking-tight">Staff Scheduling</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Manage shift assignments and view weekly coverage
-          </p>
-        </div>
-        {isSupervisor && (
+      <PageHeader
+        eyebrow="Organization"
+        title="Staff Scheduling"
+        subtitle="Manage shift assignments and view weekly coverage"
+        actions={isSupervisor && (
           <Button
             variant="primary"
             onClick={() => {
@@ -1334,7 +1317,7 @@ export default function SchedulingPage() {
             Assign Staff
           </Button>
         )}
-      </div>
+      />
 
       {/* â”€â”€ Today's Roster */}
       <TodayRoster />
@@ -1359,23 +1342,17 @@ export default function SchedulingPage() {
 
       {/* â”€â”€ Week navigation */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={prevWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
-        >
+        <Button variant="outline" onClick={prevWeek} className="gap-1.5">
           <ChevronLeft size={15} />
           Prev
-        </button>
+        </Button>
         <span className="text-sm font-semibold text-gray-800 min-w-[200px] text-center">
           Week of {weekLabel}
         </span>
-        <button
-          onClick={nextWeek}
-          className="flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-surface border border-line rounded-lg hover:bg-gray-50 transition-colors"
-        >
+        <Button variant="outline" onClick={nextWeek} className="gap-1.5">
           Next
           <ChevronRight size={15} />
-        </button>
+        </Button>
       </div>
 
       {/* â”€â”€ Weekly Calendar */}

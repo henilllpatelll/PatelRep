@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, BookOpen, Loader2, AlertCircle, Lightbulb, FileText } from 'lucide-react'
 import { sopApi, SOPQueryResult, SOPSource, SuggestedTask } from '@/lib/api/sop'
+import { Button, IconButton } from '@/components/ui/Button'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -213,13 +214,14 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                 </p>
               </div>
             </div>
-            <button
+            <IconButton
+              variant="ghost"
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-surface-2 text-ink3 transition-colors"
+              className="text-ink3"
               aria-label="Close modal"
             >
               <X size={18} />
-            </button>
+            </IconButton>
           </div>
 
           {/* Input area */}
@@ -237,20 +239,15 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
               <p className="text-xs text-ink4">
                 Shift+Enter for new line · Enter to ask
               </p>
-              <button
+              <Button
+                variant="primary"
+                loading={loading}
+                disabled={!question.trim()}
                 onClick={handleAsk}
-                disabled={loading || !question.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[var(--caution)] rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="gap-2 bg-[var(--caution)]"
               >
-                {loading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Searching…
-                  </>
-                ) : (
-                  'Ask AI'
-                )}
-              </button>
+                {loading ? 'Searching…' : 'Ask AI'}
+              </Button>
             </div>
           </div>
 
@@ -334,12 +331,13 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
                     ))}
                   </div>
                   <div className="mt-3 flex justify-end">
-                    <button
+                    <Button
+                      variant="outline"
                       onClick={handleCreateTasks}
-                      className="px-4 py-2 text-sm font-medium text-[var(--caution)] border border-[var(--caution-line)] rounded-lg hover:bg-[var(--caution-soft)] transition-colors"
+                      className="border-[var(--caution-line)] text-[var(--caution)] hover:bg-[var(--caution-soft)]"
                     >
                       Create Tasks
-                    </button>
+                    </Button>
                   </div>
                   {taskMessage && (
                     <p className="mt-2 text-sm text-[var(--ready)] bg-[var(--ready-soft)] border border-[var(--ready-line)] rounded-lg px-3 py-2" role="status">

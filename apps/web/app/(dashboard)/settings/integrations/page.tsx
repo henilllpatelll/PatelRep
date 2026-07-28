@@ -21,6 +21,7 @@ import {
 import { integrationsApi, type OperaConnectRequest } from '@/lib/api/integrations'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -210,11 +211,10 @@ export default function IntegrationsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Integrations</h1>
-        <p className="text-sm text-gray-500 mt-1">Connect external systems to power your hotel operations.</p>
-      </div>
+      <PageHeader
+        title="Integrations"
+        subtitle="Connect external systems to power your hotel operations."
+      />
 
       {/* Success banner */}
       {successBanner && (

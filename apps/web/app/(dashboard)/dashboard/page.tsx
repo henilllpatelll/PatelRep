@@ -1,8 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { Loader2, LogOut, CheckCircle2 } from 'lucide-react'
+import { LogOut, CheckCircle2 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
@@ -16,19 +15,16 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
   const storedFullName = useAuthStore((state) => state.fullName)
   const user = useAuthStore((state) => state.user)
   const queryClient = useQueryClient()
-  const [greeting, setGreeting] = useState('Good morning')
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'there'
@@ -60,29 +56,15 @@ function GMDashboard() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display text-[34px] font-normal tracking-[-0.5px] leading-[1.1] text-ink mt-1 italic">
-          {greeting}, {firstName}.
-        </h1>
-        {hotel && (
-          <p className="text-[13px] text-ink3 mt-1">{hotel.name}</p>
-        )}
-      </div>
+      <DashboardGreeting name={firstName} subtitle={hotel?.name} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+        <Card hover={false} className="p-4">
           <SectionLabel className="mb-3">Departures today ({depRooms.length})</SectionLabel>
-          {boardLoading ? (
-            <div className="flex items-center gap-2 text-ink3 text-sm py-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading…
-            </div>
-          ) : depRooms.length === 0 ? (
-            <p className="text-sm text-ink3 py-2">No departure rooms pending checkout.</p>
-          ) : (
+          <StateBlock
+            status={boardLoading ? 'loading' : depRooms.length === 0 ? 'empty' : null}
+            empty={{ title: 'No departure rooms pending checkout.' }}
+          >
             <div className="space-y-2">
               {depRooms.map((room: any) => (
                 <div key={room.room_id} className="flex items-center gap-3">
@@ -93,31 +75,29 @@ function GMDashboard() {
                     {room.status === 'IN_PROGRESS' ? 'Cleaning' : room.status === 'OCCUPIED' ? 'Occupied' : 'Vacant Dirty'}
                   </Pill>
                   {(room.status === 'OCCUPIED' || room.fo_status === 'OCC') && (
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={checkoutMutation.isPending}
                       onClick={() => checkoutMutation.mutate(room.room_id)}
-                      disabled={checkoutMutation.isPending}
-                      className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg hover:bg-[var(--alert)] hover:text-white transition-colors disabled:opacity-50"
+                      className="ml-auto gap-1 border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:bg-[var(--alert)] hover:text-white"
                     >
                       <LogOut className="w-3 h-3" />
                       Mark Departed
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </StateBlock>
+        </Card>
 
-        <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+        <Card hover={false} className="p-4">
           <SectionLabel className="mb-3">Ready for occupancy ({readyRooms.length})</SectionLabel>
-          {boardLoading ? (
-            <div className="flex items-center gap-2 text-ink3 text-sm py-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading…
-            </div>
-          ) : readyRooms.length === 0 ? (
-            <p className="text-sm text-ink3 py-2">No rooms currently ready for occupancy.</p>
-          ) : (
+          <StateBlock
+            status={boardLoading ? 'loading' : readyRooms.length === 0 ? 'empty' : null}
+            empty={{ title: 'No rooms currently ready for occupancy.' }}
+          >
             <div className="space-y-2">
               {readyRooms.map((room: any) => (
                 <div key={room.room_id} className="flex items-center gap-3">
@@ -125,19 +105,21 @@ function GMDashboard() {
                     {room.room_number}
                   </Mono>
                   <Pill tone="ready" size="sm">Inspected</Pill>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={checkinMutation.isPending}
                     onClick={() => checkinMutation.mutate(room.room_id)}
-                    disabled={checkinMutation.isPending}
-                    className="ml-auto flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors disabled:opacity-50"
+                    className="ml-auto gap-1 border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white"
                   >
                     <CheckCircle2 className="w-3 h-3" />
                     Mark Occupied
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </StateBlock>
+        </Card>
       </div>
 
       <ROIMetricsStrip />

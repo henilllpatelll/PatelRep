@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
-import { X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +9,9 @@ import { OccupancyImportModal } from '@/components/housekeeping/OccupancyImportM
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { StateBlock } from '@/components/ui/StateBlock'
+import { useToast } from '@/components/ui/Toast'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,7 @@ function statusBadge(status: string) {
 
 export default function AssignmentsPage() {
   const { t } = useTranslation()
+  const toast = useToast()
   const [date, setDate] = useState('')
   useEffect(() => {
     setDate(todayISO())
@@ -59,7 +62,6 @@ export default function AssignmentsPage() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [showImport, setShowImport] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['housekeeping-assignments-page', date],
@@ -79,24 +81,19 @@ export default function AssignmentsPage() {
 
   const handleAiAutoAssign = async () => {
     setAiLoading(true)
-    setAiMessage(null)
     try {
       const result = await housekeepingApi.aiSuggestAssignments(date)
       const count = (result as any)?.data?.assignments_created ?? (result as any)?.data?.count ?? null
-      setAiMessage({
-        type: 'success',
-        text: count !== null
+      toast.success(
+        count !== null
           ? (count === 1
             ? t('housekeeping.assignmentsPage.aiSuccessOne', { count })
             : t('housekeeping.assignmentsPage.aiSuccessOther', { count }))
           : t('housekeeping.assignmentsPage.aiSuccessGeneric'),
-      })
+      )
       queryClient.invalidateQueries({ queryKey: ['housekeeping-assignments-page', date] })
     } catch (err: any) {
-      setAiMessage({
-        type: 'error',
-        text: err?.message || t('housekeeping.assignmentsPage.aiFailure'),
-      })
+      toast.error(err?.message || t('housekeeping.assignmentsPage.aiFailure'))
     } finally {
       setAiLoading(false)
     }
@@ -111,40 +108,37 @@ export default function AssignmentsPage() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('housekeeping.assignmentsPage.heading')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('housekeeping.assignmentsPage.subtitle')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => setShowImport(true)}
-            className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
-          >
-            {t('housekeeping.assignmentsPage.importFromOpera')}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAiAutoAssign}
-            disabled={aiLoading}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            {aiLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                {t('housekeeping.assignmentsPage.thinking')}
-              </>
-            ) : (
-              t('housekeeping.assignmentsPage.autoAssignWithAi')
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Housekeeping"
+        title={t('housekeeping.assignmentsPage.heading')}
+        subtitle={t('housekeeping.assignmentsPage.subtitle')}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setShowImport(true)}
+              className="border border-stone-200 text-stone-700 hover:bg-stone-50 gap-1.5"
+            >
+              {t('housekeeping.assignmentsPage.importFromOpera')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAiAutoAssign}
+              disabled={aiLoading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {aiLoading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  {t('housekeeping.assignmentsPage.thinking')}
+                </>
+              ) : (
+                t('housekeeping.assignmentsPage.autoAssignWithAi')
+              )}
+            </Button>
+          </>
+        }
+      />
 
       {/* Date picker */}
       <div className="flex items-center gap-3">
@@ -169,38 +163,16 @@ export default function AssignmentsPage() {
         )}
       </div>
 
-      {/* AI message banner */}
-      {aiMessage && (
-        <div className={`flex items-start gap-2.5 px-4 py-3 rounded-lg border text-sm ${
-          aiMessage.type === 'success'
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          <span className="font-medium">{aiMessage.text}</span>
-          <button onClick={() => setAiMessage(null)} aria-label={t('housekeeping.assignmentsPage.dismissAria')} className="ml-auto shrink-0 opacity-60 hover:opacity-100"><X size={14} aria-hidden /></button>
-        </div>
-      )}
-
       {/* Table */}
       <Card className="overflow-hidden p-0">
-        {isLoading ? (
-          <div className="p-8 space-y-4 animate-pulse">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded" />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="p-8 text-center text-sm text-gray-500">
-            {t('housekeeping.assignmentsPage.loadError')}
-          </div>
-        ) : housekeepers.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-gray-400 text-sm">{t('housekeeping.assignmentsPage.emptyTitle')}</p>
-            <p className="text-gray-300 text-xs mt-1">
-              {t('housekeeping.assignmentsPage.emptySubtitle')}
-            </p>
-          </div>
-        ) : (
+        <StateBlock
+          status={isLoading ? 'loading' : isError ? 'error' : housekeepers.length === 0 ? 'empty' : null}
+          empty={{
+            title: t('housekeeping.assignmentsPage.emptyTitle'),
+            body: t('housekeeping.assignmentsPage.emptySubtitle'),
+          }}
+          error={{ message: t('housekeeping.assignmentsPage.loadError') }}
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/60 bg-amber-50/60 text-xs text-gray-500 uppercase tracking-wide">
@@ -263,7 +235,7 @@ export default function AssignmentsPage() {
               })}
             </tbody>
           </table>
-        )}
+        </StateBlock>
       </Card>
     </div>
   )

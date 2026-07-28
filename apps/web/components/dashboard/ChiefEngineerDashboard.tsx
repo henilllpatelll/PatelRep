@@ -1,5 +1,4 @@
 'use client'
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Wrench, Calendar, CheckCircle2, Zap } from 'lucide-react'
@@ -7,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { engineeringApi, type WorkOrder, type PMSchedule, type FailurePrediction } from '@/lib/api/engineering'
 import { reportsApi } from '@/lib/api/reports'
 import { Stat, Pill, SectionLabel, AILabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 import { format, subDays } from 'date-fns'
 
 function SkeletonRow() {
@@ -38,13 +38,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function ChiefEngineerDashboard() {
   const user = useAuthStore(s => s.user)
-  const [greeting, setGreeting] = useState('Good morning')
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const fullName: string =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -104,22 +97,16 @@ export function ChiefEngineerDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Greeting */}
-      <div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display italic text-[34px] leading-[1.1] tracking-[-0.5px] text-ink mt-1">
-          {greeting}, {firstName}.
-        </h1>
-        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
-          {urgentWOs.length > 0
+      <DashboardGreeting
+        name={firstName}
+        subtitle={
+          urgentWOs.length > 0
             ? `${openWOs.length} open work orders — ${urgentWOs.length} need immediate attention.`
             : openWOs.length > 0
             ? `${openWOs.length} open work orders. No urgent items.`
-            : 'All work orders resolved. Good shift.'}
-        </p>
-      </div>
+            : 'All work orders resolved. Good shift.'
+        }
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

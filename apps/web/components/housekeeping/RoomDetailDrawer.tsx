@@ -38,6 +38,7 @@ import { getRoomTypeCode } from '@/lib/utils/roomType'
 import { STATUS_LABELS } from '@/lib/utils/roomStatus'
 import { Button } from '@/components/ui/Button'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 const WO_CATEGORIES = [
   { value: 'appliance' },
@@ -441,19 +442,7 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
     (t: any) => t.status !== 'completed' && t.status !== 'cancelled',
   )
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
-
-  useEffect(() => {
-    if (isOpen && drawerRef.current) {
-      drawerRef.current.focus()
-    }
-  }, [isOpen])
+  useModalFocusTrap(drawerRef, isOpen, onClose)
 
   const roomNumber = room?.rooms?.room_number ?? room?.room_number ?? '—'
   const roomTypeName = getRoomTypeCode(room) ?? ''
@@ -628,14 +617,15 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                       onChange={(event) => setCheckoutTimeInput(event.target.value)}
                       className="h-8 w-[86px] rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
                       onClick={handleSaveCheckoutTime}
                       disabled={saveTimeLoading || !checkoutTimeInput}
-                      className="h-8 px-2.5 rounded-lg border border-stone-200 bg-white text-xs font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-40"
+                      className="h-8 px-2.5"
                     >
                       {saveTimeLoading ? '…' : saveTimeSuccess ? '✓' : t('housekeeping.roomDetail.departureCheckout.save')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 {saveTimeError && (
@@ -643,33 +633,27 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   {!isCheckedOut ? (
-                    <button
+                    <Button
                       type="button"
                       onClick={handleManualCheckout}
-                      disabled={checkoutLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50 transition-colors"
+                      loading={checkoutLoading}
+                      size="sm"
+                      className="bg-rose-500 text-white border-transparent hover:bg-rose-600"
                     >
-                      {checkoutLoading ? (
-                        <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                      ) : (
-                        <Clock className="h-3.5 w-3.5" />
-                      )}
+                      {!checkoutLoading && <Clock className="h-3.5 w-3.5" />}
                       {t('housekeeping.roomDetail.departureCheckout.markCheckedOut')}
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
                       type="button"
                       onClick={handleUndoCheckout}
-                      disabled={undoCheckoutLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50 transition-colors"
+                      loading={undoCheckoutLoading}
+                      size="sm"
+                      className="bg-rose-500 text-white border-transparent hover:bg-rose-600"
                     >
-                      {undoCheckoutLoading ? (
-                        <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      )}
+                      {!undoCheckoutLoading && <RotateCcw className="h-3.5 w-3.5" />}
                       {t('housekeeping.roomDetail.departureCheckout.undoCheckout')}
-                    </button>
+                    </Button>
                   )}
                   {checkoutSuccess && (
                     <span className="text-xs text-teal-600 font-medium">{t('housekeeping.roomDetail.departureCheckout.notified')}</span>
@@ -683,19 +667,17 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                 </div>
                 {canMarkStayover && (
                   <div className="mt-2.5 flex items-center gap-2 flex-wrap border-t border-stone-200 pt-2.5">
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
                       onClick={handleMarkStayover}
-                      disabled={stayoverLoading}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                      loading={stayoverLoading}
+                      size="sm"
+                      className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                     >
-                      {stayoverLoading ? (
-                        <span className="h-3 w-3 rounded-full border-2 border-blue-300 border-t-blue-700 animate-spin" />
-                      ) : (
-                        <BedDouble className="h-3.5 w-3.5" />
-                      )}
+                      {!stayoverLoading && <BedDouble className="h-3.5 w-3.5" />}
                       {t('housekeeping.roomDetail.departureCheckout.stayoverButton')}
-                    </button>
+                    </Button>
                     {stayoverSuccess && (
                       <span className="text-xs text-teal-600 font-medium">{t('housekeeping.roomDetail.departureCheckout.stayoverSuccess')}</span>
                     )}
@@ -790,12 +772,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   )}
                   {noteLoading ? t('housekeeping.roomDetail.noteForm.saving') : t('housekeeping.roomDetail.noteForm.save')}
                 </Button>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setNoteOpen(false)}
-                  className="text-xs text-stone-400 hover:text-stone-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   {t('common.cancel')}
-                </button>
+                </Button>
                 {noteError && (
                   <span className="text-xs text-rose-500">{noteError}</span>
                 )}
@@ -877,12 +861,14 @@ export function RoomDetailDrawer({ room, isOpen, onClose, onCheckoutTimeSaved }:
                   )}
                   {woLoading ? t('housekeeping.roomDetail.workOrderForm.submitting') : t('housekeeping.roomDetail.workOrderForm.submit')}
                 </Button>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setWoOpen(false)}
-                  className="text-xs text-stone-400 hover:text-stone-600"
+                  className="text-stone-400 hover:text-stone-600"
                 >
                   {t('common.cancel')}
-                </button>
+                </Button>
               </div>
               {woError && (
                 <p className="text-xs text-rose-500">{woError}</p>

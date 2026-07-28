@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 export default function DashboardError({
   error,
@@ -26,13 +27,10 @@ export default function DashboardError({
           This page encountered an error. Your other data is safe.
         </p>
         <div className="flex gap-2 justify-center">
-          <button
-            onClick={reset}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
-          >
+          <Button variant="primary" onClick={reset} className="gap-1.5 bg-amber-600 hover:bg-amber-700">
             <RefreshCw className="w-3.5 h-3.5" />
             Retry
-          </button>
+          </Button>
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"

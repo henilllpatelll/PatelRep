@@ -18,6 +18,7 @@ import {
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { clientFastPath, isOffTopic, OFF_TOPIC_RESPONSE } from '@/lib/ai/clientFastPath'
+import { Button } from '@/components/ui/Button'
 import {
   AssignmentCard,
   GuestRequestCard,
@@ -26,6 +27,7 @@ import {
   WorkOrderCard,
 } from '@/components/ai/cards'
 import { AILabel, Mono, SectionLabel, Bar, Pill } from '@/components/ui/primitives'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 function genId() { return Math.random().toString(36).slice(2) }
 
@@ -52,14 +54,12 @@ function ConfirmView<T>({
     <div className="mt-2 space-y-2">
       <div className="space-y-2 max-h-60 overflow-y-auto">{items.map((item, i) => renderItem(item, i))}</div>
       <div className="flex gap-2">
-        <button onClick={submit} disabled={saving || items.length === 0}
-          className="flex-1 py-2.5 bg-accent text-white text-xs font-medium rounded-[var(--r-md)] hover:opacity-90 disabled:opacity-50 transition-opacity">
-          {saving ? 'Creating…' : 'Confirm & Create'}
-        </button>
-        <button onClick={onCancel}
-          className="px-4 py-2.5 border border-line text-xs font-medium text-ink2 rounded-[var(--r-md)] hover:bg-surface-2 transition-colors">
+        <Button variant="primary" loading={saving} disabled={items.length === 0} onClick={submit} className="flex-1">
+          Confirm & Create
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -75,14 +75,12 @@ function TaskConfirmView({ data, onConfirm, onCancel }: { data: TaskPreviewRespo
     <div className="mt-2 space-y-2">
       <div className="space-y-2 max-h-60 overflow-y-auto">{tasks.map((task, i) => <TaskPreviewCard key={i} task={task} />)}</div>
       <div className="flex gap-2">
-        <button onClick={submit} disabled={saving || tasks.length === 0}
-          className="flex-1 py-2.5 bg-accent text-white text-xs font-medium rounded-[var(--r-md)] hover:opacity-90 disabled:opacity-50 transition-opacity">
-          {saving ? 'Creating…' : 'Confirm & Create'}
-        </button>
-        <button onClick={onCancel}
-          className="px-4 py-2.5 border border-line text-xs font-medium text-ink2 rounded-[var(--r-md)] hover:bg-surface-2 transition-colors">
+        <Button variant="primary" loading={saving} disabled={tasks.length === 0} onClick={submit} className="flex-1">
+          Confirm & Create
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -328,20 +326,21 @@ export default function AICopilotPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex-1 flex flex-col min-w-0 p-5">
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">Intelligence</p>
-            <h1 className="font-display text-[26px] leading-none text-ink font-normal tracking-[-0.2px]">Copilot</h1>
-          </div>
-          <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
-              <History size={13} /> History
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-line rounded-[var(--r-md)] text-[12.5px] text-ink2 hover:bg-surface-2 transition-colors">
-              <Settings size={13} /> Model
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Intelligence"
+          title="Copilot"
+          className="mb-4 shrink-0"
+          actions={
+            <>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <History size={13} /> History
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Settings size={13} /> Model
+              </Button>
+            </>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto space-y-5 pr-1" aria-live="polite" aria-label="AI Copilot conversation">
           {messages.map((msg, idx) =>
@@ -407,17 +406,20 @@ export default function AICopilotPage() {
               <span className="font-mono text-[10px] text-ink3 bg-surface-2 px-1.5 py-0.5 rounded border border-line shrink-0 mt-0.5">⌘ ⏎</span>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="primary"
+                size="sm"
+                loading={loading}
+                disabled={!input.trim()}
                 onClick={() => sendMessage()}
-                disabled={loading || !input.trim()}
                 aria-label="Send message"
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-ai text-white text-[12.5px] font-medium rounded-[var(--r-md)] hover:opacity-90 disabled:opacity-40 transition-opacity shadow-sm">
+                className="ml-auto gap-1.5 bg-ai shadow-sm">
                 <Send size={12} /> Ask
-              </button>
-              <button onClick={() => setInput('')} disabled={!input.trim()}
-                className="text-[12.5px] text-ink3 hover:text-ink transition-colors disabled:opacity-0">
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setInput('')} disabled={!input.trim()}
+                className="text-ink3 hover:text-ink disabled:opacity-0">
                 Clear
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -6,7 +6,6 @@ import {
   Plus,
   Clock,
   X,
-  Loader2,
   MapPin,
   User,
   CheckCircle,
@@ -22,10 +21,13 @@ import {
 } from '@/lib/api/lost_found'
 import { useRole } from '@/lib/hooks/useRole'
 import { LogFoundItemModal } from '@/components/shared/LogFoundItemModal'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +49,7 @@ const STATUS_LABELS: Record<LostFoundStatus, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 animate-pulse">
+    <Card hover={false} className="p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
         <div className="h-3 w-24 bg-gray-100 rounded" />
@@ -57,7 +59,7 @@ function SkeletonCard() {
       <div className="flex gap-2 pt-2 border-t border-gray-100">
         <div className="h-7 w-24 bg-gray-200 rounded-lg" />
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -147,7 +149,7 @@ function ItemCard({
   const dispositionDue = isDispositionDue(item)
 
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
+    <Card className="p-4">
       {/* Top row: status badge + disposition-due flag + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-1.5">
@@ -211,35 +213,34 @@ function ItemCard({
       {/* Mark Claimed button */}
       {canAct && (
         <div className="pt-2 border-t border-gray-100">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onMarkClaimed(item)}
-            className="w-full px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+            className="w-full gap-1 bg-[var(--ready)]"
           >
             <CheckCircle className="w-3 h-3" />
             Release Item
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Approve Disposition button (D-11, D-12) */}
       {canApproveDisposition && item.status === 'unclaimed' && (
         <div className={cn('pt-2', !canAct && 'border-t border-gray-100')}>
-          <button
+          <Button
+            variant={dispositionDue ? 'primary' : 'outline'}
+            size="sm"
             onClick={() => onApproveDisposition(item)}
-            className={cn(
-              'w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1',
-              dispositionDue
-                ? 'bg-[var(--caution)] text-white hover:opacity-90'
-                : 'border border-line text-ink2 hover:bg-surface-2'
-            )}
+            className={cn('w-full', dispositionDue && 'bg-[var(--caution)]')}
           >
             Approve Disposition
-          </button>
+          </Button>
         </div>
       )}
 
       <CustodyHistory itemId={item.id} />
-    </div>
+    </Card>
   )
 }
 
@@ -285,9 +286,9 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-lost-found-title" tabIndex={-1} className="relative bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 id="edit-lost-found-title" className="text-lg font-semibold text-gray-900">Edit Found Item</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <IconButton variant="ghost" onClick={onClose} aria-label="Close">
             <X className="w-4 h-4" />
-          </button>
+          </IconButton>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -301,11 +302,10 @@ function EditItemModal({ item, onClose, onSaved }: EditItemModalProps) {
           </div>
           {error && <p className="text-sm text-[var(--alert)] bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
-            <button type="submit" disabled={isPending || !form.description.trim()} className="flex-1 px-4 py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2">
-              {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+            <Button type="submit" variant="primary" loading={isPending} disabled={!form.description.trim()} className="flex-1">
               {isPending ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -411,26 +411,17 @@ export default function LostFoundPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--caution-soft)] flex items-center justify-center shrink-0">
-            <Package className="w-5 h-5 text-[var(--caution)]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Lost &amp; Found</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
-            </p>
-          </div>
-        </div>
-        {canCreate && (
+      <PageHeader
+        eyebrow="Operations"
+        title="Lost & Found"
+        subtitle={items ? `${items.length} item${items.length !== 1 ? 's' : ''}` : 'Track and manage found items'}
+        actions={canCreate && (
           <Button variant="primary" onClick={() => setShowLogModal(true)} className="shrink-0">
             <Plus className="w-4 h-4" />
             Log Found Item
           </Button>
         )}
-      </div>
+      />
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -466,21 +457,18 @@ export default function LostFoundPage() {
           <SkeletonCard />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <Package className="w-6 h-6 text-gray-400" />
-          </div>
-          <p className="text-sm font-medium text-gray-700">
-            {dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {dispositionDueOnly
+        <EmptyState
+          icon={<Package className="w-5 h-5" />}
+          title={dispositionDueOnly ? 'Nothing due for disposition' : 'No items found'}
+          body={
+            dispositionDueOnly
               ? 'Items flagged after their 90-day retention period passes will show up here for manager review.'
               : search
               ? `No items match "${search}"`
-              : 'No lost & found items logged yet.'}
-          </p>
-        </div>
+              : 'No lost & found items logged yet.'
+          }
+          className="py-16"
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => (

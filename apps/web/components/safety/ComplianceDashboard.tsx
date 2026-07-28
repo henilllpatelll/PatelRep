@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, GraduationCap, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { StateBlock } from '@/components/ui/StateBlock'
 import { safetyApi, type TrainingStatusRow } from '@/lib/api/safety'
 
 const STATUS_STYLE: Record<string, string> = { compliant: 'bg-success-soft text-success', due_soon: 'bg-caution-soft text-caution', overdue: 'bg-alert-soft text-alert', not_applicable: 'bg-surface-2 text-ink3' }
@@ -104,9 +105,10 @@ export function ComplianceDashboard() {
         <span className="text-caution">Due soon: <span className="font-semibold">{summary.dueSoon}</span></span>
       </div>
 
-      {loading ? (
-        <p className="p-5 text-sm text-ink3">Loading…</p>
-      ) : rows.length ? (
+      <StateBlock
+        status={loading ? 'loading' : rows.length === 0 ? 'empty' : null}
+        empty={{ title: 'No training requirements yet. Add a course to begin.' }}
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead><tr className="border-y border-line text-left text-xs uppercase tracking-wide text-ink3">
@@ -124,9 +126,7 @@ export function ComplianceDashboard() {
             </tbody>
           </table>
         </div>
-      ) : (
-        <p className="p-5 text-sm text-ink3">No training requirements yet. Add a course to begin.</p>
-      )}
+      </StateBlock>
     </section>
   )
 }

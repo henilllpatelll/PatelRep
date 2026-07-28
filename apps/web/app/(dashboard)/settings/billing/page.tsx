@@ -16,6 +16,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -191,13 +192,10 @@ export default function SettingsBillingPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Billing &amp; Usage</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage your subscription and monitor AI credit consumption
-        </p>
-      </div>
+      <PageHeader
+        title="Billing & Usage"
+        subtitle="Manage your subscription and monitor AI credit consumption"
+      />
 
       {/* ── Trial Upgrade CTA ── */}
       {subData?.plan_status === 'trialing' && (

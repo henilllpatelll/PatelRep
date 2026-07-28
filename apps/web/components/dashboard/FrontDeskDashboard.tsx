@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, Package, Bed, CheckCircle2, Clock, Check, X, Loader2, ShieldAlert } from 'lucide-react'
+import { Bell, Package, Bed, CheckCircle2, Clock, Check, X, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuthStore } from '@/stores/authStore'
 import { housekeepingApi } from '@/lib/api/housekeeping'
@@ -10,6 +10,8 @@ import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { hotelsApi } from '@/lib/api/hotels'
 import { lateCheckoutApi, type LateCheckoutRequest } from '@/lib/api/lateCheckout'
 import { Stat, Pill, SectionLabel, Mono } from '@/components/ui/primitives'
+import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
+import { Button, IconButton } from '@/components/ui/Button'
 
 function getHotelIdFromSession(accessToken: string | undefined): string {
   if (!accessToken) return ''
@@ -67,18 +69,12 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
         </div>
         {mode === 'idle' && (
           <div className="flex gap-1.5 shrink-0">
-            <button
-              onClick={() => setMode('approving')}
-              className="px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setMode('approving')} className="border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white">
               Approve
-            </button>
-            <button
-              onClick={() => setMode('denying')}
-              className="px-2.5 py-1 text-[11.5px] font-medium bg-surface-2 text-ink3 border border-line rounded-lg hover:bg-[var(--alert-soft)] hover:text-[var(--alert)] hover:border-[var(--alert-line)] transition-colors"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setMode('denying')} className="bg-surface-2 border border-line text-ink3 hover:bg-[var(--alert-soft)] hover:text-[var(--alert)] hover:border-[var(--alert-line)]">
               Deny
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -92,30 +88,22 @@ function LateCheckoutRow({ req, onApprove, onDeny, resolving }: {
             placeholder="e.g. 1:00 PM"
             className="flex-1 text-[12px] bg-transparent border-none outline-none text-ink font-medium"
           />
-          <button
-            onClick={() => onApprove(req.id, confirmedTime)}
-            disabled={resolving || !confirmedTime.trim()}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold bg-[var(--ready)] text-white rounded-md disabled:opacity-50"
-          >
-            {resolving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+          <Button variant="primary" size="sm" loading={resolving} disabled={!confirmedTime.trim()} onClick={() => onApprove(req.id, confirmedTime)} className="gap-1 bg-[var(--ready)]">
+            <Check size={11} />
             Confirm
-          </button>
-          <button onClick={() => setMode('idle')} className="text-ink3 hover:text-ink2"><X size={14} /></button>
+          </Button>
+          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className="text-ink3 hover:text-ink2"><X size={14} /></IconButton>
         </div>
       )}
 
       {mode === 'denying' && (
         <div className="flex items-center gap-2 ml-10 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-lg px-3 py-2">
           <span className="text-[11.5px] text-[var(--alert)] font-medium">Deny late checkout for room {req.room_number}?</span>
-          <button
-            onClick={() => onDeny(req.id)}
-            disabled={resolving}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-semibold bg-[var(--alert)] text-white rounded-md disabled:opacity-50 ml-auto shrink-0"
-          >
-            {resolving ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />}
+          <Button variant="primary" size="sm" loading={resolving} onClick={() => onDeny(req.id)} className="ml-auto gap-1 bg-[var(--alert)] shrink-0">
+            <X size={11} />
             Deny
-          </button>
-          <button onClick={() => setMode('idle')} className="text-ink3 hover:text-ink2 shrink-0"><X size={14} /></button>
+          </Button>
+          <IconButton variant="ghost" size="sm" onClick={() => setMode('idle')} aria-label="Cancel" className="text-ink3 hover:text-ink2 shrink-0"><X size={14} /></IconButton>
         </div>
       )}
     </div>
@@ -167,15 +155,8 @@ export function FrontDeskDashboard() {
   const queryClient = useQueryClient()
   const { user, session, fullName: storedFullName } = useAuthStore()
   const hotelId = getHotelIdFromSession(session?.access_token)
-  const [greeting, setGreeting] = useState('Good morning')
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [actionRoomId, setActionRoomId] = useState<string | null>(null)
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h < 12) setGreeting('Good morning')
-    else if (h < 18) setGreeting('Good afternoon')
-    else setGreeting('Good evening')
-  }, [])
 
   const firstName = storedFullName
     ? storedFullName.split(' ')[0] || 'Front Desk'
@@ -278,20 +259,14 @@ export function FrontDeskDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Greeting */}
-      <div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink3" suppressHydrationWarning>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
-        <h1 className="font-display italic text-[34px] leading-[1.1] tracking-[-0.5px] text-ink mt-1">
-          {greeting}, {firstName}.
-        </h1>
-        <p className="mt-2 text-[14px] text-ink2 leading-relaxed">
-          {openRequests.length > 0
+      <DashboardGreeting
+        name={firstName}
+        subtitle={
+          openRequests.length > 0
             ? `${openRequests.length} open guest ${openRequests.length === 1 ? 'request' : 'requests'} — ${readyPct}% of rooms ready.`
-            : `${readyPct}% of rooms ready. No open guest requests.`}
-        </p>
-      </div>
+            : `${readyPct}% of rooms ready. No open guest requests.`
+        }
+      />
 
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -455,14 +430,16 @@ export function FrontDeskDashboard() {
                       </Mono>
                       <span className="text-[12.5px] text-ink2 flex-1">Floor {r.rooms?.floor ?? r.floor ?? '—'}</span>
                       {isOccupied ? (
-                        <button
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          loading={actionRoomId === rid}
                           onClick={() => checkOut(rid)}
-                          disabled={actionRoomId === rid}
-                          className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--alert-soft)] text-[var(--alert)] border border-[var(--alert-line)] rounded-lg hover:bg-[var(--alert)] hover:text-white transition-colors disabled:opacity-50"
+                          className="gap-1 border-[var(--alert-line)] bg-[var(--alert-soft)] text-[var(--alert)] hover:bg-[var(--alert)] hover:text-white"
                         >
-                          {actionRoomId === rid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                          <Check size={10} />
                           Mark Departed
-                        </button>
+                        </Button>
                       ) : (
                         <Pill tone={statusTone} size="sm">{statusLabel}</Pill>
                       )}
@@ -486,14 +463,16 @@ export function FrontDeskDashboard() {
                         <Mono className="bg-surface-2 border border-line rounded px-1.5 py-0.5 text-[11px]">{room}</Mono>
                         {code && <span className="text-[11.5px] text-ink3 font-mono">{code}</span>}
                         <span className="text-[12px] text-ink3 flex-1">Floor {r.rooms?.floor ?? r.floor ?? '—'}</span>
-                        <button
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          loading={actionRoomId === rid}
                           onClick={() => checkIn(rid)}
-                          disabled={actionRoomId === rid}
-                          className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--ready-soft)] text-[var(--ready)] border border-[var(--ready-line)] rounded-lg hover:bg-[var(--ready)] hover:text-white transition-colors disabled:opacity-50"
+                          className="gap-1 border-[var(--ready-line)] bg-[var(--ready-soft)] text-[var(--ready)] hover:bg-[var(--ready)] hover:text-white"
                         >
-                          {actionRoomId === rid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                          <Check size={10} />
                           Mark Occupied
-                        </button>
+                        </Button>
                       </div>
                     )
                   })}
@@ -527,14 +506,16 @@ export function FrontDeskDashboard() {
                     </p>
                     <p className="text-[11.5px] text-ink3 mt-0.5">DND flag active</p>
                   </div>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={actionRoomId === rid}
                     onClick={() => welfareCheck(rid)}
-                    disabled={actionRoomId === rid}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[11.5px] font-medium bg-[var(--caution-soft)] text-[var(--caution)] border border-[var(--caution-line)] rounded-lg hover:bg-[var(--caution)] hover:text-white transition-colors disabled:opacity-50 shrink-0"
+                    className="gap-1 border-[var(--caution-line)] bg-[var(--caution-soft)] text-[var(--caution)] hover:bg-[var(--caution)] hover:text-white shrink-0"
                   >
-                    {actionRoomId === rid ? <Loader2 size={10} className="animate-spin" /> : <ShieldAlert size={10} />}
+                    <ShieldAlert size={10} />
                     Welfare check
-                  </button>
+                  </Button>
                 </div>
               )
             })}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -17,9 +17,11 @@ import {
 import { engineeringApi, PMSchedule } from '@/lib/api/engineering'
 import { useRole } from '@/lib/hooks/useRole'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { PMCompletionModal } from '@/components/engineering/PMCompletionModal'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -187,45 +189,46 @@ function PMScheduleMobileCard({
       </dl>
       <div className="mt-4 grid grid-cols-1 gap-2">
         {schedule.is_active && (
-          <button
+          <Button
+            variant="outline"
             onClick={onComplete}
-            className="min-h-[44px] rounded-lg border border-green-300 px-3 py-2 text-sm font-semibold text-green-700 transition-colors hover:bg-[var(--ready-soft)]"
+            className="border-[var(--ready-line)] text-[var(--ready)] hover:bg-[var(--ready-soft)]"
           >
             {t('programs.pmSchedules.complete')}
-          </button>
+          </Button>
         )}
         {canEdit && schedule.is_active && (
           confirmingDeactivate ? (
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <Button
+                variant="outline"
                 onClick={onConfirmDeactivate}
-                className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)]"
+                className="border-[var(--alert-line)] text-[var(--alert)]"
               >
                 {t('programs.pmSchedules.confirm')}
-              </button>
-              <button
-                onClick={onCancelDeactivate}
-                className="min-h-[44px] rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600"
-              >
+              </Button>
+              <Button variant="outline" onClick={onCancelDeactivate}>
                 {t('programs.pmSchedules.cancel')}
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
+              variant="outline"
               onClick={onAskDeactivate}
-              className="min-h-[44px] rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-[var(--alert)] transition-colors hover:bg-[var(--alert-soft)]"
+              className="border-[var(--alert-line)] text-[var(--alert)] hover:bg-[var(--alert-soft)]"
             >
               {t('programs.pmSchedules.deactivate')}
-            </button>
+            </Button>
           )
         )}
         {canEdit && isOverdue && (
-          <button
+          <Button
+            variant="outline"
             onClick={onCreateWO}
-            className="min-h-[44px] rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+            className="border-[var(--info-line)] text-[var(--info)] hover:bg-[var(--info-soft)]"
           >
             {t('programs.pmSchedules.createWorkOrderFull')}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -278,13 +281,8 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !saving) onClose()
-    }
-    if (isOpen) document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen, saving, onClose])
+  const modalRef = useRef<HTMLDivElement>(null!)
+  useModalFocusTrap(modalRef, isOpen, () => { if (!saving) onClose() })
 
   useEffect(() => {
     if (isOpen) {
@@ -349,6 +347,7 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
+          ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-label={t('programs.pmSchedules.addModal.title')}
@@ -364,13 +363,13 @@ function CreatePMScheduleModal({ isOpen, onClose, onSuccess }: CreatePMScheduleM
               <h2 className="text-base font-bold text-gray-900">{t('programs.pmSchedules.addModal.title')}</h2>
             </div>
             {!saving && (
-              <button
+              <IconButton
+                variant="ghost"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 aria-label={t('programs.pmSchedules.addModal.close')}
               >
                 <X size={18} />
-              </button>
+              </IconButton>
             )}
           </div>
 
@@ -607,18 +606,11 @@ export default function PMSchedulesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Calendar size={22} className="text-[var(--caution)] shrink-0" />
-            {t('programs.pmSchedules.title')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('programs.pmSchedules.subtitle')}
-          </p>
-        </div>
-        {canEdit && (
+      <PageHeader
+        eyebrow="Engineering"
+        title={t('programs.pmSchedules.title')}
+        subtitle={t('programs.pmSchedules.subtitle')}
+        actions={canEdit && (
           <Button
             variant="primary"
             onClick={() => setShowCreateModal(true)}
@@ -628,7 +620,7 @@ export default function PMSchedulesPage() {
             {t('programs.pmSchedules.addSchedule')}
           </Button>
         )}
-      </div>
+      />
 
       {/* ── Success banner ─────────────────────────────────────────────────── */}
       {successMessage && (
@@ -865,49 +857,59 @@ export default function PMSchedulesPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {/* Complete — visible to engineer, chief, GM for active non-cancelled schedules */}
                             {schedule.is_active && (
-                              <button
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setCompletingSchedule(schedule)}
-                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-green-300 text-green-700 hover:bg-[var(--ready-soft)] transition-colors"
+                                className="border-[var(--ready-line)] text-[var(--ready)] hover:bg-[var(--ready-soft)]"
                               >
                                 {t('programs.pmSchedules.complete')}
-                              </button>
+                              </Button>
                             )}
 
                             {/* Deactivate + Create WO — chief/GM only */}
                             {canEdit && schedule.is_active && (
                               confirmDeactivateId === schedule.id ? (
-                                <span className="flex items-center gap-1 text-xs">
-                                  <button
+                                <span className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleDeactivate(schedule.id)}
-                                    className="min-h-[44px] px-3 py-2 text-[var(--alert)] font-medium hover:underline"
+                                    className="text-[var(--alert)] hover:underline"
                                   >
                                     {t('programs.pmSchedules.confirm')}
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setConfirmDeactivateId(null)}
-                                    className="min-h-[44px] px-3 py-2 text-gray-500 hover:underline"
+                                    className="text-gray-500 hover:underline"
                                   >
                                     {t('programs.pmSchedules.cancel')}
-                                  </button>
+                                  </Button>
                                 </span>
                               ) : (
-                                <button
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => setConfirmDeactivateId(schedule.id)}
-                                  className="text-xs px-3 py-2 min-h-[44px] rounded border border-red-200 text-[var(--alert)] hover:bg-[var(--alert-soft)] transition-colors"
+                                  className="border-[var(--alert-line)] text-[var(--alert)] hover:bg-[var(--alert-soft)]"
                                 >
                                   {t('programs.pmSchedules.deactivate')}
-                                </button>
+                                </Button>
                               )
                             )}
 
                             {/* Create WO — chief/GM only, overdue schedules */}
                             {canEdit && isOverdue && (
-                              <button
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => handleCreateWOFromPM(schedule)}
-                                className="text-xs px-3 py-2 min-h-[44px] rounded border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                                className="border-[var(--info-line)] text-[var(--info)] hover:bg-[var(--info-soft)]"
                               >
                                 {t('programs.pmSchedules.createWO')}
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </td>
