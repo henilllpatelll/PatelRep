@@ -175,3 +175,13 @@ cd apps/web && npm run lint && npm run type-check
 cd apps/web && npx playwright test --config=playwright.phase0.config.ts
 cd apps/web && npx playwright test --config=playwright.phase1.config.ts
 ```
+
+## Deferred Items
+
+Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
+
+| Category | Item | Status |
+|----------|------|--------|
+| UAT | Phase 05: 05-HUMAN-UAT.md | blocked_on_credentials (no local Twilio credentials — live SMS unexercised) |
+| UAT | Phase 06: 06-UAT.md | partial (no local LLM credentials — GM insights quick action unexercised) |
+| Verification | Phase 05: 05-VERIFICATION.md | human_needed (same root cause — live SMS) |
