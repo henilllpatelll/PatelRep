@@ -14,14 +14,59 @@ CREDIT_COSTS = {
     "onboarding_assistant": 1.0,
 }
 
+# USD per 1,000,000 tokens. Current as of 2026-07 — re-confirm against provider
+# pricing pages if billing accuracy is disputed.
+MODEL_RATES = {
+    "gpt-4o-mini": {"in": 0.15, "out": 0.60},
+    "claude-sonnet": {"in": 3.00, "out": 15.00},
+}
 
-async def check_and_deduct_credits(hotel_id: str, interaction_type: str) -> float:
+INTERACTION_MODEL = {
+    "task_creation": "gpt-4o-mini",
+    "work_order_creation": "gpt-4o-mini",
+    "guest_request_creation": "gpt-4o-mini",
+    "task_assignment": "gpt-4o-mini",
+    "assignment_suggestion": "gpt-4o-mini",
+    "onboarding_assistant": "gpt-4o-mini",
+    "sop_query": "claude-sonnet",
+    "gm_insight": "claude-sonnet",
+    "room_prediction": "claude-sonnet",
+    "failure_prediction": "claude-sonnet",
+    "shift_summary": "claude-sonnet",
+    "housekeeping_briefing": "claude-sonnet",
+}
+
+DOLLARS_PER_CREDIT = 0.02  # $0.02 per AI credit per CLAUDE.md pricing
+
+
+def compute_credits(interaction_type: str, prompt_tokens: int, completion_tokens: int) -> float:
+    """
+    Derive the billable credit amount from real token usage.
+
+    CREDIT_COSTS is retained as a per-interaction-type revenue floor: short
+    calls still bill at least the old flat amount (no revenue regression),
+    while long calls bill more (CLAUDE.md A3 — never a fixed cost).
+    """
+    model = INTERACTION_MODEL.get(interaction_type, "gpt-4o-mini")
+    rates = MODEL_RATES[model]
+    usd = (prompt_tokens / 1_000_000) * rates["in"] + (completion_tokens / 1_000_000) * rates["out"]
+    token_credits = usd / DOLLARS_PER_CREDIT
+    floor = CREDIT_COSTS.get(interaction_type, 1.0)
+    return round(max(floor, token_credits), 4)
+
+
+async def check_and_deduct_credits(
+    hotel_id: str,
+    interaction_type: str,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+) -> float:
     """
     Checks credit availability and deducts credits for an AI interaction.
-    Returns the credits charged.
+    Returns the credits charged (token-derived — see compute_credits).
     Raises HTTPException if at cap or trial exhausted.
     """
-    credits = CREDIT_COSTS.get(interaction_type, 1.0)
+    credits = compute_credits(interaction_type, prompt_tokens, completion_tokens)
 
     # Get current period ledger
     today = date.today()

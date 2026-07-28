@@ -246,9 +246,11 @@ async def copilot_chat(
                     shift_end=ctx["shift_end"],
                     context=request.context,
                 )
-                credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
                 prompt_tokens = result["prompt_tokens"]
                 completion_tokens = result["completion_tokens"]
+                credits = await check_and_deduct_credits(
+                    current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+                )
                 tasks = result["tasks"]
                 for task in tasks:
                     rn = task.pop("room_number", None)
@@ -267,9 +269,11 @@ async def copilot_chat(
 
         elif intent == "work_order_creation":
             result = parse_work_orders(request.message)
-            credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
+            credits = await check_and_deduct_credits(
+                current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+            )
             wos = result["work_orders"]
             for wo in wos:
                 rn = wo.get("room_number")
@@ -285,9 +289,11 @@ async def copilot_chat(
 
         elif intent == "guest_request_creation":
             result = parse_guest_requests(request.message)
-            credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
+            credits = await check_and_deduct_credits(
+                current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+            )
             reqs = result["requests"]
             for req in reqs:
                 rn = req.get("room_number")
@@ -303,9 +309,11 @@ async def copilot_chat(
 
         elif intent == "task_assignment":
             result = parse_assignments(request.message)
-            credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
+            credits = await check_and_deduct_credits(
+                current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+            )
             assignments = result["assignments"]
             for a in assignments:
                 a["staff_id"] = _resolve_staff_id(current_user.hotel_id, a.get("staff_name_hint", ""))
@@ -333,9 +341,11 @@ async def copilot_chat(
 
         elif intent == "insight_query":
             result = generate_gm_insights(current_user.hotel_id, query=request.message)
-            credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
             prompt_tokens = result["prompt_tokens"]
             completion_tokens = result["completion_tokens"]
+            credits = await check_and_deduct_credits(
+                current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+            )
             response_payload = {
                 "response_type": "insights",
                 "message": "Here are your operational insights:",
@@ -368,9 +378,11 @@ async def copilot_chat(
                     hotel_id=current_user.hotel_id,
                     user_id=current_user.user_id,
                 )
-                credits = await check_and_deduct_credits(current_user.hotel_id, intent_to_log)
                 prompt_tokens = sop_result.get("prompt_tokens", 0)
                 completion_tokens = sop_result.get("completion_tokens", 0)
+                credits = await check_and_deduct_credits(
+                    current_user.hotel_id, intent_to_log, prompt_tokens, completion_tokens
+                )
                 response_payload = {
                     "response_type": "answer",
                     "message": sop_result["answer"],
@@ -455,7 +467,10 @@ async def housekeeping_shift_briefing(
             request.language,
             layout_context=layout_text,
         )
-        credits = await check_and_deduct_credits(current_user.hotel_id, "housekeeping_briefing")
+        credits = await check_and_deduct_credits(
+            current_user.hotel_id, "housekeeping_briefing",
+            result["prompt_tokens"], result["completion_tokens"],
+        )
         latency = int((time.time() - start) * 1000)
         await log_ai_interaction(
             hotel_id=current_user.hotel_id, user_id=current_user.user_id,
@@ -662,7 +677,7 @@ async def get_risk_alerts(current_user: CurrentUser = Depends(get_current_user))
 
 @router.get("/insights")
 async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user)):
-    credits = await check_and_deduct_credits(current_user.hotel_id, "gm_insight")
+    credits = 0
     start = time.time()
     try:
         result = generate_gm_insights(current_user.hotel_id)
@@ -675,6 +690,9 @@ async def get_gm_insights(current_user: CurrentUser = Depends(get_current_user))
             latency_ms=latency, success=False, error_message=str(exc),
         )
         raise HTTPException(status_code=503, detail="AI insights temporarily unavailable. Please try again later.")
+    credits = await check_and_deduct_credits(
+        current_user.hotel_id, "gm_insight", result["prompt_tokens"], result["completion_tokens"]
+    )
     latency = int((time.time() - start) * 1000)
     await log_ai_interaction(
         hotel_id=current_user.hotel_id, user_id=current_user.user_id,

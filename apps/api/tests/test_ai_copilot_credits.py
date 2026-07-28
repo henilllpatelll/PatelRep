@@ -167,7 +167,7 @@ async def test_credits_charged_varies_with_token_count(monkeypatch):
     db = CopilotFakeDB(_seeded_ledger_rows(GM.hotel_id))
 
     credits_small = await _run_task_creation(monkeypatch, db, 100, 50)
-    credits_large = await _run_task_creation(monkeypatch, db, 5000, 3000)
+    credits_large = await _run_task_creation(monkeypatch, db, 200_000, 150_000)
 
     assert credits_large > credits_small
 
