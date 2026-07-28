@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import get_current_user, CurrentUser, require_role
@@ -26,6 +26,8 @@ from services.ai.governance import (
     validate_recommendation_transition,
 )
 from services.ai.model_routing import DEFAULT_MODEL_ROUTES
+from services.guest_recovery.contracts import resolve_sla_minutes
+from routers.guest_requests import _record_guest_request_event
 import openai
 import anthropic
 import time
@@ -573,9 +575,22 @@ async def confirm_guest_requests(
     requests: list[GuestRequestPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
+    # Fail-fast validation before any writes — matches create_guest_request's contract.
+    for req in requests:
+        if req.category == "accessibility" and req.priority != "urgent":
+            raise HTTPException(status_code=422, detail="Accessibility-related requests must use urgent priority")
+
     created = []
     for req in requests:
         room_id = _resolve_room_id(current_user.hotel_id, req.room_number) if req.room_number else None
+        policies = supabase.table("guest_request_sla_policies").select(
+            "category, priority, guest_impact, sla_minutes"
+        ).eq("tenant_id", current_user.hotel_id).execute().data or []
+        sla_minutes = resolve_sla_minutes(
+            policies, category=req.category, priority=req.priority, guest_impact=req.guest_impact,
+        )
+        now = datetime.now(timezone.utc)
+        due_at = (now + timedelta(minutes=sla_minutes)).isoformat()
         result = supabase.table("guest_requests").insert({
             "tenant_id": current_user.hotel_id,
             "title": req.title,
@@ -584,9 +599,58 @@ async def confirm_guest_requests(
             "guest_name": req.guest_name,
             "status": "open",
             "created_by": current_user.user_id,
+            "priority": req.priority,
+            "category": req.category,
+            "guest_impact": req.guest_impact,
+            "sla_minutes": sla_minutes,
+            "due_at": due_at,
         }).execute()
-        if result.data:
-            created.append(result.data[0])
+        if not result.data:
+            continue
+
+        gr_id = result.data[0]["id"]
+        # The linked task is what the escalation cron watches for SLA breaches
+        # (mirrors routers/guest_requests.py::create_guest_request).
+        task_result = supabase.table("tasks").insert({
+            "tenant_id": current_user.hotel_id,
+            "title": req.title,
+            "description": req.description,
+            "task_type": "guest_request",
+            "priority": req.priority,
+            "room_id": room_id,
+            "created_by": current_user.user_id,
+            "sla_minutes": sla_minutes,
+            "due_at": due_at,
+            "is_ai_created": True,
+        }).execute()
+
+        task_created = False
+        if task_result.data:
+            task_created = True
+            task_id = task_result.data[0]["id"]
+            refreshed = supabase.table("guest_requests")\
+                .update({"task_id": task_id})\
+                .eq("id", gr_id)\
+                .eq("tenant_id", current_user.hotel_id)\
+                .execute()
+            if refreshed.data:
+                result = refreshed
+        else:
+            logger.error("Auto-task creation failed for AI-created guest_request=%s", gr_id)
+
+        _record_guest_request_event(
+            request_id=gr_id,
+            event_type="created",
+            current_user=current_user,
+            source="automation",
+            metadata={
+                "category": req.category,
+                "priority": req.priority,
+                "task_created": task_created,
+                "created_via": "ai_copilot",
+            },
+        )
+        created.append(result.data[0])
     return {"data": {"created_count": len(created), "requests": created}}
 
 

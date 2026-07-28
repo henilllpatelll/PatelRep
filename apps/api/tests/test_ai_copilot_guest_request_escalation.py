@@ -39,6 +39,10 @@ def _db_with_room():
 async def test_confirm_guest_requests_creates_linked_task_with_sla(monkeypatch):
     db = _db_with_room()
     monkeypatch.setattr(ai_copilot, "supabase", db)
+    # _record_guest_request_event (imported from routers.guest_requests) references
+    # that module's own `supabase` binding — patch both; in production they're the
+    # same core.database singleton, but monkeypatch only rebinds one name at a time.
+    monkeypatch.setattr("routers.guest_requests.supabase", db)
 
     response = await ai_copilot.confirm_guest_requests(
         [
@@ -102,6 +106,7 @@ async def test_confirm_guest_requests_respects_tenant_sla_policy(monkeypatch):
         "sla_minutes": 15,
     }]
     monkeypatch.setattr(ai_copilot, "supabase", db)
+    monkeypatch.setattr("routers.guest_requests.supabase", db)
 
     response = await ai_copilot.confirm_guest_requests(
         [
@@ -126,6 +131,10 @@ async def test_confirm_guest_requests_respects_tenant_sla_policy(monkeypatch):
 async def test_confirm_guest_requests_rejects_accessibility_without_urgent(monkeypatch):
     db = _db_with_room()
     monkeypatch.setattr(ai_copilot, "supabase", db)
+    # _record_guest_request_event (imported from routers.guest_requests) references
+    # that module's own `supabase` binding — patch both; in production they're the
+    # same core.database singleton, but monkeypatch only rebinds one name at a time.
+    monkeypatch.setattr("routers.guest_requests.supabase", db)
 
     with pytest.raises(HTTPException) as exc_info:
         await ai_copilot.confirm_guest_requests(
@@ -154,6 +163,10 @@ async def test_confirm_guest_requests_defaults_when_category_priority_omitted(mo
     escalation-eligible request, not a crash or a null-SLA row."""
     db = _db_with_room()
     monkeypatch.setattr(ai_copilot, "supabase", db)
+    # _record_guest_request_event (imported from routers.guest_requests) references
+    # that module's own `supabase` binding — patch both; in production they're the
+    # same core.database singleton, but monkeypatch only rebinds one name at a time.
+    monkeypatch.setattr("routers.guest_requests.supabase", db)
 
     response = await ai_copilot.confirm_guest_requests(
         [GuestRequestPreview(title="Guest wants extra pillows", room_number="412")],

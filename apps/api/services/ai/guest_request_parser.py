@@ -19,6 +19,12 @@ _GR_SCHEMA = {
                         "room_number": {"type": "string"},
                         "guest_name": {"type": "string"},
                         "description": {"type": "string"},
+                        "category": {
+                            "type": "string",
+                            "enum": ["service", "housekeeping", "maintenance", "accessibility", "other"],
+                        },
+                        "priority": {"type": "string", "enum": ["normal", "urgent"]},
+                        "guest_impact": {"type": "string", "enum": ["low", "standard", "high"]},
                     },
                     "required": ["title"],
                 },
@@ -30,7 +36,12 @@ _GR_SCHEMA = {
 
 _SYSTEM = (
     "Parse hotel guest service requests. "
-    "Extract room number, guest name if mentioned, and what they need."
+    "Extract room number, guest name if mentioned, and what they need. "
+    "Classify category (service/housekeeping/maintenance/accessibility/other), "
+    "priority (urgent only for time-sensitive or safety/accessibility issues, "
+    "otherwise normal), and guest_impact (high for anything affecting the "
+    "guest's stay right now, standard otherwise). Any accessibility request "
+    "MUST be priority=urgent."
 )
 
 
