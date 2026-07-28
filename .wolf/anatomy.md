@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-26T12:07:48.757Z
-> Files: 46 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T00:25:28.680Z
+> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -37,6 +37,12 @@
 
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/b05610ee-fc7b-410c-90c0-8a68b1724167/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e4f27a09-115f-4703-975c-d0a5876785a1/scratchpad/
+
+
+## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ecb336ba-dc1e-4037-90b1-efc752d21979/scratchpad/
 
 
 ## ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/f6e84128-acd3-4897-9c9d-4355f0716401/scratchpad/
@@ -1211,94 +1217,75 @@
 
 ## apps/web/app/(dashboard)/ai/
 
-- `page.tsx` — dynamic (~6157 tok)
 
 ## apps/web/app/(dashboard)/billing/
 
-- `page.tsx` — numberOrDefault (~3597 tok)
 
 ## apps/web/app/(dashboard)/dashboard/
 
-- `page.tsx` — GMDashboard (~2090 tok)
 
 ## apps/web/app/(dashboard)/dev/ui/
 
-- `page.tsx` — TEMPORARY Wave 0 scratch page — demonstrates every new/upgraded shared (~1734 tok)
 
 ## apps/web/app/(dashboard)/engineering/
 
 
 ## apps/web/app/(dashboard)/engineering/assets/
 
-- `page.tsx` — getRiskFilters (~14181 tok)
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
-- `page.tsx` — getScheduleStatus (~11571 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
-- `page.tsx` — getRiskLabel (~6896 tok)
 
 ## apps/web/app/(dashboard)/engineering/work-orders/
 
-- `page.tsx` — dynamic (~4965 tok)
 
 ## apps/web/app/(dashboard)/evidence/
 
-- `page.tsx` — EMPTY_APPLICABILITY (~11725 tok)
 
 ## apps/web/app/(dashboard)/guest-requests/
 
 
 ## apps/web/app/(dashboard)/housekeeping/
 
-- `page.tsx` — SHIFTS (~9382 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/assignments/
 
-- `page.tsx` — todayISO — renders table (~3041 tok)
 
 ## apps/web/app/(dashboard)/housekeeping/inspections/
 
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
-- `page.tsx` — StatusBadge (~10302 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
-- `page.tsx` — todayIso (~10710 tok)
 
 ## apps/web/app/(dashboard)/lost-found/
 
-- `page.tsx` — STATUS_TONE — renders form (~7470 tok)
 
 ## apps/web/app/(dashboard)/management-roi/
 
-- `page.tsx` — toLocalDateStr (~5358 tok)
 
 ## apps/web/app/(dashboard)/onboarding/
 
 
 ## apps/web/app/(dashboard)/reports/
 
-- `page.tsx` — dynamic — renders table (~8134 tok)
 
 ## apps/web/app/(dashboard)/safety/
 
-- `page.tsx` — STATUS_STYLE — renders form (~2047 tok)
 
 ## apps/web/app/(dashboard)/scheduling/
 
-- `page.tsx` — DEPARTMENTS (~16631 tok)
 
 ## apps/web/app/(dashboard)/settings/
 
 
 ## apps/web/app/(dashboard)/settings/billing/
 
-- `page.tsx` — numberOrDefault (~5340 tok)
 
 ## apps/web/app/(dashboard)/settings/departments/
 
@@ -1312,6 +1299,9 @@
 ## apps/web/app/(dashboard)/settings/general/
 
 
+## apps/web/app/(dashboard)/settings/guest-requests/
+
+
 ## apps/web/app/(dashboard)/settings/housekeeping/
 
 
@@ -1320,7 +1310,6 @@
 
 ## apps/web/app/(dashboard)/settings/integrations/
 
-- `page.tsx` — relativeTime (~6516 tok)
 
 ## apps/web/app/(dashboard)/settings/roles/
 
@@ -1330,15 +1319,12 @@
 
 ## apps/web/app/(dashboard)/sop/
 
-- `page.tsx` — CATEGORIES (~7733 tok)
 
 ## apps/web/app/(dashboard)/staff/
 
-- `page.tsx` — ROLE_OPTIONS (~13969 tok)
 
 ## apps/web/app/(dashboard)/tasks/
 
-- `page.tsx` — getTaskTypeOptions — renders form (~11024 tok)
 
 ## apps/web/app/auth/callback/
 
@@ -1351,30 +1337,15 @@
 
 ## apps/web/components/dashboard/
 
-- `ChiefEngineerDashboard.tsx` — SkeletonRow (~3865 tok)
-- `DashboardGreeting.tsx` — One contextual line under the greeting — hotel name for GM, a shift summary for floor roles, etc. (~477 tok)
-- `EngineerDashboard.tsx` — PRIORITY_TONE (~1753 tok)
-- `FrontDeskDashboard.tsx` — getHotelIdFromSession (~7317 tok)
-- `HousekeeperDashboard.tsx` — STATUS_TONE (~2754 tok)
-- `SupervisorDashboard.tsx` — QUICK_MESSAGES (~8283 tok)
 
 ## apps/web/components/engineering/
 
-- `CreateWorkOrderModal.tsx` — getCategories (~5503 tok)
-- `EngineeringRoomBoard.tsx` — filterRooms (~2417 tok)
-- `FailurePredictionSidebar.tsx` — getRiskRingColor (~3071 tok)
-- `PMCompletionModal.tsx` — genId (~8608 tok)
-- `WorkOrderDetailDrawer.tsx` — CATEGORY_ICONS (~14658 tok)
 
 ## apps/web/components/guest-requests/
 
 
 ## apps/web/components/housekeeping/
 
-- `OccupancyImportModal.tsx` — OccupancyImportModal (~2948 tok)
-- `RoomCard.tsx` — STATUS_BORDER (~4067 tok)
-- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~16594 tok)
-- `RoomStatusBoard.tsx` — getCleanTypeChips (~8534 tok)
 
 ## apps/web/components/programs/
 
@@ -1387,19 +1358,13 @@
 
 ## apps/web/components/shared/
 
-- `Breadcrumbs.tsx` — Wave 0: sub-route trail derived from pathname + navigation.ts, renders in PageHeader eyebrow slot (~250 tok)
-- `CommandPalette.tsx` — Wave 0: Radix Dialog ⌘K/Ctrl-K palette, filters to the current role's allowed routes via lib/utils/navigation.ts (~700 tok)
-- `MobileFloorNav.tsx` — Wave 0: bottom tab bar, md:hidden, housekeeper/engineer/front_desk only, not yet mounted in shell (~600 tok)
 
 ## apps/web/components/ui/
 
-- `Button.tsx` — Upgraded Wave 0: size (sm/md/lg) + loading props, focus-visible ring; sibling IconButton export (aria-label required) (~1100 tok)
-- `EmptyState.tsx` — Wave 0: icon/title/body/action empty-state primitive (~250 tok)
-- `StateBlock.tsx` — Wave 0: status:'loading'|'empty'|'error'|null wrapper picking one of loading/empty/error/children (~500 tok)
-- `Toast.tsx` — Wave 0: Toaster + useToast() on @radix-ui/react-toast, module-level pub/sub store, success/error/info tones (~600 tok)
 
 ## apps/web/e2e/
 
+- `wave5-manual-verify.spec.ts` — GM_EMAIL: login (~415 tok)
 
 ## apps/web/i18n/
 
@@ -1421,7 +1386,6 @@
 
 ## apps/web/lib/utils/
 
-- `navigation.ts` — Wave 0: single source of truth for nav — ALL_NAV_ITEMS, NAV_BY_ROLE, getAllowedNavItems/getAllowedHrefs; extracted out of Sidebar.tsx so CommandPalette/Breadcrumbs share the exact RBAC allow-list (~700 tok)
 
 ## apps/web/playwright.phase0.config.ts
 
