@@ -5,7 +5,7 @@ from middleware.auth import get_current_user, CurrentUser, require_role
 from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest,
-    WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
+    TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
     AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
     UpdateAIModelRouteRequest,
 )
@@ -494,39 +494,40 @@ async def housekeeping_shift_briefing(
 
 @router.post("/tasks/confirm")
 async def confirm_tasks(
-    tasks: list[dict],
+    tasks: list[TaskPreview],
     current_user: CurrentUser = Depends(get_current_user)
 ):
     from datetime import datetime, timedelta, timezone
     SLA_MINUTES = {"urgent": 60, "normal": 240, "low": 480}
     for task in tasks:
-        assigned_to = task.get("assigned_to")
+        assigned_to = str(task.assigned_to) if task.assigned_to else None
         if assigned_to and assigned_to != current_user.user_id:
             permitted, reason = check_action_permitted("reassign_other_staff_task", current_user.role)
             if not permitted:
                 raise HTTPException(status_code=403, detail=reason)
     created = []
     for task in tasks:
+        room_id = str(task.room_id) if task.room_id else None
         # Resolve room_id from display number when client fast path omits it
-        if not task.get("room_id") and task.get("room_number_display"):
-            task["room_id"] = _resolve_room_id(current_user.hotel_id, task["room_number_display"])
-        if task.get("room_id"):
+        if not room_id and task.room_number_display:
+            room_id = _resolve_room_id(current_user.hotel_id, task.room_number_display)
+        if room_id:
             room_check = supabase.table("rooms").select("id")\
-                .eq("id", task["room_id"])\
+                .eq("id", room_id)\
                 .eq("tenant_id", current_user.hotel_id)\
                 .maybe_single().execute()
             if not (room_check and room_check.data):
                 raise HTTPException(status_code=400, detail="Room not found in your hotel")
-        priority = task.get("priority", "normal")
+        priority = task.priority
         sla = SLA_MINUTES.get(priority, 240)
-        due_at = task.get("due_at") or (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()
+        due_at = task.due_at or (datetime.now(timezone.utc) + timedelta(minutes=sla)).isoformat()
         row = {
             "tenant_id": current_user.hotel_id,
-            "title": task["title"],
-            "description": task.get("description"),
-            "task_type": task.get("task_type", "general"),
+            "title": task.title,
+            "description": task.description,
+            "task_type": task.task_type,
             "priority": priority,
-            "room_id": task.get("room_id"),
+            "room_id": room_id,
             "due_at": due_at,
             "sla_minutes": sla,
             "created_by": current_user.user_id,

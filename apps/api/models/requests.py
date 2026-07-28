@@ -995,6 +995,17 @@ class OperaConnectRequest(SanitizedBaseModel):
 
 
 # --- AI Copilot: Preview models ---
+class TaskPreview(SanitizedBaseModel):
+    title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
+    description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    task_type: Literal["housekeeping", "engineering", "guest_request", "general"] = "general"
+    priority: Literal["urgent", "normal", "low"] = "normal"
+    room_id: Optional[UUID4] = None
+    room_number_display: Optional[str] = Field(default=None, max_length=64)
+    due_at: Optional[str] = Field(default=None, max_length=64)
+    assigned_to: Optional[UUID4] = None
+
+
 class WorkOrderPreview(SanitizedBaseModel):
     title: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     category: Literal[
