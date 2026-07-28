@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
 status: "Phases 0–5 closed + deployed; Phase 6 executing"
-last_updated: "2026-07-28T04:20:00.000Z"
+last_updated: "2026-07-28T09:23:33.000Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 42
-  completed_plans: 40
-  percent: 95
-  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 CLOSED 2026-07-28 (06-01, 06-02; migration 085 live-apply blocker resolved by orchestrator). Wave 2: 06-03 (AI copilot RBAC + tenant isolation + typed confirm_tasks) CLOSED 2026-07-28; 06-04 (Opera webhook signature fix) not yet started. Wave 3 (06-05 phase gate) not yet started."
+  completed_plans: 41
+  percent: 98
+  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 CLOSED 2026-07-28 (06-01, 06-02; migration 085 live-apply blocker resolved by orchestrator). Wave 2 CLOSED 2026-07-28: 06-03 (AI copilot RBAC + tenant isolation + typed confirm_tasks), 06-04 (Opera webhook signature fix + pilot no-op). Wave 3 (06-05 phase gate) not yet started."
 ---
 
 # GSD State
@@ -19,7 +19,7 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — Wave 1 (06-01, 06-02) CLOSED; Wave 2's 06-03 CLOSED, 06-04 next. Migration 085's live-apply blocker (see below) is resolved.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — Wave 1 (06-01, 06-02) CLOSED; Wave 2 (06-03, 06-04) CLOSED; Wave 3's 06-05 phase gate next. Migration 085's live-apply blocker (see below) is resolved.**
 
 ### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
 
@@ -43,7 +43,9 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 
 **06-03 CLOSED (2026-07-28, commits `62e25e6c`/`c4e6fd68`):** AI copilot RBAC matrix + tenant isolation + typed `confirm_tasks` (TDD, RED→GREEN). New `test_ai_copilot_rbac.py` (21 tests) closes the zero-coverage gap: role-gated matrix for `/ai/recommendations` + `/ai/recommendations/metrics` (deny housekeeper/engineer/front_desk, allow gm/chief_engineer/housekeeping_supervisor); confirms `/ai/copilot/chat`, `/ai/tasks/confirm`, `/ai/work-orders/confirm`, `/ai/guest-requests/confirm`, `/ai/risk-alerts`, `/ai/insights` have no role gate (Pitfall 6 — intentionally open by design, matching sibling non-AI create endpoints); `/ai/assignments/confirm` excludes housekeeper; tenant isolation proven for `confirm_assignments` and `confirm_tasks`. New `TaskPreview(SanitizedBaseModel)` in `models/requests.py` (mirrors `WorkOrderPreview`/`GuestRequestPreview`, matches the `ParsedTask` wire contract in `apps/web/lib/api/ai.ts`); `confirm_tasks` now takes `list[TaskPreview]` instead of `list[dict]`, so malformed input (missing `title`) 422s via pydantic validation instead of an uncaught `KeyError` → 500. **Deviation:** 06-PATTERNS.md's interface block internally conflicted on whether GET `/ai/insights` is role-gated or intentionally open; live code has only `get_current_user` (no `require_role`) and no POST insight variant exists — followed the plan's own explicit fallback ("keep open, assert it stays open") and actual code, not the stale summary line. Full suite: 486/486 green (was 465 before this plan). See `06-03-SUMMARY.md`.
 
-**Next:** 06-04 (Opera webhook signature fix, depends on 06-02), then Wave 3's 06-05 phase gate.
+**06-04 CLOSED (2026-07-28, commits `6b03ea9c`/`68e81999`):** Opera webhook signature fix + pilot no-op gate (D-03/D-05/D-06), TDD (RED→GREEN). `_verify_opera_signature` (`routers/webhooks.py`) now validates against the per-hotel `opera_credentials.webhook_secret` (schema-provisioned, migration 002) instead of deriving an HMAC key from `CRON_SECRET + hotel_id` — a key Oracle never knows, so the old check could never pass an authentic Opera-signed payload. Fails closed on a missing/empty secret. `opera_webhook` now silently no-ops (`{"status": "ignored", "reason": "opera_pilot_not_enabled"}`) for any hotel with `tenants.opera_pilot_enabled=False`, checked right after hotel resolution and before signature verification or handler dispatch — mirrors the existing "hotel not found or not connected" silent-ignore shape since public webhooks can't 403 Oracle. New `test_opera_webhooks.py` (10 tests): signature accept/reject/fail-closed, pilot no-op, all 5 handler dispatches (checkout/checkin/modified/dnd/make_up_room — room_status + room_status_history writes, `change_source="opera_webhook"`), unknown-event/unknown-hotel no-ops. Oracle OHIP's exact real-world webhook signing scheme (header name/algorithm) remains unverified against a live sandbox (06-RESEARCH Open Question 1) — documented as an accepted, non-bypassed gap in code comment + summary, not "fixed" by always-passing. Full suite: 496/496 green (was 486). See `06-04-SUMMARY.md`.
+
+**Next:** Wave 3's 06-05 phase gate (full suite + web type-check + live authenticated GM browser walkthrough, human-verify checkpoint, not autonomous).
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 
