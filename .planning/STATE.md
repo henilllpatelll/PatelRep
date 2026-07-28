@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
-status: "Phases 0–5 closed + deployed; Phase 6 planned, ready to execute"
+status: "Phases 0–5 closed + deployed; Phase 6 executing"
 last_updated: "2026-07-28T00:00:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 42
-  completed_plans: 37
-  percent: 86
-  note: "Phase 6 (PMS & AI expansion) planned 2026-07-28 — 5 plans in 3 waves, audit-first hardening (see 06-CONTEXT.md, 06-RESEARCH.md, 06-PATTERNS.md, 06-VALIDATION.md). Plan checker passed after 1 revision iteration (3 blockers fixed: mandatory cron pilot-gate fix, test fixture extension, D-04 traceability). Not yet executed."
+  completed_plans: 38
+  percent: 90
+  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 plan 06-01 (AI credit accounting + SOP double-log fix) CLOSED 2026-07-28. 06-02 (Opera pilot-flag gate) still open in Wave 1; Wave 2 (06-03, 06-04) and Wave 3 (06-05 phase gate) not yet started."
 ---
 
 # GSD State
@@ -19,7 +19,7 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is planned (2026-07-28) — 5 plans in `.planning/phases/06-pms-and-ai-expansion/`, next step is `/gsd-execute-phase 6`.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — plan 06-01 of 5 CLOSED, 06-02 next (parallel Wave 1).**
 
 ### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
 
@@ -35,7 +35,9 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 - Wave 3: 06-05 (phase gate — full suite + web type-check + live GM browser walkthrough, human-verify checkpoint, not autonomous)
 - gsd-plan-checker passed after 1 revision iteration. Revision fixed: (1) the cron sync path bypassing the pilot gate — moved the guard inside `sync_reservations()` itself rather than only gating `integrations.py`'s handlers, (2) a test-fixture gap that would have broken 3 existing `test_integrations_security.py` tests under the new guard, (3) D-04 missing from 06-02's `requirements` frontmatter. One non-blocking cosmetic warning remains (06-02 Task 3's `<files>` list omits `test_opera_pilot_gate.py` even though the action text already specifies editing it).
 
-**Next:** `/gsd-execute-phase 6`.
+**06-01 CLOSED (2026-07-28, commits `6f0a706a`/`cbb73c8a`/`e3c22db2`/`60f1a682`):** AI credit accounting + SOP double-log fix, TDD (RED→GREEN→fix). `middleware/credits.py::compute_credits()` now derives `credits_charged` from real `prompt_tokens`/`completion_tokens` via a per-model `MODEL_RATES` table, with `CREDIT_COSTS` retained as a revenue floor. `sop_rag.py::query_sop()` no longer double-logs `ai_interactions`. Blast-radius check found a second, previously-unaudited caller of `query_sop()` — `routers/sop.py::query_sop_endpoint` (`POST /sop/query`) — which never deducted real credits at all; fixed to be its own single audit-log owner. Full 444-test API suite green (was 443 before the new test file). See `06-01-SUMMARY.md`.
+
+**Next:** 06-02 (Opera pilot-flag gate, Wave 1 — parallel with 06-01, no dependency).
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 

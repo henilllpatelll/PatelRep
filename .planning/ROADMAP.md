@@ -132,7 +132,7 @@ Cross-cutting constraints:
 
 Plans:
 **Wave 1** *(AI-copilot slice and Opera slice run in parallel — zero file overlap)*
-- [ ] 06-01-PLAN.md — AI copilot credit-accounting + SOP double-log fix (TDD): token-derived credits in credits.py, single ai_interactions owner (D-02/D-06)
+- [x] 06-01-PLAN.md — AI copilot credit-accounting + SOP double-log fix (TDD): token-derived credits in credits.py, single ai_interactions owner (D-02/D-06) — CLOSED 2026-07-28
 - [ ] 06-02-PLAN.md — Opera pilot-flag migration 085 + `[BLOCKING]` apply + 403 gate on all 7 Opera endpoints + routes RBAC/tenant-isolation tests (D-01/D-03/D-06)
 
 **Wave 2** *(06-03 blocked on 06-01 — shares ai_copilot.py; 06-04 blocked on 06-02 — needs migration 085 + pilot pattern)*
@@ -161,4 +161,4 @@ Plans:
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 17/17 | Complete — verified (36/36 must-haves) + security-audited (50/50 threats closed); deployed on `main` | 2026-07-25 |
 | 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT; deployed + live on Railway | 2026-07-25 |
-| 6. PMS and AI expansion | 0/5 | Planned — audit-first hardening pass; 5 plans across 3 waves | - |
+| 6. PMS and AI expansion | 1/5 | In progress — 06-01 closed (credit accounting + SOP double-log fix); 06-02 next | - |
