@@ -12,8 +12,6 @@ with opera_pilot_enabled=TRUE must pass the pilot gate (it may still fail later
 for unrelated reasons, e.g. missing credentials — that's fine, we only assert the
 pilot-gate 403 is absent).
 """
-from types import SimpleNamespace
-
 import pytest
 from fastapi import HTTPException
 
