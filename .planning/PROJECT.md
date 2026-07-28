@@ -24,20 +24,23 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Out of Scope
 
-- Mobile changes — Phase 2 is web + API only; mobile work is parked.
-- AI-provider and Stripe-dependent workflows — local credentials are intentionally absent and Phase 2 must not rely on them.
-- Vercel deployment repair — Railway is production; the stale Vercel project needs a later delete-or-auth decision.
+- Mobile changes — v1.0 was web + API only; mobile work (EAS build, mobile i18n, rooms debug) is parked.
+- Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; v1.0 shipped with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation (Twilio SMS since Phase 5, LLM/OHIP round-trips since Phase 6).
+- Vercel deployment repair — Railway is the sole production target; Vercel kept only as a secondary PR-preview surface, decision made 2026-07-26.
 
 ## Context
 
-The stack is FastAPI with direct Supabase SDK queries and Next.js 14. Tenant isolation is mandatory in every query and RLS is a second safety layer. Phase 1 established the reusable append-only `operational_audit_events` and `notification_deliveries` patterns; Phase 2 extends those rather than adding a parallel compliance mechanism.
+The stack is FastAPI with direct Supabase SDK queries and Next.js 14/16. Tenant isolation is mandatory in every query and RLS is a second safety layer. Phase 1 established the reusable append-only `operational_audit_events` and `notification_deliveries` patterns, reused through Phases 2-4 rather than parallel mechanisms per domain. As of v1.0: ~105K LOC (Python + TypeScript), 500 API tests passing, 829 commits since project start.
+
+## Current State (as of v1.0, 2026-07-28)
+
+Production trust, evidence/compliance platform, Texas safety, recurring bilingual maintenance/housekeeping programs, guest recovery + management ROI, and an audited/hardened AI copilot + Opera PMS integration are all shipped and deployed (API on Railway, web on Railway with a secondary Vercel PR-preview surface). Crons run in-process via APScheduler (confirmed healthy in production — 12/12 jobs "ok"), not GitHub Actions as CLAUDE.md currently documents (doc-drift to fix next milestone). The v1.0 cross-phase audit found and same-session-fixed one real gap: AI-copilot-created guest requests were bypassing the SLA/escalation/audit system Phase 5 built.
 
 ## Constraints
 
-- **Scope**: Web + API only — no `apps/mobile/` work in Phase 2.
-- **Security**: Every table is tenant-scoped in API queries and RLS; every mutation is gated with `require_role()`.
+- **Security**: Every table is tenant-scoped in API queries and RLS; every mutation is gated with `require_role()` (or an equivalent inline role check — normalize this in a future pass, see Backlog).
 - **Storage**: Attachments use the existing private-bucket, signed-URL pattern; public object URLs are prohibited.
-- **Delivery**: No local AI or Stripe credentials — no Phase 2 core path may depend on either provider.
+- **Delivery**: No local AI, Stripe, Twilio, or OHIP credentials — no core path may depend on live calls to any of these for local dev/test; production has real credentials configured.
 
 ## Key Decisions
 
@@ -48,6 +51,7 @@ The stack is FastAPI with direct Supabase SDK queries and Next.js 14. Tenant iso
 | Review before execution | This two-week phase requires plan review before implementation begins. | Applied — gsd-plan-checker gate used on all phases through 6. |
 | Phase 6 reframed as audit-first, not greenfield | Discuss-phase discovered the AI copilot expansion + much of Opera integration were already implemented and live (commit `e4ac615a`) but untested/ungated — building "new" features on an unverified, unsafe foundation would compound risk. | Shipped — Phase 6 delivered as a verification/hardening pass (mirroring Phase 4's S0 audit-first slice); found and fixed 3 real bugs beyond what research anticipated (flat-cost credit billing, SOP double-logging, Opera webhook wrong-secret signature) plus 2 more during execution/verification (a second unaudited `/sop/query` billing gap, a misleading Opera UI connect form). New AI/PMS capabilities explicitly deferred to a future phase. |
 | Opera pilot-gating via a single boolean column | `tenants.opera_pilot_enabled` vs. a richer `pilot_features` table — only one integration currently needs gating (YAGNI). | Shipped — matches the existing `is_active`-style boolean-flag idiom; migration 085. |
+| Fix real cross-phase gaps found during milestone audit immediately, not defer | Consistent with every prior in-phase bug-fix precedent (migration-079, bug-449, Phase 6's own D-05) — a milestone shouldn't ship with a known silent failure in a shipped feature. | Shipped — AI-copilot guest-request escalation gap (found by the v1.0 cross-phase integration audit) fixed same session, `confirm_guest_requests` now mirrors the canonical `create_guest_request` contract. |
 
 ---
-*Last updated: 2026-07-28 after Phase 6 completion — milestone v1.0 "Hotel Standards Execution Plan" is now 100% complete (all 7 phases, 0 through 6).*
+*Last updated: 2026-07-28 — milestone v1.0 "Hotel Standards Execution Plan" shipped (all 7 phases, 0 through 6, cross-phase audit passed).*
