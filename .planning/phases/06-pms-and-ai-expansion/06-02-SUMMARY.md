@@ -7,7 +7,7 @@ tags: [opera, pms, pilot-flag, rbac, tenant-isolation, migration, fastapi, supab
 # Dependency graph
 requires: []
 provides:
-  - "tenants.opera_pilot_enabled BOOLEAN NOT NULL DEFAULT FALSE migration file (085), NOT YET applied to the live DB"
+  - "tenants.opera_pilot_enabled BOOLEAN NOT NULL DEFAULT FALSE — migration file (085) applied to the live DB by the orchestrator (2026-07-28) via Supabase MCP apply_migration, verified via information_schema"
   - "_require_opera_pilot() guard on all 7 /integrations/opera/* endpoints"
   - "Pilot check inside services/opera/sync.py::sync_reservations (single source of truth for cron + manual sync)"
   - "test_opera_routes.py: RBAC matrix + tenant isolation for all 7 Opera endpoints"
@@ -35,7 +35,7 @@ key-decisions:
   - "Pilot flag keyed on current_user.hotel_id against tenants.id (verified PK column via 002_tenants.sql), matching every other tenant-scoping .eq() call in this file"
   - "opera_status is also pilot-gated (not just connect/sync) — a non-pilot hotel should not be able to probe Opera connection state either, per the plan's explicit instruction"
   - "sync_reservations() returns {\"synced\": 0, \"skipped\": True, \"reason\": \"opera_pilot_not_enabled\", \"error\": None} for non-pilot hotels rather than raising, since routers/internal.py's cron loop expects a dict result per hotel, not an exception"
-  - "Migration 085 could NOT be applied to the live Supabase DB from this execution context (see Deviations/Escalation below) — this is a hard blocker carried forward to 06-05's phase gate, not silently skipped"
+  - "Migration 085 could NOT be applied to the live Supabase DB from this executor's sandboxed context (no Supabase MCP access) — escalated rather than silently skipped; the orchestrator applied it directly afterward (2026-07-28) via mcp__plugin_supabase_supabase__apply_migration and verified the column exists (boolean, NOT NULL, default false). No hotel currently has opera_credentials.is_connected=true, so no pilot-hotel enrollment was needed as part of this fix."
 
 patterns-established:
   - "Endpoint-level feature-pilot gating: a single boolean on tenants, checked via a small helper called at the top of every gated handler — reusable if future integrations need the same pilot-enrollment model"
@@ -48,7 +48,7 @@ completed: 2026-07-28
 
 # Phase 6 Plan 02: Opera Pilot-Flag Gate Summary
 
-**D-03 Opera pilot-flag mechanism (`tenants.opera_pilot_enabled`) built and enforced on all 7 `/integrations/opera/*` endpoints plus the 30-min reservation-sync cron via a single guard inside `services/opera/sync.py::sync_reservations()`; migration file written but NOT yet applied to the live database — flagged as a blocker for the 06-05 phase gate.**
+**D-03 Opera pilot-flag mechanism (`tenants.opera_pilot_enabled`) built and enforced on all 7 `/integrations/opera/*` endpoints plus the 30-min reservation-sync cron via a single guard inside `services/opera/sync.py::sync_reservations()`. Migration 085 applied to the live database by the orchestrator after this executor's sandboxed context lacked Supabase MCP access — verified column exists; no connected pilot hotel needed enrollment since none are currently connected.**
 
 ## Performance
 
@@ -90,9 +90,17 @@ _Note: Task 2 is the TDD-tagged task. RED confirmed: 8/11 `test_opera_pilot_gate
 
 ## Deviations from Plan
 
-### Escalation — Task 1's [BLOCKING] live-migration-apply step could not be completed
+### Escalation — Task 1's [BLOCKING] live-migration-apply step could not be completed (RESOLVED 2026-07-28)
 
-**This is the one open item in this plan and must be resolved before 06-05's live D-06 browser walkthrough.**
+**Resolved by the orchestrator immediately after this plan's executor returned.** The executor correctly escalated rather than skipping or faking success (see original investigation trail preserved below). The orchestrator had genuine Supabase MCP access in its own context and applied the migration directly:
+- `mcp__plugin_supabase_supabase__apply_migration(project_id="oacnwalhcpqdabivweki", name="085_opera_pilot_flag", query=<085 SQL>)` → `{"success": true}`
+- Verified via `information_schema.columns`: `opera_pilot_enabled | boolean | NO | false` — column exists, correct type, NOT NULL, correct default.
+- Checked `opera_credentials WHERE is_connected = true` → zero rows. No hotel is currently connected to Opera, so no pilot-hotel enrollment was needed to avoid breaking an in-use integration.
+- Ran `get_advisors(type="security")` post-migration: no new findings attributable to this column; the only pre-existing findings are project-baseline `tenants` GraphQL-exposure WARNs (already known, unrelated) and one pre-existing `cron_health` RLS ERROR (unrelated to this migration).
+
+**This blocker is fully closed. 06-05's live D-06 walkthrough is unblocked for this item.**
+
+**Original investigation (preserved for record):**
 
 - **What the plan asked:** Apply `supabase/migrations/085_opera_pilot_flag.sql` to the live Supabase project via the Supabase MCP tool `mcp__plugin_supabase_supabase__apply_migration`, with a documented CLI fallback if that tool were unavailable.
 - **What happened:** The Supabase MCP tool is not present in this execution context's available toolset (this sub-agent's tools are restricted to Read/Write/Edit/Bash/Grep/Glob — consistent with the known issue referenced in my operating instructions where MCP tools are stripped from agents running under a `tools:` restriction). No generic "invoke arbitrary MCP tool" capability exists for me to reach it anyway.
@@ -119,16 +127,12 @@ None beyond what the plan itself specified (the `test_integrations_security.py` 
 
 ## User Setup Required
 
-**Migration 085 must be applied to the live Supabase database before 06-05's phase gate.** This requires either:
-1. A Claude Code session/agent with genuine Supabase MCP tool access running `apply_migration` with the SQL in `supabase/migrations/085_opera_pilot_flag.sql`, or
-2. Manually running the migration SQL via the Supabase Studio SQL Editor (https://supabase.com/dashboard/project/oacnwalhcpqdabivweki/sql/new) — paste the contents of `supabase/migrations/085_opera_pilot_flag.sql` and run it.
-
-After applying, set `opera_pilot_enabled = TRUE` for any currently-connected pilot hotel(s) (query `opera_credentials WHERE is_connected = true` to find them).
+**None remaining.** Migration 085 was applied to the live Supabase database by the orchestrator (2026-07-28) — see Escalation section above. No pilot hotel currently needs `opera_pilot_enabled = TRUE` set (zero hotels have `opera_credentials.is_connected = true`). If a hotel is later enrolled as an Opera pilot, set `opera_pilot_enabled = TRUE` for its `tenants` row at enrollment time.
 
 ## Next Phase Readiness
 - Code-level pilot gate, RBAC, and tenant-isolation work for Opera is complete and fully test-covered (465/465 suite green).
-- **Blocker for 06-05:** live migration 085 apply + pilot-hotel enrollment must happen before the D-06 live GM browser walkthrough, or every Opera endpoint will 403 in production (correctly, since no hotel has `opera_pilot_enabled=TRUE` yet — but this needs to be verified live, not just assumed).
-- 06-04 (Opera webhook signature fix) depends on 06-02 per the phase wave plan and can proceed — it does not require the live column to exist for its own test suite, but its own live/D-06 verification will hit the same blocker.
+- Live migration 085 is applied and verified — no outstanding blocker for 06-05's D-06 GM browser walkthrough on this item. Every Opera endpoint will correctly 403 in production until a hotel is explicitly enrolled as a pilot (expected behavior, not a bug).
+- 06-04 (Opera webhook signature fix) depends on 06-02 per the phase wave plan and can proceed — the live column now exists, so its own D-06 verification is also unblocked.
 
 ---
 *Phase: 06-pms-and-ai-expansion*
