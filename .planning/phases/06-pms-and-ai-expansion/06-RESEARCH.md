@@ -335,19 +335,24 @@ if not result or not result.data or not result.data.get("is_connected"):
 
 **Risk mitigation for this table:** every entry above should be a concrete grep/verification step in the planner's Wave 0, not a re-litigated design discussion — these are narrow, checkable facts, not open design decisions.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three resolved during Phase 6 planning; each recommendation is operationalized by a specific plan/task, noted inline below.
 
 1. **What is Oracle OHIP's actual Business Events webhook signing mechanism?**
+   - **RESOLVED — plan 06-04, Task 2:** sources the HMAC key from the per-hotel `opera_credentials.webhook_secret` column (mirroring the correct `_verify_twilio_signature` pattern) and fails closed on a missing secret; the exact Oracle header/algorithm stays documented in code + SUMMARY as a live-OHIP-sandbox caveat (T-06-17, accepted-documented), NOT bypassed. Adopts this question's recommendation.
    - What we know: The codebase currently checks header `x-oracle-signature` with a self-derived HMAC-SHA256 key; this is almost certainly wrong (see Pitfall 3, Assumption A1). Generic Oracle Commerce Cloud (a different product) uses HMAC-SHA1 with header `X-Oracle-CC-WebHook-Signature` and a dedicated, dashboard-managed secret — structurally similar but not proof of OHIP's specific scheme.
    - What's unclear: The exact header name, hash algorithm, and canonicalization Oracle OHIP Business Events actually uses, and whether `opera_credentials.webhook_secret` is even populated anywhere in the current connect flow (grep during this session found the column exists in schema and is referenced in the table comment, but `opera_connect` in `integrations.py` does not currently write to it — it's dead schema, not just an unused-by-verification column).
    - Recommendation: Planner should treat "fix the webhook signature verification" as needing either (a) real OHIP documentation lookup during planning/execution, or (b) explicit scoping-down to "verify the check exists and uses a per-hotel secret sourced from the credentials table" without claiming to have matched Oracle's exact real-world scheme, with a note that full external validation requires a live OHIP sandbox the project does not have credentials for (per CLAUDE.md's "no live API credentials" constraint).
 
 2. **Does the Stripe monthly true-up cron (`POST /v1/internal/billing/monthly-trueup`) or any other consumer read `ai_interactions.credits_charged` anywhere besides `services/ai/insights.py`'s 7-day GM stat?**
+   - **RESOLVED — plan 06-01, Task 3:** the blast-radius grep (across `reports.py`/`billing.py`/`insights.py`) is a mandatory first step before removing `sop_rag.py`'s internal `ai_interactions` write, confirming `services/ai/insights.py`'s 7-day GM stat is the sole affected consumer. Adopts this question's recommendation.
    - What we know: `billing.py` and `internal.py`'s trueup handler both read `credit_ledger.credits_used` (confirmed via grep), not `ai_interactions`. `services/ai/insights.py::_get_7day_stats()` is the one confirmed consumer of `ai_interactions.credits_charged` for a display value.
    - What's unclear: Whether `reports.py` (daily GM summary email) or any admin/analytics surface also aggregates `ai_interactions` — not read in this session.
    - Recommendation: Planner should grep `ai_interactions` across `apps/api/routers/reports.py` and `apps/api/routers/billing.py` before finalizing the double-log fix, to confirm the full blast radius of Pitfall 2.
 
 3. **Should the AI-provider-dependent LLM call paths (non-fast-path task_creation, all of work_order/guest_request/assignment parsing, insight_query, sop_query) be tested with real provider calls, mocked provider responses, or left as "logic proven, live LLM output unverified"?**
+   - **RESOLVED — plans 06-01 & 06-03:** mock the provider client response objects (`response.usage.prompt_tokens`/`completion_tokens`) — 06-01 Task 1 mocks them to exercise the credit-calculation fix; 06-03 uses `FakeDB` + direct-handler invocation — no live LLM keys required. Adopts this question's recommendation.
    - What we know: No `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` exists locally (CLAUDE.md "Current Scope"). `test_ai_provider_configuration.py` already tests the missing-key failure path.
    - What's unclear: Whether D-06's "full Phase 1-5 rigor" implies mocking `get_openai_client()`/`get_anthropic_client()` responses to test the credit/logging logic end-to-end (recommended — this is what's needed to test Pitfall 1's fix), versus expecting live-credentialed E2E (not possible per current environment constraints).
    - Recommendation: Mock the provider client response objects (`response.usage.prompt_tokens` etc.) the same way `parse_work_orders`/`parse_nl_tasks` already structure their returns — this fully exercises the credit-calculation fix without needing real API keys, and matches D-06's intent (verify RBAC/tenant/credit correctness) rather than LLM output quality (out of scope, per CLAUDE.md's own environment caveat).
