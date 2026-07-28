@@ -24,7 +24,7 @@ const hotelProfileSchema = z.object({
   phone: z.string().regex(/^\+?[\d\s\-().]{7,20}$/, 'Enter a valid phone number'),
   timezone: z.string().min(1, 'Timezone is required'),
   room_count: z
-    .number({ invalid_type_error: 'Must be a number' })
+    .number({ error: 'Must be a number' })
     .int()
     .min(1, 'Must be at least 1 room')
     .max(999, 'Max 999 rooms'),
