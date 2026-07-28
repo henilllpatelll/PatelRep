@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
 status: "Phases 0–5 closed + deployed; Phase 6 executing"
-last_updated: "2026-07-28T00:00:00.000Z"
+last_updated: "2026-07-28T04:20:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 42
-  completed_plans: 39
-  percent: 93
-  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 CLOSED 2026-07-28: 06-01 (AI credit accounting + SOP double-log fix) and 06-02 (Opera pilot-flag gate). Migration 085 applied to the live DB by the orchestrator (2026-07-28) after the executor's sandboxed context lacked Supabase MCP access — blocker resolved. Wave 2 (06-03, 06-04) and Wave 3 (06-05 phase gate) not yet started."
+  completed_plans: 40
+  percent: 95
+  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 CLOSED 2026-07-28 (06-01, 06-02; migration 085 live-apply blocker resolved by orchestrator). Wave 2: 06-03 (AI copilot RBAC + tenant isolation + typed confirm_tasks) CLOSED 2026-07-28; 06-04 (Opera webhook signature fix) not yet started. Wave 3 (06-05 phase gate) not yet started."
 ---
 
 # GSD State
@@ -19,7 +19,7 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — Wave 1 (06-01, 06-02) CLOSED; Wave 2 (06-03, 06-04) next. Migration 085's live-apply blocker (see below) is resolved.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — Wave 1 (06-01, 06-02) CLOSED; Wave 2's 06-03 CLOSED, 06-04 next. Migration 085's live-apply blocker (see below) is resolved.**
 
 ### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
 
@@ -41,7 +41,9 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 
 **BLOCKER RESOLVED (06-02):** migration `085_opera_pilot_flag.sql` (`ALTER TABLE public.tenants ADD COLUMN opera_pilot_enabled BOOLEAN NOT NULL DEFAULT FALSE`) was written and committed by the 06-02 executor, but that sub-agent's sandboxed toolset had no Supabase MCP access, and correctly refused the unsafe `supabase db push` fallback (the linked project's remote migration history has extensive pre-existing drift from migrations ~035–084 applied via MCP under auto-generated timestamp versions — forcing `db push --include-all` would have re-run all of them against production). The orchestrator applied the migration directly afterward via `mcp__plugin_supabase_supabase__apply_migration` (2026-07-28) and verified via `information_schema.columns`: column exists, `boolean`, `NOT NULL`, default `false`. Checked `opera_credentials WHERE is_connected = true` — zero rows, so no pilot-hotel enrollment was needed. Post-migration `get_advisors(security)` showed no new findings (only pre-existing project-baseline `tenants` GraphQL-exposure WARNs and an unrelated `cron_health` RLS ERROR). See `06-02-SUMMARY.md` Escalation section (updated) for full detail.
 
-**Next:** Wave 2 — 06-03 (AI copilot RBAC + tenant isolation, depends on 06-01) and 06-04 (Opera webhook signature fix, depends on 06-02).
+**06-03 CLOSED (2026-07-28, commits `62e25e6c`/`c4e6fd68`):** AI copilot RBAC matrix + tenant isolation + typed `confirm_tasks` (TDD, RED→GREEN). New `test_ai_copilot_rbac.py` (21 tests) closes the zero-coverage gap: role-gated matrix for `/ai/recommendations` + `/ai/recommendations/metrics` (deny housekeeper/engineer/front_desk, allow gm/chief_engineer/housekeeping_supervisor); confirms `/ai/copilot/chat`, `/ai/tasks/confirm`, `/ai/work-orders/confirm`, `/ai/guest-requests/confirm`, `/ai/risk-alerts`, `/ai/insights` have no role gate (Pitfall 6 — intentionally open by design, matching sibling non-AI create endpoints); `/ai/assignments/confirm` excludes housekeeper; tenant isolation proven for `confirm_assignments` and `confirm_tasks`. New `TaskPreview(SanitizedBaseModel)` in `models/requests.py` (mirrors `WorkOrderPreview`/`GuestRequestPreview`, matches the `ParsedTask` wire contract in `apps/web/lib/api/ai.ts`); `confirm_tasks` now takes `list[TaskPreview]` instead of `list[dict]`, so malformed input (missing `title`) 422s via pydantic validation instead of an uncaught `KeyError` → 500. **Deviation:** 06-PATTERNS.md's interface block internally conflicted on whether GET `/ai/insights` is role-gated or intentionally open; live code has only `get_current_user` (no `require_role`) and no POST insight variant exists — followed the plan's own explicit fallback ("keep open, assert it stays open") and actual code, not the stale summary line. Full suite: 486/486 green (was 465 before this plan). See `06-03-SUMMARY.md`.
+
+**Next:** 06-04 (Opera webhook signature fix, depends on 06-02), then Wave 3's 06-05 phase gate.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 

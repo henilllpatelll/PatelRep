@@ -136,7 +136,7 @@ Plans:
 - [x] 06-02-PLAN.md — Opera pilot-flag migration 085 + 403 gate on all 7 Opera endpoints + routes RBAC/tenant-isolation tests (D-01/D-03/D-06) — CLOSED 2026-07-28 (migration file committed; live apply BLOCKED — see 06-02-SUMMARY.md escalation, carried forward to 06-05 gate)
 
 **Wave 2** *(06-03 blocked on 06-01 — shares ai_copilot.py; 06-04 blocked on 06-02 — needs migration 085 + pilot pattern)*
-- [ ] 06-03-PLAN.md — AI copilot RBAC matrix + tenant isolation + typed confirm_tasks (TaskPreview, 422-not-500) (D-01/D-05/D-06)
+- [x] 06-03-PLAN.md — AI copilot RBAC matrix + tenant isolation + typed confirm_tasks (TaskPreview, 422-not-500) (D-01/D-05/D-06) — CLOSED 2026-07-28
 - [ ] 06-04-PLAN.md — Opera webhook signature fix (opera_credentials.webhook_secret, fail-closed) + webhook pilot no-op + dispatch tests (D-03/D-05/D-06)
 
 **Wave 3** *(blocked on all)*
@@ -161,4 +161,4 @@ Plans:
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 17/17 | Complete — verified (36/36 must-haves) + security-audited (50/50 threats closed); deployed on `main` | 2026-07-25 |
 | 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT; deployed + live on Railway | 2026-07-25 |
-| 6. PMS and AI expansion | 2/5 | In progress — 06-01, 06-02 closed (06-02: migration 085 NOT applied live, blocker for 06-05); Wave 2 (06-03/06-04) next | - |
+| 6. PMS and AI expansion | 3/5 | In progress — 06-01, 06-02, 06-03 closed (06-02's migration-085 live-apply blocker resolved by orchestrator); 06-04 (Wave 2) next, then 06-05 phase gate | - |
