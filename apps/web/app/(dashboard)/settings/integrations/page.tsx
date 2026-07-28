@@ -341,7 +341,11 @@ export default function IntegrationsPage() {
         )}
 
         {/* Disconnected state — feature list + credential form */}
-        {!statusQuery.isLoading && !operaStatus?.connected && (
+        {/* Suppressed on statusQuery.isError (e.g. a 403 from the D-03 pilot gate for a
+            non-pilot hotel) so a GM is never shown an interactive Connect form that the
+            backend will unconditionally reject -- the "Status fetch error" block below
+            is the single source of truth for that case instead. */}
+        {!statusQuery.isLoading && !statusQuery.isError && !operaStatus?.connected && (
           <>
             <div className="space-y-2.5">
               <p className="text-sm font-medium text-gray-700">What you get when connected:</p>
