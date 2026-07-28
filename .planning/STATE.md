@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
-status: "Phases 0–5 closed + deployed; Phase 6 context gathered, planning next"
+status: "Phases 0–5 closed + deployed; Phase 6 planned, ready to execute"
 last_updated: "2026-07-28T00:00:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 37
+  total_plans: 42
   completed_plans: 37
   percent: 86
-  note: "Phase 6 (PMS & AI expansion) gate confirmed satisfied by user 2026-07-28; discuss-phase complete, reframed as audit-first hardening (see 06-CONTEXT.md) rather than greenfield build. Not yet planned or executed."
+  note: "Phase 6 (PMS & AI expansion) planned 2026-07-28 — 5 plans in 3 waves, audit-first hardening (see 06-CONTEXT.md, 06-RESEARCH.md, 06-PATTERNS.md, 06-VALIDATION.md). Plan checker passed after 1 revision iteration (3 blockers fixed: mandatory cron pilot-gate fix, test fixture extension, D-04 traceability). Not yet executed."
 ---
 
 # GSD State
@@ -19,15 +19,23 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) discuss-phase is complete (2026-07-28) — context gathered at `.planning/phases/06-pms-and-ai-expansion/06-CONTEXT.md`, next step is `/gsd-plan-phase 6`.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is planned (2026-07-28) — 5 plans in `.planning/phases/06-pms-and-ai-expansion/`, next step is `/gsd-execute-phase 6`.**
 
-### Phase 6 — PMS and AI expansion: CONTEXT GATHERED (2026-07-28)
+### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
 
 Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Codebase scouting during discuss-phase found the roadmap's premise was stale: `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md` — the docs ROADMAP.md cites as Phase 6's AI-expansion backlog — were already fully implemented and deployed to production in commit `e4ac615a` (2026-05-22), ungated for all hotels, with zero test coverage. Opera PMS integration (`services/opera/`, `routers/integrations.py`) is also more built than CLAUDE.md's "two-way sync hardening deferred" note suggests (conflict list/resolve endpoints already exist).
 
 **Reframed scope (06-CONTEXT.md):** audit-first hardening pass on the already-shipped AI copilot expansion + Opera integration, mirroring Phase 4's S0 slice — not a greenfield build. Key decisions: audit scope = copilot intents + Opera + adjacent insight endpoints + credit middleware (D-01/D-02); Opera gets a new hotel-level pilot flag, AI copilot stays ungated (D-03/D-04); bugs found are fixed in-phase, not deferred (D-05); test coverage target = full Phase 1–5 rigor for both surfaces (D-06). New capabilities beyond what's shipped are explicitly deferred to a later phase.
 
-**Next:** `/gsd-plan-phase 6`.
+**Research (06-RESEARCH.md, committed `b690c876`):** found 3 real bugs beyond what CONTEXT.md anticipated — (1) `middleware/credits.py` charges a flat cost per interaction type instead of deriving cost from real token usage (CLAUDE.md A3 violation), (2) `sop_rag.py` + `ai_copilot.py`'s sop_query branch double-log every SOP question to `ai_interactions` (corrupts GM-facing credit-usage stats, does not double-bill Stripe), (3) `routers/webhooks.py::_verify_opera_signature()` derives its HMAC key from `CRON_SECRET + hotel_id` instead of the schema-provisioned but unused `opera_credentials.webhook_secret` column. D-03 pilot-flag mechanism recommendation: single `tenants.opera_pilot_enabled BOOLEAN` column (matches existing `is_active` idiom).
+
+**Planning (5 plans, 3 waves, committed `42d349f6` + revision `ffbf22b9`):**
+- Wave 1 (parallel): 06-01 (AI credit accounting + SOP double-log fix, TDD), 06-02 (Opera pilot-flag migration 085 + gate on all 7 endpoints + the 30-min reservation-sync cron, via a self-guarding `services/opera/sync.py::sync_reservations()` so both callers are protected by construction)
+- Wave 2: 06-03 (AI copilot RBAC matrix + tenant isolation, depends on 06-01), 06-04 (Opera webhook signature fix + pilot no-op, depends on 06-02)
+- Wave 3: 06-05 (phase gate — full suite + web type-check + live GM browser walkthrough, human-verify checkpoint, not autonomous)
+- gsd-plan-checker passed after 1 revision iteration. Revision fixed: (1) the cron sync path bypassing the pilot gate — moved the guard inside `sync_reservations()` itself rather than only gating `integrations.py`'s handlers, (2) a test-fixture gap that would have broken 3 existing `test_integrations_security.py` tests under the new guard, (3) D-04 missing from 06-02's `requirements` frontmatter. One non-blocking cosmetic warning remains (06-02 Task 3's `<files>` list omits `test_opera_pilot_gate.py` even though the action text already specifies editing it).
+
+**Next:** `/gsd-execute-phase 6`.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 
