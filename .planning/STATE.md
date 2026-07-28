@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
-status: "Phases 0–5 closed + deployed; Phase 6 execution-complete, awaiting /gsd-verify-work"
-last_updated: "2026-07-28T11:45:00.000Z"
+status: "Milestone v1.0 complete — all 7 phases (0-6) closed"
+last_updated: "2026-07-28T22:19:26.000Z"
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 42
   completed_plans: 42
   percent: 100
-  note: "Phase 6 (PMS & AI expansion) all 5 plans execution-complete 2026-07-28 (06-01..06-05). D-06 phase gate (06-05) closed: 496/496 API tests, clean web type-check, live authenticated GM browser walkthrough approved by the user (found and fixed one real UI bug in Opera settings). Phase 6 is execution-complete but not yet goal-backward verified -- /gsd-verify-work has not run against it; not counted in completed_phases until that step completes."
+  note: "Phase 6 (PMS & AI expansion) CLOSED 2026-07-28 — all 5 plans executed (06-01..06-05), UAT passed (3 pass/0 issues/2 blocked-on-environment), security verified (21/21 threats closed, 06-SECURITY.md). Milestone v1.0 'Hotel Standards Execution Plan' is now 100% complete. Next: /gsd-complete-milestone."
 ---
 
 # GSD State
@@ -19,9 +19,9 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is execution-complete (2026-07-28) — all 3 waves (06-01..06-05) CLOSED, D-06 phase gate passed. Migration 085's live-apply blocker (see below) is resolved. Phase 6 awaits `/gsd-verify-work` (goal-backward phase verification) before it can be marked closed at the milestone level.**
+**Milestone "Hotel Standards Execution Plan" (v1.0): 100% COMPLETE — all 7 phases (0 through 6) closed as of 2026-07-28. Phase 6 (PMS & AI expansion) closed this session: execution (5/5 plans) → UAT (3 pass/0 issues/2 blocked-on-environment) → security audit (21/21 threats closed). Next step: `/gsd-complete-milestone` to archive.**
 
-### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
+### Phase 6 — PMS and AI expansion: CLOSED (2026-07-28)
 
 Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Codebase scouting during discuss-phase found the roadmap's premise was stale: `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md` — the docs ROADMAP.md cites as Phase 6's AI-expansion backlog — were already fully implemented and deployed to production in commit `e4ac615a` (2026-05-22), ungated for all hotels, with zero test coverage. Opera PMS integration (`services/opera/`, `routers/integrations.py`) is also more built than CLAUDE.md's "two-way sync hardening deferred" note suggests (conflict list/resolve endpoints already exist).
 
@@ -47,7 +47,11 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 
 **06-05 CLOSED (2026-07-28, commit `df9317f9`):** Phase 6 gate (D-06), human-verify checkpoint, approved by the user. Task 1 (automated): full API suite **496/496 passed** (no regressions across 06-01..06-04), all five Phase 6 test files explicitly green (55 tests), `apps/web` type-check clean. Task 2 (live authenticated GM browser walkthrough, driven by the executor per CLAUDE.md's Self-Verification Policy, then approved by the user): exercised the AI copilot fast-path + task-confirm wire contract (T-06-19 — `POST /ai/tasks/confirm` returns 200, not 422, proving 06-03's typed `TaskPreview` didn't break the frontend contract) and the Opera pilot gate at the UI (T-06-20 — `GET /integrations/opera/status` correctly 403s for this non-pilot hotel through the real UI, not just in tests). **Real bug found and fixed live:** `IntegrationsPage`'s disconnected-state branch only checked `!operaStatus?.connected` (also true on a failed fetch), so it rendered a fully-interactive "Connect Opera Cloud" form on top of the "Failed to load Opera status" error banner for any non-pilot hotel (the default for virtually every real hotel post-06-02) — fixed with a one-line `!statusQuery.isError` guard, re-verified live + full suite still green. **Environment gotcha documented:** a first walkthrough pass was invalidated mid-session when the orchestrator discovered the dev API server on :8003 was a 3-day-old stale process (predating all 06-01..06-04 commits) with orphaned `multiprocessing.spawn` zombie workers masking a `ModuleNotFoundError: No module named 'apscheduler'` crash-on-restart; after installing the missing dependency and killing the zombies, the walkthrough was redone against verified-fresh code (see 06-05-SUMMARY.md Environment Notes). Zero uncaught console errors on the valid redo. Accepted deferrals unchanged: no local LLM/OHIP credentials for live model output or a real OHIP sandbox round trip. See `06-05-SUMMARY.md`.
 
-**Phase 6 status:** all 5 plans (06-01..06-05) execution-complete. **Next:** `/gsd-verify-work` (goal-backward phase verification) before Phase 6 can be marked closed at the milestone level.
+**UAT (06-UAT.md, committed `054a92e7`):** 5 tests, self-run by Claude (browser automation + terminal) rather than asked of the user. 3 passed (cold-start smoke test; AI copilot fast-path task creation, 200 not 422/500; Opera settings gated correctly with no misleading connect form). 2 blocked on environment constraints, not code gaps: no second-role test account exists locally (RBAC backed instead by the 21-test automated matrix), and no local Anthropic/OpenAI key exists so the LLM-dependent "GM insights" quick action 500s with `AIProviderConfigurationError` — pre-existing (predates Phase 6), frontend handles it gracefully ("Something went wrong. Please try again.", no crash). 0 issues found — no gap-closure planning needed.
+
+**Security (06-SECURITY.md, committed `0a580f9f`):** gsd-security-auditor independently verified all 21 threats declared across the 5 plans' `<threat_model>` blocks (16 mitigate, 5 accept) against live code — not documentation review. Re-ran the full suite independently (496/496 passed). **21/21 closed, 0 open.** Notable: caught a genuine discrepancy where the plan's stated `/ai/insights` role-gate text didn't match live code (intentionally ungated by design, per 06-03's own documented correction) rather than blindly marking it closed against stale text.
+
+**Phase 6 status: CLOSED.** All 5 plans executed, UAT passed (0 issues), security verified (21/21 closed). This was the last phase in milestone v1.0 — the milestone is now 100% complete. **Next:** `/gsd-complete-milestone` to archive.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 

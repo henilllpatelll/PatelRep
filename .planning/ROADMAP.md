@@ -12,7 +12,7 @@ PatelRep moves from production trust through reusable operational evidence, Texa
 - [x] **Phase 3: Texas compliance and staff safety** - Training, incidents, safety documents, and emergency evidence. Closed 2026-07-21.
 - [x] **Phase 4: Maintenance and housekeeping programs** - Complete recurring PM and housekeeping programs, plus bilingual floor coverage. Closed 2026-07-25 (verified 2026-07-24: 36/36 must-haves, security 50/50 threats closed).
 - [x] **Phase 5: Guest recovery and management ROI** - Guest-service closure and measurable operational value. Closed 2026-07-25 (verified + deployed; live on Railway, `/health` 200).
-- [ ] **Phase 6: PMS and AI expansion** - Audit-first hardening of the already-shipped AI copilot expansion + Opera PMS integration (reframed 2026-07-28; see 06-CONTEXT.md — original "backlog" docs were already implemented in commit `e4ac615a`, 2026-05-22). All 5 plans execution-complete 2026-07-28 (D-06 phase gate passed); awaiting `/gsd-verify-work` before this phase can be marked closed.
+- [x] **Phase 6: PMS and AI expansion** - Audit-first hardening of the already-shipped AI copilot expansion + Opera PMS integration (reframed 2026-07-28; see 06-CONTEXT.md — original "backlog" docs were already implemented in commit `e4ac615a`, 2026-05-22). Closed 2026-07-28: all 5 plans executed (D-06 phase gate passed), UAT passed (0 issues), security verified (21/21 threats closed).
 
 ## Phase Details
 
@@ -163,4 +163,4 @@ Plans:
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 17/17 | Complete — verified (36/36 must-haves) + security-audited (50/50 threats closed); deployed on `main` | 2026-07-25 |
 | 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT; deployed + live on Railway | 2026-07-25 |
-| 6. PMS and AI expansion | 5/5 | Execution-complete — all plans closed (D-06 phase gate passed: 496/496 tests, clean type-check, live GM walkthrough approved); awaiting `/gsd-verify-work` before milestone-level closure | - |
+| 6. PMS and AI expansion | 5/5 | Complete    | 2026-07-28 |
