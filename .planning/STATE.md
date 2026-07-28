@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
 status: "Milestone v1.0 complete — all 7 phases (0-6) closed"
-last_updated: "2026-07-28T22:19:26.000Z"
+last_updated: "2026-07-28T23:45:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 7
   total_plans: 42
   completed_plans: 42
   percent: 100
-  note: "Phase 6 (PMS & AI expansion) CLOSED 2026-07-28 — all 5 plans executed (06-01..06-05), UAT passed (3 pass/0 issues/2 blocked-on-environment), security verified (21/21 threats closed, 06-SECURITY.md). Milestone v1.0 'Hotel Standards Execution Plan' is now 100% complete. Next: /gsd-complete-milestone."
+  note: "Phase 6 (PMS & AI expansion) CLOSED 2026-07-28 — all 5 plans executed (06-01..06-05), UAT passed (3 pass/0 issues/2 blocked-on-environment), security verified (21/21 threats closed, 06-SECURITY.md), goal-backward verification passed (20/20 must-haves, 06-VERIFICATION.md). v1.0 milestone audit (.planning/v1.0-MILESTONE-AUDIT.md) found and same-session-fixed one real cross-phase gap: AI-copilot guest requests bypassed the entire SLA/escalation/audit contract (commits cfb58714/f29cf192). Milestone v1.0 'Hotel Standards Execution Plan' is 100% complete, audit passed. Next: /gsd-complete-milestone."
 ---
 
 # GSD State
@@ -51,7 +51,11 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 
 **Security (06-SECURITY.md, committed `0a580f9f`):** gsd-security-auditor independently verified all 21 threats declared across the 5 plans' `<threat_model>` blocks (16 mitigate, 5 accept) against live code — not documentation review. Re-ran the full suite independently (496/496 passed). **21/21 closed, 0 open.** Notable: caught a genuine discrepancy where the plan's stated `/ai/insights` role-gate text didn't match live code (intentionally ungated by design, per 06-03's own documented correction) rather than blindly marking it closed against stale text.
 
-**Phase 6 status: CLOSED.** All 5 plans executed, UAT passed (0 issues), security verified (21/21 closed). This was the last phase in milestone v1.0 — the milestone is now 100% complete. **Next:** `/gsd-complete-milestone` to archive.
+**Phase 6 status: CLOSED.** All 5 plans executed, UAT passed (0 issues), security verified (21/21 closed), goal-backward verification passed (20/20 must-haves, `06-VERIFICATION.md`). This was the last phase in milestone v1.0 — the milestone is now 100% complete.
+
+**Milestone v1.0 cross-phase audit (`.planning/v1.0-MILESTONE-AUDIT.md`):** found REQ-201..207 (Phase 2) all genuinely implemented via direct codebase inspection (no formal traceability document exists for that old phase, but the features are real), 10/11 cross-phase flows wired cleanly, and **one real blocker**: `ai_copilot.py::confirm_guest_requests` bypassed the entire SLA/escalation/audit contract Phase 5 built — AI-created guest requests got no linked task, no `due_at`, no escalation eligibility, no audit event, with zero error surfaced anywhere. This was in Phase 6's own audit scope (D-01) but missed by 06-01/06-03. **Fixed same session** (commits `cfb58714` RED / `f29cf192` GREEN): `confirm_guest_requests` now mirrors `create_guest_request`'s full contract. 4 new tests, full suite 500/500 passing, web type-check clean. Audit status: passed.
+
+**Next:** `/gsd-complete-milestone` to archive.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 
