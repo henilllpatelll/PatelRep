@@ -12,7 +12,7 @@ PatelRep moves from production trust through reusable operational evidence, Texa
 - [x] **Phase 3: Texas compliance and staff safety** - Training, incidents, safety documents, and emergency evidence. Closed 2026-07-21.
 - [x] **Phase 4: Maintenance and housekeeping programs** - Complete recurring PM and housekeeping programs, plus bilingual floor coverage. Closed 2026-07-25 (verified 2026-07-24: 36/36 must-haves, security 50/50 threats closed).
 - [x] **Phase 5: Guest recovery and management ROI** - Guest-service closure and measurable operational value. Closed 2026-07-25 (verified + deployed; live on Railway, `/health` 200).
-- [ ] **Phase 6: PMS and AI expansion** - Pilot-gated integrations and approval-based AI loops.
+- [ ] **Phase 6: PMS and AI expansion** - Audit-first hardening of the already-shipped AI copilot expansion + Opera PMS integration (reframed 2026-07-28; see 06-CONTEXT.md — original "backlog" docs were already implemented in commit `e4ac615a`, 2026-05-22).
 
 ## Phase Details
 
@@ -126,14 +126,16 @@ Cross-cutting constraints:
 - Append-only discipline on `guest_request_events`, `guest_messages`, `guest_recovery_actions`, `lost_found_custody_events` — insert only, never UPDATE/DELETE.
 
 ### Phase 6: PMS and AI expansion
-**Goal**: Expand integrations and AI only after pilot validation, with evidence and human authorization for every recommendation.
-**Depends on**: Phase 5 and two successful pilot hotels
-**Plans**: TBD
+**Goal**: Verify, harden, and gate the already-shipped AI copilot expansion and Opera PMS integration to production-trust standard, fixing any real bugs found in-phase — before any new AI/PMS capability work.
+**Depends on**: Phase 5. Pilot gate confirmed satisfied by user 2026-07-28 (was previously "two successful pilot hotels").
+**Plans**: TBD — discuss-phase complete 2026-07-28 (`06-CONTEXT.md`); next is `/gsd-plan-phase 6`.
+
+**Reframed 2026-07-28.** The AI-expansion backlog docs below were discovered during discuss-phase to already be fully implemented and deployed (commit `e4ac615a`, 2026-05-22) — ungated for all hotels, zero test coverage. Opera integration is likewise more built than previously documented (conflict list/resolve endpoints already exist). Phase 6 is therefore an audit-first hardening pass mirroring Phase 4's S0 slice, not a greenfield build. See `.planning/phases/06-pms-and-ai-expansion/06-CONTEXT.md` for full decisions.
 
 ## Deferred Backlog
 
 - **Phase 4:** Web i18n for the hardcoded-English engineering components; this is the bilingual floor contract, not a Phase 2 change. *(Resolved 2026-07-25 — gap-closure plans 04-09..04-17 closed this; full D-03 floor scope verified bilingual, ESLint no-literal-string gate widened to the whole floor directory set.)*
-- **Phase 6, pilot-gated:** AI expansion material in `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md`.
+- **Resolved 2026-07-28 — Phase 6 backlog docs:** `.planning/ai-copilot-primary-interface.md` and `.planning/sop-voice-fastpath.md` are not backlog — both are already implemented and live in production. Kept as audit-reference docs for Phase 6's discuss-phase decisions (see 06-CONTEXT.md); do not treat as build targets.
 - **Resolved 2026-07-26 — Vercel infra decision:** re-investigated via the Vercel MCP; the earlier "broken deployment / invalid CLI token" note was stale. The `patelrep-web` project's GitHub integration deploys successfully on every push to `main` (verified: `patelrep-web.vercel.app/login` returns 200, latest production deployment READY). The local `vercel` CLI being unauthenticated was a separate, local-only issue that never affected the GitHub-triggered builds. No custom domain is attached — only default `*.vercel.app` subdomains — so it isn't presented to users as canonical anywhere. **Decision: keep it as a secondary preview surface (PR preview comments), not production.** Railway remains the sole documented production target (see Infrastructure section); nothing in app docs or onboarding points at the Vercel URL. The only real failures traced to Dependabot PR #26's broken react-dom v19/react v18 mismatch, which is now closed. No deletion tool was available to act on directly if a future session decides to remove it instead — that would be a manual dashboard action.
 - **Parked:** All mobile work, including EAS build, mobile i18n handoff, and rooms debugging. Phase 2 is web + API only.
 
@@ -147,4 +149,4 @@ Cross-cutting constraints:
 | 3. Texas compliance and staff safety | 3/3 | Complete — deployed + verified in production | 2026-07-21 |
 | 4. Maintenance and housekeeping programs | 17/17 | Complete — verified (36/36 must-haves) + security-audited (50/50 threats closed); deployed on `main` | 2026-07-25 |
 | 5. Guest recovery and management ROI | 12/12 | Complete — verified in code + human UAT; deployed + live on Railway | 2026-07-25 |
-| 6. PMS and AI expansion | 0/TBD | Deferred — pilot-gated | - |
+| 6. PMS and AI expansion | 0/TBD | Context gathered — audit-first hardening pass; planning next | - |
