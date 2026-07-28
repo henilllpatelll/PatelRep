@@ -8500,3 +8500,4 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 20:44 | Session end: 27 writes across 9 files (globals.css, Providers.tsx, DeleteConfirmDialog.tsx, RoomDetailDrawer.tsx, NewRequestModal.tsx) | 26 reads | ~14156 tok |
 | 20:48 | Session end: 27 writes across 9 files (globals.css, Providers.tsx, DeleteConfirmDialog.tsx, RoomDetailDrawer.tsx, NewRequestModal.tsx) | 26 reads | ~14156 tok |
 | 20:54 | Edited apps/web/package.json | 3→3 lines | ~20 |
+| 21:09 | Session end: 28 writes across 10 files (globals.css, Providers.tsx, DeleteConfirmDialog.tsx, RoomDetailDrawer.tsx, NewRequestModal.tsx) | 27 reads | ~14176 tok |
