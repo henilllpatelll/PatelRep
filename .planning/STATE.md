@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hotel Standards Execution Plan
-status: "Phases 0–5 closed + deployed; Phase 6 executing"
-last_updated: "2026-07-28T09:23:33.000Z"
+status: "Phases 0–5 closed + deployed; Phase 6 execution-complete, awaiting /gsd-verify-work"
+last_updated: "2026-07-28T11:45:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 42
-  completed_plans: 41
-  percent: 98
-  note: "Phase 6 (PMS & AI expansion) executing — Wave 1 CLOSED 2026-07-28 (06-01, 06-02; migration 085 live-apply blocker resolved by orchestrator). Wave 2 CLOSED 2026-07-28: 06-03 (AI copilot RBAC + tenant isolation + typed confirm_tasks), 06-04 (Opera webhook signature fix + pilot no-op). Wave 3 (06-05 phase gate) not yet started."
+  completed_plans: 42
+  percent: 100
+  note: "Phase 6 (PMS & AI expansion) all 5 plans execution-complete 2026-07-28 (06-01..06-05). D-06 phase gate (06-05) closed: 496/496 API tests, clean web type-check, live authenticated GM browser walkthrough approved by the user (found and fixed one real UI bug in Opera settings). Phase 6 is execution-complete but not yet goal-backward verified -- /gsd-verify-work has not run against it; not counted in completed_phases until that step completes."
 ---
 
 # GSD State
@@ -19,7 +19,7 @@ progress:
 
 ## Current status
 
-**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is executing (2026-07-28) — Wave 1 (06-01, 06-02) CLOSED; Wave 2 (06-03, 06-04) CLOSED; Wave 3's 06-05 phase gate next. Migration 085's live-apply blocker (see below) is resolved.**
+**Milestone "Hotel Standards Execution Plan": Phases 0–5 all CLOSED + DEPLOYED. Phase 6 (PMS & AI expansion) is execution-complete (2026-07-28) — all 3 waves (06-01..06-05) CLOSED, D-06 phase gate passed. Migration 085's live-apply blocker (see below) is resolved. Phase 6 awaits `/gsd-verify-work` (goal-backward phase verification) before it can be marked closed at the milestone level.**
 
 ### Phase 6 — PMS and AI expansion: PLANNED (2026-07-28)
 
@@ -45,7 +45,9 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 
 **06-04 CLOSED (2026-07-28, commits `6b03ea9c`/`68e81999`):** Opera webhook signature fix + pilot no-op gate (D-03/D-05/D-06), TDD (RED→GREEN). `_verify_opera_signature` (`routers/webhooks.py`) now validates against the per-hotel `opera_credentials.webhook_secret` (schema-provisioned, migration 002) instead of deriving an HMAC key from `CRON_SECRET + hotel_id` — a key Oracle never knows, so the old check could never pass an authentic Opera-signed payload. Fails closed on a missing/empty secret. `opera_webhook` now silently no-ops (`{"status": "ignored", "reason": "opera_pilot_not_enabled"}`) for any hotel with `tenants.opera_pilot_enabled=False`, checked right after hotel resolution and before signature verification or handler dispatch — mirrors the existing "hotel not found or not connected" silent-ignore shape since public webhooks can't 403 Oracle. New `test_opera_webhooks.py` (10 tests): signature accept/reject/fail-closed, pilot no-op, all 5 handler dispatches (checkout/checkin/modified/dnd/make_up_room — room_status + room_status_history writes, `change_source="opera_webhook"`), unknown-event/unknown-hotel no-ops. Oracle OHIP's exact real-world webhook signing scheme (header name/algorithm) remains unverified against a live sandbox (06-RESEARCH Open Question 1) — documented as an accepted, non-bypassed gap in code comment + summary, not "fixed" by always-passing. Full suite: 496/496 green (was 486). See `06-04-SUMMARY.md`.
 
-**Next:** Wave 3's 06-05 phase gate (full suite + web type-check + live authenticated GM browser walkthrough, human-verify checkpoint, not autonomous).
+**06-05 CLOSED (2026-07-28, commit `df9317f9`):** Phase 6 gate (D-06), human-verify checkpoint, approved by the user. Task 1 (automated): full API suite **496/496 passed** (no regressions across 06-01..06-04), all five Phase 6 test files explicitly green (55 tests), `apps/web` type-check clean. Task 2 (live authenticated GM browser walkthrough, driven by the executor per CLAUDE.md's Self-Verification Policy, then approved by the user): exercised the AI copilot fast-path + task-confirm wire contract (T-06-19 — `POST /ai/tasks/confirm` returns 200, not 422, proving 06-03's typed `TaskPreview` didn't break the frontend contract) and the Opera pilot gate at the UI (T-06-20 — `GET /integrations/opera/status` correctly 403s for this non-pilot hotel through the real UI, not just in tests). **Real bug found and fixed live:** `IntegrationsPage`'s disconnected-state branch only checked `!operaStatus?.connected` (also true on a failed fetch), so it rendered a fully-interactive "Connect Opera Cloud" form on top of the "Failed to load Opera status" error banner for any non-pilot hotel (the default for virtually every real hotel post-06-02) — fixed with a one-line `!statusQuery.isError` guard, re-verified live + full suite still green. **Environment gotcha documented:** a first walkthrough pass was invalidated mid-session when the orchestrator discovered the dev API server on :8003 was a 3-day-old stale process (predating all 06-01..06-04 commits) with orphaned `multiprocessing.spawn` zombie workers masking a `ModuleNotFoundError: No module named 'apscheduler'` crash-on-restart; after installing the missing dependency and killing the zombies, the walkthrough was redone against verified-fresh code (see 06-05-SUMMARY.md Environment Notes). Zero uncaught console errors on the valid redo. Accepted deferrals unchanged: no local LLM/OHIP credentials for live model output or a real OHIP sandbox round trip. See `06-05-SUMMARY.md`.
+
+**Phase 6 status:** all 5 plans (06-01..06-05) execution-complete. **Next:** `/gsd-verify-work` (goal-backward phase verification) before Phase 6 can be marked closed at the milestone level.
 
 ### Phase 5 — Guest recovery and management ROI: CLOSED + DEPLOYED (2026-07-25)
 
