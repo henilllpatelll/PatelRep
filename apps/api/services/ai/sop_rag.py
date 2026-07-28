@@ -1,10 +1,9 @@
 import io
 import re
-import time
 import json
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 
 import pdfplumber
 import anthropic
@@ -218,10 +217,6 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
             "completion_tokens": int,
         }
     """
-    start_ts = time.time()
-    prompt_tokens = 0
-    completion_tokens = 0
-
     try:
         openai_client = get_openai_client()
         claude = get_anthropic_client()
@@ -248,16 +243,6 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
 
         # --- 3. No relevant chunks → return early ---
         if not chunks:
-            latency_ms = int((time.time() - start_ts) * 1000)
-            _log_ai_interaction(
-                hotel_id=hotel_id,
-                user_id=user_id,
-                prompt_tokens=0,
-                completion_tokens=0,
-                credits_charged=0.0,
-                latency_ms=latency_ms,
-                success=True,
-            )
             return {
                 "answer": (
                     "I don't have that procedure in your uploaded SOPs. "
@@ -330,18 +315,6 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
             for c in chunks
         ]
 
-        # --- 9. Log AI interaction ---
-        latency_ms = int((time.time() - start_ts) * 1000)
-        _log_ai_interaction(
-            hotel_id=hotel_id,
-            user_id=user_id,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            credits_charged=2.0,
-            latency_ms=latency_ms,
-            success=True,
-        )
-
         return {
             "answer": answer,
             "sources": sources,
@@ -356,61 +329,8 @@ def query_sop(query: str, hotel_id: str, user_id: str) -> dict:
         anthropic.RateLimitError,
         anthropic.AuthenticationError,
     ) as exc:
-        latency_ms = int((time.time() - start_ts) * 1000)
         logger.warning("SOP query provider unavailable for hotel_id=%s: %s", hotel_id, exc)
-        _log_ai_interaction(
-            hotel_id=hotel_id,
-            user_id=user_id,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            credits_charged=0.0,
-            latency_ms=latency_ms,
-            success=False,
-            error_message=str(exc),
-        )
         raise
     except Exception as exc:
-        latency_ms = int((time.time() - start_ts) * 1000)
         logger.exception("SOP query failed for hotel_id=%s: %s", hotel_id, exc)
-        _log_ai_interaction(
-            hotel_id=hotel_id,
-            user_id=user_id,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            credits_charged=0.0,
-            latency_ms=latency_ms,
-            success=False,
-            error_message=str(exc),
-        )
         raise
-
-
-# ---------------------------------------------------------------------------
-# Internal helper: log to ai_interactions
-# ---------------------------------------------------------------------------
-
-def _log_ai_interaction(
-    hotel_id: str,
-    user_id: str,
-    prompt_tokens: int,
-    completion_tokens: int,
-    credits_charged: float,
-    latency_ms: int,
-    success: bool,
-    error_message: Optional[str] = None,
-) -> None:
-    try:
-        supabase.table("ai_interactions").insert({
-            "tenant_id": hotel_id,
-            "user_id": user_id,
-            "interaction_type": "sop_query",
-            "model_used": "claude-sonnet-4-6",
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "credits_charged": credits_charged,
-            "latency_ms": latency_ms,
-            "success": success,
-            "error_message": error_message,
-        }).execute()
-    except Exception as log_exc:
-        logger.warning("Failed to log ai_interaction: %s", log_exc)

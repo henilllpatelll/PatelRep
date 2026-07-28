@@ -1,9 +1,11 @@
 import logging
+import time
 import openai
 import anthropic
 import re
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks, HTTPException
 from middleware.auth import get_current_user, require_role, CurrentUser
+from middleware.credits import check_and_deduct_credits, log_ai_interaction
 from models.requests import SOPQueryRequest
 from core.database import supabase
 from services.ai.sop_rag import index_sop_document, query_sop
@@ -212,6 +214,7 @@ async def query_sop_endpoint(
     request: SOPQueryRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    start = time.time()
     try:
         result = query_sop(
             query=request.query,
@@ -223,6 +226,26 @@ async def query_sop_endpoint(
         openai.AuthenticationError,
         anthropic.RateLimitError,
         anthropic.AuthenticationError,
-    ):
+    ) as exc:
+        latency_ms = int((time.time() - start) * 1000)
+        await log_ai_interaction(
+            hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+            interaction_type="sop_query", model_used="claude-sonnet-4-6",
+            credits_charged=0.0, prompt_tokens=0, completion_tokens=0,
+            latency_ms=latency_ms, success=False, error_message=str(exc),
+        )
         raise HTTPException(status_code=503, detail="AI service temporarily unavailable. Please try again later.")
-    return {"data": result}
+
+    prompt_tokens = result.get("prompt_tokens", 0)
+    completion_tokens = result.get("completion_tokens", 0)
+    credits_charged = await check_and_deduct_credits(
+        current_user.hotel_id, "sop_query", prompt_tokens, completion_tokens
+    )
+    latency_ms = int((time.time() - start) * 1000)
+    await log_ai_interaction(
+        hotel_id=current_user.hotel_id, user_id=current_user.user_id,
+        interaction_type="sop_query", model_used="claude-sonnet-4-6",
+        credits_charged=credits_charged, prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens, latency_ms=latency_ms, success=True,
+    )
+    return {"data": {**result, "credits_used": credits_charged}}
