@@ -8462,3 +8462,38 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 19:25 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~415 |
 | 19:27 | Session end: 77 writes across 9 files (Card.tsx, page.tsx, GuestRequestsPage.tsx, RoomStatusBoard.tsx, phase2-evidence.spec.ts) | 20 reads | ~100625 tok |
 | 19:45 | Session end: 77 writes across 9 files (Card.tsx, page.tsx, GuestRequestsPage.tsx, RoomStatusBoard.tsx, phase2-evidence.spec.ts) | 20 reads | ~100625 tok |
+| 19:49 | Session end: 77 writes across 9 files (Card.tsx, page.tsx, GuestRequestsPage.tsx, RoomStatusBoard.tsx, phase2-evidence.spec.ts) | 20 reads | ~100625 tok |
+| 19:54 | Session end: 77 writes across 9 files (Card.tsx, page.tsx, GuestRequestsPage.tsx, RoomStatusBoard.tsx, phase2-evidence.spec.ts) | 20 reads | ~100625 tok |
+
+## Session: 2026-07-28 19:57
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:04 | Edited apps/web/app/globals.css | 4→4 lines | ~25 |
+| 20:04 | Edited apps/web/app/globals.css | CSS: --info, --info-soft, --info-line | ~153 |
+| 20:04 | Edited apps/web/app/globals.css | expanded (+28 lines) | ~242 |
+| 20:04 | Edited apps/web/components/shared/Providers.tsx | added 1 import(s) | ~61 |
+| 20:04 | Edited apps/web/components/shared/Providers.tsx | 8→10 lines | ~68 |
+| 20:05 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | added 2 import(s) | ~54 |
+| 20:05 | Edited apps/web/components/shared/DeleteConfirmDialog.tsx | expanded (+9 lines) | ~201 |
+| 20:05 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | added 1 import(s) | ~70 |
+| 20:05 | Edited apps/web/components/housekeeping/RoomDetailDrawer.tsx | removed 13 lines | ~14 |
+| 20:05 | Edited apps/web/components/guest-requests/NewRequestModal.tsx | added 1 import(s) | ~146 |
+| 20:06 | Edited apps/web/components/guest-requests/NewRequestModal.tsx | expanded (+9 lines) | ~385 |
+| 20:06 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | inline fix | ~15 |
+| 20:06 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | added 1 import(s) | ~64 |
+| 20:06 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 4→7 lines | ~70 |
+| 20:06 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | expanded (+6 lines) | ~100 |
+| 20:06 | Edited apps/web/components/settings/RoomsImportModal.tsx | added 1 import(s) | ~55 |
+| 20:06 | Edited apps/web/components/settings/RoomsImportModal.tsx | expanded (+8 lines) | ~229 |
+| 20:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | inline fix | ~18 |
+| 20:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | added 1 import(s) | ~49 |
+| 20:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 9→4 lines | ~46 |
+| 20:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 5→6 lines | ~51 |
+| 20:07 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | added 1 import(s) | ~49 |
+| 20:08 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | expanded (+8 lines) | ~237 |
+| 20:08 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | inline fix | ~15 |
+| 20:08 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | added 1 import(s) | ~42 |
+| 20:08 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 9→4 lines | ~41 |
+| 20:08 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 5→6 lines | ~92 |
+| 20:22 | Session end: 27 writes across 9 files (globals.css, Providers.tsx, DeleteConfirmDialog.tsx, RoomDetailDrawer.tsx, NewRequestModal.tsx) | 24 reads | ~14156 tok |

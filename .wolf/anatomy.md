@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T00:25:28.680Z
-> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-28T01:08:48.514Z
+> Files: 11 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../tmp/sv-05-reviewfix-QJvcXS/.planning/phases/05-guest-recovery-and-management-roi/
 
@@ -1208,6 +1208,7 @@
 
 ## apps/web/app/
 
+- `globals.css` — Styles: 18 rules, 117 vars (~1624 tok)
 
 ## apps/web/app/(auth)/login/
 
@@ -1235,6 +1236,7 @@
 
 ## apps/web/app/(dashboard)/engineering/pm-schedules/
 
+- `page.tsx` — getScheduleStatus (~11546 tok)
 
 ## apps/web/app/(dashboard)/engineering/predictions/
 
@@ -1259,6 +1261,7 @@
 
 ## apps/web/app/(dashboard)/housekeeping/rooms/
 
+- `page.tsx` — StatusBadge (~10381 tok)
 
 ## apps/web/app/(dashboard)/logbook/
 
@@ -1340,12 +1343,16 @@
 
 ## apps/web/components/engineering/
 
+- `PMCompletionModal.tsx` — genId (~8592 tok)
 
 ## apps/web/components/guest-requests/
 
+- `GuestRequestDrawer.tsx` — MESSAGE_ROLES (~5021 tok)
+- `NewRequestModal.tsx` — CATEGORIES (~3263 tok)
 
 ## apps/web/components/housekeeping/
 
+- `RoomDetailDrawer.tsx` — WO_CATEGORIES (~16512 tok)
 
 ## apps/web/components/programs/
 
@@ -1355,9 +1362,12 @@
 
 ## apps/web/components/settings/
 
+- `RoomsImportModal.tsx` — EMPTY_IMPORT_ROW — renders table (~4730 tok)
 
 ## apps/web/components/shared/
 
+- `DeleteConfirmDialog.tsx` — DeleteConfirmDialog (~631 tok)
+- `Providers.tsx` — SUPABASE_DB_ROLES (~2697 tok)
 
 ## apps/web/components/ui/
 
