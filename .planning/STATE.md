@@ -1,25 +1,28 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Hotel Standards Execution Plan
-status: "Milestone v1.0 complete — all 7 phases (0-6) closed"
-last_updated: "2026-07-28T23:45:00.000Z"
+milestone: v1.1
+milestone_name: Mobile UI Parity
+status: planning
+last_updated: "2026-07-28T23:50:28.124Z"
+last_activity: 2026-07-28
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 42
-  completed_plans: 42
-  percent: 100
-  note: "Phase 6 (PMS & AI expansion) CLOSED 2026-07-28 — all 5 plans executed (06-01..06-05), UAT passed (3 pass/0 issues/2 blocked-on-environment), security verified (21/21 threats closed, 06-SECURITY.md), goal-backward verification passed (20/20 must-haves, 06-VERIFICATION.md). v1.0 milestone audit (.planning/v1.0-MILESTONE-AUDIT.md) found and same-session-fixed one real cross-phase gap: AI-copilot guest requests bypassed the entire SLA/escalation/audit contract (commits cfb58714/f29cf192). Milestone v1.0 'Hotel Standards Execution Plan' is 100% complete, audit passed. Next: /gsd-complete-milestone."
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # GSD State
 
-**Active milestone:** Hotel Standards Execution Plan
+**Active milestone:** Mobile UI Parity (v1.1)
 
-## Current status
+## Previous milestone
 
-**Milestone "Hotel Standards Execution Plan" (v1.0): 100% COMPLETE — all 7 phases (0 through 6) closed as of 2026-07-28. Phase 6 (PMS & AI expansion) closed this session: execution (5/5 plans) → UAT (3 pass/0 issues/2 blocked-on-environment) → security audit (21/21 threats closed). Next step: `/gsd-complete-milestone` to archive.**
+v1.0 "Hotel Standards Execution Plan" shipped and archived 2026-07-28 (7 phases, 0-6, all closed). Full history: `.planning/MILESTONES.md`, `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1.0-*`.
+
+<details>
+<summary>v1.0 phase-by-phase execution log (archived, click to expand)</summary>
 
 ### Phase 6 — PMS and AI expansion: CLOSED (2026-07-28)
 
@@ -30,6 +33,7 @@ Pilot gate (previously blocking) confirmed satisfied by the user 2026-07-28. Cod
 **Research (06-RESEARCH.md, committed `b690c876`):** found 3 real bugs beyond what CONTEXT.md anticipated — (1) `middleware/credits.py` charges a flat cost per interaction type instead of deriving cost from real token usage (CLAUDE.md A3 violation), (2) `sop_rag.py` + `ai_copilot.py`'s sop_query branch double-log every SOP question to `ai_interactions` (corrupts GM-facing credit-usage stats, does not double-bill Stripe), (3) `routers/webhooks.py::_verify_opera_signature()` derives its HMAC key from `CRON_SECRET + hotel_id` instead of the schema-provisioned but unused `opera_credentials.webhook_secret` column. D-03 pilot-flag mechanism recommendation: single `tenants.opera_pilot_enabled BOOLEAN` column (matches existing `is_active` idiom).
 
 **Planning (5 plans, 3 waves, committed `42d349f6` + revision `ffbf22b9`):**
+
 - Wave 1 (parallel): 06-01 (AI credit accounting + SOP double-log fix, TDD), 06-02 (Opera pilot-flag migration 085 + gate on all 7 endpoints + the 30-min reservation-sync cron, via a self-guarding `services/opera/sync.py::sync_reservations()` so both callers are protected by construction)
 - Wave 2: 06-03 (AI copilot RBAC matrix + tenant isolation, depends on 06-01), 06-04 (Opera webhook signature fix + pilot no-op, depends on 06-02)
 - Wave 3: 06-05 (phase gate — full suite + web type-check + live GM browser walkthrough, human-verify checkpoint, not autonomous)
@@ -155,17 +159,13 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 - [x] **48-hour continuous healthy production monitoring**: clean window from 2026-07-17T15:00Z through 2026-07-19T15:00Z. `gh run list --workflow=deploy-check.yml --status failure --limit 5` confirmed the latest failure was 2026-07-17T14:44:43Z; no failures occurred during the window.
 
-## Language coverage
+</details>
 
-- Mobile: English + Spanish complete for all Phase 1 work-order states.
-- Web: hardcoded English (no `t()` in engineering components). Same as pre-Phase 1 — no regression.
-- Web i18n is not production-complete. Phase 4 covers full bilingual enforcement.
+## Current blockers (carried forward)
 
-## Current blockers
-
-- **Operational (pre-existing, cross-phase — highest-priority open item):** production `/health` still shows most crons `stale` (predictions, billing, logbook, evidence reminders, safety, escalations, etc.; only `ai.failure-predictions` reads `ok`). Crons run via GitHub Actions → `/v1/internal/*`, not Railway's scheduler. This gates any reliance on automated safety/training assignments, reminders, SLA escalations, billing true-up, or ROI/lost-found retention crons in production. **Investigate the GitHub Actions cron workflow before trusting any automated loop.**
-- **Phase 5 deferral (accepted, not a blocker):** live Twilio SMS send/inbound/status-callback paths are unexercised in production — no Twilio credentials exist (D-01). Guest-recovery SMS cannot be confirmed end-to-end until credentials are provisioned.
+- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Fix the doc when convenient — see `.planning/ROADMAP.md` Backlog.
 - Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
+- See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved, not specific to v1.1.
 
 ## Verification commands
 
@@ -185,3 +185,10 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 | UAT | Phase 05: 05-HUMAN-UAT.md | blocked_on_credentials (no local Twilio credentials — live SMS unexercised) |
 | UAT | Phase 06: 06-UAT.md | partial (no local LLM credentials — GM insights quick action unexercised) |
 | Verification | Phase 05: 05-VERIFICATION.md | human_needed (same root cause — live SMS) |
+
+## Current Position
+
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-28 — Milestone v1.1 started

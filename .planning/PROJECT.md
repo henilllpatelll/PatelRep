@@ -20,11 +20,21 @@ Save a housekeeper or engineer time on the floor without weakening the hotel’s
 
 ### Active
 
-*None — milestone v1.0 "Hotel Standards Execution Plan" is 100% complete (all 7 phases, 0 through 6). Next milestone TBD via `/gsd-new-milestone`.*
+*Defining requirements for milestone v1.1 (see below).*
+
+## Current Milestone: v1.1 Mobile UI Parity
+
+**Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens.
+
+**Target features:**
+- Shared React Native design-token file (colors/typography/spacing) matching web's warm paper/terracotta palette, dark mode, and semantic status families
+- Shared RN primitive components mirroring web's Button/IconButton, Card, EmptyState/StateBlock, and Toast
+- Floor-role screens (housekeeper, engineer — My Rooms, Room Board, Work Orders, Tasks, Inspect) migrated first
+- Remaining screens (profile, supervisor, home dashboards) migrated after floor-role rollout
 
 ### Out of Scope
 
-- Mobile changes — v1.0 was web + API only; mobile work (EAS build, mobile i18n, rooms debug) is parked.
+- Mobile changes (v1.0-era exclusion, no longer current) — v1.0 was web + API only; mobile work was parked for that milestone. Superseded in v1.1, which explicitly targets mobile UI parity. The EAS build issue, rooms-timezone bug, and i18n handoff were all separately resolved in June 2026, before v1.0 began.
 - Live-credential-dependent flows — no local AI provider, Stripe, Twilio, or OHIP credentials exist; v1.0 shipped with these paths verified via mocked/fixture-based tests and accepted as deferred for live validation (Twilio SMS since Phase 5, LLM/OHIP round-trips since Phase 6).
 - Vercel deployment repair — Railway is the sole production target; Vercel kept only as a secondary PR-preview surface, decision made 2026-07-26.
 
@@ -52,6 +62,25 @@ Production trust, evidence/compliance platform, Texas safety, recurring bilingua
 | Phase 6 reframed as audit-first, not greenfield | Discuss-phase discovered the AI copilot expansion + much of Opera integration were already implemented and live (commit `e4ac615a`) but untested/ungated — building "new" features on an unverified, unsafe foundation would compound risk. | Shipped — Phase 6 delivered as a verification/hardening pass (mirroring Phase 4's S0 audit-first slice); found and fixed 3 real bugs beyond what research anticipated (flat-cost credit billing, SOP double-logging, Opera webhook wrong-secret signature) plus 2 more during execution/verification (a second unaudited `/sop/query` billing gap, a misleading Opera UI connect form). New AI/PMS capabilities explicitly deferred to a future phase. |
 | Opera pilot-gating via a single boolean column | `tenants.opera_pilot_enabled` vs. a richer `pilot_features` table — only one integration currently needs gating (YAGNI). | Shipped — matches the existing `is_active`-style boolean-flag idiom; migration 085. |
 | Fix real cross-phase gaps found during milestone audit immediately, not defer | Consistent with every prior in-phase bug-fix precedent (migration-079, bug-449, Phase 6's own D-05) — a milestone shouldn't ship with a known silent failure in a shipped feature. | Shipped — AI-copilot guest-request escalation gap (found by the v1.0 cross-phase integration audit) fixed same session, `confirm_guest_requests` now mirrors the canonical `create_guest_request` contract. |
+| Mobile UI parity built as shared primitives first, not screen-by-screen | Mirrors the same Wave-0-first approach that worked for the web refresh — avoids drift from 20+ screens each reinventing buttons/cards/empty-states in RN. | — Pending, v1.1 |
+| Floor-role screens (housekeeper/engineer) prioritized over manager/settings for mobile UI parity | Mobile's entire user base is floor staff — no manager/settings screens exist on mobile today. | — Pending, v1.1 |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-07-28 — milestone v1.0 "Hotel Standards Execution Plan" shipped (all 7 phases, 0 through 6, cross-phase audit passed).*
+*Last updated: 2026-07-28 — milestone v1.1 "Mobile UI Parity" started.*
