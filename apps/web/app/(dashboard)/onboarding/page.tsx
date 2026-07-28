@@ -315,11 +315,11 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
       {/* Message thread */}
       <div className="flex-1 overflow-y-auto space-y-3 min-h-0 mb-3" aria-live="polite">
         {/* Initial greeting bubble */}
-        <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
+        <Card hover={false} className="rounded-xl p-4 shadow-sm border-amber-100">
           <p className="text-sm text-gray-700 leading-relaxed">
             Hi! I'm here to help you get set up quickly. Ask me anything about this step.
           </p>
-        </div>
+        </Card>
 
         {/* Static tip from AI_TIPS while no conversation */}
         {messages.length === 0 && (
@@ -341,23 +341,23 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
                 </div>
               </div>
             ) : (
-              <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
+              <Card hover={false} className="rounded-xl p-4 shadow-sm border-amber-100">
                 <p className="text-sm text-gray-700 leading-relaxed">{msg.content}</p>
                 {msg.tip && (
                   <p className="text-xs text-[var(--caution)] mt-2 italic">{msg.tip}</p>
                 )}
-              </div>
+              </Card>
             )}
           </div>
         ))}
 
         {isLoading && (
-          <div className="bg-surface rounded-xl p-4 shadow-sm border border-amber-100">
+          <Card hover={false} className="rounded-xl p-4 shadow-sm border-amber-100">
             <div className="flex items-center gap-2 text-amber-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span className="text-xs">Thinking...</span>
             </div>
-          </div>
+          </Card>
         )}
 
         <div ref={messagesEndRef} />

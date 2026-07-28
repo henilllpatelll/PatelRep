@@ -24,6 +24,7 @@ import {
 } from '@/lib/utils/cleanType'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/primitives'
 
 // -- Shift options -------------------------------------------------------------
@@ -376,8 +377,8 @@ function HousekeeperRoomItem({
   )
 
   return (
-    <div
-      className="flex items-center justify-between gap-3 p-4 bg-surface rounded-[var(--r-lg)] border border-line cursor-pointer active:bg-surface-2 transition-colors"
+    <Card
+      className="flex items-center justify-between gap-3 p-4 active:bg-surface-2 transition-colors"
       onClick={() => onOpenDetail(room)}
     >
       <div className="min-w-0">
@@ -456,7 +457,7 @@ function HousekeeperRoomItem({
           <span className="text-sm text-[var(--ready)] font-semibold">{readyLabel}</span>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -584,11 +585,11 @@ function HousekeeperMyRoomsView() {
       <PageHeader title={t('housekeeping.page.myRooms.heading')} subtitle={format(new Date(), 'EEEE, MMMM d')} />
 
       {myRooms.length > 0 && (
-        <div className="flex gap-5 px-4 py-3 bg-surface rounded-[var(--r-lg)] border border-line text-sm">
+        <Card hover={false} className="flex gap-5 px-4 py-3 text-sm">
           <span><strong className="font-display text-[var(--alert)]">{todoCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.todo')}</span></span>
           <span><strong className="font-display text-[var(--progress)]">{inProgressCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.inProgress')}</span></span>
           <span><strong className="font-display text-[var(--ready)]">{doneCount}</strong> <span className="text-ink3">{t('housekeeping.page.myRooms.done')}</span></span>
-        </div>
+        </Card>
       )}
 
       {isLoading ? (

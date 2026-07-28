@@ -6,6 +6,7 @@ import { Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { guestRequestsApi, type GuestRequest } from '@/lib/api/guest_requests'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { Pill } from '@/components/ui/primitives'
 import { GuestRequestDrawer } from '@/components/guest-requests/GuestRequestDrawer'
 import { NewRequestModal } from '@/components/guest-requests/NewRequestModal'
@@ -79,11 +80,11 @@ function GuestRequestCard({
   const roomNum = request.rooms?.room_number ?? '—'
 
   return (
-    <div
+    <Card
       onClick={() => onCardClick(request)}
       className={cn(
-        'bg-surface rounded-[var(--r-md)] p-3 cursor-pointer hover:shadow-md transition-all',
-        isUrgent ? 'border-2 border-[var(--alert)]' : 'border border-line'
+        'rounded-[var(--r-md)] p-3 hover:shadow-md',
+        isUrgent && 'border-2 border-[var(--alert)]'
       )}
     >
       {isUrgent && (
@@ -147,7 +148,7 @@ function GuestRequestCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 

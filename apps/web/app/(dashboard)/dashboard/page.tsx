@@ -1,7 +1,7 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { Loader2, LogOut, CheckCircle2 } from 'lucide-react'
+import { LogOut, CheckCircle2 } from 'lucide-react'
 import { useRole } from '@/lib/hooks/useRole'
 import { ROIMetricsStrip } from '@/components/dashboard/ROIMetricsStrip'
 import { AIRiskAlertsPanel } from '@/components/dashboard/AIRiskAlertsPanel'
@@ -17,6 +17,8 @@ import { housekeepingApi } from '@/lib/api/housekeeping'
 import { Pill, SectionLabel, Mono } from '@/components/ui/primitives'
 import { DashboardGreeting } from '@/components/dashboard/DashboardGreeting'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { StateBlock } from '@/components/ui/StateBlock'
 
 function GMDashboard() {
   const { hotel } = useHotelStore()
@@ -57,16 +59,12 @@ function GMDashboard() {
       <DashboardGreeting name={firstName} subtitle={hotel?.name} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+        <Card hover={false} className="p-4">
           <SectionLabel className="mb-3">Departures today ({depRooms.length})</SectionLabel>
-          {boardLoading ? (
-            <div className="flex items-center gap-2 text-ink3 text-sm py-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading…
-            </div>
-          ) : depRooms.length === 0 ? (
-            <p className="text-sm text-ink3 py-2">No departure rooms pending checkout.</p>
-          ) : (
+          <StateBlock
+            status={boardLoading ? 'loading' : depRooms.length === 0 ? 'empty' : null}
+            empty={{ title: 'No departure rooms pending checkout.' }}
+          >
             <div className="space-y-2">
               {depRooms.map((room: any) => (
                 <div key={room.room_id} className="flex items-center gap-3">
@@ -91,19 +89,15 @@ function GMDashboard() {
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </StateBlock>
+        </Card>
 
-        <div className="bg-surface rounded-[var(--r-lg)] border border-line p-4">
+        <Card hover={false} className="p-4">
           <SectionLabel className="mb-3">Ready for occupancy ({readyRooms.length})</SectionLabel>
-          {boardLoading ? (
-            <div className="flex items-center gap-2 text-ink3 text-sm py-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading…
-            </div>
-          ) : readyRooms.length === 0 ? (
-            <p className="text-sm text-ink3 py-2">No rooms currently ready for occupancy.</p>
-          ) : (
+          <StateBlock
+            status={boardLoading ? 'loading' : readyRooms.length === 0 ? 'empty' : null}
+            empty={{ title: 'No rooms currently ready for occupancy.' }}
+          >
             <div className="space-y-2">
               {readyRooms.map((room: any) => (
                 <div key={room.room_id} className="flex items-center gap-3">
@@ -124,8 +118,8 @@ function GMDashboard() {
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </StateBlock>
+        </Card>
       </div>
 
       <ROIMetricsStrip />

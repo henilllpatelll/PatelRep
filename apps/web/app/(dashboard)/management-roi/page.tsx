@@ -18,6 +18,8 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { Stat, Pill } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -267,13 +269,12 @@ export default function ManagementRoiPage() {
       )}
 
       {isEmpty ? (
-        <div className="rounded-xl border border-dashed border-gray-300 py-16 text-center">
-          <Gauge className="mx-auto h-8 w-8 text-gray-300" />
-          <p className="mt-2 text-sm font-medium text-gray-600">Not enough data yet</p>
-          <p className="mt-1 text-sm text-gray-400">
-            Metrics populate as guest requests, work orders, and inspections are recorded over time.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Gauge className="w-5 h-5" />}
+          title="Not enough data yet"
+          body="Metrics populate as guest requests, work orders, and inspections are recorded over time."
+          className="rounded-xl border border-dashed border-gray-300 py-16"
+        />
       ) : (
         <>
           {/* Time Saved */}
@@ -406,7 +407,7 @@ export default function ManagementRoiPage() {
 
           {/* Exceptions and trends */}
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="rounded-[var(--r-lg)] border border-line bg-surface p-5">
+            <Card hover={false} className="p-5">
               <h3 className="mb-3 text-sm font-semibold text-gray-700">Repeated PM deferrals</h3>
               {pmCompliance && pmCompliance.repeated_deferrals.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-100 text-sm">
@@ -428,9 +429,9 @@ export default function ManagementRoiPage() {
               ) : (
                 <p className="text-sm text-gray-400">No repeated PM deferrals in this period.</p>
               )}
-            </div>
+            </Card>
 
-            <div className="rounded-[var(--r-lg)] border border-line bg-surface p-5">
+            <Card hover={false} className="p-5">
               <h3 className="mb-3 text-sm font-semibold text-gray-700">Rooms with the most downtime</h3>
               {downtimeRevenue && downtimeRevenue.downtime.rooms.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-100 text-sm">
@@ -455,11 +456,11 @@ export default function ManagementRoiPage() {
               ) : (
                 <p className="text-sm text-gray-400">No room downtime recorded in this period.</p>
               )}
-            </div>
+            </Card>
           </section>
 
           {/* 7-day forecast strip */}
-          <section className="rounded-[var(--r-lg)] border border-line bg-surface p-5">
+          <Card hover={false} className="p-5">
             <h3 className="mb-3 text-sm font-semibold text-gray-700">7-Day Forecast</h3>
             {forecast && forecast.days.length > 0 ? (
               <div className="grid grid-cols-7 gap-2">
@@ -480,7 +481,7 @@ export default function ManagementRoiPage() {
             ) : (
               <p className="text-sm text-gray-400">Forecast data is not available yet.</p>
             )}
-          </section>
+          </Card>
         </>
       )}
     </div>

@@ -27,6 +27,7 @@ import { Pill, SectionLabel } from '@/components/ui/primitives'
 import { KebabMenu } from '@/components/shared/KebabMenu'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Card } from '@/components/ui/Card'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { cn } from '@/lib/utils'
 
@@ -48,7 +49,7 @@ const STATUS_LABELS: Record<LostFoundStatus, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 animate-pulse">
+    <Card hover={false} className="p-4 animate-pulse">
       <div className="flex items-center justify-between mb-2">
         <div className="h-5 w-20 bg-gray-200 rounded-full" />
         <div className="h-3 w-24 bg-gray-100 rounded" />
@@ -58,7 +59,7 @@ function SkeletonCard() {
       <div className="flex gap-2 pt-2 border-t border-gray-100">
         <div className="h-7 w-24 bg-gray-200 rounded-lg" />
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -148,7 +149,7 @@ function ItemCard({
   const dispositionDue = isDispositionDue(item)
 
   return (
-    <div className="bg-surface border border-line shadow-sm rounded-[var(--r-lg)] p-4 hover:shadow-md transition-shadow">
+    <Card className="p-4">
       {/* Top row: status badge + disposition-due flag + time + kebab */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-1.5">
@@ -239,7 +240,7 @@ function ItemCard({
       )}
 
       <CustodyHistory itemId={item.id} />
-    </div>
+    </Card>
   )
 }
 

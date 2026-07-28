@@ -24,6 +24,7 @@ import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Pill, Mono, SectionLabel, AILabel } from '@/components/ui/primitives'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button, IconButton } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -286,11 +287,11 @@ function AISummaryPanel({ shiftDate, isSupervisor }: AISummaryPanelProps) {
                   </span>
                 </div>
               )}
-              <div className="bg-surface rounded-lg border border-[var(--caution-line)] p-4">
+              <Card hover={false} className="border-[var(--caution-line)] p-4">
                 <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {summaryText}
                 </p>
-              </div>
+              </Card>
               <Button
                 variant="ghost"
                 size="sm"

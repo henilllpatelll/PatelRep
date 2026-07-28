@@ -1,4 +1,5 @@
 ﻿# Memory
+| 2026-07-27 | UI Refresh Wave 5 (per-surface polish, P5+P7): Card unified across billing/dashboard/logbook/onboarding/lost-found/management-roi/guest-requests/housekeeping (14 inline `bg-surface rounded border` divs → `<Card>`, 2 justified dialog-shell exceptions left); Card.tsx gained `onClick` (keyboard-accessible, focus ring) + HTMLAttributes passthrough (`data-testid` etc.) for Playwright compat. Progressive disclosure: RoomStatusBoard.tsx floor groups are now collapsible (per-floor toggle, default expanded); reports.tsx MaintenanceTab's 9-card KPI grid split into 5 primary + 4 secondary behind a "Show detailed timing metrics" toggle; evidence/page.tsx's 5 always-stacked sections (acknowledgements+competency / documents+detail / evidence capture+records / applicability / exceptions) now render one-at-a-time via `PageHeader.tabs`, updated e2e/phase2-evidence.spec.ts to click the relevant tab before asserting (DOM intentionally restructured per plan). Exceptions region converted to StateBlock. tsc + lint + i18n gate clean throughout. Playwright phase1/phase4 regressions run against local dev server: 2 pre-existing failures (work-orders resume timing-flake, PM-schedules ES heading) confirmed identical on unmodified Wave-4 baseline via git-stash bisection — not caused by this wave. Manual Playwright walkthrough (throwaway script, removed after use) confirmed floor collapse toggle, evidence tab switching, and reports disclosure toggle all work against live local API. Not yet committed — pending user review. | apps/web/components/ui/Card.tsx, apps/web/components/housekeeping/RoomStatusBoard.tsx, apps/web/app/(dashboard)/{housekeeping,reports,evidence,billing,dashboard,logbook,onboarding,lost-found,management-roi}/page.tsx, apps/web/components/guest-requests/GuestRequestsPage.tsx, apps/web/e2e/phase2-evidence.spec.ts | complete | ~450 tok |
 | 2026-07-26 | UI Refresh Wave 2 (partial — floor components checkpoint): converted raw <button> to Button/IconButton in components/housekeeping/{RoomCard,OccupancyImportModal,RoomStatusBoard,RoomDetailDrawer}.tsx and components/engineering/{FailurePredictionSidebar,EngineeringRoomBoard,CreateWorkOrderModal,WorkOrderDetailDrawer,PMCompletionModal}.tsx — ~28 buttons converted, using Button's new `loading` prop to replace hand-rolled spinners where the button had a leading icon (icon hidden while loading so it doesn't double up with the spinner). Left legitimate custom cases raw: filter-chip pills (RoomStatusBoard/EngineeringRoomBoard, matches existing chipClass() pattern), Pass/Fail/N/A 3-way segmented toggles (InspectionModal, PMCompletionModal), disclosure/accordion headers (PredictionPanel, RoomDetailDrawer history), icon-over-label grid action tiles (RoomDetailDrawer note/WO/lost-found), and dropzone trigger areas. tsc + lint clean; manually verified /housekeeping loads with no console errors and RoomDetailDrawer opens showing all converted button labels correctly. NOT yet committed — remaining Wave 2 scope is large: floor app pages (housekeeping/engineering/tasks page.tsx files), then guest-facing (lost-found, guest-requests), then managers/settings (scheduling, logbook, staff, settings/*) — roughly 250+ more raw buttons across ~45 files. | apps/web/components/housekeeping/*.tsx, apps/web/components/engineering/*.tsx | in_progress | ~200 tok |
 | 2026-07-26 | UI Refresh Wave 1 (header unification): migrated all 22 hand-rolled `<h1>` content pages to PageHeader (eyebrow/title/subtitle/tabs/actions), folded existing in-page tab bars (work-orders, safety, sop, reports) into PageHeader.tabs, converted all 6 role-dashboard greetings (GM/Housekeeper/Supervisor/Engineer/FrontDesk/ChiefEngineer) to DashboardGreeting with a generalized subtitle prop. Downgraded management-roi's access-denied h1 to p (not a page title). tsc + lint + i18n gate + EN/ES parity (1375/1375) all clean; manually verified 9 pages (dashboard, tasks, work-orders incl. tab switch, safety incl. tab switch, sop, staff, housekeeping board) as GM in light+dark, no console errors, no regressions. Not yet committed — pending user review. | 22 app/(dashboard) page.tsx files, apps/web/components/dashboard/*.tsx (6 files), apps/web/components/shared/Sidebar.tsx (untouched this wave) | complete | ~150 tok |
 | 2026-07-26 | UI Refresh Wave 0 (foundation): upgraded Button (+size/loading), new IconButton, EmptyState, StateBlock, Toast (Toaster+useToast, mounted in DashboardShell), CommandPalette, DashboardGreeting, Breadcrumbs, MobileFloorNav; extracted Sidebar allow-list to lib/utils/navigation.ts; added i18n keys with verified EN/ES parity (1375/1375); built /dev/ui scratch demo page; manually verified light/dark/dense + mobile 390px via playwright-cli as GM. tsc + lint + i18n gate all clean. Not yet committed — pending user review. | apps/web/components/ui/{Button,EmptyState,StateBlock,Toast}.tsx, apps/web/components/shared/{Sidebar,DashboardShell,Breadcrumbs,CommandPalette,MobileFloorNav}.tsx, apps/web/components/dashboard/DashboardGreeting.tsx, apps/web/lib/utils/navigation.ts, apps/web/i18n/locales/{en,es}.ts, apps/web/app/(dashboard)/dev/ui/page.tsx | complete | ~180 tok |
@@ -8087,3 +8088,376 @@ pm audit --omit=dev, type-check, and build all passed | ~2600 |
 | 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~98 |
 | 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~57 |
 | 07:07 | Edited apps/web/components/engineering/PMCompletionModal.tsx | 3→3 lines | ~79 |
+| 07:10 | Session end: 130 writes across 28 files (navigation.ts, Sidebar.tsx, Button.tsx, EmptyState.tsx, StateBlock.tsx) | 81 reads | ~79371 tok |
+| 07:14 | Session end: 130 writes across 28 files (navigation.ts, Sidebar.tsx, Button.tsx, EmptyState.tsx, StateBlock.tsx) | 81 reads | ~79371 tok |
+
+## Session: 2026-07-26 07:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 07:16 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 6→3 lines | ~86 |
+| 07:16 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | reduced (-8 lines) | ~175 |
+| 07:17 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | reduced (-8 lines) | ~169 |
+| 07:17 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 9→5 lines | ~75 |
+| 07:17 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 17→19 lines | ~224 |
+| 07:17 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | reduced (-6 lines) | ~92 |
+| 07:18 | Edited apps/web/i18n/locales/en.ts | 2→3 lines | ~45 |
+| 07:18 | Edited apps/web/i18n/locales/es.ts | 2→3 lines | ~55 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | inline fix | ~17 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 8→11 lines | ~156 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 7→4 lines | ~69 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | 8→5 lines | ~78 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/rooms/page.tsx | expanded (+6 lines) | ~506 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | inline fix | ~17 |
+| 07:18 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | "housekeeping.assignmentsP" → "ghost" | ~66 |
+| 07:19 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | inline fix | ~17 |
+| 07:19 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | 9→9 lines | ~81 |
+| 07:19 | Edited apps/web/app/(dashboard)/engineering/assets/page.tsx | 9→9 lines | ~78 |
+| 07:19 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | inline fix | ~17 |
+| 07:20 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 41→42 lines | ~431 |
+| 07:20 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | 9→9 lines | ~80 |
+| 07:20 | Edited apps/web/app/(dashboard)/engineering/pm-schedules/page.tsx | expanded (+10 lines) | ~862 |
+| 07:20 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | 16→18 lines | ~194 |
+| 07:20 | Edited apps/web/app/(dashboard)/engineering/predictions/page.tsx | 11→13 lines | ~109 |
+| 07:21 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | inline fix | ~17 |
+| 07:21 | Edited apps/web/app/(dashboard)/engineering/work-orders/page.tsx | 9→11 lines | ~106 |
+| 07:21 | Edited apps/web/app/(dashboard)/tasks/page.tsx | added 1 import(s) | ~53 |
+| 07:21 | Edited apps/web/app/(dashboard)/tasks/page.tsx | "tasks.createModal.closeAr" → "ghost" | ~51 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 4→4 lines | ~88 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 4→4 lines | ~120 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 4→4 lines | ~91 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 7→7 lines | ~194 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 4→4 lines | ~103 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | expanded (+6 lines) | ~86 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 8→5 lines | ~59 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | 6→3 lines | ~52 |
+| 07:22 | Edited apps/web/app/(dashboard)/tasks/page.tsx | inline fix | ~6 |
+| 07:39 | Session end: 37 writes across 3 files (page.tsx, en.ts, es.ts) | 31 reads | ~57836 tok |
+| 15:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 29→28 lines | ~266 |
+| 15:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | inline fix | ~17 |
+| 15:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 5→5 lines | ~75 |
+| 15:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 7→6 lines | ~107 |
+| 15:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 9→8 lines | ~25 |
+| 15:03 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | inline fix | ~17 |
+| 15:03 | Edited apps/web/i18n/locales/en.ts | 7→8 lines | ~64 |
+| 15:03 | Edited apps/web/i18n/locales/es.ts | 7→8 lines | ~68 |
+| 15:03 | Edited apps/web/components/guest-requests/GuestRequestDrawer.tsx | 6→3 lines | ~44 |
+| 15:04 | Edited apps/web/components/guest-requests/NewRequestModal.tsx | inline fix | ~17 |
+| 15:04 | Edited apps/web/components/guest-requests/NewRequestModal.tsx | 8→5 lines | ~80 |
+| 15:09 | Session end: 48 writes across 5 files (page.tsx, en.ts, es.ts, GuestRequestDrawer.tsx, NewRequestModal.tsx) | 41 reads | ~70856 tok |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | inline fix | ~17 |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 8→5 lines | ~77 |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 10→7 lines | ~139 |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | expanded (+6 lines) | ~479 |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 8→5 lines | ~88 |
+| 16:01 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 9→11 lines | ~168 |
+| 16:01 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | inline fix | ~17 |
+| 16:01 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | 19→21 lines | ~268 |
+| 16:01 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | 8→9 lines | ~109 |
+| 16:01 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | 8→4 lines | ~66 |
+| 16:02 | Edited apps/web/components/settings/RoleForm.tsx | inline fix | ~17 |
+| 16:02 | Edited apps/web/components/settings/RoleForm.tsx | 16→18 lines | ~170 |
+| 16:02 | Edited apps/web/components/settings/RoleForm.tsx | 8→9 lines | ~69 |
+| 16:02 | Edited apps/web/components/settings/RoomsImportModal.tsx | inline fix | ~17 |
+| 16:02 | Edited apps/web/components/settings/RoomsImportModal.tsx | 8→5 lines | ~78 |
+| 16:02 | Edited apps/web/components/settings/RoomsImportModal.tsx | 8→11 lines | ~156 |
+| 16:02 | Edited apps/web/components/settings/RoomsImportModal.tsx | 7→4 lines | ~69 |
+| 16:03 | Edited apps/web/components/settings/SlaPolicyForm.tsx | inline fix | ~17 |
+| 16:03 | Edited apps/web/components/settings/SlaPolicyForm.tsx | 10→11 lines | ~100 |
+| 16:03 | Edited apps/web/components/settings/TemplateForm.tsx | inline fix | ~17 |
+| 16:03 | Edited apps/web/components/settings/TemplateForm.tsx | 16→18 lines | ~172 |
+| 16:03 | Edited apps/web/components/settings/TemplateForm.tsx | 9→10 lines | ~72 |
+| 16:03 | Edited apps/web/components/settings/TemplateForm.tsx | 8→9 lines | ~100 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | inline fix | ~17 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 4→3 lines | ~39 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 8→10 lines | ~110 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 8→8 lines | ~174 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 5→5 lines | ~94 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 5→5 lines | ~73 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 9→7 lines | ~138 |
+| 16:12 | Edited apps/web/app/(dashboard)/sop/page.tsx | 4→3 lines | ~58 |
+| 16:13 | Edited apps/web/components/ai/SOPQueryModal.tsx | added 1 import(s) | ~40 |
+| 16:13 | Edited apps/web/components/ai/SOPQueryModal.tsx | 7→8 lines | ~66 |
+| 16:13 | Edited apps/web/components/ai/SOPQueryModal.tsx | 15→10 lines | ~96 |
+| 16:13 | Edited apps/web/components/ai/SOPQueryModal.tsx | 6→7 lines | ~92 |
+| 16:16 | Edited apps/web/app/(dashboard)/ai/page.tsx | added 1 import(s) | ~39 |
+| 16:16 | Edited apps/web/app/(dashboard)/ai/page.tsx | 8→6 lines | ~73 |
+| 16:16 | Edited apps/web/app/(dashboard)/ai/page.tsx | 8→6 lines | ~73 |
+| 16:17 | Edited apps/web/app/(dashboard)/ai/page.tsx | 6→6 lines | ~80 |
+| 16:17 | Edited apps/web/app/(dashboard)/ai/page.tsx | 11→14 lines | ~169 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | added 1 import(s) | ~30 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 8→6 lines | ~81 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 3→3 lines | ~60 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 7→6 lines | ~81 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 4→4 lines | ~70 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 4→4 lines | ~69 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 8→9 lines | ~131 |
+| 16:18 | Edited apps/web/components/ai/AICopilotBubble.tsx | 2→2 lines | ~29 |
+| 16:19 | Edited apps/web/app/(dashboard)/billing/page.tsx | added 1 import(s) | ~31 |
+| 16:19 | Edited apps/web/app/(dashboard)/billing/page.tsx | 9→5 lines | ~78 |
+| 16:19 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 1 import(s) | ~34 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 12→14 lines | ~139 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | reduced (-8 lines) | ~101 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 6→6 lines | ~79 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | reduced (-7 lines) | ~132 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 9→9 lines | ~123 |
+| 16:20 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 11→12 lines | ~110 |
+| 16:21 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 8→5 lines | ~54 |
+| 16:21 | Edited apps/web/app/(dashboard)/logbook/page.tsx | reduced (-11 lines) | ~220 |
+| 16:21 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 7→4 lines | ~52 |
+| 16:21 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 12→11 lines | ~41 |
+| 16:27 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | inline fix | ~17 |
+| 16:27 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 7→9 lines | ~71 |
+| 16:27 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 7→4 lines | ~77 |
+| 16:27 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 7→4 lines | ~65 |
+| 16:27 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | reduced (-6 lines) | ~121 |
+| 16:28 | Edited apps/web/app/(dashboard)/staff/page.tsx | inline fix | ~17 |
+| 16:28 | Edited apps/web/app/(dashboard)/staff/page.tsx | "Close" → "ghost" | ~52 |
+| 16:28 | Edited apps/web/app/(dashboard)/staff/page.tsx | "Close" → "ghost" | ~52 |
+| 16:28 | Edited apps/web/app/(dashboard)/staff/page.tsx | 7→9 lines | ~79 |
+| 16:29 | Edited apps/web/app/(dashboard)/staff/page.tsx | 3→3 lines | ~58 |
+| 16:29 | Edited apps/web/app/(dashboard)/staff/page.tsx | 7→10 lines | ~139 |
+| 16:29 | Edited apps/web/app/(dashboard)/staff/page.tsx | 8→8 lines | ~185 |
+| 16:29 | Edited apps/web/app/(dashboard)/staff/page.tsx | 8→10 lines | ~150 |
+| 16:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 13→10 lines | ~94 |
+| 16:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 6→6 lines | ~52 |
+| 16:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 23→27 lines | ~243 |
+| 16:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 7→4 lines | ~66 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 18→17 lines | ~164 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 2→2 lines | ~12 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 7→4 lines | ~64 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 7→4 lines | ~69 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 6→8 lines | ~88 |
+| 16:41 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 7→4 lines | ~66 |
+| 16:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 1 import(s) | ~36 |
+| 16:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 8→10 lines | ~154 |
+| 16:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 8→10 lines | ~149 |
+| 16:42 | Edited apps/web/app/(dashboard)/error.tsx | added 1 import(s) | ~32 |
+| 16:42 | Edited apps/web/app/(dashboard)/error.tsx | 7→4 lines | ~55 |
+| 16:43 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | added 1 import(s) | ~39 |
+| 16:43 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | reduced (-6 lines) | ~149 |
+| 16:43 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | reduced (-8 lines) | ~324 |
+| 16:43 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 8→10 lines | ~151 |
+| 16:43 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 8→10 lines | ~151 |
+| 16:44 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | 8→10 lines | ~142 |
+| 16:44 | Edited apps/web/components/dashboard/FrontDeskDashboard.tsx | inline fix | ~27 |
+| 16:44 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | added 1 import(s) | ~33 |
+| 16:44 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | "text-ink3 hover:text-ink " → "ghost" | ~43 |
+| 16:44 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 6→3 lines | ~33 |
+| 16:44 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 8→10 lines | ~98 |
+| 16:44 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | 7→4 lines | ~53 |
+| 16:45 | Edited apps/web/components/dashboard/SupervisorDashboard.tsx | inline fix | ~16 |
+| 16:51 | Session end: 150 writes across 15 files (page.tsx, en.ts, es.ts, GuestRequestDrawer.tsx, NewRequestModal.tsx) | 86 reads | ~135937 tok |
+
+## Session: 2026-07-27 17:27
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:30 | Edited apps/web/app/(dashboard)/settings/general/page.tsx | 12→12 lines | ~164 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/general/page.tsx | 4→4 lines | ~44 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/general/page.tsx | removed 8 lines | ~9 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/general/page.tsx | modified catch() | ~115 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/front-desk/page.tsx | added 1 import(s) | ~147 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/front-desk/page.tsx | 5→5 lines | ~64 |
+| 17:30 | Edited apps/web/app/(dashboard)/settings/front-desk/page.tsx | modified catch() | ~165 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/guest-requests/page.tsx | added 1 import(s) | ~197 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/guest-requests/page.tsx | 10→10 lines | ~132 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/guest-requests/page.tsx | modified catch() | ~360 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/guest-requests/page.tsx | 9→7 lines | ~84 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/inspections/page.tsx | added 1 import(s) | ~177 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/inspections/page.tsx | 8→8 lines | ~119 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/inspections/page.tsx | reduced (-6 lines) | ~14 |
+| 17:31 | Edited apps/web/app/(dashboard)/settings/inspections/page.tsx | modified catch() | ~246 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/inspections/page.tsx | 10→8 lines | ~97 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/roles/page.tsx | added 1 import(s) | ~196 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/roles/page.tsx | 8→8 lines | ~99 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/roles/page.tsx | reduced (-6 lines) | ~13 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/roles/page.tsx | modified catch() | ~230 |
+| 17:32 | Edited apps/web/app/(dashboard)/settings/roles/page.tsx | 9→7 lines | ~78 |
+| 17:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | added 2 import(s) | ~261 |
+| 17:32 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | modified InspectionsPage() | ~47 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | reduced (-7 lines) | ~110 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | reduced (-6 lines) | ~127 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | setToast() → success() | ~80 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 10→7 lines | ~102 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | removed 18 lines | ~6 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/inspections/page.tsx | 9→7 lines | ~88 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | added 1 import(s) | ~188 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 10→10 lines | ~106 |
+| 17:33 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | modified success() | ~224 |
+| 17:34 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | CSS: title, body, message | ~139 |
+| 17:34 | Edited apps/web/app/(dashboard)/housekeeping/assignments/page.tsx | 7→7 lines | ~27 |
+| 17:34 | Edited apps/web/i18n/locales/en.ts | 3→2 lines | ~22 |
+| 17:34 | Edited apps/web/i18n/locales/es.ts | 3→2 lines | ~26 |
+| 17:34 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | added 1 import(s) | ~205 |
+| 17:34 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | modified success() | ~288 |
+| 17:34 | Edited apps/web/components/housekeeping/AssignmentSidebar.tsx | removed 11 lines | ~4 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | added 2 import(s) | ~150 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | modified CleaningChecklistEditor() | ~83 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | modified handleSave() | ~316 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | removed 15 lines | ~31 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | added 1 import(s) | ~46 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | 3→3 lines | ~40 |
+| 17:35 | Edited apps/web/components/settings/CleaningChecklistEditor.tsx | 5→5 lines | ~15 |
+| 17:36 | Edited apps/web/app/(dashboard)/settings/front-desk/page.tsx | inline fix | ~16 |
+| 17:38 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/e4f27a09-115f-4703-975c-d0a5876785a1/scratchpad/verify-wave3-a.mjs | — | ~680 |
+| 17:38 | Created apps/web/scripts/_verify-wave3-a.mjs | — | ~518 |
+| 17:39 | Created apps/web/scripts/_verify-wave3-b.mjs | — | ~326 |
+| 17:39 | Edited apps/web/scripts/_verify-wave3-b.mjs | 7→7 lines | ~106 |
+| 17:40 | Edited apps/web/scripts/_verify-wave3-b.mjs | waitForTimeout() → isDisabled() | ~180 |
+| 17:40 | Edited apps/web/scripts/_verify-wave3-b.mjs | 2→4 lines | ~75 |
+| 17:41 | Edited apps/web/scripts/_verify-wave3-b.mjs | 5→8 lines | ~103 |
+| 17:42 | Edited apps/web/scripts/_verify-wave3-b.mjs | 4→6 lines | ~78 |
+| 17:42 | Created apps/web/scripts/_verify-wave3-c.mjs | — | ~303 |
+| 17:46 | Edited apps/web/app/(dashboard)/settings/feedback/page.tsx | added 1 import(s) | ~115 |
+| 17:46 | Edited apps/web/app/(dashboard)/settings/feedback/page.tsx | reduced (-16 lines) | ~168 |
+| 17:47 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | CSS: title, action | ~203 |
+| 17:47 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 7→8 lines | ~48 |
+| 17:47 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | CSS: title, action | ~210 |
+| 17:47 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | 10→11 lines | ~50 |
+| 17:48 | Edited apps/web/app/(dashboard)/settings/rooms/page.tsx | added 1 import(s) | ~70 |
+| 17:48 | Edited apps/web/app/(dashboard)/staff/page.tsx | added 1 import(s) | ~81 |
+| 17:48 | Edited apps/web/app/(dashboard)/staff/page.tsx | CSS: message, onRetry, title | ~177 |
+| 17:49 | Edited apps/web/app/(dashboard)/staff/page.tsx | 6→6 lines | ~32 |
+| 17:49 | Edited apps/web/app/(dashboard)/staff/page.tsx | 7→3 lines | ~59 |
+| 17:49 | Edited apps/web/app/(dashboard)/staff/page.tsx | 8→8 lines | ~41 |
+| 17:50 | Edited apps/web/components/settings/TemplateForm.tsx | added 1 import(s) | ~46 |
+| 17:50 | Edited apps/web/components/settings/TemplateForm.tsx | 3→3 lines | ~33 |
+| 17:50 | Edited apps/web/components/safety/ComplianceDashboard.tsx | added 1 import(s) | ~50 |
+| 17:50 | Edited apps/web/components/safety/ComplianceDashboard.tsx | CSS: title | ~384 |
+| 17:51 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~57 |
+| 17:51 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 17→14 lines | ~154 |
+| 17:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | added 1 import(s) | ~49 |
+| 17:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | 8→9 lines | ~97 |
+| 17:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | 8→9 lines | ~95 |
+| 17:52 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | added 1 import(s) | ~82 |
+| 17:52 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | CSS: message, onRetry, title | ~280 |
+| 17:52 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 10→11 lines | ~43 |
+| 17:52 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 5→3 lines | ~48 |
+| 17:52 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | added 1 import(s) | ~32 |
+| 17:53 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 10→7 lines | ~78 |
+| 17:53 | Edited apps/web/app/(dashboard)/scheduling/page.tsx | 7→7 lines | ~72 |
+| 17:54 | Created apps/web/scripts/_verify-wave3-partb.mjs | — | ~349 |
+| 18:10 | Session end: UI Refresh Wave 3 (States & Feedback) complete — 2 commits (toast unification, StateBlock/EmptyState) | 17 files | outcome: type-check+lint+i18n-gate clean, browser-verified toast+empty-states, phase1/phase4 e2e run (2 pre-existing unrelated failures logged as bug-677) | ~— |
+| 18:02 | Session end: 85 writes across 12 files (page.tsx, en.ts, es.ts, AssignmentSidebar.tsx, CleaningChecklistEditor.tsx) | 26 reads | ~78442 tok |
+| 18:12 | Edited apps/web/lib/utils/navigation.ts | 5→5 lines | ~63 |
+| 18:12 | Edited apps/web/lib/utils/navigation.ts | 8→8 lines | ~172 |
+| 18:13 | Edited apps/web/lib/utils/navigation.ts | "Operational Programs" → "nav.programs" | ~8 |
+| 18:13 | Edited apps/web/i18n/locales/en.ts | "Operational Programs" → "Programs" | ~8 |
+| 18:13 | Edited apps/web/i18n/locales/es.ts | "Programas Operativos" → "Programas" | ~8 |
+| 18:15 | Edited apps/web/components/shared/MobileFloorNav.tsx | inline fix | ~28 |
+| 18:15 | Edited apps/web/components/shared/MobileFloorNav.tsx | inline fix | ~17 |
+| 18:15 | Edited apps/web/components/shared/DashboardShell.tsx | added 2 import(s) | ~142 |
+| 18:15 | Edited apps/web/components/shared/DashboardShell.tsx | 7→9 lines | ~45 |
+| 18:15 | Edited apps/web/components/shared/CommandPalette.tsx | CSS: command-palette, command-palette | ~162 |
+| 18:16 | Edited apps/web/components/shared/Header.tsx | reduced (-13 lines) | ~197 |
+| 18:16 | Edited apps/web/components/shared/Header.tsx | 9→6 lines | ~101 |
+| 18:16 | Edited apps/web/components/shared/Header.tsx | CSS: command-palette | ~141 |
+| 18:16 | Edited apps/web/components/shared/Header.tsx | removed 7 lines | ~3 |
+| 18:16 | Edited apps/web/components/shared/Header.tsx | removed 59 lines | ~6 |
+| 18:17 | Edited apps/web/i18n/locales/en.ts | removed 13 lines | ~4 |
+| 18:17 | Edited apps/web/i18n/locales/es.ts | removed 13 lines | ~4 |
+| 18:19 | Edited apps/web/components/shared/Breadcrumbs.tsx | modified Breadcrumbs() | ~371 |
+| 18:19 | Edited apps/web/components/shared/PageHeader.tsx | 2→6 lines | ~50 |
+| 18:19 | Edited apps/web/components/shared/PageHeader.tsx | modified PageHeader() | ~197 |
+| 18:20 | Edited apps/web/i18n/locales/en.ts | expanded (+8 lines) | ~84 |
+| 18:20 | Edited apps/web/i18n/locales/es.ts | expanded (+8 lines) | ~87 |
+| 18:21 | Edited apps/web/lib/utils/navigation.ts | expanded (+15 lines) | ~230 |
+| 18:21 | Edited apps/web/lib/utils/navigation.ts | expanded (+8 lines) | ~94 |
+| 18:21 | Edited apps/web/components/shared/Breadcrumbs.tsx | inline fix | ~26 |
+| 18:21 | Edited apps/web/components/shared/Breadcrumbs.tsx | 3→3 lines | ~49 |
+| 18:21 | Edited apps/web/app/(dashboard)/settings/billing/page.tsx | 5→4 lines | ~39 |
+| 18:21 | Edited apps/web/app/(dashboard)/settings/integrations/page.tsx | 5→4 lines | ~38 |
+| 18:24 | Created apps/web/scripts/_verify-wave4.mjs | — | ~844 |
+| 18:25 | Edited apps/web/scripts/_verify-wave4.mjs | 17→13 lines | ~193 |
+| 18:25 | Edited apps/web/scripts/_verify-wave4.mjs | 10→10 lines | ~158 |
+| 18:26 | Edited apps/web/scripts/_verify-wave4.mjs | 5→10 lines | ~151 |
+| 18:27 | Edited apps/web/scripts/_verify-wave4.mjs | 8→10 lines | ~159 |
+| 18:28 | Edited apps/web/scripts/_verify-wave4.mjs | added 1 condition(s) | ~182 |
+| 18:28 | Edited apps/web/scripts/_verify-wave4.mjs | modified log() | ~154 |
+| 18:29 | Edited apps/web/scripts/_verify-wave4.mjs | expanded (+6 lines) | ~110 |
+| 19:05 | Session end: UI Refresh Wave 4 (Navigation & IA) complete — 1 commit | 11 files | outcome: mounted CommandPalette+MobileFloorNav, fixed duplicate nav icons, wired Breadcrumbs into PageHeader, type-check+lint+i18n-gate clean, browser-verified ⌘K/breadcrumbs/mobile-nav, phase1/phase4 e2e run (same pre-existing bug-677 failures, no new regressions) | ~— |
+| 18:36 | Session end: 121 writes across 20 files (page.tsx, en.ts, es.ts, AssignmentSidebar.tsx, CleaningChecklistEditor.tsx) | 40 reads | ~124511 tok |
+
+## Session: 2026-07-27 18:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:38 | Edited apps/web/components/ui/Card.tsx | added 1 condition(s) | ~331 |
+| 18:38 | Edited apps/web/app/(dashboard)/logbook/page.tsx | 5→5 lines | ~70 |
+| 18:39 | Edited apps/web/app/(dashboard)/logbook/page.tsx | added 1 import(s) | ~30 |
+| 18:39 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 4→4 lines | ~45 |
+| 18:39 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | modified getHotelIdFromToken() | ~57 |
+| 18:39 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | 5→5 lines | ~175 |
+| 18:39 | Edited apps/web/app/(dashboard)/housekeeping/page.tsx | added 1 import(s) | ~41 |
+| 18:39 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | 8→8 lines | ~59 |
+| 18:40 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | 7→7 lines | ~36 |
+| 18:40 | Edited apps/web/components/guest-requests/GuestRequestsPage.tsx | added 1 import(s) | ~41 |
+| 18:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 5→5 lines | ~77 |
+| 18:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 6→6 lines | ~96 |
+| 18:40 | Edited apps/web/app/(dashboard)/onboarding/page.tsx | 6→6 lines | ~90 |
+| 18:40 | Edited apps/web/app/(dashboard)/billing/page.tsx | modified SkeletonCard() | ~121 |
+| 18:41 | Edited apps/web/app/(dashboard)/billing/page.tsx | 6→6 lines | ~79 |
+| 18:41 | Edited apps/web/app/(dashboard)/billing/page.tsx | 11→11 lines | ~96 |
+| 18:41 | Edited apps/web/app/(dashboard)/billing/page.tsx | 12→12 lines | ~135 |
+| 18:41 | Edited apps/web/app/(dashboard)/billing/page.tsx | 5→5 lines | ~13 |
+| 18:41 | Edited apps/web/app/(dashboard)/billing/page.tsx | added 1 import(s) | ~44 |
+| 18:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | CSS: title | ~118 |
+| 18:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | CSS: title | ~151 |
+| 18:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | 8→8 lines | ~40 |
+| 18:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | inline fix | ~15 |
+| 18:42 | Edited apps/web/app/(dashboard)/dashboard/page.tsx | added 2 import(s) | ~84 |
+| 18:48 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | added 1 import(s) | ~273 |
+| 18:48 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: floor | ~163 |
+| 18:48 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | CSS: group-hover | ~482 |
+| 18:48 | Edited apps/web/components/housekeeping/RoomStatusBoard.tsx | 7→8 lines | ~39 |
+| 18:50 | Edited apps/web/app/(dashboard)/reports/page.tsx | added 2 import(s) | ~62 |
+| 18:50 | Edited apps/web/app/(dashboard)/reports/page.tsx | 10→10 lines | ~99 |
+| 18:50 | Edited apps/web/app/(dashboard)/reports/page.tsx | 3→3 lines | ~47 |
+| 18:50 | Edited apps/web/app/(dashboard)/reports/page.tsx | 26→26 lines | ~310 |
+| 18:50 | Edited apps/web/app/(dashboard)/reports/page.tsx | 8→8 lines | ~175 |
+| 18:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | modified MaintenanceTab() | ~53 |
+| 18:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | CSS: hover, sm | ~607 |
+| 18:51 | Edited apps/web/app/(dashboard)/reports/page.tsx | 11→12 lines | ~46 |
+| 18:53 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 4→8 lines | ~117 |
+| 18:53 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 4→5 lines | ~91 |
+| 18:53 | Edited apps/web/app/(dashboard)/evidence/page.tsx | expanded (+24 lines) | ~623 |
+| 18:53 | Edited apps/web/components/ui/Card.tsx | modified Card() | ~354 |
+| 18:54 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 4→4 lines | ~63 |
+| 18:54 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 7→9 lines | ~135 |
+| 18:54 | Edited apps/web/app/(dashboard)/evidence/page.tsx | modified join() | ~1013 |
+| 18:55 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 15→17 lines | ~553 |
+| 18:55 | Edited apps/web/app/(dashboard)/evidence/page.tsx | reduced (-7 lines) | ~65 |
+| 18:55 | Edited apps/web/app/(dashboard)/evidence/page.tsx | 10→12 lines | ~290 |
+| 18:56 | Edited apps/web/app/(dashboard)/evidence/page.tsx | added nullish coalescing | ~353 |
+| 18:56 | Edited apps/web/app/(dashboard)/evidence/page.tsx | modified Detail() | ~341 |
+| 18:58 | Edited apps/web/e2e/phase2-evidence.spec.ts | 4→5 lines | ~57 |
+| 18:58 | Edited apps/web/e2e/phase2-evidence.spec.ts | 6→7 lines | ~82 |
+| 18:58 | Edited apps/web/e2e/phase2-evidence.spec.ts | 7→8 lines | ~93 |
+| 18:59 | Edited apps/web/e2e/phase2-evidence.spec.ts | 4→5 lines | ~58 |
+| 19:00 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | added 1 import(s) | ~46 |
+| 19:00 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 3→3 lines | ~62 |
+| 19:00 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 6→6 lines | ~83 |
+| 19:00 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 8→8 lines | ~95 |
+| 19:01 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 5→5 lines | ~42 |
+| 19:01 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | added 1 import(s) | ~62 |
+| 19:01 | Edited apps/web/app/(dashboard)/management-roi/page.tsx | 9→8 lines | ~94 |
+| 19:01 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | added 1 import(s) | ~48 |
+| 19:01 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | modified SkeletonCard() | ~162 |
+| 19:01 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 3→3 lines | ~32 |
+| 19:02 | Edited apps/web/app/(dashboard)/lost-found/page.tsx | 4→4 lines | ~17 |
+| 19:13 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ecb336ba-dc1e-4037-90b1-efc752d21979/scratchpad/wave5-verify.spec.ts | — | ~1021 |
+| 19:13 | Created ../../AppData/Local/Temp/claude/C--Users-Henil-projects-PatelRep/ecb336ba-dc1e-4037-90b1-efc752d21979/scratchpad/wave5.playwright.config.ts | — | ~56 |
+| 19:14 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~1020 |
+| 19:14 | Created apps/web/playwright.wave5.config.ts | — | ~57 |
+| 19:15 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | inline fix | ~26 |
+| 19:15 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | "networkidle" → "domcontentloaded" | ~14 |
+| 19:15 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | 2→3 lines | ~36 |
+| 19:17 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | 10→11 lines | ~188 |
+| 19:18 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | 3→7 lines | ~125 |
+| 19:19 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~442 |
+| 19:22 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~970 |
+| 19:24 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~310 |
+| 19:24 | Edited apps/web/e2e/wave5-manual-verify.spec.ts | 2→2 lines | ~35 |
+| 19:25 | Created apps/web/e2e/wave5-manual-verify.spec.ts | — | ~415 |
+| 19:27 | Session end: 77 writes across 9 files (Card.tsx, page.tsx, GuestRequestsPage.tsx, RoomStatusBoard.tsx, phase2-evidence.spec.ts) | 20 reads | ~100625 tok |

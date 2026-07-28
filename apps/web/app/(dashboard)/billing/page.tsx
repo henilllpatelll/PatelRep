@@ -8,6 +8,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,13 +65,13 @@ function creditBarColor(pct: number): string {
 
 function SkeletonCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-surface rounded-xl border border-gray-200 p-6 animate-pulse">
+    <Card hover={false} className="p-6 animate-pulse">
       <div className="h-5 bg-gray-200 rounded w-1/3 mb-4" />
       <div className="border-t border-gray-100 mb-4" />
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className={`h-4 bg-gray-200 rounded mb-3 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2'}`} />
       ))}
-    </div>
+    </Card>
   )
 }
 
@@ -149,7 +150,7 @@ export default function BillingPage() {
       {subLoading ? (
         <SkeletonCard rows={5} />
       ) : (
-        <div className="bg-surface rounded-xl border border-gray-200 p-6">
+        <Card hover={false} className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <CreditCard className="h-5 w-5 text-gray-400" />
             <h2 className="text-base font-semibold text-gray-900">Current Plan</h2>
@@ -203,14 +204,14 @@ export default function BillingPage() {
               <span className="ml-1 text-xs font-normal text-gray-400">(Coming soon)</span>
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ── Section 2: AI Credit Usage ── */}
       {creditLoading ? (
         <SkeletonCard rows={5} />
       ) : creditData ? (
-        <div className="bg-surface rounded-xl border border-gray-200 p-6">
+        <Card hover={false} className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="h-5 w-5 text-gray-400" />
             <h2 className="text-base font-semibold text-gray-900">
@@ -285,11 +286,11 @@ export default function BillingPage() {
           <p className="mt-4 text-xs text-gray-400">
             Pricing: $99/mo base + $0.02/credit overage
           </p>
-        </div>
+        </Card>
       ) : null}
 
       {/* ── Section 3: Pricing Details (static) ── */}
-      <div className="bg-surface rounded-xl border border-gray-200 p-6">
+      <Card hover={false} className="p-6">
         <div className="flex items-center gap-2 mb-1">
           <CheckCircle className="h-5 w-5 text-gray-400" />
           <h2 className="text-base font-semibold text-gray-900">Pricing Details</h2>
@@ -316,7 +317,7 @@ export default function BillingPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { ChevronDown } from 'lucide-react'
 
 import { useHousekeepingStore } from '@/stores/housekeepingStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -330,6 +331,15 @@ export function RoomStatusBoard() {
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set())
+  const toggleFloorCollapsed = useCallback((floor: number) => {
+    setCollapsedFloors((prev) => {
+      const next = new Set(prev)
+      if (next.has(floor)) next.delete(floor)
+      else next.add(floor)
+      return next
+    })
+  }, [])
 
   const assignmentToRoomId = useMemo(() =>
     allRooms.reduce<Record<string, string>>((acc, r: any) => {
@@ -610,11 +620,21 @@ export function RoomStatusBoard() {
         <div className="space-y-8">
           {sortedFloors.map((floor) => {
             const floorRooms = byFloor[floor]
+            const isCollapsed = collapsedFloors.has(floor)
             return (
               <div key={floor}>
                 {/* Floor divider header */}
-                <div className="flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2">
-                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2">
+                <button
+                  type="button"
+                  onClick={() => toggleFloorCollapsed(floor)}
+                  aria-expanded={!isCollapsed}
+                  className="w-full flex items-baseline gap-3 mb-3 pb-2 border-b border-dashed border-line-2 text-left group"
+                >
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-ink3 shrink-0 self-center transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <h3 className="font-mono text-[12px] font-bold uppercase tracking-widest text-ink2 group-hover:text-ink transition-colors">
                     {floor === 0 ? t('housekeeping.roomStatus.floor.ground') : t('housekeeping.roomStatus.floor.numbered', { floor })}
                   </h3>
                   <span className="font-mono text-[11px] text-ink3">
@@ -622,7 +642,8 @@ export function RoomStatusBoard() {
                       ? t('housekeeping.roomStatus.floor.roomCountOne', { count: floorRooms.length })
                       : t('housekeeping.roomStatus.floor.roomCountOther', { count: floorRooms.length })}
                   </span>
-                </div>
+                </button>
+                {!isCollapsed && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
                   {floorRooms.map((room) => {
                     const pendingCleanType = pendingAssignmentCleanTypes[room.room_id] ?? null
@@ -655,6 +676,7 @@ export function RoomStatusBoard() {
                     )
                   })}
                 </div>
+                )}
               </div>
             )
           })}
