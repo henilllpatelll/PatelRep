@@ -20,9 +20,9 @@
     "semantic_hash": "c96f9754dbd50beaa23bb01c92fe4669"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\buglog.json": {
-    "mtime": 1785200923.0295048,
-    "ast_hash": "db79f30cc64d29d16083022db16fe0bc",
-    "semantic_hash": "db79f30cc64d29d16083022db16fe0bc"
+    "mtime": 1785358092.1822777,
+    "ast_hash": "bae4856bec765ed7f5de5a43641dc0a4",
+    "semantic_hash": "bae4856bec765ed7f5de5a43641dc0a4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\config.json": {
     "mtime": 1779031345.2702072,
@@ -90,9 +90,9 @@
     "semantic_hash": "602fc62572abd57adc98765d0b83409d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\hooks\\_session.json": {
-    "mtime": 1785201741.7066722,
-    "ast_hash": "51a54fcfb5542ca02809437a2b54beba",
-    "semantic_hash": "51a54fcfb5542ca02809437a2b54beba"
+    "mtime": 1785359013.827582,
+    "ast_hash": "1522755111a04630d24addc5735cb164",
+    "semantic_hash": "1522755111a04630d24addc5735cb164"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\main.py": {
     "mtime": 1785037966.3503838,
@@ -125,9 +125,9 @@
     "semantic_hash": "46aaa547f2d1c6b7ae000225fc920c47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\credits.py": {
-    "mtime": 1779031345.3298113,
-    "ast_hash": "ba57e59286b4d666af89944e48343f8e",
-    "semantic_hash": "ba57e59286b4d666af89944e48343f8e"
+    "mtime": 1785227791.9403007,
+    "ast_hash": "703d02edf3769c30bba96d01e35394df",
+    "semantic_hash": "703d02edf3769c30bba96d01e35394df"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\middleware\\rate_limit.py": {
     "mtime": 1780371005.0729995,
@@ -140,9 +140,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\models\\requests.py": {
-    "mtime": 1784945159.2880378,
-    "ast_hash": "052ed1ecec5c922333c89e801438e606",
-    "semantic_hash": "052ed1ecec5c922333c89e801438e606"
+    "mtime": 1785279056.2526448,
+    "ast_hash": "e2a56a65383103b55e416bd9a228a303",
+    "semantic_hash": "e2a56a65383103b55e416bd9a228a303"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\models\\responses.py": {
     "mtime": 1773343729.6601162,
@@ -155,9 +155,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\ai_copilot.py": {
-    "mtime": 1784224945.7220337,
-    "ast_hash": "2c861ea59f5900571eace0b46fbd4414",
-    "semantic_hash": "2c861ea59f5900571eace0b46fbd4414"
+    "mtime": 1785279109.769102,
+    "ast_hash": "6da4efd737ef03857098b2483849af65",
+    "semantic_hash": "6da4efd737ef03857098b2483849af65"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\assets.py": {
     "mtime": 1784762964.6655333,
@@ -190,9 +190,9 @@
     "semantic_hash": "edbc9e28bf926e8aa82ee8171612a0c1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\integrations.py": {
-    "mtime": 1784224849.9628792,
-    "ast_hash": "c819268458864e980f3991dc77b707ba",
-    "semantic_hash": "c819268458864e980f3991dc77b707ba"
+    "mtime": 1785229218.2474675,
+    "ast_hash": "bedf0abeafbfa3d1a754ac430c65f961",
+    "semantic_hash": "bedf0abeafbfa3d1a754ac430c65f961"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\internal.py": {
     "mtime": 1785035640.3566706,
@@ -235,9 +235,9 @@
     "semantic_hash": "7398103d774ebe2828e6c1200628f396"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\sop.py": {
-    "mtime": 1782783895.2708132,
-    "ast_hash": "367d0c01f80bc567cd0619b3be3fcbf3",
-    "semantic_hash": "367d0c01f80bc567cd0619b3be3fcbf3"
+    "mtime": 1785228136.9341195,
+    "ast_hash": "f74ae384e169cb1710195098ff012260",
+    "semantic_hash": "f74ae384e169cb1710195098ff012260"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\staff.py": {
     "mtime": 1784815410.6503105,
@@ -250,9 +250,9 @@
     "semantic_hash": "ed886f871e739944c1dc42538b569a28"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\webhooks.py": {
-    "mtime": 1784971878.3336895,
-    "ast_hash": "61133a58b89a11468f48dd220d7f1051",
-    "semantic_hash": "61133a58b89a11468f48dd220d7f1051"
+    "mtime": 1785230567.585284,
+    "ast_hash": "4141f621b818cb32e358df00191be2b4",
+    "semantic_hash": "4141f621b818cb32e358df00191be2b4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\work_orders.py": {
     "mtime": 1784317901.6711826,
@@ -285,9 +285,9 @@
     "semantic_hash": "62f5b14a73da1eab9ddf525979dbe779"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\guest_request_parser.py": {
-    "mtime": 1784310924.4295962,
-    "ast_hash": "349d9a3f85a4628a0b4a17f75045d4c8",
-    "semantic_hash": "349d9a3f85a4628a0b4a17f75045d4c8"
+    "mtime": 1785279069.3640175,
+    "ast_hash": "5ac31194a0df1fbdeddee5dc8cded140",
+    "semantic_hash": "5ac31194a0df1fbdeddee5dc8cded140"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\insights.py": {
     "mtime": 1784310955.7909896,
@@ -305,9 +305,9 @@
     "semantic_hash": "63ae45e79a9fe758f41a4631b1099151"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\sop_rag.py": {
-    "mtime": 1784310955.7904758,
-    "ast_hash": "65ef4263b774a763da0bfb91da4f5eb2",
-    "semantic_hash": "65ef4263b774a763da0bfb91da4f5eb2"
+    "mtime": 1785228120.632555,
+    "ast_hash": "2c91939c16028f4b0845297522908b68",
+    "semantic_hash": "2c91939c16028f4b0845297522908b68"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\ai\\task_parser.py": {
     "mtime": 1784310924.4265933,
@@ -335,9 +335,9 @@
     "semantic_hash": "1163a1e7d789679feca9fc63ace9ff0b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\opera\\sync.py": {
-    "mtime": 1784224849.9628792,
-    "ast_hash": "7e513c94ee56c1a04c163224af98dc45",
-    "semantic_hash": "7e513c94ee56c1a04c163224af98dc45"
+    "mtime": 1785229226.1381183,
+    "ast_hash": "38e62b671b69b01f659a0304d3458340",
+    "semantic_hash": "38e62b671b69b01f659a0304d3458340"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\opera\\webhooks.py": {
     "mtime": 1779983658.2018025,
@@ -395,9 +395,9 @@
     "semantic_hash": "6d87d5288dc7cf91c2886980dfce69b0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_integrations_security.py": {
-    "mtime": 1779585078.8984475,
-    "ast_hash": "034f8fe1878872b474f00ad86f33f41c",
-    "semantic_hash": "034f8fe1878872b474f00ad86f33f41c"
+    "mtime": 1785229235.2714336,
+    "ast_hash": "b9047dda4f677d46debf1babe7f38449",
+    "semantic_hash": "b9047dda4f677d46debf1babe7f38449"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_load_auth_state.py": {
     "mtime": 1781534511.407015,
@@ -465,9 +465,9 @@
     "semantic_hash": "4e4f5a8f893d3b03faa96f4a5723030a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\package.json": {
-    "mtime": 1781131500.006091,
-    "ast_hash": "97ff88754a077d4c44f831e7ae2dfa78",
-    "semantic_hash": "97ff88754a077d4c44f831e7ae2dfa78"
+    "mtime": 1785307210.6650994,
+    "ast_hash": "62e12a96e69845915dee4f08ad73199f",
+    "semantic_hash": "62e12a96e69845915dee4f08ad73199f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\tsconfig.json": {
     "mtime": 1779645864.4808602,
@@ -530,14 +530,14 @@
     "semantic_hash": "548a8ebdefe809a524046c27ce24e234"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\_layout.tsx": {
-    "mtime": 1784323840.91476,
-    "ast_hash": "b47e6a5596735902905987447acc541b",
-    "semantic_hash": "b47e6a5596735902905987447acc541b"
+    "mtime": 1785306074.3307412,
+    "ast_hash": "301753168a2623bea42e95dbba9d2eb7",
+    "semantic_hash": "301753168a2623bea42e95dbba9d2eb7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\_layout.tsx": {
-    "mtime": 1783704006.430436,
-    "ast_hash": "b54424b5929b35a6cb2abc91552dcd33",
-    "semantic_hash": "b54424b5929b35a6cb2abc91552dcd33"
+    "mtime": 1785306708.214049,
+    "ast_hash": "f04709904f9a68b77db27a5b0bbddb8c",
+    "semantic_hash": "f04709904f9a68b77db27a5b0bbddb8c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\copilot\\index.tsx": {
     "mtime": 1781395610.055395,
@@ -600,14 +600,14 @@
     "semantic_hash": "b813f0c7b96c9bc9fa5eddb1ec7924d4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\i18n\\locales\\en.json": {
-    "mtime": 1784213756.3695488,
-    "ast_hash": "0d1c97daa962cfac876e40918519cf16",
-    "semantic_hash": "0d1c97daa962cfac876e40918519cf16"
+    "mtime": 1785306971.971438,
+    "ast_hash": "4cd6fb45e3e087a0499b767db86501de",
+    "semantic_hash": "4cd6fb45e3e087a0499b767db86501de"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\i18n\\locales\\es.json": {
-    "mtime": 1784213756.3728962,
-    "ast_hash": "61286d5b81e4db323d8e82df52840776",
-    "semantic_hash": "61286d5b81e4db323d8e82df52840776"
+    "mtime": 1785306973.7831168,
+    "ast_hash": "37a2a7f0d96b4d030bf5e2aacd88aa89",
+    "semantic_hash": "37a2a7f0d96b4d030bf5e2aacd88aa89"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\notifications.ts": {
     "mtime": 1779646755.2762625,
@@ -695,9 +695,9 @@
     "semantic_hash": "8f14be7b8cce46a0b153d0927fa90451"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\next-env.d.ts": {
-    "mtime": 1785031520.9235888,
-    "ast_hash": "0e4a65e8b2b9aa3ed0f8957b9406bd41",
-    "semantic_hash": "0e4a65e8b2b9aa3ed0f8957b9406bd41"
+    "mtime": 1785205614.5158777,
+    "ast_hash": "c7b887684e81cfa5830eeeb7286485f6",
+    "semantic_hash": "c7b887684e81cfa5830eeeb7286485f6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\next.config.mjs": {
     "mtime": 1784314583.191103,
@@ -705,9 +705,9 @@
     "semantic_hash": "d46b97957aeda748a3514dcd18f762ef"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\package.json": {
-    "mtime": 1785036708.134345,
-    "ast_hash": "2acf6b5ebfb8c87c619e5c2bb48790c5",
-    "semantic_hash": "2acf6b5ebfb8c87c619e5c2bb48790c5"
+    "mtime": 1785282143.6709926,
+    "ast_hash": "e8e289d0b84c93d31471bc94ac5d0ce1",
+    "semantic_hash": "e8e289d0b84c93d31471bc94ac5d0ce1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\postcss.config.js": {
     "mtime": 1779031345.68563,
@@ -755,7 +755,7 @@
     "semantic_hash": "83c5e3168c0ba0b92e5041859c724e39"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\error.tsx": {
-    "mtime": 1785188558.4463768,
+    "mtime": 1785203898.3180726,
     "ast_hash": "b1409de7aafde74cc55bcd8738d8fc02",
     "semantic_hash": "b1409de7aafde74cc55bcd8738d8fc02"
   },
@@ -765,17 +765,17 @@
     "semantic_hash": "7d94bb0ceb283a3834a90f06d81966e4"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\ai\\page.tsx": {
-    "mtime": 1785187054.4075823,
-    "ast_hash": "aadb919ff502678c426f99cdd8bf9f14",
-    "semantic_hash": "aadb919ff502678c426f99cdd8bf9f14"
+    "mtime": 1785203898.3029957,
+    "ast_hash": "b55bbdbe1051191456648b396884b510",
+    "semantic_hash": "b55bbdbe1051191456648b396884b510"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\billing\\page.tsx": {
-    "mtime": 1785198155.1535866,
+    "mtime": 1785203898.3050096,
     "ast_hash": "35a79742aae989f0758473dc4ca1fc1e",
     "semantic_hash": "35a79742aae989f0758473dc4ca1fc1e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\dashboard\\page.tsx": {
-    "mtime": 1785198155.155585,
+    "mtime": 1785203898.3070266,
     "ast_hash": "84c76ad6beaadcfb8674be414733fb57",
     "semantic_hash": "84c76ad6beaadcfb8674be414733fb57"
   },
@@ -785,22 +785,22 @@
     "semantic_hash": "0a521869b8c3c935b5f95bddae7c711a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\assets\\page.tsx": {
-    "mtime": 1785068357.0511413,
+    "mtime": 1785203898.3090446,
     "ast_hash": "6305755ff73e535e840efacfef1bb088",
     "semantic_hash": "6305755ff73e535e840efacfef1bb088"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\pm-schedules\\page.tsx": {
-    "mtime": 1785200927.9437003,
+    "mtime": 1785203898.3125718,
     "ast_hash": "146e39e1cb8853cf14cf9df5438a74d8",
     "semantic_hash": "146e39e1cb8853cf14cf9df5438a74d8"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\predictions\\page.tsx": {
-    "mtime": 1785068454.453375,
+    "mtime": 1785203898.3131213,
     "ast_hash": "561e0d16dcf59f1586c3acf8f666bd9e",
     "semantic_hash": "561e0d16dcf59f1586c3acf8f666bd9e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\engineering\\work-orders\\page.tsx": {
-    "mtime": 1785068474.583547,
+    "mtime": 1785203898.3160598,
     "ast_hash": "85aefa16df87ac9e361610c74144bff8",
     "semantic_hash": "85aefa16df87ac9e361610c74144bff8"
   },
@@ -810,47 +810,47 @@
     "semantic_hash": "3ba2f013709b4d46c2dca22f6e199a50"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\page.tsx": {
-    "mtime": 1785198155.1626985,
+    "mtime": 1785203898.3345265,
     "ast_hash": "3e529bec302bf9bff1584e2aa4d55e57",
     "semantic_hash": "3e529bec302bf9bff1584e2aa4d55e57"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\assignments\\page.tsx": {
-    "mtime": 1785191654.7494638,
+    "mtime": 1785203898.3246348,
     "ast_hash": "cdcf5cb3cde917b1a32b9145a25e2912",
     "semantic_hash": "cdcf5cb3cde917b1a32b9145a25e2912"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\inspections\\page.tsx": {
-    "mtime": 1785191607.969569,
+    "mtime": 1785203898.3319156,
     "ast_hash": "d86c8719604fdbc7c1ad17b0f90a8639",
     "semantic_hash": "d86c8719604fdbc7c1ad17b0f90a8639"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\housekeeping\\rooms\\page.tsx": {
-    "mtime": 1785200885.481144,
+    "mtime": 1785203898.3356974,
     "ast_hash": "3685febd16992d5cd3fac35a09e430fb",
     "semantic_hash": "3685febd16992d5cd3fac35a09e430fb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\logbook\\page.tsx": {
-    "mtime": 1785198155.1650045,
+    "mtime": 1785203898.337712,
     "ast_hash": "fd84de3b06e46bcc967ec40459e34cb1",
     "semantic_hash": "fd84de3b06e46bcc967ec40459e34cb1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\lost-found\\page.tsx": {
-    "mtime": 1785198155.1684568,
+    "mtime": 1785203898.3420887,
     "ast_hash": "9cc2eac20e3adbe9a4bfa0694bad6457",
     "semantic_hash": "9cc2eac20e3adbe9a4bfa0694bad6457"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\onboarding\\page.tsx": {
-    "mtime": 1785198155.1767104,
-    "ast_hash": "f073c27002313781fdbffebda81cc615",
-    "semantic_hash": "f073c27002313781fdbffebda81cc615"
+    "mtime": 1785205352.4255955,
+    "ast_hash": "5ee3950ff3dc8f61356dfc2f30bc5722",
+    "semantic_hash": "5ee3950ff3dc8f61356dfc2f30bc5722"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\reports\\page.tsx": {
-    "mtime": 1785198155.180981,
+    "mtime": 1785203898.3497348,
     "ast_hash": "caa3278dd4b67bff6036e3453a682182",
     "semantic_hash": "caa3278dd4b67bff6036e3453a682182"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\scheduling\\page.tsx": {
-    "mtime": 1785192793.3680093,
+    "mtime": 1785203898.3552532,
     "ast_hash": "9c877ec43296ff953fd38ca054af550c",
     "semantic_hash": "9c877ec43296ff953fd38ca054af550c"
   },
@@ -860,27 +860,27 @@
     "semantic_hash": "4db53dc9410015cea77fa61b7ae08a47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\billing\\page.tsx": {
-    "mtime": 1785194499.5513694,
+    "mtime": 1785203898.3578153,
     "ast_hash": "6160e1d8bc112063edc7802aef11bd13",
     "semantic_hash": "6160e1d8bc112063edc7802aef11bd13"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\integrations\\page.tsx": {
-    "mtime": 1785194509.5085764,
-    "ast_hash": "c2b4bf806aa966dde95dda66cbd462d9",
-    "semantic_hash": "c2b4bf806aa966dde95dda66cbd462d9"
+    "mtime": 1785232181.0835824,
+    "ast_hash": "94514eaa77581130caf397670d398308",
+    "semantic_hash": "94514eaa77581130caf397670d398308"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\sop\\page.tsx": {
-    "mtime": 1785186761.339887,
+    "mtime": 1785203898.3742614,
     "ast_hash": "7de2417189f7f4f0280471ee5741eb26",
     "semantic_hash": "7de2417189f7f4f0280471ee5741eb26"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\staff\\page.tsx": {
-    "mtime": 1785192561.9549623,
-    "ast_hash": "b48a3cc3c1211553cfddd6d10785c91b",
-    "semantic_hash": "b48a3cc3c1211553cfddd6d10785c91b"
+    "mtime": 1785205352.4316652,
+    "ast_hash": "1e1e3d4d8b5ed18a2e3b7fa82ae1a243",
+    "semantic_hash": "1e1e3d4d8b5ed18a2e3b7fa82ae1a243"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\tasks\\page.tsx": {
-    "mtime": 1785068549.3850493,
+    "mtime": 1785203898.3803067,
     "ast_hash": "3c9486b95ad75489a3c0189feefca413",
     "semantic_hash": "3c9486b95ad75489a3c0189feefca413"
   },
@@ -895,9 +895,9 @@
     "semantic_hash": "37dc52ec6ce946d0736790efd668a0e7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ai\\AICopilotBubble.tsx": {
-    "mtime": 1785187120.5252357,
-    "ast_hash": "5aa65738bac3925a0f2f9d0315dbb4cb",
-    "semantic_hash": "5aa65738bac3925a0f2f9d0315dbb4cb"
+    "mtime": 1785203898.3823211,
+    "ast_hash": "bad36bf052b3cf6b3fa7da2748d35a34",
+    "semantic_hash": "bad36bf052b3cf6b3fa7da2748d35a34"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ai\\cards.tsx": {
     "mtime": 1779642289.2019186,
@@ -905,7 +905,7 @@
     "semantic_hash": "69a696ee6aac82e82c7ce2d8def25a02"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ai\\SOPQueryModal.tsx": {
-    "mtime": 1785186799.9863706,
+    "mtime": 1785203898.3849308,
     "ast_hash": "3561a5881345a759363c54d28684cacb",
     "semantic_hash": "3561a5881345a759363c54d28684cacb"
   },
@@ -915,22 +915,22 @@
     "semantic_hash": "809cd4ad170bbfd47175f88a5e92684a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\ChiefEngineerDashboard.tsx": {
-    "mtime": 1785047874.3751817,
+    "mtime": 1785203898.386704,
     "ast_hash": "3b590c66963fa0d409f52fe0705ec75c",
     "semantic_hash": "3b590c66963fa0d409f52fe0705ec75c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\EngineerDashboard.tsx": {
-    "mtime": 1785047844.708177,
+    "mtime": 1785203898.3887157,
     "ast_hash": "43ae2fcb2bcf836927ab0ef10bea8bc2",
     "semantic_hash": "43ae2fcb2bcf836927ab0ef10bea8bc2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\FrontDeskDashboard.tsx": {
-    "mtime": 1785188653.2199934,
+    "mtime": 1785203898.3913567,
     "ast_hash": "b4db1501ee39a92883378f6b28dcd746",
     "semantic_hash": "b4db1501ee39a92883378f6b28dcd746"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\HousekeeperDashboard.tsx": {
-    "mtime": 1785047816.613288,
+    "mtime": 1785203898.3929875,
     "ast_hash": "5033d1afd9d0d08d4f4aeccba1b429a0",
     "semantic_hash": "5033d1afd9d0d08d4f4aeccba1b429a0"
   },
@@ -945,7 +945,7 @@
     "semantic_hash": "0f190392602f70a0e9a6875ce73957a3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\SupervisorDashboard.tsx": {
-    "mtime": 1785188703.301288,
+    "mtime": 1785203898.3940842,
     "ast_hash": "c583d7dc7f35963342b17bb393f5af4a",
     "semantic_hash": "c583d7dc7f35963342b17bb393f5af4a"
   },
@@ -955,12 +955,12 @@
     "semantic_hash": "4d525a1bf52f9ee895f7e62f3142fc3e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\CreateWorkOrderModal.tsx": {
-    "mtime": 1785067552.8476934,
+    "mtime": 1785203898.3968506,
     "ast_hash": "24afb25d79496cd41968392cb3083100",
     "semantic_hash": "24afb25d79496cd41968392cb3083100"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\FailurePredictionSidebar.tsx": {
-    "mtime": 1785067495.0357275,
+    "mtime": 1785203898.3989434,
     "ast_hash": "cefaa31f4c902da4903e822a0d5edaea",
     "semantic_hash": "cefaa31f4c902da4903e822a0d5edaea"
   },
@@ -970,7 +970,7 @@
     "semantic_hash": "1b54e9d626ee8dc22ed976a9996ca1a3"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\WorkOrderDetailDrawer.tsx": {
-    "mtime": 1785067604.7310808,
+    "mtime": 1785203898.402471,
     "ast_hash": "cf628854110e228255c1b063091c3e6e",
     "semantic_hash": "cf628854110e228255c1b063091c3e6e"
   },
@@ -980,7 +980,7 @@
     "semantic_hash": "3b92b43d3a4997003be6d6236a7d429d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\AssignmentSidebar.tsx": {
-    "mtime": 1785191695.6643162,
+    "mtime": 1785203898.416506,
     "ast_hash": "a1e537eed59b57eb04abde53b3fbcccf",
     "semantic_hash": "a1e537eed59b57eb04abde53b3fbcccf"
   },
@@ -995,32 +995,32 @@
     "semantic_hash": "e159f49c9673d595dd17afde85575d7d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomCard.tsx": {
-    "mtime": 1785067219.026184,
+    "mtime": 1785203898.4188864,
     "ast_hash": "c0b5b290ace53e86e8b4dd0bfe6f5660",
     "semantic_hash": "c0b5b290ace53e86e8b4dd0bfe6f5660"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomDetailDrawer.tsx": {
-    "mtime": 1785200740.8832462,
+    "mtime": 1785203898.4214923,
     "ast_hash": "8c01cd00c41ea36d217fa0034f6aa3bc",
     "semantic_hash": "8c01cd00c41ea36d217fa0034f6aa3bc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\RoomStatusBoard.tsx": {
-    "mtime": 1785198155.1870987,
+    "mtime": 1785203898.4235077,
     "ast_hash": "a8bca07bfc1cbe9094bf41dc8c32a05c",
     "semantic_hash": "a8bca07bfc1cbe9094bf41dc8c32a05c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\DashboardShell.tsx": {
-    "mtime": 1785194147.571179,
+    "mtime": 1785203898.4371405,
     "ast_hash": "dfe078912ceb29b2d25423f581664529",
     "semantic_hash": "dfe078912ceb29b2d25423f581664529"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\DeleteConfirmDialog.tsx": {
-    "mtime": 1785200716.1199832,
+    "mtime": 1785203898.4397793,
     "ast_hash": "193124ce6d6a88aedd4814950b089697",
     "semantic_hash": "193124ce6d6a88aedd4814950b089697"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Header.tsx": {
-    "mtime": 1785194206.4523284,
+    "mtime": 1785203898.4412868,
     "ast_hash": "a8e8e035a2d029e646d3b73b7d0a76d0",
     "semantic_hash": "a8e8e035a2d029e646d3b73b7d0a76d0"
   },
@@ -1030,7 +1030,7 @@
     "semantic_hash": "0e2f12b74c76e9ef961a6b6442efe7f7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\PageHeader.tsx": {
-    "mtime": 1785194387.5455885,
+    "mtime": 1785203898.4440267,
     "ast_hash": "f16f437f50795f4647605505b1a3795d",
     "semantic_hash": "f16f437f50795f4647605505b1a3795d"
   },
@@ -1040,12 +1040,12 @@
     "semantic_hash": "67092ebab1f607e33209ae7872a7b658"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Providers.tsx": {
-    "mtime": 1785200696.0163324,
+    "mtime": 1785203898.4454234,
     "ast_hash": "3ec1db81277ad340b2a9753801762e95",
     "semantic_hash": "3ec1db81277ad340b2a9753801762e95"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Sidebar.tsx": {
-    "mtime": 1785046767.721347,
+    "mtime": 1785203898.448944,
     "ast_hash": "d3d1ba3f899343cb4a0dd1439c645061",
     "semantic_hash": "d3d1ba3f899343cb4a0dd1439c645061"
   },
@@ -1060,12 +1060,12 @@
     "semantic_hash": "029bfb27a20702bf2512589ce2503067"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Button.tsx": {
-    "mtime": 1785046805.8906455,
+    "mtime": 1785203898.4509547,
     "ast_hash": "eeb1294fe8945a5e880c0c7dc0358180",
     "semantic_hash": "eeb1294fe8945a5e880c0c7dc0358180"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Card.tsx": {
-    "mtime": 1785198155.1898255,
+    "mtime": 1785203898.4539764,
     "ast_hash": "10a0f71d2e676ccdf9cd41b240c33c53",
     "semantic_hash": "10a0f71d2e676ccdf9cd41b240c33c53"
   },
@@ -1740,12 +1740,12 @@
     "semantic_hash": "7f9ab55321b6e74c9513aeee4d7a8b1b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\anatomy.md": {
-    "mtime": 1785200928.5503855,
-    "ast_hash": "de839acf7acff76359c87c2fff25b32c",
-    "semantic_hash": "de839acf7acff76359c87c2fff25b32c"
+    "mtime": 1785358999.1425414,
+    "ast_hash": "a0e6a649316e3f87d603cb550a641a47",
+    "semantic_hash": "a0e6a649316e3f87d603cb550a641a47"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\cerebrum.md": {
-    "mtime": 1785201713.130818,
+    "mtime": 1785203898.1900063,
     "ast_hash": "1e3dfc030040d948daf02add84b02997",
     "semantic_hash": "1e3dfc030040d948daf02add84b02997"
   },
@@ -1755,9 +1755,9 @@
     "semantic_hash": "69c2803e80c898c7adb4c223f2454a9d"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\memory.md": {
-    "mtime": 1785201741.7056713,
-    "ast_hash": "42ea4c85209bbf77c7405f0788a1d500",
-    "semantic_hash": "42ea4c85209bbf77c7405f0788a1d500"
+    "mtime": 1785359013.826501,
+    "ast_hash": "a8c4c302a4044b546b73afae4411bead",
+    "semantic_hash": "a8c4c302a4044b546b73afae4411bead"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.wolf\\OPENWOLF.md": {
     "mtime": 1779031345.2558382,
@@ -1775,9 +1775,9 @@
     "semantic_hash": "3a88a66125c857f0909256bf3d0ad90b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\requirements.txt": {
-    "mtime": 1785037886.4331124,
-    "ast_hash": "13bf6e07c991a29a41c835f015dc1533",
-    "semantic_hash": "13bf6e07c991a29a41c835f015dc1533"
+    "mtime": 1785203898.2929947,
+    "ast_hash": "f0f5ce67dc2116756afac40519a29eab",
+    "semantic_hash": "f0f5ce67dc2116756afac40519a29eab"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\.expo\\README.md": {
     "mtime": 1779645863.430663,
@@ -1785,9 +1785,9 @@
     "semantic_hash": "5b7704d0d342e4ae362671b70b5d86bc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\AGENTS.md": {
-    "mtime": 1784303767.4972267,
-    "ast_hash": "cda08af2dc131eee62a632e8aa11a66b",
-    "semantic_hash": "cda08af2dc131eee62a632e8aa11a66b"
+    "mtime": 1785203898.2965589,
+    "ast_hash": "3ad29ed1c7e1970f724e872fcffc4909",
+    "semantic_hash": "3ad29ed1c7e1970f724e872fcffc4909"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\CLAUDE.md": {
     "mtime": 1779031345.4124672,
@@ -1980,42 +1980,42 @@
     "semantic_hash": "c0aae87b42c8045c76a7de51721c6963"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\front-desk\\page.tsx": {
-    "mtime": 1785191775.0133097,
-    "ast_hash": "1bdcf5daf99e7925bedb94923b44cdb2",
-    "semantic_hash": "1bdcf5daf99e7925bedb94923b44cdb2"
+    "mtime": 1785203898.359827,
+    "ast_hash": "4e0a4f063df44b522ba046ea6fccf040",
+    "semantic_hash": "4e0a4f063df44b522ba046ea6fccf040"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\general\\page.tsx": {
-    "mtime": 1785191438.062853,
-    "ast_hash": "d7a0a9efbd7a8e55a3c2d997f979d9ae",
-    "semantic_hash": "d7a0a9efbd7a8e55a3c2d997f979d9ae"
+    "mtime": 1785205352.4286487,
+    "ast_hash": "907edd327961eb300cad258bc6dee3f1",
+    "semantic_hash": "907edd327961eb300cad258bc6dee3f1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\inspections\\page.tsx": {
-    "mtime": 1785191524.5684104,
-    "ast_hash": "2dab66360ace4386de89c83a54e739a5",
-    "semantic_hash": "2dab66360ace4386de89c83a54e739a5"
+    "mtime": 1785203898.3680203,
+    "ast_hash": "d4b068db6058c8508f3b59460f3f4cc5",
+    "semantic_hash": "d4b068db6058c8508f3b59460f3f4cc5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\roles\\page.tsx": {
-    "mtime": 1785191559.353225,
-    "ast_hash": "480e0f9ec453b92e7d67cde47359d667",
-    "semantic_hash": "480e0f9ec453b92e7d67cde47359d667"
+    "mtime": 1785203898.3715484,
+    "ast_hash": "cb03109dc90716a4d815aa8d23cfff0c",
+    "semantic_hash": "cb03109dc90716a4d815aa8d23cfff0c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\rooms\\page.tsx": {
-    "mtime": 1785192484.332146,
+    "mtime": 1785203898.373502,
     "ast_hash": "06904a84d14a15783ec702609a10f063",
     "semantic_hash": "06904a84d14a15783ec702609a10f063"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\RoleForm.tsx": {
-    "mtime": 1785186437.0448527,
+    "mtime": 1785203898.4289029,
     "ast_hash": "d6affbad40c69757224bc9ce26bde28a",
     "semantic_hash": "d6affbad40c69757224bc9ce26bde28a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\RoomsImportModal.tsx": {
-    "mtime": 1785200818.6044798,
+    "mtime": 1785203898.4321022,
     "ast_hash": "9eaa705b0285aef91419597c698c4476",
     "semantic_hash": "9eaa705b0285aef91419597c698c4476"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\TemplateForm.tsx": {
-    "mtime": 1785192604.1193092,
+    "mtime": 1785203898.433114,
     "ast_hash": "927ad80d409d563d80ffcb65f3f452de",
     "semantic_hash": "927ad80d409d563d80ffcb65f3f452de"
   },
@@ -2065,7 +2065,7 @@
     "semantic_hash": "c9813ad0d1b2365609f4599d7d3f5210"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\housekeeping\\OccupancyImportModal.tsx": {
-    "mtime": 1785067245.5754101,
+    "mtime": 1785203898.4181263,
     "ast_hash": "ca8a98fdcc23b9e8905eebf5bf51a84a",
     "semantic_hash": "ca8a98fdcc23b9e8905eebf5bf51a84a"
   },
@@ -2270,9 +2270,9 @@
     "semantic_hash": "2e22bd56305defc79e0317ac8fe7299f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\feedback\\page.tsx": {
-    "mtime": 1785192415.0471354,
-    "ast_hash": "7f77cfd5ca67768de0ecb83781f930ff",
-    "semantic_hash": "7f77cfd5ca67768de0ecb83781f930ff"
+    "mtime": 1785203898.3578153,
+    "ast_hash": "1ea55e2f51c550883b3dd0fc3f062b96",
+    "semantic_hash": "1ea55e2f51c550883b3dd0fc3f062b96"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\FeedbackButton.tsx": {
     "mtime": 1781395610.0631528,
@@ -2300,7 +2300,7 @@
     "semantic_hash": "88f70b59a9a6a0f02452075f351452d2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\EngineeringRoomBoard.tsx": {
-    "mtime": 1785067518.529708,
+    "mtime": 1785203898.397904,
     "ast_hash": "ba2d9a4a7bff0dd2faeb53160e74a8ce",
     "semantic_hash": "ba2d9a4a7bff0dd2faeb53160e74a8ce"
   },
@@ -4670,12 +4670,12 @@
     "semantic_hash": "80287b12dcf358d5ea47f76c27c3301a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\guest-requests\\GuestRequestDrawer.tsx": {
-    "mtime": 1785200801.6638453,
+    "mtime": 1785203898.4122992,
     "ast_hash": "ff969951e4a30c0f0720fbebb78314d2",
     "semantic_hash": "ff969951e4a30c0f0720fbebb78314d2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\guest-requests\\GuestRequestsPage.tsx": {
-    "mtime": 1785198155.184029,
+    "mtime": 1785203898.4134853,
     "ast_hash": "1373c6e1d3446cbac24fddc137ffd111",
     "semantic_hash": "1373c6e1d3446cbac24fddc137ffd111"
   },
@@ -4685,7 +4685,7 @@
     "semantic_hash": "ed94be0e41bd666f857542ad2a68092f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\guest-requests\\NewRequestModal.tsx": {
-    "mtime": 1785200763.458364,
+    "mtime": 1785203898.415497,
     "ast_hash": "f2135ef22ee2db954da0dd40a4586d21",
     "semantic_hash": "f2135ef22ee2db954da0dd40a4586d21"
   },
@@ -4735,12 +4735,12 @@
     "semantic_hash": "fadb0ff4aa319a654f1557b8919d3286"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\locales\\en.ts": {
-    "mtime": 1785194452.7195659,
+    "mtime": 1785203898.4628212,
     "ast_hash": "e62a7e2737ea0804e037b6aafb944599",
     "semantic_hash": "e62a7e2737ea0804e037b6aafb944599"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\i18n\\locales\\es.ts": {
-    "mtime": 1785194458.8138857,
+    "mtime": 1785203898.4650154,
     "ast_hash": "a52903e1456a468c0108717e6fc1e429",
     "semantic_hash": "a52903e1456a468c0108717e6fc1e429"
   },
@@ -4925,9 +4925,9 @@
     "semantic_hash": "ac956b3c95de8f738b996ace0d16ccdc"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\STATE.md": {
-    "mtime": 1785034845.998549,
-    "ast_hash": "290d0fbe826bb8ce864dbdbd340c38e8",
-    "semantic_hash": "290d0fbe826bb8ce864dbdbd340c38e8"
+    "mtime": 1785358091.9293613,
+    "ast_hash": "c947d72b88465d5b6fdd6bd3db2db2eb",
+    "semantic_hash": "c947d72b88465d5b6fdd6bd3db2db2eb"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\app\\(app)\\assets\\index.tsx": {
     "mtime": 1781394388.2171638,
@@ -4970,9 +4970,9 @@
     "semantic_hash": "df5756f5d9f8ffff41479ae2ea531b81"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\shared\\mobileHandoff.tsx": {
-    "mtime": 1781487529.2041137,
-    "ast_hash": "2a13b980cb096fbf1f99026500b63641",
-    "semantic_hash": "2a13b980cb096fbf1f99026500b63641"
+    "mtime": 1785308068.5580974,
+    "ast_hash": "44d028553befbd4e9ba18ec5f8f60e7f",
+    "semantic_hash": "44d028553befbd4e9ba18ec5f8f60e7f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\navigation\\roleTabs.ts": {
     "mtime": 1783704006.4405346,
@@ -4985,9 +4985,9 @@
     "semantic_hash": "09ec9738a64142797a10c08813034dbf"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\HousekeeperHome.test.tsx": {
-    "mtime": 1783704006.4272227,
-    "ast_hash": "8dbaba1d2dd83cba97ca3aaa58f38141",
-    "semantic_hash": "8dbaba1d2dd83cba97ca3aaa58f38141"
+    "mtime": 1785357958.3570404,
+    "ast_hash": "763ca66954dd015472e575dda08ff1e0",
+    "semantic_hash": "763ca66954dd015472e575dda08ff1e0"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\__tests__\\screens\\InspectorQueue.test.tsx": {
     "mtime": 1781389787.6614084,
@@ -5295,7 +5295,7 @@
     "semantic_hash": "265fc6a41abb05dab3853f0c1ed123f2"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\CleaningChecklistEditor.tsx": {
-    "mtime": 1785191742.7140632,
+    "mtime": 1785203898.4271944,
     "ast_hash": "d2f575e8377ceca897171c306a10b15e",
     "semantic_hash": "d2f575e8377ceca897171c306a10b15e"
   },
@@ -5455,7 +5455,7 @@
     "semantic_hash": "c52128d405218449750535b9259db953"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\housekeeping\\KnockModal.tsx": {
-    "mtime": 1782449269.563968,
+    "mtime": 1785307548.6952558,
     "ast_hash": "dc43dab16ca2849741a6044065ed9081",
     "semantic_hash": "dc43dab16ca2849741a6044065ed9081"
   },
@@ -6495,7 +6495,7 @@
     "semantic_hash": "9a284f750c04ea810624d1b567fb4538"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\evidence\\page.tsx": {
-    "mtime": 1785198155.158989,
+    "mtime": 1785203898.3221083,
     "ast_hash": "3196fc5bed5d04c4ecf88371b721928d",
     "semantic_hash": "3196fc5bed5d04c4ecf88371b721928d"
   },
@@ -6505,9 +6505,9 @@
     "semantic_hash": "046b8697e837c295bf02e075fbfaa362"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\safety\\page.tsx": {
-    "mtime": 1785047993.7706912,
-    "ast_hash": "17882d9a2e59a2f4de5368172d7ed726",
-    "semantic_hash": "17882d9a2e59a2f4de5368172d7ed726"
+    "mtime": 1785203898.3521452,
+    "ast_hash": "7bda34ae8207e330be4c8ab664e259da",
+    "semantic_hash": "7bda34ae8207e330be4c8ab664e259da"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\api\\evidence.ts": {
     "mtime": 1784497163.2968183,
@@ -6660,7 +6660,7 @@
     "semantic_hash": "06f822e4f222790d46946587134650fa"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\e2e\\phase2-evidence.spec.ts": {
-    "mtime": 1785198155.190838,
+    "mtime": 1785203898.4599094,
     "ast_hash": "6cec7d16b06e959cdc04536158f82990",
     "semantic_hash": "6cec7d16b06e959cdc04536158f82990"
   },
@@ -6695,94 +6695,14 @@
     "semantic_hash": "fb5a0486794c26082c2a2dea79cd436b"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\PROJECT.md": {
-    "mtime": 1784871166.4914708,
-    "ast_hash": "de4d9621a2c393eb2d11836dec68e14a",
-    "semantic_hash": "de4d9621a2c393eb2d11836dec68e14a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\REQUIREMENTS.md": {
-    "mtime": 1784871105.9300072,
-    "ast_hash": "2729645ea62edb7a557b231355648e0a",
-    "semantic_hash": "2729645ea62edb7a557b231355648e0a"
+    "mtime": 1785282619.3942206,
+    "ast_hash": "fe9824d9ce9691351297de49612bacda",
+    "semantic_hash": "fe9824d9ce9691351297de49612bacda"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\ROADMAP.md": {
-    "mtime": 1785034779.4176576,
-    "ast_hash": "3f8155f377d102fd914a3f331bdb77ee",
-    "semantic_hash": "3f8155f377d102fd914a3f331bdb77ee"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-01-PLAN.md": {
-    "mtime": 1784485995.9081075,
-    "ast_hash": "f2743da0dcd7cc67dc5c2d3ec96045d6",
-    "semantic_hash": "f2743da0dcd7cc67dc5c2d3ec96045d6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-01-SUMMARY.md": {
-    "mtime": 1784487125.820466,
-    "ast_hash": "6fde048423d6a9e1cb27e7d41ce2b35c",
-    "semantic_hash": "6fde048423d6a9e1cb27e7d41ce2b35c"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-02-PLAN.md": {
-    "mtime": 1784485995.9081075,
-    "ast_hash": "ab1873196930a86403a41921ab73c9f1",
-    "semantic_hash": "ab1873196930a86403a41921ab73c9f1"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-02-SUMMARY.md": {
-    "mtime": 1784494737.3633192,
-    "ast_hash": "b3dad27f9330652fbf8bf76b1c6e581d",
-    "semantic_hash": "b3dad27f9330652fbf8bf76b1c6e581d"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-03-PLAN.md": {
-    "mtime": 1784485995.909153,
-    "ast_hash": "19ef8627d9e1d34fb763defee8fa2ff2",
-    "semantic_hash": "19ef8627d9e1d34fb763defee8fa2ff2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-03-SUMMARY.md": {
-    "mtime": 1784495374.68299,
-    "ast_hash": "c3d1058338832a46dcb4795f219a94ad",
-    "semantic_hash": "c3d1058338832a46dcb4795f219a94ad"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-04-PLAN.md": {
-    "mtime": 1784485995.909153,
-    "ast_hash": "49ba8067c4ef26b6d534bcddc4fc48ea",
-    "semantic_hash": "49ba8067c4ef26b6d534bcddc4fc48ea"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-04-SUMMARY.md": {
-    "mtime": 1784496711.4743707,
-    "ast_hash": "e0ad30aff6a910c1ade83eac78f9ae78",
-    "semantic_hash": "e0ad30aff6a910c1ade83eac78f9ae78"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-05-PLAN.md": {
-    "mtime": 1784485995.909153,
-    "ast_hash": "f3088f43253d94739bbe5b4d778e0d52",
-    "semantic_hash": "f3088f43253d94739bbe5b4d778e0d52"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-05-SUMMARY.md": {
-    "mtime": 1784497799.715407,
-    "ast_hash": "445c7797f30a7e1f6ebec2da9de9bc18",
-    "semantic_hash": "445c7797f30a7e1f6ebec2da9de9bc18"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-CONTEXT.md": {
-    "mtime": 1784485462.4828072,
-    "ast_hash": "671b60b3dec5f6fcf1dd372cfe3c1ba9",
-    "semantic_hash": "671b60b3dec5f6fcf1dd372cfe3c1ba9"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-RESEARCH.md": {
-    "mtime": 1784485995.8996513,
-    "ast_hash": "89f44c1bd38adcef28314971eb2de812",
-    "semantic_hash": "89f44c1bd38adcef28314971eb2de812"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\02-evidence-foundation\\02-VALIDATION.md": {
-    "mtime": 1784486045.2153747,
-    "ast_hash": "eb88838ffd5c5dd8d3f35b001ce30703",
-    "semantic_hash": "eb88838ffd5c5dd8d3f35b001ce30703"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\03-texas-compliance-and-staff-safety\\03-CONTEXT.md": {
-    "mtime": 1784670809.9133525,
-    "ast_hash": "e9b5e38618f5ec4e0962d2bc49346021",
-    "semantic_hash": "e9b5e38618f5ec4e0962d2bc49346021"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\03-texas-compliance-and-staff-safety\\03-DISCUSSION-LOG.md": {
-    "mtime": 1784670832.5621061,
-    "ast_hash": "0d8f44e29d48950790b6cc8f3fbfc140",
-    "semantic_hash": "0d8f44e29d48950790b6cc8f3fbfc140"
+    "mtime": 1785307700.9039166,
+    "ast_hash": "14ea6cc11092fea903bb830b83b249c6",
+    "semantic_hash": "14ea6cc11092fea903bb830b83b249c6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-07-21T21-25-26-135Z.yml": {
     "mtime": 1784669126.1385264,
@@ -6808,11 +6728,6 @@
     "mtime": 1784671793.9427798,
     "ast_hash": "fcc4ef77748dfb9d9d848286b0b6c9bf",
     "semantic_hash": "fcc4ef77748dfb9d9d848286b0b6c9bf"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\03-texas-compliance-and-staff-safety\\03-EXECUTION-PLAN.md": {
-    "mtime": 1784671631.5355172,
-    "ast_hash": "be8c69d67efcfeb8666cf414b99e5075",
-    "semantic_hash": "be8c69d67efcfeb8666cf414b99e5075"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\.playwright-cli\\page-2026-07-21T22-40-28-372Z.yml": {
     "mtime": 1784673628.373254,
@@ -6845,9 +6760,9 @@
     "semantic_hash": "4c681b1d756c90629cbce99a9152ebc7"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\safety\\ComplianceDashboard.tsx": {
-    "mtime": 1785192640.8334696,
-    "ast_hash": "9a31c07f8e5a7d2ba9fcb84f78f00253",
-    "semantic_hash": "9a31c07f8e5a7d2ba9fcb84f78f00253"
+    "mtime": 1785203898.4255185,
+    "ast_hash": "ac7045fced1b88bf6db6c7e31e3e5c01",
+    "semantic_hash": "ac7045fced1b88bf6db6c7e31e3e5c01"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\safety\\IncidentReview.tsx": {
     "mtime": 1784675395.7989802,
@@ -6864,110 +6779,25 @@
     "ast_hash": "f4c87b51373015dd7919b8a57b708f97",
     "semantic_hash": "f4c87b51373015dd7919b8a57b708f97"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-CONTEXT.md": {
-    "mtime": 1784696670.4002066,
-    "ast_hash": "cfd884b861583625e912cf2b70e41040",
-    "semantic_hash": "cfd884b861583625e912cf2b70e41040"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-01-PLAN.md": {
-    "mtime": 1784697915.17691,
-    "ast_hash": "7bb3eaad577ff9c4a7c78092ee84ce4b",
-    "semantic_hash": "7bb3eaad577ff9c4a7c78092ee84ce4b"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-02-PLAN.md": {
-    "mtime": 1784758728.5111341,
-    "ast_hash": "8de8a2f431b7257262bc3306a34f94ba",
-    "semantic_hash": "8de8a2f431b7257262bc3306a34f94ba"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-03-PLAN.md": {
-    "mtime": 1784758787.0371003,
-    "ast_hash": "c7aeed47bc98077d6d868091f2c1a8da",
-    "semantic_hash": "c7aeed47bc98077d6d868091f2c1a8da"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-04-PLAN.md": {
-    "mtime": 1784698099.248257,
-    "ast_hash": "f7850ba669b134ade00c9c39b3174303",
-    "semantic_hash": "f7850ba669b134ade00c9c39b3174303"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-05-PLAN.md": {
-    "mtime": 1784758794.8001509,
-    "ast_hash": "4f622858dc306a4df35ea706f6624567",
-    "semantic_hash": "4f622858dc306a4df35ea706f6624567"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-06-PLAN.md": {
-    "mtime": 1784698209.2776687,
-    "ast_hash": "2512ae67c642de2673a70f49379b695c",
-    "semantic_hash": "2512ae67c642de2673a70f49379b695c"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-RESEARCH.md": {
-    "mtime": 1784697360.0244138,
-    "ast_hash": "b3d24563968bdcc65474c6135db5e85e",
-    "semantic_hash": "b3d24563968bdcc65474c6135db5e85e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-VALIDATION.md": {
-    "mtime": 1784697447.6036353,
-    "ast_hash": "1db5257f1eea0353be4c931de8050111",
-    "semantic_hash": "1db5257f1eea0353be4c931de8050111"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-07-PLAN.md": {
-    "mtime": 1784758115.9109304,
-    "ast_hash": "00c9a65906b0ae928f184e2cb069b9f8",
-    "semantic_hash": "00c9a65906b0ae928f184e2cb069b9f8"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-08-PLAN.md": {
-    "mtime": 1784758180.4345984,
-    "ast_hash": "492f88c9b45564afd3bfd452e8c943a4",
-    "semantic_hash": "492f88c9b45564afd3bfd452e8c943a4"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_programs_routes.py": {
     "mtime": 1784833960.7334466,
     "ast_hash": "51d924d4a063db35ec16307107241269",
     "semantic_hash": "51d924d4a063db35ec16307107241269"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-01-SUMMARY.md": {
-    "mtime": 1784760194.496661,
-    "ast_hash": "3e0d3f54b446b17b0553751f4e005514",
-    "semantic_hash": "3e0d3f54b446b17b0553751f4e005514"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\081_pm_evidence_linkage.sql": {
     "mtime": 1784761243.1507027,
     "ast_hash": "1d0b8556b5de41eac29eb2970e31dc9d",
     "semantic_hash": "1d0b8556b5de41eac29eb2970e31dc9d"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-02-SUMMARY.md": {
-    "mtime": 1784761243.1240995,
-    "ast_hash": "5c6c8af03e60a6bb8b3b5b2fc1d473ee",
-    "semantic_hash": "5c6c8af03e60a6bb8b3b5b2fc1d473ee"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-03-SUMMARY.md": {
-    "mtime": 1784762964.6589735,
-    "ast_hash": "4d94af67aa9e4e79214412fb0d7d186f",
-    "semantic_hash": "4d94af67aa9e4e79214412fb0d7d186f"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\083_program_template_facilities.sql": {
     "mtime": 1784814201.4298427,
     "ast_hash": "db91d253933f8b7d0cfd9ce8dbe7e8f9",
     "semantic_hash": "db91d253933f8b7d0cfd9ce8dbe7e8f9"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-04-SUMMARY.md": {
-    "mtime": 1784814201.3919444,
-    "ast_hash": "49b8ddb15c3be39be03d09589be24e6f",
-    "semantic_hash": "49b8ddb15c3be39be03d09589be24e6f"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\engineering\\PMCompletionModal.tsx": {
-    "mtime": 1785200851.298583,
+    "mtime": 1785203898.400455,
     "ast_hash": "2beb9baf20c2e113957cb07457c0fb4e",
     "semantic_hash": "2beb9baf20c2e113957cb07457c0fb4e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-06-SUMMARY.md": {
-    "mtime": 1784815402.6933043,
-    "ast_hash": "94c22575c689a3ab1ede94b3d49bfbcd",
-    "semantic_hash": "94c22575c689a3ab1ede94b3d49bfbcd"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-05-SUMMARY.md": {
-    "mtime": 1784817902.3870134,
-    "ast_hash": "1be8be6ae91cd2ccab8d9ba4946251d5",
-    "semantic_hash": "1be8be6ae91cd2ccab8d9ba4946251d5"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\programs\\DeepCleanAreasPanel.tsx": {
     "mtime": 1784822572.9618816,
@@ -6984,11 +6814,6 @@
     "ast_hash": "336c444d0989e99d490555851f433e25",
     "semantic_hash": "336c444d0989e99d490555851f433e25"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-07-SUMMARY.md": {
-    "mtime": 1784820154.1561098,
-    "ast_hash": "c7c4829aed805f2918570f3c71f9a8f8",
-    "semantic_hash": "c7c4829aed805f2918570f3c71f9a8f8"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\playwright.phase4.config.ts": {
     "mtime": 1784822572.9903338,
     "ast_hash": "a2becd4020b15c495019082ac63c1f8f",
@@ -7004,211 +6829,6 @@
     "ast_hash": "98c9307b7e0692b00b7f3bfaab822d17",
     "semantic_hash": "98c9307b7e0692b00b7f3bfaab822d17"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-08-SUMMARY.md": {
-    "mtime": 1784822572.945354,
-    "ast_hash": "f4ceba473b2c893d368394a778ca7d32",
-    "semantic_hash": "f4ceba473b2c893d368394a778ca7d32"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\deferred-items.md": {
-    "mtime": 1784822572.9492116,
-    "ast_hash": "eacc9151a46aac67a6412f17a0a17bc1",
-    "semantic_hash": "eacc9151a46aac67a6412f17a0a17bc1"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-REVIEW.md": {
-    "mtime": 1784870444.6611056,
-    "ast_hash": "f2e5f07c2503e15cc28333cb8550b7c7",
-    "semantic_hash": "f2e5f07c2503e15cc28333cb8550b7c7"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-VERIFICATION.md": {
-    "mtime": 1784871079.5473754,
-    "ast_hash": "f4fe44320e82791ad012c47b71acc48f",
-    "semantic_hash": "f4fe44320e82791ad012c47b71acc48f"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-09-PLAN.md": {
-    "mtime": 1784835953.259151,
-    "ast_hash": "6f93a3c3d50a8d439802f9f3a660924e",
-    "semantic_hash": "6f93a3c3d50a8d439802f9f3a660924e"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-10-PLAN.md": {
-    "mtime": 1784835991.7137506,
-    "ast_hash": "791df717bbd8d1109a000f33ebafe733",
-    "semantic_hash": "791df717bbd8d1109a000f33ebafe733"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-11-PLAN.md": {
-    "mtime": 1784836019.9897132,
-    "ast_hash": "260875a377d086a6a460d8a869ce1034",
-    "semantic_hash": "260875a377d086a6a460d8a869ce1034"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-12-PLAN.md": {
-    "mtime": 1784836046.1834316,
-    "ast_hash": "36f0dd77b48b2e103a7dfea3162e63a2",
-    "semantic_hash": "36f0dd77b48b2e103a7dfea3162e63a2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-13-PLAN.md": {
-    "mtime": 1784836080.1179037,
-    "ast_hash": "8c6fee7487942ae889920bc79a0c62cd",
-    "semantic_hash": "8c6fee7487942ae889920bc79a0c62cd"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-14-PLAN.md": {
-    "mtime": 1784836113.5175984,
-    "ast_hash": "7201742434791a189a3113efda71ba37",
-    "semantic_hash": "7201742434791a189a3113efda71ba37"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-15-PLAN.md": {
-    "mtime": 1784836147.8966691,
-    "ast_hash": "ee747d83ee1a2f6235493e5bf45840c6",
-    "semantic_hash": "ee747d83ee1a2f6235493e5bf45840c6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-16-PLAN.md": {
-    "mtime": 1784836668.0748134,
-    "ast_hash": "a86656bbdff0ba9604f3dc5b908c9804",
-    "semantic_hash": "a86656bbdff0ba9604f3dc5b908c9804"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-17-PLAN.md": {
-    "mtime": 1784836252.1544058,
-    "ast_hash": "65d3e101e8ab1834febc4e2507e16425",
-    "semantic_hash": "65d3e101e8ab1834febc4e2507e16425"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-09-SUMMARY.md": {
-    "mtime": 1784842329.3343065,
-    "ast_hash": "36ee50388be953b364d5efdf08f18190",
-    "semantic_hash": "36ee50388be953b364d5efdf08f18190"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-17-SUMMARY.md": {
-    "mtime": 1784842322.828587,
-    "ast_hash": "ffa09ce73371fe1f4901f66d9f0df146",
-    "semantic_hash": "ffa09ce73371fe1f4901f66d9f0df146"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-10-SUMMARY.md": {
-    "mtime": 1784852328.562153,
-    "ast_hash": "bbd27d5c15dd09d8c878c624e4932ffb",
-    "semantic_hash": "bbd27d5c15dd09d8c878c624e4932ffb"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-11-SUMMARY.md": {
-    "mtime": 1784853140.9364138,
-    "ast_hash": "8cd615827c2440e5c65abc042b1dd9fe",
-    "semantic_hash": "8cd615827c2440e5c65abc042b1dd9fe"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-12-SUMMARY.md": {
-    "mtime": 1784854212.9813,
-    "ast_hash": "43feb872a7e666022950d743fc540b75",
-    "semantic_hash": "43feb872a7e666022950d743fc540b75"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-13-SUMMARY.md": {
-    "mtime": 1784855256.181256,
-    "ast_hash": "0d861011adb03dbfae2fe0b29644c5d9",
-    "semantic_hash": "0d861011adb03dbfae2fe0b29644c5d9"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-14-SUMMARY.md": {
-    "mtime": 1784856086.5026844,
-    "ast_hash": "3b1f1182e10178ca85f2bbfb716a6aa7",
-    "semantic_hash": "3b1f1182e10178ca85f2bbfb716a6aa7"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-15-SUMMARY.md": {
-    "mtime": 1784857197.5114193,
-    "ast_hash": "951dd74dcf2c5d3de51260db04a501f8",
-    "semantic_hash": "951dd74dcf2c5d3de51260db04a501f8"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-16-SUMMARY.md": {
-    "mtime": 1784869690.3822286,
-    "ast_hash": "2951fee8797b50911868a2ffdfd9c352",
-    "semantic_hash": "2951fee8797b50911868a2ffdfd9c352"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\04-maintenance-and-housekeeping-programs\\04-SECURITY.md": {
-    "mtime": 1784899666.887798,
-    "ast_hash": "283ea43752af35c694a82257cf2f3c82",
-    "semantic_hash": "283ea43752af35c694a82257cf2f3c82"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-CONTEXT.md": {
-    "mtime": 1784919832.1872969,
-    "ast_hash": "4210117de83c5fa313776fb618d22e30",
-    "semantic_hash": "4210117de83c5fa313776fb618d22e30"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-DISCUSSION-LOG.md": {
-    "mtime": 1784900473.4523437,
-    "ast_hash": "386730884dd62cb8622e778d67575158",
-    "semantic_hash": "386730884dd62cb8622e778d67575158"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-RESEARCH.md": {
-    "mtime": 1784919397.2876394,
-    "ast_hash": "83da78b2ad940c4c120b72f00bfdb8b5",
-    "semantic_hash": "83da78b2ad940c4c120b72f00bfdb8b5"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-VALIDATION.md": {
-    "mtime": 1784920549.1750133,
-    "ast_hash": "76f202bb9f6d6cb60b3fa235b56f7ef2",
-    "semantic_hash": "76f202bb9f6d6cb60b3fa235b56f7ef2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-UI-SPEC.md": {
-    "mtime": 1784920556.4699457,
-    "ast_hash": "662e11836824040c0e77bf9e01397c76",
-    "semantic_hash": "662e11836824040c0e77bf9e01397c76"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-01-PLAN.md": {
-    "mtime": 1784904692.3191042,
-    "ast_hash": "9323bf63060c207b2e7ee3c49ebd1b20",
-    "semantic_hash": "9323bf63060c207b2e7ee3c49ebd1b20"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-02-PLAN.md": {
-    "mtime": 1784904843.0355754,
-    "ast_hash": "a7097714916234bb23ac52ca9fab0805",
-    "semantic_hash": "a7097714916234bb23ac52ca9fab0805"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-03-PLAN.md": {
-    "mtime": 1784904993.2648337,
-    "ast_hash": "026a1ee2069d70d6ebc46c0e5b9d7c48",
-    "semantic_hash": "026a1ee2069d70d6ebc46c0e5b9d7c48"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-04-PLAN.md": {
-    "mtime": 1784905079.0982163,
-    "ast_hash": "5eef4236ec57e5dcf03f220db4dc69c6",
-    "semantic_hash": "5eef4236ec57e5dcf03f220db4dc69c6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-05-PLAN.md": {
-    "mtime": 1784905173.165,
-    "ast_hash": "ac062aaac8d2b2d62f7dbe8fbc09c351",
-    "semantic_hash": "ac062aaac8d2b2d62f7dbe8fbc09c351"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-06-PLAN.md": {
-    "mtime": 1784905310.1304255,
-    "ast_hash": "60ff379572b6034d2edc54a6a623b06c",
-    "semantic_hash": "60ff379572b6034d2edc54a6a623b06c"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-07-PLAN.md": {
-    "mtime": 1784905452.7497041,
-    "ast_hash": "d6f1bf7b9bba101c814be856f3896cd6",
-    "semantic_hash": "d6f1bf7b9bba101c814be856f3896cd6"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-08-PLAN.md": {
-    "mtime": 1784919386.996388,
-    "ast_hash": "41088e1ffa93b64a72db97444047e0c4",
-    "semantic_hash": "41088e1ffa93b64a72db97444047e0c4"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-09-PLAN.md": {
-    "mtime": 1784905653.0876522,
-    "ast_hash": "a4c5c36789e2e7de3587a6fa6ea62c54",
-    "semantic_hash": "a4c5c36789e2e7de3587a6fa6ea62c54"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-10-PLAN.md": {
-    "mtime": 1784905774.5422728,
-    "ast_hash": "b81374d50cb5661b2e5b4fd0f0ab4595",
-    "semantic_hash": "b81374d50cb5661b2e5b4fd0f0ab4595"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-11-PLAN.md": {
-    "mtime": 1784905894.054358,
-    "ast_hash": "0cf4266c780fc889d9e7753abf59fe36",
-    "semantic_hash": "0cf4266c780fc889d9e7753abf59fe36"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-12-PLAN.md": {
-    "mtime": 1784920310.5073357,
-    "ast_hash": "ac56273e98f129dc31c40b0fd9096a76",
-    "semantic_hash": "ac56273e98f129dc31c40b0fd9096a76"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-PATTERNS.md": {
-    "mtime": 1784904065.7932882,
-    "ast_hash": "91910df9e8083420b0924b6e81b425ee",
-    "semantic_hash": "91910df9e8083420b0924b6e81b425ee"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\fake_twilio_client.py": {
     "mtime": 1784921917.6118205,
     "ast_hash": "8f526fd2bfa4c3291ffb14835466f464",
@@ -7218,11 +6838,6 @@
     "mtime": 1784921917.6118205,
     "ast_hash": "007dc8304e3906da1d685f739fcc6309",
     "semantic_hash": "007dc8304e3906da1d685f739fcc6309"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-01-SUMMARY.md": {
-    "mtime": 1784921917.6046607,
-    "ast_hash": "0f6f2574177972c86678fd48a85736c6",
-    "semantic_hash": "0f6f2574177972c86678fd48a85736c6"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\services\\sms\\twilio_client.py": {
     "mtime": 1784922828.905288,
@@ -7249,58 +6864,23 @@
     "ast_hash": "31e8f01ae7c8b302af30c491c412c010",
     "semantic_hash": "31e8f01ae7c8b302af30c491c412c010"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-02-SUMMARY.md": {
-    "mtime": 1784922828.901803,
-    "ast_hash": "55aad64d9d7243b6820beb2827a20cb7",
-    "semantic_hash": "55aad64d9d7243b6820beb2827a20cb7"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-03-SUMMARY.md": {
-    "mtime": 1784922832.4721348,
-    "ast_hash": "dc7a27035f35328fd0f0ddee31a83f1d",
-    "semantic_hash": "dc7a27035f35328fd0f0ddee31a83f1d"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-04-SUMMARY.md": {
-    "mtime": 1784922836.5461054,
-    "ast_hash": "2ce4a37a4d16b647e6f75fb3e6ab8203",
-    "semantic_hash": "2ce4a37a4d16b647e6f75fb3e6ab8203"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\routers\\management_roi.py": {
     "mtime": 1784971878.3336895,
     "ast_hash": "04cc803ec9b5fabc2871e0454bd1a1aa",
     "semantic_hash": "04cc803ec9b5fabc2871e0454bd1a1aa"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-05-SUMMARY.md": {
-    "mtime": 1784940194.866862,
-    "ast_hash": "9e44ded56bf4f623e52d92d765c5cce1",
-    "semantic_hash": "9e44ded56bf4f623e52d92d765c5cce1"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-06-SUMMARY.md": {
-    "mtime": 1784940199.962392,
-    "ast_hash": "3c4feb0397b6148be32f46f3d72b8529",
-    "semantic_hash": "3c4feb0397b6148be32f46f3d72b8529"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-08-SUMMARY.md": {
-    "mtime": 1784940204.8429906,
-    "ast_hash": "9159a63dc2292ce486f2d78fe4150182",
-    "semantic_hash": "9159a63dc2292ce486f2d78fe4150182"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-07-SUMMARY.md": {
-    "mtime": 1784941231.9248674,
-    "ast_hash": "f4c7f1abf1bb4e88593aad4c41a8e21b",
-    "semantic_hash": "f4c7f1abf1bb4e88593aad4c41a8e21b"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\management-roi\\page.tsx": {
-    "mtime": 1785198155.171641,
+    "mtime": 1785203898.3441503,
     "ast_hash": "1a7c468a6a915a85f59cfad5fe99dc74",
     "semantic_hash": "1a7c468a6a915a85f59cfad5fe99dc74"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\settings\\guest-requests\\page.tsx": {
-    "mtime": 1785191490.2150295,
+    "mtime": 1785203898.3644757,
     "ast_hash": "614b24777d33a8c06ef77e84d32f333c",
     "semantic_hash": "614b24777d33a8c06ef77e84d32f333c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\settings\\SlaPolicyForm.tsx": {
-    "mtime": 1785186437.0458546,
+    "mtime": 1785203898.433114,
     "ast_hash": "9664bda30403a9a53daac1e0d141ffee",
     "semantic_hash": "9664bda30403a9a53daac1e0d141ffee"
   },
@@ -7308,46 +6888,6 @@
     "mtime": 1784943424.1080792,
     "ast_hash": "9248a5e0fa361bbdd30ff8de1b9c1fba",
     "semantic_hash": "9248a5e0fa361bbdd30ff8de1b9c1fba"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-09-SUMMARY.md": {
-    "mtime": 1784943418.9026413,
-    "ast_hash": "cc9ecc2b74e63e1f77313b405ead699a",
-    "semantic_hash": "cc9ecc2b74e63e1f77313b405ead699a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-10-SUMMARY.md": {
-    "mtime": 1784943424.09011,
-    "ast_hash": "51fbd369e550f80063e5cb1e4ee18c61",
-    "semantic_hash": "51fbd369e550f80063e5cb1e4ee18c61"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-11-SUMMARY.md": {
-    "mtime": 1784943430.1316564,
-    "ast_hash": "b81fef3622c4b1e3c532393a125488d2",
-    "semantic_hash": "b81fef3622c4b1e3c532393a125488d2"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-12-SUMMARY.md": {
-    "mtime": 1784945159.2852511,
-    "ast_hash": "6989d7b94063ebba58073279978610dd",
-    "semantic_hash": "6989d7b94063ebba58073279978610dd"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-REVIEW.md": {
-    "mtime": 1784945705.8273664,
-    "ast_hash": "2dd701ce6908caa65d545161d34e1af7",
-    "semantic_hash": "2dd701ce6908caa65d545161d34e1af7"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-REVIEW-FIX.md": {
-    "mtime": 1784971865.647607,
-    "ast_hash": "c0679c7d6bd5f1bb2ede393e50fbc969",
-    "semantic_hash": "c0679c7d6bd5f1bb2ede393e50fbc969"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-HUMAN-UAT.md": {
-    "mtime": 1785027806.373948,
-    "ast_hash": "3ecc7aad462a4de47b00b0ebee2f1b3a",
-    "semantic_hash": "3ecc7aad462a4de47b00b0ebee2f1b3a"
-  },
-  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\05-guest-recovery-and-management-roi\\05-VERIFICATION.md": {
-    "mtime": 1784972560.5701034,
-    "ast_hash": "c3181dd80fd2e69562ae5e6955baeb5e",
-    "semantic_hash": "c3181dd80fd2e69562ae5e6955baeb5e"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_cron_health_status.py": {
     "mtime": 1785035654.3866153,
@@ -7369,49 +6909,819 @@
     "ast_hash": "7fd00211443f1229ff48953b87a932d6",
     "semantic_hash": "7fd00211443f1229ff48953b87a932d6"
   },
-  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\app\\(dashboard)\\dev\\ui\\page.tsx": {
-    "mtime": 1785047961.564772,
-    "ast_hash": "943df68bdb0e8d677f855c1f33a19154",
-    "semantic_hash": "943df68bdb0e8d677f855c1f33a19154"
-  },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\dashboard\\DashboardGreeting.tsx": {
-    "mtime": 1785047777.9697201,
-    "ast_hash": "043ab48fc54f9beddf4b54202ad338fc",
-    "semantic_hash": "043ab48fc54f9beddf4b54202ad338fc"
+    "mtime": 1785203898.386704,
+    "ast_hash": "014b9814e2464f2f079ec6e29cb4c22a",
+    "semantic_hash": "014b9814e2464f2f079ec6e29cb4c22a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\Breadcrumbs.tsx": {
-    "mtime": 1785194486.054901,
-    "ast_hash": "642e899cc92e2be5ade06d80f4af6c18",
-    "semantic_hash": "642e899cc92e2be5ade06d80f4af6c18"
+    "mtime": 1785203898.4351263,
+    "ast_hash": "58138b0243525dcf74b3d34c5cfa839a",
+    "semantic_hash": "58138b0243525dcf74b3d34c5cfa839a"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\CommandPalette.tsx": {
-    "mtime": 1785194155.8966248,
-    "ast_hash": "dba351d068b2b41a5af96f3bc865f537",
-    "semantic_hash": "dba351d068b2b41a5af96f3bc865f537"
+    "mtime": 1785203898.4371405,
+    "ast_hash": "9424e537f4fea0f5e60337c8e91566a1",
+    "semantic_hash": "9424e537f4fea0f5e60337c8e91566a1"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\shared\\MobileFloorNav.tsx": {
-    "mtime": 1785194131.6655464,
-    "ast_hash": "7e871964fd7b34059b8120b3e3df6af0",
-    "semantic_hash": "7e871964fd7b34059b8120b3e3df6af0"
+    "mtime": 1785203898.44276,
+    "ast_hash": "2097029dc81204de3d371ad6ea656afd",
+    "semantic_hash": "2097029dc81204de3d371ad6ea656afd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\EmptyState.tsx": {
-    "mtime": 1785046477.9043581,
-    "ast_hash": "2ef0b462b04384696ce53177891c1e8e",
-    "semantic_hash": "2ef0b462b04384696ce53177891c1e8e"
+    "mtime": 1785203898.4545438,
+    "ast_hash": "cdd38f0e348279ae256ae9e9e50e6d4f",
+    "semantic_hash": "cdd38f0e348279ae256ae9e9e50e6d4f"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\StateBlock.tsx": {
-    "mtime": 1785046485.2872143,
-    "ast_hash": "f3fb31ecd09f72306bd51f37a0ad33f1",
-    "semantic_hash": "f3fb31ecd09f72306bd51f37a0ad33f1"
+    "mtime": 1785203898.456538,
+    "ast_hash": "4b5519567679a9d3d0f19d72f761b41c",
+    "semantic_hash": "4b5519567679a9d3d0f19d72f761b41c"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\components\\ui\\Toast.tsx": {
-    "mtime": 1785046496.9065306,
-    "ast_hash": "be4516bcd9d8735689ee26bc784059b5",
-    "semantic_hash": "be4516bcd9d8735689ee26bc784059b5"
+    "mtime": 1785203898.4578986,
+    "ast_hash": "dbed0e7b9078eb222fb718fe038527bd",
+    "semantic_hash": "dbed0e7b9078eb222fb718fe038527bd"
   },
   "C:\\Users\\Henil\\projects\\PatelRep\\apps\\web\\lib\\utils\\navigation.ts": {
-    "mtime": 1785194475.1619153,
-    "ast_hash": "272c302c8fd849d2e21165af1a1a1118",
-    "semantic_hash": "272c302c8fd849d2e21165af1a1a1118"
+    "mtime": 1785203898.4664695,
+    "ast_hash": "71317f4387cea573ab007f4efe556b6c",
+    "semantic_hash": "71317f4387cea573ab007f4efe556b6c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_ai_copilot_credits.py": {
+    "mtime": 1785227884.2782655,
+    "ast_hash": "ad7acf1134d246f183e32d1c0e185cf2",
+    "semantic_hash": "ad7acf1134d246f183e32d1c0e185cf2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_ai_copilot_rbac.py": {
+    "mtime": 1785230010.230407,
+    "ast_hash": "a9884b88d3cd43bd1b19e640f157fd6a",
+    "semantic_hash": "a9884b88d3cd43bd1b19e640f157fd6a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_opera_pilot_gate.py": {
+    "mtime": 1785279859.364347,
+    "ast_hash": "b91fb6b63a675478e95d10c50c4a233f",
+    "semantic_hash": "b91fb6b63a675478e95d10c50c4a233f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_opera_routes.py": {
+    "mtime": 1785229162.210053,
+    "ast_hash": "75532cf4cc6d12ef861c53e3e39232d6",
+    "semantic_hash": "75532cf4cc6d12ef861c53e3e39232d6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\smoke\\test_opera_webhooks.py": {
+    "mtime": 1785230531.2526367,
+    "ast_hash": "bf941ee3660f76f2529570df76712626",
+    "semantic_hash": "bf941ee3660f76f2529570df76712626"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\supabase\\migrations\\085_opera_pilot_flag.sql": {
+    "mtime": 1785228433.4961395,
+    "ast_hash": "daa7e3a934f86d536308057fb1bd456a",
+    "semantic_hash": "daa7e3a934f86d536308057fb1bd456a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\api\\tests\\test_ai_copilot_guest_request_escalation.py": {
+    "mtime": 1785279217.1710832,
+    "ast_hash": "0f7fd56df890bdc197afe77ba543c9d0",
+    "semantic_hash": "0f7fd56df890bdc197afe77ba543c9d0"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\RETROSPECTIVE.md": {
+    "mtime": 1785279730.7413764,
+    "ast_hash": "19fd17ed71d9e5f7ea6225708c5e3f0f",
+    "semantic_hash": "19fd17ed71d9e5f7ea6225708c5e3f0f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-REQUIREMENTS.md": {
+    "mtime": 1785279635.9224565,
+    "ast_hash": "d3fef32b0ddbb4084a1541cf652c64c4",
+    "semantic_hash": "d3fef32b0ddbb4084a1541cf652c64c4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-ROADMAP.md": {
+    "mtime": 1785279616.3306475,
+    "ast_hash": "6c83a64e820d392f31de825283b8246c",
+    "semantic_hash": "6c83a64e820d392f31de825283b8246c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\MILESTONES.md": {
+    "mtime": 1785281268.4595172,
+    "ast_hash": "f4b99e1ea7c23cfaa7cdb11475ad1b00",
+    "semantic_hash": "f4b99e1ea7c23cfaa7cdb11475ad1b00"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-MILESTONE-AUDIT.md": {
+    "mtime": 1785279357.3951826,
+    "ast_hash": "7db7acfef20ca5159e00dcf4a6bf7007",
+    "semantic_hash": "7db7acfef20ca5159e00dcf4a6bf7007"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-01-PLAN.md": {
+    "mtime": 1784485995.9081075,
+    "ast_hash": "f2743da0dcd7cc67dc5c2d3ec96045d6",
+    "semantic_hash": "f2743da0dcd7cc67dc5c2d3ec96045d6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-01-SUMMARY.md": {
+    "mtime": 1784487125.820466,
+    "ast_hash": "6fde048423d6a9e1cb27e7d41ce2b35c",
+    "semantic_hash": "6fde048423d6a9e1cb27e7d41ce2b35c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-02-PLAN.md": {
+    "mtime": 1784485995.9081075,
+    "ast_hash": "ab1873196930a86403a41921ab73c9f1",
+    "semantic_hash": "ab1873196930a86403a41921ab73c9f1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-02-SUMMARY.md": {
+    "mtime": 1784494737.3633192,
+    "ast_hash": "b3dad27f9330652fbf8bf76b1c6e581d",
+    "semantic_hash": "b3dad27f9330652fbf8bf76b1c6e581d"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-03-PLAN.md": {
+    "mtime": 1784485995.909153,
+    "ast_hash": "19ef8627d9e1d34fb763defee8fa2ff2",
+    "semantic_hash": "19ef8627d9e1d34fb763defee8fa2ff2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-03-SUMMARY.md": {
+    "mtime": 1784495374.68299,
+    "ast_hash": "c3d1058338832a46dcb4795f219a94ad",
+    "semantic_hash": "c3d1058338832a46dcb4795f219a94ad"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-04-PLAN.md": {
+    "mtime": 1784485995.909153,
+    "ast_hash": "49ba8067c4ef26b6d534bcddc4fc48ea",
+    "semantic_hash": "49ba8067c4ef26b6d534bcddc4fc48ea"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-04-SUMMARY.md": {
+    "mtime": 1784496711.4743707,
+    "ast_hash": "e0ad30aff6a910c1ade83eac78f9ae78",
+    "semantic_hash": "e0ad30aff6a910c1ade83eac78f9ae78"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-05-PLAN.md": {
+    "mtime": 1784485995.909153,
+    "ast_hash": "f3088f43253d94739bbe5b4d778e0d52",
+    "semantic_hash": "f3088f43253d94739bbe5b4d778e0d52"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-05-SUMMARY.md": {
+    "mtime": 1784497799.715407,
+    "ast_hash": "445c7797f30a7e1f6ebec2da9de9bc18",
+    "semantic_hash": "445c7797f30a7e1f6ebec2da9de9bc18"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-CONTEXT.md": {
+    "mtime": 1784485462.4828072,
+    "ast_hash": "671b60b3dec5f6fcf1dd372cfe3c1ba9",
+    "semantic_hash": "671b60b3dec5f6fcf1dd372cfe3c1ba9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-RESEARCH.md": {
+    "mtime": 1784485995.8996513,
+    "ast_hash": "89f44c1bd38adcef28314971eb2de812",
+    "semantic_hash": "89f44c1bd38adcef28314971eb2de812"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\02-evidence-foundation\\02-VALIDATION.md": {
+    "mtime": 1784486045.2153747,
+    "ast_hash": "eb88838ffd5c5dd8d3f35b001ce30703",
+    "semantic_hash": "eb88838ffd5c5dd8d3f35b001ce30703"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\03-texas-compliance-and-staff-safety\\03-CONTEXT.md": {
+    "mtime": 1784670809.9133525,
+    "ast_hash": "e9b5e38618f5ec4e0962d2bc49346021",
+    "semantic_hash": "e9b5e38618f5ec4e0962d2bc49346021"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\03-texas-compliance-and-staff-safety\\03-DISCUSSION-LOG.md": {
+    "mtime": 1784670832.5621061,
+    "ast_hash": "0d8f44e29d48950790b6cc8f3fbfc140",
+    "semantic_hash": "0d8f44e29d48950790b6cc8f3fbfc140"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\03-texas-compliance-and-staff-safety\\03-EXECUTION-PLAN.md": {
+    "mtime": 1784671631.5355172,
+    "ast_hash": "be8c69d67efcfeb8666cf414b99e5075",
+    "semantic_hash": "be8c69d67efcfeb8666cf414b99e5075"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-01-PLAN.md": {
+    "mtime": 1784697915.17691,
+    "ast_hash": "7bb3eaad577ff9c4a7c78092ee84ce4b",
+    "semantic_hash": "7bb3eaad577ff9c4a7c78092ee84ce4b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-01-SUMMARY.md": {
+    "mtime": 1784760194.496661,
+    "ast_hash": "3e0d3f54b446b17b0553751f4e005514",
+    "semantic_hash": "3e0d3f54b446b17b0553751f4e005514"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-02-PLAN.md": {
+    "mtime": 1784758728.5111341,
+    "ast_hash": "8de8a2f431b7257262bc3306a34f94ba",
+    "semantic_hash": "8de8a2f431b7257262bc3306a34f94ba"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-02-SUMMARY.md": {
+    "mtime": 1784761243.1240995,
+    "ast_hash": "5c6c8af03e60a6bb8b3b5b2fc1d473ee",
+    "semantic_hash": "5c6c8af03e60a6bb8b3b5b2fc1d473ee"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-03-PLAN.md": {
+    "mtime": 1784758787.0371003,
+    "ast_hash": "c7aeed47bc98077d6d868091f2c1a8da",
+    "semantic_hash": "c7aeed47bc98077d6d868091f2c1a8da"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-03-SUMMARY.md": {
+    "mtime": 1784762964.6589735,
+    "ast_hash": "4d94af67aa9e4e79214412fb0d7d186f",
+    "semantic_hash": "4d94af67aa9e4e79214412fb0d7d186f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-04-PLAN.md": {
+    "mtime": 1784698099.248257,
+    "ast_hash": "f7850ba669b134ade00c9c39b3174303",
+    "semantic_hash": "f7850ba669b134ade00c9c39b3174303"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-04-SUMMARY.md": {
+    "mtime": 1784814201.3919444,
+    "ast_hash": "49b8ddb15c3be39be03d09589be24e6f",
+    "semantic_hash": "49b8ddb15c3be39be03d09589be24e6f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-05-PLAN.md": {
+    "mtime": 1784758794.8001509,
+    "ast_hash": "4f622858dc306a4df35ea706f6624567",
+    "semantic_hash": "4f622858dc306a4df35ea706f6624567"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-05-SUMMARY.md": {
+    "mtime": 1784817902.3870134,
+    "ast_hash": "1be8be6ae91cd2ccab8d9ba4946251d5",
+    "semantic_hash": "1be8be6ae91cd2ccab8d9ba4946251d5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-06-PLAN.md": {
+    "mtime": 1784698209.2776687,
+    "ast_hash": "2512ae67c642de2673a70f49379b695c",
+    "semantic_hash": "2512ae67c642de2673a70f49379b695c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-06-SUMMARY.md": {
+    "mtime": 1784815402.6933043,
+    "ast_hash": "94c22575c689a3ab1ede94b3d49bfbcd",
+    "semantic_hash": "94c22575c689a3ab1ede94b3d49bfbcd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-07-PLAN.md": {
+    "mtime": 1784758115.9109304,
+    "ast_hash": "00c9a65906b0ae928f184e2cb069b9f8",
+    "semantic_hash": "00c9a65906b0ae928f184e2cb069b9f8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-07-SUMMARY.md": {
+    "mtime": 1784820154.1561098,
+    "ast_hash": "c7c4829aed805f2918570f3c71f9a8f8",
+    "semantic_hash": "c7c4829aed805f2918570f3c71f9a8f8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-08-PLAN.md": {
+    "mtime": 1784758180.4345984,
+    "ast_hash": "492f88c9b45564afd3bfd452e8c943a4",
+    "semantic_hash": "492f88c9b45564afd3bfd452e8c943a4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-08-SUMMARY.md": {
+    "mtime": 1784822572.945354,
+    "ast_hash": "f4ceba473b2c893d368394a778ca7d32",
+    "semantic_hash": "f4ceba473b2c893d368394a778ca7d32"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-09-PLAN.md": {
+    "mtime": 1784835953.259151,
+    "ast_hash": "6f93a3c3d50a8d439802f9f3a660924e",
+    "semantic_hash": "6f93a3c3d50a8d439802f9f3a660924e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-09-SUMMARY.md": {
+    "mtime": 1784842329.3343065,
+    "ast_hash": "36ee50388be953b364d5efdf08f18190",
+    "semantic_hash": "36ee50388be953b364d5efdf08f18190"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-10-PLAN.md": {
+    "mtime": 1784835991.7137506,
+    "ast_hash": "791df717bbd8d1109a000f33ebafe733",
+    "semantic_hash": "791df717bbd8d1109a000f33ebafe733"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-10-SUMMARY.md": {
+    "mtime": 1784852328.562153,
+    "ast_hash": "bbd27d5c15dd09d8c878c624e4932ffb",
+    "semantic_hash": "bbd27d5c15dd09d8c878c624e4932ffb"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-11-PLAN.md": {
+    "mtime": 1784836019.9897132,
+    "ast_hash": "260875a377d086a6a460d8a869ce1034",
+    "semantic_hash": "260875a377d086a6a460d8a869ce1034"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-11-SUMMARY.md": {
+    "mtime": 1784853140.9364138,
+    "ast_hash": "8cd615827c2440e5c65abc042b1dd9fe",
+    "semantic_hash": "8cd615827c2440e5c65abc042b1dd9fe"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-12-PLAN.md": {
+    "mtime": 1784836046.1834316,
+    "ast_hash": "36f0dd77b48b2e103a7dfea3162e63a2",
+    "semantic_hash": "36f0dd77b48b2e103a7dfea3162e63a2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-12-SUMMARY.md": {
+    "mtime": 1784854212.9813,
+    "ast_hash": "43feb872a7e666022950d743fc540b75",
+    "semantic_hash": "43feb872a7e666022950d743fc540b75"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-13-PLAN.md": {
+    "mtime": 1784836080.1179037,
+    "ast_hash": "8c6fee7487942ae889920bc79a0c62cd",
+    "semantic_hash": "8c6fee7487942ae889920bc79a0c62cd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-13-SUMMARY.md": {
+    "mtime": 1784855256.181256,
+    "ast_hash": "0d861011adb03dbfae2fe0b29644c5d9",
+    "semantic_hash": "0d861011adb03dbfae2fe0b29644c5d9"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-14-PLAN.md": {
+    "mtime": 1784836113.5175984,
+    "ast_hash": "7201742434791a189a3113efda71ba37",
+    "semantic_hash": "7201742434791a189a3113efda71ba37"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-14-SUMMARY.md": {
+    "mtime": 1784856086.5026844,
+    "ast_hash": "3b1f1182e10178ca85f2bbfb716a6aa7",
+    "semantic_hash": "3b1f1182e10178ca85f2bbfb716a6aa7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-15-PLAN.md": {
+    "mtime": 1784836147.8966691,
+    "ast_hash": "ee747d83ee1a2f6235493e5bf45840c6",
+    "semantic_hash": "ee747d83ee1a2f6235493e5bf45840c6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-15-SUMMARY.md": {
+    "mtime": 1784857197.5114193,
+    "ast_hash": "951dd74dcf2c5d3de51260db04a501f8",
+    "semantic_hash": "951dd74dcf2c5d3de51260db04a501f8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-16-PLAN.md": {
+    "mtime": 1784836668.0748134,
+    "ast_hash": "a86656bbdff0ba9604f3dc5b908c9804",
+    "semantic_hash": "a86656bbdff0ba9604f3dc5b908c9804"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-16-SUMMARY.md": {
+    "mtime": 1784869690.3822286,
+    "ast_hash": "2951fee8797b50911868a2ffdfd9c352",
+    "semantic_hash": "2951fee8797b50911868a2ffdfd9c352"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-17-PLAN.md": {
+    "mtime": 1784836252.1544058,
+    "ast_hash": "65d3e101e8ab1834febc4e2507e16425",
+    "semantic_hash": "65d3e101e8ab1834febc4e2507e16425"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-17-SUMMARY.md": {
+    "mtime": 1784842322.828587,
+    "ast_hash": "ffa09ce73371fe1f4901f66d9f0df146",
+    "semantic_hash": "ffa09ce73371fe1f4901f66d9f0df146"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-CONTEXT.md": {
+    "mtime": 1784696670.4002066,
+    "ast_hash": "cfd884b861583625e912cf2b70e41040",
+    "semantic_hash": "cfd884b861583625e912cf2b70e41040"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-RESEARCH.md": {
+    "mtime": 1784697360.0244138,
+    "ast_hash": "b3d24563968bdcc65474c6135db5e85e",
+    "semantic_hash": "b3d24563968bdcc65474c6135db5e85e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-REVIEW.md": {
+    "mtime": 1784870444.6611056,
+    "ast_hash": "f2e5f07c2503e15cc28333cb8550b7c7",
+    "semantic_hash": "f2e5f07c2503e15cc28333cb8550b7c7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-SECURITY.md": {
+    "mtime": 1784899666.887798,
+    "ast_hash": "283ea43752af35c694a82257cf2f3c82",
+    "semantic_hash": "283ea43752af35c694a82257cf2f3c82"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-VALIDATION.md": {
+    "mtime": 1784697447.6036353,
+    "ast_hash": "1db5257f1eea0353be4c931de8050111",
+    "semantic_hash": "1db5257f1eea0353be4c931de8050111"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\04-VERIFICATION.md": {
+    "mtime": 1784871079.5473754,
+    "ast_hash": "f4fe44320e82791ad012c47b71acc48f",
+    "semantic_hash": "f4fe44320e82791ad012c47b71acc48f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\04-maintenance-and-housekeeping-programs\\deferred-items.md": {
+    "mtime": 1784822572.9492116,
+    "ast_hash": "eacc9151a46aac67a6412f17a0a17bc1",
+    "semantic_hash": "eacc9151a46aac67a6412f17a0a17bc1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-01-PLAN.md": {
+    "mtime": 1784904692.3191042,
+    "ast_hash": "9323bf63060c207b2e7ee3c49ebd1b20",
+    "semantic_hash": "9323bf63060c207b2e7ee3c49ebd1b20"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-01-SUMMARY.md": {
+    "mtime": 1784921917.6046607,
+    "ast_hash": "0f6f2574177972c86678fd48a85736c6",
+    "semantic_hash": "0f6f2574177972c86678fd48a85736c6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-02-PLAN.md": {
+    "mtime": 1784904843.0355754,
+    "ast_hash": "a7097714916234bb23ac52ca9fab0805",
+    "semantic_hash": "a7097714916234bb23ac52ca9fab0805"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-02-SUMMARY.md": {
+    "mtime": 1784922828.901803,
+    "ast_hash": "55aad64d9d7243b6820beb2827a20cb7",
+    "semantic_hash": "55aad64d9d7243b6820beb2827a20cb7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-03-PLAN.md": {
+    "mtime": 1784904993.2648337,
+    "ast_hash": "026a1ee2069d70d6ebc46c0e5b9d7c48",
+    "semantic_hash": "026a1ee2069d70d6ebc46c0e5b9d7c48"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-03-SUMMARY.md": {
+    "mtime": 1784922832.4721348,
+    "ast_hash": "dc7a27035f35328fd0f0ddee31a83f1d",
+    "semantic_hash": "dc7a27035f35328fd0f0ddee31a83f1d"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-04-PLAN.md": {
+    "mtime": 1784905079.0982163,
+    "ast_hash": "5eef4236ec57e5dcf03f220db4dc69c6",
+    "semantic_hash": "5eef4236ec57e5dcf03f220db4dc69c6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-04-SUMMARY.md": {
+    "mtime": 1784922836.5461054,
+    "ast_hash": "2ce4a37a4d16b647e6f75fb3e6ab8203",
+    "semantic_hash": "2ce4a37a4d16b647e6f75fb3e6ab8203"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-05-PLAN.md": {
+    "mtime": 1784905173.165,
+    "ast_hash": "ac062aaac8d2b2d62f7dbe8fbc09c351",
+    "semantic_hash": "ac062aaac8d2b2d62f7dbe8fbc09c351"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-05-SUMMARY.md": {
+    "mtime": 1784940194.866862,
+    "ast_hash": "9e44ded56bf4f623e52d92d765c5cce1",
+    "semantic_hash": "9e44ded56bf4f623e52d92d765c5cce1"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-06-PLAN.md": {
+    "mtime": 1784905310.1304255,
+    "ast_hash": "60ff379572b6034d2edc54a6a623b06c",
+    "semantic_hash": "60ff379572b6034d2edc54a6a623b06c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-06-SUMMARY.md": {
+    "mtime": 1784940199.962392,
+    "ast_hash": "3c4feb0397b6148be32f46f3d72b8529",
+    "semantic_hash": "3c4feb0397b6148be32f46f3d72b8529"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-07-PLAN.md": {
+    "mtime": 1784905452.7497041,
+    "ast_hash": "d6f1bf7b9bba101c814be856f3896cd6",
+    "semantic_hash": "d6f1bf7b9bba101c814be856f3896cd6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-07-SUMMARY.md": {
+    "mtime": 1784941231.9248674,
+    "ast_hash": "f4c7f1abf1bb4e88593aad4c41a8e21b",
+    "semantic_hash": "f4c7f1abf1bb4e88593aad4c41a8e21b"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-08-PLAN.md": {
+    "mtime": 1784919386.996388,
+    "ast_hash": "41088e1ffa93b64a72db97444047e0c4",
+    "semantic_hash": "41088e1ffa93b64a72db97444047e0c4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-08-SUMMARY.md": {
+    "mtime": 1784940204.8429906,
+    "ast_hash": "9159a63dc2292ce486f2d78fe4150182",
+    "semantic_hash": "9159a63dc2292ce486f2d78fe4150182"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-09-PLAN.md": {
+    "mtime": 1784905653.0876522,
+    "ast_hash": "a4c5c36789e2e7de3587a6fa6ea62c54",
+    "semantic_hash": "a4c5c36789e2e7de3587a6fa6ea62c54"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-09-SUMMARY.md": {
+    "mtime": 1784943418.9026413,
+    "ast_hash": "cc9ecc2b74e63e1f77313b405ead699a",
+    "semantic_hash": "cc9ecc2b74e63e1f77313b405ead699a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-10-PLAN.md": {
+    "mtime": 1784905774.5422728,
+    "ast_hash": "b81374d50cb5661b2e5b4fd0f0ab4595",
+    "semantic_hash": "b81374d50cb5661b2e5b4fd0f0ab4595"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-10-SUMMARY.md": {
+    "mtime": 1784943424.09011,
+    "ast_hash": "51fbd369e550f80063e5cb1e4ee18c61",
+    "semantic_hash": "51fbd369e550f80063e5cb1e4ee18c61"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-11-PLAN.md": {
+    "mtime": 1784905894.054358,
+    "ast_hash": "0cf4266c780fc889d9e7753abf59fe36",
+    "semantic_hash": "0cf4266c780fc889d9e7753abf59fe36"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-11-SUMMARY.md": {
+    "mtime": 1784943430.1316564,
+    "ast_hash": "b81fef3622c4b1e3c532393a125488d2",
+    "semantic_hash": "b81fef3622c4b1e3c532393a125488d2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-12-PLAN.md": {
+    "mtime": 1784920310.5073357,
+    "ast_hash": "ac56273e98f129dc31c40b0fd9096a76",
+    "semantic_hash": "ac56273e98f129dc31c40b0fd9096a76"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-12-SUMMARY.md": {
+    "mtime": 1784945159.2852511,
+    "ast_hash": "6989d7b94063ebba58073279978610dd",
+    "semantic_hash": "6989d7b94063ebba58073279978610dd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-CONTEXT.md": {
+    "mtime": 1784919832.1872969,
+    "ast_hash": "4210117de83c5fa313776fb618d22e30",
+    "semantic_hash": "4210117de83c5fa313776fb618d22e30"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-DISCUSSION-LOG.md": {
+    "mtime": 1784900473.4523437,
+    "ast_hash": "386730884dd62cb8622e778d67575158",
+    "semantic_hash": "386730884dd62cb8622e778d67575158"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-HUMAN-UAT.md": {
+    "mtime": 1785027806.373948,
+    "ast_hash": "3ecc7aad462a4de47b00b0ebee2f1b3a",
+    "semantic_hash": "3ecc7aad462a4de47b00b0ebee2f1b3a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-PATTERNS.md": {
+    "mtime": 1784904065.7932882,
+    "ast_hash": "91910df9e8083420b0924b6e81b425ee",
+    "semantic_hash": "91910df9e8083420b0924b6e81b425ee"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-RESEARCH.md": {
+    "mtime": 1784919397.2876394,
+    "ast_hash": "83da78b2ad940c4c120b72f00bfdb8b5",
+    "semantic_hash": "83da78b2ad940c4c120b72f00bfdb8b5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-REVIEW-FIX.md": {
+    "mtime": 1784971865.647607,
+    "ast_hash": "c0679c7d6bd5f1bb2ede393e50fbc969",
+    "semantic_hash": "c0679c7d6bd5f1bb2ede393e50fbc969"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-REVIEW.md": {
+    "mtime": 1784945705.8273664,
+    "ast_hash": "2dd701ce6908caa65d545161d34e1af7",
+    "semantic_hash": "2dd701ce6908caa65d545161d34e1af7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-UI-SPEC.md": {
+    "mtime": 1784920556.4699457,
+    "ast_hash": "662e11836824040c0e77bf9e01397c76",
+    "semantic_hash": "662e11836824040c0e77bf9e01397c76"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-VALIDATION.md": {
+    "mtime": 1784920549.1750133,
+    "ast_hash": "76f202bb9f6d6cb60b3fa235b56f7ef2",
+    "semantic_hash": "76f202bb9f6d6cb60b3fa235b56f7ef2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\05-guest-recovery-and-management-roi\\05-VERIFICATION.md": {
+    "mtime": 1784972560.5701034,
+    "ast_hash": "c3181dd80fd2e69562ae5e6955baeb5e",
+    "semantic_hash": "c3181dd80fd2e69562ae5e6955baeb5e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-01-PLAN.md": {
+    "mtime": 1785213374.8892307,
+    "ast_hash": "2c438429d0566ea81b64b32bcfce77ee",
+    "semantic_hash": "2c438429d0566ea81b64b32bcfce77ee"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-01-SUMMARY.md": {
+    "mtime": 1785228270.48378,
+    "ast_hash": "d36a42845eedd65111da3c6e37326ba2",
+    "semantic_hash": "d36a42845eedd65111da3c6e37326ba2"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-02-PLAN.md": {
+    "mtime": 1785214487.6285615,
+    "ast_hash": "01a9c8f38e39f3207625bb4068d8c1f7",
+    "semantic_hash": "01a9c8f38e39f3207625bb4068d8c1f7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-02-SUMMARY.md": {
+    "mtime": 1785229699.2813094,
+    "ast_hash": "23edb76c3891b3a128e2f36f5d07d101",
+    "semantic_hash": "23edb76c3891b3a128e2f36f5d07d101"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-03-PLAN.md": {
+    "mtime": 1785213551.6213453,
+    "ast_hash": "efec725f7787b2470aeece7220e4ece5",
+    "semantic_hash": "efec725f7787b2470aeece7220e4ece5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-03-SUMMARY.md": {
+    "mtime": 1785230176.5332453,
+    "ast_hash": "c7c56175ad72bcc1048755e214ef2ccb",
+    "semantic_hash": "c7c56175ad72bcc1048755e214ef2ccb"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-04-PLAN.md": {
+    "mtime": 1785213636.8746116,
+    "ast_hash": "e2b0fcae4b276a25498421d05848e0da",
+    "semantic_hash": "e2b0fcae4b276a25498421d05848e0da"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-04-SUMMARY.md": {
+    "mtime": 1785230663.211903,
+    "ast_hash": "7101aa02f51f4b337c5107b562fdf373",
+    "semantic_hash": "7101aa02f51f4b337c5107b562fdf373"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-05-PLAN.md": {
+    "mtime": 1785213691.784136,
+    "ast_hash": "5abaf3da3f11be2a07514af509561687",
+    "semantic_hash": "5abaf3da3f11be2a07514af509561687"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-05-SUMMARY.md": {
+    "mtime": 1785271965.763517,
+    "ast_hash": "2f5852948581bf19008ad2b7533b30d3",
+    "semantic_hash": "2f5852948581bf19008ad2b7533b30d3"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-CONTEXT.md": {
+    "mtime": 1785210886.2253163,
+    "ast_hash": "ef655cfd87f29a5cdfd869bee2d5e52a",
+    "semantic_hash": "ef655cfd87f29a5cdfd869bee2d5e52a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-DISCUSSION-LOG.md": {
+    "mtime": 1785210909.7947364,
+    "ast_hash": "65635f63e5eae79f78e9a2eeec61be06",
+    "semantic_hash": "65635f63e5eae79f78e9a2eeec61be06"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-PATTERNS.md": {
+    "mtime": 1785213084.0120761,
+    "ast_hash": "1eb608104af667358fad91d0432159fd",
+    "semantic_hash": "1eb608104af667358fad91d0432159fd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-RESEARCH.md": {
+    "mtime": 1785214487.6309826,
+    "ast_hash": "8d2c3c03a33e70ac7f85d0b251dd5271",
+    "semantic_hash": "8d2c3c03a33e70ac7f85d0b251dd5271"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-SECURITY.md": {
+    "mtime": 1785276515.0507853,
+    "ast_hash": "0c30e3e02f1f523ac1f4511a37896845",
+    "semantic_hash": "0c30e3e02f1f523ac1f4511a37896845"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-UAT.md": {
+    "mtime": 1785275811.3475275,
+    "ast_hash": "1e2db36124a5bd7d108545e8307900fe",
+    "semantic_hash": "1e2db36124a5bd7d108545e8307900fe"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-VALIDATION.md": {
+    "mtime": 1785214517.934311,
+    "ast_hash": "4ee48b55841480217e2b11f263717523",
+    "semantic_hash": "4ee48b55841480217e2b11f263717523"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\milestones\\v1.0-phases\\06-pms-and-ai-expansion\\06-VERIFICATION.md": {
+    "mtime": 1785277748.3952332,
+    "ast_hash": "b4a93412c85caf6f141f23f17056c3f6",
+    "semantic_hash": "b4a93412c85caf6f141f23f17056c3f6"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\research\\FEATURES.md": {
+    "mtime": 1785282919.27555,
+    "ast_hash": "58ea9fa39769690aa27560486f8968a5",
+    "semantic_hash": "58ea9fa39769690aa27560486f8968a5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\research\\STACK.md": {
+    "mtime": 1785282930.328367,
+    "ast_hash": "618c0146e2e8ffabc5b7e000f9a66cf5",
+    "semantic_hash": "618c0146e2e8ffabc5b7e000f9a66cf5"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\REQUIREMENTS.md": {
+    "mtime": 1785358998.9068792,
+    "ast_hash": "3379897aa1a61bb3e515614c5dc1893e",
+    "semantic_hash": "3379897aa1a61bb3e515614c5dc1893e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\research\\ARCHITECTURE.md": {
+    "mtime": 1785282997.643121,
+    "ast_hash": "c9f7a9d2028f970483381bb727457b22",
+    "semantic_hash": "c9f7a9d2028f970483381bb727457b22"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\research\\PITFALLS.md": {
+    "mtime": 1785283155.5244658,
+    "ast_hash": "278f396bbcafdae2a1c2232119097ebc",
+    "semantic_hash": "278f396bbcafdae2a1c2232119097ebc"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\research\\SUMMARY.md": {
+    "mtime": 1785283440.714303,
+    "ast_hash": "24e237e6bf652a40c9e380372879d60a",
+    "semantic_hash": "24e237e6bf652a40c9e380372879d60a"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-CONTEXT.md": {
+    "mtime": 1785286376.1471474,
+    "ast_hash": "a3cfb13f45c752345d17cfd0d54a58ca",
+    "semantic_hash": "a3cfb13f45c752345d17cfd0d54a58ca"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-DISCUSSION-LOG.md": {
+    "mtime": 1785286405.5049877,
+    "ast_hash": "4073b60697bff7827ef3b9df1e78af10",
+    "semantic_hash": "4073b60697bff7827ef3b9df1e78af10"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-UI-SPEC.md": {
+    "mtime": 1785287480.389105,
+    "ast_hash": "e9490fdfd1ce5f0edbcee654c6afccdd",
+    "semantic_hash": "e9490fdfd1ce5f0edbcee654c6afccdd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-PATTERNS.md": {
+    "mtime": 1785288237.1495478,
+    "ast_hash": "14ed41c51ee082309551861fe59f61c7",
+    "semantic_hash": "14ed41c51ee082309551861fe59f61c7"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-01-PLAN.md": {
+    "mtime": 1785288554.1950305,
+    "ast_hash": "5f00c2f58babb874ddd528498121fa53",
+    "semantic_hash": "5f00c2f58babb874ddd528498121fa53"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-02-PLAN.md": {
+    "mtime": 1785288627.5186253,
+    "ast_hash": "1059f0d2e2912cbb49b71dcca5b1b73e",
+    "semantic_hash": "1059f0d2e2912cbb49b71dcca5b1b73e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-03-PLAN.md": {
+    "mtime": 1785289770.3071644,
+    "ast_hash": "df0f059a8b5faa0552c55b3c5a4632a3",
+    "semantic_hash": "df0f059a8b5faa0552c55b3c5a4632a3"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-04-PLAN.md": {
+    "mtime": 1785288878.5482707,
+    "ast_hash": "dcea99765ade5c3aee4fe0db445fbf9e",
+    "semantic_hash": "dcea99765ade5c3aee4fe0db445fbf9e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-05-PLAN.md": {
+    "mtime": 1785289026.927032,
+    "ast_hash": "e4d50357e5d95506f0b43490e5e407b8",
+    "semantic_hash": "e4d50357e5d95506f0b43490e5e407b8"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-06-PLAN.md": {
+    "mtime": 1785289088.8009331,
+    "ast_hash": "fa64966b8943bd1a246091b78878aede",
+    "semantic_hash": "fa64966b8943bd1a246091b78878aede"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\theme\\ThemeProvider.tsx": {
+    "mtime": 1785306032.8575194,
+    "ast_hash": "0b042cc432bf534a4f17368e76f402ea",
+    "semantic_hash": "0b042cc432bf534a4f17368e76f402ea"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\theme\\useTheme.ts": {
+    "mtime": 1785306033.922876,
+    "ast_hash": "a942e1ec7485a12ff341fd2674959ae4",
+    "semantic_hash": "a942e1ec7485a12ff341fd2674959ae4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-01-SUMMARY.md": {
+    "mtime": 1785306137.3455498,
+    "ast_hash": "63352af5f2942d1654d7aa98fecc648f",
+    "semantic_hash": "63352af5f2942d1654d7aa98fecc648f"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\ui\\Button.tsx": {
+    "mtime": 1785307529.8681967,
+    "ast_hash": "2a2094f438ca986aa7246d3625d94de4",
+    "semantic_hash": "2a2094f438ca986aa7246d3625d94de4"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\ui\\Card.tsx": {
+    "mtime": 1785306716.9001977,
+    "ast_hash": "3fc906a37652c1dd34923908a3fe4125",
+    "semantic_hash": "3fc906a37652c1dd34923908a3fe4125"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\ui\\StatusBadge.tsx": {
+    "mtime": 1785306716.9001977,
+    "ast_hash": "33617ba8dfe60f40535d30e62873893c",
+    "semantic_hash": "33617ba8dfe60f40535d30e62873893c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\theme\\ToastProvider.tsx": {
+    "mtime": 1785308109.4162128,
+    "ast_hash": "48d426574a0e0aba0c59d7329c978f1c",
+    "semantic_hash": "48d426574a0e0aba0c59d7329c978f1c"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\lib\\theme\\useToast.ts": {
+    "mtime": 1785306708.2152326,
+    "ast_hash": "33012fcd530d6e40e81fa1ff1ada3b64",
+    "semantic_hash": "33012fcd530d6e40e81fa1ff1ada3b64"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-02-SUMMARY.md": {
+    "mtime": 1785306708.214049,
+    "ast_hash": "57fde560167db2489e34ac497282b006",
+    "semantic_hash": "57fde560167db2489e34ac497282b006"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-03-SUMMARY.md": {
+    "mtime": 1785306713.2853055,
+    "ast_hash": "1e6bf017f384ff5d3ce4a7f0af498084",
+    "semantic_hash": "1e6bf017f384ff5d3ce4a7f0af498084"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-04-SUMMARY.md": {
+    "mtime": 1785306716.899194,
+    "ast_hash": "79aea298467f80f1eb8eaa4afc5bd054",
+    "semantic_hash": "79aea298467f80f1eb8eaa4afc5bd054"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\ui\\EmptyState.tsx": {
+    "mtime": 1785306919.2463155,
+    "ast_hash": "6cdd3675f440e6aa8d036ada0a624379",
+    "semantic_hash": "6cdd3675f440e6aa8d036ada0a624379"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\components\\ui\\StateBlock.tsx": {
+    "mtime": 1785308146.0281434,
+    "ast_hash": "ca818f97189d5d1bcd0e672675a10847",
+    "semantic_hash": "ca818f97189d5d1bcd0e672675a10847"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-05-SUMMARY.md": {
+    "mtime": 1785307058.909341,
+    "ast_hash": "b1a532630e4ecdf7c9b74d5f9dbdcc2e",
+    "semantic_hash": "b1a532630e4ecdf7c9b74d5f9dbdcc2e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\apps\\mobile\\eslint.config.mjs": {
+    "mtime": 1785307505.468955,
+    "ast_hash": "27a16e3e9289e89e27aae12acfb433b3",
+    "semantic_hash": "27a16e3e9289e89e27aae12acfb433b3"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-06-SUMMARY.md": {
+    "mtime": 1785307651.1791642,
+    "ast_hash": "2f51ded6eafd2e0809bf3d2537dd83cd",
+    "semantic_hash": "2f51ded6eafd2e0809bf3d2537dd83cd"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-REVIEW.md": {
+    "mtime": 1785308280.660257,
+    "ast_hash": "c72d08cae9708059d32e9e37dd11eb7e",
+    "semantic_hash": "c72d08cae9708059d32e9e37dd11eb7e"
+  },
+  "C:\\Users\\Henil\\projects\\PatelRep\\.planning\\phases\\07-theme-foundation-primitives\\07-VERIFICATION.md": {
+    "mtime": 1785358074.2928815,
+    "ast_hash": "14b426c8184fa90fd3d3a16dbf5161b8",
+    "semantic_hash": "14b426c8184fa90fd3d3a16dbf5161b8"
   }
 }
