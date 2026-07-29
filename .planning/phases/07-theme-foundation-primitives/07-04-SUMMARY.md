@@ -91,6 +91,15 @@ None - no external service configuration required.
 - Neither primitive is wired into any existing screen yet — `WorkOrderCard`/`RoomQueueCard` remain unchanged this phase, confirmed by a repo-wide import search finding zero call sites, satisfying ROADMAP SC5 (zero visual change).
 - `npx tsc --noEmit` in `apps/mobile` reports 0 errors after these changes (verified against a pre-existing 0-error baseline once `node_modules` was linked).
 
+## Self-Check: PASSED
+
+- FOUND: apps/mobile/components/ui/Card.tsx
+- FOUND: apps/mobile/components/ui/StatusBadge.tsx
+- FOUND: .planning/phases/07-theme-foundation-primitives/07-04-SUMMARY.md
+- FOUND: commit a68f19a6 (Task 1: Card)
+- FOUND: commit 28a4ba07 (Task 2: StatusBadge)
+- FOUND: commit 54b86a69 (docs: complete plan)
+
 ---
 *Phase: 07-theme-foundation-primitives*
 *Completed: 2026-07-29*
