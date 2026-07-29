@@ -136,8 +136,8 @@ export function IconButton({
 
   return (
     <View
+      accessible={!!accessibilityLabel}
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
       style={[
         styles.iconButton,
         {

@@ -93,8 +93,11 @@ export function ToastViewport({ topOffset }: { topOffset: number }) {
     Animated.parallel([
       Animated.timing(translateY, { toValue: -20, duration: 150, useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 0, duration: 150, useNativeDriver: true }),
-    ]).start(() => {
-      dismiss();
+    ]).start(({ finished }) => {
+      // A new toast interrupting this exit animation stops it with finished=false —
+      // in that case a newer toast has already replaced state, so dismiss() must not fire
+      // or it would wipe out the toast that just replaced this one.
+      if (finished) dismiss();
     });
   }, [translateY, opacity, dismiss]);
 
