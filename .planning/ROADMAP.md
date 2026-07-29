@@ -62,7 +62,16 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   3. An engineer can view and act on Work Orders (list + detail) rendered with the new primitives; RBAC and data behavior are unchanged.
   4. Any floor role can view and complete Tasks rendered with the new primitives; data behavior is unchanged.
   5. Any floor role can complete an Inspection (including the photo-on-fail prompt) rendered with the new primitives; inspection-submission behavior is unchanged.
-**Plans**: TBD
+**Plans**: 9 plans (6 waves)
+- [ ] 08-00-PLAN.md — Wave 0 prereq: add textDisabled/accentBrassSoft/accentBrassLine to lightTheme/darkTheme (unblocks C.ink4/brassSoft/brassLine burn-down) [wave 0]
+- [ ] 08-01-PLAN.md — My Rooms list + RoomQueueCard rebuild on Card+Pressable (FLOOR-01) [wave 1]
+- [ ] 08-02-PLAN.md — My Rooms detail + ChecklistSection; 11 alerts → Toast (FLOOR-01) [wave 1]
+- [ ] 08-03-PLAN.md — My Rooms modals: ReportIssue/Knock/SupplyRequest/FoundItem (FLOOR-01) [wave 1]
+- [ ] 08-04-PLAN.md — Room Board + new render test scaffold (FLOOR-02) [wave 2]
+- [ ] 08-05-PLAN.md — Work Orders list + WorkOrderCard rebuild + CreateWorkOrderModal (FLOOR-03) [wave 3]
+- [ ] 08-06-PLAN.md — Work Orders detail; 10 alerts → Toast, escalate-confirm stays blocking (FLOOR-03) [wave 3]
+- [ ] 08-07-PLAN.md — Tasks list + TaskCard rebuild on Card+StatusBadge+Button (FLOOR-04) [wave 4]
+- [ ] 08-08-PLAN.md — Inspect screen; migrate existing fail-checklist as-is, no new photo capture (FLOOR-05) [wave 5]
 **UI hint**: yes
 
 ### Phase 9: Remaining Screens Rollout
@@ -99,7 +108,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - **Small tidy-up:** `guest_requests.py` uses inline `current_user.role` checks instead of the `require_role()` dependency pattern used elsewhere — functionally equivalent, cosmetic inconsistency.
 - **Deferred to future milestone:** iOS EAS build pipeline (IOS-01, see `.planning/REQUIREMENTS.md` Future Requirements) — separate initiative, not blocking mobile UI parity.
 - **Pre-existing lint smell:** `roleTabs.ts` has a duplicate `case "engineer"` — worth a one-line cleanup if a v1.1 wave touches neighboring code, not itself a requirement.
-- **Deferred from Phase 7 to Phase 9 (i18n gate scope):** The mobile `i18next/no-literal-string` gate (07-06) was narrowed to exclude four floor files that predate i18n work and have no `useTranslation` — `components/engineering/CreateWorkOrderModal.tsx`, `components/housekeeping/ReportIssueModal.tsx`, `components/housekeeping/SupplyRequestModal.tsx`, `app/(app)/tasks/index.tsx` (22 raw literals total, incl. safety-critical copy). Translating them now would breach Phase 7's zero-visual-change boundary and ship unreviewed Spanish; deferred to Phase 9's screen migration (mirrors web's 04-08 narrow-then-widen). **Phase 9 must migrate these onto `t()` with EN+ES keys and remove the corresponding `ignores` entries in `apps/mobile/eslint.config.mjs`.**
+- **Deferred from Phase 7 to Phase 9 (i18n gate scope):** The mobile `i18next/no-literal-string` gate (07-06) was narrowed to exclude four floor files that predate i18n work and have no `useTranslation` — `components/engineering/CreateWorkOrderModal.tsx`, `components/housekeeping/ReportIssueModal.tsx`, `components/housekeeping/SupplyRequestModal.tsx`, `app/(app)/tasks/index.tsx` (22 raw literals total, incl. safety-critical copy). Translating them now would breach Phase 7's zero-visual-change boundary and ship unreviewed Spanish; deferred to Phase 9's screen migration (mirrors web's 04-08 narrow-then-widen). **Phase 9 must migrate these onto `t()` with EN+ES keys and remove the corresponding `ignores` entries in `apps/mobile/eslint.config.mjs`.** Note: Phase 8 migrates these four files' buttons/cards/colors onto the primitives while passing their existing hardcoded English strings through as-is (D-06) — it does NOT widen the gate.
 
 ## Progress
 
@@ -116,6 +125,6 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
 | 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
-| 8. Floor-Role Rollout | v1.1 | 0/TBD | Not started | - |
+| 8. Floor-Role Rollout | v1.1 | 0/9 | Not started | - |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
