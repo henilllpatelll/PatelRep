@@ -24,18 +24,31 @@ const config = [
   // in Phase 9. Severity is 'error' (hard CI failure), never 'warn'.
   {
     files: [
-      'components/ui/**',
-      'app/(app)/my-rooms/**',
-      'app/(app)/room-board/**',
-      'app/(app)/room-status/**',
-      'app/(app)/work-orders/**',
-      'app/(app)/tasks/**',
-      'app/(app)/inspect/**',
-      'components/housekeeping/**',
-      'components/engineering/**',
-      'components/tasks/**',
+      'components/ui/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/my-rooms/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/room-board/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/room-status/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/work-orders/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/tasks/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/inspect/**/*.{ts,tsx,js,jsx}',
+      'components/housekeeping/**/*.{ts,tsx,js,jsx}',
+      'components/engineering/**/*.{ts,tsx,js,jsx}',
+      'components/tasks/**/*.{ts,tsx,js,jsx}',
     ],
-    ignores: ['**/*.test.*', '**/*.spec.*'],
+    ignores: [
+      '**/*.test.*',
+      '**/*.spec.*',
+      // Deferred to Phase 9 (per team-lead decision 2026-07-29): these four
+      // floor files predate i18n work and are not yet wired to useTranslation.
+      // Translating them now would breach Phase 7's "zero visible change to any
+      // existing screen" boundary and ship unreviewed Spanish for safety copy
+      // ("Emergency"/"Safety"). Mirrors web's 04-08 narrow-then-widen precedent;
+      // Phase 9 migrates them onto i18n and removes these exemptions.
+      'components/engineering/CreateWorkOrderModal.tsx',
+      'components/housekeeping/ReportIssueModal.tsx',
+      'components/housekeeping/SupplyRequestModal.tsx',
+      'app/(app)/tasks/index.tsx',
+    ],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
