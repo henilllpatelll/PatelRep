@@ -11,6 +11,7 @@ import { supabase, toAppRole } from "@/lib/supabase";
 import type { UserProfile } from "@/lib/supabase";
 import { api } from "@/lib/api/client";
 import { deferAuthHydration } from "@/lib/auth/deferAuthHydration";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 // Must be at module scope — calling inside a component or useEffect is too late.
 SplashScreen.preventAutoHideAsync();
@@ -132,12 +133,12 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <ThemeProvider>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }
