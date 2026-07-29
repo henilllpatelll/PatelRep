@@ -368,6 +368,8 @@ D-05/D-07-style reasoning applies: `ChecklistSection` is described as "from Insp
 
 ## Open Questions
 
+**RESOLVED 2026-07-29 (during `/gsd-plan-phase 8`):** Both questions below were resolved before planning completed — see `08-CONTEXT.md` D-11 (photo-on-fail, resolved via direct user confirmation) and `08-03-PLAN.md` Task 2 (FoundItemModal, resolved as raw-hex-literal migration, not a `C.*` sweep). Left in place below for the research trail.
+
 1. **FLOOR-05's "photo-on-fail prompt" does not exist in the current mobile Inspect screen.**
    - What we know: `REQUIREMENTS.md`'s FLOOR-05 text says the Inspect screen must render "including the photo-on-fail prompt." `inspect/index.tsx`'s fail flow (`confirm?.result === "failed"`) is a text/checkbox checklist (`failChecklistLabel`, `TextInput` for notes) — grep confirmed **zero** `ImagePicker`/photo-upload code in `inspect/index.tsx`. The web app's Phase 1 history (`STATE.md`) mentions "`requires_photo_on_fail` enforced" for `InspectionModal` — but that is a **web** component; nothing in mobile's `inspect/index.tsx` or `ChecklistSection.tsx` implements it (confirmed via grep for `requires_photo`, `photo_url`, `ImagePicker` — no matches in either file).
    - What's unclear: whether FLOOR-05's wording is describing a feature that needs to be *built* (out of scope — Phase 8 is explicitly migration-only, "no change to underlying behavior") or is imprecise boilerplate copied from the web requirement that doesn't actually apply to mobile's current fail-checklist implementation.

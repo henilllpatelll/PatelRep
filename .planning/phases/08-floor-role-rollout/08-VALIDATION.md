@@ -1,8 +1,8 @@
 ---
 phase: 8
 slug: floor-role-rollout
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-29
 ---
@@ -36,23 +36,27 @@ created: 2026-07-29
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 08-00-01 | 00 | 0 | (prereq) | — | `tokens.ts` gains `ink4`/`brassSoft`/`brassLine` in `lightTheme`/`darkTheme`, no shape break | unit | `cd apps/mobile && npx jest MobileVisualTokens.test.ts` | ✅ | ⬜ pending |
-| 08-01-xx | 01 | 1 | FLOOR-01 | T-8-01 | My Rooms list+detail render via primitives; role/tenant-scoped fetch calls unchanged | unit/component | `cd apps/mobile && npx jest __tests__/screens/MyRoomsScreen.test.tsx __tests__/screens/RoomDetail.test.tsx` | ✅ | ⬜ pending |
-| 08-02-xx | 02 | 2 | FLOOR-02 | T-8-01 | Room Board renders via primitives; offline-sync unchanged | unit/component | `cd apps/mobile && npx jest __tests__/screens/RoomStatusList.test.tsx` | ✅ (verify name match) | ⬜ pending |
-| 08-03-xx | 03 | 3 | FLOOR-03 | T-8-01 | Work Orders list+detail render via primitives; RBAC/tenant-scoping unchanged | unit/component | `cd apps/mobile && npx jest __tests__/screens/WorkOrdersList.test.tsx __tests__/screens/WorkOrderDetail.test.tsx` | ✅ | ⬜ pending |
-| 08-04-xx | 04 | 4 | FLOOR-04 | — | Tasks renders via primitives; data behavior unchanged | unit/component | `cd apps/mobile && npx jest __tests__/screens/TasksVariationA.test.tsx` | ✅ | ⬜ pending |
-| 08-05-xx | 05 | 5 | FLOOR-05 | — | Inspect renders via primitives; submission behavior unchanged (existing checklist UI migrated as-is, no new photo-capture behavior) | unit/component | `cd apps/mobile && npx jest __tests__/screens/InspectorQueue.test.tsx` | ✅ (verify name match) | ⬜ pending |
+| Plan | Wave | Objective | Requirement | Threat Ref | Secure Behavior | Automated Command | Status |
+|------|------|-----------|-------------|------------|-----------------|-------------------|--------|
+| 08-00 | 0 | tokens.ts prereq | FLOOR-01..05 (unblocks all) | T-08-00-01/02 | `lightTheme`/`darkTheme` gain `textDisabled`/`accentBrassSoft`/`accentBrassLine`, no existing key renamed/removed | `cd apps/mobile && npx jest MobileVisualTokens.test.ts && npm run type-check` | ⬜ pending |
+| 08-01 | 1 | My Rooms list + RoomQueueCard rebuild (D-09) | FLOOR-01 | plan threat_model | Card-shell only touched; `StatusPill`/`StatusRail` untouched; role/tenant-scoped fetch unchanged | `cd apps/mobile && npx jest __tests__/screens/MyRoomsScreen.test.tsx` | ⬜ pending |
+| 08-02 | 1 | My Rooms detail + ChecklistSection; 11 alerts→Toast | FLOOR-01 | plan threat_model | Alert→Toast conversion only touches feedback-only alerts per D-04; confirm-dialogs unchanged | `cd apps/mobile && npx jest __tests__/screens/RoomDetail.test.tsx` | ⬜ pending |
+| 08-03 | 1 | My Rooms modals: ReportIssue/Knock/SupplyRequest/FoundItem | FLOOR-01 | plan threat_model | FoundItemModal raw-hex→theme migration; zero hex literals remain | `cd apps/mobile && npx jest __tests__/components/ReportIssueModal.test.tsx` | ⬜ pending |
+| 08-04 | 2 | Room Board + new render test scaffold | FLOOR-02 | plan threat_model | Offline-sync unchanged; new `RoomBoard.test.tsx` created (no prior test existed — `RoomStatusList.test.tsx` covers the unrelated `room-status` screen) | `cd apps/mobile && npx jest __tests__/screens/RoomBoard.test.tsx` | ⬜ pending |
+| 08-05 | 3 | WO list + WorkOrderCard rebuild (D-08) + CreateWorkOrderModal | FLOOR-03 | plan threat_model | RBAC/tenant-scoping in handlers unchanged; Card-shell rebuild only | `cd apps/mobile && npx jest __tests__/screens/WorkOrdersList.test.tsx` | ⬜ pending |
+| 08-06 | 3 | WO detail; 10 alerts→Toast, escalate-confirm stays blocking | FLOOR-03 | plan threat_model | Escalate-confirm `Alert.alert` intentionally NOT converted (D-04 confirm case) | `cd apps/mobile && npx jest __tests__/screens/WorkOrderDetail.test.tsx` | ⬜ pending |
+| 08-07 | 4 | Tasks list + TaskCard rebuild (D-08) | FLOOR-04 | plan threat_model | Data behavior unchanged; doneBtn stays themed TouchableOpacity (no primitive fits icon-only tappable) | `cd apps/mobile && npx jest __tests__/screens/TasksVariationA.test.tsx` | ⬜ pending |
+| 08-08 | 5 | Inspect; migrate existing fail-checklist as-is (D-11) | FLOOR-05 | plan threat_model | No new ImagePicker/photo-capture code added; submission logic unchanged | `cd apps/mobile && npx jest __tests__/screens/InspectorQueue.test.tsx` | ⬜ pending |
 
-*Task IDs are placeholders (`xx`) — planner assigns final IDs per plan/wave breakdown. Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky. Updated post-planning to match the 9 plans/6 waves actually produced — see individual PLAN.md files for full per-task acceptance criteria.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `apps/mobile/components/shared/tokens.ts` — add `ink4`, `brassSoft`, `brassLine` to `lightTheme`/`darkTheme` (currently exist only in the flat `C` compat object; `useTheme()` has no path to them, and D-03 requires zero `C` usage remaining after this phase)
-- [ ] Confirm `MobileVisualTokens.test.ts` (or equivalent) doesn't assert a fixed theme-object shape that would break when the 3 keys are added
+- [ ] `apps/mobile/components/shared/tokens.ts` — add `textDisabled`, `accentBrassSoft`, `accentBrassLine` to `lightTheme`/`darkTheme` (mirrors `C.ink4`/`C.brassSoft`/`C.brassLine`, which exist only in the flat `C` compat object; `useTheme()` has no path to them, and D-03 requires zero `C` usage remaining after this phase) — implemented in 08-00-PLAN.md
+- [ ] Confirm `MobileVisualTokens.test.ts` doesn't assert a fixed theme-object shape that would break when the 3 keys are added — 08-00's `read_first` covers this
+- [ ] `apps/mobile/app/(app)/room-board/index.tsx` has no pre-existing dedicated test (`RoomStatusList.test.tsx` covers `room-status`, a different screen) — 08-04 creates `RoomBoard.test.tsx` as part of its Wave 2 work
 
 *No new test framework install needed — existing Jest/jest-expo infrastructure covers all phase requirements.*
 
@@ -76,4 +80,4 @@ created: 2026-07-29
 - [ ] Feedback latency < 60s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-29 (gsd-plan-checker Dimension 8: all 4 sub-checks pass, 0 blockers)
