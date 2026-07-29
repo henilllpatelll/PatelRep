@@ -9,19 +9,19 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 ### Theme Foundation
 
-- [ ] **THEME-01**: The app exposes a `useTheme()` hook returning the active theme's colors/spacing, reactive to the device's OS dark/light setting, with zero visual change to any existing screen until screens adopt it.
-- [ ] **THEME-02**: The app exposes a `ToastProvider`/`useToast()` available app-wide for non-blocking success/error/info feedback, as an alternative to `Alert.alert()` for non-destructive feedback.
+- [x] **THEME-01**: The app exposes a `useTheme()` hook returning the active theme's colors/spacing, reactive to the device's OS dark/light setting, with zero visual change to any existing screen until screens adopt it.
+- [x] **THEME-02**: The app exposes a `ToastProvider`/`useToast()` available app-wide for non-blocking success/error/info feedback, as an alternative to `Alert.alert()` for non-destructive feedback.
 
 ### Missing Primitives
 
-- [ ] **UI-01**: A shared `Button`/`IconButton` primitive exists with size variants, a loading state, and a minimum 44pt/48dp touch target.
-- [ ] **UI-02**: A shared `Card` primitive exists as the single container pattern for grouped content.
-- [ ] **UI-03**: A shared `EmptyState`/`StateBlock` primitive exists that renders loading, empty, and error states from one prop.
-- [ ] **UI-04**: A shared `StatusBadge` primitive exists that pairs color with an icon and text label for every room/work-order status (never color alone).
+- [x] **UI-01**: A shared `Button`/`IconButton` primitive exists with size variants, a loading state, and a minimum 44pt/48dp touch target.
+- [x] **UI-02**: A shared `Card` primitive exists as the single container pattern for grouped content.
+- [x] **UI-03**: A shared `EmptyState`/`StateBlock` primitive exists that renders loading, empty, and error states from one prop.
+- [x] **UI-04**: A shared `StatusBadge` primitive exists that pairs color with an icon and text label for every room/work-order status (never color alone).
 
 ### Mobile i18n Gate
 
-- [ ] **I18N-01**: An ESLint rule blocks raw JSX string literals in mobile floor-facing components/screens, mirroring web's `i18next/no-literal-string` gate, so new primitives and future mobile work can't silently ship English-only text.
+- [x] **I18N-01**: An ESLint rule blocks raw JSX string literals in mobile floor-facing components/screens, mirroring web's `i18next/no-literal-string` gate, so new primitives and future mobile work can't silently ship English-only text.
 
 ### Floor-Role Rollout
 
@@ -78,13 +78,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| THEME-01 | Phase 7 | Pending |
-| THEME-02 | Phase 7 | Pending |
-| UI-01 | Phase 7 | Pending |
-| UI-02 | Phase 7 | Pending |
-| UI-03 | Phase 7 | Pending |
-| UI-04 | Phase 7 | Pending |
-| I18N-01 | Phase 7 | Pending |
+| THEME-01 | Phase 7 | Validated |
+| THEME-02 | Phase 7 | Validated |
+| UI-01 | Phase 7 | Validated |
+| UI-02 | Phase 7 | Validated |
+| UI-03 | Phase 7 | Validated |
+| UI-04 | Phase 7 | Validated |
+| I18N-01 | Phase 7 | Validated |
 | FLOOR-01 | Phase 8 | Pending |
 | FLOOR-02 | Phase 8 | Pending |
 | FLOOR-03 | Phase 8 | Pending |
