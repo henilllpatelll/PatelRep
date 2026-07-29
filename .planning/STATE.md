@@ -202,7 +202,7 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 
 Phase: 7 of 10 (Theme Foundation & Primitives) — COMPLETE (6/6 plans)
 Plan: 6 plans across 4 waves all done (07-01 theme shell ✓ → 07-02/03/04 parallel ✓ → 07-05 ✓ → 07-06 lint gate ✓)
-Status: Phase 7 complete. Theme shell, Toast, Button/IconButton, Card/StatusBadge, EmptyState/StateBlock, and the mobile i18next/no-literal-string CI gate all landed; `npx tsc --noEmit` clean; `npm run lint` green. Gate narrowed to currently-clean scope — 4 un-i18n'd floor files (CreateWorkOrderModal, ReportIssueModal, SupplyRequestModal, tasks/index.tsx) deferred to Phase 9 per team-lead decision (mirrors web's 04-08 narrow-then-widen; respects Phase 7 zero-visual-change boundary). Next: Phase 8 (Floor-Role Rollout).
-Last activity: 2026-07-29 — Phase 7 complete (07-06 i18n lint gate; commits bf442093, 4cdc6c19)
+Status: Phase 7 complete, verified passed (5/5 must-haves, `07-VERIFICATION.md`). Theme shell, Toast, Button/IconButton, Card/StatusBadge, EmptyState/StateBlock, and the mobile i18next/no-literal-string CI gate all landed; `npx tsc --noEmit` clean; `npm run lint` green; full jest suite 24/24 suites, 132/132 tests green. Gate narrowed to currently-clean scope — 4 un-i18n'd floor files (CreateWorkOrderModal, ReportIssueModal, SupplyRequestModal, tasks/index.tsx) deferred to Phase 9 per team-lead decision (mirrors web's 04-08 narrow-then-widen; respects Phase 7 zero-visual-change boundary). Next: Phase 8 (Floor-Role Rollout).
+Last activity: 2026-07-29 — Phase 7 verification found one gap (HousekeeperHome.test.tsx broke when IconButton's theme-wire added a hard useTheme()/ThemeProvider dependency) and closed it same-day by wrapping the test render in ThemeProvider (commit f60f4d57); phase now verified passed.
 
 Progress: [██░░░░░░░░] 25%
