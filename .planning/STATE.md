@@ -4,13 +4,13 @@ milestone: v1.1
 milestone_name: Mobile UI Parity
 status: executing
 last_updated: "2026-07-29T00:00:00.000Z"
-last_activity: 2026-07-29 — Phase 7 COMPLETE (07-06 mobile i18n lint gate landed; gate narrowed to clean scope, 4 floor files deferred to Phase 9)
+last_activity: 2026-07-29 — Phase 8 discuss-phase session completed; CONTEXT.md + DISCUSSION-LOG.md written and committed.
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 100
+  percent: 25
 ---
 
 # GSD State
@@ -200,9 +200,9 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 
 ## Current Position
 
-Phase: 7 of 10 (Theme Foundation & Primitives) — COMPLETE (6/6 plans)
-Plan: 6 plans across 4 waves all done (07-01 theme shell ✓ → 07-02/03/04 parallel ✓ → 07-05 ✓ → 07-06 lint gate ✓)
-Status: Phase 7 complete, verified passed (5/5 must-haves, `07-VERIFICATION.md`). Theme shell, Toast, Button/IconButton, Card/StatusBadge, EmptyState/StateBlock, and the mobile i18next/no-literal-string CI gate all landed; `npx tsc --noEmit` clean; `npm run lint` green; full jest suite 24/24 suites, 132/132 tests green. Gate narrowed to currently-clean scope — 4 un-i18n'd floor files (CreateWorkOrderModal, ReportIssueModal, SupplyRequestModal, tasks/index.tsx) deferred to Phase 9 per team-lead decision (mirrors web's 04-08 narrow-then-widen; respects Phase 7 zero-visual-change boundary). Next: Phase 8 (Floor-Role Rollout).
-Last activity: 2026-07-29 — Phase 7 verification found one gap (HousekeeperHome.test.tsx broke when IconButton's theme-wire added a hard useTheme()/ThemeProvider dependency) and closed it same-day by wrapping the test render in ThemeProvider (commit f60f4d57); phase now verified passed.
+Phase: 8 of 10 (Floor-Role Rollout) — context gathered, not yet planned
+Plan: TBD (planner runs next)
+Status: Phase 7 complete, verified passed. Phase 8 context captured via `/gsd-discuss-phase 8` (`08-CONTEXT.md`, committed `e831dfb7`): traffic-based screen order (My Rooms → Room Board → Work Orders → Tasks → Inspect), list+detail pairs migrate together, full-migration depth (no legacy `C`-token UI left in scope after this phase), Alert.alert→Toast split by confirm-vs-feedback, all 6 reachable modals in scope, WorkOrderCard/TaskCard/RoomQueueCard rebuilt on Card+StatusBadge. i18n gate widening for the 4 Phase-7-deferred files stays Phase 9's job. Next: `/gsd-plan-phase 8`.
+Last activity: 2026-07-29 — Phase 8 discuss-phase session completed; CONTEXT.md + DISCUSSION-LOG.md written and committed.
 
 Progress: [██░░░░░░░░] 25%
