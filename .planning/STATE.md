@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile UI Parity
-status: planning
+status: roadmapped
 last_updated: "2026-07-28T23:50:28.124Z"
 last_activity: 2026-07-28
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -135,7 +135,7 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 - [x] Inspection photo evidence wired into InspectionModal; `requires_photo_on_fail` enforced.
 - [x] Notification delivery history recorded per-channel with success/failure outcome.
 - [x] **Playwright E2E**: `apps/web/e2e/phase1-work-orders.spec.ts` — 5 tests: emergency creation, escalated visibility, hold/reopen with reason codes, inspection photo prompt.
-- [x] **Honest occupancy language**: “Check In/Out” → “Mark Occupied/Departed”; “Ready for check-in” → “Ready for occupancy” in GMDashboard + FrontDeskDashboard.
+- [x] **Honest occupancy language**: "Check In/Out" → "Mark Occupied/Departed"; "Ready for check-in" → "Ready for occupancy" in GMDashboard + FrontDeskDashboard.
 - [x] **Enum drift CI guard**: `schema/work_order_enums.json` + `test_enum_contracts.py` — fails CI if Python constants diverge from JSON contract.
 - [x] **48-hour continuous healthy production monitoring**: clean window from 2026-07-17T15:00Z through 2026-07-19T15:00Z. `gh run list --workflow=deploy-check.yml --status failure --limit 5` confirmed the latest failure was 2026-07-17T14:44:43Z; no failures occurred during the window.
 
@@ -161,11 +161,22 @@ Deployed to production (Supabase `oacnwalhcpqdabivweki`) and verified end-to-end
 
 </details>
 
+## v1.1 Mobile UI Parity — roadmap created (2026-07-28)
+
+Roadmap derived from `.planning/REQUIREMENTS.md` (27 requirements, 6 categories) and `.planning/research/SUMMARY.md`'s recommended 4-phase structure (theme context gates primitives, primitives gate floor rollout, full migration gates dark mode). Continues phase numbering from v1.0's last phase (6) — v1.1 starts at Phase 7. 100% requirement coverage, no orphans. Full detail: `.planning/ROADMAP.md`.
+
+- Phase 7: Theme Foundation & Primitives — THEME-01/02, UI-01..04, I18N-01 (zero visual change; foundation for every later phase)
+- Phase 8: Floor-Role Rollout — FLOOR-01..05 (My Rooms, Room Board, Work Orders, Tasks, Inspect)
+- Phase 9: Remaining Screens Rollout — SCREENS-01..10 (profile, dashboards, supervisor, engineering-adjacent, guest-service, logbook, SOP, AI copilot, alerts, room status)
+- Phase 10: Dark Mode & Accessibility QA — DARK-01..05 (toggle, contrast, nav chrome theming, EAS build, full regression check)
+
 ## Current blockers (carried forward)
 
-- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Fix the doc when convenient — see `.planning/ROADMAP.md` Backlog.
-- Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
+- **Doc drift (not a functional blocker):** CLAUDE.md documents crons as running via GitHub Actions; production actually runs them in-process via APScheduler (`apps/api/core/scheduler.py`), confirmed healthy 2026-07-28 (12/12 jobs "ok" in `/health`). Not in v1.1 scope; fix opportunistically.
+- Non-management staff session for the "anyone-files / non-manager-cannot-view" incident path (v1.0 Phase 3) remains unavailable locally; that RBAC is covered by passing API tests. `controlled_incidents` is append-only with a DELETE-blocking trigger — any incident created during live testing is permanent in production.
 - See `## Deferred Items` below for v1.0's accepted credential-blocked deferrals (Twilio SMS, LLM/Opera round-trips) — still unresolved, not specific to v1.1.
+- **v1.1-specific risk (from research):** making `StyleSheet.create`-frozen colors reactive to theme changes touches 46+ mobile files — the single highest-risk item in the milestone. Phase 7 must land the reactive shell light-only-active before any screen migrates.
+- **v1.1-specific risk:** the app's EAS build pipeline is fragile (`dynamic-import-node` babel plugin, New Architecture, `--legacy-peer-deps` for React 19); zero new npm dependencies planned by design — any exception requires a green EAS build before merging.
 
 ## Verification commands
 
@@ -185,10 +196,13 @@ Items acknowledged and deferred at milestone v1.0 close on 2026-07-28:
 | UAT | Phase 05: 05-HUMAN-UAT.md | blocked_on_credentials (no local Twilio credentials — live SMS unexercised) |
 | UAT | Phase 06: 06-UAT.md | partial (no local LLM credentials — GM insights quick action unexercised) |
 | Verification | Phase 05: 05-VERIFICATION.md | human_needed (same root cause — live SMS) |
+| Future | IOS-01: EAS iOS build pipeline | deferred_to_future_milestone (not blocking v1.1 mobile UI parity) |
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-28 — Milestone v1.1 started
+Phase: 7 of 10 (Theme Foundation & Primitives) — not yet started
+Plan: — (roadmap created, planning not yet started)
+Status: Roadmap approved — ready to plan Phase 7
+Last activity: 2026-07-28 — ROADMAP.md, STATE.md, and REQUIREMENTS.md traceability created/updated for v1.1
+
+Progress: [░░░░░░░░░░] 0%

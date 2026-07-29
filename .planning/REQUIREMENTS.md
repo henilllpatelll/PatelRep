@@ -78,30 +78,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| THEME-01 | TBD | Pending |
-| THEME-02 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
-| UI-04 | TBD | Pending |
-| I18N-01 | TBD | Pending |
-| FLOOR-01 | TBD | Pending |
-| FLOOR-02 | TBD | Pending |
-| FLOOR-03 | TBD | Pending |
-| FLOOR-04 | TBD | Pending |
-| FLOOR-05 | TBD | Pending |
-| SCREENS-01 | TBD | Pending |
-| SCREENS-02 | TBD | Pending |
-| SCREENS-03 | TBD | Pending |
-| SCREENS-04 | TBD | Pending |
-| SCREENS-05 | TBD | Pending |
-| SCREENS-06 | TBD | Pending |
-| SCREENS-07 | TBD | Pending |
-| SCREENS-08 | TBD | Pending |
-| SCREENS-09 | TBD | Pending |
-| SCREENS-10 | TBD | Pending |
-| DARK-01 | TBD | Pending |
-| DARK-02 | TBD | Pending |
-| DARK-03 | TBD | Pending |
-| DARK-04 | TBD | Pending |
-| DARK-05 | TBD | Pending |
+| THEME-01 | Phase 7 | Pending |
+| THEME-02 | Phase 7 | Pending |
+| UI-01 | Phase 7 | Pending |
+| UI-02 | Phase 7 | Pending |
+| UI-03 | Phase 7 | Pending |
+| UI-04 | Phase 7 | Pending |
+| I18N-01 | Phase 7 | Pending |
+| FLOOR-01 | Phase 8 | Pending |
+| FLOOR-02 | Phase 8 | Pending |
+| FLOOR-03 | Phase 8 | Pending |
+| FLOOR-04 | Phase 8 | Pending |
+| FLOOR-05 | Phase 8 | Pending |
+| SCREENS-01 | Phase 9 | Pending |
+| SCREENS-02 | Phase 9 | Pending |
+| SCREENS-03 | Phase 9 | Pending |
+| SCREENS-04 | Phase 9 | Pending |
+| SCREENS-05 | Phase 9 | Pending |
+| SCREENS-06 | Phase 9 | Pending |
+| SCREENS-07 | Phase 9 | Pending |
+| SCREENS-08 | Phase 9 | Pending |
+| SCREENS-09 | Phase 9 | Pending |
+| SCREENS-10 | Phase 9 | Pending |
+| DARK-01 | Phase 10 | Pending |
+| DARK-02 | Phase 10 | Pending |
+| DARK-03 | Phase 10 | Pending |
+| DARK-04 | Phase 10 | Pending |
+| DARK-05 | Phase 10 | Pending |
