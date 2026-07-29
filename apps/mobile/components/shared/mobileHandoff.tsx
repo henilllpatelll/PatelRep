@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { C, R, aiTokens, darkTheme, monoFont, statusTokens } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
 
 export type Tone =
   | "neutral"
@@ -106,15 +107,37 @@ export function IconButton({
   icon,
   tone = "neutral",
   size = 36,
+  accessibilityLabel,
 }: {
   icon: React.ComponentProps<typeof Ionicons>["name"];
   tone?: Tone;
   size?: number;
+  accessibilityLabel?: string;
 }) {
+  const theme = useTheme();
+
+  const toneColors: Record<Tone, { bg: string; fg: string; line: string }> = {
+    neutral: { bg: theme.surfaceMuted, fg: theme.textSecondary, line: theme.border },
+    dirty: { bg: theme.status.dirtySoft, fg: theme.status.dirty, line: theme.status.dirtyLine },
+    occupied: { bg: theme.status.dirtySoft, fg: theme.status.occupied, line: theme.status.dirtyLine },
+    progress: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
+    clean: { bg: theme.status.cleanSoft, fg: theme.status.clean, line: theme.status.cleanLine },
+    ready: { bg: theme.status.readySoft, fg: theme.status.ready, line: theme.status.readyLine },
+    pickup: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
+    accent: { bg: theme.primarySoft, fg: theme.primaryAction, line: theme.primaryLine },
+    ai: { bg: theme.ai.soft, fg: theme.ai.primary, line: theme.ai.line },
+    alert: { bg: theme.status.dirtySoft, fg: theme.status.dirty, line: theme.status.dirtyLine },
+    caution: { bg: theme.status.pickupSoft, fg: theme.status.pickup, line: theme.status.pickupLine },
+    info: { bg: theme.status.cleanSoft, fg: theme.status.clean, line: theme.status.cleanLine },
+    ooo: { bg: theme.status.outOfOrderSoft, fg: theme.status.outOfOrder, line: theme.status.outOfOrderLine },
+  };
+
   const colors = toneColors[tone];
 
   return (
     <View
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
       style={[
         styles.iconButton,
         {
