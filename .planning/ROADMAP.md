@@ -45,9 +45,9 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
   5. Every existing mobile screen looks and behaves identically to its pre-phase state (no screen has adopted the new primitives yet).
 **Plans**: 6 plans (4 waves)
 - [x] 07-01-PLAN.md — Theme shell: ThemeProvider + useTheme() (light-only-active), mounted at app root (THEME-01) [wave 1]
-- [ ] 07-02-PLAN.md — Toast system: ToastProvider/useToast + viewport below OfflineBanner, core-RN only (THEME-02) [wave 2]
-- [ ] 07-03-PLAN.md — Button primitive + IconButton theme-wire (UI-01) [wave 2]
-- [ ] 07-04-PLAN.md — Card + StatusBadge primitives (UI-02, UI-04) [wave 2]
+- [x] 07-02-PLAN.md — Toast system: ToastProvider/useToast + viewport below OfflineBanner, core-RN only (THEME-02) [wave 2]
+- [x] 07-03-PLAN.md — Button primitive + IconButton theme-wire (UI-01) [wave 2]
+- [x] 07-04-PLAN.md — Card + StatusBadge primitives (UI-02, UI-04) [wave 2]
 - [ ] 07-05-PLAN.md — EmptyState + StateBlock primitives + seed i18n keys (UI-03) [wave 3]
 - [ ] 07-06-PLAN.md — Mobile i18next/no-literal-string CI lint gate (I18N-01) [wave 4]
 **UI hint**: yes
@@ -114,7 +114,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 4. Maintenance and housekeeping programs | v1.0 | 17/17 | Complete (deployed) | 2026-07-25 |
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
-| 7. Theme Foundation & Primitives | v1.1 | 1/6 | In progress | - |
+| 7. Theme Foundation & Primitives | v1.1 | 4/6 | In progress | - |
 | 8. Floor-Role Rollout | v1.1 | 0/TBD | Not started | - |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
