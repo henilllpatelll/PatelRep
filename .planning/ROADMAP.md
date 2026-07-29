@@ -26,7 +26,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 
 **Milestone Goal:** Bring the mobile app's visual and interaction design to parity with the web app's refreshed UI system (Waves 0-6, shipped 2026-07-27), starting with floor-role screens, without changing any behavior, data, routing, or RBAC.
 
-- [ ] **Phase 7: Theme Foundation & Primitives** - Reactive theme shell, missing UI primitives, and mobile i18n lint gate — zero visual change
+- [x] **Phase 7: Theme Foundation & Primitives** - Reactive theme shell, missing UI primitives, and mobile i18n lint gate — zero visual change
 - [ ] **Phase 8: Floor-Role Rollout** - My Rooms, Room Board, Work Orders, Tasks, Inspect migrated onto the new primitives
 - [ ] **Phase 9: Remaining Screens Rollout** - Every other mobile screen migrated onto the new primitives
 - [ ] **Phase 10: Dark Mode & Accessibility QA** - Dark mode enabled app-wide, contrast/build/regression verified
@@ -49,7 +49,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - [x] 07-03-PLAN.md — Button primitive + IconButton theme-wire (UI-01) [wave 2]
 - [x] 07-04-PLAN.md — Card + StatusBadge primitives (UI-02, UI-04) [wave 2]
 - [x] 07-05-PLAN.md — EmptyState + StateBlock primitives + seed i18n keys (UI-03) [wave 3]
-- [ ] 07-06-PLAN.md — Mobile i18next/no-literal-string CI lint gate (I18N-01) [wave 4]
+- [x] 07-06-PLAN.md — Mobile i18next/no-literal-string CI lint gate (I18N-01) [wave 4]
 **UI hint**: yes
 
 ### Phase 8: Floor-Role Rollout
@@ -99,6 +99,7 @@ Full phase details, decisions, and issues: `.planning/milestones/v1.0-ROADMAP.md
 - **Small tidy-up:** `guest_requests.py` uses inline `current_user.role` checks instead of the `require_role()` dependency pattern used elsewhere — functionally equivalent, cosmetic inconsistency.
 - **Deferred to future milestone:** iOS EAS build pipeline (IOS-01, see `.planning/REQUIREMENTS.md` Future Requirements) — separate initiative, not blocking mobile UI parity.
 - **Pre-existing lint smell:** `roleTabs.ts` has a duplicate `case "engineer"` — worth a one-line cleanup if a v1.1 wave touches neighboring code, not itself a requirement.
+- **Deferred from Phase 7 to Phase 9 (i18n gate scope):** The mobile `i18next/no-literal-string` gate (07-06) was narrowed to exclude four floor files that predate i18n work and have no `useTranslation` — `components/engineering/CreateWorkOrderModal.tsx`, `components/housekeeping/ReportIssueModal.tsx`, `components/housekeeping/SupplyRequestModal.tsx`, `app/(app)/tasks/index.tsx` (22 raw literals total, incl. safety-critical copy). Translating them now would breach Phase 7's zero-visual-change boundary and ship unreviewed Spanish; deferred to Phase 9's screen migration (mirrors web's 04-08 narrow-then-widen). **Phase 9 must migrate these onto `t()` with EN+ES keys and remove the corresponding `ignores` entries in `apps/mobile/eslint.config.mjs`.**
 
 ## Progress
 
@@ -114,7 +115,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 | 4. Maintenance and housekeeping programs | v1.0 | 17/17 | Complete (deployed) | 2026-07-25 |
 | 5. Guest recovery and management ROI | v1.0 | 12/12 | Complete (deployed) | 2026-07-25 |
 | 6. PMS and AI expansion | v1.0 | 5/5 | Complete | 2026-07-28 |
-| 7. Theme Foundation & Primitives | v1.1 | 5/6 | In progress | - |
+| 7. Theme Foundation & Primitives | v1.1 | 6/6 | Complete | 2026-07-29 |
 | 8. Floor-Role Rollout | v1.1 | 0/TBD | Not started | - |
 | 9. Remaining Screens Rollout | v1.1 | 0/TBD | Not started | - |
 | 10. Dark Mode & Accessibility QA | v1.1 | 0/TBD | Not started | - |
