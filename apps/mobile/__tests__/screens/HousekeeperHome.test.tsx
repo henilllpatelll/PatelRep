@@ -1,5 +1,6 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react-native";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 const mockSetMyRooms = jest.fn();
 
@@ -156,7 +157,11 @@ import HousekeeperHomeScreen from "@/app/(app)/home";
 
 describe("HousekeeperHomeScreen", () => {
   it("renders the companion hero with shift mosaic, focus card, briefing, and signals — no up-next queue", async () => {
-    const { getByText, getByTestId, queryByText, queryByTestId } = render(<HousekeeperHomeScreen />);
+    const { getByText, getByTestId, queryByText, queryByTestId } = render(
+      <ThemeProvider>
+        <HousekeeperHomeScreen />
+      </ThemeProvider>
+    );
 
     // Time-of-day greeting plus the supportive companion check-in
     await waitFor(() => expect(getByText(/Good (morning|afternoon|evening), Maria\./)).toBeTruthy());
