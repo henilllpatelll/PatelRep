@@ -44,19 +44,18 @@ The project's existing scale (`R`/`S` in `tokens.ts`) is the canonical scale for
 | `S.cardGap` | 15px | Gap between stacked cards (screen-owned) |
 | `S.sectionGap` | 22px | Section-level spacing (screen-owned) |
 
-**New primitive-specific spacing (not in `tokens.ts` — additive, small, and consistent with existing patterns like `heroButton`/`claimBtn`/`segment`):**
+**New primitive-specific spacing (not in `tokens.ts` — additive, small, and consistent with existing patterns like `heroButton`/`claimBtn`/`segment`; every value below is a 4px multiple):**
 
 | Value | Usage |
 |-------|-------|
 | 4px | Icon-to-label gap inside StatusBadge tightest case |
-| 6px | Icon-to-text gap (Button icon+label, Toast icon+text) |
-| 8px | StatusBadge horizontal padding |
-| 10px | Toast icon-to-text gap |
-| 12px | Button `sm` horizontal padding; Toast vertical padding |
-| 14px | Toast horizontal padding |
-| 16px | Button `md` horizontal padding |
+| 8px | StatusBadge horizontal padding; icon-to-text gap (Button icon+label) |
+| 12px | Button `sm` horizontal padding; Toast vertical padding; Toast icon-to-text gap |
+| 16px | Button `md` horizontal padding; Toast horizontal padding |
 | 24px | Button `lg` horizontal padding |
 | 32px | EmptyState/StateBlock outer padding (empty/error variants) |
+
+Note: an earlier draft used 6px/10px/14px for the icon-to-text and Toast padding/gap values above; these were snapped to the nearest 4px multiple (6→8, 10→12, 14→16) so every new primitive-specific value sits on the 4px grid — the matching Toast container spec below uses the snapped values.
 
 Exceptions: the `S`/`R` scale itself is the phase's declared exception to the generic 4px-multiple rule — see rationale above. No further exceptions.
 
@@ -89,10 +88,10 @@ Mapped from `lightTheme` (light-only-active per THEME-01 — dark values exist i
 |------|-------|-------|
 | Dominant (60%) | `#F8F1E7` (`lightTheme.background`) | Screen backgrounds behind all primitives |
 | Secondary (30%) | `#FFFDFC` (`lightTheme.surface`), border `#E4D6C4` (`lightTheme.border`) | Card surface, secondary/ghost Button background, EmptyState/StateBlock container |
-| Accent (10%) | `#4F7A5A` (`lightTheme.primaryAction`, i.e. `C.accent`) | Reserved for: primary Button variant fill, Card "action label" text (existing convention), Toast success icon/accent, StateBlock retry Button when using secondary variant's text color |
+| Accent (10%) | `#4F7A5A` (`lightTheme.primaryAction`, i.e. `C.accent`) | Reserved for exactly two usages: primary Button variant fill (default state) and Toast success icon/accent — see the authoritative statement immediately below the table |
 | Destructive | `#A9363F` (`statusTokens.dirty`, i.e. `C.alert`) | Destructive Button variant fill, Toast error fill, StatusBadge alert-family states (dirty/occupied/emergency/urgent/overdue) |
 
-Accent reserved for: primary-variant Button fill and its pressed/loading states; Toast success accent; no other element may use `#4F7A5A` as a decorative color this phase (status colors are their own protected contract — see `statusTokens`/`darkStatusTokens`, do not substitute the general accent for a status hue).
+**Accent reserved for (single authoritative statement):** the primary-variant Button's fill (default + pressed/loading states, per the Button variants table below) and Toast's success accent. No other element — including Card action-label text and the StateBlock retry Button — may use `#4F7A5A` as a decorative color this phase. The StateBlock retry Button uses whatever variant (and therefore whatever text/fill color) is specified in the Button contract's variant table below, not a separate accent rule. Status colors are their own protected contract (see `statusTokens`/`darkStatusTokens`) — do not substitute the general accent for a status hue.
 
 ---
 
@@ -124,7 +123,7 @@ Accent reserved for: primary-variant Button fill and its pressed/loading states;
 
 | Size | minHeight | Horizontal padding | Font size | Icon size | Radius |
 |---|---|---|---|---|---|
-| `sm` | 44 | 12 | 13px / weight 600 | 14 | `R.md` (12) |
+| `sm` | 44 | 12 | 14px / weight 600 | 14 | `R.md` (12) |
 | `md` | 48 | 16 | 15px / weight 600 | 16 | `R.md` (12) |
 | `lg` | 56 | 24 | 16px / weight 600 | 18 | `R.md` (12) |
 
@@ -136,7 +135,7 @@ Accent reserved for: primary-variant Button fill and its pressed/loading states;
 
 **HeroButton** (`mobileHandoff.tsx`) is explicitly untouched — separate component, no call sites change (D-05).
 
-**IconButton** (D-08): kept structurally as-is (`icon`, `tone`, `size = 36` default props unchanged). This phase only re-wires its internal color resolution from the static `C` import to `useTheme()`. **Known gap, explicitly accepted:** the existing default `size={36}` is below the 44pt/48dp floor UI-01 requires for *new* touch targets. Do not silently "fix" this in Phase 7 (D-08 forbids adding a new size surface). Any Phase 8+ screen that adopts `IconButton` in a context requiring a guaranteed touch target **must** pass `size={44}` or greater explicitly — flag this constraint to the Phase 8 planner.
+**IconButton** (D-08): kept structurally as-is (`icon`, `tone`, `size = 36` default props unchanged). This phase only re-wires its internal color resolution from the static `C` import to `useTheme()`. **Known gap, explicitly accepted:** the existing default `size={36}` is below the 44pt/48dp floor UI-01 requires for *new* touch targets. Do not silently "fix" this in Phase 7 (D-08 forbids adding a new size surface). Any Phase 8+ screen that adopts `IconButton` in a context requiring a guaranteed touch target **must** pass `size={44}` or greater explicitly — flag this constraint to the Phase 8 planner. **Accessibility requirement (structural surface stays frozen, but this is a required prop contract, not a new size/variant):** because `IconButton` is icon-only with no visible text, every call site MUST pass an `accessibilityLabel` prop describing the action — `IconButton` renders no fallback/default label.
 
 ---
 
@@ -166,7 +165,7 @@ Single component, one `status` prop drives rendering: `"loading" | "empty" | "er
 | State | Rendering |
 |---|---|
 | `loading` | Centered `ActivityIndicator size="large"` color `#4F7A5A` (`C.accent`), vertical padding `S.sectionGap` (22) top/bottom. Same visual pattern the 38 files already hand-roll today — centralized, not redesigned (D-13). No skeleton loader (explicitly deferred). |
-| `empty` | Centered column: `Ionicons` icon (caller-provided name, size 40, color `#807A70` i.e. `C.ink3`/`textMuted`) → 8px gap → title (Heading role: 16px/600, color `C.ink`) → 4px gap → body message (Body role: 14px/600→ use weight 500 for empty/error body per existing `aiInsightText` convention, color `C.ink3`). Outer padding 32 all sides. |
+| `empty` | Centered column: `Ionicons` icon (caller-provided name, size 40, color `#807A70` i.e. `C.ink3`/`textMuted`) → 8px gap → title (Heading role: 16px/600, color `C.ink`) → 4px gap → body message (Body role: 14px/600, color `C.ink3`). Outer padding 32 all sides. |
 | `error` | Same layout as `empty`, icon defaults to `alert-circle-outline`, icon color `#A9363F` (`C.alert`), message color `C.ink2`. If `onRetry` prop is provided, render a `Button` (`variant="secondary"`, `size="md"`) below the message with an 16px top gap; if omitted, no button renders (D-14 — no caller is forced to wire retry). |
 
 Every string (title, message, retry-button label) is a **required caller prop** — `StateBlock` renders no hardcoded English defaults, satisfying the i18n floor contract and Pitfall 4.
@@ -177,7 +176,7 @@ Every string (title, message, retry-button label) is a **required caller prop** 
 
 Single component, `statusKey` prop selects the color+icon+label triplet. **Always** renders icon + label + color together — no compact/icon-only mode (D-11), and reads colors via `useTheme()` → `statusTokens`/`darkStatusTokens` from day one (D-12), even though only light mode is reachable this phase.
 
-**Container:** pill shape — `borderRadius: 999`, `borderWidth: 1`, `paddingHorizontal: 8`, `paddingVertical: 3`, `minHeight: 22` (informational label, not a touchable — the 44pt floor does not apply), `flexDirection: row`, `gap: 5`, icon size 12, label = Label role (11px/800, uppercase, `letterSpacing: 0.3`).
+**Container:** pill shape — `borderRadius: 999`, `borderWidth: 1`, `paddingHorizontal: 8`, `paddingVertical: 4`, `minHeight: 22` (informational label, not a touchable — the 44pt floor does not apply), `flexDirection: row`, `gap: 4`, icon size 12, label = Label role (11px/800, uppercase, `letterSpacing: 0.3`).
 
 **Icon set — formalized from `WorkOrderCard.tsx`'s existing convention, extended to cover room-status states per D-10 (both families share `statusTokens`/`darkStatusTokens`):**
 
@@ -224,7 +223,7 @@ Single component, `statusKey` prop selects the color+icon+label triplet. **Alway
 | `error` | `#A9363F` (`statusTokens.dirty`) | `alert-circle`, `#FFFFFF`, size 18 | `#FFFFFF`, 15px/600 |
 | `info` | `#20251F` (`shellTokens.bg`) | `information-circle`, `#FFFFFF`, size 18 | `#FFFFFF`, 15px/600 |
 
-Container: `borderRadius: R.md` (12), `paddingHorizontal: 14`, `paddingVertical: 12`, `flexDirection: row`, `alignItems: center`, `gap: 10`, text allowed to wrap to 2 lines (do not truncate — Spanish strings run 15–30% longer per Pitfall 4). Shadow: `shadowOpacity: 0.18`, `shadowRadius: 10`, `shadowOffset: {0,4}`, elevation 6.
+Container: `borderRadius: R.md` (12), `paddingHorizontal: 16`, `paddingVertical: 12`, `flexDirection: row`, `alignItems: center`, `gap: 12`, text allowed to wrap to 2 lines (do not truncate — Spanish strings run 15–30% longer per Pitfall 4). Shadow: `shadowOpacity: 0.18`, `shadowRadius: 10`, `shadowOffset: {0,4}`, elevation 6.
 
 **Motion:** enter — translateY from −20 to 0 + opacity 0→1, 200ms ease-out. Exit (timeout or swipe release beyond threshold) — translateY 0→−20 + opacity 1→0, 150ms ease-in. Implemented via RN core `Animated` API only (no Reanimated/new dependency, per Pitfall 3 / STACK.md).
 
