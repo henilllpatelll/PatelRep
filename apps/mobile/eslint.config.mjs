@@ -1,0 +1,58 @@
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const i18next = require('eslint-plugin-i18next')
+const tsParser = require('@typescript-eslint/parser')
+
+const config = [
+  {
+    ignores: [
+      'node_modules/**',
+      '.expo/**',
+      'android/**',
+      'ios/**',
+      'dist/**',
+      'babel.config.js',
+      'metro.config.js',
+    ],
+  },
+  // ── Floor-facing i18next hard-fail gate (D-15 / D-16) ──
+  // A raw user-facing string literal in JSX text, aria-label, placeholder, or
+  // title on a floor-facing surface fails `npm run lint`. Scope mirrors web's
+  // gate: the four new primitives (components/ui/**) plus the existing
+  // floor-facing screens/components. Non-floor screens are added gate-by-gate
+  // in Phase 9. Severity is 'error' (hard CI failure), never 'warn'.
+  {
+    files: [
+      'components/ui/**',
+      'app/(app)/my-rooms/**',
+      'app/(app)/room-board/**',
+      'app/(app)/room-status/**',
+      'app/(app)/work-orders/**',
+      'app/(app)/tasks/**',
+      'app/(app)/inspect/**',
+      'components/housekeeping/**',
+      'components/engineering/**',
+      'components/tasks/**',
+    ],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: { i18next },
+    rules: {
+      'i18next/no-literal-string': [
+        'error',
+        {
+          markupOnly: true,
+          'jsx-attributes': { include: ['aria-label', 'placeholder', 'title'] },
+        },
+      ],
+    },
+  },
+]
+
+export default config
