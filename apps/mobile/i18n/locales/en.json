@@ -7,7 +7,11 @@
     "save": "Save",
     "confirm": "Confirm",
     "back": "Back",
-    "offline": "You're offline — changes will sync when connected"
+    "offline": "You're offline — changes will sync when connected",
+    "errorGeneric": {
+      "title": "Something went wrong",
+      "body": "Something went wrong loading this data."
+    }
   },
   "auth": {
     "login": "Log In",
