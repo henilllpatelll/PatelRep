@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Tabs, router, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
@@ -11,12 +11,14 @@ import { C } from "@/components/shared/tokens";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { setupPushNotifications } from "@/lib/notifications";
 import { listNotifications } from "@/lib/api/notifications";
+import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 
 export default function AppLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount, setUnreadCount } = useAppStore();
   const pathname = usePathname();
+  const [bannerHeight, setBannerHeight] = useState(0);
   const hideFab = /^\/my-rooms\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
@@ -78,72 +80,77 @@ export default function AppLayout() {
   if (isLoading || !user) return null;
 
   return (
-    <View style={styles.root}>
-      <OfflineBanner />
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: C.shellInk,
-          tabBarInactiveTintColor: C.shellInk3,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-          tabBarStyle: {
-            backgroundColor: C.shell,
-            borderTopColor: C.shellLine,
-            borderTopWidth: 1,
-            height: 76,
-            paddingTop: 8,
-            paddingBottom: 12,
-            shadowColor: "#000",
-            shadowOpacity: 0.25,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: -4 },
-            elevation: 10,
-          },
-          headerStyle: { backgroundColor: C.paper },
-          headerTintColor: C.ink,
-          headerTitleStyle: { fontWeight: "600", color: C.ink },
-          headerShadowVisible: false,
-        }}
-      >
-        {visibleTabs.map((tab) => (
-          <Tabs.Screen
-            key={tab.name}
-            name={tab.name}
-            options={{
-              title: t(tab.titleKey),
-              headerShown: false,
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name={tab.icon} size={size} color={color} />
-              ),
-            }}
-          />
-        ))}
-        {ALL_ROLE_TAB_ROUTES.filter((name) => !visibleNames.has(name)).map((name) => (
-          <Tabs.Screen key={name} name={name} options={{ href: null }} />
-        ))}
-        {HIDDEN_APP_ROUTES.map((name) => (
-          <Tabs.Screen
-            key={name}
-            name={name}
-            options={{
-              href: null,
-              headerShown: false,
-              tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
-            }}
-            listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}
-          />
-        ))}
-      </Tabs>
-      {!hideFab ? (
-        <TouchableOpacity
-          accessibilityLabel="AI Copilot"
-          style={[styles.fab, { bottom: insets.bottom + 92 }]}
-          onPress={() => router.push("/(app)/copilot" as never)}
-          activeOpacity={0.85}
+    <ToastProvider>
+      <View style={styles.root}>
+        <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
+          <OfflineBanner />
+        </View>
+        <ToastViewport topOffset={insets.top + bannerHeight} />
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: C.shellInk,
+            tabBarInactiveTintColor: C.shellInk3,
+            tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+            tabBarStyle: {
+              backgroundColor: C.shell,
+              borderTopColor: C.shellLine,
+              borderTopWidth: 1,
+              height: 76,
+              paddingTop: 8,
+              paddingBottom: 12,
+              shadowColor: "#000",
+              shadowOpacity: 0.25,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: -4 },
+              elevation: 10,
+            },
+            headerStyle: { backgroundColor: C.paper },
+            headerTintColor: C.ink,
+            headerTitleStyle: { fontWeight: "600", color: C.ink },
+            headerShadowVisible: false,
+          }}
         >
-          <Ionicons name="sparkles" size={22} color="#fff" />
-        </TouchableOpacity>
-      ) : null}
-    </View>
+          {visibleTabs.map((tab) => (
+            <Tabs.Screen
+              key={tab.name}
+              name={tab.name}
+              options={{
+                title: t(tab.titleKey),
+                headerShown: false,
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name={tab.icon} size={size} color={color} />
+                ),
+              }}
+            />
+          ))}
+          {ALL_ROLE_TAB_ROUTES.filter((name) => !visibleNames.has(name)).map((name) => (
+            <Tabs.Screen key={name} name={name} options={{ href: null }} />
+          ))}
+          {HIDDEN_APP_ROUTES.map((name) => (
+            <Tabs.Screen
+              key={name}
+              name={name}
+              options={{
+                href: null,
+                headerShown: false,
+                tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
+              }}
+              listeners={name === "notifications/index" ? { focus: () => setUnreadCount(0) } : undefined}
+            />
+          ))}
+        </Tabs>
+        {!hideFab ? (
+          <TouchableOpacity
+            accessibilityLabel="AI Copilot"
+            style={[styles.fab, { bottom: insets.bottom + 92 }]}
+            onPress={() => router.push("/(app)/copilot" as never)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="sparkles" size={22} color="#fff" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </ToastProvider>
   );
 }
 
