@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import type { ComponentProps } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { C, R, monoFont, shellTokens } from "@/components/shared/tokens";
+import { useTheme } from "@/lib/theme/useTheme";
+import { Card } from "@/components/ui/Card";
 import type { Room } from "@/stores/appStore";
 import {
   getPrimaryTimingLine,
@@ -189,58 +191,72 @@ interface RoomQueueCardProps {
 
 export function RoomQueueCard({ room, onPress, position, estimateMinutes, actionLabel, dimmed }: RoomQueueCardProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const timing = getPrimaryTimingLine(room);
   const badges = getRoomBadges(room);
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, dimmed && styles.cardDimmed]} testID={`room-card-${room.room_number}`}>
-      <StatusRail status={room.status} />
-      <View style={styles.cardBody}>
-        <View style={styles.cardTopRow}>
-          <StatusPill status={room.status} />
-          <CleanTypeTag room={room} />
-        </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Room ${room.room_number}`}
+      testID={`room-card-${room.room_number}`}
+    >
+      <Card dimmed={dimmed} style={styles.cardLayoutOverrides}>
+        <StatusRail status={room.status} />
+        <View style={styles.cardBody}>
+          <View style={styles.cardTopRow}>
+            <StatusPill status={room.status} />
+            <CleanTypeTag room={room} />
+          </View>
 
-        <View style={styles.cardTitleRow}>
-          <Text style={styles.roomNumber}>{room.room_number}</Text>
-          {roomType ? (
-            <Text style={styles.roomType} numberOfLines={1}>
-              {roomType}
-            </Text>
+          <View style={styles.cardTitleRow}>
+            <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>{room.room_number}</Text>
+            {roomType ? (
+              <Text style={[styles.roomType, { color: theme.textMuted }]} numberOfLines={1}>
+                {roomType}
+              </Text>
+            ) : null}
+          </View>
+
+          {timing || badges.length > 0 ? (
+            <View style={styles.cardMetaRow}>
+              {timing ? (
+                <View style={styles.timingRow}>
+                  <Ionicons name="time-outline" size={12} color={theme.textMuted} />
+                  <Text style={[styles.timingText, { color: theme.textSecondary }]}>
+                    {t(getTimingLabelKey(timing.label), { label: timing.label })}: {timing.value}
+                  </Text>
+                </View>
+              ) : null}
+              {badges
+                .filter((badge) => badge.key !== "checkout")
+                .map((badge) => {
+                  const loud = badge.key === "dnd";
+                  const brass = badge.key === "vip";
+                  const badgeColors = loud
+                    ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
+                    : brass
+                      ? { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }
+                      : { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle };
+                  const badgeTextColor = loud ? theme.status.dirty : brass ? theme.accentBrass : theme.textSecondary;
+                  return (
+                    <View key={badge.key} style={[styles.badge, badgeColors]}>
+                      <Text style={[styles.badgeText, { color: badgeTextColor }]}>
+                        {t(getBadgeLabelKey(badge.key), { label: badge.label })}
+                      </Text>
+                    </View>
+                  );
+                })}
+            </View>
           ) : null}
         </View>
-
-        {timing || badges.length > 0 ? (
-          <View style={styles.cardMetaRow}>
-            {timing ? (
-              <View style={styles.timingRow}>
-                <Ionicons name="time-outline" size={12} color={C.ink3} />
-                <Text style={styles.timingText}>
-                  {t(getTimingLabelKey(timing.label), { label: timing.label })}: {timing.value}
-                </Text>
-              </View>
-            ) : null}
-            {badges
-              .filter((badge) => badge.key !== "checkout")
-              .map((badge) => {
-                const loud = badge.key === "dnd";
-                const brass = badge.key === "vip";
-                return (
-                  <View key={badge.key} style={[styles.badge, loud && styles.badgeCritical, brass && styles.badgeBrass]}>
-                    <Text style={[styles.badgeText, loud && styles.badgeCriticalText, brass && styles.badgeBrassText]}>
-                      {t(getBadgeLabelKey(badge.key), { label: badge.label })}
-                    </Text>
-                  </View>
-                );
-              })}
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.cardRight}>
-        {actionLabel ? <Text style={styles.actionLabel}>{actionLabel}</Text> : null}
-        <Ionicons name="chevron-forward" size={15} color={C.ink4} />
-      </View>
-    </TouchableOpacity>
+        <View style={styles.cardRight}>
+          {actionLabel ? <Text style={[styles.actionLabel, { color: theme.primaryAction }]}>{actionLabel}</Text> : null}
+          <Ionicons name="chevron-forward" size={15} color={theme.textDisabled} />
+        </View>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -334,48 +350,29 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 11, fontWeight: "800" },
 
-  card: {
+  cardLayoutOverrides: {
     position: "relative",
     overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
-    borderRadius: R.lg,
+    paddingVertical: 0,
     paddingLeft: 16,
     paddingRight: 12,
-    shadowColor: C.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  cardDimmed: {
-    backgroundColor: C.surface2,
-    borderColor: C.line2,
-    shadowOpacity: 0,
-    elevation: 0,
-    opacity: 0.7,
   },
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 14, gap: 8 },
   cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   cardTitleRow: { flexDirection: "row", alignItems: "baseline", gap: 8, minWidth: 0 },
-  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800", color: C.ink },
-  roomType: { flex: 1, color: C.ink3, fontSize: 12.5, minWidth: 0 },
+  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800" },
+  roomType: { flex: 1, fontSize: 12.5, minWidth: 0 },
   etaText: { fontFamily: monoFont, color: C.ink3, fontSize: 12, fontWeight: "700" },
   positionText: { marginLeft: "auto", fontFamily: monoFont, color: C.ink4, fontSize: 11, fontWeight: "800" },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   timingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  timingText: { color: C.ink2, fontFamily: monoFont, fontSize: 11.5 },
-  badge: { backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeCritical: { backgroundColor: C.alertSoft, borderColor: C.alertLine },
-  badgeBrass: { backgroundColor: C.brassSoft, borderColor: C.brassLine },
-  badgeText: { color: C.ink2, fontSize: 10, fontWeight: "800" },
-  badgeCriticalText: { color: C.alert },
-  badgeBrassText: { color: C.brass },
+  timingText: { fontFamily: monoFont, fontSize: 11.5 },
+  badge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeText: { fontSize: 10, fontWeight: "800" },
   cardRight: { alignItems: "flex-end", gap: 4, paddingLeft: 10 },
-  actionLabel: { color: C.accent, fontSize: 12, fontWeight: "800" },
+  actionLabel: { fontSize: 12, fontWeight: "800" },
 
   cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   cleanTypeText: { fontSize: 10, fontWeight: "800" },
