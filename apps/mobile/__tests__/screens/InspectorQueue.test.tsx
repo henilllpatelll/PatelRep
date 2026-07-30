@@ -57,10 +57,24 @@ jest.mock("@/lib/api/inspections", () => ({
 
 import { api } from "@/lib/api/client";
 import { listInspectionTemplates } from "@/lib/api/inspections";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 import InspectScreen from "@/app/(app)/inspect";
 
 const mockGet = api.get as jest.Mock;
 const mockTemplates = listInspectionTemplates as jest.Mock;
+
+// InspectScreen consumes useTheme()/useToast(), both of which throw outside their
+// providers — wrap every render the same way _layout.tsx nests them at runtime.
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <ToastProvider>
+        <InspectScreen />
+      </ToastProvider>
+    </ThemeProvider>,
+  );
+}
 
 const mockQueue = [
   { room_id: "r-103", room_number: "103", floor: 1, cleaned_by: "Maria", cleaned_at: null, housekeeper_id: null, clean_type: null },
@@ -77,7 +91,7 @@ beforeEach(() => {
 
 describe("InspectScreen", () => {
   it("renders the hero and loads queue rooms", async () => {
-    const { getByText, getAllByText } = render(<InspectScreen />);
+    const { getByText, getAllByText } = renderScreen();
     await waitFor(() => expect(getByText("Inspections")).toBeTruthy());
     expect(getAllByText("103").length).toBeGreaterThan(0);
     expect(getAllByText("107").length).toBeGreaterThan(0);
@@ -85,7 +99,7 @@ describe("InspectScreen", () => {
   });
 
   it("shows the day summary, waiting signal, and segmented tabs", async () => {
-    const { getByText } = render(<InspectScreen />);
+    const { getByText } = renderScreen();
     await waitFor(() => expect(getByText("2 waiting · 0 passed today")).toBeTruthy());
     expect(getByText("2 waiting")).toBeTruthy();
     expect(getByText(/To inspect/)).toBeTruthy();
