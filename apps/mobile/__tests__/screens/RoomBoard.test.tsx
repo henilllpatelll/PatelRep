@@ -47,10 +47,19 @@ jest.mock("@/stores/appStore", () => ({
 }));
 
 import { fetchAssignableStaff, fetchBoard } from "@/lib/api/housekeepingSupervisor";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import RoomBoardScreen from "@/app/(app)/room-board/index";
 
 const mockFetchBoard = fetchBoard as jest.Mock;
 const mockFetchAssignableStaff = fetchAssignableStaff as jest.Mock;
+
+function renderScreen() {
+  return render(
+    <ThemeProvider>
+      <RoomBoardScreen />
+    </ThemeProvider>,
+  );
+}
 
 // Board rows carry room identity nested under `rooms` — no flat room_number.
 const rows = [
@@ -82,7 +91,7 @@ beforeEach(() => {
 
 describe("RoomBoardScreen", () => {
   it("renders without crashing before the board fetch resolves (loading state)", async () => {
-    const { toJSON } = render(<RoomBoardScreen />);
+    const { toJSON } = renderScreen();
     expect(toJSON()).toBeTruthy();
 
     // Let the in-flight fetch settle so React state updates aren't left dangling.
@@ -90,14 +99,14 @@ describe("RoomBoardScreen", () => {
   });
 
   it("renders fetched rooms grouped by floor once loaded (populated state)", async () => {
-    render(<RoomBoardScreen />);
+    renderScreen();
 
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
     expect(screen.getByTestId("board-tile-201")).toBeTruthy();
   });
 
   it("renders the status color legend", async () => {
-    render(<RoomBoardScreen />);
+    renderScreen();
 
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
     expect(screen.getByTestId("color-legend")).toBeTruthy();
