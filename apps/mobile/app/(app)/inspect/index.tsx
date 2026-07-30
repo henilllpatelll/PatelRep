@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -15,9 +14,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { C, R, monoFont } from "@/components/shared/tokens";
+import { R, monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
+import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { api } from "@/lib/api/client";
 import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
@@ -71,8 +71,7 @@ export default function InspectScreen() {
   const [recleaning, setRecleaning] = useState(false);
 
   // Themed replacement for the former module-level RESULT_META constant — kept as
-  // the same identifier so the (unchanged, Part-B) detail-modal reference below
-  // continues to resolve via closure with no textual edit required there.
+  // the same identifier so the detail-modal reference below resolves via closure.
   const RESULT_META = useMemo<Record<InspectionRecord["overall_result"], { fg: string; bg: string; line: string }>>(
     () => ({
       passed: { fg: theme.status.ready, bg: theme.status.readySoft, line: theme.status.readyLine },
@@ -350,29 +349,33 @@ export default function InspectScreen() {
 
       <Modal visible={!!reclean} animationType="slide" transparent onRequestClose={() => setReclean(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReclean(null)}>
-          <TouchableOpacity style={styles.modalSheet} activeOpacity={1}>
-            <View style={styles.grabber} />
+          <TouchableOpacity style={[styles.modalSheet, { backgroundColor: theme.background }]} activeOpacity={1}>
+            <View style={[styles.grabber, { backgroundColor: theme.border }]} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                 {t("inspect.reclean.title", { room: reclean?.room.room_number })}
               </Text>
               <TouchableOpacity onPress={() => setReclean(null)} hitSlop={10}>
-                <Ionicons name="close" size={22} color={C.ink3} />
+                <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalBody}>{t("inspect.reclean.body", { housekeeper: reclean?.room.cleaned_by ?? "—" })}</Text>
+            <Text style={[styles.modalBody, { color: theme.textSecondary }]}>
+              {t("inspect.reclean.body", { housekeeper: reclean?.room.cleaned_by ?? "—" })}
+            </Text>
             {reclean?.notes ? (
-              <View style={styles.recleanNotesCard}>
-                <Text style={styles.recleanNotesText}>{reclean.notes}</Text>
+              <View style={[styles.recleanNotesCard, { backgroundColor: theme.status.dirtySoft }]}>
+                <Text style={[styles.recleanNotesText, { color: theme.status.dirty }]}>{reclean.notes}</Text>
               </View>
             ) : null}
             <View style={styles.confirmRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setReclean(null)}>
-                <Text style={styles.cancelText}>{t("common.cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.confirmBtn, styles.confirmFail, recleaning && styles.dimmed]}
-                disabled={recleaning}
+              <Button
+                label={t("common.cancel")}
+                onPress={() => setReclean(null)}
+                variant="secondary"
+                style={styles.cancelBtnFlex}
+              />
+              <Button
+                label={recleaning ? t("inspect.reclean.sending") : t("inspect.reclean.confirm")}
                 onPress={async () => {
                   if (!reclean || recleaning) return;
                   setRecleaning(true);
@@ -380,16 +383,15 @@ export default function InspectScreen() {
                     await triggerReclean(reclean.inspectionId);
                     setReclean(null);
                   } catch {
-                    Alert.alert(t("inspect.reclean.error"));
+                    toast.error(t("inspect.reclean.error"));
                   } finally {
                     setRecleaning(false);
                   }
                 }}
-              >
-                <Text style={styles.confirmText}>
-                  {recleaning ? t("inspect.reclean.sending") : t("inspect.reclean.confirm")}
-                </Text>
-              </TouchableOpacity>
+                loading={recleaning}
+                variant="destructive"
+                style={styles.confirmBtnFlex}
+              />
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -397,19 +399,19 @@ export default function InspectScreen() {
 
       <Modal visible={!!detailRecord} animationType="slide" transparent onRequestClose={() => setDetailRecord(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDetailRecord(null)}>
-          <TouchableOpacity style={styles.modalSheet} activeOpacity={1}>
-            <View style={styles.grabber} />
+          <TouchableOpacity style={[styles.modalSheet, { backgroundColor: theme.background }]} activeOpacity={1}>
+            <View style={[styles.grabber, { backgroundColor: theme.border }]} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                 {t("inspect.detail.title", { room: detailRecord?.room_number })}
               </Text>
               <TouchableOpacity onPress={() => setDetailRecord(null)} hitSlop={10}>
-                <Ionicons name="close" size={22} color={C.ink3} />
+                <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
             {detailRecord ? (
               <>
-                <Text style={styles.detailMeta}>
+                <Text style={[styles.detailMeta, { color: theme.textMuted }]}>
                   {detailRecord.inspector_name} · {formatClock(detailRecord.completed_at)}
                 </Text>
                 {(() => {
@@ -430,10 +432,10 @@ export default function InspectScreen() {
 
       <Modal visible={!!confirm} animationType="slide" transparent onRequestClose={() => setConfirm(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.grabber} />
+          <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+            <View style={[styles.grabber, { backgroundColor: theme.border }]} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                 {confirm?.result === "passed"
                   ? t("inspect.modalTitlePass", { room: confirm?.room.room_number })
                   : confirm?.result === "conditional"
@@ -441,13 +443,13 @@ export default function InspectScreen() {
                     : t("inspect.modalTitleFail", { room: confirm?.room.room_number })}
               </Text>
               <TouchableOpacity onPress={() => setConfirm(null)} hitSlop={10}>
-                <Ionicons name="close" size={22} color={C.ink3} />
+                <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
 
             {confirm?.result === "failed" && template?.items && template.items.length > 0 ? (
               <>
-                <Text style={styles.fieldLabel}>{t("inspect.failChecklistLabel")}</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("inspect.failChecklistLabel")}</Text>
                 <View style={styles.checklistWrap}>
                   {template.items.map((item) => {
                     const failed = Boolean(failedItems[item.id]);
@@ -458,10 +460,22 @@ export default function InspectScreen() {
                         onPress={() => setFailedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                         activeOpacity={0.8}
                       >
-                        <View style={[styles.checkBox, failed && styles.checkBoxFail]}>
+                        <View
+                          style={[
+                            styles.checkBox,
+                            { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+                            failed && { backgroundColor: theme.status.dirty, borderColor: theme.status.dirty },
+                          ]}
+                        >
                           {failed ? <Ionicons name="close" size={12} color="#fff" /> : null}
                         </View>
-                        <Text style={[styles.checklistLabel, failed && styles.checklistLabelFail]}>
+                        <Text
+                          style={[
+                            styles.checklistLabel,
+                            { color: theme.textPrimary },
+                            failed && { color: theme.status.dirty, textDecorationLine: "line-through" },
+                          ]}
+                        >
                           {item.description}
                         </Text>
                       </TouchableOpacity>
@@ -470,15 +484,15 @@ export default function InspectScreen() {
                 </View>
               </>
             ) : null}
-            <Text style={styles.fieldLabel}>{t("inspect.notesOptional")}</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("inspect.notesOptional")}</Text>
             <TextInput
-              style={styles.notesInput}
+              style={[styles.notesInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder={
                 confirm?.result === "failed"
                   ? t("inspect.failNotesPlaceholder")
                   : t("inspect.passNotesPlaceholder")
               }
-              placeholderTextColor={C.ink4}
+              placeholderTextColor={theme.textDisabled}
               value={confirmNotes}
               onChangeText={setConfirmNotes}
               multiline
@@ -486,13 +500,30 @@ export default function InspectScreen() {
             />
 
             <View style={styles.confirmRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setConfirm(null)}>
-                <Text style={styles.cancelText}>{t("common.cancel")}</Text>
-              </TouchableOpacity>
+              <Button
+                label={t("common.cancel")}
+                onPress={() => setConfirm(null)}
+                variant="secondary"
+                style={styles.cancelBtnFlex}
+              />
+              {/* Tri-color pass/touchup/fail confirm action kept as a themed
+                  TouchableOpacity rather than <Button> — Button's variant palette
+                  (primary/secondary/ghost/destructive) has no amber/caution tone,
+                  and force-fitting "conditional" onto "primary" would misleadingly
+                  recolor a caution action forest-green. Mirrors the same queue
+                  action buttons above and the 08-02 ChecklistSection precedent for
+                  not force-fitting a status vocabulary onto a mismatched primitive. */}
               <TouchableOpacity
                 style={[
                   styles.confirmBtn,
-                  confirm?.result === "passed" ? styles.confirmPass : confirm?.result === "conditional" ? styles.confirmTouchup : styles.confirmFail,
+                  {
+                    backgroundColor:
+                      confirm?.result === "passed"
+                        ? theme.status.ready
+                        : confirm?.result === "conditional"
+                          ? theme.status.pickup
+                          : theme.status.dirty,
+                  },
                   submitting && styles.dimmed,
                 ]}
                 onPress={handleConfirm}
@@ -614,7 +645,6 @@ const styles = StyleSheet.create({
 
   modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
   modalSheet: {
-    backgroundColor: C.paper,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingHorizontal: 20,
@@ -626,46 +656,30 @@ const styles = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: C.line,
     marginBottom: 14,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: C.ink, flex: 1, marginRight: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "700", flex: 1, marginRight: 12 },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: C.ink3,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
   },
   notesInput: {
-    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.line,
     borderRadius: R.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: C.ink,
     minHeight: 84,
     textAlignVertical: "top",
   },
   confirmRow: { flexDirection: "row", gap: 10, marginTop: 18 },
-  cancelBtn: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: R.md,
-    borderWidth: 1,
-    borderColor: C.line,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelText: { fontSize: 15, fontWeight: "600", color: C.ink3 },
+  cancelBtnFlex: { flex: 1 },
+  confirmBtnFlex: { flex: 2 },
   confirmBtn: { flex: 2, minHeight: 46, borderRadius: R.md, alignItems: "center", justifyContent: "center" },
-  confirmPass: { backgroundColor: C.ready },
-  confirmFail: { backgroundColor: C.alert },
-  confirmTouchup: { backgroundColor: C.caution },
   confirmText: { fontSize: 15, fontWeight: "700", color: "#fff" },
   dimmed: { opacity: 0.5 },
 
@@ -673,14 +687,11 @@ const styles = StyleSheet.create({
   checklistRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   checkBox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 1.5,
-    borderColor: C.line, backgroundColor: C.surface2,
     alignItems: "center", justifyContent: "center",
   },
-  checkBoxFail: { backgroundColor: C.alert, borderColor: C.alert },
-  checklistLabel: { fontSize: 13.5, color: C.ink, flex: 1 },
-  checklistLabelFail: { color: C.alert, textDecorationLine: "line-through" },
-  detailMeta: { fontSize: 12.5, color: C.ink3, marginTop: 4 },
-  modalBody: { fontSize: 14, lineHeight: 20, color: C.ink2, marginBottom: 12 },
-  recleanNotesCard: { backgroundColor: C.alertSoft, borderRadius: 10, padding: 12, marginBottom: 12 },
-  recleanNotesText: { fontSize: 12.5, color: C.alert },
+  checklistLabel: { fontSize: 13.5, flex: 1 },
+  detailMeta: { fontSize: 12.5, marginTop: 4 },
+  modalBody: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  recleanNotesCard: { borderRadius: 10, padding: 12, marginBottom: 12 },
+  recleanNotesText: { fontSize: 12.5 },
 });
